@@ -1,7 +1,7 @@
 # Implementation Plan
 
-- [ ] 1. Next.js プロジェクト基盤のセットアップ
-- [ ] 1.1 `frontend/` ディレクトリに Next.js 15 App Router プロジェクトを初期化し、全依存パッケージをインストールする
+- [x] 1. Next.js プロジェクト基盤のセットアップ
+- [x] 1.1 `frontend/` ディレクトリに Next.js 15 App Router プロジェクトを初期化し、全依存パッケージをインストールする
   - `frontend/package.json` を作成し、dependencies に `next@^15`、`react`、`react-dom`、`@opennextjs/cloudflare`、`@directus/sdk` を記載する
   - devDependencies に `typescript`、`@types/react`、`@types/node`、`@t3-oss/env-nextjs`、`zod`、`wrangler` を記載する
   - scripts に `dev`、`build`、`type-check`（`tsc --noEmit`）、`preview`、`deploy` を定義する
@@ -9,13 +9,13 @@
   - `pnpm install` がエラーなく完了し、`pnpm-lock.yaml` が存在すること
   - _Requirements: 1.1, 1.2, 1.3, 1.5, 5.4_
 
-- [ ] 1.2 TypeScript strict 設定を追加し、型チェックが機能することを確認する
+- [x] 1.2 TypeScript strict 設定を追加し、型チェックが機能することを確認する
   - `tsconfig.json` を App Router 向けに設定し、`strict: true`、`moduleResolution: "bundler"`、`paths`（`@/*: ["./src/*"]`）を有効にする
   - `pnpm type-check`（`tsc --noEmit`）がクリーンなプロジェクトで exit 0 で完了すること
   - 意図的に型エラーを含むファイルを追加した場合に非ゼロ終了することを確認する
   - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-- [ ] 1.3 ディレクトリ骨格と `.gitignore` を整備する
+- [x] 1.3 ディレクトリ骨格と `.gitignore` を整備する
   - `src/app/`、`src/components/`（`.gitkeep`）、`src/lib/`、`public/` を作成する
   - リポジトリルートの `.gitignore` に `node_modules/`、`.next/`、`.open-next/`、`*.local`、`.env`、`.env.local`、`.env.*.local` を追加する
   - 指定ディレクトリがすべて存在し、`.gitignore` が除外パターンを網羅していること
