@@ -21,8 +21,8 @@
   - 指定ディレクトリがすべて存在し、`.gitignore` が除外パターンを網羅していること
   - _Requirements: 4.1, 4.3, 4.4, 6.4_
 
-- [ ] 2. Cloudflare Workers 設定と環境変数バリデーションの実装
-- [ ] 2.1 (P) OpenNext Cloudflare アダプターの設定ファイルを作成する
+- [x] 2. Cloudflare Workers 設定と環境変数バリデーションの実装
+- [x] 2.1 (P) OpenNext Cloudflare アダプターの設定ファイルを作成する
   - `next.config.ts` に `initOpenNextCloudflareForDev()` を追加し、ローカル開発で Cloudflare バインディングにアクセスできるようにする
   - `open-next.config.ts` を `defineCloudflareConfig()` で作成する
   - `wrangler.toml` に `name = "aramakisai-web"`、`main = ".open-next/worker.js"`、`compatibility_date = "2024-12-30"`、`compatibility_flags = ["nodejs_compat"]`、`assets.directory = ".open-next/assets"` を設定する
@@ -30,7 +30,7 @@
   - _Requirements: 3.1, 3.2, 3.5_
   - _Boundary: CloudflareRuntimeConfig_
 
-- [ ] 2.2 (P) 環境変数バリデーションと `.env.example` を実装する
+- [x] 2.2 (P) 環境変数バリデーションと `.env.example` を実装する
   - `src/env.ts` に `@t3-oss/env-nextjs` と `zod` を使用し、`NEXT_PUBLIC_DIRECTUS_URL`（`z.string().url()`）と `NEXT_PUBLIC_SITE_URL`（`z.string().url()`）のスキーマを定義する
   - `runtimeEnv` に手動分割代入（`process.env.NEXT_PUBLIC_DIRECTUS_URL` 等）でバンドラーの NEXT_PUBLIC_ 制約に対応する
   - `.env.example` に全必須変数のキー・プレースホルダー・コメントを記載し、実値は含めない
