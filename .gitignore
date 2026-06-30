@@ -21,3 +21,6 @@ out/
 
 # Misc
 .DS_Store
+
+# wrangler
+.wrangler/
