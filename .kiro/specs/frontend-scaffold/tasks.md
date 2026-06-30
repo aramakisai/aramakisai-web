@@ -38,7 +38,7 @@
   - _Requirements: 5.3, 6.1, 6.2, 6.3_
   - _Boundary: EnvValidator_
 
-- [ ] 3. Directus SDK クライアントを実装する
+- [x] 3. Directus SDK クライアントを実装する
   - `src/lib/directus.ts` で `createDirectus(env.NEXT_PUBLIC_DIRECTUS_URL).with(rest())` パターンを使用してクライアントを初期化する
   - クライアントをスキーマ型パラメーター付きの named export（`export const directus`）として公開する
   - Node.js 専用 API（`fs`、`crypto` 等）を使用せず Fetch API のみに依存する
