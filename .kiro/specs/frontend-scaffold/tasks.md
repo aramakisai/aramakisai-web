@@ -46,15 +46,15 @@
   - _Depends: 2.2_
   - _Requirements: 5.1, 5.2, 5.5_
 
-- [ ] 4. App Shell の実装とビルド統合検証
-- [ ] 4.1 Root Layout と placeholder Page を実装する
+- [x] 4. App Shell の実装とビルド統合検証
+- [x] 4.1 Root Layout と placeholder Page を実装する
   - `src/app/layout.tsx` に `<html lang="ja"><body>{children}</body></html>` の Root Layout と `export const metadata` を実装する
   - `src/app/page.tsx` にプレースホルダーテキストのみの page コンポーネントを実装する（スタイル・コンテンツはスコープ外）
   - ランタイムディレクティブ（`export const runtime = 'edge'`）をいずれのファイルにも含めない
   - `pnpm dev` で `http://localhost:3000` にアクセスしてページが表示されること
   - _Requirements: 1.4, 3.4, 4.2_
 
-- [ ] 4.2 ビルド・型チェック・環境変数バリデーションを統合検証する
+- [x] 4.2 ビルド・型チェック・環境変数バリデーションを統合検証する
   - `pnpm type-check` が `src/` 配下の全ファイルを検証し exit 0 で完了すること
   - `pnpm build` が Next.js ビルドと OpenNext 変換を完了し、`.open-next/` に成果物を生成すること
   - `NEXT_PUBLIC_DIRECTUS_URL` を未設定にしてビルドを実行し、ZodError で失敗することを確認する
