@@ -11,8 +11,6 @@ node_modules/
 out/
 
 # Env files
-.env
-.env.local
 .env.*.local
 *.local
 
