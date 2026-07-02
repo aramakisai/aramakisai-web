@@ -22,3 +22,6 @@ out/
 
 # wrangler
 .wrangler/
+
+# Temporary files
+temp/
