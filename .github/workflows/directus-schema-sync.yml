@@ -1,0 +1,91 @@
+name: Directus Schema Sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - directus/schema/snapshot.yaml
+      - directus/migrations/**
+
+jobs:
+  sync:
+    name: Sync schema to infra repo
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout web repo
+        uses: actions/checkout@v4
+
+      - name: Checkout infra repo
+        uses: actions/checkout@v4
+        with:
+          repository: aramakisai/aramakisai-infra
+          token: ${{ secrets.INFRA_GITHUB_TOKEN }}
+          path: infra
+
+      - name: Generate ConfigMaps
+        run: |
+          for ENV in staging prod; do
+            kubectl create configmap directus-schema \
+              --from-file=snapshot.yaml=directus/schema/snapshot.yaml \
+              --namespace="$ENV" \
+              --dry-run=client -o yaml \
+              > "infra/gitops/manifests/$ENV/directus/schema-configmap.yaml"
+
+            if [ -d directus/migrations ] && compgen -G "directus/migrations/*.js" > /dev/null; then
+              kubectl create configmap directus-migrations \
+                --from-file=directus/migrations/ \
+                --namespace="$ENV" \
+                --dry-run=client -o yaml \
+                > "infra/gitops/manifests/$ENV/directus/migrations-configmap.yaml"
+            fi
+          done
+
+      - name: Create PR in infra repo
+        run: |
+          cd infra
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          BRANCH="directus-schema-${GITHUB_SHA::8}"
+          git checkout -b "$BRANCH"
+          git add \
+            gitops/manifests/staging/directus/schema-configmap.yaml \
+            gitops/manifests/prod/directus/schema-configmap.yaml \
+            gitops/manifests/staging/directus/migrations-configmap.yaml \
+            gitops/manifests/prod/directus/migrations-configmap.yaml \
+            2>/dev/null || true
+
+          if git diff --cached --quiet; then
+            echo "schema に変更なし、PR作成スキップ"
+            exit 0
+          fi
+
+          git commit -m "chore(directus): sync schema from aramakisai-web@${GITHUB_SHA::8}"
+          git push origin "$BRANCH"
+
+          PR_BODY="## 概要
+
+          aramakisai-web の Directus スキーマ変更を infra に反映します。
+
+          トリガーコミット: aramakisai-web@${GITHUB_SHA}
+
+          ## マージ前チェックリスト
+
+          - [ ] staging (stg-api.aramakisai.com) で動作確認済み
+          - [ ] 破壊的変更 (カラム削除・型変更等) をチームに周知済み
+          - [ ] migration ファイルの冪等性を確認済み
+
+          ## 適用フロー
+
+          マージ後、ArgoCD が自動 sync し PostSync Job が実行されます:
+          directus database migrate:latest
+          directus schema apply"
+
+          gh pr create \
+            --repo aramakisai/aramakisai-infra \
+            --title "chore(directus): sync schema snapshot" \
+            --body "$PR_BODY"
+        env:
+          GH_TOKEN: ${{ secrets.INFRA_GITHUB_TOKEN }}

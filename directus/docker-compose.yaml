@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: directus
+      POSTGRES_USER: directus
+      POSTGRES_PASSWORD: directus
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U directus"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  directus:
+    image: directus/directus:12.1.1
+    ports:
+      - "8055:8055"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_CLIENT: pg
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_DATABASE: directus
+      DB_USER: directus
+      DB_PASSWORD: directus
+      SECRET: local-dev-secret-not-for-production
+      ADMIN_EMAIL: admin@local.dev
+      ADMIN_PASSWORD: admin
+      PUBLIC_URL: http://localhost:8055
+      CORS_ENABLED: "true"
+      CORS_ORIGIN: "*"
+      EXTENSIONS_AUTO_RELOAD: "true"
+    volumes:
+      - ./migrations:/directus/extensions/migrations
+      - directus-uploads:/directus/uploads
+
+volumes:
+  directus-uploads:
