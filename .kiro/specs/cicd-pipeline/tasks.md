@@ -80,8 +80,8 @@
   - _Requirements: 3.4, 3.5, 3.7, 5.4_
   - _Depends: 4.3_
 
-- [ ] 5. K8s スキーマ適用 Job マニフェスト（infra 側）
-- [ ] 5.1 (P) prod schema-apply Job マニフェスト
+- [x] 5. K8s スキーマ適用 Job マニフェスト（infra 側）
+- [x] 5.1 (P) prod schema-apply Job マニフェスト
   - prod Deployment と同一の `directus/directus:12.1.1` イメージで Job を定義し、`directus-schema` ConfigMap を `/snapshot/snapshot.yaml` にマウントする
   - コンテナ起動時に `database migrate:latest` → `schema apply --yes /snapshot/snapshot.yaml` を実行し、DB 直結（`DB_HOST`）+ `envFrom: directus-secrets` で認証する
   - 非 0 終了で Job を failed とし、`restartPolicy: OnFailure` + `backoffLimit: 1` で破壊的変更の連続再試行を防ぐ
@@ -90,7 +90,7 @@
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8_
   - _Boundary: SchemaApplyJob_
 
-- [ ] 5.2 staging Job マニフェストと ArgoCD 連携確認
+- [x] 5.2 staging Job マニフェストと ArgoCD 連携確認
   - staging Job を `http://directus.staging.svc.cluster.local:8055` 相当の staging DB 直結 + `directus-staging-secrets`（namespace `staging`）で定義する
   - ArgoCD `directus` / `directus-staging` App が `automated.selfHeal: true` で PR マージ直後に Job を反映することを確認する
   - staging Directus 基盤（DB / ExternalSecret / Service）が稼働済みである前提を検証する
@@ -98,7 +98,7 @@
   - _Requirements: 4.9, 5.2, 5.3_
   - _Depends: 5.1_
 
-- [ ] 5.3 infra ブランチ保護による staging gate 設定
+- [x] 5.3 infra ブランチ保護による staging gate 設定
   - `aramakisai-infra` に、prod Job manifest マージ前にチェックリスト完了を必須とするブランチ保護ルールを設定する
   - 完了条件: staging 確認チェック未完了の infra PR が prod にマージできない
   - _Requirements: 5.5_
