@@ -69,7 +69,8 @@ Directus スキーマの変更手順
 ローカルの Directus でスキーマを変更
 directus schema snapshot でファイルを更新
 snapshot.yaml を commit して PR を出す
-破壊的変更 (カラム削除等) はマージ前に必ずチームに周知
+
+**additive-only ルール**: 新規 collection / field の追加のみ許容する。カラム削除・型変更等の破壊的変更は、対応するフロントエンドコードがデプロイされ安定稼働するまで禁止する。破壊的変更を行う場合はマージ前に必ずチームに周知し、infra 側 PR のチェックリストで確認する。
 
 デプロイ先
 - 本番環境

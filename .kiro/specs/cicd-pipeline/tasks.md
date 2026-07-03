@@ -27,8 +27,8 @@
   - 完了条件: fork PR 実行時に Infisical/Cloudflare secret を参照するジョブがスキップされ、検証ジョブのみ走る
   - _Requirements: 7.6_
 
-- [ ] 3. Frontend Workers デプロイ（preview / prod）
-- [ ] 3.1 PR preview デプロイと URL 通知
+- [x] 3. Frontend Workers デプロイ（preview / prod）
+- [x] 3.1 PR preview デプロイと URL 通知
   - 検証ジョブ成功後（非 fork PR）に `infisical run --env=staging -- pnpm exec opennextjs-cloudflare build` で staging 向け `NEXT_PUBLIC_*` をインライン化してビルドする
   - `wrangler versions upload` で本番トラフィックを変えずに Version Preview URL を発行し、PR にコメント（既存があれば更新）する
   - Cloudflare の Git ネイティブ連携は使わず、デプロイ経路を GHA に一本化する
@@ -36,7 +36,7 @@
   - _Requirements: 1.2, 1.6, 1.7, 6.2, 6.6_
   - _Depends: 2.1_
 
-- [ ] 3.2 main の本番 Workers デプロイ
+- [x] 3.2 main の本番 Workers デプロイ
   - `push:main` で検証成功を前提に `infisical run --env=prod -- pnpm exec opennextjs-cloudflare build` → `opennextjs-cloudflare deploy` を実行する
   - Cloudflare 認証は Infisical 由来の `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` を使う
   - デプロイ失敗時は workflow を failed とし GHA ログにエラーを surface する
@@ -45,8 +45,8 @@
   - _Requirements: 6.1, 6.3, 6.4, 6.5_
   - _Depends: 3.1_
 
-- [ ] 4. Directus スキーマ変更検知と infra 自動 PR
-- [ ] 4.1 (P) snapshot 差分検知ジョブ
+- [x] 4. Directus スキーマ変更検知と infra 自動 PR
+- [x] 4.1 (P) snapshot 差分検知ジョブ
   - `push:main` かつ paths `directus/schema/snapshot.yaml`（および `directus/migrations/**`）で発火する
   - 前コミットとの diff で `snapshot.yaml` の変更有無を判定し、無変更なら PR / manifest を作らず exit 0 する
   - トリガーコミットの SHA を後続リソースの一意識別子として読み取る
@@ -55,7 +55,7 @@
   - _Boundary: SchemaSyncWorkflow_
   - _Depends: 1.1_
 
-- [ ] 4.2 GitHub App 認証と infra リポジトリ取得
+- [x] 4.2 GitHub App 認証と infra リポジトリ取得
   - Infisical から GitHub App ID / private key を注入し、`actions/create-github-app-token` で短命 installation token を生成する
   - App 権限は `aramakisai-infra` の `contents:write` + `pull-requests:write` のみに限定し、生成 token で infra を checkout する
   - schema apply の DB 認証情報は K8s Job 側 ESO が担い、GHA では扱わないことを保証する
@@ -63,7 +63,7 @@
   - _Requirements: 3.6, 7.1, 7.4_
   - _Depends: 4.1_
 
-- [ ] 4.3 prod / staging の ConfigMap 生成とブランチ push
+- [x] 4.3 prod / staging の ConfigMap 生成とブランチ push
   - `snapshot.yaml` を data 化した ConfigMap（`directus-schema`）を prod / staging 双方に生成する（`kubectl create configmap --dry-run=client -o yaml`）
   - 必要に応じ `directus/migrations/*.js` を migrations ConfigMap として prod / staging 双方に生成する
   - `directus-schema-<sha8>` ブランチを作成して push し、差分が無ければ skip する
@@ -71,7 +71,7 @@
   - _Requirements: 3.1, 3.2, 3.3, 5.1_
   - _Depends: 4.2_
 
-- [ ] 4.4 infra PR 生成と staging gate / additive-only ルール
+- [x] 4.4 infra PR 生成と staging gate / additive-only ルール
   - infra `main` 宛に PR を作成し、title / body にトリガー SHA と web ソースコミットへのリンクを含める
   - 同一 SHA の PR が既存なら作成を skip し exit 0 する
   - PR body に「staging schema-apply Job 成功確認」チェックリスト項目、staging Cloudflare preview URL（frontend E2E 用直接リンク）、`stg-api.aramakisai.com`（API 参照）を埋め込む

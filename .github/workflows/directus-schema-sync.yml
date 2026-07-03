@@ -7,26 +7,78 @@ on:
       - directus/schema/snapshot.yaml
       - directus/migrations/**
 
+permissions:
+  contents: read
+
 jobs:
   sync:
-    name: Sync schema to infra repo
+    name: Detect schema change and sync to infra repo
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      INFISICAL_UNIVERSAL_AUTH_CLIENT_ID: ${{ secrets.INFISICAL_CLIENT_ID }}
+      INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET: ${{ secrets.INFISICAL_CLIENT_SECRET }}
     steps:
       - name: Checkout web repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect snapshot.yaml change
+        id: diff
+        run: |
+          if git diff --name-only HEAD^ HEAD | grep -qxF 'directus/schema/snapshot.yaml'; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install Infisical CLI
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | sudo -E bash
+          sudo apt-get update && sudo apt-get install -y infisical
+
+      - name: Fetch GitHub App credentials from Infisical
+        if: steps.diff.outputs.changed == 'true'
+        id: app_creds
+        run: |
+          infisical run --env=prod -- bash -c '
+            echo "::add-mask::$GH_APP_ID"
+            echo "::add-mask::$GH_APP_PRIVATE_KEY"
+            echo "app_id=$GH_APP_ID" >> "$GITHUB_OUTPUT"
+            {
+              echo "private_key<<EOF"
+              echo "$GH_APP_PRIVATE_KEY"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          '
+
+      - name: Generate infra installation token
+        if: steps.diff.outputs.changed == 'true'
+        id: app_token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ steps.app_creds.outputs.app_id }}
+          private-key: ${{ steps.app_creds.outputs.private_key }}
+          owner: aramakisai
+          repositories: aramakisai-infra
+          permission-contents: write
+          permission-pull-requests: write
 
       - name: Checkout infra repo
+        if: steps.diff.outputs.changed == 'true'
         uses: actions/checkout@v4
         with:
           repository: aramakisai/aramakisai-infra
-          token: ${{ secrets.INFRA_GITHUB_TOKEN }}
+          token: ${{ steps.app_token.outputs.token }}
           path: infra
 
-      - name: Generate ConfigMaps
+      - name: Generate schema ConfigMaps (prod + staging)
+        if: steps.diff.outputs.changed == 'true'
         run: |
-          for ENV in staging prod; do
+          for ENV in prod staging; do
             kubectl create configmap directus-schema \
               --from-file=snapshot.yaml=directus/schema/snapshot.yaml \
               --namespace="$ENV" \
@@ -42,50 +94,79 @@ jobs:
             fi
           done
 
-      - name: Create PR in infra repo
+      - name: Create branch and push to infra
+        if: steps.diff.outputs.changed == 'true'
+        id: push_branch
+        working-directory: infra
+        env:
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
         run: |
-          cd infra
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          BRANCH="directus-schema-${GITHUB_SHA::8}"
-          git checkout -b "$BRANCH"
-          git add \
-            gitops/manifests/staging/directus/schema-configmap.yaml \
-            gitops/manifests/prod/directus/schema-configmap.yaml \
-            gitops/manifests/staging/directus/migrations-configmap.yaml \
-            gitops/manifests/prod/directus/migrations-configmap.yaml \
-            2>/dev/null || true
+          SHA8="${GITHUB_SHA::8}"
+          BRANCH="directus-schema-${SHA8}"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "sha8=$SHA8" >> "$GITHUB_OUTPUT"
 
-          if git diff --cached --quiet; then
-            echo "schema に変更なし、PR作成スキップ"
+          if git ls-remote --exit-code --heads origin "$BRANCH" | grep -q "$BRANCH"; then
+            echo "branch $BRANCH already exists on origin, skip push"
             exit 0
           fi
 
-          git commit -m "chore(directus): sync schema from aramakisai-web@${GITHUB_SHA::8}"
+          git checkout -b "$BRANCH"
+          git add \
+            gitops/manifests/prod/directus/schema-configmap.yaml \
+            gitops/manifests/staging/directus/schema-configmap.yaml \
+            gitops/manifests/prod/directus/migrations-configmap.yaml \
+            gitops/manifests/staging/directus/migrations-configmap.yaml \
+            2>/dev/null || true
+
+          if git diff --cached --quiet; then
+            echo "no diff against infra main, skip commit/push"
+            exit 0
+          fi
+
+          git commit -m "chore(directus): sync schema from aramakisai-web@${SHA8}"
           git push origin "$BRANCH"
+
+      - name: Create or skip infra PR
+        if: steps.diff.outputs.changed == 'true'
+        working-directory: infra
+        env:
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+        run: |
+          SHA8="${{ steps.push_branch.outputs.sha8 }}"
+          BRANCH="${{ steps.push_branch.outputs.branch }}"
+
+          EXISTING=$(gh pr list --repo aramakisai/aramakisai-infra --state open \
+            --search "$BRANCH in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            echo "PR for ${SHA8} already exists (#$EXISTING), skip"
+            exit 0
+          fi
 
           PR_BODY="## 概要
 
           aramakisai-web の Directus スキーマ変更を infra に反映します。
 
-          トリガーコミット: aramakisai-web@${GITHUB_SHA}
+          トリガーコミット: https://github.com/aramakisai/aramakisai-web/commit/${GITHUB_SHA}
 
           ## マージ前チェックリスト
 
-          - [ ] staging (stg-api.aramakisai.com) で動作確認済み
-          - [ ] 破壊的変更 (カラム削除・型変更等) をチームに周知済み
-          - [ ] migration ファイルの冪等性を確認済み
+          - [ ] staging (namespace \`staging\`) の schema-apply Job が成功したことを確認した
+          - [ ] staging Cloudflare Workers Preview URL でフロントエンド E2E 確認済み（該当 web PR の \"Cloudflare Workers Preview\" コメント参照）
+          - [ ] staging Directus 管理画面 (https://stg-api.aramakisai.com) で API を確認済み（参考情報。E2E 確認の主経路ではない）
+          - [ ] 破壊的変更 (カラム削除・型変更等) は含まれていない。含まれる場合は対応するフロントエンドコードがデプロイ・安定稼働済みであることをチームに周知済み（additive-only ルール、CLAUDE.md 参照）
 
           ## 適用フロー
 
-          マージ後、ArgoCD が自動 sync し PostSync Job が実行されます:
-          directus database migrate:latest
-          directus schema apply"
+          マージ後、ArgoCD が prod / staging を自動 sync し、PostSync Job が実行されます:
+          \`directus database migrate:latest\` → \`directus schema apply --yes\`"
 
           gh pr create \
             --repo aramakisai/aramakisai-infra \
-            --title "chore(directus): sync schema snapshot" \
+            --base main \
+            --head "$BRANCH" \
+            --title "chore(directus): sync schema snapshot (${SHA8})" \
             --body "$PR_BODY"
-        env:
-          GH_TOKEN: ${{ secrets.INFRA_GITHUB_TOKEN }}
