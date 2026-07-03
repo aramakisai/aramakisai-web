@@ -125,7 +125,7 @@ Provide brief summary in the language specified in spec.json:
 1. **Status**: Confirm design document generated at `.kiro/specs/$1/design.md`
 2. **Discovery Type**: Which discovery process was executed (full/light/minimal)
 3. **Key Findings**: 2-3 critical insights from `research.md` that shaped the design
-4. **Next Action**: Next step guidance
+4. **Next Action**: Guidance on reviewing the design and proceeding to task generation
 5. **Research Log**: Confirm `research.md` updated with latest decisions
 
 **Format**: Concise Markdown (under 200 words) - this is the command output, NOT the design document itself
@@ -158,10 +158,10 @@ Provide brief summary in the language specified in spec.json:
 
 ### Next Phase: Task Generation
 
-**Review and proceed** (running `/kiro:spec-tasks $1` is itself the approval signal for the design phase):
+**Review and proceed**:
 - Review generated design at `.kiro/specs/$1/design.md`
 - **Optional**: Run `/kiro:validate-design $1` for interactive quality review
-- Then `/kiro:spec-tasks $1` to generate implementation tasks
+- Then `/kiro:spec-tasks $1` to generate implementation tasks (running it is itself the approval signal for this design)
 
 **If Modifications Needed**:
 - Provide feedback and re-run `/kiro:spec-design $1`
