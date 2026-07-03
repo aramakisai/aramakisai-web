@@ -2,6 +2,8 @@ name: Frontend CI
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
     paths:
       - frontend/**
       - .github/workflows/frontend-ci.yml
@@ -15,8 +17,13 @@ defaults:
   run:
     working-directory: frontend
 
+# Least-privilege default: this job never touches secrets (dummy build env only),
+# so fork PRs can run it safely without any repository secret exposure.
+permissions:
+  contents: read
+
 jobs:
-  ci:
+  validate:
     name: type-check / lint / test / build
     runs-on: ubuntu-latest
     steps:
@@ -35,6 +42,14 @@ jobs:
           node-version: 22
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Cache Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: frontend/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('frontend/pnpm-lock.yaml') }}-${{ hashFiles('frontend/src/**', 'frontend/public/**') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('frontend/pnpm-lock.yaml') }}-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
