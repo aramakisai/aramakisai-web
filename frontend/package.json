@@ -7,6 +7,12 @@
     "dev": "next dev",
     "build": "next build",
     "type-check": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
   },
@@ -20,9 +26,20 @@
   "devDependencies": {
     "typescript": "^5.0.0",
     "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
     "@types/node": "^22.0.0",
     "@t3-oss/env-nextjs": "^0.13.0",
     "zod": "^3.0.0",
-    "wrangler": "^4.0.0"
+    "wrangler": "^4.0.0",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^15.0.0",
+    "eslint-config-prettier": "^10.0.0",
+    "@eslint/eslintrc": "^3.0.0",
+    "prettier": "^3.0.0",
+    "vitest": "^3.0.0",
+    "@vitejs/plugin-react": "^4.0.0",
+    "jsdom": "^25.0.0",
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/jest-dom": "^6.0.0"
   }
 }

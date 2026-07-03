@@ -1,0 +1,7 @@
+.next/
+.open-next/
+.wrangler/
+node_modules/
+pnpm-lock.yaml
+next-env.d.ts
+tsconfig.tsbuildinfo
