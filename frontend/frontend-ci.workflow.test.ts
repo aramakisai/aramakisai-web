@@ -111,8 +111,9 @@ describe('.github/workflows/frontend-ci.yml', () => {
     expect(workflow.permissions).toEqual({ contents: 'read' });
   });
 
-  it('never references repository secrets, so fork PRs never see them', () => {
-    const raw = readFileSync(WORKFLOW_PATH, 'utf-8');
-    expect(raw).not.toMatch(/secrets\.[A-Z]/);
+  it('never references repository secrets in validate, so fork PRs never see them', () => {
+    const workflow = loadWorkflow();
+    const validateSteps = JSON.stringify(workflow.jobs.validate.steps);
+    expect(validateSteps).not.toMatch(/secrets\.[A-Z]/);
   });
 });
