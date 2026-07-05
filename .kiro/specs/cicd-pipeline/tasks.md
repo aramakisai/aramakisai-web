@@ -104,14 +104,14 @@
   - _Requirements: 5.5_
   - _Depends: 5.2_
 
-- [ ] 6. 統合・検証
-- [ ] 6.1 パイプライン統合テスト
+- [x] 6. 統合・検証
+- [x] 6.1 パイプライン統合テスト
   - 検証ゲート（型エラー PR で deploy skip）、非 fork PR の preview 発行、fork PR の secret 非露出、snapshot 無変更の PR 非生成、同一 SHA の冪等 PR を確認する
   - 完了条件: 上記シナリオが期待どおり pass / skip する
   - _Requirements: 1.3, 2.2, 3.5, 6.1, 7.6_
   - _Depends: 3.2, 4.4_
 
-- [ ] 6.2 生成物の静的検証
+- [x] 6.2 生成物の静的検証
   - 生成 ConfigMap を `kubectl apply --dry-run=server` で検証し、GitHub App 権限が `aramakisai-infra` 限定・`contents+pull_requests` のみであることを確認する
   - 完了条件: dry-run が成功し、過剰権限の token が存在しない
   - _Requirements: 3.6, 4.2_
