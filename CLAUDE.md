@@ -83,6 +83,7 @@ snapshot.yaml を commit して PR を出す
 
 注意事項
 
+特別な指示がない限りコミットメッセージを含めてすべて日本語を使用すること
 @cloudflare/next-on-pages の制約上、Node.js 専用の API は使用不可 (Edge Runtime)
 Directus スキーマ変更は本番 DB に直接影響するため、staging で必ず事前確認する
 .env は使用禁止
