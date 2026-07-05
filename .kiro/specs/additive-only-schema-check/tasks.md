@@ -16,31 +16,31 @@
   - _Requirements: 1.1_
   - _Boundary: SnapshotParser_
 
-- [ ] 3. コア機能: 破壊的変更の判定
-- [ ] 3.1 (P) base側とhead側の構造を (collection, field) 単位で突き合わせ、collectionの削除およびfieldの削除を検出する処理を実装する
+- [x] 3. コア機能: 破壊的変更の判定
+- [x] 3.1 (P) base側とhead側の構造を (collection, field) 単位で突き合わせ、collectionの削除およびfieldの削除を検出する処理を実装する
   - baseにのみ存在するcollectionまたはfieldを含む入力を渡すと、それぞれ「削除」として検出結果に含まれる
   - _Requirements: 2.1, 2.2, 3.1, 3.2_
   - _Boundary: SchemaDiffer_
 
-- [ ] 3.2 同一 (collection, field) 間での type/data_type の変更、および is_nullable の true→false への変更を検出する処理を実装する。schema情報がnullのフィールドはこの比較から除外し、meta情報のみの変更やcollection/fieldの新規追加は非破壊的変更として扱う
+- [x] 3.2 同一 (collection, field) 間での type/data_type の変更、および is_nullable の true→false への変更を検出する処理を実装する。schema情報がnullのフィールドはこの比較から除外し、meta情報のみの変更やcollection/fieldの新規追加は非破壊的変更として扱う
   - type変更・NOT NULL化を含む入力ではそれぞれ検出結果に含まれ、is_nullableがfalse→trueになるケースやmeta情報のみの変更・新規追加のみの入力では検出結果が空になる
   - _Requirements: 4.1, 4.2, 4.3, 5.1, 5.2_
   - _Boundary: SchemaDiffer_
   - _Depends: 3.1_
 
-- [ ] 3.3 判定処理の単体テストを作成する。collection削除・field削除・型変更・NOT NULL化それぞれの検出、is_nullableの逆方向変更が非検出であること、加算のみの変更およびmeta情報のみの変更が非破壊的変更として扱われることを網羅する
+- [x] 3.3 判定処理の単体テストを作成する。collection削除・field削除・型変更・NOT NULL化それぞれの検出、is_nullableの逆方向変更が非検出であること、加算のみの変更およびmeta情報のみの変更が非破壊的変更として扱われることを網羅する
   - 上記すべてのシナリオを含むテストスイートが通る
   - _Requirements: 2.1, 2.2, 3.1, 3.2, 4.1, 4.2, 4.3, 5.1, 5.2_
   - _Boundary: SchemaDiffer_
   - _Depends: 3.2_
 
-- [ ] 4. コア機能: 検出結果のレポート出力
-- [ ] 4.1 (P) 検出結果を人間が読める形式（breaking changesがあれば一覧表、なければ加算的変更のみである旨の要約）に整形し、成功/失敗を表す終了コードを決定する処理を実装する
+- [x] 4. コア機能: 検出結果のレポート出力
+- [x] 4.1 (P) 検出結果を人間が読める形式（breaking changesがあれば一覧表、なければ加算的変更のみである旨の要約）に整形し、成功/失敗を表す終了コードを決定する処理を実装する
   - breaking changesを含む結果を渡すと一覧表形式の文字列と失敗を表す値が得られ、空の結果を渡すと要約文字列と成功を表す値が得られる
   - _Requirements: 6.1, 6.2_
   - _Boundary: ReportFormatter_
 
-- [ ] 4.2 レポート整形処理の単体テストを作成する。一覧表のフォーマットと、加算的変更のみの場合の要約、それぞれに対応する終了コードの妥当性を検証する
+- [x] 4.2 レポート整形処理の単体テストを作成する。一覧表のフォーマットと、加算的変更のみの場合の要約、それぞれに対応する終了コードの妥当性を検証する
   - 両ケースを検証するテストスイートが通る
   - _Requirements: 6.1, 6.2_
   - _Boundary: ReportFormatter_
