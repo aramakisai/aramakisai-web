@@ -5,13 +5,13 @@
   - collection一覧、field単位の type/data_type/is_nullable を表す構造、および検出結果（collection削除・field削除・型変更・NOT NULL化）を表す型を定義する。`any`型は使用しない
   - _Requirements: 1.1_
 
-- [ ] 2. コア機能: スナップショット読み込み
-- [ ] 2.1 (P) snapshot.yaml のテキストから、比較に必要な collection一覧と、field単位の type/data_type/is_nullable のみを抽出した構造に変換する処理を実装する。物理カラムを持たないフィールド（schema情報がnullのフィールド）も例外を投げずに扱えるようにする
+- [x] 2. コア機能: スナップショット読み込み
+- [x] 2.1 (P) snapshot.yaml のテキストから、比較に必要な collection一覧と、field単位の type/data_type/is_nullable のみを抽出した構造に変換する処理を実装する。物理カラムを持たないフィールド（schema情報がnullのフィールド）も例外を投げずに扱えるようにする
   - 実際のリポジトリの snapshot.yaml を読み込んでも例外を投げず、collection数・field数が実データと一致する構造を返す
   - _Requirements: 1.1_
   - _Boundary: SnapshotParser_
 
-- [ ] 2.2 読み込み処理の単体テストを作成する。schema情報が埋まっているフィールドと、schema情報がnullのフィールドの双方を含むケースを検証する
+- [x] 2.2 読み込み処理の単体テストを作成する。schema情報が埋まっているフィールドと、schema情報がnullのフィールドの双方を含むケースを検証する
   - 両ケースを含むテストスイートが通る
   - _Requirements: 1.1_
   - _Boundary: SnapshotParser_
