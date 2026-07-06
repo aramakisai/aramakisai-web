@@ -1,4 +1,5 @@
 import { parse as parseYaml } from 'yaml';
+import { appendFileSync, existsSync, readFileSync } from 'node:fs';
 
 export interface SnapshotField {
   collection: string;
@@ -172,4 +173,59 @@ export function formatSummary(result: SchemaDiffResult): FormattedReport {
   ].join('\n');
 
   return { summary, exitCode: 1 };
+}
+
+export function runChecker(
+  baseYamlText: string | null,
+  headYamlText: string,
+): FormattedReport {
+  let base: ParsedSnapshot;
+  let head: ParsedSnapshot;
+
+  try {
+    base =
+      baseYamlText === null
+        ? { collections: [], fields: [] }
+        : parseSnapshot(baseYamlText);
+    head = parseSnapshot(headYamlText);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      summary: `failed to parse snapshot.yaml: ${message}`,
+      exitCode: 1,
+    };
+  }
+
+  return formatSummary(diffSchemas(base, head));
+}
+
+function readSnapshotFile(filePath: string): string | null {
+  return existsSync(filePath) ? readFileSync(filePath, 'utf-8') : null;
+}
+
+function main(): void {
+  const [, , basePath, headPath] = process.argv;
+  if (!basePath || !headPath) {
+    console.error(
+      'Usage: check-additive-schema.ts <base-snapshot-path> <head-snapshot-path>',
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  const baseYamlText = readSnapshotFile(basePath);
+  const headYamlText = readFileSync(headPath, 'utf-8');
+  const report = runChecker(baseYamlText, headYamlText);
+
+  console.log(report.summary);
+  const summaryPath = process.env.GITHUB_STEP_SUMMARY;
+  if (summaryPath) {
+    appendFileSync(summaryPath, `${report.summary}\n`);
+  }
+
+  process.exitCode = report.exitCode;
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main();
 }

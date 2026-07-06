@@ -6,6 +6,7 @@ import {
   parseSnapshot,
   diffSchemas,
   formatSummary,
+  runChecker,
   type ParsedSnapshot,
   type SchemaDiffResult,
 } from './check-additive-schema';
@@ -443,5 +444,46 @@ describe('formatSummary', () => {
     expect(report.summary).toContain(
       '| announcements | body | NOT NULL Added | field "body" changed from nullable to NOT NULL |',
     );
+  });
+});
+
+describe('runChecker', () => {
+  it('fails closed with a parse-error summary when head snapshot YAML is malformed', () => {
+    const invalidYaml = 'collections: [\n  - unterminated';
+
+    const report = runChecker('collections: []\nfields: []', invalidYaml);
+
+    expect(report.exitCode).toBe(1);
+    expect(report.summary).toMatch(/failed to parse snapshot\.yaml/);
+  });
+
+  it('fails closed with a parse-error summary when base snapshot YAML is malformed', () => {
+    const invalidYaml = 'collections: [\n  - unterminated';
+
+    const report = runChecker(invalidYaml, 'collections: []\nfields: []');
+
+    expect(report.exitCode).toBe(1);
+    expect(report.summary).toMatch(/failed to parse snapshot\.yaml/);
+  });
+
+  it('treats a missing base file (null) as an empty snapshot, so a new PR-added file is additive-only', () => {
+    const headYaml = `
+collections:
+  - collection: sponsors
+    meta:
+      note: new
+fields:
+  - collection: sponsors
+    field: name
+    type: string
+    schema:
+      data_type: character varying
+      is_nullable: true
+`;
+
+    const report = runChecker(null, headYaml);
+
+    expect(report.exitCode).toBe(0);
+    expect(report.summary).toMatch(/additive/i);
   });
 });
