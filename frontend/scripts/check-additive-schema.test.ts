@@ -487,3 +487,155 @@ fields:
     expect(report.summary).toMatch(/additive/i);
   });
 });
+
+describe('end-to-end: additive-only-schema-check (7.2)', () => {
+  const baseSnapshot = `
+collections:
+  - collection: announcements
+    meta:
+      note: base
+  - collection: sponsors
+    meta:
+      note: base
+fields:
+  - collection: announcements
+    field: id
+    type: integer
+    schema:
+      data_type: integer
+      is_nullable: false
+  - collection: announcements
+    field: title
+    type: string
+    schema:
+      data_type: character varying
+      is_nullable: true
+  - collection: announcements
+    field: body
+    type: text
+    schema:
+      data_type: text
+      is_nullable: true
+  - collection: sponsors
+    field: id
+    type: integer
+    schema:
+      data_type: integer
+      is_nullable: false
+  - collection: sponsors
+    field: name
+    type: string
+    schema:
+      data_type: character varying
+      is_nullable: true
+`;
+
+  it('additive-only case: new collection/field only -> success summary, exit code 0', () => {
+    const headSnapshot = `
+collections:
+  - collection: announcements
+    meta:
+      note: updated
+  - collection: sponsors
+    meta:
+      note: base
+  - collection: events
+    meta:
+      note: new
+fields:
+  - collection: announcements
+    field: id
+    type: integer
+    schema:
+      data_type: integer
+      is_nullable: false
+  - collection: announcements
+    field: title
+    type: string
+    schema:
+      data_type: character varying
+      is_nullable: true
+  - collection: announcements
+    field: body
+    type: text
+    schema:
+      data_type: text
+      is_nullable: true
+  - collection: announcements
+    field: published_at
+    type: timestamp
+    schema:
+      data_type: timestamp
+      is_nullable: true
+  - collection: sponsors
+    field: id
+    type: integer
+    schema:
+      data_type: integer
+      is_nullable: false
+  - collection: sponsors
+    field: name
+    type: string
+    schema:
+      data_type: character varying
+      is_nullable: true
+  - collection: events
+    field: id
+    type: integer
+    schema:
+      data_type: integer
+      is_nullable: false
+`;
+
+    const report = runChecker(baseSnapshot, headSnapshot);
+
+    expect(report.exitCode).toBe(0);
+    expect(report.summary).toBe(
+      'additive-only changes detected, no breaking changes found.',
+    );
+  });
+
+  it('breaking case: collection delete + field delete + type change + NOT NULL 化 -> failure listing, exit code 1', () => {
+    const headSnapshot = `
+collections:
+  - collection: announcements
+    meta:
+      note: updated
+fields:
+  - collection: announcements
+    field: id
+    type: integer
+    schema:
+      data_type: integer
+      is_nullable: false
+  - collection: announcements
+    field: title
+    type: text
+    schema:
+      data_type: text
+      is_nullable: true
+  - collection: announcements
+    field: body
+    type: text
+    schema:
+      data_type: text
+      is_nullable: false
+`;
+
+    const report = runChecker(baseSnapshot, headSnapshot);
+
+    expect(report.exitCode).toBe(1);
+    expect(report.summary).toContain(
+      '| Collection | Field | Change Type | Detail |',
+    );
+    expect(report.summary).toContain(
+      '| sponsors | - | Collection Deleted |',
+    );
+    expect(report.summary).toContain(
+      '| announcements | title | Type Changed |',
+    );
+    expect(report.summary).toContain(
+      '| announcements | body | NOT NULL Added |',
+    );
+  });
+});
