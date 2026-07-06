@@ -3,7 +3,7 @@
 > 前提: デプロイ先は Cloudflare **Workers**（OpenNext）。requirements.md の Pages 文言の読み替えは `design.md` Overview / `research.md` を参照。
 > GitHub App の作成・インストール、Infisical への secret 登録、infra リポジトリのブランチ保護設定は本 spec の boundary 外（手動事前作業）。本タスクはそれらを前提に workflow / manifest / 設定ファイルを実装する。
 
-- [ ] 1. Foundation: Infisical 注入基盤と secret 契約の確立
+- [x] 1. Foundation: Infisical 注入基盤と secret 契約の確立
 - [x] 1.1 Frontend Infisical プロジェクト設定と secret 注入契約
   - `frontend/.infisical.json` を作成し、workspaceId と staging/prod 環境マッピングを定義する
   - GHA で使う secret を「GH secrets は `INFISICAL_CLIENT_ID` / `INFISICAL_CLIENT_SECRET` の 2 件のみ」に限定する方針を workflow の共通セットアップとして確立する
