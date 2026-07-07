@@ -3,6 +3,10 @@ FROM mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm
 # Enable pnpm via corepack (version pinned in frontend/package.json -> packageManager)
 RUN corepack enable
 
+# Python 3 runtime (required by pre-commit local hook check-confidential-info.py)
+RUN apt-get update && apt-get install -y --no-install-recommends python3 \
+    && rm -rf /var/lib/apt/lists/*
+
 # Infisical CLI (secret injection, see .infisical.json)
 RUN curl -1sLf 'https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.deb.sh' | bash \
     && apt-get update && apt-get install -y --no-install-recommends infisical \

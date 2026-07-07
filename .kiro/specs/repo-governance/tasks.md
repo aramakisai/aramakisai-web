@@ -1,0 +1,127 @@
+# Implementation Plan
+
+- [x] 1. cicd-pipeline の path-filter 対応状況を確認する
+  - `frontend-ci.yml` のトリガー定義が `frontend/**` を触らない PR でも検証済みステータス（成功または skipped）を報告できる状態になっているか確認する（job 内条件化 or 逆条件の dummy workflow）
+  - 対応済みでない場合は本 spec のタスク 6.3（`enforce_admins` 有効化）を保留し、`cicd-pipeline` 側の追随修正を先行させる方針をチームに共有する
+  - 確認結果（対応済み / 未対応）を記録し、タスク 6.3 実行可否の判断材料にする
+  - **確認結果: 未対応**（`.github/workflows/frontend-ci.yml` を直接確認、2026-07-07 時点）。`on.pull_request.paths` / `on.push.paths` はワークフロー・レベルの `frontend/**` フィルタのみで、job 内の path 条件化 (`dorny/paths-filter` 等) も逆条件の dummy workflow も未実装。`frontend/**` を触らない PR では `type-check / lint / test / build` と `deploy preview (Workers)` の 2 context がワークフロー自体不起動のため永久に "Expected" のまま完了しない（research.md #3 のリスクがそのまま現存）。→ タスク 6.3（`enforce_admins: true`）は **cicd-pipeline 側で path filter 修正（job 内条件化 or dummy workflow 追加）が先行マージされるまで保留**する。この方針をチームに共有すること。
+  - _Requirements: 1.3, 1.5_
+  - _Boundary: Branch Protection Configuration_
+
+- [x] 2. GitHub App の作成と認証情報の登録
+- [x] 2.1 `aramakisai-infra` 限定の最小権限 GitHub App を作成する
+  - App 名 `aramakisai-infra-pr-creator`（または準ずる名称）で `contents:write` / `pull-requests:write` のみを付与する
+  - インストール先リポジトリを `aramakisai-infra` のみに限定する
+  - Organization の Installed GitHub Apps 画面で対象 App が `aramakisai-infra` のみにインストールされていることが確認できる
+  - **確認結果: 完了**（2026-07-07）。`gh api /orgs/aramakisai/installations` で確認: `app_slug: aramakisai-infra-pr-creator`, `app_id: 4235849`, `permissions: {contents: write, pull_requests: write, metadata: read}`, `repository_selection: selected`（Organization 全体ではなく選択リポジトリ限定でインストール済み。対象リポジトリがユーザー側で `aramakisai-infra` のみに設定されていることを申告により確認）。
+  - _Requirements: 2.1_
+- [x] 2.2 GitHub App 認証情報を Infisical に登録する
+  - 発行された App ID と private key を `GH_APP_ID` / `GH_APP_PRIVATE_KEY` として Infisical `prod` 環境に登録する
+  - private key のローカルコピーを残さず登録直後に削除する
+  - `infisical secrets --env=prod` で `GH_APP_ID` / `GH_APP_PRIVATE_KEY` の存在が確認できる
+  - **確認結果: 完了**（2026-07-07）。`infisical secrets --env=prod` で `GH_APP_ID`（値 `4235849`、app_id と一致）と `GH_APP_PRIVATE_KEY`（`-----BEGIN RSA PRIVATE KEY-----` で開始）両方の登録を確認。
+  - _Depends: 2.1_
+  - _Requirements: 2.1_
+
+- [x] 3. GitHub Actions Secrets を整理する
+- [x] 3.1 (P) `INFISICAL_CLIENT_ID` / `INFISICAL_CLIENT_SECRET` を `aramakisai-web` に登録する
+  - 既存の Infisical machine identity（Universal Auth）の client ID / secret を取得する
+  - 値を標準入力経由で `gh secret set` に渡し、シェル履歴や CI ログに値を残さない
+  - machine identity ローテーション時は 24 時間以内に本 secret を更新する運用手順を記録する
+  - `gh secret list` で両キーが登録済みであることが確認できる
+  - **確認結果: 完了**（2026-07-07）。ユーザーが `!` プレフィックス経由で自端末から `gh secret set` を実行し値を登録（値はセッションに一切出力せず）。`gh secret list --repo aramakisai/aramakisai-web` で `INFISICAL_CLIENT_ID`（2026-07-07T07:52:01Z）・`INFISICAL_CLIENT_SECRET`（2026-07-07T07:52:18Z）両キーの登録を確認。
+  - _Requirements: 2.2, 2.3, 2.4_
+  - _Boundary: GitHub Actions Secrets Configuration_
+- [x] 3.2 未参照の `INFRA_GITHUB_TOKEN` を削除し登録 secret を 2 件に限定する
+  - 削除前に全 workflow 定義を再 grep し、`INFRA_GITHUB_TOKEN` を参照する箇所がないことを再確認する
+  - `gh secret list` の結果が `INFISICAL_CLIENT_ID` / `INFISICAL_CLIENT_SECRET` の 2 件ちょうどになる
+  - **確認結果: 完了**（2026-07-07）。`.github/` 配下を再 grep し参照ゼロを確認後、`gh secret delete INFRA_GITHUB_TOKEN --repo aramakisai/aramakisai-web` を実行。削除後の `gh secret list` は `INFISICAL_CLIENT_ID` / `INFISICAL_CLIENT_SECRET` の 2 件ちょうど。
+  - _Depends: 3.1_
+  - _Requirements: 2.2_
+
+- [x] 4. Infisical の不足シークレット登録と Directus staging シークレットの検証
+- [x] 4.1 (P) staging 環境に frontend CI が参照する不足シークレットを登録する
+  - `NEXT_PUBLIC_DIRECTUS_URL`（`https://stg-api.aramakisai.com`）、`NEXT_PUBLIC_SITE_URL`（staging サイト URL）、`CLOUDFLARE_API_TOKEN`、`CLOUDFLARE_ACCOUNT_ID` を登録する
+  - `infisical secrets --env=staging` で 4 キー全てが確認できる
+  - **確認結果: 完了**（2026-07-07）。登録前は staging 環境のシークレット 0 件（research.md #5 の通り）。`NEXT_PUBLIC_DIRECTUS_URL=https://stg-api.aramakisai.com`、`NEXT_PUBLIC_SITE_URL=https://aramakisai-web.pages.dev`（Cloudflare Pages project 名 `aramakisai-web` から導出、ユーザー承認済み）、`CLOUDFLARE_API_TOKEN`（prod と同値を再利用、ユーザー承認済み）、`CLOUDFLARE_ACCOUNT_ID=ac222992b56b34595be2f631f0c1a21b`（prod の `TF_VAR_cloudflare_account_id` と同値、ユーザー承認済み）を登録。`infisical secrets --env=staging` で 4 キー全ての存在を確認。
+  - _Requirements: 2.2_
+  - _Boundary: Infisical Secret Registration_
+- [x] 4.2 (P) prod 環境に不足しているシークレットを登録する
+  - `NEXT_PUBLIC_DIRECTUS_URL`（`https://api.aramakisai.com`）、`NEXT_PUBLIC_SITE_URL`（本番サイト URL）、`CLOUDFLARE_ACCOUNT_ID` を登録する（`CLOUDFLARE_API_TOKEN` は登録済みのため対象外）
+  - `infisical secrets --env=prod` で不足していた 3 キーが確認できる
+  - **確認結果: 完了**（2026-07-07）。`NEXT_PUBLIC_DIRECTUS_URL=https://api.aramakisai.com`、`NEXT_PUBLIC_SITE_URL=https://aramakisai.com`（ユーザー承認済み）、`CLOUDFLARE_ACCOUNT_ID=ac222992b56b34595be2f631f0c1a21b` を登録。`infisical secrets --env=prod` で 3 キー全ての存在を確認。
+  - _Requirements: 2.2_
+  - _Boundary: Infisical Secret Registration_
+- [x] 4.3 (P) Directus staging 用シークレット 4 キーの既存登録内容を検証する
+  - `DIRECTUS_STAGING_SECRET` / `DIRECTUS_STAGING_ADMIN_EMAIL` / `DIRECTUS_STAGING_ADMIN_PASSWORD` / `DIRECTUS_STAGING_DB_PASSWORD` が `prod` 環境に存在し、値が空でないことを確認する（値そのものは変更しない）
+  - 4 キーそれぞれについて存在確認結果を記録する
+  - **確認結果: 完了**（2026-07-07）。`infisical secrets --env=prod` で 4 キー全ての存在と非空の値を確認済み（`DIRECTUS_STAGING_SECRET`, `DIRECTUS_STAGING_ADMIN_EMAIL`, `DIRECTUS_STAGING_ADMIN_PASSWORD`, `DIRECTUS_STAGING_DB_PASSWORD`）。値は変更していない。
+  - _Requirements: 3.1, 3.2, 3.3, 3.4_
+  - _Boundary: Infisical Secret Registration_
+- [x] 4.4 `aramakisai-infra` の steering ドキュメントにキー名を追記する
+  - `aramakisai-infra/.kiro/steering/tech.md` の「Infisical で管理するシークレット一覧」に `DIRECTUS_STAGING_*` 4 キー名を既存フォーマット（カンマ区切り列挙）で追記する（`aramakisai-infra` 側 PR として実施）
+  - 追記後の diff で 4 キー名全てが反映されていることが確認できる
+  - **確認結果: 完了**（2026-07-07）。`aramakisai-infra` の `docs/directus-staging-secrets-steering` ブランチで Directus 一覧行に `DIRECTUS_STAGING_SECRET`, `DIRECTUS_STAGING_ADMIN_EMAIL`, `DIRECTUS_STAGING_ADMIN_PASSWORD`, `DIRECTUS_STAGING_DB_PASSWORD` を追記し diff で反映確認。PR 作成済み: https://github.com/aramakisai/aramakisai-infra/pull/4
+  - _Depends: 4.3_
+  - _Requirements: 3.5_
+  - _Boundary: Steering Documentation Update_
+
+- [x] 5. pre-commit の機密情報検知フックを導入する
+- [x] 5.1 (P) `check-confidential-info` local hook を配置し組み込む
+  - `aramakisai-infra/scripts/check-confidential-info.py` を無変更で `aramakisai-web` にコピーする
+  - pre-commit 設定の `repo: local` セクションに `check-confidential-info` hook を追加する（対象拡張子 `.ts` `.tsx` `.js` `.json` `.md` `.yaml` `.yml`）。既存の `pre-commit-hooks` / `yamllint` / `gitleaks` セクションは変更しない
+  - `pre-commit run check-confidential-info --all-files` が実行可能になる
+  - **確認結果: 完了**（2026-07-07）。`aramakisai-infra/scripts/check-confidential-info.py` を `diff` で無変更コピーであることを確認し `aramakisai-web/scripts/` に配置。`.pre-commit-config.yaml` の `gitleaks` セクション直前に `repo: local` の `check-confidential-info` hook を追加（`entry: python scripts/check-confidential-info.py`, `language: python`, `files: \.(ts|tsx|js|json|md|yaml|yml)$`, `pass_filenames: true`）。既存 `pre-commit-hooks` / `yamllint` / `gitleaks` セクションは無変更。`pre-commit run check-confidential-info --files <test-file>` で実行可能なことを確認済み（5.3 参照）。
+  - _Requirements: 4.1, 4.4, 4.9_
+  - _Boundary: Pre-commit Hook Suite_
+- [x] 5.2 (P) devcontainer に Python 3 ランタイムを追加する
+  - devcontainer 定義に `python3` パッケージのインストールを追加する（`uv` は追加しない）
+  - devcontainer rebuild 後 `python3 --version` が実行できる
+  - **確認結果: 完了**（2026-07-07）。`.devcontainer/Dockerfile` に `apt-get install -y --no-install-recommends python3` を追加（`uv` は追加せず）。devcontainer 本体の rebuild はホスト側作業のため未実施だが、Dockerfile 変更自体は反映済み。ホスト環境（`/usr/bin/python3`, Python 3.14.6）で `check-confidential-info.py` の実行確認は済んでいる（5.3 参照）。
+  - _Requirements: 4.4_
+  - _Boundary: Pre-commit Hook Suite_
+- [x] 5.3 検知・バイパス動作を確認する
+  - ホームディレクトリの絶対パスを含むテストファイルをステージし `pre-commit run check-confidential-info` がブロックすることを確認する
+  - 非許可メールアドレスを含むテストファイルでも同様にブロックされることを確認する
+  - `# confidential:allow`（コード）/ `<!-- confidential:allow -->`（Markdown）を該当行に付与した後、同じファイルが通過することを確認する
+  - _Depends: 5.1_
+  - **確認結果: 完了**（2026-07-07）。(1) `$HOME` 絶対パスを含む一時ファイルで `check-confidential-info.py` 実行 → `Absolute Path` 検知・exit=1 でブロック確認。(2) 非許可メールアドレス（`someone@notallowed.example.jp`）を含む一時ファイルでも `Email Address` 検知・exit=1 でブロック確認。(3) `<!-- confidential:allow -->`（Markdown）・`// confidential:allow`（コード、パス検知）双方で同一行付与後 exit=0 で通過確認。(4) pre-commit フレームワーク経由（`git add` → `pre-commit run check-confidential-info --files <file>`）でも同じ検知結果（Failed, exit code 1）を確認、`language: python` の venv 自動作成も正常動作。全テストファイルは commit せず削除済み。
+  - _Requirements: 4.6, 4.7, 4.8_
+- [x] 5.4 既存の基本衛生フックと gitleaks の整合を確認する
+  - `pre-commit-hooks`（trailing-whitespace, end-of-file-fixer, check-merge-conflict, mixed-line-ending）が有効であることを pre-commit 設定で確認する
+  - `gitleaks` のバージョンと `.gitleaks.toml` のルールが `aramakisai-infra` の内容と一致することを確認する
+  - _Depends: 5.1_
+  - **確認結果: 完了**（2026-07-07）。`pre-commit-hooks`（trailing-whitespace, end-of-file-fixer, check-merge-conflict, mixed-line-ending）は既存設定のまま全て有効であることを確認（変更なし）。`gitleaks` バージョンは `aramakisai-infra` と同一の `v8.23.0`。`.gitleaks.toml` は両リポジトリとも `[extend] useDefault = true` で base ルールセットは一致。`allowlist.paths` は各リポジトリの実ファイル構成に応じた差分（`aramakisai-web`: `.env.example` / `.env.local.example` のみ許可、`.env`/`.env.local` 本体は除外せずスキャン対象。`aramakisai-infra`: `kubeconfig` / `terraform/secrets.tfvars` 等 infra 固有ファイルを許可）であり、意図した設計通り（本 spec のスコープでは変更不要）。
+  - _Requirements: 4.1, 4.2, 4.3, 4.5_
+
+- [ ] 6. main ブランチ保護の本適用とエンドツーエンド検証
+- [ ] 6.1 必須ステータスチェックを main ブランチ保護に設定する
+  - `required_status_checks.contexts` に `type-check / lint / test / build` と `deploy preview (Workers)` の 2 件のみを設定する（`strict: false` を維持）
+  - 既存の `required_pull_request_reviews`（`required_approving_review_count: 1`, `dismiss_stale_reviews: true`）は変更せず維持する
+  - `gh api .../branches/main/protection` の `contexts` に指定した 2 件が反映されていることが確認できる
+  - _Requirements: 1.1, 1.2, 1.4_
+  - _Boundary: Branch Protection Configuration_
+- [ ] 6.2 frontend 変更を含むテスト PR で必須チェックの表示・合格を確認する
+  - `type-check / lint / test / build` と `deploy preview (Workers)` が両方 Required として PR に表示され合格することを確認する
+  - `deploy preview (Workers)` の実行結果として preview URL が PR コメントに投稿されることを確認する
+  - _Depends: 6.1_
+  - _Requirements: 1.1, 1.2, 1.4_
+- [ ] 6.3 path-filter 対応確認後に admin enforcement を有効化する
+  - タスク 1 の確認結果が「対応済み」であることを前提条件として `enforce_admins: true` を適用する
+  - `gh api .../branches/main/protection` の `enforce_admins.enabled` が `true` になっていることが確認できる
+  - _Depends: 1, 6.2_
+  - _Requirements: 1.3, 1.5_
+- [ ] 6.4 `.kiro/**` のみを変更するテスト PR で admin enforcement 適用後もマージ可能なことを確認する
+  - admin enforcement 有効化後も、必須チェックが正しく成功扱いとなり PR がマージできることを確認する
+  - _Depends: 6.3_
+  - _Requirements: 1.3, 1.5_
+- [ ] 6.5 GitHub App 認証による `directus-schema-sync` の cross-repo PR 作成を確認する
+  - `directus/schema/snapshot.yaml` を変更するテスト PR を main にマージする
+  - `directus-schema-sync` workflow が `GH_APP_ID` / `GH_APP_PRIVATE_KEY` を用いて `aramakisai-infra` へ PR を正常に作成できることを確認する
+  - _Depends: 2.2, 6.2_
+  - _Requirements: 2.1_
+- [ ] 6.6 Directus staging ExternalSecret の Ready 状態を確認する
+  - `kubectl get externalsecret directus-staging-secrets -n staging` が `Ready` を示すことを確認する
+  - `Ready` でない場合は Infisical 側の値を再確認・修正してから再確認する
+  - _Depends: 4.3_
+  - _Requirements: 3.6_
