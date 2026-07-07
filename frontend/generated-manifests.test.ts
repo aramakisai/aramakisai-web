@@ -44,6 +44,7 @@ describe('generated manifests — schema ConfigMap (3.2, 4.1, 4.2)', () => {
   }
 
   it('produces a valid ConfigMap for prod and staging containing the snapshot content', () => {
+    // CI ランナーではプロセス起動が遅く既定の 5000ms を超えるため延長する。
     const dir = mkdtempSync(path.join(tmpdir(), 'configmap-gen-'));
     mkdirSync(path.join(dir, 'directus/schema'), { recursive: true });
     mkdirSync(path.join(dir, 'infra/gitops/manifests/prod/directus'), {
@@ -79,7 +80,7 @@ describe('generated manifests — schema ConfigMap (3.2, 4.1, 4.2)', () => {
       expect(manifest.metadata.namespace).toBe(env);
       expect(manifest.data['snapshot.yaml']).toBe(snapshotContent);
     }
-  });
+  }, 15000);
 
   it('skips the migrations ConfigMap when no migration files exist', () => {
     const dir = mkdtempSync(path.join(tmpdir(), 'configmap-gen-'));
