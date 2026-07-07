@@ -51,7 +51,8 @@ jobs:
             --client-id="$INFISICAL_UNIVERSAL_AUTH_CLIENT_ID" \
             --client-secret="$INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET" \
             --plain --silent)
-          infisical run --token="$INFISICAL_TOKEN" --env=prod -- bash -c '
+          PROJECT_ID=$(python3 -c "import json;print(json.load(open('.infisical.json'))['workspaceId'])")
+          infisical run --token="$INFISICAL_TOKEN" --projectId="$PROJECT_ID" --env=prod -- bash -c '
             echo "::add-mask::$GH_APP_ID"
             echo "::add-mask::$GH_APP_PRIVATE_KEY"
             echo "app_id=$GH_APP_ID" >> "$GITHUB_OUTPUT"
