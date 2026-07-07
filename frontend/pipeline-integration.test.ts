@@ -90,7 +90,7 @@ describe('pipeline integration — snapshot diff detection (2.2)', () => {
   function extractDiffScript(): string {
     const workflow = loadWorkflow(SCHEMA_SYNC_PATH);
     const step = findStep(workflow, (s) => s.id === 'diff');
-    return step.run as string;
+    return (step.run as string).replace('${{ github.event_name }}', 'push');
   }
 
   function initRepo(): string {
