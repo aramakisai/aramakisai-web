@@ -65,7 +65,8 @@ describe('.github/workflows/directus-schema-sync.yml — 4.1 snapshot diff detec
     const workflow = loadWorkflow();
     const checkout = findStep(
       workflow,
-      (s) => s.uses?.startsWith('actions/checkout') === true && !s.with?.repository,
+      (s) =>
+        s.uses?.startsWith('actions/checkout') === true && !s.with?.repository,
     );
     expect(checkout.with?.['fetch-depth']).toBeGreaterThanOrEqual(2);
   });
@@ -106,8 +107,9 @@ describe('.github/workflows/directus-schema-sync.yml — 4.2 GitHub App auth', (
 
   it('generates a short-lived installation token scoped to aramakisai-infra only', () => {
     const workflow = loadWorkflow();
-    const tokenStep = findStep(workflow, (s) =>
-      s.uses?.startsWith('actions/create-github-app-token') === true,
+    const tokenStep = findStep(
+      workflow,
+      (s) => s.uses?.startsWith('actions/create-github-app-token') === true,
     );
     expect(tokenStep.with?.owner).toBe('aramakisai');
     expect(String(tokenStep.with?.repositories)).toContain('aramakisai-infra');
@@ -121,8 +123,9 @@ describe('.github/workflows/directus-schema-sync.yml — 4.2 GitHub App auth', (
     expect(credsStep.run).toMatch(/infisical run/);
     expect(credsStep.run).toMatch(/add-mask/);
 
-    const tokenStep = findStep(workflow, (s) =>
-      s.uses?.startsWith('actions/create-github-app-token') === true,
+    const tokenStep = findStep(
+      workflow,
+      (s) => s.uses?.startsWith('actions/create-github-app-token') === true,
     );
     expect(String(tokenStep.with?.['app-id'])).toMatch(
       /steps\.app_creds\.outputs\.app_id/,

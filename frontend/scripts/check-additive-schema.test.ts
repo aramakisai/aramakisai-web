@@ -181,7 +181,11 @@ describe('diffSchemas', () => {
     const result = diffSchemas(base, head);
 
     expect(result.breakingChanges).toEqual([
-      { kind: 'collection-deleted', collection: 'events', detail: expect.any(String) },
+      {
+        kind: 'collection-deleted',
+        collection: 'events',
+        detail: expect.any(String),
+      },
     ]);
   });
 
@@ -374,7 +378,9 @@ describe('diffSchemas', () => {
     );
 
     const result = diffSchemas(base, head);
-    const kinds = result.breakingChanges.map((c) => `${c.kind}:${c.collection}:${c.field ?? ''}`);
+    const kinds = result.breakingChanges.map(
+      (c) => `${c.kind}:${c.collection}:${c.field ?? ''}`,
+    );
 
     expect(kinds).toEqual(
       expect.arrayContaining([
@@ -391,7 +397,10 @@ describe('diffSchemas', () => {
 
 describe('formatSummary', () => {
   it('returns an additive-only summary and exit code 0 when there are no breaking changes', () => {
-    const result: SchemaDiffResult = { breakingChanges: [], isAdditiveOnly: true };
+    const result: SchemaDiffResult = {
+      breakingChanges: [],
+      isAdditiveOnly: true,
+    };
 
     const report = formatSummary(result);
 
@@ -412,7 +421,8 @@ describe('formatSummary', () => {
           kind: 'field-deleted',
           collection: 'announcements',
           field: 'legacy_note',
-          detail: 'field "legacy_note" was removed from collection "announcements"',
+          detail:
+            'field "legacy_note" was removed from collection "announcements"',
         },
         {
           kind: 'type-changed',
@@ -433,8 +443,12 @@ describe('formatSummary', () => {
     const report = formatSummary(result);
 
     expect(report.exitCode).toBe(1);
-    expect(report.summary).toContain('| Collection | Field | Change Type | Detail |');
-    expect(report.summary).toContain('| events | - | Collection Deleted | collection "events" was removed |');
+    expect(report.summary).toContain(
+      '| Collection | Field | Change Type | Detail |',
+    );
+    expect(report.summary).toContain(
+      '| events | - | Collection Deleted | collection "events" was removed |',
+    );
     expect(report.summary).toContain(
       '| announcements | legacy_note | Field Deleted | field "legacy_note" was removed from collection "announcements" |',
     );
@@ -628,9 +642,7 @@ fields:
     expect(report.summary).toContain(
       '| Collection | Field | Change Type | Detail |',
     );
-    expect(report.summary).toContain(
-      '| sponsors | - | Collection Deleted |',
-    );
+    expect(report.summary).toContain('| sponsors | - | Collection Deleted |');
     expect(report.summary).toContain(
       '| announcements | title | Type Changed |',
     );
