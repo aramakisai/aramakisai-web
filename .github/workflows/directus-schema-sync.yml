@@ -6,6 +6,7 @@ on:
     paths:
       - directus/schema/snapshot.yaml
       - directus/migrations/**
+  workflow_dispatch: {}
 
 permissions:
   contents: read
@@ -28,7 +29,9 @@ jobs:
       - name: Detect snapshot.yaml change
         id: diff
         run: |
-          if git diff --name-only HEAD^ HEAD | grep -qxF 'directus/schema/snapshot.yaml'; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only HEAD^ HEAD | grep -qxF 'directus/schema/snapshot.yaml'; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
