@@ -94,18 +94,25 @@
   - **確認結果: 完了**（2026-07-07）。`pre-commit-hooks`（trailing-whitespace, end-of-file-fixer, check-merge-conflict, mixed-line-ending）は既存設定のまま全て有効であることを確認（変更なし）。`gitleaks` バージョンは `aramakisai-infra` と同一の `v8.23.0`。`.gitleaks.toml` は両リポジトリとも `[extend] useDefault = true` で base ルールセットは一致。`allowlist.paths` は各リポジトリの実ファイル構成に応じた差分（`aramakisai-web`: `.env.example` / `.env.local.example` のみ許可、`.env`/`.env.local` 本体は除外せずスキャン対象。`aramakisai-infra`: `kubeconfig` / `terraform/secrets.tfvars` 等 infra 固有ファイルを許可）であり、意図した設計通り（本 spec のスコープでは変更不要）。
   - _Requirements: 4.1, 4.2, 4.3, 4.5_
 
-- [ ] 6. main ブランチ保護の本適用とエンドツーエンド検証
-- [ ] 6.1 必須ステータスチェックを main ブランチ保護に設定する
+- [x] 6. main ブランチ保護の本適用とエンドツーエンド検証
+- [x] 6.1 必須ステータスチェックを main ブランチ保護に設定する
   - `required_status_checks.contexts` に `type-check / lint / test / build` と `deploy preview (Workers)` の 2 件のみを設定する（`strict: false` を維持）
   - 既存の `required_pull_request_reviews`（`required_approving_review_count: 1`, `dismiss_stale_reviews: true`）は変更せず維持する
   - `gh api .../branches/main/protection` の `contexts` に指定した 2 件が反映されていることが確認できる
+  - **確認結果: 完了**（2026-07-07）。`gh api -X PUT .../branches/main/protection` で適用。適用後の再取得で `contexts: ["type-check / lint / test / build", "deploy preview (Workers)"]`、`enforce_admins.enabled: false`（据え置き。API がフル置換のため明示指定が必要だったが値自体は変更なし）、`required_pull_request_reviews` 既存値維持を確認。
   - _Requirements: 1.1, 1.2, 1.4_
   - _Boundary: Branch Protection Configuration_
-- [ ] 6.2 frontend 変更を含むテスト PR で必須チェックの表示・合格を確認する
+- [~] 6.2 frontend 変更を含むテスト PR で必須チェックの表示・合格を確認する
   - `type-check / lint / test / build` と `deploy preview (Workers)` が両方 Required として PR に表示され合格することを確認する
   - `deploy preview (Workers)` の実行結果として preview URL が PR コメントに投稿されることを確認する
   - _Depends: 6.1_
   - _Requirements: 1.1, 1.2, 1.4_
+  - **確認結果: 部分完了・ブロック中**（2026-07-07）。検証用テストPR（#7、確認後クローズ・ブランチ削除済み）で `type-check / lint / test / build` を実行し、本 spec 範囲外の既存バグを3件発見・修正（`fix/prettier-format-drift` ブランチ、PR #8、未マージ）:
+    1. `frontend/{directus-schema-sync,generated-manifests,pipeline-integration,scripts/check-additive-schema}.test.ts` の prettier 未整形（origin/main 時点で既存）
+    2. `pipeline-integration.test.ts` が `${{ github.event_name }}` を置換せず bash に渡し `bad substitution` で恒久 fail（cicd-pipeline スペックのテスト実装バグ）
+    3. `generated-manifests.test.ts` の `kubectl create configmap` 呼び出しテストが CI ランナーのコールドスタートで既定 5000ms タイムアウト超過（15000ms に延長）
+    上記3件修正後、PR #8 で `type-check / lint / test / build` は **pass** を確認。しかし `deploy preview (Workers)` が `Failed to automatically trigger login flow. Please run [infisical login] manually to login.` で fail（Infisical CLI 認証フロー起因。`fix/infisical-login-flow`（PR#5）・`fix/infisical-project-id`（PR#6）で対応済みのはずの領域で別の認証エラーが再発）。この Infisical 認証問題は **repo-governance の範囲外（cicd-pipeline / Infisical 設定側の課題）** と判断しユーザーと合意の上ここで停止。PR #8 は未マージのまま残置（3件の修正自体は repo-governance と無関係の frontend テスト不具合で、マージ判断はユーザーに委ねる）。`deploy preview (Workers)` が安定して合格することを確認できるまで 6.2 は完全完了とみなさない。
+  - _Follow-up: Infisical login flow の再調査は cicd-pipeline spec 側で対応_
 - [ ] 6.3 path-filter 対応確認後に admin enforcement を有効化する
   - タスク 1 の確認結果が「対応済み」であることを前提条件として `enforce_admins: true` を適用する
   - `gh api .../branches/main/protection` の `enforce_admins.enabled` が `true` になっていることが確認できる
