@@ -47,7 +47,11 @@ jobs:
         if: steps.diff.outputs.changed == 'true'
         id: app_creds
         run: |
-          infisical run --env=prod -- bash -c '
+          INFISICAL_TOKEN=$(infisical login --method=universal-auth \
+            --client-id="$INFISICAL_UNIVERSAL_AUTH_CLIENT_ID" \
+            --client-secret="$INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET" \
+            --plain --silent)
+          infisical run --token="$INFISICAL_TOKEN" --env=prod -- bash -c '
             echo "::add-mask::$GH_APP_ID"
             echo "::add-mask::$GH_APP_PRIVATE_KEY"
             echo "app_id=$GH_APP_ID" >> "$GITHUB_OUTPUT"
