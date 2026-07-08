@@ -111,8 +111,8 @@
     1. `frontend/{directus-schema-sync,generated-manifests,pipeline-integration,scripts/check-additive-schema}.test.ts` の prettier 未整形（origin/main 時点で既存）
     2. `pipeline-integration.test.ts` が `${{ github.event_name }}` を置換せず bash に渡し `bad substitution` で恒久 fail（cicd-pipeline スペックのテスト実装バグ）
     3. `generated-manifests.test.ts` の `kubectl create configmap` 呼び出しテストが CI ランナーのコールドスタートで既定 5000ms タイムアウト超過（15000ms に延長）
-    上記3件修正後、PR #8 で `type-check / lint / test / build` は **pass** を確認。しかし `deploy preview (Workers)` が `Failed to automatically trigger login flow. Please run [infisical login] manually to login.` で fail（Infisical CLI 認証フロー起因。`fix/infisical-login-flow`（PR#5）・`fix/infisical-project-id`（PR#6）で対応済みのはずの領域で別の認証エラーが再発）。この Infisical 認証問題は **repo-governance の範囲外（cicd-pipeline / Infisical 設定側の課題）** と判断しユーザーと合意の上ここで停止。PR #8 は未マージのまま残置（3件の修正自体は repo-governance と無関係の frontend テスト不具合で、マージ判断はユーザーに委ねる）。`deploy preview (Workers)` が安定して合格することを確認できるまで 6.2 は完全完了とみなさない。
-  - _Follow-up: Infisical login flow の再調査は cicd-pipeline spec 側で対応_
+    上記3件修正後、PR #8 で `type-check / lint / test / build` は **pass** を確認。`deploy preview (Workers)` は当初 `Failed to automatically trigger login flow.` で fail（Infisical CLI が universal-auth env var から自動ログインしない既知パターン。`directus-schema-sync.yml` には既に適用済みの修正が `frontend-ci.yml` には未適用だったことによる再発）。ユーザーの明示指示（Infisical の API トークン/シークレット/権限は正しいことを前提として bug を修正する）に基づき `frontend-ci.yml` に `infisical login --method=universal-auth --plain --silent` → `--token`/`--projectId` パターンを追加（PR #8 に追加コミット）。これにより Infisical 認証自体は成功（ログに `Injecting 4 Infisical secrets into your application process` を確認）、ビルドも成功。次に `wrangler versions upload --json` が `Unknown argument: json`（wrangler 4.x に `--json` フラグ無し）で fail、これも修正（フラグ除去、既存の正規表現フォールバックのみで preview URL 抽出）。この2件の修正後、最新の失敗は **Cloudflare API 認証エラー**（`A request to the Cloudflare API ... failed. Authentication error [code: 10000]`）。Infisical 認証・ログイン自体は成功しており、コード/ワークフロー側に原因は見当たらない。Infisical staging 環境に登録済みの `CLOUDFLARE_API_TOKEN`（および `CLOUDFLARE_ACCOUNT_ID`）の値または権限（Workers Scripts:Edit 等）の問題の可能性が高く、**repo-governance のコード修正では対応不能**なためここで一旦停止。PR #8 は未マージのまま残置。`deploy preview (Workers)` が安定して合格することを確認できるまで 6.2 は完全完了とみなさない。
+  - _Follow-up: Infisical staging 環境の `CLOUDFLARE_API_TOKEN` の値・権限の再確認が必要（インフラ/シークレット管理側の課題）_
 - [ ] 6.3 path-filter 対応確認後に admin enforcement を有効化する
   - タスク 1 の確認結果が「対応済み」であることを前提条件として `enforce_admins: true` を適用する
   - `gh api .../branches/main/protection` の `enforce_admins.enabled` が `true` になっていることが確認できる
@@ -132,3 +132,4 @@
   - `Ready` でない場合は Infisical 側の値を再確認・修正してから再確認する
   - _Depends: 4.3_
   - _Requirements: 3.6_
+  - **試行結果: 未実施・ブロック中**（2026-07-08）。現在の作業環境から k8s API server（`192.168.1.150:6443`）へのネットワーク到達性がなく `dial tcp 192.168.1.150:6443: i/o timeout` で応答なし。VPN/踏み台等クラスタへの到達経路がある環境からの再実行が必要。
