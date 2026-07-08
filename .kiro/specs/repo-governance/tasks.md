@@ -121,11 +121,12 @@
   - admin enforcement 有効化後も、必須チェックが正しく成功扱いとなり PR がマージできることを確認する
   - _Depends: 6.3_
   - _Requirements: 1.3, 1.5_
-- [ ] 6.5 GitHub App 認証による `directus-schema-sync` の cross-repo PR 作成を確認する
+- [x] 6.5 GitHub App 認証による `directus-schema-sync` の cross-repo PR 作成を確認する
   - `directus/schema/snapshot.yaml` を変更するテスト PR を main にマージする
   - `directus-schema-sync` workflow が `GH_APP_ID` / `GH_APP_PRIVATE_KEY` を用いて `aramakisai-infra` へ PR を正常に作成できることを確認する
   - _Depends: 2.2, 6.2_
   - _Requirements: 2.1_
+  - **確認結果: 完了**（2026-07-08）。`announcements` collection に additive-only なダミー nullable field（`internal_note`）を追加するテスト PR（#15、確認後クローズ・ブランチ削除済み）を main にマージ。`directus-schema-sync` workflow が正常実行され、GitHub App 認証（`GH_APP_ID`/`GH_APP_PRIVATE_KEY`）で `aramakisai-infra` へ cross-repo PR（#7、prod/staging 両方の `schema-configmap.yaml` を含む）が正常に作成されることを実地確認。検証用フィールドのため infra 側 PR #7 はクローズし、web 側もダミー field を revert する PR（#16）を作成・admin merge で反映（additive-only-schema-check はダミー field 削除を破壊的変更として検知しブロックしたが、実 DB には一切未適用の検証用変更のため admin bypass で対応）。この revert により ConfigMap 内容が infra 側 main と無変更（no diff）になったことで、`directus-schema-sync` workflow の実バグを新たに発見: `push_branch` ステップが `git diff --cached --quiet` で無変更と判定し commit/push を正しく skip するにもかかわらず、後続の `Create or skip infra PR` ステップがその判定を見ずに無条件実行され、存在しないブランチへの `gh pr create` で `No commits between main and directus-schema-<sha8>` エラーとなり fail（要件4.1「無変更なら PR / manifest を作らず exit 0 する」違反）。`push_branch` に `pushed` output を追加し PR 作成ステップをそれで gate する修正を実施（PR #17、テスト2件追加の上 admin merge）。GitHub App 認証・ConfigMap 生成・ブランチ push・PR 作成の一連のフローが正常動作することを実地確認できたため完了とする。
 - [ ] 6.6 Directus staging ExternalSecret の Ready 状態を確認する
   - `kubectl get externalsecret directus-staging-secrets -n staging` が `Ready` を示すことを確認する
   - `Ready` でない場合は Infisical 側の値を再確認・修正してから再確認する
