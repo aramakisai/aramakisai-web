@@ -68,7 +68,7 @@ describe('.github/workflows/frontend-ci.yml — deploy-preview job', () => {
 
     const buildIdx = commands.findIndex((c) =>
       c.includes(
-        'infisical run --env=staging -- pnpm exec opennextjs-cloudflare build',
+        'infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec opennextjs-cloudflare build',
       ),
     );
     const uploadIdx = commands.findIndex((c) =>
@@ -122,12 +122,12 @@ describe('.github/workflows/frontend-ci.yml — deploy-prod job', () => {
 
     const buildIdx = commands.findIndex((c) =>
       c.includes(
-        'infisical run --env=prod -- pnpm exec opennextjs-cloudflare build',
+        'infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod -- pnpm exec opennextjs-cloudflare build',
       ),
     );
     const deployIdx = commands.findIndex((c) =>
       c.includes(
-        'infisical run --env=prod -- pnpm exec opennextjs-cloudflare deploy',
+        'infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod -- pnpm exec opennextjs-cloudflare deploy',
       ),
     );
 

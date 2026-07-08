@@ -44,6 +44,7 @@ describe('generated manifests — schema ConfigMap (3.2, 4.1, 4.2)', () => {
   }
 
   it('produces a valid ConfigMap for prod and staging containing the snapshot content', () => {
+    // CI ランナーではプロセス起動が遅く既定の 5000ms を超えるため延長する。
     const dir = mkdtempSync(path.join(tmpdir(), 'configmap-gen-'));
     mkdirSync(path.join(dir, 'directus/schema'), { recursive: true });
     mkdirSync(path.join(dir, 'infra/gitops/manifests/prod/directus'), {
@@ -53,7 +54,10 @@ describe('generated manifests — schema ConfigMap (3.2, 4.1, 4.2)', () => {
       recursive: true,
     });
     const snapshotContent = 'collections:\n  - collection: test\n';
-    writeFileSync(path.join(dir, 'directus/schema/snapshot.yaml'), snapshotContent);
+    writeFileSync(
+      path.join(dir, 'directus/schema/snapshot.yaml'),
+      snapshotContent,
+    );
 
     execFileSync('bash', ['-c', extractConfigmapScript()], {
       cwd: dir,
@@ -63,7 +67,10 @@ describe('generated manifests — schema ConfigMap (3.2, 4.1, 4.2)', () => {
 
     for (const env of ['prod', 'staging']) {
       const generated = readFileSync(
-        path.join(dir, `infra/gitops/manifests/${env}/directus/schema-configmap.yaml`),
+        path.join(
+          dir,
+          `infra/gitops/manifests/${env}/directus/schema-configmap.yaml`,
+        ),
         'utf-8',
       );
       const manifest = parse(generated);
@@ -73,7 +80,7 @@ describe('generated manifests — schema ConfigMap (3.2, 4.1, 4.2)', () => {
       expect(manifest.metadata.namespace).toBe(env);
       expect(manifest.data['snapshot.yaml']).toBe(snapshotContent);
     }
-  });
+  }, 15000);
 
   it('skips the migrations ConfigMap when no migration files exist', () => {
     const dir = mkdtempSync(path.join(tmpdir(), 'configmap-gen-'));
@@ -84,7 +91,10 @@ describe('generated manifests — schema ConfigMap (3.2, 4.1, 4.2)', () => {
     mkdirSync(path.join(dir, 'infra/gitops/manifests/staging/directus'), {
       recursive: true,
     });
-    writeFileSync(path.join(dir, 'directus/schema/snapshot.yaml'), 'collections: []\n');
+    writeFileSync(
+      path.join(dir, 'directus/schema/snapshot.yaml'),
+      'collections: []\n',
+    );
 
     execFileSync('bash', ['-c', extractConfigmapScript()], {
       cwd: dir,
@@ -94,7 +104,10 @@ describe('generated manifests — schema ConfigMap (3.2, 4.1, 4.2)', () => {
 
     expect(() =>
       readFileSync(
-        path.join(dir, 'infra/gitops/manifests/prod/directus/migrations-configmap.yaml'),
+        path.join(
+          dir,
+          'infra/gitops/manifests/prod/directus/migrations-configmap.yaml',
+        ),
         'utf-8',
       ),
     ).toThrow();
@@ -106,8 +119,9 @@ describe('generated manifests — schema ConfigMap (3.2, 4.1, 4.2)', () => {
 describe('generated manifests — GitHub App least privilege (3.6, 4.2)', () => {
   it('scopes the installation token to aramakisai-infra with no other repos', () => {
     const workflow = loadWorkflow();
-    const tokenStep = findStep(workflow, (s) =>
-      s.uses?.startsWith('actions/create-github-app-token') === true,
+    const tokenStep = findStep(
+      workflow,
+      (s) => s.uses?.startsWith('actions/create-github-app-token') === true,
     );
     expect(tokenStep.with?.owner).toBe('aramakisai');
     expect(tokenStep.with?.repositories).toBe('aramakisai-infra');
@@ -115,8 +129,9 @@ describe('generated manifests — GitHub App least privilege (3.6, 4.2)', () => 
 
   it('grants exactly contents:write and pull-requests:write, nothing broader', () => {
     const workflow = loadWorkflow();
-    const tokenStep = findStep(workflow, (s) =>
-      s.uses?.startsWith('actions/create-github-app-token') === true,
+    const tokenStep = findStep(
+      workflow,
+      (s) => s.uses?.startsWith('actions/create-github-app-token') === true,
     );
     const permissionKeys = Object.keys(tokenStep.with ?? {}).filter((k) =>
       k.startsWith('permission-'),

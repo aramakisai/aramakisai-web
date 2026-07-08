@@ -90,21 +90,27 @@ describe('pipeline integration — snapshot diff detection (2.2)', () => {
   function extractDiffScript(): string {
     const workflow = loadWorkflow(SCHEMA_SYNC_PATH);
     const step = findStep(workflow, (s) => s.id === 'diff');
-    return step.run as string;
+    return (step.run as string).replace('${{ github.event_name }}', 'push');
   }
 
   function initRepo(): string {
     const dir = makeTempDir('schema-diff-');
-    run('git init -q && git config user.email t@t.com && git config user.name t', {
-      cwd: dir,
-      env: process.env,
-    });
+    run(
+      'git init -q && git config user.email t@t.com && git config user.name t',
+      {
+        cwd: dir,
+        env: process.env,
+      },
+    );
     mkdirSync(path.join(dir, 'directus/schema'), { recursive: true });
     return dir;
   }
 
   function commitAll(dir: string, message: string) {
-    run(`git add -A && git commit -q -m "${message}"`, { cwd: dir, env: process.env });
+    run(`git add -A && git commit -q -m "${message}"`, {
+      cwd: dir,
+      env: process.env,
+    });
   }
 
   it('reports changed=false when snapshot.yaml is untouched between commits', () => {
@@ -149,10 +155,15 @@ describe('pipeline integration — snapshot diff detection (2.2)', () => {
 describe('pipeline integration — idempotent infra PR (3.5)', () => {
   function extractPrScript(): string {
     const workflow = loadWorkflow(SCHEMA_SYNC_PATH);
-    const step = findStep(workflow, (s) => Boolean(s.run?.includes('gh pr create')));
+    const step = findStep(workflow, (s) =>
+      Boolean(s.run?.includes('gh pr create')),
+    );
     return (step.run as string)
       .replace('${{ steps.push_branch.outputs.sha8 }}', 'abcd1234')
-      .replace('${{ steps.push_branch.outputs.branch }}', 'directus-schema-abcd1234');
+      .replace(
+        '${{ steps.push_branch.outputs.branch }}',
+        'directus-schema-abcd1234',
+      );
   }
 
   function stubGh(dir: string, listOutput: string): string {
