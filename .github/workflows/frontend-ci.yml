@@ -123,12 +123,9 @@ jobs:
       - name: Upload Cloudflare Workers preview version
         id: upload_preview
         run: |
-          OUTPUT=$(infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec wrangler versions upload --json)
+          OUTPUT=$(infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec wrangler versions upload)
           echo "$OUTPUT"
-          PREVIEW_URL=$(echo "$OUTPUT" | jq -r '.preview_url // .url // empty')
-          if [ -z "$PREVIEW_URL" ]; then
-            PREVIEW_URL=$(echo "$OUTPUT" | grep -oE 'https://[a-zA-Z0-9.-]+\.workers\.dev' | head -n1)
-          fi
+          PREVIEW_URL=$(echo "$OUTPUT" | grep -oE 'https://[a-zA-Z0-9.-]+\.workers\.dev' | head -n1)
           echo "url=$PREVIEW_URL" >> "$GITHUB_OUTPUT"
 
       - name: Find existing preview comment
