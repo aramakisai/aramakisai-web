@@ -119,6 +119,7 @@ jobs:
 
           if git ls-remote --exit-code --heads origin "$BRANCH" | grep -q "$BRANCH"; then
             echo "branch $BRANCH already exists on origin, skip push"
+            echo "pushed=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -132,14 +133,16 @@ jobs:
 
           if git diff --cached --quiet; then
             echo "no diff against infra main, skip commit/push"
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
           git commit -m "chore(directus): sync schema from aramakisai-web@${SHA8}"
           git push origin "$BRANCH"
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
 
       - name: Create or skip infra PR
-        if: steps.diff.outputs.changed == 'true'
+        if: steps.diff.outputs.changed == 'true' && steps.push_branch.outputs.pushed == 'true'
         working-directory: infra
         env:
           GH_TOKEN: ${{ steps.app_token.outputs.token }}
