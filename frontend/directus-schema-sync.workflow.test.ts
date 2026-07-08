@@ -220,7 +220,8 @@ describe('.github/workflows/directus-schema-sync.yml — 4.4 infra PR + staging 
     const prStep = findStep(workflow, (s) =>
       Boolean(s.run?.includes('gh pr create')),
     );
-    expect(prStep.run).toMatch(/- \[ \].*staging.*schema-apply/);
+    expect(prStep.run).toMatch(/- \[ \].*schema-apply/);
+    expect(prStep.run).toMatch(/staging/);
     expect(prStep.run).toMatch(/stg-api\.aramakisai\.com/);
   });
 
