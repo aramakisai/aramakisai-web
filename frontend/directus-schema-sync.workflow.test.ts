@@ -191,6 +191,26 @@ describe('.github/workflows/directus-schema-sync.yml — 4.3 ConfigMap generatio
     const branchStep = findStep(workflow, (s) => s.id === 'push_branch');
     expect(branchStep.run).toMatch(/git diff --cached --quiet/);
   });
+
+  it('records whether a branch was actually pushed, so the PR step can gate on it', () => {
+    const workflow = loadWorkflow();
+    const branchStep = findStep(workflow, (s) => s.id === 'push_branch');
+    // "no diff" は pushed=false、それ以外（既存ブランチ・新規push）は pushed=true を必ず出力する
+    expect(branchStep.run).toMatch(
+      /no diff against infra main, skip commit\/push"\s*\n\s*echo "pushed=false"/,
+    );
+    expect(branchStep.run).toMatch(
+      /git push origin "\$BRANCH"\s*\n\s*echo "pushed=true"/,
+    );
+  });
+
+  it('skips PR creation when no branch was pushed (no diff against infra main)', () => {
+    const workflow = loadWorkflow();
+    const prStep = findStep(workflow, (s) =>
+      Boolean(s.run?.includes('gh pr create')),
+    );
+    expect(prStep.if).toMatch(/steps\.push_branch\.outputs\.pushed == 'true'/);
+  });
 });
 
 describe('.github/workflows/directus-schema-sync.yml — 4.4 infra PR + staging gate + additive-only', () => {
@@ -220,7 +240,8 @@ describe('.github/workflows/directus-schema-sync.yml — 4.4 infra PR + staging 
     const prStep = findStep(workflow, (s) =>
       Boolean(s.run?.includes('gh pr create')),
     );
-    expect(prStep.run).toMatch(/- \[ \].*staging.*schema-apply/);
+    expect(prStep.run).toMatch(/- \[ \].*schema-apply/);
+    expect(prStep.run).toMatch(/staging/);
     expect(prStep.run).toMatch(/stg-api\.aramakisai\.com/);
   });
 
