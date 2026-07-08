@@ -109,13 +109,21 @@ jobs:
           curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | sudo -E bash
           sudo apt-get update && sudo apt-get install -y infisical
 
+      - name: Infisical login
+        run: |
+          echo "INFISICAL_TOKEN=$(infisical login --method=universal-auth \
+            --client-id="$INFISICAL_UNIVERSAL_AUTH_CLIENT_ID" \
+            --client-secret="$INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET" \
+            --plain --silent)" >> "$GITHUB_ENV"
+          echo "INFISICAL_PROJECT_ID=$(python3 -c "import json;print(json.load(open('.infisical.json'))['workspaceId'])")" >> "$GITHUB_ENV"
+
       - name: Build (staging env, inlined by Infisical)
-        run: infisical run --env=staging -- pnpm exec opennextjs-cloudflare build
+        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec opennextjs-cloudflare build
 
       - name: Upload Cloudflare Workers preview version
         id: upload_preview
         run: |
-          OUTPUT=$(infisical run --env=staging -- pnpm exec wrangler versions upload --json)
+          OUTPUT=$(infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec wrangler versions upload --json)
           echo "$OUTPUT"
           PREVIEW_URL=$(echo "$OUTPUT" | jq -r '.preview_url // .url // empty')
           if [ -z "$PREVIEW_URL" ]; then
@@ -178,8 +186,16 @@ jobs:
           curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | sudo -E bash
           sudo apt-get update && sudo apt-get install -y infisical
 
+      - name: Infisical login
+        run: |
+          echo "INFISICAL_TOKEN=$(infisical login --method=universal-auth \
+            --client-id="$INFISICAL_UNIVERSAL_AUTH_CLIENT_ID" \
+            --client-secret="$INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET" \
+            --plain --silent)" >> "$GITHUB_ENV"
+          echo "INFISICAL_PROJECT_ID=$(python3 -c "import json;print(json.load(open('.infisical.json'))['workspaceId'])")" >> "$GITHUB_ENV"
+
       - name: Build (prod env, inlined by Infisical)
-        run: infisical run --env=prod -- pnpm exec opennextjs-cloudflare build
+        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod -- pnpm exec opennextjs-cloudflare build
 
       - name: Deploy to Cloudflare Workers (prod)
-        run: infisical run --env=prod -- pnpm exec opennextjs-cloudflare deploy
+        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod -- pnpm exec opennextjs-cloudflare deploy
