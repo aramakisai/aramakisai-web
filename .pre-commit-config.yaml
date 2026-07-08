@@ -19,6 +19,15 @@ repos:
       - id: yamllint
         args: [-c=.yamllint.yaml]
 
+  - repo: local
+    hooks:
+      - id: check-confidential-info
+        name: Check Confidential Info
+        entry: python scripts/check-confidential-info.py
+        language: python
+        files: \.(ts|tsx|js|json|md|yaml|yml)$
+        pass_filenames: true
+
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.23.0
     hooks:
