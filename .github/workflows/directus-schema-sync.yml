@@ -162,7 +162,7 @@ jobs:
 
           ## マージ前チェックリスト
 
-          - [ ] staging (namespace \`staging\`) の schema-apply Job が成功したことを確認した
+          - [ ] ArgoCD の \`directus-schema-preview-<この PR の番号>\` Application が Synced/Healthy になり、schema-apply Job が成功したことを確認した（この PR が open な間、ArgoCD ApplicationSet が自動生成する ephemeral Application。実 staging DB に対して検証適用される）
           - [ ] staging Cloudflare Workers Preview URL でフロントエンド E2E 確認済み（該当 web PR の \"Cloudflare Workers Preview\" コメント参照）
           - [ ] staging Directus 管理画面 (https://stg-api.aramakisai.com) で API を確認済み（参考情報。E2E 確認の主経路ではない）
           - [ ] 破壊的変更 (カラム削除・型変更等) は含まれていない。含まれる場合は対応するフロントエンドコードがデプロイ・安定稼働済みであることをチームに周知済み（additive-only ルール、CLAUDE.md 参照）
