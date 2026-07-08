@@ -3,5 +3,11 @@ main = ".open-next/worker.js"
 compatibility_date = "2024-12-30"
 compatibility_flags = ["nodejs_compat"]
 
+# 暫定: aramakisai.com は Terraform 管理外の CNAME で旧サイトへ向いたままのため、
+# custom domain route はまだバインドしない (infra dns.tf の apex record は
+# コメントアウトされたまま、フロントエンド移行完了まで解除しない)。
+# workers.dev サブドメインでパイプライン自体の動作確認のみ行う。
+workers_dev = true
+
 [assets]
 directory = ".open-next/assets"
