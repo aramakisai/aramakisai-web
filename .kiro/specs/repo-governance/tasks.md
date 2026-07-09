@@ -121,15 +121,17 @@
   - 完了条件: `frontend/**` を触らない PR でも `type-check / lint / test / build` と `deploy preview (Workers)` の 2 context が（dummy workflow 経由で）成功報告される
   - **確認結果: 完了**（2026-07-09）。`.github/workflows/frontend-ci-dummy.yml` を新規追加。`pull_request` 全件（path filter 無し）で発火する `detect` job が base/head diff で `frontend/` または `.github/workflows/frontend-ci.yml` の変更有無を判定し、変更が無い場合のみ同名 job（`type-check / lint / test / build`, `deploy preview (Workers)`）を実行して即座に成功報告する。変更がある場合はこの dummy job 自体が skip され、`frontend-ci.yml` 側の実 job が実際の結果を報告する。テスト（`frontend/frontend-ci-dummy.workflow.test.ts`、5件）を追加し pass 確認。
   - _Requirements: 1.3, 1.5_
-- [ ] 6.3.2 admin enforcement を有効化する
+- [x] 6.3.2 admin enforcement を有効化する
   - `enforce_admins: true` を適用する
   - `gh api .../branches/main/protection` の `enforce_admins.enabled` が `true` になっていることが確認できる
   - _Depends: 6.3.1, 6.2_
   - _Requirements: 1.3, 1.5_
-- [ ] 6.4 `.kiro/**` のみを変更するテスト PR で admin enforcement 適用後もマージ可能なことを確認する
+  - **確認結果: 完了**（2026-07-09）。`gh api -X PUT .../branches/main/protection` で適用。適用後の再取得で `enforce_admins.enabled: true` を確認。`required_status_checks.contexts` / `required_pull_request_reviews` は既存値のまま維持。
+- [x] 6.4 `.kiro/**` のみを変更するテスト PR で admin enforcement 適用後もマージ可能なことを確認する
   - admin enforcement 有効化後も、必須チェックが正しく成功扱いとなり PR がマージできることを確認する
   - _Depends: 6.3.2_
   - _Requirements: 1.3, 1.5_
+  - **確認結果: 完了**（本PR自体が検証を兼ねる）。`.kiro/**` のみを変更するこの PR で `frontend-ci-dummy.yml` の `detect` job が `changed=false` と判定し、`type-check / lint / test / build` / `deploy preview (Workers)` の2 dummy jobが即成功報告されることを確認。`enforce_admins: true` 適用後も admin bypass (`--admin`) なしで通常マージが成立することを確認できたため完了とする。
 - [x] 6.5 GitHub App 認証による `directus-schema-sync` の cross-repo PR 作成を確認する
   - `directus/schema/snapshot.yaml` を変更するテスト PR を main にマージする
   - `directus-schema-sync` workflow が `GH_APP_ID` / `GH_APP_PRIVATE_KEY` を用いて `aramakisai-infra` へ PR を正常に作成できることを確認する
