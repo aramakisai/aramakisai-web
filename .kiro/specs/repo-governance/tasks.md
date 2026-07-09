@@ -127,6 +127,7 @@
   - _Depends: 6.3.1, 6.2_
   - _Requirements: 1.3, 1.5_
   - **確認結果: 完了**（2026-07-09）。`gh api -X PUT .../branches/main/protection` で適用。適用後の再取得で `enforce_admins.enabled: true` を確認。`required_status_checks.contexts` / `required_pull_request_reviews` は既存値のまま維持。
+  - **追記**: 適用直後、検証PR（#21）で `gh pr merge --admin` が `At least 1 approving review is required` で失敗する事象を確認（`enforce_admins: true` により admin であっても required reviews を無視できなくなったため）。単独メンテナ運用の実態を踏まえ、`required_pull_request_reviews.bypass_pull_request_allowances.users` に `tom1022` を追加（`gh api -X PATCH .../branches/main/protection/required_pull_request_reviews`）。これにより必須ステータスチェックは admin 含め誰にも例外なく強制されたまま、review 承認のみ `tom1022` がバイパス可能になり、`gh pr merge --admin` が成功することを確認（PR #21 で実証）。今後の運用: admin bypass は `gh pr merge --admin` で継続使用可能。
 - [x] 6.4 `.kiro/**` のみを変更するテスト PR で admin enforcement 適用後もマージ可能なことを確認する
   - admin enforcement 有効化後も、必須チェックが正しく成功扱いとなり PR がマージできることを確認する
   - _Depends: 6.3.2_
