@@ -113,13 +113,22 @@
     3. `generated-manifests.test.ts` の `kubectl create configmap` 呼び出しテストが CI ランナーのコールドスタートで既定 5000ms タイムアウト超過（15000ms に延長）
     続けて `deploy preview (Workers)` の `Failed to automatically trigger login flow.`（Infisical CLI が universal-auth env var から自動ログインしない既知パターン。`directus-schema-sync.yml` には適用済みの修正が `frontend-ci.yml` には未適用だったための再発）を、ユーザーの明示指示（Infisical の API トークン/シークレット/権限は正しいことを前提として bug を修正する）に基づき `infisical login --method=universal-auth --plain --silent` → `--token`/`--projectId` パターン追加で修正（PR #8）。続く `wrangler versions upload --json` の `Unknown argument: json`（wrangler 4.x に `--json` フラグ無し）も修正（フラグ除去、正規表現フォールバックのみで preview URL 抽出、PR #8）。次に発生した **Cloudflare API 認証エラー**（`Authentication error [code: 10000]`）はコード原因ではなく、custom domain route（`aramakisai.com` の CNAME が Terraform 管理外で旧サイトを指したまま）が未解決な状態が原因と判明。ユーザー側で `workers_dev = true` を暫定有効化し custom domain 切替と切り離して pipeline 自体の疎通を確認する方針を採用（PR #10、cicd-pipeline 側対応）。これにより `deploy prod (Workers)` が初めて成功。その直後の `deploy preview (Workers)` では `wrangler versions upload` が Version Preview URL を出力しない事象を確認したが、これは workers.dev サブドメインが当該 Worker に対して初回 `wrangler deploy`（`deploy prod` 経由）が成功する前は per-version preview URL が生成されないことが原因と判明（Cloudflare 公式ドキュメント: preview URL は `workers_dev`/`preview_urls` 有効時のみ・2024-09-25 以降アップロードのバージョンのみ対応）。`deploy prod (Workers)` 成功後に検証用PR（#12、確認後クローズ・ブランチ削除済み）を作成し再検証した結果、`deploy preview (Workers)` の全ステップが成功し、実際の Version Preview URL（`https://62866b93-aramakisai-web.aramakisai.workers.dev`）が PR コメントに正しく投稿されることを確認。併せて、この検証中に別件（PR #11 が `directus-schema-sync.yml` の PR チェックリスト文言を ArgoCD ephemeral preview App 方式に更新した際、対応テストの正規表現が旧語順のままで不一致となり fail していた既存バグ、`frontend-ci.yml` の path-filter 未対応によりコード変更単体では検知されずマージされていたもの）も発見・修正。`type-check / lint / test / build` と `deploy preview (Workers)` の両方が Required チェックとして合格し preview URL がコメント投稿されることを実地確認できたため完了とする。
 - [ ] 6.3 path-filter 対応確認後に admin enforcement を有効化する
-  - タスク 1 の確認結果が「対応済み」であることを前提条件として `enforce_admins: true` を適用する
+  - _Requirements: 1.3, 1.5_
+  - **方針転換**（2026-07-09）。当初 research.md の Decision（cicd-pipeline 側の path filter 追随修正が先行マージされるまで保留）に基づき 6.3 をブロックしていたが、ユーザーより「cicd-pipeline はこれ以上の対応をしない（既に implementation-complete）。他の completed spec に追加の責務を求めるのは筋違いであり、本 spec 側で完結させるべき」との明示的な方針転換の指示があった。これを受け 6.3 を 6.3.1（path-filter 回避策の実装、repo-governance 側で直接対応）と 6.3.2（admin enforcement 適用）に分割する。
+- [x] 6.3.1 frontend/** を触らない PR でも必須チェックが完了報告されるようにする（path-filter 回避策）
+  - `frontend-ci.yml` の path filter (`paths: frontend/**`) により、対象外 PR では `type-check / lint / test / build` / `deploy preview (Workers)` の 2 context が永久に "Expected" のまま完了しない問題（research.md #3）を、cicd-pipeline 側の追随を待たず本 spec 側で直接解消する
+  - GitHub 公式に文書化された回避策のうち「対象パスの逆条件で発火する同名の dummy workflow を追加する」方式を採用する（`frontend-ci.yml` 自体の変更は cicd-pipeline の Boundary のため避け、新規ファイル追加のみで対応）
+  - 完了条件: `frontend/**` を触らない PR でも `type-check / lint / test / build` と `deploy preview (Workers)` の 2 context が（dummy workflow 経由で）成功報告される
+  - **確認結果: 完了**（2026-07-09）。`.github/workflows/frontend-ci-dummy.yml` を新規追加。`pull_request` 全件（path filter 無し）で発火する `detect` job が base/head diff で `frontend/` または `.github/workflows/frontend-ci.yml` の変更有無を判定し、変更が無い場合のみ同名 job（`type-check / lint / test / build`, `deploy preview (Workers)`）を実行して即座に成功報告する。変更がある場合はこの dummy job 自体が skip され、`frontend-ci.yml` 側の実 job が実際の結果を報告する。テスト（`frontend/frontend-ci-dummy.workflow.test.ts`、5件）を追加し pass 確認。
+  - _Requirements: 1.3, 1.5_
+- [ ] 6.3.2 admin enforcement を有効化する
+  - `enforce_admins: true` を適用する
   - `gh api .../branches/main/protection` の `enforce_admins.enabled` が `true` になっていることが確認できる
-  - _Depends: 1, 6.2_
+  - _Depends: 6.3.1, 6.2_
   - _Requirements: 1.3, 1.5_
 - [ ] 6.4 `.kiro/**` のみを変更するテスト PR で admin enforcement 適用後もマージ可能なことを確認する
   - admin enforcement 有効化後も、必須チェックが正しく成功扱いとなり PR がマージできることを確認する
-  - _Depends: 6.3_
+  - _Depends: 6.3.2_
   - _Requirements: 1.3, 1.5_
 - [x] 6.5 GitHub App 認証による `directus-schema-sync` の cross-repo PR 作成を確認する
   - `directus/schema/snapshot.yaml` を変更するテスト PR を main にマージする
