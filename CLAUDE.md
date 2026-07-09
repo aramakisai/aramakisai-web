@@ -41,6 +41,12 @@ npx directus schema snapshot ./directus/schema/snapshot.yaml
 # スキーマを Directus に適用 (K8s Job として自動実行されるが手動でも可)
 npx directus schema apply ./directus/schema/snapshot.yaml
 
+bash# K8s クラスタ状態確認
+# kubectl を直接実行してはならない (kubeconfig 未設定でネットワーク到達不可)。
+# 必ず make kubectl 経由で実行すること (Infisical から KUBECONFIG を注入)
+make kubectl ARGS="get pods -A"
+make kubectl ARGS="get externalsecret directus-staging-secrets -n staging"
+
 環境変数
 
 NEXT_PUBLIC_DIRECTUS_URL    Directus の API エンドポイント
