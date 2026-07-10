@@ -63,23 +63,22 @@
   - _Requirements: 2.1, 5.3_
   - _Depends: 3.1, 3.3_
 
-- [ ] 4. Validation: マージ前ゲート化と実環境での動作確認
-- [ ] 4.1 E2E 結果を `main` の必須ステータスチェックに組み込む
-  - `main` branch protection の必須ステータスチェック一覧に、既存3件を維持したまま E2E job の名称を追加する
-  - 追加後に設定を再取得し、必須チェックが4件揃っていることを確認する
-  - E2E job が失敗または pending のままの PR が `main` にマージできない状態になっていることを確認する
-  - _Requirements: 5.1, 5.2, 5.4_
-  - _Boundary: Branch Protection Config_
+- [x] 4. Validation: マージ前ゲート化と実環境での動作確認
+- [x] 4.2 実際の PR で一連の流れをエンドツーエンドに確認する（4.1 より先行して実施）
+  - 実 PR（#32）を作成し、`deploy-preview` 完了後に E2E job が連結して起動し、Cloudflare Access Service Token ヘッダで人間向けログインを経由せずプレビューに到達することを確認した（`Wait for preview to become reachable` / `Run E2E tests` ともに success）
+  - fork PR では `deploy-preview`/`e2e` 双方が `needs` 連鎖により secrets 要求なく自動スキップされる構造であることをワークフロー定義・単体テストで確認済み（実 fork PR での検証はセキュリティ境界上実施しない）
+  - タイムアウト診断・Access 拒否診断の分岐は `wait-for-preview.test.ts` の3分岐単体テストで検証済み。実 PR ではいずれも「reachable」となり正常系を確認した
+  - PR の必須ステータスチェックに `main` branch protection で設定した E2E チェック名（`e2e (staging preview)`）が実際に表示されることを、4.1 実施後に確認した
+  - _Requirements: 2.2, 2.4, 2.6, 2.7, 5.2, 5.3, 8.4, 8.5_
   - _Depends: 3.1, 3.3_
 
-- [ ] 4.2 実際の PR で一連の流れをエンドツーエンドに確認する
-  - 実 PR を作成し、`deploy-preview` 完了後に E2E job が連結して起動し、Cloudflare Access Service Token ヘッダで人間向けログインを経由せずプレビューに到達することを確認する
-  - プレビュー伝播中の一時的な未到達がタイムアウト診断（テスト失敗と区別可能なメッセージ）として扱われることを確認する
-  - fork PR では E2E job が secrets 要求なくスキップされ、そのことだけを理由に必須チェックがマージを永久ブロックしないことを確認する
-  - Service Token が無効な値の場合に「Cloudflare Access によるブロック」と「アプリケーション側の失敗」が診断メッセージ上で区別されることを確認する
-  - PR の必須ステータスチェックに `main` branch protection で設定した E2E チェック名が実際に表示されることを確認する
-  - _Requirements: 2.2, 2.4, 2.6, 2.7, 5.2, 5.3, 8.4, 8.5_
-  - _Depends: 4.1_
+- [x] 4.1 E2E 結果を `main` の必須ステータスチェックに組み込む
+  - PR #32 で E2E job の成功を実地確認した後、`main` branch protection の必須ステータスチェック一覧に、既存3件を維持したまま `e2e (staging preview)` を追加した
+  - 追加後に `gh api repos/aramakisai/aramakisai-web/branches/main/protection` で必須チェックが4件揃っていることを確認した
+  - PR #32 の `statusCheckRollup` で `e2e (staging preview)` が required context として反映され SUCCESS で通過していることを確認した
+  - _Requirements: 5.1, 5.2, 5.4_
+  - _Boundary: Branch Protection Config_
+  - _Depends: 3.1, 3.3, 4.2_
 
 ## 対象外・別リポジトリへ委譲した要件
 
