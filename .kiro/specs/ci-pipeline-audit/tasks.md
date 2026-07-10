@@ -15,7 +15,7 @@
   - 取得した JSON 出力一式が是正前の基準値としてタスク記録に残り、必須ステータスチェック名とワークフロー・job の対応表（棚卸し一覧）としてそのまま利用できる
   - _Requirements: 1.5, 2.1, 2.2, 2.3, 2.4, 2.5, 4.3, 4.4, 5.1, 5.5_
 
-- [ ] 2. additive-schema-check の trigger 条件を他ワークフローと揃える (P)
+- [x] 2. additive-schema-check の trigger 条件を他ワークフローと揃える (P)
   - `additive-schema-check.yml` の `pull_request` トリガーに `branches: [main]` を追加する（`frontend-ci.yml`/`frontend-ci-dummy.yml` と同じ条件にする）
   - 対応する構造テストに `on.pull_request.branches` が `['main']` であることを検証するケースを追加する
   - 追加後のテストが pass し、main 以外を base とする PR ではこのワークフローが発火しなくなる

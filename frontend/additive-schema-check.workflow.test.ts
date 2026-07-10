@@ -28,7 +28,7 @@ type Job = {
 
 type Workflow = {
   on: {
-    pull_request?: { types?: string[]; paths?: string[] };
+    pull_request?: { types?: string[]; branches?: string[]; paths?: string[] };
   };
   permissions?: Record<string, string>;
   jobs: Record<string, Job>;
@@ -59,6 +59,11 @@ describe('.github/workflows/additive-schema-check.yml — 7.1 trigger/gate/invoc
     expect(workflow.on.pull_request?.paths).toEqual([
       'directus/schema/snapshot.yaml',
     ]);
+  });
+
+  it('restricts the pull_request trigger to base branch main, matching frontend-ci.yml/frontend-ci-dummy.yml', () => {
+    const workflow = loadWorkflow();
+    expect(workflow.on.pull_request?.branches).toEqual(['main']);
   });
 
   it('checks out with full history (fetch-depth: 0) to resolve base/head SHAs', () => {
