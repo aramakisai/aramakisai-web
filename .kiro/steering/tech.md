@@ -72,7 +72,9 @@ make kubectl ARGS="get pods -A"   # kubectl 直実行不可、Infisical 経由 K
 
 4 本のワークフローが役割分担している。変更時はどのワークフローの責務かを明確にすること。
 
-- **`frontend-ci.yml`**: `frontend/**` 変更 PR/push で発火。`type-check` → `lint` → `format:check` → `test` → `build` (ダミー env 値でビルド)。PR では Cloudflare Workers プレビューをデプロイし PR コメントに URL を記録、`main` push では本番デプロイ。fork PR は secrets 不要なジョブのみ実行 (least-privilege)。
+- **`frontend-ci.yml`**: `frontend/**` 変更 PR/push で発火。`type-check` → `lint` → `format:check` → `test` → `build` (ダミー env 値でビルド)。PR では `deploy-preview` job が staging env で `wrangler versions upload` を実行し、PR コメントに URL を記録。`main` push では `deploy-prod` job が `opennextjs-cloudflare deploy` (= `wrangler deploy`) で本番反映。fork PR は secrets 不要なジョブのみ実行 (least-privilege)。
+  - プレビュー URL は `https://<version-hash>-aramakisai-web.<subdomain>.workers.dev` 形式。`wrangler versions upload` は本番トラフィックに影響しないバージョンを作るだけなので、複数 PR が同時に開いていても PR ごとに URL が独立し衝突しない。push のたびに hash は変わるが PR コメント自体は上書き更新される。
+  - `aramakisai-web.aramakisai.workers.dev` (hash 無し) は `deploy-prod` が書き込む本番固定 URL であり、上記プレビュー URL とは別物。
 - **`frontend-ci-dummy.yml`**: `frontend/**` を触らない PR でのみ発火し、`frontend-ci.yml` と同名の required status check を常に成功報告する。branch protection の path-filter 既知の制約 (対象外 PR ではチェックが永久に "Expected" のまま完了せず admin でもマージ不能になる) の回避策。**`frontend-ci.yml` のジョブ名を変更したら、このダミー側の `name:` も揃える。**
 - **`additive-schema-check.yml`**: `directus/schema/snapshot.yaml` 変更 PR で base/head を比較し、collection/field 削除・型変更・`is_nullable: true→false` を機械検出 (`frontend/scripts/check-additive-schema.ts`)。additive-only ルールの自動強制。
 - **`directus-schema-sync.yml`**: `main` push (`snapshot.yaml`/`migrations/**` 変更時) で `aramakisai-infra` リポジトリに ConfigMap を生成し `directus-schema-*` ブランチで PR を自動作成 (専用 GitHub App、write 権限)。マージ後 ArgoCD が `directus database migrate:latest` → `directus schema apply --yes` を実行。

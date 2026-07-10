@@ -60,17 +60,12 @@ NEXT_PUBLIC_SITE_URL        サイト URL
 デプロイフロー (`.github/workflows/frontend-ci.yml`)
 
 PR 作成 (`frontend/**` を変更した場合のみ発火)
-  → validate job: type-check / lint / format / test / build (失敗したらマージ不可)
-  → deploy-preview job (fork PR は対象外):
-      staging env で `opennextjs-cloudflare build` → `wrangler versions upload`
-      → PR ごとに一意なプレビュー URL (`https://<version-hash>-aramakisai-web.<subdomain>.workers.dev`) が発行される
-      → 本番トラフィックには一切影響しない (`wrangler deploy` ではなく `versions upload` のため)
-      → URL は PR コメントに自動投稿・更新される (push のたびに hash は変わるがコメント自体は上書きされる)
-      → 複数 PR が同時に開いていても URL は PR ごとに独立するため衝突しない
-      → `aramakisai-web.aramakisai.workers.dev` (hash 無し) は本番固定 URL であり、これとは別物
+  → Next.js build 等が実行される (失敗したらマージ不可)
+  → PR ごとに一意な Cloudflare Workers プレビュー URL が発行され、PR コメントに投稿される
+  → 詳細 (URL 形式・衝突しないこと等) は `.kiro/steering/tech.md` 参照
 
 main merge
-  → deploy-prod job: prod env で `opennextjs-cloudflare build` → `opennextjs-cloudflare deploy` (= `wrangler deploy`) → 本番反映
+  → Cloudflare Workers に本番デプロイ
   → Directus スキーマ変更がある場合:
       gitops リポジトリに PR が自動作成される
       → ArgoCD が K8s Job を実行 → directus schema apply
