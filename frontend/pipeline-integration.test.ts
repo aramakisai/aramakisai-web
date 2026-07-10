@@ -13,6 +13,14 @@ const SCHEMA_SYNC_PATH = path.resolve(
   __dirname,
   '../.github/workflows/directus-schema-sync.yml',
 );
+const ADDITIVE_SCHEMA_CHECK_PATH = path.resolve(
+  __dirname,
+  '../.github/workflows/additive-schema-check.yml',
+);
+const ADDITIVE_SCHEMA_CHECK_DUMMY_PATH = path.resolve(
+  __dirname,
+  '../.github/workflows/additive-schema-check-dummy.yml',
+);
 
 type Step = {
   id?: string;
@@ -21,7 +29,12 @@ type Step = {
   if?: string;
   with?: Record<string, unknown>;
 };
-type Job = { if?: string; needs?: string | string[]; steps: Step[] };
+type Job = {
+  name?: string;
+  if?: string;
+  needs?: string | string[];
+  steps: Step[];
+};
 type Workflow = { jobs: Record<string, Job> };
 
 function loadWorkflow(p: string): Workflow {
@@ -96,7 +109,7 @@ describe('pipeline integration — snapshot diff detection (2.2)', () => {
   function initRepo(): string {
     const dir = makeTempDir('schema-diff-');
     run(
-      'git init -q && git config user.email t@t.com && git config user.name t',
+      'git init -q && git config user.email t@t.com && git config user.name t', // confidential:allow
       {
         cwd: dir,
         env: process.env,
@@ -147,6 +160,24 @@ describe('pipeline integration — snapshot diff detection (2.2)', () => {
     });
 
     expect(readFileSync(outputFile, 'utf-8')).toContain('changed=true');
+  });
+});
+
+// Requirement 1.1 / 5.3: additive-schema-check.yml と additive-schema-check-dummy.yml が
+// 同一の required status check context を報告し続けるよう、両者の job 名一致を固定する
+// (frontend-ci.yml / frontend-ci-dummy.yml に対する既存の同種検証と対称)。
+describe('pipeline integration — dummy/real job name parity (1.1, 5.3)', () => {
+  it('additive-schema-check.yml and additive-schema-check-dummy.yml report the same job name', () => {
+    const real = loadWorkflow(ADDITIVE_SCHEMA_CHECK_PATH);
+    const dummy = loadWorkflow(ADDITIVE_SCHEMA_CHECK_DUMMY_PATH);
+    const realNames = Object.values(real.jobs)
+      .map((j) => j.name)
+      .filter(Boolean);
+    const dummyNames = Object.values(dummy.jobs)
+      .map((j) => j.name)
+      .filter(Boolean);
+    expect(realNames).toContain('Detect breaking snapshot.yaml changes');
+    expect(dummyNames).toContain('Detect breaking snapshot.yaml changes');
   });
 });
 

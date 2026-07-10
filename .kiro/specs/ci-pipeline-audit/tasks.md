@@ -37,7 +37,7 @@
   - _Requirements: 2.1, 2.2, 3.1, 3.3, 3.4, 3.5, 5.4_
   - _Boundary: Additive Schema Check Dummy Workflow_
 
-- [ ] 4. ダミー workflow と実 workflow の job 名一致を統合テストで固定する
+- [x] 4. ダミー workflow と実 workflow の job 名一致を統合テストで固定する
   - `pipeline-integration.test.ts` に、`additive-schema-check.yml` と新設ダミー workflow の該当 job 名が完全一致することを検証するケースを、`frontend-ci.yml`/`frontend-ci-dummy.yml` に対する既存の同種検証と対称な形で追加する
   - 追加したテストが pass し、以後どちらか一方の job 名だけが変更された場合にテストが fail するようになる
   - _Depends: 2, 3.1, 3.2_
