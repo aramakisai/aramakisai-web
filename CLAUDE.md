@@ -1,7 +1,7 @@
 プロジェクト概要
 
 荒牧祭実行委員会のフロントエンド (Next.js) と Directus スキーマを管理するリポジトリ。
-FE は Cloudflare Pages にデプロイ、Directus スキーマは Git 管理し K8s Job で自動適用される。
+FE は OpenNext (@opennextjs/cloudflare) 経由で Cloudflare Workers にデプロイ、Directus スキーマは Git 管理し K8s Job で自動適用される。
 
 ディレクトリ構成
 
@@ -55,17 +55,17 @@ NEXT_PUBLIC_DIRECTUS_URL    Directus の API エンドポイント
 
 NEXT_PUBLIC_SITE_URL        サイト URL
 
-Cloudflare Pages の環境変数は Pages ダッシュボードで設定する。
-本番とプレビューで値を分けることができる。
+本番/staging の値は Infisical で管理する (`--env=prod` / `--env=staging`)。Pages ダッシュボードでの設定ではない。
 
-デプロイフロー
+デプロイフロー (`.github/workflows/frontend-ci.yml`)
 
-PR 作成
-  → Cloudflare Pages がプレビュー URL を自動発行
-  → Next.js build が実行される (失敗したらマージ不可)
+PR 作成 (`frontend/**` を変更した場合のみ発火)
+  → Next.js build 等が実行される (失敗したらマージ不可)
+  → PR ごとに一意な Cloudflare Workers プレビュー URL が発行され、PR コメントに投稿される
+  → 詳細 (URL 形式・衝突しないこと等) は `.kiro/steering/tech.md` 参照
 
 main merge
-  → Cloudflare Pages が本番デプロイ
+  → Cloudflare Workers に本番デプロイ
   → Directus スキーマ変更がある場合:
       gitops リポジトリに PR が自動作成される
       → ArgoCD が K8s Job を実行 → directus schema apply
@@ -80,11 +80,11 @@ snapshot.yaml を commit して PR を出す
 
 デプロイ先
 - 本番環境
-    - ホームページ本体 aramakisai.com Cloudflare Pages
+    - ホームページ本体 aramakisai.com (現状は Cloudflare Workers の workers.dev サブドメインのみ、custom domain 未接続。詳細は `frontend/wrangler.toml` コメント参照)
     - Directus管理画面 api.aramakisai.com
       - なおリポジトリは `aramakisai/aramakisai-infra`
 - ステージング環境
-    - ホームページ本体 Cloudflare Pages
+    - ホームページ本体 PR ごとの Cloudflare Workers プレビュー URL (上記デプロイフロー参照)
     - Directus管理画面 stg-api.aramakisai.com
 
 注意事項
