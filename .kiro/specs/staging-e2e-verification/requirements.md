@@ -9,6 +9,8 @@ staging 環境での自動 E2E 検証パイプライン。frontend の変更が 
 
 なお、本仕様策定時点で `frontend/src/app` には静的なトップページ（`page.tsx`）のみが実装されており、Directus からのデータ取得を行う画面はまだ存在しない。そのため本仕様は、現時点で検証可能な範囲（ページの到達可能性・ビルド成果物の疎通）を最小スコープとしつつ、今後 Directus 連携画面が追加された際に検証項目を拡張できる構造を要件として定める。
 
+また、`deploy-preview` job が払い出すプレビュー URL の実体は Cloudflare Workers の既定ドメイン `aramakisai-web.aramakisai.workers.dev` であり、`aramakisai-infra` リポジトリの Terraform（`terraform/access.tf`, `terraform/authentik_apps.tf`）にて Cloudflare Access（Authentik OIDC, `auto_redirect_to_identity = true`）による保護対象に設定されている。そのため Playwright を含む E2E クライアントは、通常のブラウザ操作だけではこのプレビュー URL に到達できず、Cloudflare Access の認証（Authentik ログイン）を自動的に突破する仕組みが別途必要となる。Cloudflare Access は非対話的クライアント向けに Service Token（`CF-Access-Client-Id` / `CF-Access-Client-Secret` ヘッダによるポリシーバイパス）をサポートしており、本仕様はこの仕組みの導入（infra 側の Terraform 追加 + web 側 CI での認証ヘッダ付与）を含む。
+
 ## Boundary Context
 
 - **In scope**:
@@ -17,16 +19,19 @@ staging 環境での自動 E2E 検証パイプライン。frontend の変更が 
   - E2E テスト結果を `main` ブランチの branch protection `required_status_checks` に組み込むこと
   - 失敗時の診断情報（スクリーンショット・トレース・ログ）の CI アーティファクトとしての保存
   - staging Directus（`https://stg-api.aramakisai.com`）への読み取り専用アクセスを伴う検証、および将来の画面追加を見越した拡張可能なテスト構造
+  - Cloudflare Access で保護された staging プレビュー URL（`*.aramakisai.workers.dev`）に対する E2E クライアント（Playwright）の自動認証（Service Token ヘッダ付与）
 - **Out of scope**:
   - 個別ページの UI 実装そのもの（本仕様は検証基盤の追加であり、フロントエンド機能追加は対象外）
   - 本番環境（`aramakisai.com` / `api.aramakisai.com`）に対する E2E 実行
   - Directus スキーマの変更・migration（`directus-schema-sync` / `additive-schema-check` の対象範囲）
   - 負荷試験・パフォーマンス測定
   - `aramakisai-infra` リポジトリ側の ArgoCD / K8s Job 定義の変更
+  - Authentik / Cloudflare Access の一般利用者向け認証フロー自体の変更（Requirement 8 で扱う Service Token 発行・ポリシー追加を除く）
 - **Adjacent expectations**:
   - `frontend-ci.yml` の `validate` → `deploy-preview` の既存 job 構成・fork PR での secret 非露出方針（`ci-pipeline-audit` spec で監査済み）を維持し、新規 E2E job はこの方針を破壊しない
   - branch protection のベースライン（`required_approving_review_count: 1` 等、`repo-governance` spec で確立）に、新規 required status check を追加する形で integrate する
   - additive-only ルール（CLAUDE.md）に従い、E2E テストが staging Directus のデータを破壊的に変更しないこと
+  - `aramakisai-infra` リポジトリの `terraform/access.tf` / `terraform/authentik_apps.tf` に、E2E 用 Cloudflare Access Service Token（`cloudflare_zero_trust_access_service_token` 等）と、それを許可する Access Policy（既存の `allow_authentik` に加える bypass 用ポリシー）を追加する必要がある。この Terraform 変更自体は `aramakisai-infra` 側の作業だが、本仕様の実装（web 側 CI）はこの Service Token の発行を前提とする
 
 ---
 
@@ -57,6 +62,8 @@ staging 環境での自動 E2E 検証パイプライン。frontend の変更が 
 3. If the `deploy-preview` job is skipped（fork PR、既存の fork-exclusion policy による）, then the E2E job shall also be skipped, since no preview URL exists to test against and no repository secrets should be exposed to fork-originated workflow runs.
 4. If the preview URL does not become reachable within the bounded timeout, then the E2E job shall fail with a clear diagnostic message identifying the timeout condition, distinct from a test assertion failure.
 5. The E2E job shall not re-trigger a new preview deployment; it shall only consume the URL already produced by `deploy-preview`.
+6. Since the preview URL (`*.aramakisai.workers.dev`) is protected by Cloudflare Access, the E2E job shall attach the Cloudflare Access Service Token headers (`CF-Access-Client-Id`, `CF-Access-Client-Secret`) to every request made by the E2E client, so requests bypass the Authentik login redirect rather than being blocked or redirected to an interactive login page.
+7. If the Service Token headers are missing, expired, or rejected by Cloudflare Access, then the E2E job shall fail with a diagnostic message distinguishing "blocked by Cloudflare Access" from a frontend/application-level failure.
 
 ---
 
@@ -121,3 +128,17 @@ staging 環境での自動 E2E 検証パイプライン。frontend の変更が 
 2. If a test requires state that is not already present in staging Directus, then the test shall skip or be marked inconclusive rather than attempting to create that state via a write operation.
 3. While network flakiness against the shared staging environment occurs（一時的な接続エラー・タイムアウト）, the E2E job shall apply a bounded retry policy（最大リトライ回数の上限あり）rather than retrying indefinitely.
 4. The E2E job shall enforce an overall execution timeout, so a hung browser session or unreachable preview does not block the CI pipeline indefinitely.
+
+---
+
+### Requirement 8: Cloudflare Access 認証バイパス（Service Token）
+
+**Objective:** インフラ管理者として、E2E テストクライアントが Cloudflare Access（Authentik OIDC）による人間向けログインを経由せず、専用の Service Token でプレビュー環境に到達できる仕組みを望む。これにより、Access 保護を弱めることなく自動テストを実現できる。
+
+#### Acceptance Criteria
+
+1. The `aramakisai-infra` repository shall define a Cloudflare Access Service Token dedicated to E2E testing (e.g. via `cloudflare_zero_trust_access_service_token`), distinct from any human user's Authentik credentials.
+2. The `aramakisai-infra` repository's Cloudflare Access Policy for `aramakisai_web_workers_dev`（`terraform/access.tf`）shall include an additional policy (alongside the existing `allow_authentik` policy) that grants access when the request presents a valid service token, so the E2E-specific bypass does not weaken the existing human-login policy.
+3. The E2E Service Token's client ID and secret shall be stored as CI secrets (Infisical, consistent with the existing `INFISICAL_CLIENT_ID`/`INFISICAL_CLIENT_SECRET` pattern used by `deploy-preview`), not committed to the repository in plaintext.
+4. If the E2E job runs in a context where these secrets are unavailable (e.g. a fork PR, per Requirement 2.3's skip condition), then the job shall not attempt to reach the protected preview URL at all, avoiding both a guaranteed Access-denied failure and any secret exposure risk.
+5. Where the Service Token is rotated or revoked (e.g. security incident response), the E2E pipeline shall fail closed（Access denied として検出可能）rather than silently bypassing verification, so a revoked token surfaces as an actionable CI failure instead of being masked.
