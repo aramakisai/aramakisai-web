@@ -1,14 +1,14 @@
 # Implementation Plan
 
-- [ ] 1. 監査ベースラインを確定する
-- [ ] 1.1 既存テストスイートで担保済みの要件を実行確認する
+- [x] 1. 監査ベースラインを確定する
+- [x] 1.1 既存テストスイートで担保済みの要件を実行確認する
   - `frontend/frontend-ci.workflow.test.ts`, `frontend/frontend-ci-deploy.workflow.test.ts`, `frontend/frontend-ci-dummy.workflow.test.ts`, `frontend/directus-schema-sync.workflow.test.ts`, `frontend/additive-schema-check.workflow.test.ts`, `frontend/pipeline-integration.test.ts`, `frontend/generated-manifests.test.ts` を実行し、fork PR での secret 非露出・preview/prod 権限分離・GitHub App 最小権限・ブランチ/PR 重複防止・dummy workflow のなりすまし耐性に関する既存アサーションが全て pass することを確認する
   - 実行結果（pass/fail）と対象ファイルを記録する
   - `frontend/scripts/check-additive-schema.ts` を参照するテストが import エラーなく解決されることを確認し、参照切れが無いことも同時に検証する
   - `pnpm test`（該当ファイルのみ）の出力が全件 pass で終了する
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 3.1, 3.2, 3.3, 3.4, 3.5, 4.1, 4.2, 4.5, 5.2, 5.4_
 
-- [ ] 1.2 branch protection・secrets・Actions 設定の現状を再取得しベースラインとして固定する
+- [x] 1.2 branch protection・secrets・Actions 設定の現状を再取得しベースラインとして固定する
   - `gh api repos/aramakisai/aramakisai-web/branches/main/protection` で `required_status_checks.contexts`（現状2件）、`enforce_admins.enabled`、`required_pull_request_reviews`（`bypass_pull_request_allowances` 含む）、`required_status_checks.strict`、`required_conversation_resolution` を再取得する
   - `gh secret list` と `gh api repos/aramakisai/aramakisai-web/actions/permissions`（`sha_pinning_required`）を再取得する
   - 取得値が設計時点の記録（`additive-schema-check.yml` の job が contexts に未登録、secrets 2件、`sha_pinning_required: false`）と一致するか比較し、乖離があれば内容を記録する
@@ -62,3 +62,53 @@
   - 両テスト PR の実行結果（ブロックされた/マージ可能だった）を記録し、確認後にテスト PR をクローズする
   - _Depends: 5.2_
   - _Requirements: 2.1, 2.2, 5.3, 5.4_
+
+## Task 1.2 Baseline Snapshot（是正前基準値, 取得日: 2026-07-10）
+
+### `gh api repos/aramakisai/aramakisai-web/branches/main/protection`
+```json
+{
+  "required_status_checks": {
+    "strict": false,
+    "contexts": ["type-check / lint / test / build", "deploy preview (Workers)"]
+  },
+  "required_pull_request_reviews": {
+    "dismiss_stale_reviews": true,
+    "require_code_owner_reviews": false,
+    "required_approving_review_count": 1,
+    "bypass_pull_request_allowances": { "users": ["tom1022"], "teams": [], "apps": [] }
+  },
+  "enforce_admins": { "enabled": true },
+  "required_conversation_resolution": { "enabled": false }
+}
+```
+
+### `gh secret list`
+```
+INFISICAL_CLIENT_ID
+INFISICAL_CLIENT_SECRET
+```
+(2件)
+
+### `gh api repos/aramakisai/aramakisai-web/actions/permissions`
+```json
+{ "enabled": true, "allowed_actions": "all", "sha_pinning_required": false }
+```
+
+### 設計時点の記録との比較
+| 項目 | 設計時点の記録 (design.md) | 現在の実測値 | 乖離 |
+|---|---|---|---|
+| required_status_checks.contexts | 2件、`additive-schema-check` 未登録 | 2件（同上）、`additive-schema-check` 未登録 | なし |
+| secrets 数 | 2件 | 2件（`INFISICAL_CLIENT_ID`/`INFISICAL_CLIENT_SECRET`） | なし |
+| sha_pinning_required | false | false | なし |
+| enforce_admins.enabled | true | true | なし |
+| bypass_pull_request_allowances | tom1022 | tom1022 | なし |
+| required_status_checks.strict | false | false | なし |
+
+**是正対象棚卸し一覧（必須ステータスチェック名 ⇔ workflow/job 対応表）**
+
+| Context 名 | 発行元 workflow | 発行元 job | required_status_checks 登録状況 |
+|---|---|---|---|
+| `type-check / lint / test / build` | `frontend-ci.yml` / `frontend-ci-dummy.yml` | 同名 job | 登録済み |
+| `deploy preview (Workers)` | `frontend-ci.yml` | `deploy-preview` | 登録済み |
+| `Detect breaking snapshot.yaml changes` | `additive-schema-check.yml`（dummy 未実装） | `check` | **未登録（ギャップ、design.md参照）** |
