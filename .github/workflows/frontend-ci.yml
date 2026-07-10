@@ -82,6 +82,8 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+    outputs:
+      preview_url: ${{ steps.upload_preview.outputs.url }}
     env:
       INFISICAL_UNIVERSAL_AUTH_CLIENT_ID: ${{ secrets.INFISICAL_CLIENT_ID }}
       INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET: ${{ secrets.INFISICAL_CLIENT_SECRET }}
@@ -148,6 +150,75 @@ jobs:
             ${{ steps.upload_preview.outputs.url }}
 
             staging Directus (`https://stg-api.aramakisai.com`) 向けビルドです。
+
+  e2e:
+    name: e2e (staging preview)
+    needs: deploy-preview
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      INFISICAL_UNIVERSAL_AUTH_CLIENT_ID: ${{ secrets.INFISICAL_CLIENT_ID }}
+      INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+      E2E_BASE_URL: ${{ needs.deploy-preview.outputs.preview_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Install Infisical CLI
+        run: |
+          curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | sudo -E bash
+          sudo apt-get update && sudo apt-get install -y infisical
+
+      - name: Infisical login
+        run: |
+          echo "INFISICAL_TOKEN=$(infisical login --method=universal-auth \
+            --client-id="$INFISICAL_UNIVERSAL_AUTH_CLIENT_ID" \
+            --client-secret="$INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET" \
+            --plain --silent)" >> "$GITHUB_ENV"
+          echo "INFISICAL_PROJECT_ID=$(python3 -c "import json;print(json.load(open('.infisical.json'))['workspaceId'])")" >> "$GITHUB_ENV"
+
+      - name: Wait for preview to become reachable
+        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec tsx scripts/wait-for-preview.ts
+
+      - name: Run E2E tests
+        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm test:e2e
+
+      - name: Upload Playwright report (trace/screenshot)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 7
+
+      - name: Write failure summary
+        if: failure()
+        run: |
+          {
+            echo "### e2e (staging preview) failed"
+            echo "- preview URL: ${E2E_BASE_URL}"
+            echo "- diagnostics: see the \`playwright-report\` artifact attached to this job"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   deploy-prod:
     name: deploy prod (Workers)

@@ -21,5 +21,10 @@ out/
 # wrangler
 .wrangler/
 
+# Playwright
+frontend/playwright-report/
+frontend/test-results/
+frontend/playwright/.cache/
+
 # Temporary files
 temp/

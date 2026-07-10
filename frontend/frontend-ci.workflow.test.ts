@@ -20,6 +20,7 @@ type Job = {
   name?: string;
   'runs-on'?: string;
   if?: string;
+  needs?: string | string[];
   steps: Step[];
 };
 
@@ -115,5 +116,13 @@ describe('.github/workflows/frontend-ci.yml', () => {
     const workflow = loadWorkflow();
     const validateSteps = JSON.stringify(workflow.jobs.validate.steps);
     expect(validateSteps).not.toMatch(/secrets\.[A-Z]/);
+  });
+
+  it('runs e2e staging preview job after deploy-preview is successful', () => {
+    const workflow = loadWorkflow();
+    const e2eJob = workflow.jobs.e2e;
+    expect(e2eJob).toBeDefined();
+    expect(e2eJob.name).toBe('e2e (staging preview)');
+    expect([e2eJob.needs].flat()).toContain('deploy-preview');
   });
 });

@@ -57,3 +57,12 @@ jobs:
     steps:
       - name: Report success (frontend/** not touched)
         run: echo "frontend-ci.yml does not trigger for this PR; reporting required context as passing."
+
+  e2e:
+    name: e2e (staging preview)
+    needs: detect
+    if: needs.detect.outputs.changed == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report success (frontend/** not touched)
+        run: echo "frontend-ci.yml does not trigger for this PR; reporting required context as passing."
