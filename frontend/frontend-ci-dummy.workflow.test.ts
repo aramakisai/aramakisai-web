@@ -46,16 +46,18 @@ describe('.github/workflows/frontend-ci-dummy.yml', () => {
       .filter(Boolean);
     expect(dummyNames).toContain('type-check / lint / test / build');
     expect(dummyNames).toContain('deploy preview (Workers)');
+    expect(dummyNames).toContain('e2e (staging preview)');
     const realNames = Object.values(real.jobs)
       .map((j) => j.name)
       .filter(Boolean);
     expect(realNames).toContain('type-check / lint / test / build');
     expect(realNames).toContain('deploy preview (Workers)');
+    expect(realNames).toContain('e2e (staging preview)');
   });
 
-  it('skips the dummy validate/deploy-preview jobs when frontend/** actually changed', () => {
+  it('skips the dummy validate/deploy-preview/e2e jobs when frontend/** actually changed', () => {
     const dummy = loadWorkflow(DUMMY_PATH);
-    for (const name of ['validate', 'deploy-preview']) {
+    for (const name of ['validate', 'deploy-preview', 'e2e']) {
       const job = dummy.jobs[name];
       expect(job).toBeDefined();
       expect(job.if).toMatch(/needs\.detect\.outputs\.changed == 'false'/);
