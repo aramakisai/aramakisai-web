@@ -16,7 +16,7 @@
   - _Requirements: 2.2, 2.4, 2.6, 2.7, 7.3, 7.4, 8.5_
   - _Boundary: Wait-for-Preview Script_
 
-- [ ] 2. Core: 画面遷移カバレッジと Directus 連携テストの拡張パターン
+- [x] 2. Core: 画面遷移カバレッジと Directus 連携テストの拡張パターン
 - [x] 2.1 トップページの到達性・エラー検出テストを実装する
   - `frontend/src/app/page.tsx` に対応するルートが staging プレビュー URL 上で正常にロードされ主要 DOM 要素が描画されることを検証するテストを作成する
   - クライアント側の未処理例外やハイドレーション失敗が発生した場合、対象ルートとエラー詳細付きで失敗が報告されることを確認する
@@ -31,7 +31,7 @@
   - _Requirements: 3.2, 3.3, 4.1, 4.2, 4.3, 4.4, 7.1, 7.2_
   - _Depends: 2.1_
 
-- [ ] 3. Integration: CI ワークフロー連結と失敗時診断情報
+- [x] 3. Integration: CI ワークフロー連結と失敗時診断情報
 - [x] 3.1 `deploy-preview` に E2E job を連結し Cloudflare Access バイパス付きで実行する
   - `deploy-preview` job の完了時に発行されるプレビュー URL を後続 job が受け取れるようにする
   - 新規 E2E job を `deploy-preview` の成功後にのみ実行し、URL 取得後にプレビュー到達待ち→E2E テスト実行の順で走らせる
