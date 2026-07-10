@@ -22,8 +22,8 @@
   - _Requirements: 1.1, 5.3_
   - _Boundary: Additive Schema Check Trigger Fix_
 
-- [ ] 3. additive-schema-check 用のダミー workflow を追加する (P)
-- [ ] 3.1 (P) `frontend-ci-dummy.yml` と同型のダミー workflow を実装する
+- [x] 3. additive-schema-check 用のダミー workflow を追加する (P)
+- [x] 3.1 (P) `frontend-ci-dummy.yml` と同型のダミー workflow を実装する
   - `directus/schema/snapshot.yaml` を変更しない PR で無条件に発火し、`additive-schema-check.yml` の job と完全一致する名前（`Detect breaking snapshot.yaml changes`）で success を報告する workflow を新規作成する
   - `git diff` による base/head 比較で `directus/schema/snapshot.yaml` の変更有無を判定し、変更ありの PR では自身の該当 job を skip する（本物の workflow 側の結果のみが有効になる）
   - secrets を一切参照せず `permissions: contents: read` のみを付与する
@@ -31,7 +31,7 @@
   - _Requirements: 2.1, 2.2, 3.1, 3.3, 3.4, 3.5, 5.3, 5.4_
   - _Boundary: Additive Schema Check Dummy Workflow_
 
-- [ ] 3.2 (P) ダミー workflow の構造テストを追加する
+- [x] 3.2 (P) ダミー workflow の構造テストを追加する
   - `frontend-ci-dummy.workflow.test.ts` と同型のアサーション（trigger 条件、job 名一致、secrets 非参照、`permissions: contents: read` のみ、diff ロジックの対象ファイル）を新規テストファイルとして追加する
   - `pnpm vitest run` で新規テストファイルが単独で pass する
   - _Requirements: 2.1, 2.2, 3.1, 3.3, 3.4, 3.5, 5.4_
