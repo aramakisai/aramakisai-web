@@ -43,25 +43,30 @@
   - _Depends: 2, 3.1, 3.2_
   - _Requirements: 1.1, 5.3_
 
-- [ ] 5. branch protection を更新し是正を本番に反映する
-- [ ] 5.1 テスト PR で新規 context の登録を確認する
+- [x] 5. branch protection を更新し是正を本番に反映する
+- [x] 5.1 テスト PR で新規 context の登録を確認する
   - タスク2・3のマージ後、`.kiro/**` のみを変更するテスト PR を作成し、ダミー workflow 経由で `Detect breaking snapshot.yaml changes` context が success 報告されることを確認する
   - GitHub 側のステータスチェック一覧に同 context 名が表示される
   - _Depends: 4_
   - _Requirements: 5.3_
+  - **実行結果**: PR #24(タスク1-4)を `--admin` マージで `main` へ反映(2026-07-10)。続けて PR #25(`.kiro/specs/ci-pipeline-audit/_verify/task5-1-note.md` のみ追加)を作成し、`gh pr checks` で `Detect breaking snapshot.yaml changes` context が `pass` 報告されることを確認。確認後 PR #25 はマージせずクローズ・ブランチ削除。
 
-- [ ] 5.2 `main` branch protection の required status checks に新規 context を追加する
+- [x] 5.2 `main` branch protection の required status checks に新規 context を追加する
   - `gh api` で `main` の `required_status_checks.contexts` に `Detect breaking snapshot.yaml changes` を追加する（既存の2 context・`enforce_admins: true`・`required_pull_request_reviews` の値は変更しない）
   - 更新後に同エンドポイントを再取得し、`contexts` が3件揃い他の設定値が変化していないことを確認する
   - _Depends: 5.1_
   - _Requirements: 2.1, 2.2, 5.3_
+  - **実行結果**: `PATCH .../branches/main/protection/required_status_checks` で `contexts` に `Detect breaking snapshot.yaml changes` を追加(2026-07-10)。再取得結果: `contexts` 3件(`type-check / lint / test / build`, `deploy preview (Workers)`, `Detect breaking snapshot.yaml changes`)、`strict: false`、`enforce_admins: true`、`required_approving_review_count: 1`、`bypass_pull_request_allowances.users: [tom1022]`、`dismiss_stale_reviews: true` — いずれも変更前と一致し他設定への影響なしを確認。
 
-- [ ] 5.3 是正の効果をエンドツーエンドで検証する
+- [x] 5.3 是正の効果をエンドツーエンドで検証する
   - `directus/schema/snapshot.yaml` に破壊的変更（例: 既存フィールドの型変更）を含むテスト PR を作成し、`additive-schema-check.yml` が failure を報告し、branch protection によってマージがブロックされることを確認する
   - `directus/schema/snapshot.yaml` を変更しない別のテスト PR で、ダミー workflow 経由の success 報告により引き続きマージ可能であることを確認する
   - 両テスト PR の実行結果（ブロックされた/マージ可能だった）を記録し、確認後にテスト PR をクローズする
   - _Depends: 5.2_
   - _Requirements: 2.1, 2.2, 5.3, 5.4_
+  - **実行結果**(2026-07-10):
+    - PR #26(`announcements.title` フィールド削除): `Detect breaking snapshot.yaml changes` が `fail`、対応する dummy 側 job は `skipping`。`gh pr merge` は `the base branch policy prohibits the merge` で拒否、`mergeStateStatus: BLOCKED`。マージせずクローズ・ブランチ削除。
+    - PR #27(`.kiro/` のみ変更): 必須ステータスチェック3件(`type-check / lint / test / build`, `deploy preview (Workers)`, `Detect breaking snapshot.yaml changes`)全て `pass`。`mergeStateStatus: BLOCKED` の理由は `reviewDecision: REVIEW_REQUIRED` のみ(tom1022 は `bypass_pull_request_allowances` 対象で本specの是正対象外の既存挙動)であり、ステータスチェック起因のブロックではないことを確認。マージせずクローズ・ブランチ削除。
 
 ## Task 1.2 Baseline Snapshot（是正前基準値, 取得日: 2026-07-10）
 
