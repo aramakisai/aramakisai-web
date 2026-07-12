@@ -6,7 +6,6 @@ type PageHome = {
   hero_image: string | null;
   hero_message: string | null;
   embed_url: string | null;
-  blocks: unknown;
 };
 
 type PageHomeLive = {

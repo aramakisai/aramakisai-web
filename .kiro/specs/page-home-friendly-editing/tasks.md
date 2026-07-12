@@ -134,7 +134,7 @@
   - _Requirements: 3.4_
   - _Depends: 9.1_
 
-- [ ] 10. page_home.blocksフィールドの削除(破壊的変更)
+- [x] 10. page_home.blocksフィールドの削除(破壊的変更)
   - frontend実装がpage_home.blocksを一切参照していないことを確認したうえで、`blocks`フィールドをsnapshot.yamlから削除し、additive-schema-checkが破壊的変更として検出することを確認する
   - PR本文にチーム周知内容を記載し、admin overrideを経てマージする運用に従う
   - _Requirements: 1.6, 4.2, 4.3, 4.5_
