@@ -1,7 +1,7 @@
 import { readSingleton, readItems } from '@directus/sdk';
 import { directus } from './directus';
-import { env } from '@/env';
 import {
+  HomeActiveVariant,
   HomePageResult,
   PreEventHomeContent,
   HomePageContent,
@@ -9,14 +9,20 @@ import {
   TopicSummary,
 } from './home-page-types';
 
-export async function getHomePage(): Promise<HomePageResult> {
-  const envVariant = env.NEXT_PUBLIC_HOME_VARIANT_OVERRIDE;
+/**
+ * overrideVariant: dev環境専用。festival_meta.home_active_variantより優先する。
+ * 呼び出し側(page.tsx)がNEXT_PUBLIC_ENABLE_HOME_VARIANT_QUERY_OVERRIDE有効時に
+ * URLクエリパラメータから渡す。本番では常に渡されない。
+ */
+export async function getHomePage(
+  overrideVariant?: HomeActiveVariant,
+): Promise<HomePageResult> {
   let activeVariant: 'pre_event' | 'live' = 'pre_event';
 
   const meta = await directus.request(readSingleton('festival_meta'));
 
-  if (envVariant === 'pre_event' || envVariant === 'live') {
-    activeVariant = envVariant;
+  if (overrideVariant === 'pre_event' || overrideVariant === 'live') {
+    activeVariant = overrideVariant;
   } else {
     const variant = meta.home_active_variant;
     if (variant === 'pre_event' || variant === 'live') {

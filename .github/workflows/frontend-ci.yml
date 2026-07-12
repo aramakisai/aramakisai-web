@@ -267,8 +267,9 @@ jobs:
         env:
           NEXT_PUBLIC_DIRECTUS_URL: https://api.aramakisai.com
           NEXT_PUBLIC_SITE_URL: https://dev.aramakisai.com
-          # 'live'をdevでプレビューしたい開発者はこの行を一時的に 'live' に書き換えてdevブランチにpushする
-          NEXT_PUBLIC_HOME_VARIANT_OVERRIDE: ''
+          # dev環境のみ ?home_variant=pre_event|live クエリでのフェーズプレビューを許可する
+          # (本番ビルドではこの変数を設定しないため、本番では常に無効)
+          NEXT_PUBLIC_ENABLE_HOME_VARIANT_QUERY_OVERRIDE: 'true'
 
       - name: Deploy to Cloudflare Workers (dev)
         run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec wrangler deploy --env=dev

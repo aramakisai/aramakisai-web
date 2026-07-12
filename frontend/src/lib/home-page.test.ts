@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getHomePage } from './home-page';
 import { directus } from './directus';
-import { env } from '@/env';
 import { readItems } from '@directus/sdk';
 
 vi.mock('./directus', () => ({
@@ -10,29 +9,14 @@ vi.mock('./directus', () => ({
   },
 }));
 
-vi.mock('@/env', () => ({
-  env: {
-    NEXT_PUBLIC_HOME_VARIANT_OVERRIDE: undefined,
-  },
-}));
-
 vi.mock('@directus/sdk', () => ({
   readSingleton: vi.fn((collection: string, query?: unknown) => ({ type: 'readSingleton', collection, query })),
   readItems: vi.fn((collection: string, query?: unknown) => ({ type: 'readItems', collection, query })),
 }));
 
-// Helper to set env
-function setEnvOverride(value: 'pre_event' | 'live' | undefined) {
-  Object.defineProperty(env, 'NEXT_PUBLIC_HOME_VARIANT_OVERRIDE', {
-    value,
-    writable: true,
-  });
-}
-
 describe('getHomePage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    setEnvOverride(undefined);
 
     vi.mocked(directus.request).mockImplementation(async (req: unknown) => {
       const request = req as { type?: string; collection?: string };
@@ -55,9 +39,8 @@ describe('getHomePage', () => {
     });
   });
 
-  it('returns live variant when NEXT_PUBLIC_HOME_VARIANT_OVERRIDE is live', async () => {
-    setEnvOverride('live');
-    const result = await getHomePage();
+  it('returns live variant when overrideVariant param is live', async () => {
+    const result = await getHomePage('live');
     expect(result.variant).toBe('live');
     expect(result.content.heroMessageHtml).toBe('<p>Live</p>');
   });

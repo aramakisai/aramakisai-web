@@ -341,7 +341,7 @@ interface HomePageService {
 - Postconditions: `festival_meta.home_active_variant`が未設定/不正な値の場合は`variant: 'pre_event'`を返す(フェイルセーフ)
 - Invariants: `variant: 'live'`の場合、`notices`/`topics`は含まれない(1.3, 3.3参照)
 
-**dev環境向けフェーズオーバーライド(5.7)**: dev環境(`env.dev`)は本番Directusを読み取り専用で参照するため(3.6)、`festival_meta.home_active_variant`は本番と共有された唯一のフラグである。dev環境上でこのフラグをそのまま操作すると本番のHome Page表示まで同時に切り替わってしまうため、`getHomePage()`は環境変数`NEXT_PUBLIC_HOME_VARIANT_OVERRIDE`(値: `pre_event` | `live`、未設定時は無視)が設定されている場合、`festival_meta.home_active_variant`より優先してその値をvariantとして採用する。本番環境ではこの変数を設定しないため、本番の挙動には影響しない。
+**dev環境向けフェーズオーバーライド(5.7)**: dev環境(`env.dev`)は本番Directusを読み取り専用で参照するため(3.6)、`festival_meta.home_active_variant`は本番と共有された唯一のフラグである。dev環境上でこのフラグをそのまま操作すると本番のHome Page表示まで同時に切り替わってしまう。再デプロイ無しで即座にプレビュー切替できるよう、URLクエリパラメータ`?home_variant=pre_event|live`によるオーバーライドを採用する: `getHomePage(overrideVariant?: HomeActiveVariant)`は`overrideVariant`引数が渡された場合、`festival_meta.home_active_variant`より優先してそれをvariantとして採用する。`app/page.tsx`(Server Component)がNext.jsの`searchParams`から`home_variant`クエリを読み取り、ビルド時の環境変数`NEXT_PUBLIC_ENABLE_HOME_VARIANT_QUERY_OVERRIDE`(値: `'true'`。dev環境のCIビルドでのみ設定し、本番ビルドでは常に未設定)が有効な場合に限り`overrideVariant`として渡す。本番ビルドではこの変数が存在しないため、`?home_variant=live`等のクエリを本番URLに付与しても一切影響しない。レビュアーはdev.aramakisai.comのURLにクエリを付け替えるだけで再デプロイ無しに両フェーズを確認できる。
 
 **Implementation Notes**
 - Integration: `app/page.tsx`はServer Componentとして`HomePageService.getHomePage()`を呼び出し、結果に応じて表示コンポーネントを組み立てる

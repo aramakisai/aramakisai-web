@@ -4,11 +4,30 @@ import { HeroSection } from '@/components/hero-section';
 import { NoticesList } from '@/components/notices-list';
 import { TopicsList } from '@/components/topics-list';
 import { SnsLinks } from '@/components/sns-links';
+import { HomeActiveVariant } from '@/lib/home-page-types';
+import { env } from '@/env';
 
-export default async function Page() {
+interface PageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+function resolveVariantOverride(
+  searchParams: Record<string, string | string[] | undefined>,
+): HomeActiveVariant | undefined {
+  if (env.NEXT_PUBLIC_ENABLE_HOME_VARIANT_QUERY_OVERRIDE !== 'true') {
+    return undefined;
+  }
+  const value = searchParams.home_variant;
+  const variant = Array.isArray(value) ? value[0] : value;
+  return variant === 'pre_event' || variant === 'live' ? variant : undefined;
+}
+
+export default async function Page({ searchParams }: PageProps) {
+  const overrideVariant = resolveVariantOverride(await searchParams);
+
   let result;
   try {
-    result = await getHomePage();
+    result = await getHomePage(overrideVariant);
   } catch {
     // エラー時は最小限のフォールバック表示
     return (

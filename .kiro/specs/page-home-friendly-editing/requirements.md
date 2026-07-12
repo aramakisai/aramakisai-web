@@ -61,7 +61,7 @@
 4. When 実行委員がDirectus管理画面で当該切替フラグの値を変更する, the Home Page shall 追加のデプロイ作業なしに次回アクセス時から対応するsingletonの内容を表示する
 5. Before 本番環境で実際の切替操作を行う, the 開発者 shall 新設するdevブランチ上のCloudflare Workersデプロイと、専用レビュー環境(CF Access保護の`dev.aramakisai.com`)を用いて、2つのsingletonと切替フラグの動作を事前に検証する
 6. The dev review 環境 shall バックエンドとして本番Directus(`api.aramakisai.com`)を参照する構成とする(読み取り専用アクセスのみで本番データを変更する経路がなく、機密情報も含まないため、専用テスト環境を別途用意しない)
-7. `festival_meta.home_active_variant`は本番Directus上の唯一のフラグであり、dev環境が本番Directusを参照する構成(AC6)である以上、dev環境からこのフラグを操作すると本番のHome Page表示も同時に切り替わってしまう。When 開発者がdev環境でpre_event/live双方の表示をレビューする, the system shall 本番の`festival_meta.home_active_variant`を書き換えることなく、dev環境(Cloudflare Workers `env.dev`)専用の環境変数によるフェーズ表示オーバーライドを提供し、設定時はfestival_metaの値より優先して適用する
+7. `festival_meta.home_active_variant`は本番Directus上の唯一のフラグであり、dev環境が本番Directusを参照する構成(AC6)である以上、dev環境からこのフラグを操作すると本番のHome Page表示も同時に切り替わってしまう。When 開発者がdev環境でpre_event/live双方の表示をレビューする, the system shall 本番の`festival_meta.home_active_variant`を書き換えることなく、URLクエリパラメータ(`?home_variant=pre_event|live`)によるフェーズ表示オーバーライドを提供し、設定時はfestival_metaの値より優先して適用する。再デプロイを要さず、dev環境専用のビルド時フラグ(本番では常に無効)でのみ有効化される
 
 ### Requirement 6: devレビュー環境の構築(aramakisai-infra側変更を含む)
 **Objective:** As a 開発者, I want devブランチ用のCF Access保護されたレビュー環境(`dev.aramakisai.com`)を、aramakisai-infra側の変更も含めて本specのタスクとして一元管理したい, so that クロスリポジトリでspecやタスクが分散して追跡しづらくなることを避けられる
