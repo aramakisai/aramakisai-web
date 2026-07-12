@@ -11,3 +11,13 @@ workers_dev = true
 
 [assets]
 directory = ".open-next/assets"
+
+# dev ブランチ向け永続レビュー環境 (dev.aramakisai.com, CF Access保護)。
+# 本番用 worker とは別名にし、`opennextjs-cloudflare deploy --env=dev` /
+# `wrangler deploy --env=dev` で本番設定と衝突せずデプロイできるようにする。
+# custom domain (dev.aramakisai.com) の紐付けは aramakisai-infra 側 Terraform で管理する。
+[env.dev]
+name = "aramakisai-web-dev"
+
+[env.dev.assets]
+directory = ".open-next/assets"

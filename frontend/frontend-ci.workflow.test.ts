@@ -51,9 +51,9 @@ describe('.github/workflows/frontend-ci.yml', () => {
     expect(workflow.on.pull_request?.branches).toEqual(['main']);
   });
 
-  it('triggers on push to main', () => {
+  it('triggers on push to main and dev', () => {
     const workflow = loadWorkflow();
-    expect(workflow.on.push?.branches).toEqual(['main']);
+    expect(workflow.on.push?.branches).toEqual(['main', 'dev']);
   });
 
   it('runs steps in the frontend working directory', () => {
@@ -125,4 +125,19 @@ describe('.github/workflows/frontend-ci.yml', () => {
     expect(e2eJob.name).toBe('e2e (staging preview)');
     expect([e2eJob.needs].flat()).toContain('deploy-preview');
   });
+
+  it('runs deploy-dev job on push to dev branch', () => {
+    const workflow = loadWorkflow();
+    const job = workflow.jobs['deploy-dev'];
+    expect(job).toBeDefined();
+    expect(job.name).toBe('deploy dev (Workers)');
+    expect(job.if).toBe("github.event_name == 'push' && github.ref == 'refs/heads/dev'");
+    expect(job.needs).toBe('validate');
+
+    // Check it uses staging infisical, not prod
+    const deployStep = job.steps.find((s) => s.name === 'Deploy to Cloudflare Workers (dev)');
+    expect(deployStep?.run).toContain('--env=staging');
+    expect(deployStep?.run).toContain('wrangler deploy --env=dev');
+  });
+
 });
