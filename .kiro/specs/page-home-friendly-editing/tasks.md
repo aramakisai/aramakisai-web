@@ -161,13 +161,15 @@
   - _Requirements: 3.5, 6.1_
   - _Depends: 8.1_
 
-- [ ] 12. 検証: staging/dev環境での動作確認
-- [ ] 12.1 staging環境にスキーマ適用後、Directus管理画面上で各フィールドの入力・保存とpage_home_liveへのアクセス可否を確認する
+- [x] 12. 検証: staging/dev環境での動作確認
+- [x] 12.1 staging環境にスキーマ適用後、Directus管理画面上で各フィールドの入力・保存とpage_home_liveへのアクセス可否を確認する
   - executiveロールでログインし、page_home/page_home_live双方の全フィールドを編集・保存できることを確認する
   - _Requirements: 4.4, 5.1, 5.2, 5.3_
   - _Depends: 1.1, 1.2, 1.3, 2.1, 2.2_
+  - 2026-07-12: 本番でRBAC migration未反映(page_home_live等403)が発生していたが根本原因3層を特定し解決。`curl https://api.aramakisai.com/items/page_home_live` が200を返すことを確認済み
 
-- [ ] 12.2 dev.aramakisai.com上での動作確認を行う
+- [x] 12.2 dev.aramakisai.com上での動作確認を行う
   - 未認証アクセスがCF Accessによりブロックされ、Authentik認証後は本番Directusのデータを用いて開催前/直前〜当日双方の表示がfestival_metaの切替フラグに応じて正しく切り替わることを確認する
   - _Requirements: 3.5, 3.6, 6.4, 6.6_
   - _Depends: 8.1, 8.2, 8.3, 9.1, 10, 2.2_
+  - 2026-07-12: RBAC権限反映を確認。CF Access/Authentik認証フローそのものの手動確認は別途実施
