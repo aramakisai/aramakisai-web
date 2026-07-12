@@ -36,6 +36,13 @@ describe('Page', () => {
       heroMessageHtml: '<p>プレイベント</p>',
       embedUrl: null,
       snsLinks: [{ platform: 'X', url: 'https://x.com' }],
+      festival: {
+        name: '荒牧祭',
+        eventDays: [],
+        admissionFee: null,
+        paymentNote: null,
+      },
+      sponsors: [],
       notices: [
         { id: 1, title: 'お知らせ1', body: '本文', publishedAt: '2026-07-01' },
       ],
@@ -71,6 +78,13 @@ describe('Page', () => {
       heroMessageHtml: '<p>ライブ中</p>',
       embedUrl: null,
       snsLinks: [{ platform: 'X', url: 'https://x.com' }],
+      festival: {
+        name: '荒牧祭',
+        eventDays: [],
+        admissionFee: null,
+        paymentNote: null,
+      },
+      sponsors: [],
     };
 
     vi.mocked(homePageModule.getHomePage).mockResolvedValue({
@@ -109,6 +123,13 @@ describe('Page', () => {
         heroMessageHtml: '',
         embedUrl: null,
         snsLinks: [],
+        festival: {
+          name: '',
+          eventDays: [],
+          admissionFee: null,
+          paymentNote: null,
+        },
+        sponsors: [],
         notices: [],
         topics: [],
       },
@@ -139,6 +160,13 @@ describe('Page', () => {
         heroMessageHtml: '',
         embedUrl: null,
         snsLinks: [],
+        festival: {
+          name: '',
+          eventDays: [],
+          admissionFee: null,
+          paymentNote: null,
+        },
+        sponsors: [],
       },
     });
 

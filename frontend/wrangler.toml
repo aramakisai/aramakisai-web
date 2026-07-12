@@ -16,6 +16,8 @@ directory = ".open-next/assets"
 # 本番用 worker とは別名にし、`opennextjs-cloudflare deploy --env=dev` /
 # `wrangler deploy --env=dev` で本番設定と衝突せずデプロイできるようにする。
 # custom domain (dev.aramakisai.com) の紐付けは aramakisai-infra 側 Terraform で管理する。
+# (aramakisai-infra側のcloudflare_workers_domainがこのenvironmentの存在を前提とするため、
+#  先にこのenvironmentをデプロイしておく必要がある)
 [env.dev]
 name = "aramakisai-web-dev"
 

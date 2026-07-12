@@ -18,7 +18,7 @@ type PageHomeLive = {
 type FestivalMeta = {
   id: number;
   name: string;
-  event_days: unknown;
+  event_days: { label: string; open: string; close: string }[] | null;
   admission_fee: string | null;
   payment_note: string | null;
   parking_capacity: number | null;
@@ -44,12 +44,43 @@ type Topic = {
   sort: number | null;
 };
 
+type Sponsor = {
+  id: number;
+  type: 'ad' | 'sponsor' | 'food_truck' | 'other';
+  name: string;
+  logo: string | null;
+  url: string | null;
+  tier: string | null;
+  sort: number | null;
+};
+
+type PageContact = {
+  id: number;
+  content: string | null;
+  form_embed_url: string | null;
+};
+
+type PageAccess = {
+  id: number;
+  content: string | null;
+  map_embed_url: string | null;
+};
+
+type PagePrivacy = {
+  id: number;
+  content: string | null;
+};
+
 export type Schema = {
   page_home: PageHome;
   page_home_live: PageHomeLive;
   festival_meta: FestivalMeta;
   announcements: Announcement[];
   topics: Topic[];
+  sponsors: Sponsor[];
+  page_contact: PageContact;
+  page_access: PageAccess;
+  page_privacy: PagePrivacy;
 };
 
 export const directus = createDirectus<Schema>(

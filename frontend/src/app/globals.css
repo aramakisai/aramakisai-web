@@ -1,3 +1,15 @@
 @import 'tailwindcss';
 
 @config "../../tailwind.config.ts";
+
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-zen-old-mincho), serif;
+    font-weight: 900;
+  }
+}
