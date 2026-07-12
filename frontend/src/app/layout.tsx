@@ -14,6 +14,9 @@ const zenOldMincho = Zen_Old_Mincho({
 export const metadata: Metadata = {
   title: '荒牧祭',
   description: '荒牧祭実行委員会',
+  icons: {
+    icon: '/images/favicon.png',
+  },
 };
 
 export default function RootLayout({
