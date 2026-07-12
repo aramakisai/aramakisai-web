@@ -20,11 +20,35 @@ export interface TopicSummary {
   linkUrl: string | null;
 }
 
+export interface EventDay {
+  label: string;
+  open: string;
+  close: string;
+}
+
+export interface FestivalOverview {
+  name: string;
+  eventDays: EventDay[];
+  admissionFee: string | null;
+  paymentNote: string | null;
+}
+
+export interface SponsorSummary {
+  id: number;
+  type: 'ad' | 'sponsor' | 'food_truck' | 'other';
+  name: string;
+  logoId: string | null;
+  url: string | null;
+  tier: string | null;
+}
+
 export interface HomePageContent {
   heroImageId: string | null;
   heroMessageHtml: string;
   embedUrl: string | null;
   snsLinks: SnsLink[];
+  festival: FestivalOverview;
+  sponsors: SponsorSummary[];
 }
 
 export interface PreEventHomeContent extends HomePageContent {

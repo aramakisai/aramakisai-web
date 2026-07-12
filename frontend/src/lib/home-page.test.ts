@@ -33,8 +33,12 @@ describe('getHomePage', () => {
         request.collection === 'festival_meta'
       ) {
         return {
+          name: '荒牧祭',
           home_active_variant: 'pre_event',
           sns_links: [{ platform: 'twitter', url: 'https://twitter.com' }],
+          event_days: [{ label: '1日目', open: '09:00', close: '17:00' }],
+          admission_fee: '無料',
+          payment_note: null,
         };
       }
       if (
@@ -75,6 +79,18 @@ describe('getHomePage', () => {
           },
         ];
       }
+      if (request.type === 'readItems' && request.collection === 'sponsors') {
+        return [
+          {
+            id: 3,
+            type: 'sponsor',
+            name: 'S1',
+            logo: 'logo1',
+            url: 'https://sponsor.example.com',
+            tier: null,
+          },
+        ];
+      }
       return null;
     });
   });
@@ -98,6 +114,22 @@ describe('getHomePage', () => {
       ]);
       expect(result.content.topics).toEqual([
         { id: 2, title: 'T1', body: 'B2', imageId: 'img1', linkUrl: 'link1' },
+      ]);
+      expect(result.content.festival).toEqual({
+        name: '荒牧祭',
+        eventDays: [{ label: '1日目', open: '09:00', close: '17:00' }],
+        admissionFee: '無料',
+        paymentNote: null,
+      });
+      expect(result.content.sponsors).toEqual([
+        {
+          id: 3,
+          type: 'sponsor',
+          name: 'S1',
+          logoId: 'logo1',
+          url: 'https://sponsor.example.com',
+          tier: null,
+        },
       ]);
     }
   });

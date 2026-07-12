@@ -7,6 +7,8 @@ import {
   HomePageContent,
   NoticeSummary,
   TopicSummary,
+  FestivalOverview,
+  SponsorSummary,
 } from './home-page-types';
 
 /**
@@ -32,6 +34,28 @@ export async function getHomePage(
 
   const snsLinks = meta.sns_links || [];
 
+  const festival: FestivalOverview = {
+    name: meta.name || '',
+    eventDays: meta.event_days || [],
+    admissionFee: meta.admission_fee,
+    paymentNote: meta.payment_note,
+  };
+
+  const sponsorsData = await directus.request(
+    readItems('sponsors', {
+      sort: ['sort'],
+    }),
+  );
+
+  const sponsors: SponsorSummary[] = (sponsorsData || []).map((s) => ({
+    id: s.id,
+    type: s.type,
+    name: s.name,
+    logoId: s.logo,
+    url: s.url,
+    tier: s.tier,
+  }));
+
   if (activeVariant === 'live') {
     const pageHomeLive = await directus.request(
       readSingleton('page_home_live'),
@@ -42,6 +66,8 @@ export async function getHomePage(
       heroMessageHtml: pageHomeLive.hero_message || '',
       embedUrl: pageHomeLive.embed_url,
       snsLinks,
+      festival,
+      sponsors,
     };
 
     return { variant: 'live', content };
@@ -82,6 +108,8 @@ export async function getHomePage(
       heroMessageHtml: pageHome.hero_message || '',
       embedUrl: pageHome.embed_url,
       snsLinks,
+      festival,
+      sponsors,
       notices,
       topics,
     };
