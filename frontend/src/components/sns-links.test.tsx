@@ -15,7 +15,10 @@ describe('SnsLinks', () => {
     expect(twitterLink).toHaveAttribute('href', 'https://twitter.com/example');
 
     const instagramLink = screen.getByRole('link', { name: 'Instagram' });
-    expect(instagramLink).toHaveAttribute('href', 'https://instagram.com/example');
+    expect(instagramLink).toHaveAttribute(
+      'href',
+      'https://instagram.com/example',
+    );
   });
 
   test('renders nothing when array is empty', () => {

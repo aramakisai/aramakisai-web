@@ -58,13 +58,15 @@ export default async function Page({ searchParams }: PageProps) {
 
           <section>
             <h2 className="text-2xl font-bold mb-4">トピックス</h2>
-            <TopicsList topics={content.topics.map(t => ({
-              id: t.id,
-              title: t.title,
-              body: t.body,
-              imageUrl: toAssetUrl(t.imageId),
-              linkUrl: t.linkUrl
-            }))} />
+            <TopicsList
+              topics={content.topics.map((t) => ({
+                id: t.id,
+                title: t.title,
+                body: t.body,
+                imageUrl: toAssetUrl(t.imageId),
+                linkUrl: t.linkUrl,
+              }))}
+            />
           </section>
         </>
       )}

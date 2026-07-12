@@ -15,7 +15,9 @@ describe('RichText', () => {
       </ul>
     `;
 
-    const { container } = render(<RichText html={dirtyHtml} className="my-rich-text" />);
+    const { container } = render(
+      <RichText html={dirtyHtml} className="my-rich-text" />,
+    );
 
     expect(container.innerHTML).not.toContain('<script');
     expect(container.innerHTML).not.toContain('<iframe');

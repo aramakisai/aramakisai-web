@@ -4,18 +4,30 @@ import { SandboxedEmbed } from './sandboxed-embed';
 
 describe('SandboxedEmbed', () => {
   test('does not render anything when url is empty or undefined', () => {
-    const { container: containerEmpty } = render(<SandboxedEmbed url="" title="Empty" />);
+    const { container: containerEmpty } = render(
+      <SandboxedEmbed url="" title="Empty" />,
+    );
     expect(containerEmpty.firstChild).toBeNull();
 
-    const { container: containerNull } = render(<SandboxedEmbed url={null} title="Null" />);
+    const { container: containerNull } = render(
+      <SandboxedEmbed url={null} title="Null" />,
+    );
     expect(containerNull.firstChild).toBeNull();
 
-    const { container: containerUndefined } = render(<SandboxedEmbed url={undefined} title="Undefined" />);
+    const { container: containerUndefined } = render(
+      <SandboxedEmbed url={undefined} title="Undefined" />,
+    );
     expect(containerUndefined.firstChild).toBeNull();
   });
 
   test('renders an iframe with correct attributes when url is provided', () => {
-    render(<SandboxedEmbed url="https://example.com/embed" title="Example Embed" className="my-class" />);
+    render(
+      <SandboxedEmbed
+        url="https://example.com/embed"
+        title="Example Embed"
+        className="my-class"
+      />,
+    );
 
     const iframe = screen.getByTitle('Example Embed');
     expect(iframe).toBeInTheDocument();

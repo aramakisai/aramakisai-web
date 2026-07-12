@@ -9,7 +9,7 @@ describe('HeroSection', () => {
         heroImageUrl="https://example.com/hero.jpg"
         heroMessageHtml="<h1>Welcome</h1>"
         embedUrl="https://example.com/embed"
-      />
+      />,
     );
 
     const img = screen.getByRole('img');
@@ -29,7 +29,7 @@ describe('HeroSection', () => {
         heroImageUrl={null}
         heroMessageHtml="<h1>Welcome</h1>"
         embedUrl={null}
-      />
+      />,
     );
 
     const img = screen.queryByRole('img');

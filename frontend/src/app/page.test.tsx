@@ -9,7 +9,8 @@ vi.mock('@/env', () => ({
   env: {
     NEXT_PUBLIC_DIRECTUS_URL: 'http://localhost:8055',
     NEXT_PUBLIC_SITE_URL: 'http://localhost:3000',
-    NEXT_PUBLIC_ENABLE_HOME_VARIANT_QUERY_OVERRIDE: undefined as 'true' | undefined,
+    NEXT_PUBLIC_ENABLE_HOME_VARIANT_QUERY_OVERRIDE: undefined as
+      'true' | undefined,
   },
 }));
 
@@ -35,8 +36,18 @@ describe('Page', () => {
       heroMessageHtml: '<p>プレイベント</p>',
       embedUrl: null,
       snsLinks: [{ platform: 'X', url: 'https://x.com' }],
-      notices: [{ id: 1, title: 'お知らせ1', body: '本文', publishedAt: '2026-07-01' }],
-      topics: [{ id: 1, title: 'トピック1', body: '本文', imageId: 'img-1', linkUrl: null }],
+      notices: [
+        { id: 1, title: 'お知らせ1', body: '本文', publishedAt: '2026-07-01' },
+      ],
+      topics: [
+        {
+          id: 1,
+          title: 'トピック1',
+          body: '本文',
+          imageId: 'img-1',
+          linkUrl: null,
+        },
+      ],
     };
 
     vi.mocked(homePageModule.getHomePage).mockResolvedValue({
@@ -79,7 +90,9 @@ describe('Page', () => {
   });
 
   it('getHomePageがエラーをthrowした場合、クラッシュせずに荒牧祭の見出しが表示される', async () => {
-    vi.mocked(homePageModule.getHomePage).mockRejectedValue(new Error('Directus Error'));
+    vi.mocked(homePageModule.getHomePage).mockRejectedValue(
+      new Error('Directus Error'),
+    );
 
     const ui = await Page(noSearchParams());
     render(ui);
@@ -101,24 +114,37 @@ describe('Page', () => {
       },
     });
 
-    const ui = await Page({ searchParams: Promise.resolve({ home_variant: 'live' }) });
+    const ui = await Page({
+      searchParams: Promise.resolve({ home_variant: 'live' }),
+    });
     render(ui);
 
     expect(homePageModule.getHomePage).toHaveBeenCalledWith(undefined);
   });
 
   it('クエリオーバーライドが有効な場合、?home_variant=liveがgetHomePageへ渡される', async () => {
-    Object.defineProperty(env, 'NEXT_PUBLIC_ENABLE_HOME_VARIANT_QUERY_OVERRIDE', {
-      value: 'true',
-      writable: true,
-    });
+    Object.defineProperty(
+      env,
+      'NEXT_PUBLIC_ENABLE_HOME_VARIANT_QUERY_OVERRIDE',
+      {
+        value: 'true',
+        writable: true,
+      },
+    );
 
     vi.mocked(homePageModule.getHomePage).mockResolvedValue({
       variant: 'live',
-      content: { heroImageId: null, heroMessageHtml: '', embedUrl: null, snsLinks: [] },
+      content: {
+        heroImageId: null,
+        heroMessageHtml: '',
+        embedUrl: null,
+        snsLinks: [],
+      },
     });
 
-    const ui = await Page({ searchParams: Promise.resolve({ home_variant: 'live' }) });
+    const ui = await Page({
+      searchParams: Promise.resolve({ home_variant: 'live' }),
+    });
     render(ui);
 
     expect(homePageModule.getHomePage).toHaveBeenCalledWith('live');

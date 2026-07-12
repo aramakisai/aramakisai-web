@@ -131,13 +131,16 @@ describe('.github/workflows/frontend-ci.yml', () => {
     const job = workflow.jobs['deploy-dev'];
     expect(job).toBeDefined();
     expect(job.name).toBe('deploy dev (Workers)');
-    expect(job.if).toBe("github.event_name == 'push' && github.ref == 'refs/heads/dev'");
+    expect(job.if).toBe(
+      "github.event_name == 'push' && github.ref == 'refs/heads/dev'",
+    );
     expect(job.needs).toBe('validate');
 
     // Check it uses staging infisical, not prod
-    const deployStep = job.steps.find((s) => s.name === 'Deploy to Cloudflare Workers (dev)');
+    const deployStep = job.steps.find(
+      (s) => s.name === 'Deploy to Cloudflare Workers (dev)',
+    );
     expect(deployStep?.run).toContain('--env=staging');
     expect(deployStep?.run).toContain('wrangler deploy --env=dev');
   });
-
 });

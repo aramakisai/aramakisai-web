@@ -33,7 +33,9 @@ export async function getHomePage(
   const snsLinks = meta.sns_links || [];
 
   if (activeVariant === 'live') {
-    const pageHomeLive = await directus.request(readSingleton('page_home_live'));
+    const pageHomeLive = await directus.request(
+      readSingleton('page_home_live'),
+    );
 
     const content: HomePageContent = {
       heroImageId: pageHomeLive.hero_image,
@@ -51,7 +53,7 @@ export async function getHomePage(
         filter: { published_at: { _lte: '$NOW', _nnull: true } },
         sort: ['-published_at'],
         limit: 10,
-      })
+      }),
     );
 
     const notices: NoticeSummary[] = announcements.map((a) => ({
@@ -64,7 +66,7 @@ export async function getHomePage(
     const topicsData = await directus.request(
       readItems('topics', {
         sort: ['sort'],
-      })
+      }),
     );
 
     const topics: TopicSummary[] = topicsData.map((t) => ({
