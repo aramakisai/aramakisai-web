@@ -10,9 +10,10 @@ describe('Header', () => {
       'href',
       '/',
     );
-    expect(
-      screen.getByRole('link', { name: 'お問い合わせ' }),
-    ).toHaveAttribute('href', '/contact');
+    expect(screen.getByRole('link', { name: 'お問い合わせ' })).toHaveAttribute(
+      'href',
+      '/contact',
+    );
     expect(screen.getByRole('link', { name: 'アクセス' })).toHaveAttribute(
       'href',
       '/access',

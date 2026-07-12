@@ -6,7 +6,14 @@ export default async function PrivacyPage() {
   try {
     content = await getPrivacyPage();
   } catch {
-    return <StaticPageView title="プライバシーポリシー" contentHtml="" embedUrl={null} embedTitle="" />;
+    return (
+      <StaticPageView
+        title="プライバシーポリシー"
+        contentHtml=""
+        embedUrl={null}
+        embedTitle=""
+      />
+    );
   }
 
   return (

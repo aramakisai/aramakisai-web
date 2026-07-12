@@ -6,7 +6,14 @@ export default async function ContactPage() {
   try {
     content = await getContactPage();
   } catch {
-    return <StaticPageView title="お問い合わせ" contentHtml="" embedUrl={null} embedTitle="" />;
+    return (
+      <StaticPageView
+        title="お問い合わせ"
+        contentHtml=""
+        embedUrl={null}
+        embedTitle=""
+      />
+    );
   }
 
   return (

@@ -22,7 +22,9 @@ describe('SponsorsList', () => {
     expect(link1).toHaveAttribute('href', 'https://example.com/sponsor1');
 
     expect(screen.getByText('Sponsor 2')).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Sponsor 2' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Sponsor 2' }),
+    ).not.toBeInTheDocument();
   });
 
   test('renders nothing when array is empty', () => {

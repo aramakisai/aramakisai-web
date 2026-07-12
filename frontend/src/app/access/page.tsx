@@ -6,7 +6,14 @@ export default async function AccessPage() {
   try {
     content = await getAccessPage();
   } catch {
-    return <StaticPageView title="アクセス" contentHtml="" embedUrl={null} embedTitle="" />;
+    return (
+      <StaticPageView
+        title="アクセス"
+        contentHtml=""
+        embedUrl={null}
+        embedTitle=""
+      />
+    );
   }
 
   return (
