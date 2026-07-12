@@ -43,7 +43,7 @@ describe('Page', () => {
         paymentNote: null,
       },
       sponsors: [],
-      notices: [
+      announcements: [
         { id: 1, title: 'お知らせ1', body: '本文', publishedAt: '2026-07-01' },
       ],
       topics: [
@@ -72,7 +72,7 @@ describe('Page', () => {
     expect(screen.getByText('X')).toBeInTheDocument();
   });
 
-  it('liveの場合、ヒーローとSNSのみ表示され、お知らせ・トピックスは表示されない', async () => {
+  it('liveの場合、ヒーロー・SNS・お知らせが表示され、トピックスは表示されない', async () => {
     const liveContent: HomePageContent = {
       heroImageId: 'hero-live',
       heroMessageHtml: '<p>ライブ中</p>',
@@ -85,6 +85,9 @@ describe('Page', () => {
         paymentNote: null,
       },
       sponsors: [],
+      announcements: [
+        { id: 1, title: 'お知らせ1', body: '本文', publishedAt: '2026-07-01' },
+      ],
     };
 
     vi.mocked(homePageModule.getHomePage).mockResolvedValue({
@@ -98,8 +101,8 @@ describe('Page', () => {
     expect(screen.getByText('荒牧祭')).toBeInTheDocument();
     expect(screen.getByText('ライブ中')).toBeInTheDocument();
     expect(screen.getByText('X')).toBeInTheDocument();
+    expect(screen.getByText('お知らせ1')).toBeInTheDocument();
 
-    expect(screen.queryByText('お知らせ')).not.toBeInTheDocument();
     expect(screen.queryByText('トピックス')).not.toBeInTheDocument();
   });
 
@@ -130,7 +133,7 @@ describe('Page', () => {
           paymentNote: null,
         },
         sponsors: [],
-        notices: [],
+        announcements: [],
         topics: [],
       },
     });
@@ -167,6 +170,7 @@ describe('Page', () => {
           paymentNote: null,
         },
         sponsors: [],
+        announcements: [],
       },
     });
 

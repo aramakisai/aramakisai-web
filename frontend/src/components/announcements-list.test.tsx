@@ -1,9 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import { expect, test, describe } from 'vitest';
-import { NoticesList } from './notices-list';
+import { AnnouncementsList } from './announcements-list';
 
-describe('NoticesList', () => {
-  const notices = [
+describe('AnnouncementsList', () => {
+  const announcements = [
     {
       id: 1,
       title: 'Notice 1',
@@ -18,8 +18,8 @@ describe('NoticesList', () => {
     },
   ];
 
-  test('renders notices array', () => {
-    render(<NoticesList notices={notices} />);
+  test('renders announcements array', () => {
+    render(<AnnouncementsList announcements={announcements} />);
 
     expect(
       screen.getByRole('heading', { level: 3, name: 'Notice 1' }),
@@ -34,8 +34,8 @@ describe('NoticesList', () => {
     expect(screen.getByText('2026-07-11')).toBeInTheDocument();
   });
 
-  test('renders placeholder when notices array is empty', () => {
-    render(<NoticesList notices={[]} />);
+  test('renders placeholder when announcements array is empty', () => {
+    render(<AnnouncementsList announcements={[]} />);
     expect(screen.getByText('お知らせはありません')).toBeInTheDocument();
   });
 });

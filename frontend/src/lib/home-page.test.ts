@@ -109,7 +109,7 @@ describe('getHomePage', () => {
       expect(result.content.snsLinks).toEqual([
         { platform: 'twitter', url: 'https://twitter.com' },
       ]);
-      expect(result.content.notices).toEqual([
+      expect(result.content.announcements).toEqual([
         { id: 1, title: 'A1', body: 'B1', publishedAt: '2023-01-01' },
       ]);
       expect(result.content.topics).toEqual([
@@ -149,6 +149,12 @@ describe('getHomePage', () => {
       ) {
         return { hero_image: 'hero2', hero_message: null, embed_url: null };
       }
+      if (
+        request.type === 'readItems' &&
+        request.collection === 'announcements'
+      ) {
+        return [{ id: 1, title: 'A1', body: 'B1', published_at: '2023-01-01' }];
+      }
       return [];
     });
 
@@ -156,7 +162,9 @@ describe('getHomePage', () => {
     expect(result.variant).toBe('live');
     expect(result.content.heroMessageHtml).toBe('');
     expect(result.content.snsLinks).toEqual([]);
-    expect('notices' in result.content).toBe(false);
+    expect(result.content.announcements).toEqual([
+      { id: 1, title: 'A1', body: 'B1', publishedAt: '2023-01-01' },
+    ]);
   });
 
   it('fallbacks to pre_event when home_active_variant is null', async () => {

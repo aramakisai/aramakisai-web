@@ -5,7 +5,7 @@ export interface SnsLink {
   url: string;
 }
 
-export interface NoticeSummary {
+export interface AnnouncementSummary {
   id: number;
   title: string;
   body: string;
@@ -49,10 +49,10 @@ export interface HomePageContent {
   snsLinks: SnsLink[];
   festival: FestivalOverview;
   sponsors: SponsorSummary[];
+  announcements: AnnouncementSummary[];
 }
 
 export interface PreEventHomeContent extends HomePageContent {
-  notices: NoticeSummary[];
   topics: TopicSummary[];
 }
 

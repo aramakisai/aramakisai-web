@@ -5,7 +5,7 @@ import {
   HomePageResult,
   PreEventHomeContent,
   HomePageContent,
-  NoticeSummary,
+  AnnouncementSummary,
   TopicSummary,
   FestivalOverview,
   SponsorSummary,
@@ -56,6 +56,21 @@ export async function getHomePage(
     tier: s.tier,
   }));
 
+  const announcementsData = await directus.request(
+    readItems('announcements', {
+      filter: { published_at: { _lte: '$NOW', _nnull: true } },
+      sort: ['-published_at'],
+      limit: 10,
+    }),
+  );
+
+  const announcements: AnnouncementSummary[] = announcementsData.map((a) => ({
+    id: a.id,
+    title: a.title,
+    body: a.body || '',
+    publishedAt: a.published_at as string,
+  }));
+
   if (activeVariant === 'live') {
     const pageHomeLive = await directus.request(
       readSingleton('page_home_live'),
@@ -68,26 +83,12 @@ export async function getHomePage(
       snsLinks,
       festival,
       sponsors,
+      announcements,
     };
 
     return { variant: 'live', content };
   } else {
     const pageHome = await directus.request(readSingleton('page_home'));
-
-    const announcements = await directus.request(
-      readItems('announcements', {
-        filter: { published_at: { _lte: '$NOW', _nnull: true } },
-        sort: ['-published_at'],
-        limit: 10,
-      }),
-    );
-
-    const notices: NoticeSummary[] = announcements.map((a) => ({
-      id: a.id,
-      title: a.title,
-      body: a.body || '',
-      publishedAt: a.published_at as string,
-    }));
 
     const topicsData = await directus.request(
       readItems('topics', {
@@ -110,7 +111,7 @@ export async function getHomePage(
       snsLinks,
       festival,
       sponsors,
-      notices,
+      announcements,
       topics,
     };
 

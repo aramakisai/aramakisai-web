@@ -1,7 +1,7 @@
 import { getHomePage } from '@/lib/home-page';
 import { toAssetUrl } from '@/lib/directus-asset-url';
 import { HeroSection } from '@/components/hero-section';
-import { NoticesList } from '@/components/notices-list';
+import { AnnouncementsList } from '@/components/announcements-list';
 import { TopicsList } from '@/components/topics-list';
 import { SnsLinks } from '@/components/sns-links';
 import { FestivalOverview } from '@/components/festival-overview';
@@ -54,30 +54,28 @@ export default async function Page({ searchParams }: PageProps) {
 
       <FestivalOverview festival={content.festival} />
 
-      {variant === 'pre_event' && (
-        <>
-          <section>
-            <h2 className="mb-4 border-b border-gray-200 pb-2 text-2xl font-bold">
-              お知らせ
-            </h2>
-            <NoticesList notices={content.notices} />
-          </section>
+      <section>
+        <h2 className="mb-4 border-b border-gray-200 pb-2 text-2xl font-bold">
+          お知らせ
+        </h2>
+        <AnnouncementsList announcements={content.announcements} />
+      </section>
 
-          <section>
-            <h2 className="mb-4 border-b border-gray-200 pb-2 text-2xl font-bold">
-              トピックス
-            </h2>
-            <TopicsList
-              topics={content.topics.map((t) => ({
-                id: t.id,
-                title: t.title,
-                body: t.body,
-                imageUrl: toAssetUrl(t.imageId),
-                linkUrl: t.linkUrl,
-              }))}
-            />
-          </section>
-        </>
+      {variant === 'pre_event' && (
+        <section>
+          <h2 className="mb-4 border-b border-gray-200 pb-2 text-2xl font-bold">
+            トピックス
+          </h2>
+          <TopicsList
+            topics={content.topics.map((t) => ({
+              id: t.id,
+              title: t.title,
+              body: t.body,
+              imageUrl: toAssetUrl(t.imageId),
+              linkUrl: t.linkUrl,
+            }))}
+          />
+        </section>
       )}
 
       {content.sponsors.length > 0 && (
