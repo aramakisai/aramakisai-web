@@ -5,9 +5,12 @@ export const env = createEnv({
   client: {
     NEXT_PUBLIC_DIRECTUS_URL: z.string().url(),
     NEXT_PUBLIC_SITE_URL: z.string().url(),
+    NEXT_PUBLIC_ENABLE_HOME_VARIANT_QUERY_OVERRIDE: z.enum(['true']).optional(),
   },
   runtimeEnv: {
     NEXT_PUBLIC_DIRECTUS_URL: process.env.NEXT_PUBLIC_DIRECTUS_URL,
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+    NEXT_PUBLIC_ENABLE_HOME_VARIANT_QUERY_OVERRIDE:
+      process.env.NEXT_PUBLIC_ENABLE_HOME_VARIANT_QUERY_OVERRIDE || undefined,
   },
 });

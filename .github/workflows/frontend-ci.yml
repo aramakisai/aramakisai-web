@@ -8,7 +8,7 @@ on:
       - frontend/**
       - .github/workflows/frontend-ci.yml
   push:
-    branches: [main]
+    branches: [main, dev]
     paths:
       - frontend/**
       - .github/workflows/frontend-ci.yml
@@ -219,6 +219,60 @@ jobs:
             echo "- preview URL: ${E2E_BASE_URL}"
             echo "- diagnostics: see the \`playwright-report\` artifact attached to this job"
           } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy-dev:
+    name: deploy dev (Workers)
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      INFISICAL_UNIVERSAL_AUTH_CLIENT_ID: ${{ secrets.INFISICAL_CLIENT_ID }}
+      INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Infisical CLI
+        run: |
+          curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | sudo -E bash
+          sudo apt-get update && sudo apt-get install -y infisical
+
+      - name: Infisical login
+        run: |
+          echo "INFISICAL_TOKEN=$(infisical login --method=universal-auth \
+            --client-id="$INFISICAL_UNIVERSAL_AUTH_CLIENT_ID" \
+            --client-secret="$INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET" \
+            --plain --silent)" >> "$GITHUB_ENV"
+          echo "INFISICAL_PROJECT_ID=$(python3 -c "import json;print(json.load(open('.infisical.json'))['workspaceId'])")" >> "$GITHUB_ENV"
+
+      - name: Build
+        run: pnpm exec opennextjs-cloudflare build
+        env:
+          NEXT_PUBLIC_DIRECTUS_URL: https://api.aramakisai.com
+          NEXT_PUBLIC_SITE_URL: https://dev.aramakisai.com
+          # dev環境のみ ?home_variant=pre_event|live クエリでのフェーズプレビューを許可する
+          # (本番ビルドではこの変数を設定しないため、本番では常に無効)
+          NEXT_PUBLIC_ENABLE_HOME_VARIANT_QUERY_OVERRIDE: 'true'
+
+      - name: Deploy to Cloudflare Workers (dev)
+        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec wrangler deploy --env=dev
 
   deploy-prod:
     name: deploy prod (Workers)

@@ -152,7 +152,7 @@ describe('.github/workflows/frontend-ci.yml — secret exposure', () => {
     const workflow = loadWorkflow();
     for (const [name, job] of Object.entries(workflow.jobs)) {
       const usesSecrets = JSON.stringify(job).includes('secrets.INFISICAL_');
-      if (usesSecrets && name !== 'deploy-prod') {
+      if (usesSecrets && name !== 'deploy-prod' && name !== 'deploy-dev') {
         expect(job.if).toMatch(/head\.repo\.fork == false/);
       }
     }
