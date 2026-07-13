@@ -75,7 +75,8 @@ describe('.github/workflows/directus-schema-sync.yml — 4.1 snapshot diff detec
     const workflow = loadWorkflow();
     const diffStep = findStep(workflow, (s) => s.id === 'diff');
     expect(diffStep.run).toMatch(/git diff --name-only HEAD\^ HEAD/);
-    expect(diffStep.run).toMatch(/directus\/schema\/snapshot\.yaml/);
+    expect(diffStep.run).toMatch(/directus\/schema\/snapshot\\\.yaml/);
+    expect(diffStep.run).toMatch(/directus\/migrations\//);
     expect(diffStep.run).toMatch(/changed=true/);
     expect(diffStep.run).toMatch(/changed=false/);
   });

@@ -26,12 +26,12 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Detect snapshot.yaml change
+      - name: Detect schema/migrations change
         id: diff
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
-          elif git diff --name-only HEAD^ HEAD | grep -qxF 'directus/schema/snapshot.yaml'; then
+          elif git diff --name-only HEAD^ HEAD | grep -qE '^directus/schema/snapshot\.yaml$|^directus/migrations/'; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
