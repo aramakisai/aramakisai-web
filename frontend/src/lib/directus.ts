@@ -78,21 +78,15 @@ type Sponsor = {
   sort: number | null;
 };
 
-type PageContact = {
+type Page = {
   id: number;
+  slug: string;
+  title: string;
   content: string | null;
   form_embed_url: string | null;
-};
-
-type PageAccess = {
-  id: number;
-  content: string | null;
   map_embed_url: string | null;
-};
-
-type PagePrivacy = {
-  id: number;
-  content: string | null;
+  pdf_url: string | null;
+  sort: number | null;
 };
 
 export type Schema = {
@@ -102,9 +96,7 @@ export type Schema = {
   announcements: Announcement[];
   topics: Topic[];
   sponsors: Sponsor[];
-  page_contact: PageContact;
-  page_access: PageAccess;
-  page_privacy: PagePrivacy;
+  pages: Page[];
   topics_files: TopicFile[];
   announcements_files: AnnouncementFile[];
 };
