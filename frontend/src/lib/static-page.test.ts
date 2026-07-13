@@ -19,7 +19,10 @@ vi.mock('@directus/sdk', () => ({
 describe('static-page', () => {
   it('getContactPage maps content and form_embed_url', async () => {
     vi.mocked(directus.request).mockResolvedValue([
-      { content: '<p>Contact</p>', form_embed_url: 'https://forms.example.com' },
+      {
+        content: '<p>Contact</p>',
+        form_embed_url: 'https://forms.example.com',
+      },
     ]);
 
     const result = await getContactPage();
@@ -42,7 +45,9 @@ describe('static-page', () => {
   });
 
   it('getPrivacyPage maps content with no embed', async () => {
-    vi.mocked(directus.request).mockResolvedValue([{ content: '<p>Privacy</p>' }]);
+    vi.mocked(directus.request).mockResolvedValue([
+      { content: '<p>Privacy</p>' },
+    ]);
 
     const result = await getPrivacyPage();
     expect(result).toEqual({
