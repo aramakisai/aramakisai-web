@@ -1,6 +1,12 @@
 import { render, screen } from '@testing-library/react';
-import { expect, test, describe } from 'vitest';
+import { expect, test, describe, vi } from 'vitest';
 import { TopicsList } from './topics-list';
+
+vi.mock('@/env', () => ({
+  env: {
+    NEXT_PUBLIC_DIRECTUS_URL: 'http://localhost:8055',
+  },
+}));
 
 describe('TopicsList', () => {
   const topics = [

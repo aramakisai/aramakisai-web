@@ -7,6 +7,12 @@ vi.mock('@/lib/topics', () => ({
   getTopics: vi.fn(),
 }));
 
+vi.mock('@/env', () => ({
+  env: {
+    NEXT_PUBLIC_DIRECTUS_URL: 'http://localhost:8055',
+  },
+}));
+
 describe('TopicsPage', () => {
   it('トピックス一覧が表示される', async () => {
     vi.mocked(topicsModule.getTopics).mockResolvedValue([
