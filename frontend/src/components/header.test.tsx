@@ -10,17 +10,17 @@ describe('Header', () => {
       'href',
       '/',
     );
-    expect(screen.getByRole('link', { name: 'お知らせ' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'トップ' })).toHaveAttribute(
       'href',
-      '/announcements',
+      '/',
     );
-    expect(screen.getByRole('link', { name: 'お問い合わせ' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'トピックス' })).toHaveAttribute(
       'href',
-      '/contact',
+      '/topics',
     );
-    expect(screen.getByRole('link', { name: 'アクセス' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: '概要' })).toHaveAttribute(
       'href',
-      '/access',
+      '/about',
     );
   });
 });

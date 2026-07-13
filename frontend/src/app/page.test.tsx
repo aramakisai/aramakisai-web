@@ -41,10 +41,18 @@ describe('Page', () => {
         eventDays: [],
         admissionFee: null,
         paymentNote: null,
+        overviewHtml: null,
+        heroImageId: null,
       },
       sponsors: [],
       announcements: [
-        { id: 1, title: 'お知らせ1', body: '本文', publishedAt: '2026-07-01' },
+        {
+          id: 1,
+          title: 'お知らせ1',
+          body: '本文',
+          publishedAt: '2026-07-01',
+          attachments: [],
+        },
       ],
       topics: [
         {
@@ -53,6 +61,7 @@ describe('Page', () => {
           body: '本文',
           imageId: 'img-1',
           linkUrl: null,
+          attachments: [],
         },
       ],
     };
@@ -83,10 +92,18 @@ describe('Page', () => {
         eventDays: [],
         admissionFee: null,
         paymentNote: null,
+        overviewHtml: null,
+        heroImageId: null,
       },
       sponsors: [],
       announcements: [
-        { id: 1, title: 'お知らせ1', body: '本文', publishedAt: '2026-07-01' },
+        {
+          id: 1,
+          title: 'お知らせ1',
+          body: '本文',
+          publishedAt: '2026-07-01',
+          attachments: [],
+        },
       ],
     };
 
@@ -131,6 +148,8 @@ describe('Page', () => {
           eventDays: [],
           admissionFee: null,
           paymentNote: null,
+          overviewHtml: null,
+          heroImageId: null,
         },
         sponsors: [],
         announcements: [],
@@ -168,6 +187,8 @@ describe('Page', () => {
           eventDays: [],
           admissionFee: null,
           paymentNote: null,
+          overviewHtml: null,
+          heroImageId: null,
         },
         sponsors: [],
         announcements: [],

@@ -12,18 +12,18 @@ export function Header() {
         <nav>
           <ul className="flex gap-4 text-sm">
             <li>
-              <Link href="/announcements" className="hover:underline">
-                お知らせ
+              <Link href="/" className="hover:underline">
+                トップ
               </Link>
             </li>
             <li>
-              <Link href="/contact" className="hover:underline">
-                お問い合わせ
+              <Link href="/topics" className="hover:underline">
+                トピックス
               </Link>
             </li>
             <li>
-              <Link href="/access" className="hover:underline">
-                アクセス
+              <Link href="/about" className="hover:underline">
+                概要
               </Link>
             </li>
           </ul>

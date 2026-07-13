@@ -8,10 +8,18 @@ describe('TopicsList', () => {
       id: 1,
       title: 'Topic 1',
       body: '<p>Body 1</p>',
-      imageUrl: 'https://example.com/1.jpg',
+      imageId: 'img1',
       linkUrl: 'https://example.com/link1',
+      attachments: [],
     },
-    { id: 2, title: 'Topic 2', body: null, imageUrl: null, linkUrl: null },
+    {
+      id: 2,
+      title: 'Topic 2',
+      body: null,
+      imageId: null,
+      linkUrl: null,
+      attachments: [],
+    },
   ];
 
   test('renders topics array with images, bodies and links', () => {
@@ -22,7 +30,7 @@ describe('TopicsList', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Body 1')).toBeInTheDocument();
     const img1 = screen.getByAltText('Topic 1');
-    expect(img1).toHaveAttribute('src', 'https://example.com/1.jpg');
+    expect(img1).toHaveAttribute('src', expect.stringContaining('img1'));
     const link1 = screen.getByRole('link', { name: '詳細を見る' });
     expect(link1).toHaveAttribute('href', 'https://example.com/link1');
 
@@ -30,7 +38,7 @@ describe('TopicsList', () => {
       screen.getByRole('heading', { level: 3, name: 'Topic 2' }),
     ).toBeInTheDocument();
     expect(screen.queryByText('Body 2')).not.toBeInTheDocument();
-    const img2 = screen.queryByAltText('Topic 2');
-    expect(img2).not.toBeInTheDocument();
+    const img2 = screen.getByAltText('Topic 2');
+    expect(img2).toHaveAttribute('src', '/images/no-image.svg');
   });
 });

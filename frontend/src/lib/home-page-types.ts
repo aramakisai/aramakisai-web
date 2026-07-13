@@ -5,11 +5,18 @@ export interface SnsLink {
   url: string;
 }
 
+export interface Attachment {
+  id: string;
+  filenameDownload: string;
+  type: string | null;
+}
+
 export interface AnnouncementSummary {
   id: number;
   title: string;
   body: string;
   publishedAt: string;
+  attachments: Attachment[];
 }
 
 export interface TopicSummary {
@@ -18,6 +25,7 @@ export interface TopicSummary {
   body: string | null;
   imageId: string | null;
   linkUrl: string | null;
+  attachments: Attachment[];
 }
 
 export interface EventDay {
@@ -31,6 +39,8 @@ export interface FestivalOverview {
   eventDays: EventDay[];
   admissionFee: string | null;
   paymentNote: string | null;
+  overviewHtml: string | null;
+  heroImageId: string | null;
 }
 
 export interface SponsorSummary {

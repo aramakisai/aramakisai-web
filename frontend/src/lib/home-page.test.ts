@@ -39,6 +39,8 @@ describe('getHomePage', () => {
           event_days: [{ label: '1日目', open: '09:00', close: '17:00' }],
           admission_fee: '無料',
           payment_note: null,
+          overview: '<p>Overview</p>',
+          hero_image: 'meta_hero1',
         };
       }
       if (
@@ -65,7 +67,32 @@ describe('getHomePage', () => {
         request.type === 'readItems' &&
         request.collection === 'announcements'
       ) {
-        return [{ id: 1, title: 'A1', body: 'B1', published_at: '2023-01-01' }];
+        return [
+          {
+            id: 1,
+            title: 'A1',
+            body: 'B1',
+            published_at: '2023-01-01',
+            attachments: [
+              {
+                sort: 2,
+                directus_files_id: {
+                  id: 'file2',
+                  filename_download: 'f2.pdf',
+                  type: 'application/pdf',
+                },
+              },
+              {
+                sort: 1,
+                directus_files_id: {
+                  id: 'file1',
+                  filename_download: 'f1.png',
+                  type: 'image/png',
+                },
+              },
+            ],
+          },
+        ];
       }
       if (request.type === 'readItems' && request.collection === 'topics') {
         return [
@@ -75,7 +102,16 @@ describe('getHomePage', () => {
             body: 'B2',
             image: 'img1',
             link_url: 'link1',
-            attachment: 'attach1',
+            attachments: [
+              {
+                sort: 1,
+                directus_files_id: {
+                  id: 'file3',
+                  filename_download: 'f3.pdf',
+                  type: 'application/pdf',
+                },
+              },
+            ],
           },
         ];
       }
@@ -110,16 +146,44 @@ describe('getHomePage', () => {
         { platform: 'twitter', url: 'https://twitter.com' },
       ]);
       expect(result.content.announcements).toEqual([
-        { id: 1, title: 'A1', body: 'B1', publishedAt: '2023-01-01' },
+        {
+          id: 1,
+          title: 'A1',
+          body: 'B1',
+          publishedAt: '2023-01-01',
+          attachments: [
+            { id: 'file1', filenameDownload: 'f1.png', type: 'image/png' },
+            {
+              id: 'file2',
+              filenameDownload: 'f2.pdf',
+              type: 'application/pdf',
+            },
+          ],
+        },
       ]);
       expect(result.content.topics).toEqual([
-        { id: 2, title: 'T1', body: 'B2', imageId: 'img1', linkUrl: 'link1' },
+        {
+          id: 2,
+          title: 'T1',
+          body: 'B2',
+          imageId: 'img1',
+          linkUrl: 'link1',
+          attachments: [
+            {
+              id: 'file3',
+              filenameDownload: 'f3.pdf',
+              type: 'application/pdf',
+            },
+          ],
+        },
       ]);
       expect(result.content.festival).toEqual({
         name: '荒牧祭',
         eventDays: [{ label: '1日目', open: '09:00', close: '17:00' }],
         admissionFee: '無料',
         paymentNote: null,
+        overviewHtml: '<p>Overview</p>',
+        heroImageId: 'meta_hero1',
       });
       expect(result.content.sponsors).toEqual([
         {
@@ -141,7 +205,12 @@ describe('getHomePage', () => {
         request.type === 'readSingleton' &&
         request.collection === 'festival_meta'
       ) {
-        return { home_active_variant: 'live', sns_links: [] };
+        return {
+          home_active_variant: 'live',
+          sns_links: [],
+          overview: null,
+          hero_image: null,
+        };
       }
       if (
         request.type === 'readSingleton' &&
@@ -153,7 +222,15 @@ describe('getHomePage', () => {
         request.type === 'readItems' &&
         request.collection === 'announcements'
       ) {
-        return [{ id: 1, title: 'A1', body: 'B1', published_at: '2023-01-01' }];
+        return [
+          {
+            id: 1,
+            title: 'A1',
+            body: 'B1',
+            published_at: '2023-01-01',
+            attachments: [],
+          },
+        ];
       }
       return [];
     });
@@ -163,7 +240,13 @@ describe('getHomePage', () => {
     expect(result.content.heroMessageHtml).toBe('');
     expect(result.content.snsLinks).toEqual([]);
     expect(result.content.announcements).toEqual([
-      { id: 1, title: 'A1', body: 'B1', publishedAt: '2023-01-01' },
+      {
+        id: 1,
+        title: 'A1',
+        body: 'B1',
+        publishedAt: '2023-01-01',
+        attachments: [],
+      },
     ]);
   });
 
@@ -174,7 +257,12 @@ describe('getHomePage', () => {
         request.type === 'readSingleton' &&
         request.collection === 'festival_meta'
       ) {
-        return { home_active_variant: null, sns_links: null };
+        return {
+          home_active_variant: null,
+          sns_links: null,
+          overview: null,
+          hero_image: null,
+        };
       }
       if (
         request.type === 'readSingleton' &&
@@ -197,7 +285,12 @@ describe('getHomePage', () => {
         request.type === 'readSingleton' &&
         request.collection === 'festival_meta'
       ) {
-        return { home_active_variant: 'foo', sns_links: [] };
+        return {
+          home_active_variant: 'foo',
+          sns_links: [],
+          overview: null,
+          hero_image: null,
+        };
       }
       if (
         request.type === 'readSingleton' &&
@@ -215,6 +308,13 @@ describe('getHomePage', () => {
   it('uses correct query for announcements during pre_event', async () => {
     await getHomePage();
     expect(readItems).toHaveBeenCalledWith('announcements', {
+      fields: [
+        '*',
+        'attachments.sort',
+        'attachments.directus_files_id.id',
+        'attachments.directus_files_id.filename_download',
+        'attachments.directus_files_id.type',
+      ],
       filter: { published_at: { _lte: '$NOW', _nnull: true } },
       sort: ['-published_at'],
       limit: 10,
@@ -224,6 +324,13 @@ describe('getHomePage', () => {
   it('uses correct query for topics during pre_event', async () => {
     await getHomePage();
     expect(readItems).toHaveBeenCalledWith('topics', {
+      fields: [
+        '*',
+        'attachments.sort',
+        'attachments.directus_files_id.id',
+        'attachments.directus_files_id.filename_download',
+        'attachments.directus_files_id.type',
+      ],
       sort: ['sort'],
     });
   });

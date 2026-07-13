@@ -11,6 +11,8 @@ describe('FestivalOverview', () => {
           eventDays: [{ label: '1日目', open: '09:00', close: '17:00' }],
           admissionFee: '無料',
           paymentNote: '事前登録不要',
+          overviewHtml: null,
+          heroImageId: null,
         }}
       />,
     );
@@ -29,6 +31,8 @@ describe('FestivalOverview', () => {
           eventDays: [],
           admissionFee: null,
           paymentNote: null,
+          overviewHtml: null,
+          heroImageId: null,
         }}
       />,
     );

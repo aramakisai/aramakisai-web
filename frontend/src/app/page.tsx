@@ -5,6 +5,7 @@ import { AnnouncementsList } from '@/components/announcements-list';
 import { TopicsList } from '@/components/topics-list';
 import { SnsLinks } from '@/components/sns-links';
 import { FestivalOverview } from '@/components/festival-overview';
+import { FestivalSummary } from '@/components/festival-summary';
 import { SponsorsList } from '@/components/sponsors-list';
 import { HomeActiveVariant } from '@/lib/home-page-types';
 import { env } from '@/env';
@@ -54,6 +55,8 @@ export default async function Page({ searchParams }: PageProps) {
 
       <FestivalOverview festival={content.festival} />
 
+      <FestivalSummary overviewHtml={content.festival.overviewHtml} />
+
       <section>
         <h2 className="mb-4 border-b border-gray-200 pb-2 text-2xl font-bold">
           お知らせ
@@ -71,8 +74,9 @@ export default async function Page({ searchParams }: PageProps) {
               id: t.id,
               title: t.title,
               body: t.body,
-              imageUrl: toAssetUrl(t.imageId),
+              imageId: t.imageId,
               linkUrl: t.linkUrl,
+              attachments: t.attachments,
             }))}
           />
         </section>

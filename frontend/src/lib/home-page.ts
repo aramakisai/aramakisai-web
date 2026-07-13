@@ -1,5 +1,9 @@
 import { readSingleton, readItems } from '@directus/sdk';
-import { directus } from './directus';
+import {
+  directus,
+  type AnnouncementFile,
+  type TopicFile,
+} from './directus';
 import {
   HomeActiveVariant,
   HomePageResult,
@@ -9,7 +13,36 @@ import {
   TopicSummary,
   FestivalOverview,
   SponsorSummary,
+  Attachment,
 } from './home-page-types';
+
+// Directus SDKの型付きfieldsはドット区切りのdeep-fields文字列を表現できないため、
+// このリテラル配列のみ許容してキャストする。
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const ATTACHMENT_DEEP_FIELDS: any = [
+  'attachments.sort',
+  'attachments.directus_files_id.id',
+  'attachments.directus_files_id.filename_download',
+  'attachments.directus_files_id.type',
+];
+
+function formatAttachments(
+  raw: (AnnouncementFile | TopicFile)[] | undefined,
+): Attachment[] {
+  return [...(raw || [])]
+    .sort((x, y) => (x.sort ?? 0) - (y.sort ?? 0))
+    .map((att) => {
+      const file = att.directus_files_id;
+      if (typeof file === 'string') {
+        return { id: file, filenameDownload: '', type: null };
+      }
+      return {
+        id: file.id,
+        filenameDownload: file.filename_download,
+        type: file.type,
+      };
+    });
+}
 
 /**
  * overrideVariant: dev環境専用。festival_meta.home_active_variantより優先する。
@@ -21,7 +54,11 @@ export async function getHomePage(
 ): Promise<HomePageResult> {
   let activeVariant: 'pre_event' | 'live' = 'pre_event';
 
-  const meta = await directus.request(readSingleton('festival_meta'));
+  const meta = await directus.request(
+    readSingleton('festival_meta', {
+      fields: ['*', 'overview', 'hero_image'],
+    }),
+  );
 
   if (overrideVariant === 'pre_event' || overrideVariant === 'live') {
     activeVariant = overrideVariant;
@@ -39,6 +76,8 @@ export async function getHomePage(
     eventDays: meta.event_days || [],
     admissionFee: meta.admission_fee,
     paymentNote: meta.payment_note,
+    overviewHtml: meta.overview || null,
+    heroImageId: meta.hero_image || null,
   };
 
   const sponsorsData = await directus.request(
@@ -58,6 +97,7 @@ export async function getHomePage(
 
   const announcementsData = await directus.request(
     readItems('announcements', {
+      fields: ['*', ...ATTACHMENT_DEEP_FIELDS],
       filter: { published_at: { _lte: '$NOW', _nnull: true } },
       sort: ['-published_at'],
       limit: 10,
@@ -69,6 +109,7 @@ export async function getHomePage(
     title: a.title,
     body: a.body || '',
     publishedAt: a.published_at as string,
+    attachments: formatAttachments(a.attachments),
   }));
 
   if (activeVariant === 'live') {
@@ -92,6 +133,7 @@ export async function getHomePage(
 
     const topicsData = await directus.request(
       readItems('topics', {
+        fields: ['*', ...ATTACHMENT_DEEP_FIELDS],
         sort: ['sort'],
       }),
     );
@@ -102,6 +144,7 @@ export async function getHomePage(
       body: t.body,
       imageId: t.image,
       linkUrl: t.link_url,
+      attachments: formatAttachments(t.attachments),
     }));
 
     const content: PreEventHomeContent = {

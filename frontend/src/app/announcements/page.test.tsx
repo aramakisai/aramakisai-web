@@ -10,8 +10,20 @@ vi.mock('@/lib/announcements', () => ({
 describe('AnnouncementsPage', () => {
   it('お知らせ一覧が表示される', async () => {
     vi.mocked(announcementsModule.getAnnouncements).mockResolvedValue([
-      { id: 1, title: 'お知らせ1', body: '本文1', publishedAt: '2026-07-01' },
-      { id: 2, title: 'お知らせ2', body: '本文2', publishedAt: '2026-07-02' },
+      {
+        id: 1,
+        title: 'お知らせ1',
+        body: '本文1',
+        publishedAt: '2026-07-01',
+        attachments: [],
+      },
+      {
+        id: 2,
+        title: 'お知らせ2',
+        body: '本文2',
+        publishedAt: '2026-07-02',
+        attachments: [],
+      },
     ]);
 
     render(await AnnouncementsPage());
