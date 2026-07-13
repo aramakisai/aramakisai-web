@@ -15,12 +15,16 @@ export async function Footer() {
   return (
     <footer className="mt-12 border-t border-gray-200">
       <div className="mx-auto flex max-w-4xl flex-col gap-4 px-4 py-8 text-sm text-gray-600 sm:flex-row sm:items-center sm:justify-between">
-        <div className="">
+        <div className="grid gap-1">
           <p className="text-lg">群馬大学 荒牧祭実行委員会</p>
           <address className="not-italic">
             〒371-8510 群馬県前橋市荒牧町4-2 群馬大学荒牧キャンパス内
           </address>
-
+          <p className="mt-2">
+            E-mail: mail_at_example.invalid
+            <br />
+            (_at_を@に置き換えてください)
+          </p>
         </div>
         <div className="flex flex-row items-center gap-4 sm:flex-col sm:items-end">
           <ul className="mt-2 gap-4">
