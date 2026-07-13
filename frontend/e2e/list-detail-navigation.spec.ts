@@ -39,9 +39,7 @@ test.describe('一覧→個別記事→404遷移', () => {
   test('お知らせ一覧(テーブル)から個別記事へ遷移できる', async ({ page }) => {
     await page.goto('/announcements');
 
-    const firstLink = page
-      .locator('table a[href^="/announcements/"]')
-      .first();
+    const firstLink = page.locator('table a[href^="/announcements/"]').first();
     if ((await firstLink.count()) === 0) {
       test.skip(
         true,
@@ -63,9 +61,7 @@ test.describe('一覧→個別記事→404遷移', () => {
     expect(response?.status()).toBe(404);
   });
 
-  test('存在しないお知らせIDアクセス時に404が表示される', async ({
-    page,
-  }) => {
+  test('存在しないお知らせIDアクセス時に404が表示される', async ({ page }) => {
     const response = await page.goto('/announcements/999999999');
     expect(response?.status()).toBe(404);
   });

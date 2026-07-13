@@ -1,9 +1,5 @@
 import { readSingleton, readItems } from '@directus/sdk';
-import {
-  directus,
-  type AnnouncementFile,
-  type TopicFile,
-} from './directus';
+import { directus, type AnnouncementFile, type TopicFile } from './directus';
 import {
   HomeActiveVariant,
   HomePageResult,
