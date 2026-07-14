@@ -10,8 +10,10 @@ vi.mock('@/lib/static-page', () => ({
 describe('PrivacyPage', () => {
   it('本文が表示される', async () => {
     vi.mocked(staticPageModule.getPrivacyPage).mockResolvedValue({
+      title: 'プライバシーポリシー',
       contentHtml: '<p>プライバシー本文</p>',
       embedUrl: null,
+      embedHeight: null,
     });
 
     render(await PrivacyPage());

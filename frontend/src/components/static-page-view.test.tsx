@@ -34,4 +34,19 @@ describe('StaticPageView', () => {
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
     expect(document.querySelector('iframe')).not.toBeInTheDocument();
   });
+
+  test('applies embedHeight as inline style when set', () => {
+    render(
+      <StaticPageView
+        title="お問い合わせ"
+        contentHtml="<p>本文</p>"
+        embedUrl="https://example.com/form"
+        embedTitle="お問い合わせフォーム"
+        embedHeight={900}
+      />,
+    );
+
+    const iframe = screen.getByTitle('お問い合わせフォーム');
+    expect(iframe).toHaveStyle({ height: '900px' });
+  });
 });

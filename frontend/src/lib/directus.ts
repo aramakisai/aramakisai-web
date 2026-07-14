@@ -83,9 +83,8 @@ type Page = {
   slug: string;
   title: string;
   content: string | null;
-  form_embed_url: string | null;
-  map_embed_url: string | null;
-  pdf_url: string | null;
+  embed_url: string | null;
+  embed_height: number | null;
   sort: number | null;
 };
 

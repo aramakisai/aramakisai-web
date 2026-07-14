@@ -17,48 +17,71 @@ vi.mock('@directus/sdk', () => ({
 }));
 
 describe('static-page', () => {
-  it('getContactPage maps content and form_embed_url', async () => {
+  it('getContactPage maps title, content and embed', async () => {
     vi.mocked(directus.request).mockResolvedValue([
       {
+        title: 'お問い合わせ',
         content: '<p>Contact</p>',
-        form_embed_url: 'https://forms.example.com',
+        embed_url: 'https://forms.example.com',
+        embed_height: 900,
       },
     ]);
 
     const result = await getContactPage();
     expect(result).toEqual({
+      title: 'お問い合わせ',
       contentHtml: '<p>Contact</p>',
       embedUrl: 'https://forms.example.com',
+      embedHeight: 900,
     });
   });
 
-  it('getAccessPage maps content and map_embed_url', async () => {
+  it('getAccessPage maps title, content and embed', async () => {
     vi.mocked(directus.request).mockResolvedValue([
-      { content: '<p>Access</p>', map_embed_url: 'https://maps.example.com' },
+      {
+        title: 'アクセス',
+        content: '<p>Access</p>',
+        embed_url: 'https://maps.example.com',
+        embed_height: null,
+      },
     ]);
 
     const result = await getAccessPage();
     expect(result).toEqual({
+      title: 'アクセス',
       contentHtml: '<p>Access</p>',
       embedUrl: 'https://maps.example.com',
+      embedHeight: null,
     });
   });
 
-  it('getPrivacyPage maps content with no embed', async () => {
+  it('getPrivacyPage maps title and content with no embed', async () => {
     vi.mocked(directus.request).mockResolvedValue([
-      { content: '<p>Privacy</p>' },
+      {
+        title: 'プライバシーポリシー',
+        content: '<p>Privacy</p>',
+        embed_url: null,
+        embed_height: null,
+      },
     ]);
 
     const result = await getPrivacyPage();
     expect(result).toEqual({
+      title: 'プライバシーポリシー',
       contentHtml: '<p>Privacy</p>',
       embedUrl: null,
+      embedHeight: null,
     });
   });
 
   it('falls back to empty string when content is null', async () => {
     vi.mocked(directus.request).mockResolvedValue([
-      { content: null, form_embed_url: null },
+      {
+        title: 'お問い合わせ',
+        content: null,
+        embed_url: null,
+        embed_height: null,
+      },
     ]);
 
     const result = await getContactPage();

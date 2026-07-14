@@ -3,6 +3,7 @@ import { Zen_Old_Mincho } from 'next/font/google';
 import './globals.css';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
+import { getFestivalMeta } from '@/lib/festival-meta';
 
 const zenOldMincho = Zen_Old_Mincho({
   weight: '900',
@@ -11,13 +12,25 @@ const zenOldMincho = Zen_Old_Mincho({
   display: 'swap',
 });
 
-export const metadata: Metadata = {
-  title: '荒牧祭',
-  description: '荒牧祭実行委員会',
-  icons: {
-    icon: '/images/favicon.png',
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const meta = await getFestivalMeta();
+  const titleBase = meta.name || '荒牧祭';
+  const siteTitle =
+    process.env.NODE_ENV === 'development'
+      ? `【開発環境】 ${titleBase}`
+      : titleBase;
+
+  return {
+    title: {
+      default: siteTitle,
+      template: `%s | ${siteTitle}`,
+    },
+    description: '荒牧祭公式サイト',
+    icons: {
+      icon: '/images/favicon.png',
+    },
+  };
+}
 
 export default function RootLayout({
   children,

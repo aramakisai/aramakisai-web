@@ -10,8 +10,10 @@ vi.mock('@/lib/static-page', () => ({
 describe('AccessPage', () => {
   it('本文と地図埋め込みが表示される', async () => {
     vi.mocked(staticPageModule.getAccessPage).mockResolvedValue({
+      title: 'アクセス',
       contentHtml: '<p>アクセス本文</p>',
       embedUrl: 'https://maps.example.com',
+      embedHeight: null,
     });
 
     render(await AccessPage());

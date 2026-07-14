@@ -10,8 +10,10 @@ vi.mock('@/lib/static-page', () => ({
 describe('ContactPage', () => {
   it('本文とフォーム埋め込みが表示される', async () => {
     vi.mocked(staticPageModule.getContactPage).mockResolvedValue({
+      title: 'お問い合わせ',
       contentHtml: '<p>お問い合わせ本文</p>',
       embedUrl: 'https://forms.example.com',
+      embedHeight: 900,
     });
 
     render(await ContactPage());
