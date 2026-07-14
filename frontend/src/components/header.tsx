@@ -17,8 +17,8 @@ export function Header() {
               </Link>
             </li>
             <li>
-              <Link href="/topics" className="hover:underline">
-                トピックス
+              <Link href="/announcements" className="hover:underline">
+                お知らせ
               </Link>
             </li>
             <li>

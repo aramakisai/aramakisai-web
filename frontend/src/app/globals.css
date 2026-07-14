@@ -11,5 +11,30 @@
   h6 {
     font-family: var(--font-zen-old-mincho), serif;
     font-weight: 900;
+    @apply bg-gradient-to-r from-orange-600 to-blue-900 bg-clip-text text-transparent;
+  }
+}
+
+@layer base {
+  body {
+    @apply text-gray-800;
+  }
+}
+
+@layer base {
+  h1 {
+    @apply text-4xl sm:text-5xl md:text-6xl py-4 sm:py-6 md:py-8;
+  }
+}
+
+@layer base {
+  h2 {
+    @apply text-3xl sm:text-4xl md:text-5xl py-3 sm:py-4 md:py-6;
+  }
+}
+
+@layer base {
+  h3 {
+    @apply text-2xl sm:text-3xl md:text-4xl py-2 sm:py-3 md:py-4;
   }
 }

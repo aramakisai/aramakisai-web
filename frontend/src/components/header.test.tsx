@@ -14,9 +14,9 @@ describe('Header', () => {
       'href',
       '/',
     );
-    expect(screen.getByRole('link', { name: 'トピックス' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'お知らせ' })).toHaveAttribute(
       'href',
-      '/topics',
+      '/announcements',
     );
     expect(screen.getByRole('link', { name: '概要' })).toHaveAttribute(
       'href',

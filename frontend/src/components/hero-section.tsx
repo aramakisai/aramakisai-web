@@ -20,7 +20,7 @@ export function HeroSection({
         <img
           src={heroImageUrl}
           alt="ヒーロー画像"
-          className="w-full h-auto rounded-2xl object-cover shadow-sm"
+          className="w-full h-[300px] object-cover shadow-sm"
         />
       )}
       <RichText html={heroMessageHtml} className="hero-message" />

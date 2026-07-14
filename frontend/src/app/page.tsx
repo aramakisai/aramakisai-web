@@ -3,10 +3,8 @@ import { toAssetUrl } from '@/lib/directus-asset-url';
 import { HeroSection } from '@/components/hero-section';
 import { AnnouncementsList } from '@/components/announcements-list';
 import { TopicsList } from '@/components/topics-list';
-import { SnsLinks } from '@/components/sns-links';
 import { FestivalOverview } from '@/components/festival-overview';
 import { FestivalSummary } from '@/components/festival-summary';
-import { SponsorsList } from '@/components/sponsors-list';
 import { HomeActiveVariant } from '@/lib/home-page-types';
 import { env } from '@/env';
 
@@ -44,7 +42,7 @@ export default async function Page({ searchParams }: PageProps) {
   const festivalName = content.festival.name || '荒牧祭';
 
   return (
-    <main className="mx-auto max-w-4xl space-y-12 px-4 py-8 sm:py-12">
+    <main className="space-y-12 px-4 pb-8 sm:py-12">
       <h1 className="sr-only">{festivalName}</h1>
 
       <HeroSection
@@ -52,58 +50,36 @@ export default async function Page({ searchParams }: PageProps) {
         heroMessageHtml={content.heroMessageHtml}
         embedUrl={content.embedUrl}
       />
+      <div className="mx-auto max-w-6xl">
+        <FestivalOverview festival={content.festival} />
 
-      <FestivalOverview festival={content.festival} />
+        <FestivalSummary overviewHtml={content.festival.overviewHtml} />
 
-      <FestivalSummary overviewHtml={content.festival.overviewHtml} />
-
-      <section>
-        <h2 className="mb-4 border-b border-gray-200 pb-2 text-2xl font-bold">
-          お知らせ
-        </h2>
-        <AnnouncementsList announcements={content.announcements} />
-      </section>
-
-      {variant === 'pre_event' && (
         <section>
           <h2 className="mb-4 border-b border-gray-200 pb-2 text-2xl font-bold">
-            トピックス
+            お知らせ
           </h2>
-          <TopicsList
-            topics={content.topics.map((t) => ({
-              id: t.id,
-              title: t.title,
-              body: t.body,
-              imageId: t.imageId,
-              linkUrl: t.linkUrl,
-              attachments: t.attachments,
-            }))}
-          />
+          <AnnouncementsList announcements={content.announcements} />
         </section>
-      )}
 
-      {content.sponsors.length > 0 && (
-        <section>
-          <h2 className="mb-4 border-b border-gray-200 pb-2 text-2xl font-bold">
-            協賛
-          </h2>
-          <SponsorsList
-            sponsors={content.sponsors.map((s) => ({
-              id: s.id,
-              name: s.name,
-              logoUrl: toAssetUrl(s.logoId),
-              url: s.url,
-            }))}
-          />
-        </section>
-      )}
-
-      <section>
-        <h2 className="mb-4 border-b border-gray-200 pb-2 text-xl font-bold">
-          公式SNS
-        </h2>
-        <SnsLinks snsLinks={content.snsLinks} />
-      </section>
+        {variant === 'live' && (
+          <section>
+            <h2 className="mb-4 border-b border-gray-200 pb-2 text-2xl font-bold">
+              トピックス
+            </h2>
+            <TopicsList
+              topics={content.topics.map((t) => ({
+                id: t.id,
+                title: t.title,
+                body: t.body,
+                imageId: t.imageId,
+                linkUrl: t.linkUrl,
+                attachments: t.attachments,
+              }))}
+            />
+          </section>
+        )}
+      </div>
     </main>
   );
 }

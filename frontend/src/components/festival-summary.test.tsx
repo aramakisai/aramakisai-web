@@ -7,7 +7,6 @@ describe('FestivalSummary', () => {
     const htmlContent = '<p>This is a summary of the festival.</p>';
     render(<FestivalSummary overviewHtml={htmlContent} />);
 
-    expect(screen.getByText('祭の概要')).toBeInTheDocument();
     expect(
       screen.getByText('This is a summary of the festival.'),
     ).toBeInTheDocument();

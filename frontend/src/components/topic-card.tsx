@@ -37,15 +37,15 @@ export function TopicCard({
   const topicUrl = `/topics/${id}`;
 
   return (
-    <article className="border p-4 rounded flex flex-col gap-2">
-      <Link href={topicUrl}>
+    <article className="flex flex-col gap-2 justify-center">
+      <Link href={topicUrl} className="rounded-xl shadow-xl shadow-gray-400/20">
         <img
           src={thumbnailUrl}
           alt={title}
           className="w-full h-auto object-cover rounded"
         />
       </Link>
-      <h3 className="text-xl font-bold">
+      <h3 className="text-xl font-bold p-2">
         <Link href={topicUrl} className="hover:underline">
           {title}
         </Link>

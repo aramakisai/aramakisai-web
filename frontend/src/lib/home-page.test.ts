@@ -135,6 +135,24 @@ describe('getHomePage', () => {
     const result = await getHomePage('live');
     expect(result.variant).toBe('live');
     expect(result.content.heroMessageHtml).toBe('<p>Live</p>');
+    if (result.variant === 'live') {
+      expect(result.content.topics).toEqual([
+        {
+          id: 2,
+          title: 'T1',
+          body: 'B2',
+          imageId: 'img1',
+          linkUrl: 'link1',
+          attachments: [
+            {
+              id: 'file3',
+              filenameDownload: 'f3.pdf',
+              type: 'application/pdf',
+            },
+          ],
+        },
+      ]);
+    }
   });
 
   it('returns pre_event variant when home_active_variant is pre_event', async () => {
@@ -156,22 +174,6 @@ describe('getHomePage', () => {
             {
               id: 'file2',
               filenameDownload: 'f2.pdf',
-              type: 'application/pdf',
-            },
-          ],
-        },
-      ]);
-      expect(result.content.topics).toEqual([
-        {
-          id: 2,
-          title: 'T1',
-          body: 'B2',
-          imageId: 'img1',
-          linkUrl: 'link1',
-          attachments: [
-            {
-              id: 'file3',
-              filenameDownload: 'f3.pdf',
               type: 'application/pdf',
             },
           ],
@@ -237,17 +239,20 @@ describe('getHomePage', () => {
 
     const result = await getHomePage();
     expect(result.variant).toBe('live');
-    expect(result.content.heroMessageHtml).toBe('');
-    expect(result.content.snsLinks).toEqual([]);
-    expect(result.content.announcements).toEqual([
-      {
-        id: 1,
-        title: 'A1',
-        body: 'B1',
-        publishedAt: '2023-01-01',
-        attachments: [],
-      },
-    ]);
+    if (result.variant === 'live') {
+      expect(result.content.heroMessageHtml).toBe('');
+      expect(result.content.snsLinks).toEqual([]);
+      expect(result.content.announcements).toEqual([
+        {
+          id: 1,
+          title: 'A1',
+          body: 'B1',
+          publishedAt: '2023-01-01',
+          attachments: [],
+        },
+      ]);
+      expect(result.content.topics).toEqual([]);
+    }
   });
 
   it('fallbacks to pre_event when home_active_variant is null', async () => {
@@ -321,8 +326,13 @@ describe('getHomePage', () => {
     });
   });
 
-  it('uses correct query for topics during pre_event', async () => {
+  it('does not query topics during pre_event', async () => {
     await getHomePage();
+    expect(readItems).not.toHaveBeenCalledWith('topics', expect.anything());
+  });
+
+  it('uses correct query for topics during live', async () => {
+    await getHomePage('live');
     expect(readItems).toHaveBeenCalledWith('topics', {
       fields: [
         '*',

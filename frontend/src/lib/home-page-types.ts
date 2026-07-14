@@ -62,10 +62,10 @@ export interface HomePageContent {
   announcements: AnnouncementSummary[];
 }
 
-export interface PreEventHomeContent extends HomePageContent {
+export interface LiveHomeContent extends HomePageContent {
   topics: TopicSummary[];
 }
 
 export type HomePageResult =
-  | { variant: 'pre_event'; content: PreEventHomeContent }
-  | { variant: 'live'; content: HomePageContent };
+  | { variant: 'pre_event'; content: HomePageContent }
+  | { variant: 'live'; content: LiveHomeContent };

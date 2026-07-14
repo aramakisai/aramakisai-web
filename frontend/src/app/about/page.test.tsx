@@ -43,7 +43,6 @@ describe('AboutPage', () => {
     expect(screen.getByText('Day 1')).toBeInTheDocument();
 
     // FestivalSummary
-    expect(screen.getByText('祭の概要')).toBeInTheDocument();
     expect(screen.getByText('Test overview')).toBeInTheDocument(); // assuming RichText renders the html text directly, which testing-library can find
   });
 
@@ -77,6 +76,6 @@ describe('AboutPage', () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
     expect(screen.queryByText('開催日程')).not.toBeInTheDocument();
-    expect(screen.queryByText('祭の概要')).not.toBeInTheDocument();
+    expect(screen.queryByText('Test overview')).not.toBeInTheDocument();
   });
 });

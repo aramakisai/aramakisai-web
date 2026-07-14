@@ -3,7 +3,7 @@ import { directus, type AnnouncementFile, type TopicFile } from './directus';
 import {
   HomeActiveVariant,
   HomePageResult,
-  PreEventHomeContent,
+  LiveHomeContent,
   HomePageContent,
   AnnouncementSummary,
   TopicSummary,
@@ -113,20 +113,6 @@ export async function getHomePage(
       readSingleton('page_home_live'),
     );
 
-    const content: HomePageContent = {
-      heroImageId: pageHomeLive.hero_image,
-      heroMessageHtml: pageHomeLive.hero_message || '',
-      embedUrl: pageHomeLive.embed_url,
-      snsLinks,
-      festival,
-      sponsors,
-      announcements,
-    };
-
-    return { variant: 'live', content };
-  } else {
-    const pageHome = await directus.request(readSingleton('page_home'));
-
     const topicsData = await directus.request(
       readItems('topics', {
         fields: ['*', ...ATTACHMENT_DEEP_FIELDS],
@@ -143,7 +129,22 @@ export async function getHomePage(
       attachments: formatAttachments(t.attachments),
     }));
 
-    const content: PreEventHomeContent = {
+    const content: LiveHomeContent = {
+      heroImageId: pageHomeLive.hero_image,
+      heroMessageHtml: pageHomeLive.hero_message || '',
+      embedUrl: pageHomeLive.embed_url,
+      snsLinks,
+      festival,
+      sponsors,
+      announcements,
+      topics,
+    };
+
+    return { variant: 'live', content };
+  } else {
+    const pageHome = await directus.request(readSingleton('page_home'));
+
+    const content: HomePageContent = {
       heroImageId: pageHome.hero_image,
       heroMessageHtml: pageHome.hero_message || '',
       embedUrl: pageHome.embed_url,
@@ -151,7 +152,6 @@ export async function getHomePage(
       festival,
       sponsors,
       announcements,
-      topics,
     };
 
     return { variant: 'pre_event', content };
