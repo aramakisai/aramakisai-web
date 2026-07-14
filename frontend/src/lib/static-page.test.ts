@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { getContactPage, getAccessPage, getPrivacyPage } from './static-page';
+import { getPageBySlug } from './static-page';
 import { directus } from './directus';
 
 vi.mock('./directus', () => ({
@@ -17,7 +17,7 @@ vi.mock('@directus/sdk', () => ({
 }));
 
 describe('static-page', () => {
-  it('getContactPage maps title, content and embed', async () => {
+  it('maps title, content and embed for a found slug', async () => {
     vi.mocked(directus.request).mockResolvedValue([
       {
         title: 'お問い合わせ',
@@ -27,50 +27,12 @@ describe('static-page', () => {
       },
     ]);
 
-    const result = await getContactPage();
+    const result = await getPageBySlug('contact');
     expect(result).toEqual({
       title: 'お問い合わせ',
       contentHtml: '<p>Contact</p>',
       embedUrl: 'https://forms.example.com',
       embedHeight: 900,
-    });
-  });
-
-  it('getAccessPage maps title, content and embed', async () => {
-    vi.mocked(directus.request).mockResolvedValue([
-      {
-        title: 'アクセス',
-        content: '<p>Access</p>',
-        embed_url: 'https://maps.example.com',
-        embed_height: null,
-      },
-    ]);
-
-    const result = await getAccessPage();
-    expect(result).toEqual({
-      title: 'アクセス',
-      contentHtml: '<p>Access</p>',
-      embedUrl: 'https://maps.example.com',
-      embedHeight: null,
-    });
-  });
-
-  it('getPrivacyPage maps title and content with no embed', async () => {
-    vi.mocked(directus.request).mockResolvedValue([
-      {
-        title: 'プライバシーポリシー',
-        content: '<p>Privacy</p>',
-        embed_url: null,
-        embed_height: null,
-      },
-    ]);
-
-    const result = await getPrivacyPage();
-    expect(result).toEqual({
-      title: 'プライバシーポリシー',
-      contentHtml: '<p>Privacy</p>',
-      embedUrl: null,
-      embedHeight: null,
     });
   });
 
@@ -84,13 +46,21 @@ describe('static-page', () => {
       },
     ]);
 
-    const result = await getContactPage();
-    expect(result.contentHtml).toBe('');
+    const result = await getPageBySlug('contact');
+    expect(result?.contentHtml).toBe('');
   });
 
-  it('throws when page slug not found', async () => {
+  it('returns null when slug not found', async () => {
     vi.mocked(directus.request).mockResolvedValue([]);
 
-    await expect(getContactPage()).rejects.toThrow('page not found: contact');
+    const result = await getPageBySlug('unknown');
+    expect(result).toBeNull();
+  });
+
+  it('returns null when the request throws', async () => {
+    vi.mocked(directus.request).mockRejectedValue(new Error('network error'));
+
+    const result = await getPageBySlug('contact');
+    expect(result).toBeNull();
   });
 });

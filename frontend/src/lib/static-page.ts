@@ -8,28 +8,23 @@ export interface StaticPageContent {
   embedHeight: number | null;
 }
 
-async function getPageBySlug(slug: string): Promise<StaticPageContent> {
-  const pages = await directus.request(
-    readItems('pages', { filter: { slug: { _eq: slug } }, limit: 1 }),
-  );
-  const page = pages[0];
-  if (!page) throw new Error(`page not found: ${slug}`);
-  return {
-    title: page.title,
-    contentHtml: page.content || '',
-    embedUrl: page.embed_url,
-    embedHeight: page.embed_height,
-  };
-}
+export async function getPageBySlug(
+  slug: string,
+): Promise<StaticPageContent | null> {
+  try {
+    const pages = await directus.request(
+      readItems('pages', { filter: { slug: { _eq: slug } }, limit: 1 }),
+    );
+    const page = pages[0];
+    if (!page) return null;
 
-export async function getContactPage(): Promise<StaticPageContent> {
-  return getPageBySlug('contact');
-}
-
-export async function getAccessPage(): Promise<StaticPageContent> {
-  return getPageBySlug('access');
-}
-
-export async function getPrivacyPage(): Promise<StaticPageContent> {
-  return getPageBySlug('privacy');
+    return {
+      title: page.title,
+      contentHtml: page.content || '',
+      embedUrl: page.embed_url,
+      embedHeight: page.embed_height,
+    };
+  } catch {
+    return null;
+  }
 }
