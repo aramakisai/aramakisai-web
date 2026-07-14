@@ -13,8 +13,13 @@ const zenOldMincho = Zen_Old_Mincho({
 });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const meta = await getFestivalMeta();
-  const titleBase = meta.name || '荒牧祭';
+  let name = '';
+  try {
+    ({ name } = await getFestivalMeta());
+  } catch {
+    name = '';
+  }
+  const titleBase = name || '荒牧祭';
   const siteTitle =
     process.env.NODE_ENV === 'development'
       ? `【開発環境】 ${titleBase}`
