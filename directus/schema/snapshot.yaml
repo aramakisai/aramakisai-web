@@ -1948,7 +1948,7 @@ fields:
       group: null
       hidden: false
       interface: input
-      note: 管理画面表示名
+      note: ページ見出し(h1)および<title>タグに使用
       options: null
       readonly: false
       required: true
@@ -2017,20 +2017,20 @@ fields:
       foreign_key_table: null
       foreign_key_column: null
   - collection: pages
-    field: form_embed_url
+    field: embed_url
     type: string
     meta:
       collection: pages
       conditions: null
       display: raw
       display_options: null
-      field: form_embed_url
+      field: embed_url
       group: null
       hidden: false
       interface: input
-      note: Google Forms iframe埋め込みURL (contactページ用)
+      note: 埋め込みURL (地図・フォーム等のiframe embed)
       options:
-        placeholder: https://docs.google.com/forms/...
+        placeholder: https://...
       readonly: false
       required: false
       searchable: true
@@ -2041,7 +2041,7 @@ fields:
       validation_message: null
       width: full
     schema:
-      name: form_embed_url
+      name: embed_url
       table: pages
       data_type: character varying
       default_value: null
@@ -2058,20 +2058,19 @@ fields:
       foreign_key_table: null
       foreign_key_column: null
   - collection: pages
-    field: map_embed_url
-    type: string
+    field: embed_height
+    type: integer
     meta:
       collection: pages
       conditions: null
       display: raw
       display_options: null
-      field: map_embed_url
+      field: embed_height
       group: null
       hidden: false
       interface: input
-      note: 地図埋め込みURL (accessページ用)
-      options:
-        placeholder: https://maps.google.com/...
+      note: embed_urlのiframe高さ(px)。未指定時は16:9のデフォルト比率
+      options: null
       readonly: false
       required: false
       searchable: true
@@ -2082,54 +2081,13 @@ fields:
       validation_message: null
       width: full
     schema:
-      name: map_embed_url
+      name: embed_height
       table: pages
-      data_type: character varying
+      data_type: integer
       default_value: null
-      max_length: 500
-      numeric_precision: null
-      numeric_scale: null
-      is_nullable: true
-      is_unique: false
-      is_indexed: false
-      is_primary_key: false
-      is_generated: false
-      generation_expression: null
-      has_auto_increment: false
-      foreign_key_table: null
-      foreign_key_column: null
-  - collection: pages
-    field: pdf_url
-    type: string
-    meta:
-      collection: pages
-      conditions: null
-      display: raw
-      display_options: null
-      field: pdf_url
-      group: null
-      hidden: false
-      interface: input
-      note: PDF資料URL (sponsor_guideページ用)
-      options:
-        placeholder: https://...
-      readonly: false
-      required: false
-      searchable: true
-      sort: 7
-      special: null
-      translations: null
-      validation: null
-      validation_message: null
-      width: full
-    schema:
-      name: pdf_url
-      table: pages
-      data_type: character varying
-      default_value: null
-      max_length: 500
-      numeric_precision: null
-      numeric_scale: null
+      max_length: null
+      numeric_precision: 32
+      numeric_scale: 0
       is_nullable: true
       is_unique: false
       is_indexed: false
@@ -2156,7 +2114,7 @@ fields:
       readonly: false
       required: false
       searchable: true
-      sort: 8
+      sort: 7
       special: null
       translations: null
       validation: null
