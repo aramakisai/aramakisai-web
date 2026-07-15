@@ -22,7 +22,8 @@ describe('RichText', () => {
     expect(container.innerHTML).not.toContain('<script');
     expect(container.innerHTML).not.toContain('<iframe');
 
-    const heading = screen.getByRole('heading', { level: 1, name: 'Title' });
+    // CMS側見出しはページtitleのh1と競合しないよう1段階下げてh2として出力される
+    const heading = screen.getByRole('heading', { level: 2, name: 'Title' });
     expect(heading).toBeInTheDocument();
 
     const strong = screen.getByText('strong');

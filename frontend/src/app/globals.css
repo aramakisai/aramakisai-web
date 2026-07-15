@@ -1,14 +1,15 @@
 @import 'tailwindcss';
+@plugin "@tailwindcss/typography";
 
 @config "../../tailwind.config.ts";
 
 @layer base {
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
+  h1:not(.prose *),
+  h2:not(.prose *),
+  h3:not(.prose *),
+  h4:not(.prose *),
+  h5:not(.prose *),
+  h6:not(.prose *) {
     font-family: var(--font-zen-old-mincho), serif;
     font-weight: 900;
     @apply bg-gradient-to-r from-orange-600 to-blue-900 bg-clip-text text-transparent;
@@ -22,19 +23,19 @@
 }
 
 @layer base {
-  h1 {
+  h1:not(.prose *) {
     @apply text-4xl sm:text-5xl md:text-6xl py-4 sm:py-6 md:py-8;
   }
 }
 
 @layer base {
-  h2 {
+  h2:not(.prose *) {
     @apply text-3xl sm:text-4xl md:text-5xl py-3 sm:py-4 md:py-6;
   }
 }
 
 @layer base {
-  h3 {
+  h3:not(.prose *) {
     @apply text-2xl sm:text-3xl md:text-4xl py-2 sm:py-3 md:py-4;
   }
 }

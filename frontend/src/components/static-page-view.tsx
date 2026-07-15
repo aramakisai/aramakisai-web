@@ -19,8 +19,8 @@ export function StaticPageView({
 }: StaticPageViewProps) {
   return (
     <main className="mx-auto max-w-3xl space-y-6 px-4 py-8">
-      <h1 className="text-2xl font-bold">{title}</h1>
-      <RichText html={contentHtml} />
+      <h1 className="font-bold">{title}</h1>
+      <RichText html={contentHtml} className="prose max-w-none" />
       <SandboxedEmbed
         url={embedUrl}
         title={embedTitle}
