@@ -15,7 +15,8 @@ describe('HeroSection', () => {
     const img = screen.getByRole('img');
     expect(img).toHaveAttribute('src', 'https://example.com/hero.jpg');
 
-    const heading = screen.getByRole('heading', { level: 1, name: 'Welcome' });
+    // CMS側見出しはページ内他のh1と競合しないよう1段階下げてh2として出力される
+    const heading = screen.getByRole('heading', { level: 2, name: 'Welcome' });
     expect(heading).toBeInTheDocument();
 
     const iframe = screen.getByTitle('埋め込みコンテンツ');
