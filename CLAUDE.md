@@ -55,6 +55,10 @@ NEXT_PUBLIC_DIRECTUS_URL    Directus の API エンドポイント
 
 NEXT_PUBLIC_SITE_URL        サイト URL
 
+NEXT_PUBLIC_GA_MEASUREMENT_ID  Google Analytics 4 測定ID (G-XXXXXXXXXX)
+                            本番 (NODE_ENV=production) のみ読み込み。未設定なら GA タグ自体を出さない。
+                            staging は Cloudflare Access 保護下のため通常は未設定でよい。
+
 本番/staging の値は Infisical で管理する (`--env=prod` / `--env=staging`)。Pages ダッシュボードでの設定ではない。
 
 デプロイフロー (`.github/workflows/frontend-ci.yml`)

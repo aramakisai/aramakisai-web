@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
 import { Zen_Old_Mincho } from 'next/font/google';
+import { GoogleAnalytics } from '@next/third-parties/google';
 import './globals.css';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { getFestivalMeta } from '@/lib/festival-meta';
+import { env } from '@/env';
 
 const zenOldMincho = Zen_Old_Mincho({
   weight: '900',
@@ -42,6 +44,8 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const gaMeasurementId = env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+
   return (
     <html lang="ja" className={zenOldMincho.variable}>
       <body className="flex min-h-screen flex-col font-sans">
@@ -49,6 +53,9 @@ export default function RootLayout({
         <div className="flex-1">{children}</div>
         <Footer />
       </body>
+      {process.env.NODE_ENV === 'production' && gaMeasurementId && (
+        <GoogleAnalytics gaId={gaMeasurementId} />
+      )}
     </html>
   );
 }
