@@ -8,8 +8,6 @@ export async function getFestivalMeta(): Promise<FestivalOverview> {
       fields: [
         'name',
         'event_days',
-        'admission_fee',
-        'payment_note',
         'overview',
         'hero_image',
       ],
@@ -19,8 +17,6 @@ export async function getFestivalMeta(): Promise<FestivalOverview> {
   return {
     name: meta.name || '',
     eventDays: meta.event_days || [],
-    admissionFee: meta.admission_fee ?? null,
-    paymentNote: meta.payment_note ?? null,
     overviewHtml: meta.overview ?? null,
     heroImageId: meta.hero_image ?? null,
   };

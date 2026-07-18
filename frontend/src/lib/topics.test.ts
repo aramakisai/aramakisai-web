@@ -41,7 +41,6 @@ describe('TopicsService', () => {
               title: 'Topic 1',
               body: 'Body 1',
               image: 'img1',
-              link_url: 'link1',
               attachments: [
                 {
                   sort: 2,
@@ -85,7 +84,6 @@ describe('TopicsService', () => {
         title: 'Topic 1',
         body: 'Body 1',
         imageId: 'img1',
-        linkUrl: 'link1',
         attachments: [
           {
             id: 'file1',
@@ -120,7 +118,6 @@ describe('TopicsService', () => {
             title: 'Topic 1',
             body: 'Body 1',
             image: 'img1',
-            link_url: 'link1',
             attachments: [
               {
                 sort: null,
@@ -153,7 +150,6 @@ describe('TopicsService', () => {
         title: 'Topic 1',
         body: 'Body 1',
         imageId: 'img1',
-        linkUrl: 'link1',
         attachments: [
           {
             id: 'file1',

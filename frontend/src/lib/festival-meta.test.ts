@@ -32,8 +32,6 @@ describe('getFestivalMeta', () => {
         return {
           name: '荒牧祭',
           event_days: [{ label: '1日目', open: '09:00', close: '17:00' }],
-          admission_fee: '無料',
-          payment_note: '現金のみ',
           overview: '<p>概要</p>',
           hero_image: 'hero123',
         };
@@ -47,8 +45,6 @@ describe('getFestivalMeta', () => {
       fields: [
         'name',
         'event_days',
-        'admission_fee',
-        'payment_note',
         'overview',
         'hero_image',
       ],
@@ -57,8 +53,6 @@ describe('getFestivalMeta', () => {
     expect(result).toEqual({
       name: '荒牧祭',
       eventDays: [{ label: '1日目', open: '09:00', close: '17:00' }],
-      admissionFee: '無料',
-      paymentNote: '現金のみ',
       overviewHtml: '<p>概要</p>',
       heroImageId: 'hero123',
     });
@@ -74,8 +68,6 @@ describe('getFestivalMeta', () => {
         return {
           name: null,
           event_days: null,
-          admission_fee: null,
-          payment_note: null,
           overview: null,
           hero_image: null,
         };
@@ -88,8 +80,6 @@ describe('getFestivalMeta', () => {
     expect(result).toEqual({
       name: '',
       eventDays: [],
-      admissionFee: null,
-      paymentNote: null,
       overviewHtml: null,
       heroImageId: null,
     });

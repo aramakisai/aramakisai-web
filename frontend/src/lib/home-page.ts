@@ -70,8 +70,6 @@ export async function getHomePage(
   const festival: FestivalOverview = {
     name: meta.name || '',
     eventDays: meta.event_days || [],
-    admissionFee: meta.admission_fee,
-    paymentNote: meta.payment_note,
     overviewHtml: meta.overview || null,
     heroImageId: meta.hero_image || null,
   };
@@ -125,7 +123,6 @@ export async function getHomePage(
       title: t.title,
       body: t.body,
       imageId: t.image,
-      linkUrl: t.link_url,
       attachments: formatAttachments(t.attachments),
     }));
 

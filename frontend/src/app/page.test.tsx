@@ -39,9 +39,7 @@ describe('Page', () => {
       festival: {
         name: '荒牧祭',
         eventDays: [],
-        admissionFee: null,
-        paymentNote: null,
-        overviewHtml: null,
+                        overviewHtml: null,
         heroImageId: null,
       },
       sponsors: [],
@@ -79,9 +77,7 @@ describe('Page', () => {
       festival: {
         name: '荒牧祭',
         eventDays: [],
-        admissionFee: null,
-        paymentNote: null,
-        overviewHtml: null,
+                        overviewHtml: null,
         heroImageId: null,
       },
       sponsors: [],
@@ -100,8 +96,7 @@ describe('Page', () => {
           title: 'トピック1',
           body: '本文',
           imageId: 'img-1',
-          linkUrl: null,
-          attachments: [],
+                    attachments: [],
         },
       ],
     };
@@ -144,9 +139,7 @@ describe('Page', () => {
         festival: {
           name: '',
           eventDays: [],
-          admissionFee: null,
-          paymentNote: null,
-          overviewHtml: null,
+                              overviewHtml: null,
           heroImageId: null,
         },
         sponsors: [],
@@ -182,9 +175,7 @@ describe('Page', () => {
         festival: {
           name: '',
           eventDays: [],
-          admissionFee: null,
-          paymentNote: null,
-          overviewHtml: null,
+                              overviewHtml: null,
           heroImageId: null,
         },
         sponsors: [],

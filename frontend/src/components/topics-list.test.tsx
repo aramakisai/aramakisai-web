@@ -15,7 +15,6 @@ describe('TopicsList', () => {
       title: 'Topic 1',
       body: '<p>Body 1</p>',
       imageId: 'img1',
-      linkUrl: 'https://example.com/link1',
       attachments: [],
     },
     {
@@ -23,7 +22,6 @@ describe('TopicsList', () => {
       title: 'Topic 2',
       body: null,
       imageId: null,
-      linkUrl: null,
       attachments: [],
     },
   ];
@@ -37,8 +35,6 @@ describe('TopicsList', () => {
     expect(screen.getByText('Body 1')).toBeInTheDocument();
     const img1 = screen.getByAltText('Topic 1');
     expect(img1).toHaveAttribute('src', expect.stringContaining('img1'));
-    const link1 = screen.getByRole('link', { name: '詳細を見る' });
-    expect(link1).toHaveAttribute('href', 'https://example.com/link1');
 
     expect(
       screen.getByRole('heading', { level: 3, name: 'Topic 2' }),

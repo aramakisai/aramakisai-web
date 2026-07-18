@@ -18,7 +18,6 @@ type RawTopic = {
   title: string;
   body: string | null;
   image: string | null;
-  link_url: string | null;
   attachments?: TopicFile[];
 };
 
@@ -46,7 +45,6 @@ function formatTopic(topicData: RawTopic): TopicSummary {
     title: topicData.title,
     body: topicData.body ?? null,
     imageId: topicData.image ?? null,
-    linkUrl: topicData.link_url ?? null,
     attachments,
   };
 }

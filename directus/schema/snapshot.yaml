@@ -199,7 +199,8 @@ collections:
       hidden: false
       icon: description
       item_duplication_fields: null
-      note: 汎用固定ページ (slugで識別。既存page_access/page_contact/page_privacy/page_sponsor_guideの統合先)
+      note: 汎用固定ページ
+        (slugで識別。既存page_access/page_contact/page_privacy/page_sponsor_guideの統合先)
       preview_url: null
       singleton: false
       sort: 17
@@ -1013,130 +1014,6 @@ fields:
       max_length: null
       numeric_precision: null
       numeric_scale: null
-      is_nullable: true
-      is_unique: false
-      is_indexed: false
-      is_primary_key: false
-      is_generated: false
-      generation_expression: null
-      has_auto_increment: false
-      foreign_key_table: null
-      foreign_key_column: null
-  - collection: festival_meta
-    field: admission_fee
-    type: string
-    meta:
-      collection: festival_meta
-      conditions: null
-      display: raw
-      display_options: null
-      field: admission_fee
-      group: null
-      hidden: false
-      interface: input
-      note: 入場料
-      options:
-        placeholder: '例: 無料'
-      readonly: false
-      required: false
-      searchable: true
-      sort: 4
-      special: null
-      translations: null
-      validation: null
-      validation_message: null
-      width: half
-    schema:
-      name: admission_fee
-      table: festival_meta
-      data_type: character varying
-      default_value: null
-      max_length: 100
-      numeric_precision: null
-      numeric_scale: null
-      is_nullable: true
-      is_unique: false
-      is_indexed: false
-      is_primary_key: false
-      is_generated: false
-      generation_expression: null
-      has_auto_increment: false
-      foreign_key_table: null
-      foreign_key_column: null
-  - collection: festival_meta
-    field: payment_note
-    type: string
-    meta:
-      collection: festival_meta
-      conditions: null
-      display: raw
-      display_options: null
-      field: payment_note
-      group: null
-      hidden: false
-      interface: input
-      note: 支払い注記
-      options:
-        placeholder: '例: 現金のみ'
-      readonly: false
-      required: false
-      searchable: true
-      sort: 5
-      special: null
-      translations: null
-      validation: null
-      validation_message: null
-      width: half
-    schema:
-      name: payment_note
-      table: festival_meta
-      data_type: character varying
-      default_value: null
-      max_length: 255
-      numeric_precision: null
-      numeric_scale: null
-      is_nullable: true
-      is_unique: false
-      is_indexed: false
-      is_primary_key: false
-      is_generated: false
-      generation_expression: null
-      has_auto_increment: false
-      foreign_key_table: null
-      foreign_key_column: null
-  - collection: festival_meta
-    field: parking_capacity
-    type: integer
-    meta:
-      collection: festival_meta
-      conditions: null
-      display: raw
-      display_options: null
-      field: parking_capacity
-      group: null
-      hidden: false
-      interface: input
-      note: 駐車場収容台数
-      options:
-        min: 0
-        placeholder: '例: 840'
-      readonly: false
-      required: false
-      searchable: true
-      sort: 6
-      special: null
-      translations: null
-      validation: null
-      validation_message: null
-      width: half
-    schema:
-      name: parking_capacity
-      table: festival_meta
-      data_type: integer
-      default_value: null
-      max_length: null
-      numeric_precision: 32
-      numeric_scale: 0
       is_nullable: true
       is_unique: false
       is_indexed: false
@@ -2407,9 +2284,9 @@ fields:
         choices:
           - text: 広告協賛
             value: ad
-          - text: 協賛
+          - text: 地域協賛
             value: sponsor
-          - text: キッチンカー
+          - text: 出店協賛
             value: food_truck
           - text: その他
             value: other
@@ -3457,47 +3334,6 @@ fields:
       foreign_key_table: null
       foreign_key_column: null
   - collection: student_exhibitions
-    field: location
-    type: string
-    meta:
-      collection: student_exhibitions
-      conditions: null
-      display: raw
-      display_options: null
-      field: location
-      group: null
-      hidden: false
-      interface: input
-      note: 人間可読な開催場所名
-      options:
-        placeholder: '例: 第一体育館、A棟101教室'
-      readonly: false
-      required: false
-      searchable: true
-      sort: 10
-      special: null
-      translations: null
-      validation: null
-      validation_message: null
-      width: half
-    schema:
-      name: location
-      table: student_exhibitions
-      data_type: character varying
-      default_value: null
-      max_length: 255
-      numeric_precision: null
-      numeric_scale: null
-      is_nullable: true
-      is_unique: false
-      is_indexed: false
-      is_primary_key: false
-      is_generated: false
-      generation_expression: null
-      has_auto_increment: false
-      foreign_key_table: null
-      foreign_key_column: null
-  - collection: student_exhibitions
     field: area_id
     type: integer
     meta:
@@ -3662,73 +3498,32 @@ fields:
       foreign_key_table: null
       foreign_key_column: null
   - collection: student_exhibitions
-    field: content
-    type: text
+    field: image
+    type: uuid
     meta:
       collection: student_exhibitions
       conditions: null
-      display: raw
+      display: image
       display_options: null
-      field: content
+      field: image
       group: null
       hidden: false
-      interface: input-rich-text-html
-      note: ページ本文 (HTML) ※フロントエンドでXSS sanitize必須
-      options: null
-      readonly: false
-      required: false
-      searchable: true
-      sort: 15
-      special: null
-      translations: null
-      validation: null
-      validation_message: null
-      width: full
-    schema:
-      name: content
-      table: student_exhibitions
-      data_type: text
-      default_value: null
-      max_length: null
-      numeric_precision: null
-      numeric_scale: null
-      is_nullable: true
-      is_unique: false
-      is_indexed: false
-      is_primary_key: false
-      is_generated: false
-      generation_expression: null
-      has_auto_increment: false
-      foreign_key_table: null
-      foreign_key_column: null
-  - collection: student_exhibitions
-    field: images
-    type: json
-    meta:
-      collection: student_exhibitions
-      conditions: null
-      display: raw
-      display_options: null
-      field: images
-      group: null
-      hidden: false
-      interface: files
+      interface: file-image
       note: 画像リスト
       options: null
       readonly: false
       required: false
       searchable: true
       sort: 16
-      special:
-        - cast-json
+      special: null
       translations: null
       validation: null
       validation_message: null
       width: full
     schema:
-      name: images
+      name: image
       table: student_exhibitions
-      data_type: json
+      data_type: uuid
       default_value: null
       max_length: null
       numeric_precision: null
@@ -3740,8 +3535,8 @@ fields:
       is_generated: false
       generation_expression: null
       has_auto_increment: false
-      foreign_key_table: null
-      foreign_key_column: null
+      foreign_key_table: directus_files
+      foreign_key_column: id
   - collection: time_slots
     field: id
     type: integer
@@ -4038,7 +3833,7 @@ fields:
       field: body
       group: null
       hidden: false
-      interface: input-multiline
+      interface: input-rich-text-html
       note: null
       options: null
       readonly: false
@@ -4108,47 +3903,6 @@ fields:
       has_auto_increment: false
       foreign_key_table: directus_files
       foreign_key_column: id
-  - collection: topics
-    field: link_url
-    type: string
-    meta:
-      collection: topics
-      conditions: null
-      display: raw
-      display_options: null
-      field: link_url
-      group: null
-      hidden: false
-      interface: input
-      note: 遷移先URL
-      options:
-        placeholder: https://...
-      readonly: false
-      required: false
-      searchable: true
-      sort: 5
-      special: null
-      translations: null
-      validation: null
-      validation_message: null
-      width: half
-    schema:
-      name: link_url
-      table: topics
-      data_type: character varying
-      default_value: null
-      max_length: 500
-      numeric_precision: null
-      numeric_scale: null
-      is_nullable: true
-      is_unique: false
-      is_indexed: false
-      is_primary_key: false
-      is_generated: false
-      generation_expression: null
-      has_auto_increment: false
-      foreign_key_table: null
-      foreign_key_column: null
   - collection: topics
     field: attachment
     type: uuid
@@ -4405,6 +4159,46 @@ fields:
       max_length: null
       numeric_precision: 32
       numeric_scale: 0
+      is_nullable: true
+      is_unique: false
+      is_indexed: false
+      is_primary_key: false
+      is_generated: false
+      generation_expression: null
+      has_auto_increment: false
+      foreign_key_table: null
+      foreign_key_column: null
+  - collection: festival_meta
+    field: site_title
+    type: string
+    meta:
+      collection: festival_meta
+      conditions: null
+      display: null
+      display_options: null
+      field: site_title
+      group: null
+      hidden: false
+      interface: input
+      note: HTMLのtitleタグ用
+      options: null
+      readonly: false
+      required: false
+      searchable: true
+      sort: 3
+      special: null
+      translations: null
+      validation: null
+      validation_message: null
+      width: full
+    schema:
+      name: site_title
+      table: festival_meta
+      data_type: character varying
+      default_value: null
+      max_length: 255
+      numeric_precision: null
+      numeric_scale: null
       is_nullable: true
       is_unique: false
       is_indexed: false

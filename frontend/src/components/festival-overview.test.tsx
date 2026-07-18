@@ -9,9 +9,7 @@ describe('FestivalOverview', () => {
         festival={{
           name: '荒牧祭',
           eventDays: [{ label: '1日目', open: '09:00', close: '17:00' }],
-          admissionFee: '無料',
-          paymentNote: '事前登録不要',
-          overviewHtml: null,
+                              overviewHtml: null,
           heroImageId: null,
         }}
       />,
@@ -19,8 +17,6 @@ describe('FestivalOverview', () => {
 
     expect(screen.getByText('1日目')).toBeInTheDocument();
     expect(screen.getByText('09:00 - 17:00')).toBeInTheDocument();
-    expect(screen.getByText('無料')).toBeInTheDocument();
-    expect(screen.getByText('事前登録不要')).toBeInTheDocument();
   });
 
   test('renders nothing when there is no data', () => {
@@ -29,9 +25,7 @@ describe('FestivalOverview', () => {
         festival={{
           name: '荒牧祭',
           eventDays: [],
-          admissionFee: null,
-          paymentNote: null,
-          overviewHtml: null,
+                              overviewHtml: null,
           heroImageId: null,
         }}
       />,

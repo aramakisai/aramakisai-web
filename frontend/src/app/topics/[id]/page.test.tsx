@@ -31,8 +31,7 @@ describe('TopicDetailPage', () => {
       title: 'Test Topic Title',
       body: '<p>Test Topic Body</p>',
       imageId: null,
-      linkUrl: null,
-      attachments: [
+            attachments: [
         {
           id: 'file-1',
           filenameDownload: 'test-image.jpg',

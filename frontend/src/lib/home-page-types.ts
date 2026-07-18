@@ -24,7 +24,6 @@ export interface TopicSummary {
   title: string;
   body: string | null;
   imageId: string | null;
-  linkUrl: string | null;
   attachments: Attachment[];
 }
 
@@ -37,8 +36,6 @@ export interface EventDay {
 export interface FestivalOverview {
   name: string;
   eventDays: EventDay[];
-  admissionFee: string | null;
-  paymentNote: string | null;
   overviewHtml: string | null;
   heroImageId: string | null;
 }

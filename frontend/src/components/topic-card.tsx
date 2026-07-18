@@ -11,7 +11,6 @@ export interface TopicCardProps {
   title: string;
   body: string | null;
   imageId: string | null;
-  linkUrl: string | null;
   attachments: Attachment[];
 }
 
@@ -20,7 +19,6 @@ export function TopicCard({
   title,
   body,
   imageId,
-  linkUrl,
   attachments,
 }: TopicCardProps) {
   const firstImageAttachment = attachments.find((a) =>
@@ -52,16 +50,6 @@ export function TopicCard({
       </h3>
       {body && <RichText html={body} />}
       <AttachmentGallery attachments={attachments} />
-      {linkUrl && (
-        <a
-          href={linkUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-600 hover:underline"
-        >
-          詳細を見る
-        </a>
-      )}
     </article>
   );
 }

@@ -21,7 +21,6 @@ describe('TopicCard', () => {
         title="Multiple Attachments"
         body="<p>test</p>"
         imageId="ignored_image_id"
-        linkUrl="https://example.com"
         attachments={attachments}
       />,
     );
@@ -41,7 +40,6 @@ describe('TopicCard', () => {
         title="Image ID Only"
         body="<p>test</p>"
         imageId="only_image_id"
-        linkUrl="https://example.com"
         attachments={[]}
       />,
     );
@@ -60,7 +58,6 @@ describe('TopicCard', () => {
         title="No Image"
         body="<p>test</p>"
         imageId={null}
-        linkUrl="https://example.com"
         attachments={[]}
       />,
     );

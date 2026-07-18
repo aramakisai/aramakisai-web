@@ -37,8 +37,6 @@ describe('getHomePage', () => {
           home_active_variant: 'pre_event',
           sns_links: [{ platform: 'twitter', url: 'https://twitter.com' }],
           event_days: [{ label: '1日目', open: '09:00', close: '17:00' }],
-          admission_fee: '無料',
-          payment_note: null,
           overview: '<p>Overview</p>',
           hero_image: 'meta_hero1',
         };
@@ -101,7 +99,6 @@ describe('getHomePage', () => {
             title: 'T1',
             body: 'B2',
             image: 'img1',
-            link_url: 'link1',
             attachments: [
               {
                 sort: 1,
@@ -142,7 +139,6 @@ describe('getHomePage', () => {
           title: 'T1',
           body: 'B2',
           imageId: 'img1',
-          linkUrl: 'link1',
           attachments: [
             {
               id: 'file3',
@@ -182,8 +178,6 @@ describe('getHomePage', () => {
       expect(result.content.festival).toEqual({
         name: '荒牧祭',
         eventDays: [{ label: '1日目', open: '09:00', close: '17:00' }],
-        admissionFee: '無料',
-        paymentNote: null,
         overviewHtml: '<p>Overview</p>',
         heroImageId: 'meta_hero1',
       });

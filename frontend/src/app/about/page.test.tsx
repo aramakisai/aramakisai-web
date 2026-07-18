@@ -22,9 +22,7 @@ describe('AboutPage', () => {
     vi.mocked(getFestivalMeta).mockResolvedValue({
       name: 'Test Festival',
       eventDays: [{ label: 'Day 1', open: '10:00', close: '18:00' }],
-      admissionFee: 'Free',
-      paymentNote: null,
-      overviewHtml: '<p>Test overview</p>',
+                  overviewHtml: '<p>Test overview</p>',
       heroImageId: 'hero-123',
     });
 
@@ -50,9 +48,7 @@ describe('AboutPage', () => {
     vi.mocked(getFestivalMeta).mockResolvedValue({
       name: 'No Image Festival',
       eventDays: [],
-      admissionFee: null,
-      paymentNote: null,
-      overviewHtml: null,
+                  overviewHtml: null,
       heroImageId: null,
     });
 

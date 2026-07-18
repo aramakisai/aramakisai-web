@@ -73,8 +73,7 @@ export default async function Page({ searchParams }: PageProps) {
                 title: t.title,
                 body: t.body,
                 imageId: t.imageId,
-                linkUrl: t.linkUrl,
-                attachments: t.attachments,
+                                attachments: t.attachments,
               }))}
             />
           </section>
