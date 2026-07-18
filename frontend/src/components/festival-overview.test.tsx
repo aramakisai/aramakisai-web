@@ -9,7 +9,7 @@ describe('FestivalOverview', () => {
         festival={{
           name: '荒牧祭',
           eventDays: [{ label: '1日目', open: '09:00', close: '17:00' }],
-                              overviewHtml: null,
+          overviewHtml: null,
           heroImageId: null,
         }}
       />,
@@ -25,7 +25,7 @@ describe('FestivalOverview', () => {
         festival={{
           name: '荒牧祭',
           eventDays: [],
-                              overviewHtml: null,
+          overviewHtml: null,
           heroImageId: null,
         }}
       />,

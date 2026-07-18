@@ -42,12 +42,7 @@ describe('getFestivalMeta', () => {
     const result = await getFestivalMeta();
 
     expect(readSingleton).toHaveBeenCalledWith('festival_meta', {
-      fields: [
-        'name',
-        'event_days',
-        'overview',
-        'hero_image',
-      ],
+      fields: ['name', 'event_days', 'overview', 'hero_image'],
     });
 
     expect(result).toEqual({

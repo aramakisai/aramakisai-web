@@ -25,7 +25,9 @@ describe('HeroSection', () => {
   });
 
   test('does not render img when heroImageUrls is empty', () => {
-    render(<HeroSection heroImageUrls={[]} heroMessageHtml="<h1>Welcome</h1>" />);
+    render(
+      <HeroSection heroImageUrls={[]} heroMessageHtml="<h1>Welcome</h1>" />,
+    );
 
     const img = screen.queryByRole('img');
     expect(img).not.toBeInTheDocument();

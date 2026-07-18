@@ -5,12 +5,7 @@ import { FestivalOverview } from './home-page-types';
 export async function getFestivalMeta(): Promise<FestivalOverview> {
   const meta = await directus.request(
     readSingleton('festival_meta', {
-      fields: [
-        'name',
-        'event_days',
-        'overview',
-        'hero_image',
-      ],
+      fields: ['name', 'event_days', 'overview', 'hero_image'],
     }),
   );
 

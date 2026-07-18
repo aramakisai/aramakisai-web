@@ -21,14 +21,14 @@ describe('TopicsPage', () => {
         title: 'トピック1',
         body: '本文1',
         imageId: null,
-                attachments: [],
+        attachments: [],
       },
       {
         id: 2,
         title: 'トピック2',
         body: '本文2',
         imageId: null,
-                attachments: [],
+        attachments: [],
       },
     ]);
 

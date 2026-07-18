@@ -18,7 +18,9 @@ vi.mock('@/lib/home-page', () => ({
 describe('Page', () => {
   it('ヒーロー・お知らせ・トピックスが表示される', async () => {
     const content: HomePageContent = {
-      heroImages: [{ id: 'hero-1', filenameDownload: 'hero1.jpg', type: 'image/jpeg' }],
+      heroImages: [
+        { id: 'hero-1', filenameDownload: 'hero1.jpg', type: 'image/jpeg' },
+      ],
       heroMessageHtml: '<p>ようこそ</p>',
       snsLinks: [{ platform: 'X', url: 'https://x.com' }],
       festival: {
