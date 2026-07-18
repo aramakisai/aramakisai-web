@@ -14,7 +14,7 @@ describe('toAssetUrl', () => {
 
   it('fileIdが指定された場合、正しいURLを返す', () => {
     expect(toAssetUrl('1234-abcd')).toBe(
-      'http://localhost:8055/assets/1234-abcd',
+      'http://localhost:8055/assets/1234-abcd?format=webp',
     );
   });
 });
