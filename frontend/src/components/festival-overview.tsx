@@ -6,9 +6,9 @@ export interface FestivalOverviewProps {
 }
 
 export function FestivalOverview({ festival }: FestivalOverviewProps) {
-  const { eventDays, admissionFee, paymentNote } = festival;
+  const { eventDays } = festival;
 
-  if (eventDays.length === 0 && !admissionFee) {
+  if (eventDays.length === 0) {
     return null;
   }
 
@@ -27,16 +27,6 @@ export function FestivalOverview({ festival }: FestivalOverviewProps) {
               </li>
             ))}
           </ul>
-        </div>
-      )}
-
-      {admissionFee && (
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h3 className="text-sm font-semibold text-gray-500 mb-2">入場料</h3>
-          <p className="text-lg font-bold">{admissionFee}</p>
-          {paymentNote && (
-            <p className="mt-1 text-sm text-gray-600">{paymentNote}</p>
-          )}
         </div>
       )}
     </section>

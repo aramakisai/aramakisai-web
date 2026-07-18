@@ -1,15 +1,20 @@
-export type HomeActiveVariant = 'pre_event' | 'live';
-
 export interface SnsLink {
   platform: string;
   url: string;
 }
 
-export interface NoticeSummary {
+export interface Attachment {
+  id: string;
+  filenameDownload: string;
+  type: string | null;
+}
+
+export interface AnnouncementSummary {
   id: number;
   title: string;
   body: string;
   publishedAt: string;
+  attachments: Attachment[];
 }
 
 export interface TopicSummary {
@@ -17,7 +22,7 @@ export interface TopicSummary {
   title: string;
   body: string | null;
   imageId: string | null;
-  linkUrl: string | null;
+  attachments: Attachment[];
 }
 
 export interface EventDay {
@@ -29,8 +34,8 @@ export interface EventDay {
 export interface FestivalOverview {
   name: string;
   eventDays: EventDay[];
-  admissionFee: string | null;
-  paymentNote: string | null;
+  overviewHtml: string | null;
+  heroImageId: string | null;
 }
 
 export interface SponsorSummary {
@@ -43,19 +48,11 @@ export interface SponsorSummary {
 }
 
 export interface HomePageContent {
-  heroImageId: string | null;
+  heroImages: Attachment[];
   heroMessageHtml: string;
-  embedUrl: string | null;
   snsLinks: SnsLink[];
   festival: FestivalOverview;
   sponsors: SponsorSummary[];
-}
-
-export interface PreEventHomeContent extends HomePageContent {
-  notices: NoticeSummary[];
+  announcements: AnnouncementSummary[];
   topics: TopicSummary[];
 }
-
-export type HomePageResult =
-  | { variant: 'pre_event'; content: PreEventHomeContent }
-  | { variant: 'live'; content: HomePageContent };

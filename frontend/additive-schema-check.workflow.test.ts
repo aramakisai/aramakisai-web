@@ -23,6 +23,7 @@ type Job = {
   name?: string;
   'runs-on'?: string;
   permissions?: Record<string, string>;
+  if?: boolean | string;
   steps: Step[];
 };
 
@@ -118,5 +119,19 @@ describe('.github/workflows/additive-schema-check.yml — 7.1 trigger/gate/invoc
     expect(raw).not.toMatch(/override/i);
     expect(raw).not.toMatch(/continue-on-error/i);
     expect(raw).not.toMatch(/always\(\)/);
+  });
+});
+
+describe('.github/workflows/additive-schema-check.yml — 公開前一時停止 (sitemap-schema-review Requirement 5)', () => {
+  it('suspends the check job via if:false until production launch (custom domain connection)', () => {
+    const workflow = loadWorkflow();
+    expect(workflow.jobs.check.if).toBe(false);
+  });
+
+  it('documents the suspension reason and resume condition as a commit-based comment, not a dynamic toggle', () => {
+    const raw = readFileSync(WORKFLOW_PATH, 'utf-8');
+    expect(raw).toMatch(/if:\s*false/);
+    expect(raw).toMatch(/custom domain/);
+    expect(raw).toMatch(/sitemap-schema-review/);
   });
 });

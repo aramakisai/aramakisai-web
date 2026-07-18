@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { getContactPage, getAccessPage, getPrivacyPage } from './static-page';
+import { getPageBySlug } from './static-page';
 import { directus } from './directus';
 
 vi.mock('./directus', () => ({
@@ -9,58 +9,58 @@ vi.mock('./directus', () => ({
 }));
 
 vi.mock('@directus/sdk', () => ({
-  readSingleton: vi.fn((collection: string) => ({
-    type: 'readSingleton',
+  readItems: vi.fn((collection: string, query: unknown) => ({
+    type: 'readItems',
     collection,
+    query,
   })),
 }));
 
 describe('static-page', () => {
-  it('getContactPage maps content and form_embed_url', async () => {
-    vi.mocked(directus.request).mockResolvedValue({
-      content: '<p>Contact</p>',
-      form_embed_url: 'https://forms.example.com',
-    });
+  it('maps title, content and embed for a found slug', async () => {
+    vi.mocked(directus.request).mockResolvedValue([
+      {
+        title: 'お問い合わせ',
+        content: '<p>Contact</p>',
+        embed_url: 'https://forms.example.com',
+        embed_height: 900,
+      },
+    ]);
 
-    const result = await getContactPage();
+    const result = await getPageBySlug('contact');
     expect(result).toEqual({
+      title: 'お問い合わせ',
       contentHtml: '<p>Contact</p>',
       embedUrl: 'https://forms.example.com',
-    });
-  });
-
-  it('getAccessPage maps content and map_embed_url', async () => {
-    vi.mocked(directus.request).mockResolvedValue({
-      content: '<p>Access</p>',
-      map_embed_url: 'https://maps.example.com',
-    });
-
-    const result = await getAccessPage();
-    expect(result).toEqual({
-      contentHtml: '<p>Access</p>',
-      embedUrl: 'https://maps.example.com',
-    });
-  });
-
-  it('getPrivacyPage maps content with no embed', async () => {
-    vi.mocked(directus.request).mockResolvedValue({
-      content: '<p>Privacy</p>',
-    });
-
-    const result = await getPrivacyPage();
-    expect(result).toEqual({
-      contentHtml: '<p>Privacy</p>',
-      embedUrl: null,
+      embedHeight: 900,
     });
   });
 
   it('falls back to empty string when content is null', async () => {
-    vi.mocked(directus.request).mockResolvedValue({
-      content: null,
-      form_embed_url: null,
-    });
+    vi.mocked(directus.request).mockResolvedValue([
+      {
+        title: 'お問い合わせ',
+        content: null,
+        embed_url: null,
+        embed_height: null,
+      },
+    ]);
 
-    const result = await getContactPage();
-    expect(result.contentHtml).toBe('');
+    const result = await getPageBySlug('contact');
+    expect(result?.contentHtml).toBe('');
+  });
+
+  it('returns null when slug not found', async () => {
+    vi.mocked(directus.request).mockResolvedValue([]);
+
+    const result = await getPageBySlug('unknown');
+    expect(result).toBeNull();
+  });
+
+  it('returns null when the request throws', async () => {
+    vi.mocked(directus.request).mockRejectedValue(new Error('network error'));
+
+    const result = await getPageBySlug('contact');
+    expect(result).toBeNull();
   });
 });

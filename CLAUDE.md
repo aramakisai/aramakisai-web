@@ -55,6 +55,10 @@ NEXT_PUBLIC_DIRECTUS_URL    Directus の API エンドポイント
 
 NEXT_PUBLIC_SITE_URL        サイト URL
 
+NEXT_PUBLIC_GA_MEASUREMENT_ID  Google Analytics 4 測定ID (G-XXXXXXXXXX)
+                            本番 (NODE_ENV=production) のみ読み込み。未設定なら GA タグ自体を出さない。
+                            staging は Cloudflare Access 保護下のため通常は未設定でよい。
+
 本番/staging の値は Infisical で管理する (`--env=prod` / `--env=staging`)。Pages ダッシュボードでの設定ではない。
 
 デプロイフロー (`.github/workflows/frontend-ci.yml`)
@@ -77,6 +81,8 @@ directus schema snapshot でファイルを更新
 snapshot.yaml を commit して PR を出す
 
 **additive-only ルール**: 新規 collection / field の追加のみ許容する。カラム削除・型変更等の破壊的変更は、対応するフロントエンドコードがデプロイされ安定稼働するまで禁止する。破壊的変更を行う場合はマージ前に必ずチームに周知し、infra 側 PR のチェックリストで確認する。
+
+**一時停止中**: 本番未公開期間 (custom domain 未接続) に限り、上記ルールを機械強制する `additive-schema-check.yml` を一時停止している (`check` job に `if: false`)。再開条件は本番公開判断 (custom domain 接続)。詳細・再開手順は `.kiro/specs/sitemap-schema-review/design.md` を参照。
 
 デプロイ先
 - 本番環境

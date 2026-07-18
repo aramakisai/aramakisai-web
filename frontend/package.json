@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@directus/sdk": "^21.0.0",
+    "@next/third-parties": "^16.2.10",
     "@opennextjs/cloudflare": "^1.0.0",
     "next": "^15.0.0",
     "react": "^19.0.0",
@@ -30,6 +31,7 @@
     "@playwright/test": "^1.61.1",
     "@t3-oss/env-nextjs": "^0.13.0",
     "@tailwindcss/postcss": "^4.3.2",
+    "@tailwindcss/typography": "^0.5.20",
     "@testing-library/jest-dom": "^6.0.0",
     "@testing-library/react": "^16.0.0",
     "@types/node": "^22.0.0",

@@ -7,7 +7,7 @@ export interface StaticPageViewProps {
   contentHtml: string;
   embedUrl: string | null;
   embedTitle: string;
-  embedClassName?: string;
+  embedHeight?: number | null;
 }
 
 export function StaticPageView({
@@ -15,16 +15,17 @@ export function StaticPageView({
   contentHtml,
   embedUrl,
   embedTitle,
-  embedClassName = 'w-full aspect-video',
+  embedHeight = null,
 }: StaticPageViewProps) {
   return (
     <main className="mx-auto max-w-3xl space-y-6 px-4 py-8">
-      <h1 className="text-2xl font-bold">{title}</h1>
-      <RichText html={contentHtml} />
+      <h1 className="font-bold">{title}</h1>
+      <RichText html={contentHtml} className="prose max-w-none" />
       <SandboxedEmbed
         url={embedUrl}
         title={embedTitle}
-        className={embedClassName}
+        className={embedHeight ? 'w-full' : 'w-full aspect-video'}
+        style={embedHeight ? { height: `${embedHeight}px` } : undefined}
       />
     </main>
   );

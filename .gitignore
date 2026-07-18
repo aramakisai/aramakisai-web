@@ -17,6 +17,7 @@ out/
 
 # Misc
 .DS_Store
+.vscode/
 
 # wrangler
 .wrangler/

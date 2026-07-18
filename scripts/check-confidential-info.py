@@ -26,6 +26,7 @@ EMAIL_ALLOWLIST = [
     re.compile(r'^[^@]+@aramakisai\.invalid$', re.IGNORECASE),  # Internal sample domain
     re.compile(r'^[^@]+@example\.invalid$', re.IGNORECASE),     # External sample domain
     re.compile(r'^git@github\.com$', re.IGNORECASE),           # Git SSH URL
+    re.compile(r'^i@izs\.me$', re.IGNORECASE),                 # npm glob作者、pnpm-lock.yamlのdeprecated文言に自動混入
 ]
 
 # インラインでチェックをバイパスするためのコメントパターン

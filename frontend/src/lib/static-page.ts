@@ -1,22 +1,30 @@
-import { readSingleton } from '@directus/sdk';
+import { readItems } from '@directus/sdk';
 import { directus } from './directus';
 
 export interface StaticPageContent {
+  title: string;
   contentHtml: string;
   embedUrl: string | null;
+  embedHeight: number | null;
 }
 
-export async function getContactPage(): Promise<StaticPageContent> {
-  const page = await directus.request(readSingleton('page_contact'));
-  return { contentHtml: page.content || '', embedUrl: page.form_embed_url };
-}
+export async function getPageBySlug(
+  slug: string,
+): Promise<StaticPageContent | null> {
+  try {
+    const pages = await directus.request(
+      readItems('pages', { filter: { slug: { _eq: slug } }, limit: 1 }),
+    );
+    const page = pages[0];
+    if (!page) return null;
 
-export async function getAccessPage(): Promise<StaticPageContent> {
-  const page = await directus.request(readSingleton('page_access'));
-  return { contentHtml: page.content || '', embedUrl: page.map_embed_url };
-}
-
-export async function getPrivacyPage(): Promise<StaticPageContent> {
-  const page = await directus.request(readSingleton('page_privacy'));
-  return { contentHtml: page.content || '', embedUrl: null };
+    return {
+      title: page.title,
+      contentHtml: page.content || '',
+      embedUrl: page.embed_url,
+      embedHeight: page.embed_height,
+    };
+  } catch {
+    return null;
+  }
 }
