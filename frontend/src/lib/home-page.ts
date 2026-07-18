@@ -1,9 +1,11 @@
 import { readSingleton, readItems } from '@directus/sdk';
-import { directus, type AnnouncementFile, type TopicFile } from './directus';
 import {
-  HomeActiveVariant,
-  HomePageResult,
-  LiveHomeContent,
+  directus,
+  type AnnouncementFile,
+  type TopicFile,
+  type PageHomeFile,
+} from './directus';
+import {
   HomePageContent,
   AnnouncementSummary,
   TopicSummary,
@@ -22,8 +24,16 @@ const ATTACHMENT_DEEP_FIELDS: any = [
   'attachments.directus_files_id.type',
 ];
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const HERO_IMAGES_DEEP_FIELDS: any = [
+  'hero_images.sort',
+  'hero_images.directus_files_id.id',
+  'hero_images.directus_files_id.filename_download',
+  'hero_images.directus_files_id.type',
+];
+
 function formatAttachments(
-  raw: (AnnouncementFile | TopicFile)[] | undefined,
+  raw: (AnnouncementFile | TopicFile | PageHomeFile)[] | undefined,
 ): Attachment[] {
   return [...(raw || [])]
     .sort((x, y) => (x.sort ?? 0) - (y.sort ?? 0))
@@ -40,30 +50,12 @@ function formatAttachments(
     });
 }
 
-/**
- * overrideVariant: dev環境専用。festival_meta.home_active_variantより優先する。
- * 呼び出し側(page.tsx)がNEXT_PUBLIC_ENABLE_HOME_VARIANT_QUERY_OVERRIDE有効時に
- * URLクエリパラメータから渡す。本番では常に渡されない。
- */
-export async function getHomePage(
-  overrideVariant?: HomeActiveVariant,
-): Promise<HomePageResult> {
-  let activeVariant: 'pre_event' | 'live' = 'pre_event';
-
+export async function getHomePage(): Promise<HomePageContent> {
   const meta = await directus.request(
     readSingleton('festival_meta', {
       fields: ['*', 'overview', 'hero_image'],
     }),
   );
-
-  if (overrideVariant === 'pre_event' || overrideVariant === 'live') {
-    activeVariant = overrideVariant;
-  } else {
-    const variant = meta.home_active_variant;
-    if (variant === 'pre_event' || variant === 'live') {
-      activeVariant = variant;
-    }
-  }
 
   const snsLinks = meta.sns_links || [];
 
@@ -106,51 +98,34 @@ export async function getHomePage(
     attachments: formatAttachments(a.attachments),
   }));
 
-  if (activeVariant === 'live') {
-    const pageHomeLive = await directus.request(
-      readSingleton('page_home_live'),
-    );
+  const topicsData = await directus.request(
+    readItems('topics', {
+      fields: ['*', ...ATTACHMENT_DEEP_FIELDS],
+      sort: ['sort'],
+    }),
+  );
 
-    const topicsData = await directus.request(
-      readItems('topics', {
-        fields: ['*', ...ATTACHMENT_DEEP_FIELDS],
-        sort: ['sort'],
-      }),
-    );
+  const topics: TopicSummary[] = topicsData.map((t) => ({
+    id: t.id,
+    title: t.title,
+    body: t.body,
+    imageId: t.image,
+    attachments: formatAttachments(t.attachments),
+  }));
 
-    const topics: TopicSummary[] = topicsData.map((t) => ({
-      id: t.id,
-      title: t.title,
-      body: t.body,
-      imageId: t.image,
-      attachments: formatAttachments(t.attachments),
-    }));
+  const pageHome = await directus.request(
+    readSingleton('page_home', {
+      fields: ['*', ...HERO_IMAGES_DEEP_FIELDS],
+    }),
+  );
 
-    const content: LiveHomeContent = {
-      heroImageId: pageHomeLive.hero_image,
-      heroMessageHtml: pageHomeLive.hero_message || '',
-      embedUrl: pageHomeLive.embed_url,
-      snsLinks,
-      festival,
-      sponsors,
-      announcements,
-      topics,
-    };
-
-    return { variant: 'live', content };
-  } else {
-    const pageHome = await directus.request(readSingleton('page_home'));
-
-    const content: HomePageContent = {
-      heroImageId: pageHome.hero_image,
-      heroMessageHtml: pageHome.hero_message || '',
-      embedUrl: pageHome.embed_url,
-      snsLinks,
-      festival,
-      sponsors,
-      announcements,
-    };
-
-    return { variant: 'pre_event', content };
-  }
+  return {
+    heroImages: formatAttachments(pageHome.hero_images),
+    heroMessageHtml: pageHome.hero_message || '',
+    snsLinks,
+    festival,
+    sponsors,
+    announcements,
+    topics,
+  };
 }

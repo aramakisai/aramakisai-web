@@ -1,5 +1,3 @@
-export type HomeActiveVariant = 'pre_event' | 'live';
-
 export interface SnsLink {
   platform: string;
   url: string;
@@ -50,19 +48,11 @@ export interface SponsorSummary {
 }
 
 export interface HomePageContent {
-  heroImageId: string | null;
+  heroImages: Attachment[];
   heroMessageHtml: string;
-  embedUrl: string | null;
   snsLinks: SnsLink[];
   festival: FestivalOverview;
   sponsors: SponsorSummary[];
   announcements: AnnouncementSummary[];
-}
-
-export interface LiveHomeContent extends HomePageContent {
   topics: TopicSummary[];
 }
-
-export type HomePageResult =
-  | { variant: 'pre_event'; content: HomePageContent }
-  | { variant: 'live'; content: LiveHomeContent };

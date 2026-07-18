@@ -1,38 +1,34 @@
 import { createDirectus, rest } from '@directus/sdk';
 import { env } from '@/env';
 
-type PageHome = {
-  id: number;
-  hero_image: string | null;
-  hero_message: string | null;
-  embed_url: string | null;
+export type DirectusFileRef = {
+  id: string;
+  type: string | null;
+  filename_download: string;
 };
 
-type PageHomeLive = {
+export type PageHomeFile = {
   id: number;
-  hero_image: string | null;
+  page_home_id: number;
+  directus_files_id: string | DirectusFileRef;
+  sort: number | null;
+};
+
+type PageHome = {
+  id: number;
   hero_message: string | null;
-  embed_url: string | null;
+  hero_images: PageHomeFile[];
 };
 
 type FestivalMeta = {
   id: number;
   name: string;
   event_days: { label: string; open: string; close: string }[] | null;
-  admission_fee: string | null;
-  payment_note: string | null;
-  parking_capacity: number | null;
   parking_map: string | null;
-  home_active_variant: string | null;
   sns_links: { platform: string; url: string }[] | null;
   overview: string | null;
   hero_image: string | null;
-};
-
-export type DirectusFileRef = {
-  id: string;
-  type: string | null;
-  filename_download: string;
+  site_title: string | null;
 };
 
 export type AnnouncementFile = {
@@ -62,7 +58,6 @@ type Topic = {
   title: string;
   body: string | null;
   image: string | null;
-  link_url: string | null;
   attachment: string | null;
   sort: number | null;
   attachments: TopicFile[];
@@ -90,7 +85,6 @@ type Page = {
 
 export type Schema = {
   page_home: PageHome;
-  page_home_live: PageHomeLive;
   festival_meta: FestivalMeta;
   announcements: Announcement[];
   topics: Topic[];
@@ -98,6 +92,7 @@ export type Schema = {
   pages: Page[];
   topics_files: TopicFile[];
   announcements_files: AnnouncementFile[];
+  page_home_files: PageHomeFile[];
 };
 
 export const directus = createDirectus<Schema>(

@@ -10,7 +10,7 @@ test('Directus schema type checks', async () => {
     // 正常なクエリ
     await mockDirectus.request(
       readSingleton('page_home', {
-        fields: ['id', 'hero_image'],
+        fields: ['id', 'hero_message'],
       }),
     );
 
