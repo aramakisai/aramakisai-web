@@ -82,6 +82,8 @@ snapshot.yaml を commit して PR を出す
 
 **additive-only ルール**: 新規 collection / field の追加のみ許容する。カラム削除・型変更等の破壊的変更は、対応するフロントエンドコードがデプロイされ安定稼働するまで禁止する。破壊的変更を行う場合はマージ前に必ずチームに周知し、infra 側 PR のチェックリストで確認する。
 
+**一時停止中**: 本番未公開期間 (custom domain 未接続) に限り、上記ルールを機械強制する `additive-schema-check.yml` を一時停止している (`check` job に `if: false`)。再開条件は本番公開判断 (custom domain 接続)。詳細・再開手順は `.kiro/specs/sitemap-schema-review/design.md` を参照。
+
 デプロイ先
 - 本番環境
     - ホームページ本体 aramakisai.com (現状は Cloudflare Workers の workers.dev サブドメインのみ、custom domain 未接続。詳細は `frontend/wrangler.toml` コメント参照)

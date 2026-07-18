@@ -13,6 +13,11 @@ permissions:
 jobs:
   check:
     name: Detect breaking snapshot.yaml changes
+    # 一時停止中 (sitemap-schema-review spec Requirement 5): 本番未公開期間 (custom domain 未接続) に限り、
+    # additive-only 制約の機械強制を停止する。job が skipped 扱いとなり required status check は満たされる。
+    # 再開条件: 本番公開判断 (custom domain 接続)。再開時はこの if:false 行を削除する PR を作成する。
+    # 詳細: .kiro/specs/sitemap-schema-review/design.md の「CI 一時停止の状態遷移」参照。
+    if: false
     runs-on: ubuntu-latest
     permissions:
       contents: read
