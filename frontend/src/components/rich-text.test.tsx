@@ -42,4 +42,20 @@ describe('RichText', () => {
 
     expect(container.firstChild).toHaveClass('my-rich-text');
   });
+
+  test('allows long unbroken content to wrap without overflowing its container', () => {
+    const { container } = render(
+      <RichText
+        html="<p>https://example.com/a-very-long-unbroken-path-that-must-wrap</p>"
+        className="prose"
+      />,
+    );
+
+    expect(container.firstChild).toHaveClass(
+      'min-w-0',
+      'break-words',
+      '[overflow-wrap:anywhere]',
+      'prose',
+    );
+  });
 });

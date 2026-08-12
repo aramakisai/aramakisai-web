@@ -45,12 +45,17 @@ describe('AttachmentGallery', () => {
       },
     ];
 
-    render(<AttachmentGallery attachments={attachments} />);
+    const { container } = render(
+      <AttachmentGallery attachments={attachments} />,
+    );
+
+    expect(container.firstChild).toHaveClass('min-w-0', 'max-w-full');
 
     // Test images
     const img1 = screen.getByAltText('test-image.png');
     expect(img1).toBeInTheDocument();
     expect(img1).toHaveAttribute('src', 'https://example.com/assets/img-1');
+    expect(img1).toHaveClass('h-auto', 'max-w-full');
 
     const img2 = screen.getByAltText('test-photo.jpg');
     expect(img2).toBeInTheDocument();
@@ -61,6 +66,12 @@ describe('AttachmentGallery', () => {
     expect(link1).toBeInTheDocument();
     expect(link1).toHaveAttribute('href', 'https://example.com/assets/doc-1');
     expect(link1).toHaveAttribute('download');
+    expect(link1).toHaveClass(
+      'min-w-0',
+      'max-w-full',
+      'break-words',
+      '[overflow-wrap:anywhere]',
+    );
 
     const link2 = screen.getByRole('link', { name: 'unknown-file' });
     expect(link2).toBeInTheDocument();
