@@ -32,12 +32,12 @@ export async function up(knex) {
     .first();
 
   if (festivalMetaPerm) {
-    const currentFields = festivalMetaPerm.fields ? JSON.parse(festivalMetaPerm.fields) : [];
+    const currentFields = festivalMetaPerm.fields ? festivalMetaPerm.fields.split(",") : [];
     if (!currentFields.includes("*")) {
       const merged = Array.from(new Set([...currentFields, ...NEW_FIELDS]));
       await knex("directus_permissions")
         .where("id", festivalMetaPerm.id)
-        .update({ fields: JSON.stringify(merged) });
+        .update({ fields: merged.join(",") });
     }
   } else {
     await knex("directus_permissions").insert({
@@ -47,7 +47,7 @@ export async function up(knex) {
       permissions: JSON.stringify({}),
       validation: null,
       presets: null,
-      fields: JSON.stringify(NEW_FIELDS),
+      fields: NEW_FIELDS.join(","),
     });
   }
 
@@ -66,7 +66,7 @@ export async function up(knex) {
       permissions: JSON.stringify({}),
       validation: null,
       presets: null,
-      fields: JSON.stringify(["*"]),
+      fields: "*",
     });
   }
 }
@@ -81,12 +81,12 @@ export async function down(knex) {
     .first();
 
   if (festivalMetaPerm) {
-    const currentFields = festivalMetaPerm.fields ? JSON.parse(festivalMetaPerm.fields) : [];
+    const currentFields = festivalMetaPerm.fields ? festivalMetaPerm.fields.split(",") : [];
     if (!currentFields.includes("*")) {
       const reverted = currentFields.filter((field) => !NEW_FIELDS.includes(field));
       await knex("directus_permissions")
         .where("id", festivalMetaPerm.id)
-        .update({ fields: JSON.stringify(reverted) });
+        .update({ fields: reverted.join(",") });
     }
   }
 }
