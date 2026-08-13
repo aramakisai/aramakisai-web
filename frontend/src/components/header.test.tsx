@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { usePathname } from 'next/navigation';
-import { Header } from './header';
+import { Header, navigationItems } from './header';
 
 vi.mock('next/navigation', () => ({
   usePathname: vi.fn(),
@@ -12,6 +12,21 @@ const mockedUsePathname = vi.mocked(usePathname);
 describe('Header', () => {
   beforeEach(() => {
     mockedUsePathname.mockReturnValue('/');
+  });
+
+  test('exposes the navigation definition with only existing routes', () => {
+    expect(navigationItems.map((item) => item.href)).toEqual([
+      '/',
+      '/#about',
+      '/announcements',
+    ]);
+    expect(
+      navigationItems.find((item) => item.href === '/#about')?.children,
+    ).toEqual([
+      { label: '概要', href: '/#about-overview' },
+      { label: '開催スケジュール', href: '/#about-schedule' },
+      { label: '今年のテーマ', href: '/#about-theme' },
+    ]);
   });
 
   test('renders the 2026 logo and all desktop navigation links', () => {
@@ -32,30 +47,24 @@ describe('Header', () => {
     expect(
       screen.getByRole('link', { name: '荒牧祭について' }),
     ).toHaveAttribute('href', '/#about');
-    expect(screen.getByRole('link', { name: '企画を探す' })).toHaveAttribute(
-      'href',
-      '/events',
-    );
-    expect(screen.getByRole('link', { name: '会場案内' })).toHaveAttribute(
-      'href',
-      '/guide',
-    );
-    expect(screen.getByRole('link', { name: '協賛企業' })).toHaveAttribute(
-      'href',
-      '/sponsors',
-    );
     expect(screen.getByRole('link', { name: 'お知らせ' })).toHaveAttribute(
       'href',
-      '/news',
+      '/announcements',
     );
+    expect(
+      screen.queryByRole('link', { name: '企画を探す' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: '会場案内' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: '協賛企業' }),
+    ).not.toBeInTheDocument();
   });
 
   test.each([
     ['/', 'TOP'],
-    ['/events/42', '企画を探す'],
-    ['/guide/map', '会場案内'],
-    ['/sponsors', '協賛企業'],
-    ['/news/7', 'お知らせ'],
+    ['/announcements/7', 'お知らせ'],
   ])('marks the current section for %s', (pathname, label) => {
     mockedUsePathname.mockReturnValue(pathname);
 
@@ -121,7 +130,7 @@ describe('Header', () => {
     const { container } = render(<Header />);
 
     const lines = container.querySelectorAll('.mansai-spectrum-line');
-    expect(lines).toHaveLength(9);
+    expect(lines).toHaveLength(6);
 
     const submenu = screen.getByRole('list', {
       name: '荒牧祭についてのサブメニュー',
@@ -137,7 +146,7 @@ describe('Header', () => {
       });
   });
 
-  test('opens a mobile navigation with the six main links', () => {
+  test('opens a mobile navigation with the three main links', () => {
     render(<Header />);
 
     const menuButton = screen.getByRole('button', {
@@ -172,10 +181,7 @@ describe('Header', () => {
     ).toEqual([
       ['TOP', '/'],
       ['荒牧祭について', '/#about'],
-      ['企画を探す', '/events'],
-      ['会場案内', '/guide'],
-      ['協賛企業', '/sponsors'],
-      ['お知らせ', '/news'],
+      ['お知らせ', '/announcements'],
     ]);
   });
 

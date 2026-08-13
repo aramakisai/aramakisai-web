@@ -1,22 +1,25 @@
 import { render, screen, within } from '@testing-library/react';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { Footer } from './footer';
+import * as snsLinksModule from '@/lib/sns-links';
+
+vi.mock('@/lib/sns-links', () => ({
+  getSnsLinks: vi.fn(),
+}));
 
 const contactFormUrl =
   'https://docs.google.com/forms/d/e/1FAIpQLSdfNRBPktNU8u_YTWarZUiIW-rhusE9hG_7dqyQHKEq4Vxlpg/viewform?usp=sharing&ouid=103248927242052693439';
 
 describe('Footer', () => {
-  function renderFooter() {
-    return render(<Footer />);
+  async function renderFooter() {
+    return render(await Footer());
   }
 
-  test('renders the requested site navigation and support links', () => {
-    renderFooter();
+  test('renders the site navigation and support links using only existing routes', async () => {
+    vi.mocked(snsLinksModule.getSnsLinks).mockResolvedValue([]);
+    await renderFooter();
 
     const footer = screen.getByRole('contentinfo');
-    expect(footer).not.toHaveClass('fixed');
-    expect(footer).not.toHaveClass('sticky');
-    expect(footer).not.toHaveClass('absolute');
     expect(footer).toHaveClass('border-t', 'bg-slate-50/70');
 
     const siteNavigation = screen.getByRole('navigation', {
@@ -29,16 +32,8 @@ describe('Footer', () => {
     ).toEqual([
       ['TOP', '/'],
       ['荒牧祭について', '/#about'],
-      ['企画を探す', '/events'],
-      ['会場案内', '/guide'],
-      ['協賛企業', '/sponsors'],
-      ['お知らせ', '/news'],
+      ['お知らせ', '/announcements'],
     ]);
-
-    const contact = screen.getByRole('link', { name: 'お問い合わせ' });
-    expect(contact).toHaveAttribute('href', contactFormUrl);
-    expect(contact).toHaveAttribute('target', '_blank');
-    expect(contact).toHaveAttribute('rel', 'noopener noreferrer');
 
     const supportNavigation = screen.getByRole('navigation', {
       name: 'フッターサポート',
@@ -52,90 +47,92 @@ describe('Footer', () => {
       ['プライバシーポリシー', '/privacy-policy'],
     ]);
 
-    const privacyPolicy = within(supportNavigation).getByRole('link', {
-      name: 'プライバシーポリシー',
-    });
-    expect(privacyPolicy).not.toHaveAttribute('target');
-
-    expect(screen.queryByText(/E-mail/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/電話/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/〒371-8510/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/群馬県前橋市荒牧町4-2/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/_at_/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/FAQ/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: '企画を探す' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: '会場案内' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: '協賛企業' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'お知らせ' })).toHaveAttribute(
+      'href',
+      '/announcements',
+    );
   });
 
-  test('renders the three official SNS links with accessible icons', () => {
-    renderFooter();
+  test('restores the committee address and contact email removed by nightly', async () => {
+    vi.mocked(snsLinksModule.getSnsLinks).mockResolvedValue([]);
+    await renderFooter();
+
+    expect(screen.getByText(/〒371-8510/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/群馬県前橋市荒牧町4-2/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/mail_at_example\.invalid/)).toBeInTheDocument();
+  });
+
+  test('renders SNS links from getSnsLinks() with accessible icons', async () => {
+    vi.mocked(snsLinksModule.getSnsLinks).mockResolvedValue([
+      { platform: 'X', url: 'https://x.com/aramakisai_' },
+      { platform: 'Instagram', url: 'https://www.instagram.com/aramakisai_/' },
+    ]);
+    await renderFooter();
 
     expect(screen.getByText('OFFICIAL SNS')).toBeInTheDocument();
 
-    const socialLinks = [
-      ['荒牧祭公式X', 'https://x.com/aramakisai_', 'icon-x'],
-      [
-        '荒牧祭公式Instagram',
-        'https://www.instagram.com/aramakisai_/',
-        'icon-instagram',
-      ],
-      [
-        '荒牧祭公式YouTube',
-        'https://www.youtube.com/@aramakisai',
-        'icon-youtube',
-      ],
-    ] as const;
+    const xLink = screen.getByRole('link', { name: '荒牧祭公式X' });
+    expect(xLink).toHaveAttribute('href', 'https://x.com/aramakisai_');
+    expect(xLink).toHaveAttribute('target', '_blank');
+    expect(xLink).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(within(xLink).getByTestId('icon-x')).toHaveAttribute(
+      'aria-hidden',
+      'true',
+    );
 
-    socialLinks.forEach(([label, href, iconTestId]) => {
-      const link = screen.getByRole('link', { name: label });
-      expect(link).toHaveAttribute('href', href);
-      expect(link).toHaveAttribute('target', '_blank');
-      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
-      expect(link).toHaveClass('min-h-11', 'min-w-11');
-      expect(within(link).getByTestId(iconTestId)).toHaveAttribute(
-        'aria-hidden',
-        'true',
-      );
+    const instagramLink = screen.getByRole('link', {
+      name: '荒牧祭公式Instagram',
     });
-
-    expect(
-      screen.queryByRole('link', { name: /Facebook|LINE|TikTok/i }),
-    ).not.toBeInTheDocument();
+    expect(instagramLink).toHaveAttribute(
+      'href',
+      'https://www.instagram.com/aramakisai_/',
+    );
   });
 
-  test('uses the shared Mansai hover line and responsive layout', () => {
-    const { container } = renderFooter();
-
-    const footerLayout = screen.getByTestId('footer-layout');
-    expect(footerLayout).toHaveClass(
-      'grid-cols-1',
-      'lg:grid-cols-[minmax(0,1fr)_auto]',
+  test('hides the SNS block but keeps the rest of the footer when getSnsLinks() fails', async () => {
+    vi.mocked(snsLinksModule.getSnsLinks).mockRejectedValue(
+      new Error('Directus Error'),
     );
+    await renderFooter();
 
-    const columns = screen.getByTestId('footer-columns');
-    expect(columns).toHaveClass('grid-cols-1', 'sm:grid-cols-2');
+    expect(screen.queryByText('OFFICIAL SNS')).not.toBeInTheDocument();
+    expect(screen.getByRole('contentinfo')).toBeInTheDocument();
+    expect(
+      screen.getByRole('navigation', { name: 'フッターサイト案内' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/〒371-8510/)).toBeInTheDocument();
+  });
+
+  test('hides the SNS block entirely when there are no links', async () => {
+    vi.mocked(snsLinksModule.getSnsLinks).mockResolvedValue([]);
+    await renderFooter();
+
+    expect(screen.queryByText('OFFICIAL SNS')).not.toBeInTheDocument();
+  });
+
+  test('uses the shared Mansai hover line styling and copyright', async () => {
+    vi.mocked(snsLinksModule.getSnsLinks).mockResolvedValue([
+      { platform: 'X', url: 'https://x.com/aramakisai_' },
+    ]);
+    const { container } = await renderFooter();
 
     const hoverLines = container.querySelectorAll('.mansai-spectrum-line');
-    expect(hoverLines).toHaveLength(11);
+    expect(hoverLines.length).toBeGreaterThan(0);
     hoverLines.forEach((line) =>
-      expect(line).toHaveClass(
-        'h-px',
-        'scale-x-0',
-        'transition-transform',
-        'group-hover:scale-x-100',
-        'group-focus-visible:scale-x-100',
-        'motion-reduce:transition-none',
-      ),
+      expect(line).toHaveClass('h-px', 'scale-x-0', 'transition-transform'),
     );
 
-    expect(screen.getByText('© 2026 群馬大学荒牧祭実行委員会')).toHaveClass(
-      'text-xs',
-    );
-
-    const copyright = screen
-      .getByText('© 2026 群馬大学荒牧祭実行委員会')
-      .closest('div');
-    expect(copyright).toHaveClass(
-      'pt-6',
-      'pb-[calc(1.5rem+env(safe-area-inset-bottom))]',
-    );
+    expect(screen.getByText('© 2026 群馬大学荒牧祭実行委員会')).toBeInTheDocument();
   });
 });

@@ -2,12 +2,12 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { HeroSection } from './hero-section';
 
-const expectedImages = [
-  '/images/top/top0.png',
-  '/images/top/top1.png',
-  '/images/top/top2.png',
-  '/images/top/top3.png',
-  '/images/top/top4.png',
+const imageUrls = [
+  'https://cms.example.com/assets/hero-0',
+  'https://cms.example.com/assets/hero-1',
+  'https://cms.example.com/assets/hero-2',
+  'https://cms.example.com/assets/hero-3',
+  'https://cms.example.com/assets/hero-4',
 ];
 
 function expectCurrentSlide(index: number) {
@@ -36,13 +36,13 @@ describe('HeroSection', () => {
     vi.useRealTimers();
   });
 
-  test('renders the five local hero images in order with slideshow controls', () => {
-    const { container } = render(<HeroSection />);
+  test('renders the given hero images in order with slideshow controls', () => {
+    const { container } = render(<HeroSection imageUrls={imageUrls} />);
 
     const images = container.querySelectorAll('img');
     expect(images).toHaveLength(5);
     expect(Array.from(images, (image) => image.getAttribute('src'))).toEqual(
-      expectedImages,
+      imageUrls,
     );
     images.forEach((image) => {
       expect(image).toHaveAttribute('alt', '');
@@ -75,8 +75,38 @@ describe('HeroSection', () => {
     expectCurrentSlide(0);
   });
 
+  test('gives the first image loading priority', () => {
+    const { container } = render(<HeroSection imageUrls={imageUrls} />);
+
+    const images = container.querySelectorAll('img');
+    expect(images[0]).toHaveAttribute('fetchpriority', 'high');
+    Array.from(images)
+      .slice(1)
+      .forEach((image) => expect(image).toHaveAttribute('fetchpriority', 'auto'));
+  });
+
+  test('renders nothing when there are no images', () => {
+    const { container } = render(<HeroSection imageUrls={[]} />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  test('hides previous/next navigation and the slide indicator when there is only one image', () => {
+    render(<HeroSection imageUrls={[imageUrls[0]]} />);
+
+    expect(
+      screen.queryByRole('button', { name: '前の画像を表示' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: '次の画像を表示' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('group', { name: '表示する画像を選択' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('hero-slide')).toHaveLength(1);
+  });
+
   test('automatically advances every six seconds and loops to the first image', () => {
-    render(<HeroSection />);
+    render(<HeroSection imageUrls={imageUrls} />);
 
     act(() => vi.advanceTimersByTime(6_000));
     expectCurrentSlide(1);
@@ -89,7 +119,7 @@ describe('HeroSection', () => {
   });
 
   test('loops in both directions with the previous and next buttons', () => {
-    render(<HeroSection />);
+    render(<HeroSection imageUrls={imageUrls} />);
 
     fireEvent.click(screen.getByRole('button', { name: '前の画像を表示' }));
     expectCurrentSlide(4);
@@ -99,7 +129,7 @@ describe('HeroSection', () => {
   });
 
   test('indicator navigation resets the automatic slideshow timer', () => {
-    render(<HeroSection />);
+    render(<HeroSection imageUrls={imageUrls} />);
 
     act(() => vi.advanceTimersByTime(5_500));
     fireEvent.click(screen.getByRole('button', { name: '3枚目の画像を表示' }));
@@ -113,7 +143,7 @@ describe('HeroSection', () => {
   });
 
   test('selecting the current indicator also resets the automatic timer', () => {
-    render(<HeroSection />);
+    render(<HeroSection imageUrls={imageUrls} />);
 
     act(() => vi.advanceTimersByTime(5_500));
     fireEvent.click(screen.getByRole('button', { name: '1枚目の画像を表示' }));
@@ -126,15 +156,20 @@ describe('HeroSection', () => {
   });
 
   test('clears the automatic timer when unmounted', () => {
-    const { unmount } = render(<HeroSection />);
+    const { unmount } = render(<HeroSection imageUrls={imageUrls} />);
 
     expect(vi.getTimerCount()).toBe(1);
     unmount();
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  test('does not start an automatic timer with a single image', () => {
+    render(<HeroSection imageUrls={[imageUrls[0]]} />);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   test('uses one-second crossfades and reduced-motion fallbacks', () => {
-    const { container } = render(<HeroSection />);
+    const { container } = render(<HeroSection imageUrls={imageUrls} />);
 
     const slides = screen.getAllByTestId('hero-slide');
     slides.forEach((slide) => {
@@ -148,7 +183,7 @@ describe('HeroSection', () => {
   });
 
   test('renders an animated scroll indicator below the slide indicators', () => {
-    const { container } = render(<HeroSection />);
+    const { container } = render(<HeroSection imageUrls={imageUrls} />);
 
     const slideIndicators = screen.getByRole('group', {
       name: '表示する画像を選択',
@@ -173,7 +208,7 @@ describe('HeroSection', () => {
   });
 
   test('keeps mobile slideshow controls separated with touch-friendly targets', () => {
-    const { container } = render(<HeroSection />);
+    const { container } = render(<HeroSection imageUrls={imageUrls} />);
     const controls = screen.getAllByRole('button');
     const previousButton = controls[0];
     const nextButton = controls[1];

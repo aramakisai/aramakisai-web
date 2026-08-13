@@ -1,31 +1,12 @@
 import Link from 'next/link';
+import { getSnsLinks } from '@/lib/sns-links';
+import type { SnsLink } from '@/lib/home-page-types';
 import { SnsIcon } from './sns-icon';
 
 const footerNavigation = [
   { href: '/', label: 'TOP' },
   { href: '/#about', label: '荒牧祭について' },
-  { href: '/events', label: '企画を探す' },
-  { href: '/guide', label: '会場案内' },
-  { href: '/sponsors', label: '協賛企業' },
-  { href: '/news', label: 'お知らせ' },
-] as const;
-
-const socialLinks = [
-  {
-    href: 'https://x.com/aramakisai_',
-    label: '荒牧祭公式X',
-    platform: 'x',
-  },
-  {
-    href: 'https://www.instagram.com/aramakisai_/',
-    label: '荒牧祭公式Instagram',
-    platform: 'instagram',
-  },
-  {
-    href: 'https://www.youtube.com/@aramakisai',
-    label: '荒牧祭公式YouTube',
-    platform: 'youtube',
-  },
+  { href: '/announcements', label: 'お知らせ' },
 ] as const;
 
 const contactFormUrl =
@@ -43,7 +24,14 @@ function HoverLine() {
   );
 }
 
-export function Footer() {
+export async function Footer() {
+  let snsLinks: SnsLink[] = [];
+  try {
+    snsLinks = await getSnsLinks();
+  } catch {
+    snsLinks = [];
+  }
+
   return (
     <footer className="mt-24 border-t border-slate-200/80 bg-slate-50/70 text-slate-700 sm:mt-32">
       <div
@@ -52,7 +40,7 @@ export function Footer() {
       >
         <div
           data-testid="footer-columns"
-          className="grid grid-cols-1 gap-12 sm:grid-cols-2 sm:gap-16"
+          className="grid grid-cols-1 gap-12 sm:grid-cols-3 sm:gap-16"
         >
           <nav aria-label="フッターサイト案内">
             <h2 className={sectionHeadingClass}>サイト案内</h2>
@@ -98,32 +86,50 @@ export function Footer() {
               </li>
             </ul>
           </nav>
+
+          <div>
+            <h2 className={sectionHeadingClass}>荒牧祭実行委員会</h2>
+            <address className="mt-7 text-sm leading-6 text-slate-700 not-italic">
+              〒371-8510
+              <br />
+              群馬県前橋市荒牧町4-2
+              <br />
+              群馬大学荒牧キャンパス内
+            </address>
+            <p className="mt-4 text-sm leading-6 text-slate-700">
+              E-mail: mail_at_example.invalid
+              <br />
+              (_at_を@に置き換えてください)
+            </p>
+          </div>
         </div>
 
-        <section
-          aria-labelledby="footer-sns-heading"
-          className="lg:justify-self-end"
-        >
-          <h2 id="footer-sns-heading" className={sectionHeadingClass}>
-            OFFICIAL SNS
-          </h2>
-          <ul className="mt-7 flex flex-wrap gap-3">
-            {socialLinks.map((social) => (
-              <li key={social.platform}>
-                <a
-                  href={social.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={social.label}
-                  className="group relative inline-flex min-h-11 min-w-11 items-center justify-center text-slate-600 transition-colors hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-slate-700 motion-reduce:transition-none"
-                >
-                  <SnsIcon platform={social.platform} />
-                  <HoverLine />
-                </a>
-              </li>
-            ))}
-          </ul>
-        </section>
+        {snsLinks.length > 0 && (
+          <section
+            aria-labelledby="footer-sns-heading"
+            className="lg:justify-self-end"
+          >
+            <h2 id="footer-sns-heading" className={sectionHeadingClass}>
+              OFFICIAL SNS
+            </h2>
+            <ul className="mt-7 flex flex-wrap gap-3">
+              {snsLinks.map((sns) => (
+                <li key={sns.platform}>
+                  <a
+                    href={sns.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`荒牧祭公式${sns.platform}`}
+                    className="group relative inline-flex min-h-11 min-w-11 items-center justify-center text-slate-600 transition-colors hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-slate-700 motion-reduce:transition-none"
+                  >
+                    <SnsIcon platform={sns.platform} />
+                    <HoverLine />
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
       </div>
 
       <div className="mx-auto max-w-7xl px-6 lg:px-8">

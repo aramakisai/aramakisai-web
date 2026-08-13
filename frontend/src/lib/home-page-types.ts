@@ -38,6 +38,12 @@ export interface FestivalOverview {
   heroImageId: string | null;
 }
 
+export interface FestivalTheme {
+  word: string | null;
+  imageId: string | null;
+  descriptionHtml: string | null;
+}
+
 export interface SponsorSummary {
   id: number;
   type: 'ad' | 'sponsor' | 'food_truck' | 'other';

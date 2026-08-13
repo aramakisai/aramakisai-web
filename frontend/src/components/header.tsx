@@ -14,7 +14,9 @@ type NavigationItem = {
   }[];
 };
 
-const navigationItems: readonly NavigationItem[] = [
+// 企画一覧・会場案内・協賛企業は対応ページが未実装のため一時的に非表示。
+// ページ実装後は navigationItems へ戻す (要件 5.2)。
+export const navigationItems: readonly NavigationItem[] = [
   { label: 'TOP', href: '/' },
   {
     label: '荒牧祭について',
@@ -25,10 +27,7 @@ const navigationItems: readonly NavigationItem[] = [
       { label: '今年のテーマ', href: '/#about-theme' },
     ],
   },
-  { label: '企画を探す', href: '/events' },
-  { label: '会場案内', href: '/guide' },
-  { label: '協賛企業', href: '/sponsors' },
-  { label: 'お知らせ', href: '/news' },
+  { label: 'お知らせ', href: '/announcements' },
 ];
 
 export function Header() {
