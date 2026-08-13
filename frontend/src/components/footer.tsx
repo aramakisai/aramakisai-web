@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getSnsLinks } from '@/lib/sns-links';
+import { getContactFormUrl } from '@/lib/festival-meta';
 import type { SnsLink } from '@/lib/home-page-types';
 import { SnsIcon } from './sns-icon';
 
@@ -8,9 +9,6 @@ const footerNavigation = [
   { href: '/#about', label: '荒牧祭について' },
   { href: '/announcements', label: 'お知らせ' },
 ] as const;
-
-const contactFormUrl =
-  'https://docs.google.com/forms/d/e/1FAIpQLSdfNRBPktNU8u_YTWarZUiIW-rhusE9hG_7dqyQHKEq4Vxlpg/viewform?usp=sharing&ouid=103248927242052693439';
 
 const sectionHeadingClass =
   'bg-none bg-clip-border p-0 font-sans text-xs font-semibold tracking-[0.2em] text-slate-500';
@@ -30,6 +28,13 @@ export async function Footer() {
     snsLinks = await getSnsLinks();
   } catch {
     snsLinks = [];
+  }
+
+  let contactFormUrl: string | null = null;
+  try {
+    contactFormUrl = await getContactFormUrl();
+  } catch {
+    contactFormUrl = null;
   }
 
   return (
@@ -64,17 +69,19 @@ export async function Footer() {
               SUPPORT
             </h2>
             <ul className="mt-7 space-y-2">
-              <li>
-                <a
-                  href={contactFormUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group relative inline-flex min-h-11 w-fit items-center text-sm font-medium tracking-wide text-slate-700 transition-colors hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-slate-700 motion-reduce:transition-none"
-                >
-                  お問い合わせ
-                  <HoverLine />
-                </a>
-              </li>
+              {contactFormUrl && (
+                <li>
+                  <a
+                    href={contactFormUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group relative inline-flex min-h-11 w-fit items-center text-sm font-medium tracking-wide text-slate-700 transition-colors hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-slate-700 motion-reduce:transition-none"
+                  >
+                    お問い合わせ
+                    <HoverLine />
+                  </a>
+                </li>
+              )}
               <li>
                 <Link
                   href="/privacy"

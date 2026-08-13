@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import Page from './page';
 import * as homePageModule from '@/lib/home-page';
@@ -28,6 +28,14 @@ const content: HomePageContent = {
     overviewHtml: '<p>CMS祭概要</p>',
     heroImageId: null,
   },
+  theme: {
+    word: '万彩',
+    imageId: 'theme-file-id',
+    descriptionHtml: '<p>今年のテーマは万彩です。</p>',
+  },
+  venueName: '群馬大学 荒牧キャンパス',
+  campusMapUrl: 'https://www.google.com/maps/embed?pb=!1m2!2m1!1zsomething',
+  contactFormUrl: 'https://forms.example.com/contact',
   sponsors: [],
   announcements: [
     {
@@ -76,6 +84,16 @@ describe('Page', () => {
     expect(screen.getByText('お知らせ1')).toBeInTheDocument();
     expect(screen.getByText('トピックス')).toBeInTheDocument();
     expect(screen.getByText('トピック1')).toBeInTheDocument();
+
+    // テーマ・会場名・キャンパスマップがDirectus取得データから描画される
+    expect(within(about).getByTestId('theme-word')).toHaveTextContent('万彩');
+    expect(
+      within(about).getByText('群馬大学 荒牧キャンパス'),
+    ).toBeInTheDocument();
+    expect(within(about).getByTestId('campus-map')).toHaveAttribute(
+      'src',
+      content.campusMapUrl,
+    );
   });
 
   it('ヒーロー画像URLをDirectusアセットURLへ変換してHeroSectionへ渡す', async () => {

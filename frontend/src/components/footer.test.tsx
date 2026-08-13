@@ -1,19 +1,29 @@
 import { render, screen, within } from '@testing-library/react';
-import { describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { Footer } from './footer';
 import * as snsLinksModule from '@/lib/sns-links';
+import * as festivalMetaModule from '@/lib/festival-meta';
 
 vi.mock('@/lib/sns-links', () => ({
   getSnsLinks: vi.fn(),
 }));
 
-const contactFormUrl =
-  'https://docs.google.com/forms/d/e/1FAIpQLSdfNRBPktNU8u_YTWarZUiIW-rhusE9hG_7dqyQHKEq4Vxlpg/viewform?usp=sharing&ouid=103248927242052693439';
+vi.mock('@/lib/festival-meta', () => ({
+  getContactFormUrl: vi.fn(),
+}));
+
+const contactFormUrl = 'https://forms.example.com/contact';
 
 describe('Footer', () => {
   async function renderFooter() {
     return render(await Footer());
   }
+
+  beforeEach(() => {
+    vi.mocked(festivalMetaModule.getContactFormUrl).mockResolvedValue(
+      contactFormUrl,
+    );
+  });
 
   test('renders the site navigation and support links using only existing routes', async () => {
     vi.mocked(snsLinksModule.getSnsLinks).mockResolvedValue([]);
@@ -67,9 +77,7 @@ describe('Footer', () => {
     await renderFooter();
 
     expect(screen.getByText(/〒371-8510/)).toBeInTheDocument();
-    expect(
-      screen.getByText(/群馬県前橋市荒牧町4-2/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/群馬県前橋市荒牧町4-2/)).toBeInTheDocument();
     expect(screen.getByText(/mail_at_example\.invalid/)).toBeInTheDocument();
   });
 
@@ -121,6 +129,33 @@ describe('Footer', () => {
     expect(screen.queryByText('OFFICIAL SNS')).not.toBeInTheDocument();
   });
 
+  test('hides the contact link but keeps the rest of the footer when contact_form_url is unset', async () => {
+    vi.mocked(snsLinksModule.getSnsLinks).mockResolvedValue([]);
+    vi.mocked(festivalMetaModule.getContactFormUrl).mockResolvedValue(null);
+    await renderFooter();
+
+    expect(
+      screen.queryByRole('link', { name: 'お問い合わせ' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'プライバシーポリシー' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('contentinfo')).toBeInTheDocument();
+  });
+
+  test('hides the contact link but keeps the rest of the footer when getContactFormUrl() fails', async () => {
+    vi.mocked(snsLinksModule.getSnsLinks).mockResolvedValue([]);
+    vi.mocked(festivalMetaModule.getContactFormUrl).mockRejectedValue(
+      new Error('Directus Error'),
+    );
+    await renderFooter();
+
+    expect(
+      screen.queryByRole('link', { name: 'お問い合わせ' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('contentinfo')).toBeInTheDocument();
+  });
+
   test('uses the shared Mansai hover line styling and copyright', async () => {
     vi.mocked(snsLinksModule.getSnsLinks).mockResolvedValue([
       { platform: 'X', url: 'https://x.com/aramakisai_' },
@@ -133,6 +168,8 @@ describe('Footer', () => {
       expect(line).toHaveClass('h-px', 'scale-x-0', 'transition-transform'),
     );
 
-    expect(screen.getByText('© 2026 群馬大学荒牧祭実行委員会')).toBeInTheDocument();
+    expect(
+      screen.getByText('© 2026 群馬大学荒牧祭実行委員会'),
+    ).toBeInTheDocument();
   });
 });

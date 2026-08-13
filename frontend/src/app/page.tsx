@@ -31,9 +31,9 @@ export default async function Page() {
           />
           <AboutSection
             festival={content.festival}
-            theme={{ word: null, imageId: null, descriptionHtml: null }}
-            venueName={null}
-            campusMapUrl={null}
+            theme={content.theme}
+            venueName={content.venueName}
+            campusMapUrl={content.campusMapUrl}
           />
 
           <div className="mx-auto max-w-6xl space-y-12 px-4 py-12">

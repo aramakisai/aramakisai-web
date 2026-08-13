@@ -39,8 +39,8 @@
 | 概要文 | `festival_meta.overview` | REST API (`PATCH /items/festival_meta`) | 投入済み。現行 Directus 版の内容を採用し、HTML の二重エスケープを修正して更新完了 (2026-08-13) |
 | SNS リンク | `festival_meta.sns_links` | — | 投入済み (Instagram / X / YouTube)。対応不要 |
 | プライバシーポリシー本文 | `pages` (`slug: privacy`) の `content` | REST API (`PATCH /items/pages/1`) | 投入済み。`nightly` 版の内容 (全10節) へ更新完了 (2026-08-13) |
-| 会場名 / マップ URL / お問い合わせ URL | `festival_meta.venue_name` / `campus_map_url` / `contact_form_url` | REST API | フィールド未追加 (Phase 2 で追加後に投入) |
-| テーマ関連 3 項目 | `festival_meta.theme_word` / `theme_image` / `theme_description` | 管理画面 | フィールド未追加 (Phase 2 で追加後に投入) |
+| 会場名 / マップ URL / お問い合わせ URL | `festival_meta.venue_name` / `campus_map_url` / `contact_form_url` | REST API (`PATCH /items/festival_meta`) | ローカル開発環境へ投入・表示確認済み (2026-08-13)。本番は Phase 2 スキーマ (5.1/5.2) の本番デプロイ完了後に投入する |
+| テーマ関連 3 項目 | `festival_meta.theme_word` / `theme_image` / `theme_description` | REST API (`POST /files` + `PATCH /items/festival_meta`) | ローカル開発環境へ投入・表示確認済み (2026-08-13)。本番は Phase 2 スキーマ (5.1/5.2) の本番デプロイ完了後に投入する |
 
 REST API で投入する分は、実行内容を本ドキュメントの該当タスク実施時にリクエスト定義として追記する。本番へ適用する前に開発環境または staging で表示を確認する。
 
@@ -59,3 +59,18 @@ REST API で投入する分は、実行内容を本ドキュメントの該当�
   - 発行された `directus_files` ID (sort 順): `079cb354-ad68-4384-9107-b08f719e7dd7` (1) / `f8dac7bd-32eb-4df3-845d-a296ca1730a7` (2) / `7dcb31b7-1d26-459b-a4d2-dc387c66a314` (3) / `8910f907-7ed0-48c1-a528-37b192c7bf81` (4) / `6fc63f5a-1058-4441-a2e0-f4d3b91afb57` (5)
 - `PATCH /items/page_home` (singleton につき ID 指定不要) で `hero_images` に上記 5 件を junction オブジェクト (`{directus_files_id, sort}`) として一括登録
 - 公開ロールで `GET /items/page_home?fields=hero_images.directus_files_id,hero_images.sort` が 200 を返し、5 件が sort 順どおりに取得できることを確認済み
+
+### 実施記録 (2026-08-13 続き): Phase 2 追加フィールドの投入 (ローカル開発環境)
+
+- 前提: 5.1 でローカル Directus (`directus/docker-compose.yaml`) の `festival_meta` へ 6 フィールドを追加、5.2 で公開読み取り権限を付与済み。本番 Directus はまだ `nightly` → `dev` → `main` のマージを経ておらずスキーマ未適用のため、本項の投入はローカル環境限定とする
+- テーマのメインビジュアル画像: `POST /files` (multipart) で `frontend/public/images/background1.png` をローカル Directus のファイルライブラリへ登録 (`title: 荒牧祭2026「万彩」メインビジュアル`)。発行された `directus_files` ID: `e8cf9bf9-bb14-4f52-a963-f84d3cbe73e7`
+- `PATCH /items/festival_meta` で以下を一括投入。値は `nightly` ブランチのコミット `9e091f1` (`frontend/src/components/about-section.tsx` / `footer.tsx`) にハードコードされていた内容をそのまま移行した
+  - `theme_word`: `万彩`
+  - `theme_image`: 上記アップロード済みファイル ID
+  - `theme_description`: `about-section.tsx` の `#about-theme` 本文 (見出し・段落・箇条書き・強調) を HTML へ変換したもの
+  - `venue_name`: `群馬大学 荒牧キャンパス`
+  - `campus_map_url`: `https://www.google.com/maps/embed?origin=mfe&pb=!1m2!2m1!1z576k6aas5aSn5a2mIOiNkueJp-OCreODo-ODs-ODkeOCuSDjgJIzNzEtODUxMCDnvqTppqznnIzliY3mqYvluILojZLniafnlLo05LiB55uuMg`
+  - `contact_form_url`: `footer.tsx` にあった Google フォーム URL (`https://docs.google.com/forms/d/e/1FAIpQLSdfNRBPktNU8u_YTWarZUiIW-rhusE9hG_7dqyQHKEq4Vxlpg/viewform?usp=sharing&ouid=103248927242052693439`)
+- 公開ロールで `GET /items/festival_meta?fields=theme_word,theme_description,venue_name,campus_map_url,contact_form_url,theme_image` および `GET /assets/e8cf9bf9-...` が 200 を返すことを確認済み
+- `NEXT_PUBLIC_DIRECTUS_URL=http://localhost:8055` でフロントエンドの dev サーバーを起動し、トップページの HTML にテーマ語・会場名・キャンパスマップ埋め込み URL・お問い合わせフォームリンクが描画されることを確認済み
+- 本番投入は Phase 2 スキーマ (5.1 の `snapshot.yaml` 変更 + 5.2 の RBAC migration) が `nightly` → `dev` → `main` を経て本番 Directus へ適用された後に、同じ値で行う
