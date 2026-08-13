@@ -1,0 +1,22 @@
+{
+  "feature_name": "nightly-dev-integration",
+  "created_at": "2026-08-13T09:45:18Z",
+  "updated_at": "2026-08-13T12:00:00Z",
+  "language": "ja",
+  "phase": "tasks-generated",
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": true
+    },
+    "design": {
+      "generated": true,
+      "approved": true
+    },
+    "tasks": {
+      "generated": true,
+      "approved": true
+    }
+  },
+  "ready_for_implementation": true
+}
