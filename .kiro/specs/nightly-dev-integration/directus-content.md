@@ -34,7 +34,7 @@
 
 | 対象 | 投入先 | 投入手段 | 現状 (本番) |
 |------|--------|----------|-------------|
-| ヒーロー画像 5 点 | `directus_files` → `page_home.hero_images` | 管理画面 (ファイルアップロード + 並び替え) | 未投入。公開読み取り権限は既存 migration (`20260713B` / `20260718B`) で付与済みだが本番へ未デプロイ (`precheck.md` 参照)。デプロイ後に投入する |
+| ヒーロー画像 5 点 | `directus_files` → `page_home.hero_images` | REST API (`POST /files` + `PATCH /items/page_home`) | 投入済み。本番スキーマデプロイ (`precheck.md` 参照) 完了後、`top0.png`〜`top4.png` を `sort:1`〜`5` で登録完了 (2026-08-13) |
 | `event_days[].label` の表記 | `festival_meta.event_days` | REST API (`PATCH /items/festival_meta`) | 投入済み。`11月14日` / `11月15日` 形式へ更新完了 (2026-08-13) |
 | 概要文 | `festival_meta.overview` | REST API (`PATCH /items/festival_meta`) | 投入済み。現行 Directus 版の内容を採用し、HTML の二重エスケープを修正して更新完了 (2026-08-13) |
 | SNS リンク | `festival_meta.sns_links` | — | 投入済み (Instagram / X / YouTube)。対応不要 |
@@ -50,4 +50,12 @@ REST API で投入する分は、実行内容を本ドキュメントの該当�
 - `event_days`: `PATCH /items/festival_meta` で `label` を `11/14(土)` → `11月14日`、`11/15(日)` → `11月15日` に更新
 - `overview`: `PATCH /items/festival_meta` で実 HTML タグ (`<h3>` 等) を送信して更新。既存値は HTML が二重エスケープされ `&lt;h3&gt;` のような生文字が格納されていたが、実タグ送信で正しく解消されたことを GET で確認済み
 - `pages/1` (`slug: privacy`) `content`: `nightly` ブランチの静的プライバシーポリシー (`frontend/src/app/privacy-policy/page.tsx`, コミット `9e091f1`) を元に、見出し (`h2`) ・段落 (`p`) ・箇条書き (`ul`/`li`) の構造を保った HTML へ変換して `PATCH /items/pages/1` で更新
-- ヒーロー画像 (4.1) は Phase 1 デプロイ前提未達 (`precheck.md`) のため未投入のまま据え置き
+- ヒーロー画像 (4.1) は Phase 1 デプロイ前提未達 (`precheck.md`) のため未投入のまま据え置き (2026-08-13 時点)
+
+### 実施記録 (2026-08-13 続き): ヒーロー画像投入
+
+- 前提: `precheck.md` の「本番スキーマデプロイ実施記録」参照。本番 Directus スキーマデプロイ完了により `page_home.hero_images` が公開ロールで到達可能になったことを確認済み
+- `POST /files` (multipart) で `frontend/public/images/top/top0.png`〜`top4.png` を Directus ファイルライブラリへ登録 (`storage: s3`)
+  - 発行された `directus_files` ID (sort 順): `079cb354-ad68-4384-9107-b08f719e7dd7` (1) / `f8dac7bd-32eb-4df3-845d-a296ca1730a7` (2) / `7dcb31b7-1d26-459b-a4d2-dc387c66a314` (3) / `8910f907-7ed0-48c1-a528-37b192c7bf81` (4) / `6fc63f5a-1058-4441-a2e0-f4d3b91afb57` (5)
+- `PATCH /items/page_home` (singleton につき ID 指定不要) で `hero_images` に上記 5 件を junction オブジェクト (`{directus_files_id, sort}`) として一括登録
+- 公開ロールで `GET /items/page_home?fields=hero_images.directus_files_id,hero_images.sort` が 200 を返し、5 件が sort 順どおりに取得できることを確認済み
