@@ -44,7 +44,7 @@ describe('Footer', () => {
         .map((link) => [link.textContent, link.getAttribute('href')]),
     ).toEqual([
       ['お問い合わせ', contactFormUrl],
-      ['プライバシーポリシー', '/privacy-policy'],
+      ['プライバシーポリシー', '/privacy'],
     ]);
 
     expect(

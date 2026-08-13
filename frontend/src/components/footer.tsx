@@ -77,7 +77,7 @@ export async function Footer() {
               </li>
               <li>
                 <Link
-                  href="/privacy-policy"
+                  href="/privacy"
                   className="group relative inline-flex min-h-11 w-fit items-center text-sm font-medium tracking-wide text-slate-700 transition-colors hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-slate-700 motion-reduce:transition-none"
                 >
                   プライバシーポリシー
