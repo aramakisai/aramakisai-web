@@ -46,20 +46,22 @@ export default async function Page() {
               <AnnouncementsList announcements={content.announcements} />
             </section>
 
-            <section>
-              <h2 className="mb-4 border-b border-gray-200 pb-2 text-2xl font-bold">
-                トピックス
-              </h2>
-              <TopicsList
-                topics={content.topics.map((t) => ({
-                  id: t.id,
-                  title: t.title,
-                  body: t.body,
-                  imageId: t.imageId,
-                  attachments: t.attachments,
-                }))}
-              />
-            </section>
+            {content.topics.length > 0 && (
+              <section>
+                <h2 className="mb-4 border-b border-gray-200 pb-2 text-2xl font-bold">
+                  トピックス
+                </h2>
+                <TopicsList
+                  topics={content.topics.map((t) => ({
+                    id: t.id,
+                    title: t.title,
+                    body: t.body,
+                    imageId: t.imageId,
+                    attachments: t.attachments,
+                  }))}
+                />
+              </section>
+            )}
           </div>
         </>
       )}

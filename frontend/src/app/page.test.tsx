@@ -134,4 +134,16 @@ describe('Page', () => {
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     expect(screen.queryByText('お知らせ1')).not.toBeInTheDocument();
   });
+
+  it('トピックスが0件のとき、見出しごとセクションを描画しない', async () => {
+    vi.mocked(homePageModule.getHomePage).mockResolvedValue({
+      ...content,
+      topics: [],
+    });
+
+    const ui = await Page();
+    render(ui);
+
+    expect(screen.queryByText('トピックス')).not.toBeInTheDocument();
+  });
 });
