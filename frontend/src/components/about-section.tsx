@@ -31,7 +31,7 @@ export function AboutSection({
   const hasTheme = Boolean(
     theme.word || theme.imageId || theme.descriptionHtml,
   );
-  const themeImageUrl = toAssetUrl(theme.imageId);
+  const themeImageUrl = toAssetUrl(theme.imageId, 960);
   const showMap = campusMapUrl !== null && isGoogleMapsEmbedUrl(campusMapUrl);
 
   return (

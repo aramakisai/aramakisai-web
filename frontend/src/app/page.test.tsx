@@ -106,11 +106,11 @@ describe('Page', () => {
     const images = slides.map((slide) => slide.querySelector('img'));
     expect(images[0]).toHaveAttribute(
       'src',
-      'http://localhost:8055/assets/hero-1?format=webp',
+      'http://localhost:8055/assets/hero-1?format=webp&width=1920',
     );
     expect(images[1]).toHaveAttribute(
       'src',
-      'http://localhost:8055/assets/hero-2?format=webp',
+      'http://localhost:8055/assets/hero-2?format=webp&width=1920',
     );
   });
 

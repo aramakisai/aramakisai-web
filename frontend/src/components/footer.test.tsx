@@ -1,8 +1,20 @@
+import { join } from 'node:path';
 import { render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { Footer } from './footer';
+import { Footer, footerNavigation } from './footer';
 import * as snsLinksModule from '@/lib/sns-links';
 import * as festivalMetaModule from '@/lib/festival-meta';
+import {
+  extractSectionIds,
+  listAppRoutes,
+  routeExists,
+} from '@/lib/app-routes';
+
+const appDir = join(process.cwd(), 'src/app');
+const aboutSectionPath = join(
+  process.cwd(),
+  'src/components/about-section.tsx',
+);
 
 vi.mock('@/lib/sns-links', () => ({
   getSnsLinks: vi.fn(),
@@ -23,6 +35,20 @@ describe('Footer', () => {
     vi.mocked(festivalMetaModule.getContactFormUrl).mockResolvedValue(
       contactFormUrl,
     );
+  });
+
+  test('every navigation link points to an existing route or section anchor', () => {
+    const routes = listAppRoutes(appDir);
+    const sectionIds = extractSectionIds(aboutSectionPath);
+    const hrefs = [...footerNavigation.map((item) => item.href), '/privacy'];
+
+    for (const href of hrefs) {
+      const [path, anchor] = href.split('#');
+      expect(routeExists(routes, path)).toBe(true);
+      if (anchor) {
+        expect(sectionIds).toContain(anchor);
+      }
+    }
   });
 
   test('renders the site navigation and support links using only existing routes', async () => {

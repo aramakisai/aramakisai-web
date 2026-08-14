@@ -25,7 +25,7 @@ export default async function Page() {
         <>
           <HeroSection
             imageUrls={content.heroImages
-              .map((image) => toAssetUrl(image.id))
+              .map((image) => toAssetUrl(image.id, 1920))
               .filter((url): url is string => url !== null)}
             heroMessageHtml={content.heroMessageHtml}
           />

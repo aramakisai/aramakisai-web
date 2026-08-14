@@ -4,7 +4,7 @@ import { getContactFormUrl } from '@/lib/festival-meta';
 import type { SnsLink } from '@/lib/home-page-types';
 import { SnsIcon } from './sns-icon';
 
-const footerNavigation = [
+export const footerNavigation = [
   { href: '/', label: 'TOP' },
   { href: '/#about', label: '荒牧祭について' },
   { href: '/announcements', label: 'お知らせ' },

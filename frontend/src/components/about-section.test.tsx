@@ -1,10 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import { describe, expect, test, vi } from 'vitest';
 import { AboutSection } from './about-section';
-import type {
-  FestivalOverview,
-  FestivalTheme,
-} from '@/lib/home-page-types';
+import type { FestivalOverview, FestivalTheme } from '@/lib/home-page-types';
 
 vi.mock('@/env', () => ({
   env: {
@@ -28,8 +25,7 @@ const theme: FestivalTheme = {
   descriptionHtml: '<p>今年のテーマは万彩です。</p>',
 };
 
-const validMapUrl =
-  'https://www.google.com/maps/embed?pb=!1m2!2m1!1zsomething';
+const validMapUrl = 'https://www.google.com/maps/embed?pb=!1m2!2m1!1zsomething';
 
 const emptyFestival: FestivalOverview = {
   name: '荒牧祭',
@@ -85,15 +81,13 @@ describe('AboutSection', () => {
     const campusMap = within(about).getByTestId('campus-map');
     expect(campusMap).toHaveAttribute('src', validMapUrl);
 
-    expect(within(about).getByTestId('theme-word')).toHaveTextContent(
-      '万彩',
-    );
+    expect(within(about).getByTestId('theme-word')).toHaveTextContent('万彩');
     const themeImage = within(about).getByRole('img', {
       name: /万彩/,
     });
     expect(themeImage).toHaveAttribute(
       'src',
-      'http://localhost:8055/assets/theme-file-id?format=webp',
+      'http://localhost:8055/assets/theme-file-id?format=webp&width=960',
     );
     expect(
       within(about).getByText('今年のテーマは万彩です。'),
@@ -135,9 +129,7 @@ describe('AboutSection', () => {
     );
 
     expect(screen.queryByTestId('campus-map')).not.toBeInTheDocument();
-    expect(
-      screen.getByText('群馬大学 荒牧キャンパス'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('群馬大学 荒牧キャンパス')).toBeInTheDocument();
   });
 
   test('hides the theme visual but keeps the theme word/description when the image is missing', () => {

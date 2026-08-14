@@ -1,7 +1,19 @@
+import { join } from 'node:path';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { usePathname } from 'next/navigation';
 import { Header, navigationItems } from './header';
+import {
+  extractSectionIds,
+  listAppRoutes,
+  routeExists,
+} from '@/lib/app-routes';
+
+const appDir = join(process.cwd(), 'src/app');
+const aboutSectionPath = join(
+  process.cwd(),
+  'src/components/about-section.tsx',
+);
 
 vi.mock('next/navigation', () => ({
   usePathname: vi.fn(),
@@ -27,6 +39,23 @@ describe('Header', () => {
       { label: '開催スケジュール', href: '/#about-schedule' },
       { label: '今年のテーマ', href: '/#about-theme' },
     ]);
+  });
+
+  test('every navigation link points to an existing route or section anchor', () => {
+    const routes = listAppRoutes(appDir);
+    const sectionIds = extractSectionIds(aboutSectionPath);
+    const hrefs = navigationItems.flatMap((item) => [
+      item.href,
+      ...(item.children?.map((child) => child.href) ?? []),
+    ]);
+
+    for (const href of hrefs) {
+      const [path, anchor] = href.split('#');
+      expect(routeExists(routes, path)).toBe(true);
+      if (anchor) {
+        expect(sectionIds).toContain(anchor);
+      }
+    }
   });
 
   test('renders the 2026 logo and all desktop navigation links', () => {
