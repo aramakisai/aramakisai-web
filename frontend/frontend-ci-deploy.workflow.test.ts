@@ -68,7 +68,7 @@ describe('.github/workflows/frontend-ci.yml — deploy-preview job', () => {
 
     const buildIdx = commands.findIndex((c) =>
       c.includes(
-        'infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec opennextjs-cloudflare build',
+        'infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- env NEXT_PUBLIC_DIRECTUS_URL=https://api.aramakisai.com pnpm exec opennextjs-cloudflare build',
       ),
     );
     const uploadIdx = commands.findIndex((c) =>

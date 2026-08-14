@@ -29,6 +29,12 @@ type FestivalMeta = {
   overview: string | null;
   hero_image: string | null;
   site_title: string | null;
+  theme_word: string | null;
+  theme_image: string | null;
+  theme_description: string | null;
+  venue_name: string | null;
+  campus_map_url: string | null;
+  contact_form_url: string | null;
 };
 
 export type AnnouncementFile = {
@@ -60,6 +66,7 @@ type Topic = {
   image: string | null;
   attachment: string | null;
   sort: number | null;
+  published_at: string | null;
   attachments: TopicFile[];
 };
 

@@ -17,4 +17,10 @@ describe('toAssetUrl', () => {
       'http://localhost:8055/assets/1234-abcd?format=webp',
     );
   });
+
+  it('widthが指定された場合、widthパラメータを付与したURLを返す', () => {
+    expect(toAssetUrl('1234-abcd', 1920)).toBe(
+      'http://localhost:8055/assets/1234-abcd?format=webp&width=1920',
+    );
+  });
 });

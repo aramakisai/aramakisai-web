@@ -69,6 +69,7 @@ describe('TopicsService', () => {
 
       expect(readItems).toHaveBeenCalledWith('topics', {
         sort: ['sort'],
+        filter: { published_at: { _lte: '$NOW', _nnull: true } },
         fields: [
           '*',
           'attachments.sort',

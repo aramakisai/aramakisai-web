@@ -51,7 +51,9 @@ export function RichText({ html, className }: RichTextProps) {
 
   return (
     <div
-      className={className}
+      className={['min-w-0 break-words [overflow-wrap:anywhere]', className]
+        .filter(Boolean)
+        .join(' ')}
       dangerouslySetInnerHTML={{ __html: sanitized }}
     />
   );

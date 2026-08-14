@@ -18,6 +18,7 @@ type RawTopic = {
   title: string;
   body: string | null;
   image: string | null;
+  published_at?: string | null;
   attachments?: TopicFile[];
 };
 
@@ -53,6 +54,7 @@ export async function getTopics(): Promise<TopicSummary[]> {
   const topicsData = await directus.request(
     readItems('topics', {
       sort: ['sort'],
+      filter: { published_at: { _lte: '$NOW', _nnull: true } },
       fields: TOPIC_FIELDS,
     }),
   );

@@ -48,9 +48,9 @@ export default function RootLayout({
 
   return (
     <html lang="ja" className={zenOldMincho.variable}>
-      <body className="flex min-h-screen flex-col font-sans">
+      <body className="flex min-h-screen min-h-dvh min-w-0 flex-col font-sans">
         <Header />
-        <div className="flex-1">{children}</div>
+        <div className="min-w-0 flex-1">{children}</div>
         <Footer />
       </body>
       {process.env.NODE_ENV === 'production' && gaMeasurementId && (

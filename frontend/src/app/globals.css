@@ -3,6 +3,23 @@
 
 @config "../../tailwind.config.ts";
 
+:root {
+  --mansai-spectrum: linear-gradient(
+    100deg,
+    #7557a8 0%,
+    #4c6fb1 24%,
+    #3a91a8 48%,
+    #4b946f 72%,
+    #b45e8c 100%
+  );
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
 @layer base {
   h1:not(.prose *),
   h2:not(.prose *),
@@ -13,6 +30,13 @@
     font-family: var(--font-zen-old-mincho), serif;
     font-weight: 900;
     @apply bg-gradient-to-r from-orange-600 to-blue-900 bg-clip-text text-transparent;
+  }
+}
+
+@layer utilities {
+  .mansai-spectrum-line,
+  .mansai-spectrum-text {
+    background-image: var(--mansai-spectrum);
   }
 }
 

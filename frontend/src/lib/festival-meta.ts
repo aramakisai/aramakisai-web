@@ -16,3 +16,14 @@ export async function getFestivalMeta(): Promise<FestivalOverview> {
     heroImageId: meta.hero_image ?? null,
   };
 }
+
+export async function getContactFormUrl(): Promise<string | null> {
+  try {
+    const meta = await directus.request(
+      readSingleton('festival_meta', { fields: ['contact_form_url'] }),
+    );
+    return meta?.contact_form_url ?? null;
+  } catch {
+    return null;
+  }
+}

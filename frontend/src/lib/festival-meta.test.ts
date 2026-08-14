@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getFestivalMeta } from './festival-meta';
+import { getFestivalMeta, getContactFormUrl } from './festival-meta';
 import { directus } from './directus';
 import { readSingleton } from '@directus/sdk';
 
@@ -78,5 +78,42 @@ describe('getFestivalMeta', () => {
       overviewHtml: null,
       heroImageId: null,
     });
+  });
+});
+
+describe('getContactFormUrl', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('fetches festival_meta.contact_form_url', async () => {
+    vi.mocked(directus.request).mockResolvedValueOnce({
+      contact_form_url: 'https://forms.example.com/contact',
+    });
+
+    const result = await getContactFormUrl();
+
+    expect(readSingleton).toHaveBeenCalledWith('festival_meta', {
+      fields: ['contact_form_url'],
+    });
+    expect(result).toBe('https://forms.example.com/contact');
+  });
+
+  it('returns null when contact_form_url is not set', async () => {
+    vi.mocked(directus.request).mockResolvedValueOnce({
+      contact_form_url: null,
+    });
+
+    const result = await getContactFormUrl();
+    expect(result).toBeNull();
+  });
+
+  it('returns null when directus is unreachable (throws exception)', async () => {
+    vi.mocked(directus.request).mockRejectedValueOnce(
+      new Error('Network error'),
+    );
+
+    const result = await getContactFormUrl();
+    expect(result).toBeNull();
   });
 });

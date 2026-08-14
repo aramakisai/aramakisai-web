@@ -40,6 +40,26 @@ describe('StaticPage', () => {
     );
   });
 
+  it('renders the privacy policy via the generic static page route', async () => {
+    vi.mocked(getPageBySlug).mockResolvedValue({
+      title: 'プライバシーポリシー',
+      contentHtml: '<h2>1. 取得する情報</h2><ul><li>氏名</li></ul>',
+      embedUrl: null,
+      embedHeight: null,
+    });
+
+    const params = Promise.resolve({ slug: 'privacy' });
+    render(await StaticPage({ params }));
+
+    expect(
+      screen.getByRole('heading', { name: 'プライバシーポリシー' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: '1. 取得する情報' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('氏名')).toBeInTheDocument();
+  });
+
   it('calls notFound when slug does not exist', async () => {
     vi.mocked(getPageBySlug).mockResolvedValue(null);
 
