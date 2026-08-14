@@ -28,6 +28,7 @@ export const navigationItems: readonly NavigationItem[] = [
     ],
   },
   { label: 'お知らせ', href: '/announcements' },
+  { label: 'アクセス', href: '/access' },
 ];
 
 export function Header() {

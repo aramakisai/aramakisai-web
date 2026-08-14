@@ -31,6 +31,7 @@ describe('Header', () => {
       '/',
       '/#about',
       '/announcements',
+      '/access',
     ]);
     expect(
       navigationItems.find((item) => item.href === '/#about')?.children,
@@ -79,6 +80,10 @@ describe('Header', () => {
     expect(screen.getByRole('link', { name: 'お知らせ' })).toHaveAttribute(
       'href',
       '/announcements',
+    );
+    expect(screen.getByRole('link', { name: 'アクセス' })).toHaveAttribute(
+      'href',
+      '/access',
     );
     expect(
       screen.queryByRole('link', { name: '企画を探す' }),
@@ -159,7 +164,7 @@ describe('Header', () => {
     const { container } = render(<Header />);
 
     const lines = container.querySelectorAll('.mansai-spectrum-line');
-    expect(lines).toHaveLength(6);
+    expect(lines).toHaveLength(7);
 
     const submenu = screen.getByRole('list', {
       name: '荒牧祭についてのサブメニュー',
@@ -211,6 +216,7 @@ describe('Header', () => {
       ['TOP', '/'],
       ['荒牧祭について', '/#about'],
       ['お知らせ', '/announcements'],
+      ['アクセス', '/access'],
     ]);
   });
 
