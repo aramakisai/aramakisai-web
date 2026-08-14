@@ -55,14 +55,15 @@ describe('RootLayout', () => {
     const footerElement = findFooterElement(layout);
 
     render(
-      await (footerElement.type as (props: object) => Promise<React.ReactElement>)(
-        footerElement.props as object,
-      ),
+      await (
+        footerElement.type as (props: object) => Promise<React.ReactElement>
+      )(footerElement.props as object),
     );
 
-    expect(
-      screen.getByRole('link', { name: '荒牧祭公式X' }),
-    ).toHaveAttribute('href', 'https://x.com/aramakisai_');
+    expect(screen.getByRole('link', { name: '荒牧祭公式X' })).toHaveAttribute(
+      'href',
+      'https://x.com/aramakisai_',
+    );
     expect(screen.getByRole('contentinfo')).toBeInTheDocument();
   });
 });
