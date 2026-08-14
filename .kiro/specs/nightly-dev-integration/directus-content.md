@@ -39,8 +39,8 @@
 | 概要文 | `festival_meta.overview` | REST API (`PATCH /items/festival_meta`) | 投入済み。現行 Directus 版の内容を採用し、HTML の二重エスケープを修正して更新完了 (2026-08-13) |
 | SNS リンク | `festival_meta.sns_links` | — | 投入済み (Instagram / X / YouTube)。対応不要 |
 | プライバシーポリシー本文 | `pages` (`slug: privacy`) の `content` | REST API (`PATCH /items/pages/1`) | 投入済み。`nightly` 版の内容 (全10節) へ更新完了 (2026-08-13) |
-| 会場名 / マップ URL / お問い合わせ URL | `festival_meta.venue_name` / `campus_map_url` / `contact_form_url` | REST API (`PATCH /items/festival_meta`) | ローカル開発環境へ投入・表示確認済み (2026-08-13)。本番は Phase 2 スキーマ (5.1/5.2) の本番デプロイ完了後に投入する |
-| テーマ関連 3 項目 | `festival_meta.theme_word` / `theme_image` / `theme_description` | REST API (`POST /files` + `PATCH /items/festival_meta`) | ローカル開発環境へ投入・表示確認済み (2026-08-13)。本番は Phase 2 スキーマ (5.1/5.2) の本番デプロイ完了後に投入する |
+| 会場名 / マップ URL / お問い合わせ URL | `festival_meta.venue_name` / `campus_map_url` / `contact_form_url` | REST API (`PATCH /items/festival_meta`) | 投入済み (2026-08-14)。本番へ投入完了 |
+| テーマ関連 3 項目 | `festival_meta.theme_word` / `theme_image` / `theme_description` | REST API (`POST /files` + `PATCH /items/festival_meta`) | 投入済み (2026-08-14)。本番へ投入完了 |
 
 REST API で投入する分は、実行内容を本ドキュメントの該当タスク実施時にリクエスト定義として追記する。本番へ適用する前に開発環境または staging で表示を確認する。
 
@@ -74,3 +74,11 @@ REST API で投入する分は、実行内容を本ドキュメントの該当�
 - 公開ロールで `GET /items/festival_meta?fields=theme_word,theme_description,venue_name,campus_map_url,contact_form_url,theme_image` および `GET /assets/e8cf9bf9-...` が 200 を返すことを確認済み
 - `NEXT_PUBLIC_DIRECTUS_URL=http://localhost:8055` でフロントエンドの dev サーバーを起動し、トップページの HTML にテーマ語・会場名・キャンパスマップ埋め込み URL・お問い合わせフォームリンクが描画されることを確認済み
 - 本番投入は Phase 2 スキーマ (5.1 の `snapshot.yaml` 変更 + 5.2 の RBAC migration) が `nightly` → `dev` → `main` を経て本番 Directus へ適用された後に、同じ値で行う
+
+### 実施記録 (2026-08-14): Phase 2 追加フィールドの投入 (本番)
+
+- 前提: infra リポジトリ PR #61 (`festival_meta` への 6 フィールド追加 + RBAC migration) を staging ephemeral 環境で検証後にマージ、ArgoCD 経由で本番 Directus へ適用済み。本番再起動により RBAC 権限キャッシュも更新済み
+- テーマのメインビジュアル画像: `POST /files` (multipart) で `frontend/public/images/background1.png` を本番 Directus のファイルライブラリへ登録。発行された `directus_files` ID: `7bc0ee32-05b5-4cf6-80ba-a5a8d97b2da4`
+- `PATCH /items/festival_meta` でローカル開発環境に投入済みの値 (`theme_word` / `theme_description` / `venue_name` / `campus_map_url` / `contact_form_url`) と、上記本番ファイル ID を紐づけた `theme_image` を一括投入
+- 公開ロールで `GET /items/festival_meta?fields=theme_word,theme_image,theme_description,venue_name,campus_map_url,contact_form_url` および `GET /assets/7bc0ee32-...` が `200` を返すことを確認済み
+- staging Directus は該当 PR のマージによりアクティブ PR が無くなり `directus-staging-freeze-sync` によってサスペンド (`replicas: 0`) 済みのため、staging への投入は実施していない (5.5 の要件は「開発環境またはstagingで確認」であり、ローカル開発環境での確認をもって充足済み)
