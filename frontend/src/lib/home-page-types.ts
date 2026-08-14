@@ -38,6 +38,12 @@ export interface FestivalOverview {
   heroImageId: string | null;
 }
 
+export interface FestivalTheme {
+  word: string | null;
+  imageId: string | null;
+  descriptionHtml: string | null;
+}
+
 export interface SponsorSummary {
   id: number;
   type: 'ad' | 'sponsor' | 'food_truck' | 'other';
@@ -52,6 +58,10 @@ export interface HomePageContent {
   heroMessageHtml: string;
   snsLinks: SnsLink[];
   festival: FestivalOverview;
+  theme: FestivalTheme;
+  venueName: string | null;
+  campusMapUrl: string | null;
+  contactFormUrl: string | null;
   sponsors: SponsorSummary[];
   announcements: AnnouncementSummary[];
   topics: TopicSummary[];

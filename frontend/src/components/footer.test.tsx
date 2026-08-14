@@ -1,74 +1,201 @@
-import { render, screen } from '@testing-library/react';
-import { expect, test, describe, vi } from 'vitest';
-import { Footer } from './footer';
-import { getSnsLinks } from '../lib/sns-links';
+import { join } from 'node:path';
+import { render, screen, within } from '@testing-library/react';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { Footer, footerNavigation } from './footer';
+import * as snsLinksModule from '@/lib/sns-links';
+import * as festivalMetaModule from '@/lib/festival-meta';
+import {
+  extractSectionIds,
+  listAppRoutes,
+  routeExists,
+} from '@/lib/app-routes';
 
-vi.mock('../lib/sns-links', () => ({
+const appDir = join(process.cwd(), 'src/app');
+const aboutSectionPath = join(
+  process.cwd(),
+  'src/components/about-section.tsx',
+);
+
+vi.mock('@/lib/sns-links', () => ({
   getSnsLinks: vi.fn(),
 }));
 
-describe('Footer', () => {
-  test('renders nav links to contact, access, privacy', async () => {
-    vi.mocked(getSnsLinks).mockResolvedValue([]);
-    const jsx = await Footer();
-    render(jsx);
+vi.mock('@/lib/festival-meta', () => ({
+  getContactFormUrl: vi.fn(),
+}));
 
-    expect(screen.getByRole('link', { name: 'お問い合わせ' })).toHaveAttribute(
-      'href',
-      '/contact',
+const contactFormUrl = 'https://forms.example.com/contact';
+
+describe('Footer', () => {
+  async function renderFooter() {
+    return render(await Footer());
+  }
+
+  beforeEach(() => {
+    vi.mocked(festivalMetaModule.getContactFormUrl).mockResolvedValue(
+      contactFormUrl,
     );
-    expect(screen.getByRole('link', { name: 'アクセス' })).toHaveAttribute(
+  });
+
+  test('every navigation link points to an existing route or section anchor', () => {
+    const routes = listAppRoutes(appDir);
+    const sectionIds = extractSectionIds(aboutSectionPath);
+    const hrefs = [...footerNavigation.map((item) => item.href), '/privacy'];
+
+    for (const href of hrefs) {
+      const [path, anchor] = href.split('#');
+      expect(routeExists(routes, path)).toBe(true);
+      if (anchor) {
+        expect(sectionIds).toContain(anchor);
+      }
+    }
+  });
+
+  test('renders the site navigation and support links using only existing routes', async () => {
+    vi.mocked(snsLinksModule.getSnsLinks).mockResolvedValue([]);
+    await renderFooter();
+
+    const footer = screen.getByRole('contentinfo');
+    expect(footer).toHaveClass('border-t', 'bg-slate-50/70');
+
+    const siteNavigation = screen.getByRole('navigation', {
+      name: 'フッターサイト案内',
+    });
+    expect(
+      within(siteNavigation)
+        .getAllByRole('link')
+        .map((link) => [link.textContent, link.getAttribute('href')]),
+    ).toEqual([
+      ['TOP', '/'],
+      ['荒牧祭について', '/#about'],
+      ['お知らせ', '/announcements'],
+    ]);
+
+    const supportNavigation = screen.getByRole('navigation', {
+      name: 'フッターサポート',
+    });
+    expect(
+      within(supportNavigation)
+        .getAllByRole('link')
+        .map((link) => [link.textContent, link.getAttribute('href')]),
+    ).toEqual([
+      ['お問い合わせ', contactFormUrl],
+      ['プライバシーポリシー', '/privacy'],
+    ]);
+
+    expect(
+      screen.queryByRole('link', { name: '企画を探す' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: '会場案内' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: '協賛企業' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'お知らせ' })).toHaveAttribute(
       'href',
-      '/access',
+      '/announcements',
     );
+  });
+
+  test('restores the committee address and contact email removed by nightly', async () => {
+    vi.mocked(snsLinksModule.getSnsLinks).mockResolvedValue([]);
+    await renderFooter();
+
+    expect(screen.getByText(/〒371-8510/)).toBeInTheDocument();
+    expect(screen.getByText(/群馬県前橋市荒牧町4-2/)).toBeInTheDocument();
+    expect(screen.getByText(/mail_at_example\.invalid/)).toBeInTheDocument();
+  });
+
+  test('renders SNS links from getSnsLinks() with accessible icons', async () => {
+    vi.mocked(snsLinksModule.getSnsLinks).mockResolvedValue([
+      { platform: 'X', url: 'https://x.com/aramakisai_' },
+      { platform: 'Instagram', url: 'https://www.instagram.com/aramakisai_/' },
+    ]);
+    await renderFooter();
+
+    expect(screen.getByText('OFFICIAL SNS')).toBeInTheDocument();
+
+    const xLink = screen.getByRole('link', { name: '荒牧祭公式X' });
+    expect(xLink).toHaveAttribute('href', 'https://x.com/aramakisai_');
+    expect(xLink).toHaveAttribute('target', '_blank');
+    expect(xLink).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(within(xLink).getByTestId('icon-x')).toHaveAttribute(
+      'aria-hidden',
+      'true',
+    );
+
+    const instagramLink = screen.getByRole('link', {
+      name: '荒牧祭公式Instagram',
+    });
+    expect(instagramLink).toHaveAttribute(
+      'href',
+      'https://www.instagram.com/aramakisai_/',
+    );
+  });
+
+  test('hides the SNS block but keeps the rest of the footer when getSnsLinks() fails', async () => {
+    vi.mocked(snsLinksModule.getSnsLinks).mockRejectedValue(
+      new Error('Directus Error'),
+    );
+    await renderFooter();
+
+    expect(screen.queryByText('OFFICIAL SNS')).not.toBeInTheDocument();
+    expect(screen.getByRole('contentinfo')).toBeInTheDocument();
+    expect(
+      screen.getByRole('navigation', { name: 'フッターサイト案内' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/〒371-8510/)).toBeInTheDocument();
+  });
+
+  test('hides the SNS block entirely when there are no links', async () => {
+    vi.mocked(snsLinksModule.getSnsLinks).mockResolvedValue([]);
+    await renderFooter();
+
+    expect(screen.queryByText('OFFICIAL SNS')).not.toBeInTheDocument();
+  });
+
+  test('hides the contact link but keeps the rest of the footer when contact_form_url is unset', async () => {
+    vi.mocked(snsLinksModule.getSnsLinks).mockResolvedValue([]);
+    vi.mocked(festivalMetaModule.getContactFormUrl).mockResolvedValue(null);
+    await renderFooter();
+
+    expect(
+      screen.queryByRole('link', { name: 'お問い合わせ' }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'プライバシーポリシー' }),
-    ).toHaveAttribute('href', '/privacy');
+    ).toBeInTheDocument();
+    expect(screen.getByRole('contentinfo')).toBeInTheDocument();
   });
 
-  test('does not render SNS links when sns_links is empty', async () => {
-    vi.mocked(getSnsLinks).mockResolvedValue([]);
-    const jsx = await Footer();
-    render(jsx);
+  test('hides the contact link but keeps the rest of the footer when getContactFormUrl() fails', async () => {
+    vi.mocked(snsLinksModule.getSnsLinks).mockResolvedValue([]);
+    vi.mocked(festivalMetaModule.getContactFormUrl).mockRejectedValue(
+      new Error('Directus Error'),
+    );
+    await renderFooter();
 
-    const links = screen.queryAllByRole('link');
-    // Ensure only the 3 main links exist
-    expect(links).toHaveLength(3);
+    expect(
+      screen.queryByRole('link', { name: 'お問い合わせ' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('contentinfo')).toBeInTheDocument();
   });
 
-  test('renders SNS links with aria-label when sns_links has items', async () => {
-    vi.mocked(getSnsLinks).mockResolvedValue([
-      { platform: 'x', url: 'https://x.com/example' },
-      { platform: 'instagram', url: 'https://instagram.com/example' },
+  test('uses the shared Mansai hover line styling and copyright', async () => {
+    vi.mocked(snsLinksModule.getSnsLinks).mockResolvedValue([
+      { platform: 'X', url: 'https://x.com/aramakisai_' },
     ]);
-    const jsx = await Footer();
-    render(jsx);
+    const { container } = await renderFooter();
 
-    expect(screen.getByRole('link', { name: 'x' })).toHaveAttribute(
-      'href',
-      'https://x.com/example',
-    );
-    expect(screen.getByRole('link', { name: 'instagram' })).toHaveAttribute(
-      'href',
-      'https://instagram.com/example',
+    const hoverLines = container.querySelectorAll('.mansai-spectrum-line');
+    expect(hoverLines.length).toBeGreaterThan(0);
+    hoverLines.forEach((line) =>
+      expect(line).toHaveClass('h-px', 'scale-x-0', 'transition-transform'),
     );
 
-    // Also still renders the 3 main links
     expect(
-      screen.getByRole('link', { name: 'お問い合わせ' }),
+      screen.getByText('© 2026 群馬大学荒牧祭実行委員会'),
     ).toBeInTheDocument();
-  });
-
-  test('renders successfully even if getSnsLinks throws an error', async () => {
-    vi.mocked(getSnsLinks).mockRejectedValue(new Error('Fetch failed'));
-    const jsx = await Footer();
-    render(jsx);
-
-    expect(
-      screen.getByRole('link', { name: 'お問い合わせ' }),
-    ).toBeInTheDocument();
-
-    const links = screen.queryAllByRole('link');
-    expect(links).toHaveLength(3); // Only the 3 main links exist
   });
 });

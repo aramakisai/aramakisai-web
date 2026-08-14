@@ -13,7 +13,7 @@ export function AttachmentGallery({ attachments }: AttachmentGalleryProps) {
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex min-w-0 max-w-full flex-col gap-2">
       {attachments.map((attachment) => {
         const isImage = attachment.type?.startsWith('image/');
         const url = toAssetUrl(attachment.id);
@@ -26,12 +26,18 @@ export function AttachmentGallery({ attachments }: AttachmentGalleryProps) {
               key={attachment.id}
               src={url}
               alt={attachment.filenameDownload}
+              className="h-auto max-w-full"
             />
           );
         }
 
         return (
-          <a key={attachment.id} href={url} download>
+          <a
+            key={attachment.id}
+            href={url}
+            download
+            className="min-w-0 max-w-full break-words [overflow-wrap:anywhere]"
+          >
             {attachment.filenameDownload}
           </a>
         );

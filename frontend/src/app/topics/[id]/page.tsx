@@ -24,10 +24,10 @@ export default async function TopicDetailPage({ params }: PageProps) {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8">
+    <main className="mx-auto max-w-4xl space-y-8">
       <h1 className="text-3xl font-bold">{topic.title}</h1>
       {topic.body && <RichText html={topic.body} />}
       <AttachmentGallery attachments={topic.attachments} />
-    </div>
+    </main>
   );
 }

@@ -1,65 +1,68 @@
 import { getHomePage } from '@/lib/home-page';
-import { toAssetUrl } from '@/lib/directus-asset-url';
 import { HeroSection } from '@/components/hero-section';
+import { AboutSection } from '@/components/about-section';
 import { AnnouncementsList } from '@/components/announcements-list';
 import { TopicsList } from '@/components/topics-list';
-import { FestivalOverview } from '@/components/festival-overview';
-import { FestivalSummary } from '@/components/festival-summary';
+import { RichText } from '@/components/rich-text';
+import { toAssetUrl } from '@/lib/directus-asset-url';
 import { HomePageContent } from '@/lib/home-page-types';
 
 export default async function Page() {
-  let content: HomePageContent;
+  let content: HomePageContent | null = null;
   try {
     content = await getHomePage();
   } catch {
-    // エラー時は最小限のフォールバック表示
-    return (
-      <main className="container mx-auto px-4 py-8">
-        <h1 className="text-xl font-bold">荒牧祭</h1>
-      </main>
-    );
+    // Directus由来の領域だけを非表示にし、静的なページ構造は維持する
   }
 
-  const festivalName = content.festival.name || '荒牧祭';
-  const heroImageUrls = content.heroImages
-    .map((image) => toAssetUrl(image.id))
-    .filter((url): url is string => url !== null);
+  const festivalName = content?.festival.name || '荒牧祭';
 
   return (
-    <main className="space-y-12 px-4 pb-8 sm:py-12">
+    <main>
       <h1 className="sr-only">{festivalName}</h1>
 
-      <HeroSection
-        heroImageUrls={heroImageUrls}
-        heroMessageHtml={content.heroMessageHtml}
-      />
-      <div className="mx-auto max-w-6xl">
-        <FestivalOverview festival={content.festival} />
-
-        <FestivalSummary overviewHtml={content.festival.overviewHtml} />
-
-        <section>
-          <h2 className="mb-4 border-b border-gray-200 pb-2 text-2xl font-bold">
-            お知らせ
-          </h2>
-          <AnnouncementsList announcements={content.announcements} />
-        </section>
-
-        <section>
-          <h2 className="mb-4 border-b border-gray-200 pb-2 text-2xl font-bold">
-            トピックス
-          </h2>
-          <TopicsList
-            topics={content.topics.map((t) => ({
-              id: t.id,
-              title: t.title,
-              body: t.body,
-              imageId: t.imageId,
-              attachments: t.attachments,
-            }))}
+      {content && (
+        <>
+          <HeroSection
+            imageUrls={content.heroImages
+              .map((image) => toAssetUrl(image.id, 1920))
+              .filter((url): url is string => url !== null)}
+            heroMessageHtml={content.heroMessageHtml}
           />
-        </section>
-      </div>
+          <AboutSection
+            festival={content.festival}
+            theme={content.theme}
+            venueName={content.venueName}
+            campusMapUrl={content.campusMapUrl}
+          />
+
+          <div className="mx-auto max-w-6xl space-y-12 px-4 py-12">
+            <RichText html={content.heroMessageHtml} className="hero-message" />
+
+            <section>
+              <h2 className="mb-4 border-b border-gray-200 pb-2 text-2xl font-bold">
+                お知らせ
+              </h2>
+              <AnnouncementsList announcements={content.announcements} />
+            </section>
+
+            <section>
+              <h2 className="mb-4 border-b border-gray-200 pb-2 text-2xl font-bold">
+                トピックス
+              </h2>
+              <TopicsList
+                topics={content.topics.map((t) => ({
+                  id: t.id,
+                  title: t.title,
+                  body: t.body,
+                  imageId: t.imageId,
+                  attachments: t.attachments,
+                }))}
+              />
+            </section>
+          </div>
+        </>
+      )}
     </main>
   );
 }

@@ -10,6 +10,7 @@ import {
   AnnouncementSummary,
   TopicSummary,
   FestivalOverview,
+  FestivalTheme,
   SponsorSummary,
   Attachment,
 } from './home-page-types';
@@ -64,6 +65,12 @@ export async function getHomePage(): Promise<HomePageContent> {
     eventDays: meta.event_days || [],
     overviewHtml: meta.overview || null,
     heroImageId: meta.hero_image || null,
+  };
+
+  const theme: FestivalTheme = {
+    word: meta.theme_word || null,
+    imageId: meta.theme_image || null,
+    descriptionHtml: meta.theme_description || null,
   };
 
   const sponsorsData = await directus.request(
@@ -124,6 +131,10 @@ export async function getHomePage(): Promise<HomePageContent> {
     heroMessageHtml: pageHome.hero_message || '',
     snsLinks,
     festival,
+    theme,
+    venueName: meta.venue_name || null,
+    campusMapUrl: meta.campus_map_url || null,
+    contactFormUrl: meta.contact_form_url || null,
     sponsors,
     announcements,
     topics,

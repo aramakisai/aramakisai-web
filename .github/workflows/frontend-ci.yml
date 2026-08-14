@@ -3,7 +3,7 @@ name: Frontend CI
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-    branches: [main]
+    branches: [main, dev]
     paths:
       - frontend/**
       - .github/workflows/frontend-ci.yml
@@ -119,8 +119,8 @@ jobs:
             --plain --silent)" >> "$GITHUB_ENV"
           echo "INFISICAL_PROJECT_ID=$(python3 -c "import json;print(json.load(open('.infisical.json'))['workspaceId'])")" >> "$GITHUB_ENV"
 
-      - name: Build (staging env, inlined by Infisical)
-        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec opennextjs-cloudflare build
+      - name: Build (staging env, inlined by Infisical; Directus URL forced to prod for read-only preview data)
+        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- env NEXT_PUBLIC_DIRECTUS_URL=https://api.aramakisai.com pnpm exec opennextjs-cloudflare build
 
       - name: Upload Cloudflare Workers preview version
         id: upload_preview
@@ -149,7 +149,7 @@ jobs:
 
             ${{ steps.upload_preview.outputs.url }}
 
-            staging Directus (`https://stg-api.aramakisai.com`) 向けビルドです。
+            本番 Directus (`https://api.aramakisai.com`) の読み取り専用データを表示するビルドです。
 
   e2e:
     name: e2e (staging preview)
@@ -201,7 +201,7 @@ jobs:
         run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec tsx scripts/wait-for-preview.ts
 
       - name: Run E2E tests
-        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm test:e2e
+        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- env NEXT_PUBLIC_DIRECTUS_URL=https://api.aramakisai.com pnpm test:e2e
 
       - name: Upload Playwright report (trace/screenshot)
         if: failure()

@@ -38,6 +38,12 @@ describe('getHomePage', () => {
           event_days: [{ label: '1日目', open: '09:00', close: '17:00' }],
           overview: '<p>Overview</p>',
           hero_image: 'meta_hero1',
+          theme_word: '万彩',
+          theme_image: 'theme_image_1',
+          theme_description: '<p>Theme description</p>',
+          venue_name: '荒牧キャンパス',
+          campus_map_url: 'https://www.google.com/maps/embed?pb=xxx',
+          contact_form_url: 'https://forms.example.com/contact',
         };
       }
       if (
@@ -150,6 +156,16 @@ describe('getHomePage', () => {
       overviewHtml: '<p>Overview</p>',
       heroImageId: 'meta_hero1',
     });
+    expect(result.theme).toEqual({
+      word: '万彩',
+      imageId: 'theme_image_1',
+      descriptionHtml: '<p>Theme description</p>',
+    });
+    expect(result.venueName).toBe('荒牧キャンパス');
+    expect(result.campusMapUrl).toBe(
+      'https://www.google.com/maps/embed?pb=xxx',
+    );
+    expect(result.contactFormUrl).toBe('https://forms.example.com/contact');
     expect(result.announcements).toEqual([
       {
         id: 1,
@@ -198,6 +214,12 @@ describe('getHomePage', () => {
           event_days: null,
           overview: null,
           hero_image: null,
+          theme_word: null,
+          theme_image: null,
+          theme_description: null,
+          venue_name: null,
+          campus_map_url: null,
+          contact_form_url: null,
         };
       }
       if (
@@ -216,6 +238,14 @@ describe('getHomePage', () => {
     expect(result.snsLinks).toEqual([]);
     expect(result.announcements).toEqual([]);
     expect(result.topics).toEqual([]);
+    expect(result.theme).toEqual({
+      word: null,
+      imageId: null,
+      descriptionHtml: null,
+    });
+    expect(result.venueName).toBeNull();
+    expect(result.campusMapUrl).toBeNull();
+    expect(result.contactFormUrl).toBeNull();
   });
 
   it('uses correct query for announcements', async () => {
