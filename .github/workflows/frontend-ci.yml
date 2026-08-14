@@ -3,7 +3,7 @@ name: Frontend CI
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-    branches: [main]
+    branches: [main, dev]
     paths:
       - frontend/**
       - .github/workflows/frontend-ci.yml

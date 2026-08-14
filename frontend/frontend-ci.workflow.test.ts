@@ -43,12 +43,12 @@ function allSteps(workflow: Workflow): Step[] {
 }
 
 describe('.github/workflows/frontend-ci.yml', () => {
-  it('triggers on PR open/synchronize/reopen against main', () => {
+  it('triggers on PR open/synchronize/reopen against main and dev', () => {
     const workflow = loadWorkflow();
     expect(workflow.on.pull_request?.types).toEqual(
       expect.arrayContaining(['opened', 'synchronize', 'reopened']),
     );
-    expect(workflow.on.pull_request?.branches).toEqual(['main']);
+    expect(workflow.on.pull_request?.branches).toEqual(['main', 'dev']);
   });
 
   it('triggers on push to main and dev', () => {
