@@ -147,7 +147,7 @@ export function AboutSection({
               {venueName && (
                 <div
                   data-testid="venue-details"
-                  className="border-l-2 border-cyan-500 pl-5"
+                  className="border-l-2 border-info pl-5"
                 >
                   <p className="text-sm font-semibold tracking-[0.18em] text-slate-500">
                     会場

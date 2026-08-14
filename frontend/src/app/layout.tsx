@@ -8,7 +8,7 @@ import { getFestivalMeta } from '@/lib/festival-meta';
 import { env } from '@/env';
 
 const zenOldMincho = Zen_Old_Mincho({
-  weight: '900',
+  weight: '700',
   subsets: ['latin'],
   variable: '--font-zen-old-mincho',
   display: 'swap',
