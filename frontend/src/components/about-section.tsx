@@ -2,6 +2,7 @@
 import { toAssetUrl } from '@/lib/directus-asset-url';
 import type { FestivalOverview, FestivalTheme } from '@/lib/home-page-types';
 import { RichText } from './rich-text';
+import { Http2ServerRequest } from 'http2';
 
 export interface AboutSectionProps {
   festival: FestivalOverview;
@@ -71,16 +72,7 @@ export function AboutSection({
             aria-labelledby="about-overview-title"
             className="grid grid-cols-1 scroll-mt-24 gap-10 lg:grid-cols-[18rem_minmax(0,1fr)] lg:gap-16"
           >
-            <h3
-              id="about-overview-title"
-              className="flex items-baseline gap-5 bg-none bg-clip-border p-0 text-slate-950"
-            >
-              <span className="mansai-spectrum-text bg-clip-text text-6xl leading-none font-light tracking-tighter text-transparent opacity-65 lg:text-8xl">
-                01
-              </span>
-              <span className="text-2xl tracking-wide lg:text-3xl">概要</span>
-            </h3>
-
+            <h2>概要</h2>
             <div className="min-w-0 max-w-4xl">
               {festival.overviewHtml && (
                 <RichText
@@ -101,17 +93,9 @@ export function AboutSection({
               aria-hidden="true"
               className="mansai-spectrum-line absolute inset-x-0 top-0 h-px opacity-60"
             />
-            <h3
-              id="about-schedule-title"
-              className="flex items-baseline gap-5 bg-none bg-clip-border p-0 text-slate-950 lg:flex-col lg:items-start lg:gap-4"
-            >
-              <span className="mansai-spectrum-text bg-clip-text text-6xl leading-none font-light tracking-tighter text-transparent opacity-65 lg:text-8xl">
-                02
-              </span>
-              <span className="text-2xl tracking-wide lg:text-3xl">
+            <h2>
                 開催スケジュール
-              </span>
-            </h3>
+            </h2>
 
             <div className="min-w-0 max-w-5xl space-y-8 text-base leading-8 text-slate-700 lg:text-lg lg:leading-9">
               {festival.eventDays.length > 0 && (
@@ -183,17 +167,9 @@ export function AboutSection({
                 aria-hidden="true"
                 className="mansai-spectrum-line absolute inset-x-0 top-0 h-px opacity-60"
               />
-              <h3
-                id="about-theme-title"
-                className="flex items-baseline gap-5 bg-none bg-clip-border p-0 text-slate-950 lg:flex-col lg:items-start lg:gap-4"
-              >
-                <span className="mansai-spectrum-text bg-clip-text text-6xl leading-none font-light tracking-tighter text-transparent opacity-65 lg:text-8xl">
-                  03
-                </span>
-                <span className="text-2xl tracking-wide lg:text-3xl">
-                  今年のテーマ
-                </span>
-              </h3>
+              <h2>
+                今年のテーマ
+              </h2>
 
               <div className="min-w-0 max-w-5xl">
                 {theme.imageId && themeImageUrl && (
