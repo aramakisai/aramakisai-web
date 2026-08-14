@@ -26,12 +26,13 @@ services:
       DB_USER: directus
       DB_PASSWORD: directus
       SECRET: local-dev-secret-not-for-production
-      ADMIN_EMAIL: admin@local.dev
+      ADMIN_EMAIL: admin@local.dev # confidential:allow
       ADMIN_PASSWORD: admin
       PUBLIC_URL: http://localhost:8055
       CORS_ENABLED: "true"
       CORS_ORIGIN: "*"
       EXTENSIONS_AUTO_RELOAD: "true"
+      MIGRATIONS_PATH: /directus/extensions/migrations
     volumes:
       - ./migrations:/directus/extensions/migrations
       - directus-uploads:/directus/uploads

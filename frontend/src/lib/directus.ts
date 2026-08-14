@@ -66,6 +66,7 @@ type Topic = {
   image: string | null;
   attachment: string | null;
   sort: number | null;
+  published_at: string | null;
   attachments: TopicFile[];
 };
 
