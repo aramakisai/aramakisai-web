@@ -49,8 +49,8 @@ describe('TopicDetailPage', () => {
     const ui = await TopicDetailPage({ params });
     render(ui);
 
-    // Test title
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+    // Test main landmark and title
+    expect(screen.getByRole('main').querySelector('h1')).toHaveTextContent(
       'Test Topic Title',
     );
 
