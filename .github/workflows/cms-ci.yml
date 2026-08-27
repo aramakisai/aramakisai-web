@@ -1,0 +1,238 @@
+name: CMS CI
+
+on:
+  pull_request:
+    paths:
+      - cms/**
+      - .github/workflows/cms-ci.yml
+  push:
+    branches: [main]
+    paths:
+      - cms/**
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cms-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Type-check, test and build
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: payload
+          POSTGRES_USER: payload
+          POSTGRES_PASSWORD: payload
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U payload"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # 検証専用の使い捨て DB。本番の接続情報は Infisical からのみ供給する
+      DATABASE_URL: postgres://payload:payload@localhost:5432/payload
+      PAYLOAD_SECRET: ci-only-secret-not-for-production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: cms/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: cms
+        run: pnpm install --frozen-lockfile
+
+      - name: Type-check
+        working-directory: cms
+        run: pnpm type-check
+
+      - name: Unit tests
+        working-directory: cms
+        run: pnpm test
+
+      - name: Apply migrations against a disposable database
+        working-directory: cms
+        run: pnpm migrate
+
+      - name: Verify generated types are in sync
+        working-directory: cms
+        run: |
+          pnpm generate:types
+          git diff --exit-code src/payload-types.ts ../frontend/src/cms-types.ts
+
+      - name: Build
+        working-directory: cms
+        run: pnpm build
+
+  release:
+    name: Build image and open infra PR
+    needs: verify
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      INFISICAL_UNIVERSAL_AUTH_CLIENT_ID: ${{ secrets.INFISICAL_CLIENT_ID }}
+      INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+      IMAGE: ghcr.io/aramakisai/aramakisai-cms
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        id: image
+        uses: docker/build-push-action@v6
+        with:
+          context: cms
+          push: true
+          tags: ${{ env.IMAGE }}:${{ github.sha }}
+
+      - name: Install Infisical CLI
+        run: |
+          curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | sudo -E bash
+          sudo apt-get update && sudo apt-get install -y infisical
+
+      - name: Fetch GitHub App credentials from Infisical
+        id: app_creds
+        run: |
+          INFISICAL_TOKEN=$(infisical login --method=universal-auth \
+            --client-id="$INFISICAL_UNIVERSAL_AUTH_CLIENT_ID" \
+            --client-secret="$INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET" \
+            --plain --silent)
+          PROJECT_ID=$(python3 -c "import json;print(json.load(open('.infisical.json'))['workspaceId'])")
+          infisical run --token="$INFISICAL_TOKEN" --projectId="$PROJECT_ID" --env=prod -- bash -c '
+            echo "::add-mask::$GH_APP_ID"
+            echo "::add-mask::$GH_APP_PRIVATE_KEY"
+            echo "app_id=$GH_APP_ID" >> "$GITHUB_OUTPUT"
+            {
+              echo "private_key<<EOF"
+              echo "$GH_APP_PRIVATE_KEY"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          '
+
+      - name: Generate infra installation token
+        id: app_token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ steps.app_creds.outputs.app_id }}
+          private-key: ${{ steps.app_creds.outputs.private_key }}
+          owner: aramakisai
+          repositories: aramakisai-infra
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Checkout infra repo
+        uses: actions/checkout@v4
+        with:
+          repository: aramakisai/aramakisai-infra
+          token: ${{ steps.app_token.outputs.token }}
+          path: infra
+
+      - name: Pin image tag for prod
+        run: |
+          MANIFEST="infra/gitops/manifests/prod/cms/kustomization.yaml"
+          if [ -f "$MANIFEST" ]; then
+            python3 - "$MANIFEST" "$GITHUB_SHA" <<'PY'
+          import sys, re
+          path, sha = sys.argv[1], sys.argv[2]
+          with open(path) as f:
+              text = f.read()
+          text = re.sub(r'(newTag:\s*)\S+', rf'\g<1>{sha}', text)
+          with open(path, 'w') as f:
+              f.write(text)
+          PY
+          fi
+
+      - name: Create branch and push to infra
+        id: push_branch
+        working-directory: infra
+        env:
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          SHA8="${GITHUB_SHA::8}"
+          BRANCH="cms-image-${SHA8}"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "sha8=$SHA8" >> "$GITHUB_OUTPUT"
+
+          if git ls-remote --exit-code --heads origin "$BRANCH" | grep -q "$BRANCH"; then
+            echo "pushed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git checkout -b "$BRANCH"
+          git add gitops/manifests/prod/cms 2>/dev/null || true
+
+          if git diff --cached --quiet; then
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git commit -m "chore(cms): bump image to aramakisai-web@${SHA8}"
+          git push origin "$BRANCH"
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Create or skip infra PR
+        if: steps.push_branch.outputs.pushed == 'true'
+        working-directory: infra
+        env:
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+        run: |
+          SHA8="${{ steps.push_branch.outputs.sha8 }}"
+          BRANCH="${{ steps.push_branch.outputs.branch }}"
+
+          EXISTING=$(gh pr list --repo aramakisai/aramakisai-infra --state open \
+            --search "$BRANCH in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            echo "PR for ${SHA8} already exists (#$EXISTING), skip"
+            exit 0
+          fi
+
+          PR_BODY="## 概要
+
+          aramakisai-web の CMS 変更を infra に反映します。
+
+          イメージ: \`${IMAGE}:${GITHUB_SHA}\`
+          トリガーコミット: https://github.com/aramakisai/aramakisai-web/commit/${GITHUB_SHA}
+
+          ## マージ前チェックリスト
+
+          - [ ] ローカルで本番同等イメージを起動し、管理画面と REST の動作を確認した
+          - [ ] 破壊的変更 (フィールド削除・型変更・必須化) は含まれていない。含まれる場合は
+                対応するフロントエンドコードがデプロイ・安定稼働済みであることを周知済み
+
+          ## 適用フロー
+
+          マージ後、ArgoCD が prod を同期します。
+          PreSync Job が \`payload migrate\` を実行し、成功後に Deployment が新しいイメージへ切り替わります。
+          マイグレーションはデプロイより先に適用されます。"
+
+          gh pr create \
+            --repo aramakisai/aramakisai-infra \
+            --base main \
+            --head "$BRANCH" \
+            --title "chore(cms): bump image (${SHA8})" \
+            --body "$PR_BODY"

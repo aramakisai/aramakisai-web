@@ -5,7 +5,7 @@ import type { FestivalOverview, FestivalTheme } from '@/lib/home-page-types';
 
 vi.mock('@/env', () => ({
   env: {
-    NEXT_PUBLIC_DIRECTUS_URL: 'http://localhost:8055',
+    NEXT_PUBLIC_CMS_URL: 'http://localhost:8055',
   },
 }));
 
@@ -87,7 +87,7 @@ describe('AboutSection', () => {
     });
     expect(themeImage).toHaveAttribute(
       'src',
-      'http://localhost:8055/assets/theme-file-id?format=webp&width=960',
+      'http://localhost:8055/api/media/serve/theme-file-id/card',
     );
     expect(
       within(about).getByText('今年のテーマは万彩です。'),

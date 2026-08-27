@@ -4,7 +4,7 @@ import { AboutSection } from '@/components/about-section';
 import { AnnouncementsList } from '@/components/announcements-list';
 import { TopicsList } from '@/components/topics-list';
 import { RichText } from '@/components/rich-text';
-import { toAssetUrl } from '@/lib/directus-asset-url';
+import { toAssetUrl } from '@/lib/cms-asset-url';
 import { HomePageContent } from '@/lib/home-page-types';
 
 export default async function Page() {

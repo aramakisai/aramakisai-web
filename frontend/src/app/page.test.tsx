@@ -6,7 +6,7 @@ import { HomePageContent } from '@/lib/home-page-types';
 
 vi.mock('@/env', () => ({
   env: {
-    NEXT_PUBLIC_DIRECTUS_URL: 'http://localhost:8055',
+    NEXT_PUBLIC_CMS_URL: 'http://localhost:8055',
     NEXT_PUBLIC_SITE_URL: 'http://localhost:3000',
   },
 }));
@@ -106,11 +106,11 @@ describe('Page', () => {
     const images = slides.map((slide) => slide.querySelector('img'));
     expect(images[0]).toHaveAttribute(
       'src',
-      'http://localhost:8055/assets/hero-1?format=webp&width=1920',
+      'http://localhost:8055/api/media/serve/hero-1/hero',
     );
     expect(images[1]).toHaveAttribute(
       'src',
-      'http://localhost:8055/assets/hero-2?format=webp&width=1920',
+      'http://localhost:8055/api/media/serve/hero-2/hero',
     );
   });
 

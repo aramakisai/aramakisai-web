@@ -44,27 +44,41 @@
 - 画像 URL の組み立て規約 (`frontend/src/lib/` 内のアセット URL ビルダー)
 - CMS のデプロイパイプラインと、コンテンツモデル変更の破壊的変更検出
 - Directus 撤去の手順と、撤去に伴う `directus/` 配下および steering の更新
+- **`aramakisai-infra` 側の CMS 稼働に必要な定義一式**。本 spec は `aramakisai-web` と
+  `aramakisai-infra` の 2 リポジトリにまたがり、移行を一気通貫で完了させる責務を持つ
+  - `gitops/manifests/prod/cms/` (Deployment / Service / ExternalSecret /
+    マイグレーション適用 Job / CNPG のデータベース追加) と `gitops/apps/prod/cms.yaml`
+  - `terraform/authentik_apps.tf` の Payload 用アプリケーション / プロバイダ定義と CMS 用グループ
+  - `terraform/dns.tf` / `terraform/tunnel.tf` の CMS ホスト名、および
+    `terraform/cloudflare_directus_assets.tf` に相当するメディア配信の Cache Rule と旧 URL リダイレクト規則
+  - 監視・Falco 許可リストの Directus から Payload への差し替え
+  - 撤去フェーズにおける上記 Directus 側定義の削除
 
 ### Out of Boundary
 
 - `frontend/src/components/` および `frontend/src/app/` の表示ロジック
   (`home-page-expansion` / `page-home-friendly-editing` の所有領域。本 spec はドメイン型を不変に保つことで無改修とする)
 - Cloudflare Workers 上のフロントエンド配信構成そのもの (`frontend-scaffold` / `cicd-pipeline` の所有領域)
-- Cloudflare zone の Cache Rule の定義 (`aramakisai-infra` の Terraform が所有)
-- Authentik 側のアプリケーション / プロバイダ定義 (`aramakisai-infra` が所有)
+- Cloudflare zone の Cache Rule のうち、メディア配信を対象としない既存ルール
+  (ダッシュボードで作成済みの `Bypass AppFlowy APIs` 等)
+- Authentik のフロー・ブランド・LDAP・登録導線など、Payload 用プロバイダ以外の既存定義
+- `aramakisai-infra` のうち CMS と無関係なワークロード (mailserver / vaultwarden / room-presence 等)
 - Directus の SSO ライセンス猶予、および `LOG_LEVEL` / `NODE_DEBUG` の調査用設定の解除
 - `additive-schema-check.yml` の停止解除判断 (本 spec と独立に扱う)
 
 ### Allowed Dependencies
 
 - 既存 CNPG クラスタ `directus-db-1` — 新規データベース `payload` の作成先として利用してよい
-- 既存の ArgoCD / K8s マニフェスト構成 — Payload の Deployment を載せる経路として利用してよい
-- 既存の Cloudflare Cache Rule — メディア配信のキャッシュ設定として書き換えてよい
-- Infisical `prod` / `staging` 環境 — シークレットの供給元。`.env` の作成は禁止
+- 既存の ArgoCD / K8s マニフェスト構成 — Payload 用の Application とマニフェスト群を
+  同じ規約 (`gitops/apps/<env>/<name>.yaml` → `gitops/manifests/<env>/<name>/`) で追加する。
+  既存ワークロードの定義は変更しない
+- 既存の Cloudflare zone と cloudflared トンネル — CMS のホスト名とキャッシュ規則の追加先として利用してよい
+- Infisical `prod` 環境 — シークレットの供給元。`.env` の作成は禁止
 - 既存 Hetzner S3 バケット — メディアの保存先として再利用してよい。
   ただし CNPG の WAL アーカイブと restic バックアップを兼ねる非公開バケットであり、公開してはならない
 - 既存のコンテナレジストリ — Payload のイメージ push 先として利用してよい
-- 既存の Authentik — 出展者アカウントの払い出しとパスワード設定フローが実装済み。そのまま利用する
+- 既存の Authentik — 出展者アカウントの払い出しとパスワード設定フローが実装済み。そのまま利用する。
+  Payload 用の OIDC プロバイダとグループの追加は本 spec が行う
 
 **依存してはならないもの**: 新たな月額課金を伴うサービスおよびプラン
 (Cloudflare Workers Paid、Hyperdrive、Payload Cloud、Images Paid を含む)。
@@ -116,7 +130,7 @@ graph TB
     subgraph K8s prod
         CMS[Payload Deployment]
         PG[(CNPG payload database)]
-        DIRECTUS[Directus カットオーバーまで]
+        DIRECTUS[Directus 切り替えまで]
     end
     S3[(Hetzner S3 media bucket)]
     IDP[Authentik]
@@ -130,7 +144,7 @@ graph TB
     CMS --> PG
     CMS --> S3
     CMS --> IDP
-    FE -.カットオーバーまで.-> DIRECTUS
+    FE -.切り替えまで.-> DIRECTUS
 ```
 
 **Architecture Integration**:
@@ -142,8 +156,8 @@ graph TB
   ドメイン型に落としてから UI に渡す。UI 層とコンテンツモデルの間に直接依存を作らない。
 - **Existing patterns preserved**: `src/env.ts` 経由の環境変数参照、`@opennextjs/cloudflare` によるデプロイ、
   Infisical によるシークレット注入、同階層テスト配置、`*.workflow.test.ts` による CI 構造テスト。
-- **New components rationale**: `cms/` は Next のバージョン制約 (Payload 3.88.0 は Next 15.5.x を
-  サポートしない、FE の実インストールは 15.5.19) により `frontend/` と同居できないため独立させる。
+- **New components rationale**: `cms/` は Next のバージョンが FE と独立に決まる (Payload 3.88.0 の
+  公式テンプレートは Next 16.3.0、FE の実インストールは 15.5.19) ため、`frontend/` と同居できず独立させる。
   稼働先は K8s とする。Cloudflare Workers 上の Payload は Workers Paid プランを必須とし、
   「追加の有償プランを契約しない」という制約に反するため採用しない (詳細は Platform Constraints)。
   `AssetUrlBuilder` は変換の主体が CMS から配信層へ移ることで、URL 組み立て規約が新しい契約になるため独立させる。
@@ -156,14 +170,14 @@ graph TB
 | Layer | Choice / Version | Role in Feature | Notes |
 |-------|------------------|-----------------|-------|
 | Frontend | Next.js 15.5.19 + React 19 | 公開サイト。改修は `src/lib/` に限定 | バージョン変更なし |
-| CMS | Payload 3.88.x + Next.js 15.4.x | 管理画面と REST API | Payload の対応レンジに合わせて FE とは別バージョンを固定する |
+| CMS | Payload 3.88.0 + Next.js 16.3.0 | 管理画面と REST API | Payload 3.88.0 の公式テンプレートが持つ組み合わせを固定する。FE とは別バージョンになる |
 | Backend Runtime | Node.js 20.9+ / K8s Deployment | CMS の実行環境 | Directus の Deployment を置き換える。追加課金なし |
 | Data | Postgres 16 (CNPG) データベース `payload` | Payload のスキーマとコンテンツ | 既存 Directus のテーブルには触れない |
 | Data Access | `@payloadcms/db-postgres` | クラスタ内から Postgres への直接接続 | 同一 namespace 内のためトンネルもプロキシも不要 |
 | Media Storage | Hetzner S3 (`@payloadcms/storage-s3`) | 原本と最適化済み派生の保存 | 既存バケットを再利用する |
 | Image Processing | `sharp` (Payload の `imageSizes`) | アップロード時の WebP 変換とリサイズ | K8s の Node ランタイムで動く。配信時変換は行わない |
 | Auth | Payload Custom Strategy + Authentik OIDC | 実行委員と出展者の認証 | OSS 版で完結。既存の Authentik 資産をそのまま使う |
-| Secrets | Infisical `prod` / `staging` | 接続情報と鍵の供給 | `.env` は guard stub のまま |
+| Secrets | Infisical `prod` | 接続情報と鍵の供給 | `.env` は guard stub のまま |
 | CI/CD | GitHub Actions + `@opennextjs/cloudflare` | ビルド・マイグレーション・デプロイ | ArgoCD は CMS では使わない |
 
 ### Platform Constraints
@@ -195,9 +209,9 @@ Payload は Directus と同じ namespace 内から CNPG へ直接接続する。
 - Payload (Next.js + sharp) の常駐は 512Mi〜1Gi 規模と見込まれる
 
 **空き容量から、Directus と Payload の並行稼働は成立しない。**
-Requirement 9.6 の段階移行は却下し、一括カットオーバーを採る。
+Requirement 9 の段階移行は採らず、一括で切り替える。
 移行対象が 5 行 + 9 ファイルと極小であるため、事前にコンテンツを再投入しておけば
-カットオーバー時の停止時間は FE のデプロイ時間のみに収まる。
+切り替え時の停止時間は FE のデプロイ時間のみに収まる。
 
 #### 画像の配信時変換を採らない理由
 
@@ -265,6 +279,30 @@ frontend/src/lib/
 └── home-page-types.ts          ドメイン型。変更しない
 ```
 
+`aramakisai-infra` 側に新規追加するもの (既存 `directus/` の構成をパターンの基準とする):
+
+```
+gitops/
+├── apps/
+│   └── prod/cms.yaml           ArgoCD Application。path は gitops/manifests/prod/cms
+└── manifests/
+    └── prod/cms/
+        ├── deployment.yaml     Payload コンテナ。イメージは GHCR から取得
+        ├── service.yaml
+        ├── external-secret.yaml    Infisical → Secret。ESO が生成
+        ├── db.yaml             CNPG クラスタ directus-db への payload データベース追加
+        └── migrate-job.yaml    PreSync フック。Deployment 更新前に payload migrate を実行
+
+terraform/
+├── authentik_apps.tf           Payload 用 OIDC プロバイダ / アプリケーションと CMS 用グループを追加
+├── dns.tf                      CMS のホスト名レコードを追加
+├── tunnel.tf                   ingress 規則に CMS の Service を追加
+└── cloudflare_cms_assets.tf    メディア配信の Cache Rule と旧 asset URL のリダイレクト規則
+```
+
+マイグレーションは Directus の PostSync とは逆に **PreSync** で適用する。
+Payload は起動時にスキーマの存在を前提とするため、Deployment 更新より前に適用しなければならない。
+
 コレクション定義は 1 ファイル 1 コレクションで揃え、`student-exhibitions.ts` をパターンの基準とする。
 `*_files` 中間テーブルは Payload の `upload` フィールドの hasMany で表現するため、独立したファイルを作らない。
 
@@ -277,6 +315,8 @@ frontend/src/lib/
 - `.github/workflows/` — `cms-ci.yml` を追加、`directus-schema-sync.yml` を撤去
 - `directus/` — Directus 撤去時に削除
 - `.kiro/steering/product.md` / `tech.md` / `structure.md` — Directus 記述を Payload 構成へ更新
+- `aramakisai-infra` の `gitops/helm-values/prod/falco.yaml` — 許可リストに Payload のイメージリポジトリを追加
+- `aramakisai-infra` の `terraform/uptimerobot.tf` / `healthchecksio.tf` — 監視対象を Payload の URL へ差し替え
 
 ### 削除されるもの
 
@@ -284,6 +324,11 @@ frontend/src/lib/
 - `frontend/src/lib/directus.ts` / `directus-asset-url.ts`
 - `.github/workflows/directus-schema-sync.yml` / `additive-schema-check.yml` および対応する `*.workflow.test.ts`
 - `frontend/scripts/check-additive-schema.ts`
+- `aramakisai-infra` の `gitops/apps/{prod,staging}/directus.yaml` /
+  `gitops/apps/staging/directus-schema-preview-appset.yaml` /
+  `gitops/manifests/{prod,staging}/directus/` 一式
+- `aramakisai-infra` の `terraform/cloudflare_directus_assets.tf` と、
+  Directus 専用のホスト名 / トンネル ingress 規則 / Authentik プロバイダ定義
 
 ## Local Development Environment
 
@@ -387,7 +432,7 @@ flowchart TB
 | 8.3-8.4 | 破壊的変更の検出 | SchemaChangeGate | `SchemaChangeGate` | — |
 | 8.6 | 監視 | DeployPipeline | — | Error Handling |
 | 8.7-8.8 | 旧 CI の撤去と運用手順 | DeployPipeline | — | — |
-| 9.1-9.6 | カットオーバーとロールバック | Migration Strategy | — | Migration Strategy |
+| 9.1-9.3 | Directus から Payload への切り替え | Migration Strategy | — | Migration Strategy |
 | 10.1-10.5 | Directus の廃止 | Migration Strategy | — | Migration Strategy |
 
 ## Components and Interfaces
@@ -574,7 +619,7 @@ interface ConstraintHook<TDoc> {
 - Integration: Payload の `beforeValidate` フックに結線する
 - Validation: 現行 migration が表現している条件を移植し、同じ入力で同じ判定になることをテストで確認する
 - Risks: アプリケーション層の検証は直接 DB を書き換えた場合に迂回される。
-  ロールバック期間中の手作業には注意が必要
+  Directus 撤去までの期間に直接 DB を触る作業がある場合は注意が必要
 
 #### AuthStrategy
 
@@ -831,12 +876,12 @@ interface AssetUrlBuilder {
 
 | Field | Detail |
 |-------|--------|
-| Intent | CMS のビルド・マイグレーション適用・デプロイを 2 環境に対して行う |
+| Intent | CMS のビルド・マイグレーション適用・デプロイを prod に対して行う |
 | Requirements | 8.1, 8.2, 8.5, 8.6, 8.7, 8.8 |
 
 **Responsibilities & Constraints**
 
-- prod と staging の 2 環境で CMS を稼働させる
+- prod の 1 環境で CMS を稼働させる。staging は設けない
 - `main` へのマージでマイグレーションを適用してからデプロイする
 - シークレットは Infisical から注入し、`.env` を作らない
 - CMS の異常を既存の監視経路で検知できるようにする
@@ -851,18 +896,17 @@ interface AssetUrlBuilder {
 
 - Trigger: `cms/**` を変更した PR (検証のみ) と `main` への push (適用とデプロイ)
 - Input / validation: ビルド成果物と Payload のマイグレーションファイル
-- Output / destination: `aramakisai-cms` Worker および `aramakisai-cms-staging` Worker
+- Output / destination: prod 名前空間の `cms` Deployment (K8s)
 - Idempotency & recovery: マイグレーションは適用済みのものを再適用しない。デプロイは同一成果物の再実行で結果が変わらない
 
 **Implementation Notes**
 
 - Integration: Directus と同じ GitOps 経路に載せる。コンテナイメージをビルドして
   `aramakisai-infra` のマニフェストを更新し、ArgoCD が適用する
-- Integration: 環境ごとに別のデータベース (`payload` / `payload_staging`) を割り当てる
-- Integration: staging はノードのメモリ制約を踏まえ、Directus 同様に
-  必要な期間のみ稼働させる運用を継続する
-- Integration: PR ごとのプレビュー環境は作らない。CMS はデータベースを共有するため
-  プレビュー単位での分離ができない。検証は staging の単一環境に集約する
+- Integration: データベースは `payload` の 1 つ。環境の分岐を持たない
+- Integration: staging と PR ごとのプレビュー環境は作らない。ノードの空きメモリが
+  2 つ目の CMS を常駐させられず、CMS はデータベースを共有するためプレビュー単位の分離もできない。
+  デプロイ前の検証はローカルの Postgres と `docker build` した本番同等イメージで行う
 - Validation: `cms-ci.workflow.test.ts` でワークフロー構造を検証する
 - Risks: Directus のスキーマ適用は ArgoCD の PostSync Job が担っていた。
   Payload では同じ経路にマイグレーション適用を載せ替える。Requirement 8.8 の文書化とセットで扱う
@@ -900,7 +944,7 @@ interface AssetUrlBuilder {
 - 配置先: 既存 CNPG クラスタ上の新規データベース `payload`
 - テーブル定義は Payload のマイグレーションが生成する。手書きの DDL は CHECK 制約など
   Payload が表現できないものに限る
-- Directus のデータベース `directus` には一切変更を加えない。これがロールバックの土台になる
+- Directus のデータベース `directus` には一切変更を加えない。撤去まで戻せる状態が保たれる
 
 ### Data Contracts & Integration
 
@@ -966,7 +1010,7 @@ CMS 参照の失敗は FE 側で吸収し、ページ全体の描画を止めな
   CMS の新ホストへ Access を被せる場合は出展者を Access 側でも通す設計が別途必要になる。
   本 spec ではこれを前提にしない
 - シークレットは Infisical から注入し、リポジトリに `.env` を作らない
-- ロールバック可能期間は Directus の認証情報を残すため、両者の認証情報が並存する。
+- Directus を撤去するまでは両者の認証情報が並存する。
   Directus 撤去時に不要になった認証情報の扱いを Requirement 10.3 として決定する
 - 出展者と実行委員の認証はいずれも Authentik に集約する。
   CMS 側でパスワードを保持するのは実行委員の緊急用アカウントに限る
@@ -989,37 +1033,35 @@ CMS 参照の失敗は FE 側で吸収し、ページ全体の描画を止めな
 flowchart TB
     P0[前提確認 ノード空き容量とリソース見積り] --> P1[CMS 骨格の構築とローカル検証]
     P1 --> P2[コレクション定義と access control の実装]
-    P2 --> P3[staging へのデプロイと出展者ロールの検証]
-    P3 --> P4[コンテンツ 5 件とファイル 9 件の再投入]
-    P4 --> P5[FE データ取得層の差し替え]
-    P5 --> P6[Directus 停止と Payload 起動および FE カットオーバー]
-    P6 --> P7[安定稼働の確認]
-    P7 --> P8[Directus の撤去]
-    P6 -->|重大な不具合| RB[Directus を再起動し FE の参照先を戻す]
+    P2 --> P3[ローカルでの出展者ロール検証]
+    P3 --> P4[FE データ取得層の差し替え]
+    P4 --> P5[Directus 停止と Payload 起動および FE の参照先変更]
+    P5 --> P6[コンテンツ 5 件とファイル 9 件の投入]
+    P6 --> P7[Directus の撤去]
+    P5 -->|重大な不具合| RB[Directus を再起動し FE の参照先を戻す]
 ```
 
-**一括カットオーバーを採る**: ノードの空きメモリが約 1.2 Gi しかなく、
-Directus と Payload を同時に常駐させられない。Requirement 9.6 の段階移行は却下する。
+**一括で切り替える**: ノードの空きメモリが約 1.2 Gi しかなく、
+Directus と Payload を同時に常駐させられない。Requirement 9 の段階移行は採らない。
 
-**カットオーバーの手順**: P4 の時点でコンテンツは Payload 側の DB に投入済みだが、
-Payload はまだ起動していない。P6 で Directus の Deployment をスケールダウンし、
+**切り替えの手順**: P5 で Directus の Deployment をスケールダウンし、
 Payload の Deployment をスケールアップしてから FE をデプロイする。
+コンテンツは切り替え後の P6 で管理画面から投入する。対象はレコード 5 件・ファイル 9 件であり、
+Directus 側の編集内容を事前に写し取る工程は設けない。
 
 **停止時間**: Directus 停止から FE デプロイ完了までの数分。
-コンテンツは事前に再投入済みのため、カットオーバー時点でのデータ移送は発生しない。
-公開サイトは Workers 上で動いており、CMS が落ちている間もキャッシュ済みのページは配信され続ける。
+本番サイトは custom domain 未接続であり、停止による外部影響は実質ない。
 
-**ロールバック**: Directus の Deployment をスケールアップし直し、FE の参照先を戻すデプロイを行う。
-Directus のデータベースとメディアは Requirement 9.5 に従い、安定稼働の確認まで削除しない。
+**戻し方**: Directus の Deployment をスケールアップし直し、FE の参照先を戻すデプロイを行う。
+Directus の資産を削除するのは P7 であり、それ以前であればこの手段が使える。
 Payload 用のデータベースは別に作るため、Directus 側のデータは移行作業中も一切変化しない。
 
 **検証チェックポイント**:
 
 - P1 — ローカルで管理画面と REST が動作し、Postgres への接続が確立すること
-- P3 — 出展者ロールで他者レコードに到達できないことを実機で確認する
-- P4 — レコード 5 件・ファイル 9 件・合計 56MB の一致を確認する
-- P6 — 主要ページの表示と旧 URL のリダイレクトを確認する
-- P7 — 一定期間の安定稼働を確認してから P8 に進む
+- P3 — 出展者ロールで他者レコードに到達できないことを統合テストで確認する
+- P5 — 主要ページの表示を確認する
+- P6 — レコード 5 件・ファイル 9 件の投入と、旧 URL のリダイレクトを確認する
 
 **リソースの前提**: P0 で Payload の実メモリ消費を見積もり、
 Directus 撤去後の空き (約 1.4 Gi) に収まることを確認する。
@@ -1036,5 +1078,5 @@ Directus 撤去後の空き (約 1.4 Gi) に収まることを確認する。
 - `imageSizes` に定義するサイズは、FE の実測から `1920` / `960` / 無指定の 3 種で足りる
   (`app/page.tsx` が 1920、`about-section.tsx` が 960、`topic-card.tsx` と `attachment-gallery.tsx` は無指定)
 - ローカル開発用の Authentik リダイレクト URI 追加も `aramakisai-infra` 側の Terraform 変更になる
-- 一括カットオーバーのため、Directus 停止中に編集操作を受け付けられない期間が生じる。
-  カットオーバーの実施タイミングを実行委員と調整する必要がある
+- 一括で切り替えるため、Directus 停止中は編集操作を受け付けられない。
+  本番は custom domain 未接続であり影響は小さいが、実施タイミングは実行委員に周知する

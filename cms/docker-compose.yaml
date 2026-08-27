@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:16-alpine
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: payload
+      POSTGRES_USER: payload
+      POSTGRES_PASSWORD: payload
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U payload"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - payload-pgdata:/var/lib/postgresql/data
+
+volumes:
+  payload-pgdata:
