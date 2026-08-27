@@ -35,6 +35,7 @@ services:
       MIGRATIONS_PATH: /directus/extensions/migrations
     volumes:
       - ./migrations:/directus/extensions/migrations
+      - ./extensions/image-optimize:/directus/extensions/image-optimize
       - directus-uploads:/directus/uploads
 
 volumes:
