@@ -17,8 +17,15 @@
    prod / staging で無効になっている。
    出展者に自分の企画だけを編集させるという要件は、Directus の無償ライセンス下では実現できない。
 
-2. **OIDC 認証の無料枠が v11 までで終了している**
-   v12 以降で OIDC を使うには有料プランが必要。委員会メンバーの認証を外部 IdP に寄せる方針と衝突する。
+2. **外部 IdP 連携がライセンスゲートの下にあり、失効時期が読めない**
+   v12 の `CORE_LICENSE` は `sso_enabled: false` で、SSO ルートは「ライセンス status が locked」
+   または「v12 移行からの猶予期間」の間だけ有効になる実装になっている。
+   2026-08-27 時点の prod は SSO が稼働している (`GET /auth/login/authentik` が IdP へ 302、
+   `GET /auth` が `authentik` を返す) が、v12 マイグレーション `20260507A` の適用は 2026-07-02 であり、
+   猶予期間の算定根拠と失効時期を外部から確定できない。
+   委員会メンバーの認証を Authentik に寄せる方針が、いつ機能停止するか予測できない土台の上に載っている。
+   なお `aramakisai-infra` には出展者アカウントの自動払い出しとパスワード設定フローが
+   Authentik 上に実装済みであり、移行先も同じ IdP を使うことが前提になる。
 
 3. **RBAC モデルの複雑さ**
    `directus_policies` → `directus_access` → `directus_permissions` の 3 階層に加え、
@@ -38,6 +45,21 @@
 - インフラ: K8s 上の Directus Deployment / schema-apply Job / ArgoCD 連携、
   および `aramakisai-web` → `aramakisai-infra` のスキーマ同期ワークフロー
 
+### 検討して却下した代替案
+
+「出展者が自企画のみを編集できる」という要件だけを見れば、CMS の全置換より小さい選択肢が存在する。
+以下は検討のうえ却下した案であり、design フェーズで蒸し返さない。
+
+- **Directus を据え置き、出展者の編集画面のみ Next.js に自作する**
+  Directus は実行委員用に残し、出展者向けには admin トークンを持つサーバー側処理で所有者判定を行う
+  専用フォームを用意する案。差分は最小で短期に実現できるが、CMS の導線が 2 系統に分かれ、
+  行レベル制御を自前実装として恒久的に保守することになる。動機 1〜3 のいずれも解消しない。
+- **有償ライセンス (`LICENSE_KEY`) を購入する**
+  custom permission rule と SSO が同時に解決する最短経路だが、年額コストが発生し、
+  無償構成で運用するという方針と整合しない。
+- **今年度は現状維持とし、出展情報の更新は実行委員が代行する**
+  リスクは最小だが、出展者の手間と実行委員の作業量が据え置きになり、動機 1〜3 も未解決のまま残る。
+
 ### 判断が必要な論点 (design フェーズで詰める)
 
 - Payload のホスティング形態 (K8s 上の自前運用か、Cloudflare Workers 同居か、Payload Cloud か)
@@ -46,6 +68,9 @@
 - メディアストレージの移行先と、既存ファイル ID / URL の互換性
 - 認証方式 (Payload 標準認証 + OIDC 連携、あるいは外部 IdP 連携)
 - 移行期間中の運用 (Directus と Payload の並行稼働の要否)
+- 並行稼働期間に Directus と Payload を同一ノードへ同居させられるか (下記のリソース制約を参照)
+- 移行後に非開発者がコンテンツモデルを変更する手段 (Payload はスキーマ変更に TypeScript の編集と
+  デプロイを伴い、Directus の「管理画面で追加してスナップショットを取る」導線が失われる)
 
 ### 制約
 
@@ -53,6 +78,10 @@
 - `additive-only` ルールと同様に、破壊的変更はフロントエンドのデプロイ完了後に行う
 - シークレットは Infisical 管理。`.env` は使用禁止
 - インフラ変更は `aramakisai-infra` リポジトリ側の PR が必要
+- **追加の有償プランを契約しない。** Cloudflare Workers Paid を含め、
+  移行のために新たな月額課金を発生させる選択肢は採らない。無料枠の範囲で成立する構成に限る
+- 移行は可能な限り早期に完了させる
+- 本番ノードは単一構成であり、常駐プロセスを増やす余地が限られる
 
 ## Introduction
 
@@ -96,6 +125,11 @@
 3. When 既存 Postgres の再利用可否を評価するとき, the Payload 移行プロジェクト shall 現行 16 コレクションのうち Payload のスキーマ規約に適合しないものを列挙する。
 4. If いずれかの論点で実機検証が不能または非現実的である, then the Payload 移行プロジェクト shall 検証不能である理由と、代替として採用する判断根拠を明示する。
 5. The Payload 移行プロジェクト shall 選定結果に基づき、移行に要するダウンタイムの見積もりを提示する。
+6. When ホスティング形態を決定する, the Payload 移行プロジェクト shall 並行稼働期間に Payload が必要とする
+   メモリ / CPU を見積もり、本番ノードの空き容量で Directus と同時に稼働できるかを判定する。
+7. If 並行稼働が本番ノードの容量に収まらない, then the Payload 移行プロジェクト shall 一括カットオーバー、
+   別ノードの追加、外部ホスティングのいずれかを代替案として提示する。
+8. The Payload 移行プロジェクト shall 選定した移行方式の作業項目と所要期間を見積もる。
 
 ### Requirement 2: 出展者による自企画のみの編集
 
@@ -117,7 +151,7 @@
 #### Acceptance Criteria
 
 1. While 実行委員ロールのユーザーがログインしている, the Payload CMS shall 全コレクションに対する作成・読取・更新・削除を許可する。
-2. Where 外部 IdP 連携が有効である, when ユーザーが IdP 経由でログインする, the Payload CMS shall 対応するロールを付与したセッションを確立する。
+2. When ユーザーが外部 IdP 経由でログインする, the Payload CMS shall 対応するロールを付与したセッションを確立する。
 3. The Payload CMS shall 外部 IdP 連携を、有償ライセンスや追加プランを必要とせずに提供する。
 4. If 未認証のリクエストが管理画面または書き込み系 API に到達する, then the Payload CMS shall 認証エラーを返し、コンテンツを露出しない。
 5. When 公開済みコンテンツが未認証でリクエストされる, the Payload CMS shall フロントエンドが必要とする読取専用のレスポンスを返す。
@@ -189,6 +223,8 @@
 5. The Payload 稼働基盤 shall シークレットを Infisical から注入し、`.env` ファイルを使用しない。
 6. When 障害が発生する, the 監視基盤 shall Payload の異常を既存の監視経路で検知できる。
 7. The Payload 移行プロジェクト shall Directus 向けの `directus-schema-sync.yml` および `additive-schema-check.yml` の後継または撤去方針を定義する。
+8. The Payload 移行プロジェクト shall 非開発者がコンテンツモデルの変更を要求してから本番へ反映されるまでの
+   手順を文書化し、Directus の管理画面で完結していた操作のうち開発者の介在が必要になるものを明示する。
 
 ### Requirement 9: カットオーバーとロールバック
 
