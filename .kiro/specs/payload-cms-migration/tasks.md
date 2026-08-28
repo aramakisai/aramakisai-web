@@ -500,17 +500,19 @@ graph TB
 - **6.2 (破壊的変更検出)** — 検出ロジックと CLI、ワークフローは実装・テスト済み。
   実 PR 上でのステータスチェック失敗は未確認。
 - **3.5 (Authentik 定義)** — `terraform/authentik_apps.tf` に `cms-prod` のプロバイダと
-  アプリケーションを追加済み。`terraform apply` と実際のログインは未実施。
-  Infisical へ `CMS_PROD_OIDC_CLIENT_SECRET` と `TF_VAR_cms_prod_oidc_client_secret` の
-  登録が必要。
+  アプリケーションを追加済み。Infisical への `CMS_PROD_OIDC_CLIENT_SECRET` /
+  `TF_VAR_cms_prod_oidc_client_secret` 登録は完了。`terraform apply` と
+  実際のログインは未実施。
 - **6.3 (監視差し替え)** — UptimeRobot に `cms.aramakisai.com/admin/login` を追加済み。
   Falco の許可リストには追加していない。現行の許可リストは `/etc` 書き込み・k8s API への
   定常アクセス・標準ストリーム張り替えを行うワークロードだけを対象にしており、
   Payload はいずれにも該当しないため。実際の発報を根拠に追加する方針を
   `docs/cms-operations.md` に記載した。実発報の確認は 7.3 の切り替え後。
-- **6.5 (稼働定義)** — マニフェストと Terraform 定義は追加済み。ArgoCD 上で
-  Synced / Healthy になることと PreSync Job の成功は、infra 側の PR マージ後に確認する。
-  GHCR パッケージの public 化は初回 push 後の手作業。
+- **6.5 (稼働定義)** — infra へマージ済み。`cms` / `cms-secrets` の Application は
+  Synced / Healthy、PreSync の `cms-db-init` と `cms-migrate` はいずれも成功、
+  Pod は Running で readinessProbe (`/admin/login`) が通っている。
+  GHCR のパッケージは push 時点で public だったため手作業は不要だった。
+  外部からの到達は DNS とトンネルの `terraform apply` 待ち。
 - **7.1 (ロールの見え方)** — 本番同等イメージをローカルの Postgres に接続して起動し、
   REST 経由でロールごとの見え方を確認済み。結果は `docs/cms-operations.md` の
   「ロールごとの見え方」に記載した。管理画面の画面上での目視確認は行っていない
