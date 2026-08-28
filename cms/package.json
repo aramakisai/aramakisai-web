@@ -2,6 +2,7 @@
   "name": "aramakisai-cms",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@11.9.0",
   "type": "module",
   "scripts": {
     "build": "cross-env NODE_OPTIONS=\"--no-deprecation --max-old-space-size=8000\" next build",

@@ -19,6 +19,9 @@ jobs:
           fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
+        with:
+          # packageManager の pin はリポジトリルートではなく cms/ にある
+          package_json_file: cms/package.json
 
       - uses: actions/setup-node@v4
         with:
