@@ -71,7 +71,7 @@ jobs:
         env:
           # env.ts validates these at build time via ./src/env.
           # Dummy values keep the schema check honest without real secrets.
-          NEXT_PUBLIC_DIRECTUS_URL: https://api.example.com
+          NEXT_PUBLIC_CMS_URL: https://cms.example.com
           NEXT_PUBLIC_SITE_URL: https://example.com
 
   deploy-preview:
@@ -120,7 +120,7 @@ jobs:
           echo "INFISICAL_PROJECT_ID=$(python3 -c "import json;print(json.load(open('.infisical.json'))['workspaceId'])")" >> "$GITHUB_ENV"
 
       - name: Build (staging env, inlined by Infisical; Directus URL forced to prod for read-only preview data)
-        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- env NEXT_PUBLIC_DIRECTUS_URL=https://api.aramakisai.com pnpm exec opennextjs-cloudflare build
+        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- env NEXT_PUBLIC_CMS_URL=https://cms.aramakisai.com pnpm exec opennextjs-cloudflare build
 
       - name: Upload Cloudflare Workers preview version
         id: upload_preview
@@ -201,7 +201,7 @@ jobs:
         run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec tsx scripts/wait-for-preview.ts
 
       - name: Run E2E tests
-        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- env NEXT_PUBLIC_DIRECTUS_URL=https://api.aramakisai.com pnpm test:e2e
+        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- env NEXT_PUBLIC_CMS_URL=https://cms.aramakisai.com pnpm test:e2e
 
       - name: Upload Playwright report (trace/screenshot)
         if: failure()
@@ -265,7 +265,7 @@ jobs:
       - name: Build
         run: pnpm exec opennextjs-cloudflare build
         env:
-          NEXT_PUBLIC_DIRECTUS_URL: https://api.aramakisai.com
+          NEXT_PUBLIC_CMS_URL: https://cms.aramakisai.com
           NEXT_PUBLIC_SITE_URL: https://dev.aramakisai.com
 
       - name: Deploy to Cloudflare Workers (dev)

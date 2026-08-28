@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -26,6 +26,10 @@ async function shapesAt(ref: string | null): Promise<readonly EntityShape[]> {
     execFileSync('git', ['worktree', 'add', '--detach', worktree, ref], {
       stdio: 'ignore',
     });
+    // base に CMS がまだ無い場合は比較対象が空。定義の新設は破壊的変更になりえない
+    if (!existsSync(path.join(worktree, 'cms/src/collections/index.ts'))) {
+      return [];
+    }
     const collections = await import(
       path.join(worktree, 'cms/src/collections/index.ts')
     );
