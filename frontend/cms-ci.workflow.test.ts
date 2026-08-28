@@ -108,12 +108,29 @@ describe('cms-ci workflow', () => {
     expect(release.permissions?.packages).toBe('write');
   });
 
+  it('マイグレーションを適用してからテストを走らせる', () => {
+    const steps = workflow.jobs.verify.steps ?? [];
+    const migrateIndex = steps.findIndex((s) => (s.run ?? '').includes('pnpm migrate'));
+    const testIndex = steps.findIndex((s) => (s.run ?? '').includes('pnpm test'));
+    expect(migrateIndex).toBeGreaterThanOrEqual(0);
+    expect(testIndex).toBeGreaterThan(migrateIndex);
+  });
+
   it('prod のみへ適用する', () => {
     const step = findStep(workflow.jobs.release, (s) =>
       (s.run ?? '').includes('newTag'),
     );
     expect(step.run).toContain('gitops/manifests/prod/cms/kustomization.yaml');
     expect(step.run).not.toContain('staging');
+  });
+
+  it('Payload CLI を含むマイグレーション用イメージも同じタグで push する', () => {
+    const builds = stepsOf(workflow.jobs.release).filter((step) =>
+      (step.uses ?? '').startsWith('docker/build-push-action'),
+    );
+    const migrator = builds.find((step) => step.with?.target === 'migrator');
+    expect(migrator, 'migrator ステージのビルドが無い').toBeDefined();
+    expect(String(migrator?.with?.tags)).toContain('-migrate:');
   });
 
   it('マイグレーションがデプロイより先に適用されることを PR 本文で明示する', () => {

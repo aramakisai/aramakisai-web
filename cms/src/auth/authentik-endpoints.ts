@@ -96,7 +96,7 @@ const callback: Endpoint = {
       depth: 0,
       limit: 1,
       overrideAccess: true,
-      where: { email: { equals: identity.email } },
+      where: { authentik_sub: { equals: identity.subject } },
     });
 
     // アカウント払い出しは Authentik 側の既存フローが担うため、
@@ -105,12 +105,14 @@ const callback: Endpoint = {
       ? await payload.update({
           collection: 'users',
           id: existing.docs[0].id,
-          data: { role: identity.role },
+          // メールは Authentik 側で変わりうるため、ログインのたびに追随させる
+          data: { email: identity.email, role: identity.role },
           overrideAccess: true,
         })
       : await payload.create({
           collection: 'users',
           data: {
+            authentik_sub: identity.subject,
             email: identity.email,
             role: identity.role,
             password: randomBytes(32).toString('hex'),

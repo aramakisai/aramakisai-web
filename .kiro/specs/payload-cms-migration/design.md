@@ -49,7 +49,7 @@
   - `gitops/manifests/prod/cms/` (Deployment / Service / ExternalSecret /
     マイグレーション適用 Job / CNPG のデータベース追加) と `gitops/apps/prod/cms.yaml`
   - `terraform/authentik_apps.tf` の Payload 用アプリケーション / プロバイダ定義と CMS 用グループ
-  - `terraform/dns.tf` / `terraform/tunnel.tf` の CMS ホスト名、および
+  - `terraform/dns.tf` / `terraform/tunnel.tf` の `cms.aramakisai.com`、および
     `terraform/cloudflare_directus_assets.tf` に相当するメディア配信の Cache Rule と旧 URL リダイレクト規則
   - 監視・Falco 許可リストの Directus から Payload への差し替え
   - 撤去フェーズにおける上記 Directus 側定義の削除
@@ -92,7 +92,7 @@ UI から CMS の内部型を直接参照してはならない。
   → `home-page-expansion` / `page-home-friendly-editing` / `sitemap-schema-review` は表示側の追従を再確認する
 - 画像 URL の組み立て規約が変わったとき → 画像を描画する全コンポーネントと Cache Rule を再確認する
 - Payload のコレクション名・フィールド名が変わったとき → データ取得層と CI の破壊的変更検出を再確認する
-- CMS のホスト名が変わったとき → `src/env.ts` の環境変数と Cloudflare の Cache Rule を再確認する
+- CMS のホスト名 (`cms.aramakisai.com`) が変わったとき → `src/env.ts` の環境変数と Cloudflare の Cache Rule を再確認する
 - 稼働先が K8s から変わったとき → `aramakisai-infra` のマニフェストと監視対象を再確認する
 - Directus の撤去を実行したとき → `directus-schema-sync.yml` / `additive-schema-check.yml` を所有する
   `cicd-pipeline` / `additive-only-schema-check` は自 spec の前提が消えたことを再確認する
@@ -290,12 +290,14 @@ gitops/
         ├── deployment.yaml     Payload コンテナ。イメージは GHCR から取得
         ├── service.yaml
         ├── external-secret.yaml    Infisical → Secret。ESO が生成
-        ├── db.yaml             CNPG クラスタ directus-db への payload データベース追加
+        ├── db-init-job.yaml    payload データベースを作る一度きりの Job (PreSync)。
+        │                        CNPG 1.23.3 には Database CRD が無く、既存クラスタへの
+        │                        データベース追加を宣言的に書けないため psql で作る
         └── migrate-job.yaml    PreSync フック。Deployment 更新前に payload migrate を実行
 
 terraform/
 ├── authentik_apps.tf           Payload 用 OIDC プロバイダ / アプリケーションと CMS 用グループを追加
-├── dns.tf                      CMS のホスト名レコードを追加
+├── dns.tf                      cms.aramakisai.com のレコードを追加
 ├── tunnel.tf                   ingress 規則に CMS の Service を追加
 └── cloudflare_cms_assets.tf    メディア配信の Cache Rule と旧 asset URL のリダイレクト規則
 ```
@@ -1035,8 +1037,9 @@ flowchart TB
     P1 --> P2[コレクション定義と access control の実装]
     P2 --> P3[ローカルでの出展者ロール検証]
     P3 --> P4[FE データ取得層の差し替え]
-    P4 --> P5[Directus 停止と Payload 起動および FE の参照先変更]
-    P5 --> P6[コンテンツ 5 件とファイル 9 件の投入]
+    P4 --> PX[Directus のレコードとファイルをローカルへ退避]
+    PX --> P5[Directus 停止と Payload 起動および FE の参照先変更]
+    P5 --> P6[退避データからのコンテンツ投入]
     P6 --> P7[Directus の撤去]
     P5 -->|重大な不具合| RB[Directus を再起動し FE の参照先を戻す]
 ```
@@ -1044,10 +1047,12 @@ flowchart TB
 **一括で切り替える**: ノードの空きメモリが約 1.2 Gi しかなく、
 Directus と Payload を同時に常駐させられない。Requirement 9 の段階移行は採らない。
 
-**切り替えの手順**: P5 で Directus の Deployment をスケールダウンし、
-Payload の Deployment をスケールアップしてから FE をデプロイする。
-コンテンツは切り替え後の P6 で管理画面から投入する。対象はレコード 5 件・ファイル 9 件であり、
-Directus 側の編集内容を事前に写し取る工程は設けない。
+**切り替えの手順**: 切り替え前に Directus のレコードとファイルをローカルへ退避しておき、
+P5 で Directus の Deployment をスケールダウンし、Payload の Deployment をスケールアップしてから
+FE をデプロイする。コンテンツは切り替え後の P6 で、退避データを見ながら管理画面へ投入する。
+対象はファイル 9 件・56MB と、レコード (お知らせ 1・固定ページ 3) およびシングルトン 2 件。
+FAQ・会場区画・ステージ・時間枠・パフォーマンス枠・学生企画はレコードが無いため対象外。
+退避先は `cms/seed/` で git 管理外とする。
 
 **停止時間**: Directus 停止から FE デプロイ完了までの数分。
 本番サイトは custom domain 未接続であり、停止による外部影響は実質ない。
@@ -1060,8 +1065,9 @@ Payload 用のデータベースは別に作るため、Directus 側のデータ
 
 - P1 — ローカルで管理画面と REST が動作し、Postgres への接続が確立すること
 - P3 — 出展者ロールで他者レコードに到達できないことを統合テストで確認する
+- PX — 退避したファイルが 9 件・56MB 揃っていることを確認する
 - P5 — 主要ページの表示を確認する
-- P6 — レコード 5 件・ファイル 9 件の投入と、旧 URL のリダイレクトを確認する
+- P6 — 退避データと投入結果の一致、および旧 URL のリダイレクトを確認する
 
 **リソースの前提**: P0 で Payload の実メモリ消費を見積もり、
 Directus 撤去後の空き (約 1.4 Gi) に収まることを確認する。
@@ -1078,5 +1084,8 @@ Directus 撤去後の空き (約 1.4 Gi) に収まることを確認する。
 - `imageSizes` に定義するサイズは、FE の実測から `1920` / `960` / 無指定の 3 種で足りる
   (`app/page.tsx` が 1920、`about-section.tsx` が 960、`topic-card.tsx` と `attachment-gallery.tsx` は無指定)
 - ローカル開発用の Authentik リダイレクト URI 追加も `aramakisai-infra` 側の Terraform 変更になる
+- 画像は `/api/media/serve/:id/:size` の 302 を経て Payload 本体が配信するため、
+  切り替え直後から Cache Rule (5.4) を入れるまでの間、全画像のバイトが単一 pod を通る。
+  対象は 9 件・56MB で来場者数も限られるが、Cache Rule の投入は早いほうがよい
 - 一括で切り替えるため、Directus 停止中は編集操作を受け付けられない。
   本番は custom domain 未接続であり影響は小さいが、実施タイミングは実行委員に周知する

@@ -17,7 +17,9 @@ export const StudentExhibitions: CollectionConfig = {
       required: true,
       // 現行スキーマの user_created UNIQUE (1 ユーザー 1 レコード) を引き継ぐ
       unique: true,
-      admin: { description: '所有者。出展者はこのレコードのみ編集できる' },
+      // 出展者は users を read できず、管理画面のセレクトが解決できない。
+      // 値は下の beforeChange が決めるため、フォームには出さない
+      admin: { hidden: true },
       hooks: {
         // 出展者が owner を指定できると、unique 制約により他人の枠を先に埋めて
         // その人がレコードを作れない状態にできる。実行委員のみ指定を許す。

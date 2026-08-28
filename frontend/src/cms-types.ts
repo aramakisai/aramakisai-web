@@ -154,6 +154,10 @@ export interface UserAuthOperations {
 export interface User {
   id: number;
   /**
+   * Authentik の sub。OIDC ログイン時に設定される
+   */
+  authentik_sub?: string | null;
+  /**
    * ロールはコード上の定義 (CMS_ROLES) からのみ決まる
    */
   role: 'executive' | 'student_exhibitor';
@@ -513,9 +517,6 @@ export interface PerformanceSlot {
  */
 export interface StudentExhibition {
   id: number;
-  /**
-   * 所有者。出展者はこのレコードのみ編集できる
-   */
   owner: number | User;
   status: 'published' | 'draft';
   /**
@@ -692,6 +693,7 @@ export interface PayloadMigration {
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
+  authentik_sub?: T;
   role?: T;
   updatedAt?: T;
   createdAt?: T;

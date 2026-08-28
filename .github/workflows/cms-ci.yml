@@ -59,13 +59,15 @@ jobs:
         working-directory: cms
         run: pnpm type-check
 
-      - name: Unit tests
-        working-directory: cms
-        run: pnpm test
-
+      # 統合テストは手書きマイグレーションが入れた CHECK と複合 UNIQUE を検証するため、
+      # 適用より先に走らせると dev push が生成したスキーマを見てしまう
       - name: Apply migrations against a disposable database
         working-directory: cms
         run: pnpm migrate
+
+      - name: Unit tests
+        working-directory: cms
+        run: pnpm test
 
       - name: Verify generated types are in sync
         working-directory: cms
@@ -106,6 +108,15 @@ jobs:
           context: cms
           push: true
           tags: ${{ env.IMAGE }}:${{ github.sha }}
+
+      # マイグレーション適用 Job 用。Payload CLI と src/migrations を含む段階を押し出す
+      - name: Build and push migration image
+        uses: docker/build-push-action@v6
+        with:
+          context: cms
+          target: migrator
+          push: true
+          tags: ${{ env.IMAGE }}-migrate:${{ github.sha }}
 
       - name: Install Infisical CLI
         run: |
@@ -152,7 +163,9 @@ jobs:
       - name: Pin image tag for prod
         run: |
           MANIFEST="infra/gitops/manifests/prod/cms/kustomization.yaml"
-          if [ -f "$MANIFEST" ]; then
+          if [ ! -f "$MANIFEST" ]; then
+            echo "::warning::$MANIFEST が infra に存在しない。イメージは push したがデプロイは反映されない (タスク 6.5 未完)"
+          else
             python3 - "$MANIFEST" "$GITHUB_SHA" <<'PY'
           import sys, re
           path, sha = sys.argv[1], sys.argv[2]

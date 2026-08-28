@@ -38,6 +38,9 @@ export default buildConfig({
   db: postgresAdapter({
     pool: { connectionString: requireEnv('DATABASE_URL') },
     migrationDir: path.resolve(dirname, 'migrations'),
+    // dev push はコレクション定義に無い制約を DROP する。手書きマイグレーションが入れた
+    // CHECK と複合 UNIQUE が接続のたびに消えるため、スキーマ変更は常に migrate 経由にする
+    push: false,
   }),
   sharp,
   plugins: s3Bucket

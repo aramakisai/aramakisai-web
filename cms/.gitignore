@@ -48,3 +48,6 @@ node_modules/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# 本番 Directus から退避したコンテンツ。切り替え後に手で投入するための一時データ
+seed/

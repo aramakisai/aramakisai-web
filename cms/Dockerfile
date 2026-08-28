@@ -42,6 +42,19 @@ RUN \
   else echo "Lockfile not found." && exit 1; \
   fi
 
+# Payload の CLI と TypeScript のマイグレーションは standalone 出力に含まれないため、
+# PreSync Job から `payload migrate` を実行できるビルド途中の段階を別イメージとして押し出す。
+# ビルド用のプレースホルダを空に戻し、実値が注入されていなければ起動時に落ちるようにする
+FROM base AS migrator
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+# ビルド用のプレースホルダを空に戻し、実値が注入されていなければ起動時に落ちるようにする
+ENV PAYLOAD_SECRET="" \
+    DATABASE_URL=""
+CMD ["node_modules/.bin/payload", "migrate"]
+
+
 # Production image, copy all the files and run next
 FROM base AS runner
 WORKDIR /app

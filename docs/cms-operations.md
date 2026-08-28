@@ -59,8 +59,14 @@ Directus では管理画面で完結していたが、Payload では開発者に
 cd cms
 pnpm install
 pnpm db:up                      # ローカル Postgres (localhost:5433)
+pnpm migrate                    # スキーマを適用する。起動前に必ず実行する
 infisical run --env=prod -- pnpm dev
 ```
+
+自動スキーマ同期 (dev push) は無効にしてある。コレクション定義に存在しない
+DB 制約 (手書きマイグレーションが入れた CHECK と複合 UNIQUE) を接続のたびに
+削除してしまうため。定義を変えたら `pnpm migrate:create` でマイグレーションを
+作り、`pnpm migrate` で適用する。
 
 `.env` は作らない。接続情報は Infisical からシェルの環境変数として渡す。
 S3 の接続情報 (`S3_BUCKET` 等) が未設定の場合はディスク保存へフォールバックする。
@@ -97,3 +103,90 @@ limits `memory: 512Mi` / `cpu: 500m`。Directus と同じ値。
 (ローカル計測では認証セッションを確立できなかった)。Directus でも同じ理由で
 limits を 512Mi に据え置いていた経緯があるため、同値から始めて本番で
 大きな画像の連続投入時のピークを確認すること。
+
+## 本番の稼働構成 (aramakisai-infra)
+
+| 対象 | 定義場所 |
+|---|---|
+| ArgoCD Application (本体) | `gitops/apps/prod/cms.yaml` (sync-wave 1) |
+| ArgoCD Application (シークレット) | `gitops/apps/prod/cms-secrets.yaml` (sync-wave 0) |
+| Deployment / Service / kustomization | `gitops/manifests/prod/cms/` |
+| ExternalSecret | `gitops/manifests/prod/cms-secrets/external-secret.yaml` |
+| DB ロール `payload` | `gitops/manifests/prod/directus/db-cluster.yaml` の `managed.roles` |
+| OIDC プロバイダ / アプリケーション | `terraform/authentik_apps.tf` の `cms_prod` |
+| DNS / トンネル | `terraform/dns.tf` / `terraform/tunnel.tf` の `cms.aramakisai.com` |
+| 外形監視 | `terraform/uptimerobot.tf` の `cms` |
+
+ExternalSecret を本体と別 Application に分けているのは、`cms` の PreSync Job が
+`cms-secrets` Secret を参照して起動するため。同一 Application に置くと PreSync フックが
+Sync フェーズの生成物を待つ形になり、初回同期が進まない。
+
+データベースは Directus と同じ CNPG クラスタ `directus-db` 上の `payload` を使う。
+稼働中の operator は 1.23.3 で `Database` CRD を持たないため、`CREATE DATABASE` は
+PreSync Job (`cms-db-init`) が psql で冪等に実行する。そのために必要な `CREATEDB` 権限を
+持つ `payload` ロールは CNPG の `managed.roles` が宣言的に作る。
+Directus の `directus` データベースとロールには触れない。
+
+Directus 撤去 (タスク 9.1) の際、`db-cluster.yaml` と `payload` ロールの定義は
+`gitops/manifests/prod/cms/` へ移す。クラスタごと削除してはならない。
+
+### イメージ
+
+`cms-ci.yml` の `release` ジョブが同じコミットから 2 つのイメージを push する。
+
+- `ghcr.io/aramakisai/aramakisai-cms` — Next の standalone 出力。Deployment が使う
+- `ghcr.io/aramakisai/aramakisai-cms-migrate` — Dockerfile の `migrator` ステージ。
+  `payload migrate` を実行する PreSync Job が使う。Payload CLI と TypeScript の
+  マイグレーションは standalone 出力に含まれないため分けている
+
+既存ワークロードはすべて公開レジストリから pull しており `imagePullSecrets` の実績がない。
+これに合わせ、GHCR の 2 パッケージはいずれも **public** に設定する
+(GitHub の Packages 設定 → Change visibility)。初回 push 後に一度だけ行う手作業。
+
+### Infisical に登録が必要なシークレット (prod)
+
+| キー | 用途 |
+|---|---|
+| `PAYLOAD_SECRET` | Payload のセッション署名鍵 |
+| `PAYLOAD_DB_PASSWORD` | `payload` ロールのパスワード。CNPG の `managed.roles` と接続文字列の両方が使う |
+| `CMS_PROD_OIDC_CLIENT_SECRET` | Authentik `cms-prod` プロバイダのクライアントシークレット |
+| `TF_VAR_cms_prod_oidc_client_secret` | 同じ値。Terraform が Authentik 側の定義に使う |
+
+`S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` は既存の `HETZNER_OS_*` を再利用する。
+
+### Authentik
+
+`cms-prod` プロバイダのリダイレクト URI は本番 (`https://cms.aramakisai.com/...`) と
+ローカル開発 (`http://localhost:3000/...`) の 2 つ。CMS は staging を持たないため
+プロバイダを分けない。ロール写像が参照するグループ `管理者` / `executive` /
+`student_exhibitor` はいずれも既存のものを再利用する。
+
+### 監視
+
+外形監視は UptimeRobot に `https://cms.aramakisai.com/admin/login` を追加する。
+Falco の許可リストには Payload 用のエントリを追加しない。現行の許可リストは
+`/etc` への書き込み・k8s API への定常アクセス・標準ストリームの張り替えを行う
+ワークロードだけを対象にしており、Payload はいずれにも該当しないため。
+実際に発報が出た時点で、鳴っているルール名を根拠に追加する。
+
+## ロールごとの見え方
+
+本番同等イメージ (`docker build -t aramakisai-cms:local cms/`) をローカルの Postgres に
+接続して起動し、REST 経由で確認した実挙動。管理画面も同じ access control を通るため、
+一覧の絞り込みはここに書いたとおりになる。
+
+| 操作 | 実行委員 | 出展者 | 未認証 |
+|---|---|---|---|
+| 学生企画の一覧 | 全件 | 自分の企画 + 他者の公開済み企画 | 公開済みのみ |
+| 他者の下書きの単体取得 | 取得できる | 404 | 404 |
+| 自分の企画の更新 | 更新できる | 200 | — |
+| 他者の企画の更新 (公開済みを含む) | 更新できる | 403 | 403 |
+| お知らせの作成 | 作成できる | 403 | 403 |
+| ユーザー一覧 | 取得できる | 403 | 403 |
+
+出展者の管理画面には**他者の公開済み企画も一覧に出る**。読み取りは公開状態に従い、
+編集は所有者に限る、という二段構えのため。開こうとすると読み取り専用として開き、
+保存は 403 で拒否される。出展者に他者の企画を一切見せない運用が必要になった場合は、
+`src/access/policy.ts` の `canRead` から公開状態による許可を外す。
+
+学生企画の `owner` は unique であり、1 出展者につき 1 企画しか作れない。
