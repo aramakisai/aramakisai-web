@@ -194,15 +194,23 @@ describe('.github/workflows/directus-schema-sync.yml — 4.3 ConfigMap generatio
     expect(genStep.run).toMatch(/kubectl create configmap directus-extensions/);
     expect(genStep.run).toMatch(/git ls-files 'directus\/extensions\/\*\/\*'/);
     // ConfigMap のキーは <拡張名>-<ファイル名>。infra 側 items[].path と対になる
-    expect(genStep.run).toMatch(/basename "\$\(dirname "\$f"\)"\)-\$\(basename "\$f"\)/);
-    expect(genStep.run).toMatch(/infra\/gitops\/manifests\/\$ENV\/directus\/extensions-configmap\.yaml/);
+    expect(genStep.run).toMatch(
+      /basename "\$\(dirname "\$f"\)"\)-\$\(basename "\$f"\)/,
+    );
+    expect(genStep.run).toMatch(
+      /infra\/gitops\/manifests\/\$ENV\/directus\/extensions-configmap\.yaml/,
+    );
   });
 
   it('includes prod and staging extensions-configmap.yaml in git add', () => {
     const workflow = loadWorkflow();
     const branchStep = findStep(workflow, (s) => s.id === 'push_branch');
-    expect(branchStep.run).toMatch(/gitops\/manifests\/prod\/directus\/extensions-configmap\.yaml/);
-    expect(branchStep.run).toMatch(/gitops\/manifests\/staging\/directus\/extensions-configmap\.yaml/);
+    expect(branchStep.run).toMatch(
+      /gitops\/manifests\/prod\/directus\/extensions-configmap\.yaml/,
+    );
+    expect(branchStep.run).toMatch(
+      /gitops\/manifests\/staging\/directus\/extensions-configmap\.yaml/,
+    );
   });
 
   it('creates a branch named after the 8-char commit SHA and skips push if it already exists', () => {

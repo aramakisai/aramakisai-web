@@ -58,7 +58,9 @@ function flatten(prefix: string, value: unknown, out: string[]): void {
     }
     return;
   }
-  out.push(`${encodeURIComponent(prefix)}=${encodeURIComponent(String(value))}`);
+  out.push(
+    `${encodeURIComponent(prefix)}=${encodeURIComponent(String(value))}`,
+  );
 }
 
 export function buildQueryString(query: {
@@ -79,7 +81,8 @@ async function request<T>(path: string): Promise<CmsResult<T>> {
   try {
     const response = await fetch(`${env.NEXT_PUBLIC_CMS_URL}${path}`);
     if (!response.ok) {
-      if (response.status === 404) return { ok: false, error: { kind: 'not_found' } };
+      if (response.status === 404)
+        return { ok: false, error: { kind: 'not_found' } };
       if (response.status === 401 || response.status === 403) {
         return { ok: false, error: { kind: 'unauthorized' } };
       }
@@ -100,7 +103,9 @@ export const cms = {
     collection: K,
     query: CmsQuery<CmsCollections[K]>,
   ): Promise<CmsResult<CmsListResponse<CmsCollections[K]>>> {
-    return request(withQuery(`/api/${String(collection)}`, buildQueryString(query)));
+    return request(
+      withQuery(`/api/${String(collection)}`, buildQueryString(query)),
+    );
   },
 
   findById<K extends CmsCollectionSlug>(
@@ -117,6 +122,8 @@ export const cms = {
     slug: K,
     query: { depth?: number } = {},
   ): Promise<CmsResult<CmsGlobals[K]>> {
-    return request(withQuery(`/api/globals/${String(slug)}`, buildQueryString(query)));
+    return request(
+      withQuery(`/api/globals/${String(slug)}`, buildQueryString(query)),
+    );
   },
 };

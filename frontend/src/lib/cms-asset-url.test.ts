@@ -33,11 +33,17 @@ describe('toAssetUrl', () => {
   });
 
   it('fileIdが指定された場合、既定サイズのURLを返す', () => {
-    expect(toAssetUrl('42')).toBe('http://localhost:3100/api/media/serve/42/original');
+    expect(toAssetUrl('42')).toBe(
+      'http://localhost:3100/api/media/serve/42/original',
+    );
   });
 
   it('widthが指定された場合、対応するサイズのURLを返す', () => {
-    expect(toAssetUrl('42', 1920)).toBe('http://localhost:3100/api/media/serve/42/hero');
-    expect(toAssetUrl('42', 960)).toBe('http://localhost:3100/api/media/serve/42/card');
+    expect(toAssetUrl('42', 1920)).toBe(
+      'http://localhost:3100/api/media/serve/42/hero',
+    );
+    expect(toAssetUrl('42', 960)).toBe(
+      'http://localhost:3100/api/media/serve/42/card',
+    );
   });
 });

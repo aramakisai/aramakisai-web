@@ -24,7 +24,9 @@ export function toAttachment(media: MediaRef): Attachment | null {
 }
 
 /** Payload は配列順を保持するため、並べ替えずそのまま使う。 */
-export function toAttachments(list: readonly MediaRef[] | null | undefined): Attachment[] {
+export function toAttachments(
+  list: readonly MediaRef[] | null | undefined,
+): Attachment[] {
   return (list ?? [])
     .map(toAttachment)
     .filter((attachment): attachment is Attachment => attachment !== null);

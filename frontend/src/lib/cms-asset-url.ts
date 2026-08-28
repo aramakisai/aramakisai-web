@@ -6,7 +6,8 @@ const GENERATED_SIZES = [
   { name: 'hero', width: 1920 },
 ] as const;
 
-export type ImageSizeName = (typeof GENERATED_SIZES)[number]['name'] | 'original';
+export type ImageSizeName =
+  (typeof GENERATED_SIZES)[number]['name'] | 'original';
 
 export function pickImageSize(width?: number): ImageSizeName {
   if (!width) return 'original';

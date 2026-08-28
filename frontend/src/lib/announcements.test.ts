@@ -104,7 +104,9 @@ describe('getAnnouncementById', () => {
       publishedAt: '2023-10-01',
       attachments: [],
     });
-    expect(cms.findById).toHaveBeenCalledWith('announcements', 10, { depth: 1 });
+    expect(cms.findById).toHaveBeenCalledWith('announcements', 10, {
+      depth: 1,
+    });
   });
 
   it('存在しない場合はnullを返す', async () => {

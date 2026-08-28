@@ -521,8 +521,10 @@ graph TB
 `AUTH_AUTHENTIK_ROLE_MAPPING` から引き継いだ `管理者` / `executive` / `student_exhibitor` の 3 つで、
 3.5 ではこれらが Authentik 側に存在することを確認する。
 
-## 既知の先行不具合 (本 spec の範囲外)
+## 修正した退行
 
-- `frontend/src/components/about-section.test.tsx` の 2 件が失敗する。
-  テストが `<h3>` (level: 3) の見出しを期待しているが、コンポーネントは `<h2>` しか描画しない。
-  本 spec の変更前 (`HEAD`) から失敗しており、`home-page-expansion` の所有領域。
+- `frontend/src/components/about-section.tsx` の見出しを復元した。
+  データ取得層の差し替え時に、本来 import パスの変更だけで済むところで
+  `<h3>` の見出しブロック 3 つ (番号のスパンと配色クラスを含む) が
+  `<h2>` の素のタグに置き換わっていた。見出し階層が崩れ、`about-section.test.tsx` の
+  2 件が失敗していた。

@@ -3,7 +3,10 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { parse } from 'yaml';
 
-const WORKFLOW_PATH = path.resolve(__dirname, '../.github/workflows/cms-ci.yml');
+const WORKFLOW_PATH = path.resolve(
+  __dirname,
+  '../.github/workflows/cms-ci.yml',
+);
 
 type Step = {
   name?: string;
@@ -110,8 +113,12 @@ describe('cms-ci workflow', () => {
 
   it('マイグレーションを適用してからテストを走らせる', () => {
     const steps = workflow.jobs.verify.steps ?? [];
-    const migrateIndex = steps.findIndex((s) => (s.run ?? '').includes('pnpm migrate'));
-    const testIndex = steps.findIndex((s) => (s.run ?? '').includes('pnpm test'));
+    const migrateIndex = steps.findIndex((s) =>
+      (s.run ?? '').includes('pnpm migrate'),
+    );
+    const testIndex = steps.findIndex((s) =>
+      (s.run ?? '').includes('pnpm test'),
+    );
     expect(migrateIndex).toBeGreaterThanOrEqual(0);
     expect(testIndex).toBeGreaterThan(migrateIndex);
   });
@@ -138,6 +145,8 @@ describe('cms-ci workflow', () => {
       (s.run ?? '').includes('gh pr create'),
     );
     expect(step.run).toContain('payload migrate');
-    expect(step.run).toContain('マイグレーションはデプロイより先に適用されます');
+    expect(step.run).toContain(
+      'マイグレーションはデプロイより先に適用されます',
+    );
   });
 });

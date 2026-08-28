@@ -38,7 +38,7 @@ describe('cms-schema-check workflow', () => {
     const ack = workflow.jobs.check.steps.find((s) =>
       (s.run ?? '').includes('breaking-change-acknowledged ラベル'),
     );
-    expect(detect?.if).toContain("!contains");
+    expect(detect?.if).toContain('!contains');
     expect(detect?.if).toContain('breaking-change-acknowledged');
     expect(ack?.if).toContain('breaking-change-acknowledged');
   });

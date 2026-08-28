@@ -59,7 +59,9 @@ const LISTS: Record<string, unknown[]> = {
       title: 'T1',
       body_html: 'B2',
       image: { id: 21, filename: 'img1.webp', mimeType: 'image/webp' },
-      attachments: [{ id: 13, filename: 'f3.pdf', mimeType: 'application/pdf' }],
+      attachments: [
+        { id: 13, filename: 'f3.pdf', mimeType: 'application/pdf' },
+      ],
     },
   ],
 };
@@ -72,7 +74,10 @@ beforeEach(() => {
   })) as never);
   vi.mocked(cms.findMany).mockImplementation((async (collection: string) => ({
     ok: true,
-    value: { docs: LISTS[collection] ?? [], totalDocs: (LISTS[collection] ?? []).length },
+    value: {
+      docs: LISTS[collection] ?? [],
+      totalDocs: (LISTS[collection] ?? []).length,
+    },
   })) as never);
 });
 
@@ -100,7 +105,9 @@ describe('getHomePage', () => {
       descriptionHtml: '<p>Theme description</p>',
     });
     expect(result.venueName).toBe('荒牧キャンパス');
-    expect(result.campusMapUrl).toBe('https://www.google.com/maps/embed?pb=xxx');
+    expect(result.campusMapUrl).toBe(
+      'https://www.google.com/maps/embed?pb=xxx',
+    );
     expect(result.contactFormUrl).toBe('https://forms.example.com/contact');
     expect(result.announcements).toEqual([
       {

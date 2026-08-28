@@ -15,9 +15,9 @@ describe('buildQueryString', () => {
   });
 
   it('sort と limit と depth を並べる', () => {
-    expect(buildQueryString({ sort: ['-published_at'], limit: 0, depth: 2 })).toBe(
-      'sort=-published_at&limit=0&depth=2',
-    );
+    expect(
+      buildQueryString({ sort: ['-published_at'], limit: 0, depth: 2 }),
+    ).toBe('sort=-published_at&limit=0&depth=2');
   });
 
   it('and / or を配列添字付きで展開する', () => {
@@ -46,13 +46,18 @@ describe('cms.findMany', () => {
       }),
     );
     const result = await cms.findMany('announcements', {});
-    expect(result).toEqual({ ok: true, value: { docs: [{ id: 1 }], totalDocs: 1 } });
+    expect(result).toEqual({
+      ok: true,
+      value: { docs: [{ id: 1 }], totalDocs: 1 },
+    });
   });
 
   it('404 は not_found として返す', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue({ ok: false, status: 404, json: async () => ({}) }),
+      vi
+        .fn()
+        .mockResolvedValue({ ok: false, status: 404, json: async () => ({}) }),
     );
     expect(await cms.findMany('announcements', {})).toEqual({
       ok: false,
@@ -63,7 +68,9 @@ describe('cms.findMany', () => {
   it('403 は unauthorized として返す', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue({ ok: false, status: 403, json: async () => ({}) }),
+      vi
+        .fn()
+        .mockResolvedValue({ ok: false, status: 403, json: async () => ({}) }),
     );
     expect(await cms.findMany('announcements', {})).toEqual({
       ok: false,
