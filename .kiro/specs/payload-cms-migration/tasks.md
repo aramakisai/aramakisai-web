@@ -499,9 +499,9 @@ graph TB
   実際の Hetzner S3 バケットに対する保存は 6.5 のデプロイ後に確認する。
 - **6.2 (破壊的変更検出)** — 検出ロジックと CLI、ワークフローは実装・テスト済み。
   実 PR 上でのステータスチェック失敗は未確認。
-- **3.5 (Authentik 定義)** — 適用済み。`https://cms.aramakisai.com/api/auth/authentik` が
-  Authentik の認可エンドポイントへ 302 し、ログイン画面 (`default-authentication-flow`) が
-  200 で返るところまで確認した。ブラウザで実際にログインしてロールが付くところは未確認。
+- **3.5 (Authentik 定義)** — 完了。ブラウザで Authentik ログインを通し、
+  `executive` ロールのユーザーが自動生成されて管理画面に入れることを確認した。
+  ローカル認証のアカウントは作っていない。
 - **6.3 (監視差し替え)** — UptimeRobot に `cms.aramakisai.com/admin/login` を追加済み。
   Falco の許可リストには追加していない。現行の許可リストは `/etc` 書き込み・k8s API への
   定常アクセス・標準ストリーム張り替えを行うワークロードだけを対象にしており、
