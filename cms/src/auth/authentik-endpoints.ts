@@ -2,6 +2,7 @@ import { randomBytes } from 'crypto'
 
 import type { Endpoint } from 'payload'
 import { generatePayloadCookie, getFieldsToSign, jwtSign } from 'payload'
+import { addSessionToUser } from 'payload/shared'
 
 import { optionalEnv, requireEnv } from '../env'
 import { toCmsIdentity } from './identity'
@@ -164,10 +165,19 @@ const callback: Endpoint = {
         })
 
     const collection = payload.collections.users
+    // Payload はセッションを DB に持ち、JWT の sid と突き合わせる。
+    // 発行しないとトークンが無効扱いになり、管理画面がログイン画面へ戻される
+    const { sid } = await addSessionToUser({
+      collectionConfig: collection.config,
+      payload,
+      req,
+      user: user as never,
+    })
     const { token } = await jwtSign({
       fieldsToSign: getFieldsToSign({
         collectionConfig: collection.config,
         email: identity.email,
+        sid,
         user: user as never,
       }),
       secret: payload.secret,
