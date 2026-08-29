@@ -7,7 +7,11 @@ import { optionalEnv, requireEnv } from '../env'
 import { toCmsIdentity } from './identity'
 
 const STATE_COOKIE = 'authentik_state'
-const SCOPE = 'openid profile email groups'
+// profile は要求しない。Authentik のアバターは data URI (base64 PNG) として
+// picture クレームに入り、実測で access token が 228KB まで膨らむ。
+// userinfo 呼び出しの Authorization ヘッダがサイズ上限を超えて弾かれる。
+// 必要なのは sub / email / groups の 3 つだけで、いずれも profile 以外から取れる
+const SCOPE = 'openid email groups'
 
 function issuer(): string {
   return requireEnv('AUTHENTIK_ISSUER_URL').replace(/\/?$/, '/')

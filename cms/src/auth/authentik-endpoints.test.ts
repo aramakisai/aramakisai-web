@@ -38,6 +38,8 @@ describe('Authentik の認可経路', () => {
     expect(location.searchParams.get('redirect_uri')).toBe(
       'https://cms.example.com/api/auth/authentik/callback',
     )
+    // profile を含めると access token にアバターの data URI が乗り、ヘッダ上限を超える
+    expect(location.searchParams.get('scope')).toBe('openid email groups')
 
     expect(fetchMock).toHaveBeenCalledWith(
       new URL('https://idp.example.com/application/o/cms-prod/.well-known/openid-configuration'),
