@@ -499,10 +499,9 @@ graph TB
   実際の Hetzner S3 バケットに対する保存は 6.5 のデプロイ後に確認する。
 - **6.2 (破壊的変更検出)** — 検出ロジックと CLI、ワークフローは実装・テスト済み。
   実 PR 上でのステータスチェック失敗は未確認。
-- **3.5 (Authentik 定義)** — `terraform/authentik_apps.tf` に `cms-prod` のプロバイダと
-  アプリケーションを追加済み。Infisical への `CMS_PROD_OIDC_CLIENT_SECRET` /
-  `TF_VAR_cms_prod_oidc_client_secret` 登録は完了。`terraform apply` と
-  実際のログインは未実施。
+- **3.5 (Authentik 定義)** — 適用済み。`https://cms.aramakisai.com/api/auth/authentik` が
+  Authentik の認可エンドポイントへ 302 し、ログイン画面 (`default-authentication-flow`) が
+  200 で返るところまで確認した。ブラウザで実際にログインしてロールが付くところは未確認。
 - **6.3 (監視差し替え)** — UptimeRobot に `cms.aramakisai.com/admin/login` を追加済み。
   Falco の許可リストには追加していない。現行の許可リストは `/etc` 書き込み・k8s API への
   定常アクセス・標準ストリーム張り替えを行うワークロードだけを対象にしており、
@@ -512,7 +511,7 @@ graph TB
   Synced / Healthy、PreSync の `cms-db-init` と `cms-migrate` はいずれも成功、
   Pod は Running で readinessProbe (`/admin/login`) が通っている。
   GHCR のパッケージは push 時点で public だったため手作業は不要だった。
-  外部からの到達は DNS とトンネルの `terraform apply` 待ち。
+  `https://cms.aramakisai.com/admin` へ外部から到達できる。
 - **7.1 (ロールの見え方)** — 本番同等イメージをローカルの Postgres に接続して起動し、
   REST 経由でロールごとの見え方を確認済み。結果は `docs/cms-operations.md` の
   「ロールごとの見え方」に記載した。管理画面の画面上での目視確認は行っていない
