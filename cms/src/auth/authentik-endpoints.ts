@@ -108,10 +108,21 @@ const callback: Endpoint = {
     const userinfoResponse = await fetch((await discovery()).userinfo_endpoint, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
-    const identity = userinfoResponse.ok
-      ? toCmsIdentity((await userinfoResponse.json()) as Record<string, unknown>)
-      : null
+    // IdP 側の失敗とグループ不一致を同じ応答にすると、原因の切り分けができなくなる
+    if (!userinfoResponse.ok) {
+      req.payload.logger.error(
+        { status: userinfoResponse.status, body: await userinfoResponse.text() },
+        'userinfo の取得に失敗',
+      )
+      return Response.json({ errors: [{ message: 'userinfo の取得に失敗' }] }, { status: 502 })
+    }
+    const claims = (await userinfoResponse.json()) as Record<string, unknown>
+    const identity = toCmsIdentity(claims)
     if (!identity) {
+      req.payload.logger.warn(
+        { claimNames: Object.keys(claims), groups: claims.groups },
+        'CMS に対応するグループを持たない',
+      )
       return Response.json(
         { errors: [{ message: 'CMS に対応するグループを持たない' }] },
         { status: 403 },
