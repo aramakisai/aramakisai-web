@@ -481,7 +481,7 @@ graph TB
   - _Requirements: 10.4_
   - _Boundary: steering_
 
-- [ ] 9.5 撤去可否を最終確認する
+- [x] 9.5 撤去可否を最終確認する
   - Directus 側にしか存在しないデータまたは設定が残っていないかを確認する
   - 残存項目がある場合は撤去を保留し、内容を記録する
   - 撤去の完了、または保留と残存項目の記録のいずれかが確定している
@@ -608,8 +608,46 @@ graph TB
 - **9.4 (steering 更新)** — `.kiro/steering/product.md` / `tech.md` / `structure.md` を
   `cms/` の実装 (collections/globals/access/auth/migrations) に合わせて書き直した。
   9.1 での `db-cluster.yaml` 移設を `docs/cms-operations.md` にも反映。PR #63 (aramakisai-web)。
-- **9.5 (最終確認)** — 未着手。9.1〜9.4 の PR (aramakisai-web #62, #63、aramakisai-infra
-  #195, #196) がすべてマージされ、実インフラへの反映を確認してから着手する。
+- **9.5 (最終確認)** — 9.1〜9.4 の PR (aramakisai-web #62, #63、aramakisai-infra #195, #196)
+  をすべて admin merge (CI は既知の e2e プレビュー URL 障害と、staging-gate/schema-check
+  自身を削除する PR ゆえの Pending 以外 green)。
+  branch protection の required status checks から死んだ context
+  (`Detect breaking snapshot.yaml changes` / `Staging Checklist Gate`) を両リポジトリとも除去。
+  Infisical から Directus 向けシークレット 14 件を削除 (`DIRECTUS_DB_PASSWORD` は
+  DB ロールが残るため保持)。
+
+  **本番インシデントとリカバリ**: #195 マージ直後、`cms.aramakisai.com/api/*` が 500 になる
+  障害が発生した。`directus-db` CNPG Cluster (Payload の `payload` DB が同居) が
+  クラスタから完全に消失し (PVC も無い)、ArgoCD 上は `cms` Application が OutOfSync のまま
+  放置され、CNPG operator が関連リソース (ServiceAccount/Role/PodDisruptionBudget) を
+  作っては消す不安定な状態になっていた。原因は、同一 Cluster リソースを `directus`
+  Application (削除対象) から `cms` Application (移設先) へ 1 回のマージで移す操作が、
+  ArgoCD の prune (`directus` 側の finalizer によるカスケード削除) と次の自動 sync
+  (`cms` 側が新パスを検知して再作成) の間にタイミング差を生み、その間 Cluster が
+  存在しない瞬間ができたため。ユーザーが ArgoCD 上で `cms` Application を手動 sync
+  したところ、`db-cluster.yaml` の `bootstrap.recovery.source: directus-db`
+  (S3 バックアップからの復旧設定) により自動リストアされ、2 分で復旧した
+  (`operationState.startedAt` 12:22:02Z → `finishedAt` 12:23:54Z, `initiatedBy.username: manual-recovery`)。
+  復旧後に確認: `announcements` 1 件 / `pages` 3 件 / `media` 9 件、`festival_meta` /
+  `page_home` の 2 globals、いずれも移行時と同じ内容。フロントエンド主要ページ
+  (`/`, `/announcements`, `/topics`, `/privacy`, `/access`) はすべて 200。データ損失なし。
+
+  **教訓**: 同一の永続化リソース (DB Cluster 等) を別の ArgoCD Application へ移す場合、
+  1 回の変更でソース側の削除とターゲット側の作成を同時に起こしてはならない。
+  先にターゲット側で当該リソースを追加適用し Synced を確認してから、
+  ソース側の Application 定義を削除する 2 段階の変更にすべきだった。
+
+  **最終確認の結果**: Directus 側にしか存在しないデータは意図的に残っている
+  (削除せず保留)。
+  - `directus-db` クラスタ内の `directus` データベースとロール (`payload` とは別)
+  - S3 バケット (`aramakisai-backups`) 内の `directus-uploads/` プレフィックスのメディア原本
+  - Infisical `DIRECTUS_DB_PASSWORD` (上記ロールのパスワード)
+
+  これらは `directus` データベース/ロール自体を明示的に削除する追加の作業
+  (DB からの `DROP DATABASE` / `DROP ROLE`、S3 オブジェクトの削除、シークレット削除) を
+  経て初めて撤去完了となる。現時点では保留とし、要件 10.5 の「残存項目の記録」として
+  この一覧を残す。撤去を進める場合は `directus-db` クラスタが `payload` DB とロールを
+  共有していることを踏まえ、`DROP DATABASE`/`DROP ROLE` はクラスタ自体に触れずに行うこと。
 
 ## 修正した退行
 
