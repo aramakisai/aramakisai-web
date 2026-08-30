@@ -112,7 +112,7 @@ limits を 512Mi に据え置いていた経緯があるため、同値から始
 | ArgoCD Application (シークレット) | `gitops/apps/prod/cms-secrets.yaml` (sync-wave 0) |
 | Deployment / Service / kustomization | `gitops/manifests/prod/cms/` |
 | ExternalSecret | `gitops/manifests/prod/cms-secrets/external-secret.yaml` |
-| DB ロール `payload` | `gitops/manifests/prod/directus/db-cluster.yaml` の `managed.roles` |
+| DB ロール `payload` | `gitops/manifests/prod/cms/db-cluster.yaml` の `managed.roles` |
 | OIDC プロバイダ / アプリケーション | `terraform/authentik_apps.tf` の `cms_prod` |
 | DNS / トンネル | `terraform/dns.tf` / `terraform/tunnel.tf` の `cms.aramakisai.com` |
 | 外形監視 | `terraform/uptimerobot.tf` の `cms` |
@@ -127,8 +127,10 @@ PreSync Job (`cms-db-init`) が psql で冪等に実行する。そのために�
 持つ `payload` ロールは CNPG の `managed.roles` が宣言的に作る。
 Directus の `directus` データベースとロールには触れない。
 
-Directus 撤去 (タスク 9.1) の際、`db-cluster.yaml` と `payload` ロールの定義は
-`gitops/manifests/prod/cms/` へ移す。クラスタごと削除してはならない。
+Directus 撤去 (タスク 9.1) 完了済み。`db-cluster.yaml` と `payload` ロールの定義は
+`gitops/manifests/prod/directus/` から `gitops/manifests/prod/cms/` へ移設した
+(クラスタごと削除するとこの `payload` DB も失われるため、Directus の Deployment 等
+とは分けて cms Application 側に残した)。
 
 ### イメージ
 
