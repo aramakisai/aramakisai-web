@@ -395,7 +395,7 @@ graph TB
   - _Requirements: 8.1, 8.2, 8.5_
   - _Boundary: aramakisai-infra の GitOps マニフェストと ArgoCD Application_
 
-- [ ] 7. 切り替え
+- [x] 7. 切り替え
 - [x] 7.1 出展者ロールの見え方をローカルで検証する
   - 本番同等のイメージをローカルの Postgres に接続して起動する
   - 出展者ロールのアカウントで他者のレコードに到達できないことを確認する
@@ -421,7 +421,7 @@ graph TB
   - _Depends: 3.5, 5.3, 6.5, 7.1, 7.2_
   - _Requirements: 9.1, 9.2, 9.3_
 
-- [ ] 8. 切り替え後のコンテンツ投入と検証
+- [x] 8. 切り替え後のコンテンツ投入と検証
 - [x] 8.1 退避データからコンテンツとメディアを投入する
   - `cms/seed/` の JSON を見ながら管理画面からレコードを作る
   - `cms/seed/files/` の 9 件をアップロードし、レコードの添付として結び直す
@@ -431,7 +431,7 @@ graph TB
   - _Depends: 4.1, 7.3_
   - _Requirements: 5.1, 5.4, 5.5, 5.6, 6.1_
 
-- [ ] 8.2 投入結果と主要な閲覧経路を検証する
+- [x] 8.2 投入結果と主要な閲覧経路を検証する
   - コレクション単位のレコード件数とファイル件数を確認する
   - リレーション参照が解決できることを確認する
   - トップページ・お知らせ一覧と詳細・トピック・固定ページの表示を確認する
@@ -545,6 +545,20 @@ graph TB
   `/api/media/file/:filename` (実バイト本体) がキャッシュ対象外だったため
   (`/serve/` は 302 を返すだけの経路で、実際のバイトは `/file/` が返す)。
   本番へ適用済み。旧 URL 9 件全ての到達とキャッシュ HIT を確認した。
+
+- **8.2 (投入結果と通し検証)** — 本番 REST API で件数を確認: announcements 1 / pages 3 / media 9、
+  他 (topics / faq_items / sponsors / stages / time_slots / performance_slots /
+  student_exhibitions) は 0 で退避データと一致。リレーション参照
+  (announcements.attachments、festival_meta.theme_image、page_home.hero_images) が
+  期待した新 media id に解決されていることを確認した。
+  トップページ・お知らせ一覧詳細・固定ページ・トピックの表示を実ブラウザで確認済み。
+  `frontend/e2e/` を CMS 対応に更新: `scripts/cms-check.ts` (旧 `directus-check.ts` 相当) を追加し、
+  `list-detail-navigation.spec.ts` と `_template.cms.spec.ts` (旧 `_template.directus.spec.ts`) を
+  Payload REST 向けに差し替えた。旧 `directus-check.ts` 自体は 9.2 で撤去するためこの時点では残す。
+  `pnpm test:e2e` をローカルから本番 URL に向けて実行し、CMS 疎通・一覧→詳細遷移・404 の
+  3 テストが成功することを確認した (`top-page.spec.ts` はこの実行環境固有のネットワーク制約による
+  ERR_CONNECTION_REFUSED で失敗したが、実ブラウザでは同じページがコンソールエラーなしで表示されており、
+  サイト側の不具合ではない)。
 
 インフラ側リポジトリで行う作業は 3.5 / 5.4 / 6.3 / 6.5 / 9.1 / 9.3 として
 独立したタスクに分解済み。3.4 の静的写像が参照するグループ名は Directus の
