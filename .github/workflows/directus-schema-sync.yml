@@ -6,6 +6,7 @@ on:
     paths:
       - directus/schema/snapshot.yaml
       - directus/migrations/**
+      - directus/extensions/**
   workflow_dispatch: {}
 
 permissions:
@@ -26,12 +27,12 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Detect schema/migrations change
+      - name: Detect schema/migrations/extensions change
         id: diff
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
-          elif git diff --name-only HEAD^ HEAD | grep -qE '^directus/schema/snapshot\.yaml$|^directus/migrations/'; then
+          elif git diff --name-only HEAD^ HEAD | grep -qE '^directus/schema/snapshot\.yaml$|^directus/migrations/|^directus/extensions/'; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
@@ -85,7 +86,19 @@ jobs:
 
       - name: Generate schema ConfigMaps (prod + staging)
         if: steps.diff.outputs.changed == 'true'
+        shell: bash
         run: |
+          # ConfigMap のキーは <拡張名>-<ファイル名>。infra 側 Deployment が
+          # items[].path で <拡張名>/<ファイル名> に再配置する。キーを拡張名で
+          # 修飾しないと、拡張が 2 つ以上になったとき同名ファイルが衝突する。
+          # 対象は拡張フォルダ直下の追跡ファイルのみ。extensions/ 直下に置いた
+          # テストファイルと未追跡の node_modules は含まれない。
+          EXT_ARGS=()
+          while IFS= read -r f; do
+            [ -n "$f" ] || continue
+            EXT_ARGS+=("--from-file=$(basename "$(dirname "$f")")-$(basename "$f")=$f")
+          done < <(git ls-files 'directus/extensions/*/*')
+
           for ENV in prod staging; do
             kubectl create configmap directus-schema \
               --from-file=snapshot.yaml=directus/schema/snapshot.yaml \
@@ -99,6 +112,14 @@ jobs:
                 --namespace="$ENV" \
                 --dry-run=client -o yaml \
                 > "infra/gitops/manifests/$ENV/directus/migrations-configmap.yaml"
+            fi
+
+            if [ "${#EXT_ARGS[@]}" -gt 0 ]; then
+              kubectl create configmap directus-extensions \
+                "${EXT_ARGS[@]}" \
+                --namespace="$ENV" \
+                --dry-run=client -o yaml \
+                > "infra/gitops/manifests/$ENV/directus/extensions-configmap.yaml"
             fi
           done
 
@@ -129,6 +150,8 @@ jobs:
             gitops/manifests/staging/directus/schema-configmap.yaml \
             gitops/manifests/prod/directus/migrations-configmap.yaml \
             gitops/manifests/staging/directus/migrations-configmap.yaml \
+            gitops/manifests/prod/directus/extensions-configmap.yaml \
+            gitops/manifests/staging/directus/extensions-configmap.yaml \
             2>/dev/null || true
 
           if git diff --cached --quiet; then
@@ -173,7 +196,7 @@ jobs:
           ## 適用フロー
 
           マージ後、ArgoCD が prod / staging を自動 sync し、PostSync Job が実行されます:
-          \`directus database migrate:latest\` → \`directus schema apply --yes\`"
+          \`directus schema apply --yes\` → \`directus database migrate:latest\` → カスタムマイグレーション"
 
           gh pr create \
             --repo aramakisai/aramakisai-infra \

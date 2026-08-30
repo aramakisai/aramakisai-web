@@ -57,6 +57,7 @@ describe('.github/workflows/directus-schema-sync.yml — 4.1 snapshot diff detec
       expect.arrayContaining([
         'directus/schema/snapshot.yaml',
         'directus/migrations/**',
+        'directus/extensions/**',
       ]),
     );
   });
@@ -79,6 +80,12 @@ describe('.github/workflows/directus-schema-sync.yml — 4.1 snapshot diff detec
     expect(diffStep.run).toMatch(/directus\/migrations\//);
     expect(diffStep.run).toMatch(/changed=true/);
     expect(diffStep.run).toMatch(/changed=false/);
+  });
+
+  it('detects extensions change in diff step', () => {
+    const workflow = loadWorkflow();
+    const diffStep = findStep(workflow, (s) => s.id === 'diff');
+    expect(diffStep.run).toMatch(/\^directus\/extensions\//);
   });
 
   it('gates every downstream step on the diff result so an unchanged push does nothing', () => {
@@ -179,6 +186,33 @@ describe('.github/workflows/directus-schema-sync.yml — 4.3 ConfigMap generatio
     expect(genStep.run).toMatch(/compgen -G/);
   });
 
+  it('generates a directus-extensions ConfigMap using git ls-files to include only tracked files', () => {
+    const workflow = loadWorkflow();
+    const genStep = findStep(workflow, (s) =>
+      Boolean(s.run?.includes('kubectl create configmap directus-schema')),
+    );
+    expect(genStep.run).toMatch(/kubectl create configmap directus-extensions/);
+    expect(genStep.run).toMatch(/git ls-files 'directus\/extensions\/\*\/\*'/);
+    // ConfigMap のキーは <拡張名>-<ファイル名>。infra 側 items[].path と対になる
+    expect(genStep.run).toMatch(
+      /basename "\$\(dirname "\$f"\)"\)-\$\(basename "\$f"\)/,
+    );
+    expect(genStep.run).toMatch(
+      /infra\/gitops\/manifests\/\$ENV\/directus\/extensions-configmap\.yaml/,
+    );
+  });
+
+  it('includes prod and staging extensions-configmap.yaml in git add', () => {
+    const workflow = loadWorkflow();
+    const branchStep = findStep(workflow, (s) => s.id === 'push_branch');
+    expect(branchStep.run).toMatch(
+      /gitops\/manifests\/prod\/directus\/extensions-configmap\.yaml/,
+    );
+    expect(branchStep.run).toMatch(
+      /gitops\/manifests\/staging\/directus\/extensions-configmap\.yaml/,
+    );
+  });
+
   it('creates a branch named after the 8-char commit SHA and skips push if it already exists', () => {
     const workflow = loadWorkflow();
     const branchStep = findStep(workflow, (s) => s.id === 'push_branch');
@@ -259,5 +293,20 @@ describe('.github/workflows/directus-schema-sync.yml — 4.4 infra PR + staging 
     const claudeMd = readFileSync(CLAUDE_MD_PATH, 'utf-8');
     expect(claudeMd).toMatch(/additive.only|追加のみ/i);
     expect(claudeMd).toMatch(/カラム削除|型変更/);
+  });
+
+  it('documents the correct apply order in the PR body', () => {
+    const workflow = loadWorkflow();
+    const prStep = findStep(workflow, (s) =>
+      Boolean(s.run?.includes('gh pr create')),
+    );
+    // PR_BODY 内のバッククォートはシェル用にエスケープされているため外してから比較する
+    const body = (prStep.run ?? '').replace(/\\`/g, '`');
+    expect(body).toMatch(
+      /`directus schema apply --yes` → `directus database migrate:latest` → カスタムマイグレーション/,
+    );
+    expect(body).not.toMatch(
+      /`directus database migrate:latest` → `directus schema apply --yes`/,
+    );
   });
 });

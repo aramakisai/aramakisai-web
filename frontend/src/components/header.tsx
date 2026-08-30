@@ -251,7 +251,7 @@ export function Header() {
                                 <Link
                                   href={child.href}
                                   onClick={closeMobileMenu}
-                                  className="flex min-h-11 items-center border-l border-slate-200 px-4 py-2 text-[0.9375rem] tracking-wide text-slate-600 transition-colors hover:border-sky-400 hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-sky-600"
+                                  className="flex min-h-11 items-center border-l border-slate-200 px-4 py-2 text-[0.9375rem] tracking-wide text-slate-600 transition-colors hover:border-primary hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
                                 >
                                   {child.label}
                                 </Link>

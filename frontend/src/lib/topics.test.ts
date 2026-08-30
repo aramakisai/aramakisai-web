@@ -1,174 +1,103 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getTopics, getTopicById } from './topics';
-import { directus } from './directus';
-import { readItems, readItem } from '@directus/sdk';
+import { cms } from './cms';
 
-vi.mock('./directus', () => ({
-  directus: {
-    request: vi.fn(),
-  },
+vi.mock('./cms', () => ({
+  cms: { findMany: vi.fn(), findById: vi.fn(), findGlobal: vi.fn() },
 }));
 
-vi.mock('@directus/sdk', () => ({
-  readItems: vi.fn((collection: string, query?: unknown) => ({
-    type: 'readItems',
-    collection,
-    query,
-  })),
-  readItem: vi.fn(
-    (collection: string, id: string | number, query?: unknown) => ({
-      type: 'readItem',
-      collection,
-      id,
-      query,
-    }),
-  ),
-}));
+type PublishedWhere = { published_at?: { exists?: boolean } };
 
-describe('TopicsService', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+beforeEach(() => vi.clearAllMocks());
 
-  describe('getTopics', () => {
-    it('returns formatted topics with sorted attachments', async () => {
-      vi.mocked(directus.request).mockImplementation(async (req: unknown) => {
-        const request = req as { type?: string; collection?: string };
-        if (request.type === 'readItems' && request.collection === 'topics') {
-          return [
-            {
-              id: 1,
-              title: 'Topic 1',
-              body: 'Body 1',
-              image: 'img1',
-              attachments: [
-                {
-                  sort: 2,
-                  directus_files_id: {
-                    id: 'file2',
-                    filename_download: 'test2.pdf',
-                    type: 'application/pdf',
-                  },
-                },
-                {
-                  sort: 1,
-                  directus_files_id: {
-                    id: 'file1',
-                    filename_download: 'test1.pdf',
-                    type: 'application/pdf',
-                  },
-                },
-              ],
-            },
-          ];
-        }
-        return [];
-      });
-
-      const result = await getTopics();
-
-      expect(readItems).toHaveBeenCalledWith('topics', {
-        sort: ['sort'],
-        filter: { published_at: { _lte: '$NOW', _nnull: true } },
-        fields: [
-          '*',
-          'attachments.sort',
-          'attachments.directus_files_id.id',
-          'attachments.directus_files_id.filename_download',
-          'attachments.directus_files_id.type',
-        ],
-      });
-
-      expect(result).toHaveLength(1);
-      expect(result[0]).toEqual({
-        id: 1,
-        title: 'Topic 1',
-        body: 'Body 1',
-        imageId: 'img1',
-        attachments: [
+describe('getTopics', () => {
+  it('公開済みのトピックを sort 順に取得する', async () => {
+    vi.mocked(cms.findMany).mockResolvedValue({
+      ok: true,
+      value: {
+        totalDocs: 1,
+        docs: [
           {
-            id: 'file1',
-            filenameDownload: 'test1.pdf',
-            type: 'application/pdf',
-          },
-          {
-            id: 'file2',
-            filenameDownload: 'test2.pdf',
-            type: 'application/pdf',
-          },
-        ],
-      });
-    });
-  });
-
-  describe('getTopicById', () => {
-    it('returns formatted topic by id', async () => {
-      vi.mocked(directus.request).mockImplementation(async (req: unknown) => {
-        const request = req as {
-          type?: string;
-          collection?: string;
-          id?: number;
-        };
-        if (
-          request.type === 'readItem' &&
-          request.collection === 'topics' &&
-          request.id === 1
-        ) {
-          return {
             id: 1,
             title: 'Topic 1',
-            body: 'Body 1',
-            image: 'img1',
+            body_html: 'Body 1',
+            image: { id: 7, filename: 'img1.webp', mimeType: 'image/webp' },
             attachments: [
-              {
-                sort: null,
-                directus_files_id: {
-                  id: 'file1',
-                  filename_download: 'test1.pdf',
-                  type: 'application/pdf',
-                },
-              },
+              { id: 11, filename: 'test1.pdf', mimeType: 'application/pdf' },
+              { id: 12, filename: 'test2.pdf', mimeType: 'application/pdf' },
             ],
-          };
-        }
-        return null;
-      });
-
-      const result = await getTopicById(1);
-
-      expect(readItem).toHaveBeenCalledWith('topics', 1, {
-        fields: [
-          '*',
-          'attachments.sort',
-          'attachments.directus_files_id.id',
-          'attachments.directus_files_id.filename_download',
-          'attachments.directus_files_id.type',
+          },
         ],
-      });
+      },
+    } as never);
 
-      expect(result).toEqual({
+    const result = await getTopics();
+
+    expect(result).toEqual([
+      {
         id: 1,
         title: 'Topic 1',
         body: 'Body 1',
-        imageId: 'img1',
+        imageId: '7',
         attachments: [
-          {
-            id: 'file1',
-            filenameDownload: 'test1.pdf',
-            type: 'application/pdf',
-          },
+          { id: '11', filenameDownload: 'test1.pdf', type: 'application/pdf' },
+          { id: '12', filenameDownload: 'test2.pdf', type: 'application/pdf' },
         ],
-      });
+      },
+    ]);
+
+    const [collection, query] = vi.mocked(cms.findMany).mock.calls[0];
+    expect(collection).toBe('topics');
+    expect(query.sort).toEqual(['sort']);
+    expect(query.depth).toBe(1);
+    expect((query.where as PublishedWhere).published_at?.exists).toBe(true);
+  });
+
+  it('取得に失敗した場合は例外を投げる', async () => {
+    vi.mocked(cms.findMany).mockResolvedValue({
+      ok: false,
+      error: { kind: 'network', status: 500 },
+    } as never);
+
+    await expect(getTopics()).rejects.toThrow();
+  });
+});
+
+describe('getTopicById', () => {
+  it('IDでトピックを1件取得する', async () => {
+    vi.mocked(cms.findById).mockResolvedValue({
+      ok: true,
+      value: {
+        id: 1,
+        title: 'Topic 1',
+        body_html: 'Body 1',
+        image: 7,
+        attachments: [
+          { id: 11, filename: 'test1.pdf', mimeType: 'application/pdf' },
+        ],
+      },
+    } as never);
+
+    const result = await getTopicById(1);
+
+    expect(result).toEqual({
+      id: 1,
+      title: 'Topic 1',
+      body: 'Body 1',
+      imageId: '7',
+      attachments: [
+        { id: '11', filenameDownload: 'test1.pdf', type: 'application/pdf' },
+      ],
     });
+    expect(cms.findById).toHaveBeenCalledWith('topics', 1, { depth: 1 });
+  });
 
-    it('returns null when topic does not exist', async () => {
-      vi.mocked(directus.request).mockRejectedValue(
-        new Error('Network error or 404'),
-      );
+  it('存在しない場合はnullを返す', async () => {
+    vi.mocked(cms.findById).mockResolvedValue({
+      ok: false,
+      error: { kind: 'not_found' },
+    } as never);
 
-      const result = await getTopicById(999);
-
-      expect(result).toBeNull();
-    });
+    expect(await getTopicById(999)).toBeNull();
   });
 });

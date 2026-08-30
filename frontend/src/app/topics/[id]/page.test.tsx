@@ -16,7 +16,7 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@/env', () => ({
   env: {
-    NEXT_PUBLIC_DIRECTUS_URL: 'http://localhost:8055',
+    NEXT_PUBLIC_CMS_URL: 'http://localhost:8055',
   },
 }));
 

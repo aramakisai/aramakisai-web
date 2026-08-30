@@ -1,5 +1,4 @@
-import { readItems } from '@directus/sdk';
-import { directus } from './directus';
+import { cms } from './cms';
 
 export interface StaticPageContent {
   title: string;
@@ -11,20 +10,19 @@ export interface StaticPageContent {
 export async function getPageBySlug(
   slug: string,
 ): Promise<StaticPageContent | null> {
-  try {
-    const pages = await directus.request(
-      readItems('pages', { filter: { slug: { _eq: slug } }, limit: 1 }),
-    );
-    const page = pages[0];
-    if (!page) return null;
+  const result = await cms.findMany('pages', {
+    where: { slug: { equals: slug } },
+    limit: 1,
+  });
+  if (!result.ok) return null;
 
-    return {
-      title: page.title,
-      contentHtml: page.content || '',
-      embedUrl: page.embed_url,
-      embedHeight: page.embed_height,
-    };
-  } catch {
-    return null;
-  }
+  const page = result.value.docs[0];
+  if (!page) return null;
+
+  return {
+    title: page.title,
+    contentHtml: page.content_html || '',
+    embedUrl: page.embed_url ?? null,
+    embedHeight: page.embed_height ?? null,
+  };
 }

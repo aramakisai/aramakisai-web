@@ -54,7 +54,7 @@ describe('AnnouncementsList', () => {
     expect(screen.queryByText('Body 2')).not.toBeInTheDocument();
   });
 
-  test('shows at most 5 announcements even when more are given', () => {
+  test('shows at most `limit` announcements even when more are given', () => {
     const many: AnnouncementSummary[] = Array.from({ length: 8 }, (_, i) => ({
       id: i + 1,
       title: `Notice ${i + 1}`,
@@ -63,20 +63,36 @@ describe('AnnouncementsList', () => {
       attachments: [],
     }));
 
-    render(<AnnouncementsList announcements={many} />);
+    render(<AnnouncementsList announcements={many} limit={5} />);
 
     const rows = screen.getAllByRole('row');
     expect(rows.length).toBe(6); // 1 header row + 5 data rows (capped)
     expect(screen.queryByText('Notice 6')).not.toBeInTheDocument();
   });
 
-  test('renders a link to the full announcements list', () => {
-    render(<AnnouncementsList announcements={announcements} />);
+  test('renders a link to the full announcements list when capped by limit', () => {
+    const many: AnnouncementSummary[] = Array.from({ length: 8 }, (_, i) => ({
+      id: i + 1,
+      title: `Notice ${i + 1}`,
+      body: '<p>Body</p>',
+      publishedAt: '2026-07-10',
+      attachments: [],
+    }));
+
+    render(<AnnouncementsList announcements={many} limit={5} />);
 
     const allLink = screen.getByRole('link', {
       name: 'すべてのお知らせを見る',
     });
     expect(allLink).toHaveAttribute('href', '/announcements');
+  });
+
+  test('does not render a link to the full list without limit', () => {
+    render(<AnnouncementsList announcements={announcements} />);
+
+    expect(
+      screen.queryByRole('link', { name: 'すべてのお知らせを見る' }),
+    ).not.toBeInTheDocument();
   });
 
   test('renders placeholder when announcements array is empty', () => {

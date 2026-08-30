@@ -4,7 +4,7 @@ import { AboutSection } from '@/components/about-section';
 import { AnnouncementsList } from '@/components/announcements-list';
 import { TopicsList } from '@/components/topics-list';
 import { RichText } from '@/components/rich-text';
-import { toAssetUrl } from '@/lib/directus-asset-url';
+import { toAssetUrl } from '@/lib/cms-asset-url';
 import { HomePageContent } from '@/lib/home-page-types';
 
 export default async function Page() {
@@ -43,7 +43,10 @@ export default async function Page() {
               <h2 className="mb-4 border-b border-gray-200 pb-2 text-2xl font-bold">
                 お知らせ
               </h2>
-              <AnnouncementsList announcements={content.announcements} />
+              <AnnouncementsList
+                announcements={content.announcements}
+                limit={5}
+              />
             </section>
 
             {content.topics.length > 0 && (

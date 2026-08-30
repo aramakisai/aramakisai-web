@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
-import { toAssetUrl } from '@/lib/directus-asset-url';
+import { toAssetUrl } from '@/lib/cms-asset-url';
 import type { FestivalOverview, FestivalTheme } from '@/lib/home-page-types';
 import { RichText } from './rich-text';
 
@@ -147,7 +147,7 @@ export function AboutSection({
               {venueName && (
                 <div
                   data-testid="venue-details"
-                  className="border-l-2 border-cyan-500 pl-5"
+                  className="border-l-2 border-info pl-5"
                 >
                   <p className="text-sm font-semibold tracking-[0.18em] text-slate-500">
                     会場

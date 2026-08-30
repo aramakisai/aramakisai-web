@@ -1,79 +1,31 @@
-import { readItems, readItem } from '@directus/sdk';
-import { directus, type TopicFile } from './directus';
-import { TopicSummary, Attachment } from './home-page-types';
+import type { Topic } from '@/cms-types';
+import { publishedFilter } from './announcements';
+import { cms } from './cms';
+import { toAttachments, toMediaId } from './cms-media';
+import { TopicSummary } from './home-page-types';
 
-// Directus SDKの型付きfieldsはドット区切りのdeep-fields文字列を表現できないため、
-// このリテラル配列のみ許容してキャストする。
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const TOPIC_FIELDS: any = [
-  '*',
-  'attachments.sort',
-  'attachments.directus_files_id.id',
-  'attachments.directus_files_id.filename_download',
-  'attachments.directus_files_id.type',
-];
-
-type RawTopic = {
-  id: number;
-  title: string;
-  body: string | null;
-  image: string | null;
-  published_at?: string | null;
-  attachments?: TopicFile[];
-};
-
-function formatTopic(topicData: RawTopic): TopicSummary {
-  const sortedAttachments = [...(topicData.attachments || [])].sort(
-    (a, b) => (a.sort ?? 9999) - (b.sort ?? 9999),
-  );
-
-  const attachments: Attachment[] = sortedAttachments
-    .filter((att) => att.directus_files_id != null)
-    .map((att) => {
-      const fileRef = att.directus_files_id;
-      if (typeof fileRef === 'string') {
-        return { id: fileRef, filenameDownload: '', type: null };
-      }
-      return {
-        id: fileRef.id,
-        filenameDownload: fileRef.filename_download,
-        type: fileRef.type,
-      };
-    });
-
+function formatTopic(topic: Topic): TopicSummary {
   return {
-    id: topicData.id,
-    title: topicData.title,
-    body: topicData.body ?? null,
-    imageId: topicData.image ?? null,
-    attachments,
+    id: topic.id,
+    title: topic.title,
+    body: topic.body_html ?? null,
+    imageId: toMediaId(topic.image),
+    attachments: toAttachments(topic.attachments),
   };
 }
 
 export async function getTopics(): Promise<TopicSummary[]> {
-  const topicsData = await directus.request(
-    readItems('topics', {
-      sort: ['sort'],
-      filter: { published_at: { _lte: '$NOW', _nnull: true } },
-      fields: TOPIC_FIELDS,
-    }),
-  );
-
-  return ((topicsData || []) as unknown as RawTopic[]).map(formatTopic);
+  const result = await cms.findMany('topics', {
+    where: publishedFilter(),
+    sort: ['sort'],
+    limit: 0,
+    depth: 1,
+  });
+  if (!result.ok) throw new Error('トピックの取得に失敗しました');
+  return result.value.docs.map(formatTopic);
 }
 
 export async function getTopicById(id: number): Promise<TopicSummary | null> {
-  try {
-    const topicData = await directus.request(
-      readItem('topics', id, {
-        fields: TOPIC_FIELDS,
-      }),
-    );
-
-    if (!topicData) return null;
-
-    return formatTopic(topicData as unknown as RawTopic);
-  } catch {
-    return null;
-  }
+  const result = await cms.findById('topics', id, { depth: 1 });
+  return result.ok ? formatTopic(result.value) : null;
 }

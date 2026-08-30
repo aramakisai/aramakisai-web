@@ -85,7 +85,7 @@ describe('.github/workflows/frontend-ci.yml', () => {
     const workflow = loadWorkflow();
     const buildStep = allSteps(workflow).find((s) => s.run === 'pnpm build');
     expect(buildStep?.env).toMatchObject({
-      NEXT_PUBLIC_DIRECTUS_URL: expect.any(String),
+      NEXT_PUBLIC_CMS_URL: expect.any(String),
       NEXT_PUBLIC_SITE_URL: expect.any(String),
     });
   });

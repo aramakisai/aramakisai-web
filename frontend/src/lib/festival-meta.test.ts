@@ -1,119 +1,90 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getFestivalMeta, getContactFormUrl } from './festival-meta';
-import { directus } from './directus';
-import { readSingleton } from '@directus/sdk';
+import { cms } from './cms';
 
-vi.mock('./directus', () => ({
-  directus: {
-    request: vi.fn(),
-  },
+vi.mock('./cms', () => ({
+  cms: { findMany: vi.fn(), findById: vi.fn(), findGlobal: vi.fn() },
 }));
 
-vi.mock('@directus/sdk', () => ({
-  readSingleton: vi.fn((collection: string, query?: unknown) => ({
-    type: 'readSingleton',
-    collection,
-    query,
-  })),
-}));
+beforeEach(() => vi.clearAllMocks());
 
 describe('getFestivalMeta', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('fetches festival_meta and returns formatted FestivalOverview', async () => {
-    vi.mocked(directus.request).mockImplementation(async (req: unknown) => {
-      const request = req as { type?: string; collection?: string };
-      if (
-        request.type === 'readSingleton' &&
-        request.collection === 'festival_meta'
-      ) {
-        return {
-          name: '荒牧祭',
-          event_days: [{ label: '1日目', open: '09:00', close: '17:00' }],
-          overview: '<p>概要</p>',
-          hero_image: 'hero123',
-        };
-      }
-      return null;
-    });
+  it('festival_meta を取得して FestivalOverview へ変換する', async () => {
+    vi.mocked(cms.findGlobal).mockResolvedValue({
+      ok: true,
+      value: {
+        name: '荒牧祭',
+        event_days: [{ label: '1日目', open: '09:00', close: '17:00' }],
+        overview_html: '<p>概要</p>',
+        hero_image: { id: 123, filename: 'hero.webp', mimeType: 'image/webp' },
+      },
+    } as never);
 
     const result = await getFestivalMeta();
 
-    expect(readSingleton).toHaveBeenCalledWith('festival_meta', {
-      fields: ['name', 'event_days', 'overview', 'hero_image'],
-    });
-
+    expect(cms.findGlobal).toHaveBeenCalledWith('festival_meta', { depth: 1 });
     expect(result).toEqual({
       name: '荒牧祭',
       eventDays: [{ label: '1日目', open: '09:00', close: '17:00' }],
       overviewHtml: '<p>概要</p>',
-      heroImageId: 'hero123',
+      heroImageId: '123',
     });
   });
 
-  it('handles null values for event_days, overview, and hero_image', async () => {
-    vi.mocked(directus.request).mockImplementation(async (req: unknown) => {
-      const request = req as { type?: string; collection?: string };
-      if (
-        request.type === 'readSingleton' &&
-        request.collection === 'festival_meta'
-      ) {
-        return {
-          name: null,
-          event_days: null,
-          overview: null,
-          hero_image: null,
-        };
-      }
-      return null;
-    });
+  it('event_days / overview / hero_image が null でも既定値へ落とす', async () => {
+    vi.mocked(cms.findGlobal).mockResolvedValue({
+      ok: true,
+      value: {
+        name: null,
+        event_days: null,
+        overview_html: null,
+        hero_image: null,
+      },
+    } as never);
 
-    const result = await getFestivalMeta();
-
-    expect(result).toEqual({
+    expect(await getFestivalMeta()).toEqual({
       name: '',
       eventDays: [],
       overviewHtml: null,
       heroImageId: null,
     });
   });
+
+  it('取得に失敗した場合は例外を投げる', async () => {
+    vi.mocked(cms.findGlobal).mockResolvedValue({
+      ok: false,
+      error: { kind: 'network', status: 500 },
+    } as never);
+
+    await expect(getFestivalMeta()).rejects.toThrow();
+  });
 });
 
 describe('getContactFormUrl', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+  it('contact_form_url を返す', async () => {
+    vi.mocked(cms.findGlobal).mockResolvedValue({
+      ok: true,
+      value: { contact_form_url: 'https://forms.example.com/contact' },
+    } as never);
+
+    expect(await getContactFormUrl()).toBe('https://forms.example.com/contact');
   });
 
-  it('fetches festival_meta.contact_form_url', async () => {
-    vi.mocked(directus.request).mockResolvedValueOnce({
-      contact_form_url: 'https://forms.example.com/contact',
-    });
+  it('contact_form_url が未設定なら null を返す', async () => {
+    vi.mocked(cms.findGlobal).mockResolvedValue({
+      ok: true,
+      value: { contact_form_url: null },
+    } as never);
 
-    const result = await getContactFormUrl();
-
-    expect(readSingleton).toHaveBeenCalledWith('festival_meta', {
-      fields: ['contact_form_url'],
-    });
-    expect(result).toBe('https://forms.example.com/contact');
+    expect(await getContactFormUrl()).toBeNull();
   });
 
-  it('returns null when contact_form_url is not set', async () => {
-    vi.mocked(directus.request).mockResolvedValueOnce({
-      contact_form_url: null,
-    });
+  it('CMS へ到達できない場合は null を返す', async () => {
+    vi.mocked(cms.findGlobal).mockResolvedValue({
+      ok: false,
+      error: { kind: 'network', status: 0 },
+    } as never);
 
-    const result = await getContactFormUrl();
-    expect(result).toBeNull();
-  });
-
-  it('returns null when directus is unreachable (throws exception)', async () => {
-    vi.mocked(directus.request).mockRejectedValueOnce(
-      new Error('Network error'),
-    );
-
-    const result = await getContactFormUrl();
-    expect(result).toBeNull();
+    expect(await getContactFormUrl()).toBeNull();
   });
 });

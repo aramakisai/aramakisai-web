@@ -1,0 +1,45 @@
+name: CMS Schema Change Gate
+
+on:
+  pull_request:
+    paths:
+      - cms/src/collections/**
+      - cms/src/globals/**
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Detect breaking content model changes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          # packageManager の pin はリポジトリルートではなく cms/ にある
+          package_json_file: cms/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: cms/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: cms
+        run: pnpm install --frozen-lockfile
+
+      - name: Compare collection definitions against the base ref
+        if: "!contains(github.event.pull_request.labels.*.name, 'breaking-change-acknowledged')"
+        working-directory: cms
+        run: pnpm check:schema "origin/${{ github.base_ref }}"
+
+      - name: Breaking change acknowledged
+        if: contains(github.event.pull_request.labels.*.name, 'breaking-change-acknowledged')
+        run: |
+          echo "breaking-change-acknowledged ラベルにより破壊的変更の検出をスキップした。"
+          echo "対応するフロントエンドコードがデプロイ・安定稼働済みであることを確認すること。"

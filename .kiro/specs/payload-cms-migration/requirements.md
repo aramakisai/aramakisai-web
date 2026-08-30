@@ -17,8 +17,15 @@
    prod / staging で無効になっている。
    出展者に自分の企画だけを編集させるという要件は、Directus の無償ライセンス下では実現できない。
 
-2. **OIDC 認証の無料枠が v11 までで終了している**
-   v12 以降で OIDC を使うには有料プランが必要。委員会メンバーの認証を外部 IdP に寄せる方針と衝突する。
+2. **外部 IdP 連携がライセンスゲートの下にあり、失効時期が読めない**
+   v12 の `CORE_LICENSE` は `sso_enabled: false` で、SSO ルートは「ライセンス status が locked」
+   または「v12 移行からの猶予期間」の間だけ有効になる実装になっている。
+   2026-08-27 時点の prod は SSO が稼働している (`GET /auth/login/authentik` が IdP へ 302、
+   `GET /auth` が `authentik` を返す) が、v12 マイグレーション `20260507A` の適用は 2026-07-02 であり、
+   猶予期間の算定根拠と失効時期を外部から確定できない。
+   委員会メンバーの認証を Authentik に寄せる方針が、いつ機能停止するか予測できない土台の上に載っている。
+   なお `aramakisai-infra` には出展者アカウントの自動払い出しとパスワード設定フローが
+   Authentik 上に実装済みであり、移行先も同じ IdP を使うことが前提になる。
 
 3. **RBAC モデルの複雑さ**
    `directus_policies` → `directus_access` → `directus_permissions` の 3 階層に加え、
@@ -38,14 +45,32 @@
 - インフラ: K8s 上の Directus Deployment / schema-apply Job / ArgoCD 連携、
   および `aramakisai-web` → `aramakisai-infra` のスキーマ同期ワークフロー
 
+### 検討して却下した代替案
+
+「出展者が自企画のみを編集できる」という要件だけを見れば、CMS の全置換より小さい選択肢が存在する。
+以下は検討のうえ却下した案であり、design フェーズで蒸し返さない。
+
+- **Directus を据え置き、出展者の編集画面のみ Next.js に自作する**
+  Directus は実行委員用に残し、出展者向けには admin トークンを持つサーバー側処理で所有者判定を行う
+  専用フォームを用意する案。差分は最小で短期に実現できるが、CMS の導線が 2 系統に分かれ、
+  行レベル制御を自前実装として恒久的に保守することになる。動機 1〜3 のいずれも解消しない。
+- **有償ライセンス (`LICENSE_KEY`) を購入する**
+  custom permission rule と SSO が同時に解決する最短経路だが、年額コストが発生し、
+  無償構成で運用するという方針と整合しない。
+- **今年度は現状維持とし、出展情報の更新は実行委員が代行する**
+  リスクは最小だが、出展者の手間と実行委員の作業量が据え置きになり、動機 1〜3 も未解決のまま残る。
+
 ### 判断が必要な論点 (design フェーズで詰める)
 
 - Payload のホスティング形態 (K8s 上の自前運用か、Cloudflare Workers 同居か、Payload Cloud か)
 - 既存 Postgres の再利用可否 (`@payloadcms/db-postgres` で既存テーブルを引き継ぐか、新スキーマへデータ移送するか)
-- 移行方式 (一括カットオーバーか、コレクション単位の段階移行か)
+- 移行方式 (一括切り替えか、コレクション単位の段階移行か)
 - メディアストレージの移行先と、既存ファイル ID / URL の互換性
 - 認証方式 (Payload 標準認証 + OIDC 連携、あるいは外部 IdP 連携)
 - 移行期間中の運用 (Directus と Payload の並行稼働の要否)
+- 並行稼働期間に Directus と Payload を同一ノードへ同居させられるか (下記のリソース制約を参照)
+- 移行後に非開発者がコンテンツモデルを変更する手段 (Payload はスキーマ変更に TypeScript の編集と
+  デプロイを伴い、Directus の「管理画面で追加してスナップショットを取る」導線が失われる)
 
 ### 制約
 
@@ -53,6 +78,10 @@
 - `additive-only` ルールと同様に、破壊的変更はフロントエンドのデプロイ完了後に行う
 - シークレットは Infisical 管理。`.env` は使用禁止
 - インフラ変更は `aramakisai-infra` リポジトリ側の PR が必要
+- **追加の有償プランを契約しない。** Cloudflare Workers Paid を含め、
+  移行のために新たな月額課金を発生させる選択肢は採らない。無料枠の範囲で成立する構成に限る
+- 移行は可能な限り早期に完了させる
+- 本番ノードは単一構成であり、常駐プロセスを増やす余地が限られる
 
 ## Introduction
 
@@ -69,7 +98,7 @@
   - 既存 Postgres データおよびメディア資産の移送と同一性検証
   - フロントエンドのデータ取得層 (`frontend/src/lib/*`) と型定義の差し替え
   - K8s / ArgoCD 上の Payload 稼働基盤と、スキーマ変更を GitOps に載せる仕組み
-  - カットオーバー手順、ロールバック手順、および Directus の廃止
+  - 切り替え手順および Directus の廃止
 - **Out of scope**:
   - サイトの情報設計・デザイン・ページ追加といったコンテンツ側の変更
     (`page-home-friendly-editing` / `home-page-expansion` の所有領域)
@@ -96,6 +125,11 @@
 3. When 既存 Postgres の再利用可否を評価するとき, the Payload 移行プロジェクト shall 現行 16 コレクションのうち Payload のスキーマ規約に適合しないものを列挙する。
 4. If いずれかの論点で実機検証が不能または非現実的である, then the Payload 移行プロジェクト shall 検証不能である理由と、代替として採用する判断根拠を明示する。
 5. The Payload 移行プロジェクト shall 選定結果に基づき、移行に要するダウンタイムの見積もりを提示する。
+6. When ホスティング形態を決定する, the Payload 移行プロジェクト shall 並行稼働期間に Payload が必要とする
+   メモリ / CPU を見積もり、本番ノードの空き容量で Directus と同時に稼働できるかを判定する。
+7. If 並行稼働が本番ノードの容量に収まらない, then the Payload 移行プロジェクト shall 一括切り替え、
+   別ノードの追加、外部ホスティングのいずれかを代替案として提示する。
+8. The Payload 移行プロジェクト shall 選定した移行方式の作業項目と所要期間を見積もる。
 
 ### Requirement 2: 出展者による自企画のみの編集
 
@@ -117,7 +151,7 @@
 #### Acceptance Criteria
 
 1. While 実行委員ロールのユーザーがログインしている, the Payload CMS shall 全コレクションに対する作成・読取・更新・削除を許可する。
-2. Where 外部 IdP 連携が有効である, when ユーザーが IdP 経由でログインする, the Payload CMS shall 対応するロールを付与したセッションを確立する。
+2. When ユーザーが外部 IdP 経由でログインする, the Payload CMS shall 対応するロールを付与したセッションを確立する。
 3. The Payload CMS shall 外部 IdP 連携を、有償ライセンスや追加プランを必要とせずに提供する。
 4. If 未認証のリクエストが管理画面または書き込み系 API に到達する, then the Payload CMS shall 認証エラーを返し、コンテンツを露出しない。
 5. When 公開済みコンテンツが未認証でリクエストされる, the Payload CMS shall フロントエンドが必要とする読取専用のレスポンスを返す。
@@ -158,7 +192,8 @@
 1. When 移行を実行する, the メディア移行処理 shall Directus に保存済みの全ファイルを Payload のメディアストレージへ移送する。
 2. When フロントエンドが移行前に生成した画像 URL をリクエストする, the 配信基盤 shall 同一の画像を返すか、恒久リダイレクトで新 URL へ誘導する。
 3. When 編集者が JPEG / PNG / WebP 画像をアップロードする, the Payload CMS shall 現行の Directus hook と同等の最適化 (WebP 変換・上限サイズへのリサイズ) を適用する。
-4. If 画像最適化に失敗する, then the Payload CMS shall 原本を保持したままアップロードを完了させ、警告を記録する。
+4. If 用途別サイズの生成に失敗する, then the Payload CMS shall 保存済みの画像を保持したままアップロードを完了させ、警告を記録する。
+   なお WebP 変換自体はアップロードの前提処理であり、これに失敗した場合はアップロードを中断する。
 5. When フロントエンドが表示幅を指定して画像を要求する, the 配信基盤 shall 指定幅に応じた画像を返す。
 6. The メディア移行処理 shall 移行元と移行先のファイル件数および合計サイズを比較し、欠落がないことを検証する。
 
@@ -182,26 +217,25 @@
 
 #### Acceptance Criteria
 
-1. The Payload 稼働基盤 shall prod と staging の 2 環境で稼働する。
-2. When コンテンツモデル定義の変更が `main` にマージされる, the デプロイパイプライン shall 対応するデータベース変更を prod と staging に適用する。
+1. The Payload 稼働基盤 shall prod の 1 環境で稼働する。staging 環境は設けない。
+2. When コンテンツモデル定義の変更が `main` にマージされる, the デプロイパイプライン shall 対応するデータベース変更を prod に適用する。
 3. When コンテンツモデル定義を変更した PR が作成される, the CI shall 破壊的変更 (フィールド削除・型変更) を機械的に検出して報告する。
 4. If 破壊的変更が検出された, then the CI shall フロントエンド側の対応がデプロイ済みであることの確認を要求する。
 5. The Payload 稼働基盤 shall シークレットを Infisical から注入し、`.env` ファイルを使用しない。
 6. When 障害が発生する, the 監視基盤 shall Payload の異常を既存の監視経路で検知できる。
 7. The Payload 移行プロジェクト shall Directus 向けの `directus-schema-sync.yml` および `additive-schema-check.yml` の後継または撤去方針を定義する。
+8. The Payload 移行プロジェクト shall 非開発者がコンテンツモデルの変更を要求してから本番へ反映されるまでの
+   手順を文書化し、Directus の管理画面で完結していた操作のうち開発者の介在が必要になるものを明示する。
 
-### Requirement 9: カットオーバーとロールバック
+### Requirement 9: Directus から Payload への切り替え
 
-**Objective:** 実行委員会メンバーとして、移行作業でサイトが長時間停止しないことを保証したい。そうすることで、来場者への影響と告知コストを抑えられる。
+**Objective:** 開発者として、Directus から Payload への切り替えを一度で完了したい。そうすることで、二重管理の期間を作らずに済む。
 
 #### Acceptance Criteria
 
-1. The Payload 移行プロジェクト shall カットオーバー手順を、実行順序・所要時間・担当・確認項目を含む形で文書化する。
-2. When カットオーバーを実行する, the 移行手順 shall 公開サイトの停止時間を事前に見積もった範囲内に収める。
-3. When カットオーバーが完了した, the 移行手順 shall 主要ページの表示と CMS の書き込みが正常であることを確認する検証項目を提供する。
-4. If カットオーバー後に重大な不具合が判明する, then the 移行手順 shall Directus 構成へ復帰するロールバック手順を提供する。
-5. While ロールバックが可能な期間である, the 移行手順 shall Directus 側のデータベースとメディアを削除しない。
-6. Where 段階移行方式を採用する, the 移行手順 shall Directus と Payload が同時に参照される期間の整合性維持方法を定義する。
+1. When 切り替えを実行する, the 移行手順 shall Directus の停止・Payload の起動・フロントエンドの参照先変更をこの順で行う。
+2. When 切り替えが完了した, the 移行手順 shall 主要ページの表示と CMS の書き込みが正常であることを確認する。
+3. If 切り替え後に重大な不具合が判明する, then the 移行手順 shall Directus 側の資産を削除する前であればフロントエンドの参照先を戻せる状態を保つ。
 
 ### Requirement 10: 移行後の検証と Directus の廃止
 

@@ -11,7 +11,17 @@ const config: Config = {
   ],
   theme: {
     extend: {
-      colors: {},
+      colors: {
+        background: '#ffffff',
+        text: '#231815',
+        primary: '#ebb03c',
+        secondary: '#7fc8ad',
+        accent: '#ee7e84',
+        'accent-alt': '#a18abf',
+        info: '#80c1c6',
+        success: '#8cb76b',
+        warning: '#e86f30',
+      },
       spacing: {},
       fontFamily: {},
     },

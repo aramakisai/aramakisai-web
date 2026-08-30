@@ -1,66 +1,80 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getPageBySlug } from './static-page';
-import { directus } from './directus';
+import { cms } from './cms';
 
-vi.mock('./directus', () => ({
-  directus: {
-    request: vi.fn(),
-  },
+vi.mock('./cms', () => ({
+  cms: { findMany: vi.fn(), findById: vi.fn(), findGlobal: vi.fn() },
 }));
 
-vi.mock('@directus/sdk', () => ({
-  readItems: vi.fn((collection: string, query: unknown) => ({
-    type: 'readItems',
-    collection,
-    query,
-  })),
-}));
+beforeEach(() => vi.clearAllMocks());
 
 describe('static-page', () => {
-  it('maps title, content and embed for a found slug', async () => {
-    vi.mocked(directus.request).mockResolvedValue([
-      {
-        title: 'お問い合わせ',
-        content: '<p>Contact</p>',
-        embed_url: 'https://forms.example.com',
-        embed_height: 900,
+  it('slug が見つかった場合に title / content / embed を変換する', async () => {
+    vi.mocked(cms.findMany).mockResolvedValue({
+      ok: true,
+      value: {
+        totalDocs: 1,
+        docs: [
+          {
+            id: 1,
+            slug: 'contact',
+            title: 'お問い合わせ',
+            content_html: '<p>Contact</p>',
+            embed_url: 'https://forms.example.com',
+            embed_height: 900,
+          },
+        ],
       },
-    ]);
+    } as never);
 
-    const result = await getPageBySlug('contact');
-    expect(result).toEqual({
+    expect(await getPageBySlug('contact')).toEqual({
       title: 'お問い合わせ',
       contentHtml: '<p>Contact</p>',
       embedUrl: 'https://forms.example.com',
       embedHeight: 900,
     });
+    expect(cms.findMany).toHaveBeenCalledWith('pages', {
+      where: { slug: { equals: 'contact' } },
+      limit: 1,
+    });
   });
 
-  it('falls back to empty string when content is null', async () => {
-    vi.mocked(directus.request).mockResolvedValue([
-      {
-        title: 'お問い合わせ',
-        content: null,
-        embed_url: null,
-        embed_height: null,
+  it('content が null の場合は空文字へ落とす', async () => {
+    vi.mocked(cms.findMany).mockResolvedValue({
+      ok: true,
+      value: {
+        totalDocs: 1,
+        docs: [
+          {
+            id: 1,
+            slug: 'contact',
+            title: 'お問い合わせ',
+            content_html: null,
+            embed_url: null,
+            embed_height: null,
+          },
+        ],
       },
-    ]);
+    } as never);
 
-    const result = await getPageBySlug('contact');
-    expect(result?.contentHtml).toBe('');
+    expect((await getPageBySlug('contact'))?.contentHtml).toBe('');
   });
 
-  it('returns null when slug not found', async () => {
-    vi.mocked(directus.request).mockResolvedValue([]);
+  it('slug が見つからない場合は null を返す', async () => {
+    vi.mocked(cms.findMany).mockResolvedValue({
+      ok: true,
+      value: { totalDocs: 0, docs: [] },
+    } as never);
 
-    const result = await getPageBySlug('unknown');
-    expect(result).toBeNull();
+    expect(await getPageBySlug('unknown')).toBeNull();
   });
 
-  it('returns null when the request throws', async () => {
-    vi.mocked(directus.request).mockRejectedValue(new Error('network error'));
+  it('取得に失敗した場合は null を返す', async () => {
+    vi.mocked(cms.findMany).mockResolvedValue({
+      ok: false,
+      error: { kind: 'network', status: 0 },
+    } as never);
 
-    const result = await getPageBySlug('contact');
-    expect(result).toBeNull();
+    expect(await getPageBySlug('contact')).toBeNull();
   });
 });

@@ -4,12 +4,20 @@ import { AnnouncementSummary } from '../lib/home-page-types';
 
 export interface AnnouncementsListProps {
   announcements: AnnouncementSummary[];
+  limit?: number;
 }
 
-export function AnnouncementsList({ announcements }: AnnouncementsListProps) {
+export function AnnouncementsList({
+  announcements,
+  limit,
+}: AnnouncementsListProps) {
   if (!announcements || announcements.length === 0) {
     return <p className="text-gray-500">お知らせはありません</p>;
   }
+
+  const visibleAnnouncements = limit
+    ? announcements.slice(0, limit)
+    : announcements;
 
   return (
     <div className="overflow-x-auto">
@@ -23,7 +31,7 @@ export function AnnouncementsList({ announcements }: AnnouncementsListProps) {
           </tr>
         </thead>
         <tbody>
-          {announcements.slice(0, 5).map((announcement) => {
+          {visibleAnnouncements.map((announcement) => {
             const d = new Date(announcement.publishedAt);
             const published = `${d.getFullYear()}年${String(d.getMonth() + 1).padStart(2, '0')}月${String(d.getDate()).padStart(2, '0')}日`;
 
@@ -53,9 +61,11 @@ export function AnnouncementsList({ announcements }: AnnouncementsListProps) {
           })}
         </tbody>
       </table>
-      <Link href="/announcements" className="block hover:underline">
-        すべてのお知らせを見る
-      </Link>
+      {limit && announcements.length > limit && (
+        <Link href="/announcements" className="block hover:underline">
+          すべてのお知らせを見る
+        </Link>
+      )}
     </div>
   );
 }

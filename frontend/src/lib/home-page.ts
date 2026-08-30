@@ -1,10 +1,6 @@
-import { readSingleton, readItems } from '@directus/sdk';
-import {
-  directus,
-  type AnnouncementFile,
-  type TopicFile,
-  type PageHomeFile,
-} from './directus';
+import { publishedFilter } from './announcements';
+import { cms } from './cms';
+import { toAttachments, toMediaId } from './cms-media';
 import {
   HomePageContent,
   AnnouncementSummary,
@@ -12,124 +8,83 @@ import {
   FestivalOverview,
   FestivalTheme,
   SponsorSummary,
-  Attachment,
+  SnsLink,
 } from './home-page-types';
 
-// Directus SDKの型付きfieldsはドット区切りのdeep-fields文字列を表現できないため、
-// このリテラル配列のみ許容してキャストする。
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ATTACHMENT_DEEP_FIELDS: any = [
-  'attachments.sort',
-  'attachments.directus_files_id.id',
-  'attachments.directus_files_id.filename_download',
-  'attachments.directus_files_id.type',
-];
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const HERO_IMAGES_DEEP_FIELDS: any = [
-  'hero_images.sort',
-  'hero_images.directus_files_id.id',
-  'hero_images.directus_files_id.filename_download',
-  'hero_images.directus_files_id.type',
-];
-
-function formatAttachments(
-  raw: (AnnouncementFile | TopicFile | PageHomeFile)[] | undefined,
-): Attachment[] {
-  return [...(raw || [])]
-    .sort((x, y) => (x.sort ?? 0) - (y.sort ?? 0))
-    .map((att) => {
-      const file = att.directus_files_id;
-      if (typeof file === 'string') {
-        return { id: file, filenameDownload: '', type: null };
-      }
-      return {
-        id: file.id,
-        filenameDownload: file.filename_download,
-        type: file.type,
-      };
-    });
-}
-
 export async function getHomePage(): Promise<HomePageContent> {
-  const meta = await directus.request(
-    readSingleton('festival_meta', {
-      fields: ['*', 'overview', 'hero_image'],
-    }),
-  );
-
-  const snsLinks = meta.sns_links || [];
+  const metaResult = await cms.findGlobal('festival_meta', { depth: 1 });
+  if (!metaResult.ok) throw new Error('祭メタ情報の取得に失敗しました');
+  const meta = metaResult.value;
 
   const festival: FestivalOverview = {
     name: meta.name || '',
-    eventDays: meta.event_days || [],
-    overviewHtml: meta.overview || null,
-    heroImageId: meta.hero_image || null,
+    eventDays: (meta.event_days as FestivalOverview['eventDays']) || [],
+    overviewHtml: meta.overview_html || null,
+    heroImageId: toMediaId(meta.hero_image),
   };
 
   const theme: FestivalTheme = {
     word: meta.theme_word || null,
-    imageId: meta.theme_image || null,
-    descriptionHtml: meta.theme_description || null,
+    imageId: toMediaId(meta.theme_image),
+    descriptionHtml: meta.theme_description_html || null,
   };
 
-  const sponsorsData = await directus.request(
-    readItems('sponsors', {
-      sort: ['sort'],
-    }),
-  );
-
-  const sponsors: SponsorSummary[] = (sponsorsData || []).map((s) => ({
+  // 一覧の取得失敗は空配列に倒し、他セクションの描画を継続する
+  const sponsorsResult = await cms.findMany('sponsors', {
+    sort: ['sort'],
+    limit: 0,
+    depth: 1,
+  });
+  const sponsors: SponsorSummary[] = (
+    sponsorsResult.ok ? sponsorsResult.value.docs : []
+  ).map((s) => ({
     id: s.id,
     type: s.type,
     name: s.name,
-    logoId: s.logo,
-    url: s.url,
-    tier: s.tier,
+    logoId: toMediaId(s.logo),
+    url: s.url ?? null,
+    tier: s.tier ?? null,
   }));
 
-  const announcementsData = await directus.request(
-    readItems('announcements', {
-      fields: ['*', ...ATTACHMENT_DEEP_FIELDS],
-      filter: { published_at: { _lte: '$NOW', _nnull: true } },
-      sort: ['-published_at'],
-      limit: 10,
-    }),
-  );
-
-  const announcements: AnnouncementSummary[] = announcementsData.map((a) => ({
+  const announcementsResult = await cms.findMany('announcements', {
+    where: publishedFilter(),
+    sort: ['-published_at'],
+    limit: 10,
+    depth: 1,
+  });
+  const announcements: AnnouncementSummary[] = (
+    announcementsResult.ok ? announcementsResult.value.docs : []
+  ).map((a) => ({
     id: a.id,
     title: a.title,
-    body: a.body || '',
+    body: a.body_html || '',
     publishedAt: a.published_at as string,
-    attachments: formatAttachments(a.attachments),
+    attachments: toAttachments(a.attachments),
   }));
 
-  const topicsData = await directus.request(
-    readItems('topics', {
-      fields: ['*', ...ATTACHMENT_DEEP_FIELDS],
-      sort: ['sort'],
-    }),
-  );
-
-  const topics: TopicSummary[] = topicsData.map((t) => ({
+  const topicsResult = await cms.findMany('topics', {
+    sort: ['sort'],
+    limit: 0,
+    depth: 1,
+  });
+  const topics: TopicSummary[] = (
+    topicsResult.ok ? topicsResult.value.docs : []
+  ).map((t) => ({
     id: t.id,
     title: t.title,
-    body: t.body,
-    imageId: t.image,
-    attachments: formatAttachments(t.attachments),
+    body: t.body_html ?? null,
+    imageId: toMediaId(t.image),
+    attachments: toAttachments(t.attachments),
   }));
 
-  const pageHome = await directus.request(
-    readSingleton('page_home', {
-      fields: ['*', ...HERO_IMAGES_DEEP_FIELDS],
-    }),
-  );
+  const pageHomeResult = await cms.findGlobal('page_home', { depth: 1 });
+  if (!pageHomeResult.ok) throw new Error('トップページの取得に失敗しました');
+  const pageHome = pageHomeResult.value;
 
   return {
-    heroImages: formatAttachments(pageHome.hero_images),
-    heroMessageHtml: pageHome.hero_message || '',
-    snsLinks,
+    heroImages: toAttachments(pageHome.hero_images),
+    heroMessageHtml: pageHome.hero_message_html || '',
+    snsLinks: (meta.sns_links as SnsLink[]) || [],
     festival,
     theme,
     venueName: meta.venue_name || null,
