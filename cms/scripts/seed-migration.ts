@@ -21,7 +21,7 @@ async function main() {
   const toLexical = (html: string | null | undefined) =>
     convertHTMLToLexical({ editorConfig, html: html ?? '', JSDOM });
 
-  const idMap: Record<string, number | string> = {};
+  const idMap: Record<string, number> = {};
 
   // 1. media
   const files = readJson<{ data: { id: string; type: string; filename_download: string; title: string | null }[] }>(
@@ -34,7 +34,7 @@ async function main() {
       data: { alt: f.title ?? f.filename_download },
       file: { data: buffer, mimetype: f.type, name: f.filename_download, size: buffer.length },
     });
-    idMap[f.id] = created.id;
+    idMap[f.id] = created.id as number;
     console.log(`media: ${f.id} -> ${created.id} (${f.filename_download})`);
   }
 
@@ -61,11 +61,12 @@ async function main() {
   console.log(`announcement created: ${createdAnnouncement.id}`);
 
   // 3. festival_meta global
+  type JsonValue = string | number | boolean | JsonValue[] | { [x: string]: JsonValue } | null;
   const festivalMeta = readJson<{
     data: {
       name: string;
-      event_days: unknown;
-      sns_links: unknown;
+      event_days: JsonValue;
+      sns_links: JsonValue;
       overview: string;
       theme_word: string | null;
       theme_description: string;
