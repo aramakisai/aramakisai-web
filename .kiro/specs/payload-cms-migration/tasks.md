@@ -412,7 +412,7 @@ graph TB
   - 8.1 の投入に必要な情報が手元に揃っている
   - _Requirements: 5.1_
 
-- [ ] 7.3 Directus を停止し Payload へ切り替える
+- [x] 7.3 Directus を停止し Payload へ切り替える
   - Directus の Deployment をスケールダウンし、Payload の Deployment をスケールアップする
   - フロントエンドの参照先を CMS へ変更してデプロイする
   - 主要ページの表示と CMS の書き込みが正常であることを確認する
@@ -516,6 +516,16 @@ graph TB
   REST 経由でロールごとの見え方を確認済み。結果は `docs/cms-operations.md` の
   「ロールごとの見え方」に記載した。管理画面の画面上での目視確認は行っていない
   (管理画面も同じ access control を通るため、一覧の絞り込みは表と一致する)。
+
+- **7.3 (切り替え)** — PR #57 を main へマージし本番デプロイ。初回ビルドは
+  `NEXT_PUBLIC_CMS_URL` が prod の Infisical に未登録で失敗した
+  (`frontend-ci.yml` の prod ジョブは preview/dev と異なりワークフロー側でインライン注入していない)。
+  `infisical secrets set NEXT_PUBLIC_CMS_URL=https://cms.aramakisai.com --env=prod` で解消し再デプロイ成功。
+  Directus の Deployment は prod で `replicas=0` にスケールダウン済み。
+  `https://aramakisai.com/` `/announcements` `/topics` が 200、`cms.aramakisai.com` への
+  Authentik 認可リクエストも正常に到達することを確認した。CMS 管理画面への実ログインと書き込みは
+  Authentik の認証情報入力を要するため未実施 (エージェントはパスワード代理入力をしない) — 8.1 の
+  コンテンツ投入時に実地で検証される。
 
 インフラ側リポジトリで行う作業は 3.5 / 5.4 / 6.3 / 6.5 / 9.1 / 9.3 として
 独立したタスクに分解済み。3.4 の静的写像が参照するグループ名は Directus の
