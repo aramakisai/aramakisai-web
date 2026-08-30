@@ -441,7 +441,7 @@ graph TB
   - _Requirements: 5.2, 5.3, 6.6, 7.2_
 
 - [ ] 9. Directus の撤去
-- [ ] 9.1 稼働中の Directus 関連リソースを削除する
+- [x] 9.1 稼働中の Directus 関連リソースを削除する
   - `aramakisai-infra` から Directus の ArgoCD Application とマニフェスト一式
     (Deployment・スキーマ適用 Job・ConfigMap・ExternalSecret・Service) を prod / staging とも削除する
   - Directus 用データベースと S3 上のメディアは、9.5 の最終確認まで削除しない
@@ -450,7 +450,7 @@ graph TB
   - _Requirements: 10.1_
   - _Boundary: aramakisai-infra の GitOps マニフェスト_
 
-- [ ] 9.2 (P) リポジトリ内の Directus 資産を削除する
+- [x] 9.2 (P) リポジトリ内の Directus 資産を削除する
   - スキーマスナップショットと custom migration のうち不要になったものを削除する
   - Directus 向けのスキーマ同期ワークフローと破壊的変更検出ワークフロー、および対応するテストを削除する
   - 削除後に既存のテストとビルドが通る
@@ -458,7 +458,7 @@ graph TB
   - _Requirements: 10.2, 8.7_
   - _Boundary: SchemaChangeGate, DeployPipeline_
 
-- [ ] 9.3 (P) 不要になったシークレットと外部定義を撤去する
+- [x] 9.3 (P) 不要になったシークレットと外部定義を撤去する
   - Infisical の Directus 向けシークレットのうち Payload で使わないものを特定して削除する
   - Directus 用のホスト名のうち staging (`stg-api`) を DNS とトンネルの定義から削除する。
     prod (`api.aramakisai.com`) は 5.4 の旧 URL リダイレクトが使うため残し、
@@ -472,7 +472,7 @@ graph TB
   - _Requirements: 10.3_
   - _Boundary: aramakisai-infra の Terraform 定義と Infisical のシークレット_
 
-- [ ] 9.4 (P) steering の記述を Payload 構成へ更新する
+- [x] 9.4 (P) steering の記述を Payload 構成へ更新する
   - プロダクト概要のドメインモデルと権限モデルの記述を更新する
   - 技術スタックの CMS・スキーマ運用・CI の記述を更新する
   - プロジェクト構造のディレクトリパターンと命名規則を更新する
@@ -564,6 +564,52 @@ graph TB
 独立したタスクに分解済み。3.4 の静的写像が参照するグループ名は Directus の
 `AUTH_AUTHENTIK_ROLE_MAPPING` から引き継いだ `管理者` / `executive` / `student_exhibitor` の 3 つで、
 3.5 ではこれらが Authentik 側に存在することを確認する。
+
+- **9.1 (稼働リソース削除)** — `aramakisai-infra` PR #195 (未マージ、本番の Directus
+  Deployment/Job/ConfigMap 削除を伴うためユーザー承認待ち)。重要な発見: `directus-db` という
+  名前の CNPG Cluster (`db-cluster.yaml`) に Payload の `payload` DB が同居しており
+  (`managed.roles`、`cms-db-init` PreSync Job が `directus-db-rw` サービスへ接続)、単純に
+  ディレクトリごと消すと CMS が壊れる。`db-cluster.yaml` と `scheduled-backup.yaml` を
+  `gitops/manifests/prod/cms/` へ移設 (sync-wave -1 を明示) した上で残りの Directus
+  専用ファイルと ArgoCD Application (prod/staging) を削除した。あわせて staging 専用の
+  `directus-schema-preview` ApplicationSet とその依存物 (GitHub App 用 ExternalSecret、
+  `argocd-cm` の load restrictor 設定)、Directus 向け CI ゲート (`pr-validation.yml` の
+  `staging-gate` job、`scripts/check_staging_gate.py`) も撤去した。Directus 用データベースと
+  S3 メディアは 9.5 まで意図的に残す。
+- **9.2 (リポジトリ内資産削除)** — `directus/` 配下と Directus 向けワークフロー 3 本
+  (`directus-schema-sync.yml` / `additive-schema-check.yml` / 同 dummy) を削除。
+  これらを検証していた workflow 構造テスト (`pipeline-integration.test.ts` /
+  `generated-manifests.test.ts` / `additive-schema-check*.workflow.test.ts` /
+  `directus-schema-sync.workflow.test.ts`) と、8.2 で役目を終えていた旧
+  `directus-check.ts` / テストも削除。`README.md` を Payload CMS 前提に更新。
+  型チェック・lint・vitest (189 件) は green。ローカル `pnpm build` は Infisical
+  未認証のため未検証 (CI で確認される)。PR #62 (aramakisai-web)。
+  副作用として、main の branch protection の required status checks に登録済みの
+  `Detect breaking snapshot.yaml changes` が発火しなくなる。GitHub 設定変更は
+  自動化対象外のため、これを required checks から外す操作は別途手動対応が必要。
+- **9.3 (シークレット・外部定義撤去)** — `aramakisai-infra` PR #196 (未マージ)。
+  Authentik の Directus (prod/stg) 用アプリケーション・プロバイダ・policy binding を削除
+  (CMS と共用する `student_exhibitor` グループは残す)。DNS/Tunnel から `stg-api` を削除、
+  `api.aramakisai.com` はレコードのみ残し Tunnel ingress (旧 Directus Service への転送) を削除
+  (5.4 の旧 URL リダイレクトでカバーされないパスは fallback 404 に落ちる)。Cloudflare Cache
+  Rule から Directus asset delivery ルールを削除 (CMS media delivery ルールは維持)、ファイルを
+  `cloudflare_media_cache.tf` にリネーム。Falco 許可リストの `docker.io/alpine/k8s` 許可を
+  `k8s.ns.name in (prod, staging)` → `k8s.ns.name=prod` に縮小 (staging 側の唯一の対象
+  `directus-staging-freeze-sync` が 9.1 で消えたため)。
+  **Infisical のシークレット削除は保留**: prod に `DIRECTUS_ADMIN_EMAIL` /
+  `DIRECTUS_ADMIN_PASSWORD` / `DIRECTUS_DB_PASSWORD` / `DIRECTUS_LICENSE_KEY` /
+  `DIRECTUS_PROD_OIDC_CLIENT_SECRET` / `DIRECTUS_PROD_SENTRY_DSN` / `DIRECTUS_SECRET` /
+  `DIRECTUS_STAGING_*` (6 件) / `NEXT_PUBLIC_DIRECTUS_URL` を特定したが、実削除はユーザー確認
+  および 9.1 マージ後に行う。`DIRECTUS_DB_PASSWORD` 系は 9.5 まで DB ロール自体を残す方針のため
+  対象外の可能性がある。
+  副次的な発見 (このタスクの範囲外): Directus (prod) には `require_discord` ポリシーと
+  `student_exhibitor` への例外許可があったが、CMS (`cms_prod`) には同等のポリシーが無い。
+  意図した仕様かどうかは未確認。
+- **9.4 (steering 更新)** — `.kiro/steering/product.md` / `tech.md` / `structure.md` を
+  `cms/` の実装 (collections/globals/access/auth/migrations) に合わせて書き直した。
+  9.1 での `db-cluster.yaml` 移設を `docs/cms-operations.md` にも反映。PR #63 (aramakisai-web)。
+- **9.5 (最終確認)** — 未着手。9.1〜9.4 の PR (aramakisai-web #62, #63、aramakisai-infra
+  #195, #196) がすべてマージされ、実インフラへの反映を確認してから着手する。
 
 ## 修正した退行
 
