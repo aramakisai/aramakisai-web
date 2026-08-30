@@ -27,8 +27,6 @@ test.describe.skip('CMS 連携画面のE2Eテストテンプレート', () => {
 
     // 規約: CMS からフェッチしたデータがDOMに反映されていることをアサートする
     // 例: collection由来の特定のテキストが存在するか確認
-    await expect(page.locator('main')).toContainText(
-      'CMSから取得したテキスト',
-    );
+    await expect(page.locator('main')).toContainText('CMSから取得したテキスト');
   });
 });
