@@ -323,7 +323,7 @@ graph TB
   - _Requirements: 7.1, 7.2, 7.5, 7.7_
   - _Boundary: CmsClient_
 
-- [ ] 5.4 移行前の画像 URL からのリダイレクトを設定する
+- [x] 5.4 移行前の画像 URL からのリダイレクトを設定する
   - 移行前のファイル識別子と移行後の識別子の対応表を作る。対象は 9 件。
     対応表は 8.1 の投入結果から得る
   - 旧ホストの旧パスへのアクセスを恒久リダイレクトで新 URL へ誘導する。
@@ -536,6 +536,15 @@ graph TB
   旧 ID → 新 ID の対応は `cms/seed/id-map.json` (git 管理外) に出力し、5.4 で使う。
   本番ページ (`/`, `/announcements`, `/privacy`, `/access`) で反映を確認した。
   学生企画は出展者本人が作るため対象外 (design 通り)。
+
+- **5.4 (旧URLリダイレクト)** — `aramakisai-infra` PR #194。zone 単位の Redirect Rules
+  (`http_request_dynamic_redirect`) は Free プランの API トークンで
+  "request is not authorized" となり作成できず、account 単位の Bulk Redirects
+  (`cloudflare_list` + `http_request_redirect` フェーズの root ruleset) に切り替えて解消した。
+  あわせて CMS メディア配信の Cache Rule 対象を `/api/media/serve/` から `/api/media/` へ広げた。
+  `/api/media/file/:filename` (実バイト本体) がキャッシュ対象外だったため
+  (`/serve/` は 302 を返すだけの経路で、実際のバイトは `/file/` が返す)。
+  本番へ適用済み。旧 URL 9 件全ての到達とキャッシュ HIT を確認した。
 
 インフラ側リポジトリで行う作業は 3.5 / 5.4 / 6.3 / 6.5 / 9.1 / 9.3 として
 独立したタスクに分解済み。3.4 の静的写像が参照するグループ名は Directus の
