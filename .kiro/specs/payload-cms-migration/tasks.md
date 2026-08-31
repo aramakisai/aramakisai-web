@@ -637,17 +637,21 @@ graph TB
   先にターゲット側で当該リソースを追加適用し Synced を確認してから、
   ソース側の Application 定義を削除する 2 段階の変更にすべきだった。
 
-  **最終確認の結果**: Directus 側にしか存在しないデータは意図的に残っている
-  (削除せず保留)。
-  - `directus-db` クラスタ内の `directus` データベースとロール (`payload` とは別)
-  - S3 バケット (`aramakisai-backups`) 内の `directus-uploads/` プレフィックスのメディア原本
-  - Infisical `DIRECTUS_DB_PASSWORD` (上記ロールのパスワード)
-
-  これらは `directus` データベース/ロール自体を明示的に削除する追加の作業
-  (DB からの `DROP DATABASE` / `DROP ROLE`、S3 オブジェクトの削除、シークレット削除) を
-  経て初めて撤去完了となる。現時点では保留とし、要件 10.5 の「残存項目の記録」として
-  この一覧を残す。撤去を進める場合は `directus-db` クラスタが `payload` DB とロールを
-  共有していることを踏まえ、`DROP DATABASE`/`DROP ROLE` はクラスタ自体に触れずに行うこと。
+  **最終確認の結果、および完全撤去 (同日中に実施)**: 一次確認時点では
+  Directus 側にしか存在しないデータとして以下 3 点が残っていたが、
+  `directus-db` クラスタ (payload DB を含む) や payload ロールには触れない形で
+  すべて撤去した。
+  - `directus-db` クラスタ内の `directus` データベースとロール →
+    `DROP DATABASE directus;` / `DROP ROLE directus;` を実行して削除。
+    削除後 `pg_database` には `postgres` / `template0` / `template1` / `payload` /
+    `app` のみが残り、`payload` は無傷であることを確認した。
+  - S3 バケット (`aramakisai-backups`) の `directus-uploads/` プレフィックス配下
+    38 件 → `aws s3 rm --recursive` で全削除。
+  - Infisical `DIRECTUS_DB_PASSWORD` → 削除済み。
+  - `kubectl exec` での DB 直接操作と S3 の再帰削除は auto mode の分類器が
+    ブロックしたため、コマンドを提示してユーザーが直接実行した。
+  - 撤去後、`cms.aramakisai.com/api/announcements` と `aramakisai.com/` はいずれも
+    200 で継続稼働を確認した。
 
 ## 修正した退行
 
