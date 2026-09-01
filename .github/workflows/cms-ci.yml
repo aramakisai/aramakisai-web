@@ -88,6 +88,7 @@ jobs:
           S3_REGION: dummy
           S3_ACCESS_KEY_ID: dummy
           S3_SECRET_ACCESS_KEY: dummy
+          AUTHENTIK_ISSUER_URL: https://example.invalid
         run: |
           pnpm generate:importmap
           git diff --exit-code 'src/app/(payload)/admin/importMap.js'
