@@ -1,6 +1,5 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 import {
@@ -21,7 +20,9 @@ async function shapesAt(ref: string | null): Promise<readonly EntityShape[]> {
     return [...collections, ...globals].map(toShape);
   }
 
-  const worktree = mkdtempSync(path.join(tmpdir(), 'cms-base-'));
+  // リポジトリ外に置くと base 側の定義から node_modules を辿れず import に失敗するため、
+  // cms/ の直下に取り出す
+  const worktree = mkdtempSync(path.join(import.meta.dirname, '..', '.cms-base-'));
   try {
     execFileSync('git', ['worktree', 'add', '--detach', worktree, ref], {
       stdio: 'ignore',
