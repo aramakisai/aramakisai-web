@@ -2,6 +2,9 @@ name: CMS Schema Change Gate
 
 on:
   pull_request:
+    # labeled / unlabeled がないと breaking-change-acknowledged を付けても再実行されず、
+    # 既存の実行を rerun してもラベルは古いイベントのものが使われるため反映されない。
+    types: [opened, synchronize, reopened, labeled, unlabeled]
     paths:
       - cms/src/collections/**
       - cms/src/globals/**
