@@ -292,7 +292,7 @@ graph TB
   - _Requirements: 6.3, 6.5_
   - _Boundary: MediaStorage_
 
-- [ ] 5. フロントエンドのデータ取得層の差し替え
+- [x] 5. フロントエンドのデータ取得層の差し替え
 - [x] 5.1 (P) 型定義の取り込みと CMS クライアントを実装する
   - CMS が生成する型をフロントエンドから参照できる経路を用意し、生成を CI で担保する
   - コレクション名から戻り値の型が導出されるクライアントを実装する
@@ -440,7 +440,7 @@ graph TB
   - _Depends: 5.4, 8.1_
   - _Requirements: 5.2, 5.3, 6.6, 7.2_
 
-- [ ] 9. Directus の撤去
+- [x] 9. Directus の撤去
 - [x] 9.1 稼働中の Directus 関連リソースを削除する
   - `aramakisai-infra` から Directus の ArgoCD Application とマニフェスト一式
     (Deployment・スキーマ適用 Job・ConfigMap・ExternalSecret・Service) を prod / staging とも削除する

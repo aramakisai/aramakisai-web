@@ -6,7 +6,7 @@ RBAC に関する部分 (Requirement 9 / 10 / 12) は本スペックの対象外
 
 理由は Directus 12.1.1 の無償ライセンス (`CORE_LICENSE`) にある。`custom_permission_rules_enabled: false` のため、行レベルフィルタ・フィールド制限・`validation` を持つ `directus_permissions` 行が権限評価から無言で除外される。`student_exhibitor` ロールに求める「自企画のみ編集可」は Directus 上では実現できない。調査結果は research.md の「スパイク結果: Directus 12 の custom permission rule はライセンス機能」および「判断: RBAC は本スペックのスコープから外す」を参照。
 
-Requirement 11 (画像の自動最適化) とその配信経路は実装と単体テストを完了しているが、リポジトリへのマージは保留している。拡張を動作させるには `aramakisai-infra` 側の Deployment 変更が必要で、Payload へ移行すれば不要になる配管のため、移行方針が確定するまで投入しない。実装は `payload-cms-migration` の Requirement 6 で同等機能を実現する際の参照とする。
+Requirement 11 (画像の自動最適化) とその配信経路はリポジトリへ投入しない。拡張を動作させるには `aramakisai-infra` 側の Deployment 変更が必要で、Payload 移行により不要な配管となったため。同等機能は `payload-cms-migration` の Requirement 6 で実現している。
 
 マージしたのは Requirement 1〜8 および 13 に対応するスキーマ定義 (`directus/schema/snapshot.yaml`) のみで、2026-08-27 に prod / staging へ適用済み。
 
@@ -132,7 +132,7 @@ Requirement 11 (画像の自動最適化) とその配信経路は実装と単�
   - _Requirements: 5.4, 12.1, 12.2, 12.3, 12.4, 12.5_
   - _Depends: 3.2_
 
-- [x] 4. 画像最適化フックの実装 (実装完了・マージ保留)
+- [x] 4. 画像最適化フックの実装 (Payload 移行により不採用)
 
 - [x] 4.1 (P) フックの骨組みとフォーマット判定を用意する
   - アップロード完了イベントを購読する拡張として宣言する。ネストしたディレクトリでは検出されないため、探索対象の直下にフォルダを置く
@@ -160,7 +160,7 @@ Requirement 11 (画像の自動最適化) とその配信経路は実装と単�
   - _Depends: 4.2_
   - _Boundary: Image Optimize Hook_
 
-- [x] 5. 配信経路の整備 (実装完了・マージ保留)
+- [x] 5. 配信経路の整備 (Payload 移行により不採用)
 
 - [x] 5.1 (P) スキーマ同期ワークフローに拡張を載せる
   - 発火対象パス・差分判定・設定オブジェクト生成・コミット対象パスの 4 箇所すべてに拡張を追加する
