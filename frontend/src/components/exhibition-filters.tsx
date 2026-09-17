@@ -83,8 +83,8 @@ export function ExhibitionFilters({ query, areas }: ExhibitionFiltersProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <label className="flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2 focus-within:border-primary">
-        <SearchIcon size={20} className="text-gray-500" />
+      <label className="flex items-center gap-2 rounded-md border border-gray-200 bg-background px-4 py-3 focus-within:border-primary lg:w-[480px]">
+        <SearchIcon size={20} className="text-text" />
         <span className="sr-only">企画を検索</span>
         <input
           type="search"
@@ -97,57 +97,65 @@ export function ExhibitionFilters({ query, areas }: ExhibitionFiltersProps) {
         />
       </label>
 
-      <div
-        role="group"
-        aria-label="カテゴリで絞り込み"
-        className="flex flex-wrap gap-2"
-      >
-        {CATEGORY_OPTIONS.map((category) => {
-          const pressed = query.categories.includes(category);
-          return (
-            <button
-              key={category}
-              type="button"
-              aria-pressed={pressed}
-              onClick={() => toggleCategory(category)}
-              className={`rounded-full border px-4 py-1.5 text-sm transition-colors ${
-                pressed
-                  ? 'border-primary bg-primary text-white'
-                  : 'border-gray-300 bg-white text-text'
-              }`}
-            >
-              {CATEGORY_LABELS[category]}
-            </button>
-          );
-        })}
-      </div>
-
-      {areas.length > 0 && (
+      <div className="flex flex-col gap-3">
         <div
           role="group"
-          aria-label="エリアで絞り込み"
-          className="flex flex-wrap gap-2"
+          aria-label="カテゴリで絞り込み"
+          className="flex flex-col gap-2 lg:flex-row lg:items-center"
         >
-          {areas.map((area) => {
-            const pressed = query.areaIds.includes(area.id);
-            return (
-              <button
-                key={area.id}
-                type="button"
-                aria-pressed={pressed}
-                onClick={() => toggleArea(area.id)}
-                className={`rounded-full border px-4 py-1.5 text-sm transition-colors ${
-                  pressed
-                    ? 'border-primary bg-primary text-white'
-                    : 'border-gray-300 bg-white text-text'
-                }`}
-              >
-                {area.name}
-              </button>
-            );
-          })}
+          <span className="text-sm font-bold text-text lg:w-20">カテゴリ</span>
+          <div className="flex flex-wrap gap-2">
+            {CATEGORY_OPTIONS.map((category) => {
+              const pressed = query.categories.includes(category);
+              return (
+                <button
+                  key={category}
+                  type="button"
+                  aria-pressed={pressed}
+                  onClick={() => toggleCategory(category)}
+                  className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+                    pressed
+                      ? 'border-primary bg-primary text-text'
+                      : 'border-gray-200 bg-background text-text'
+                  }`}
+                >
+                  {CATEGORY_LABELS[category]}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      )}
+
+        {areas.length > 0 && (
+          <div
+            role="group"
+            aria-label="エリアで絞り込み"
+            className="flex flex-col gap-2 lg:flex-row lg:items-center"
+          >
+            <span className="text-sm font-bold text-text lg:w-20">エリア</span>
+            <div className="flex flex-wrap gap-2">
+              {areas.map((area) => {
+                const pressed = query.areaIds.includes(area.id);
+                return (
+                  <button
+                    key={area.id}
+                    type="button"
+                    aria-pressed={pressed}
+                    onClick={() => toggleArea(area.id)}
+                    className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+                      pressed
+                        ? 'border-primary bg-primary text-text'
+                        : 'border-gray-200 bg-background text-text'
+                    }`}
+                  >
+                    {area.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

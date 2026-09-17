@@ -95,7 +95,7 @@ describe('ExhibitionsPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('ロボット企画')).toBeInTheDocument();
     expect(screen.getByText('吹奏楽部演奏')).toBeInTheDocument();
-    expect(screen.getByText('2 件中 1-2 件')).toBeInTheDocument();
+    expect(screen.getByText('全 2 件中 1–2 件を表示')).toBeInTheDocument();
     expect(
       screen.getByRole('searchbox', { name: '企画を検索' }),
     ).toBeInTheDocument();

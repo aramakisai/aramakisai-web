@@ -19,8 +19,8 @@ export function ExhibitionGallery({
 
   if (images.length === 0) {
     return (
-      <div className="flex aspect-video w-full items-center justify-center bg-gray-100 text-gray-400">
-        <HideImageIcon size={48} className="text-gray-400" />
+      <div className="flex aspect-[4/3] w-full items-center justify-center rounded-xl bg-gray-200">
+        <HideImageIcon size={64} className="text-gray-400" />
         <span className="sr-only">{fallbackAlt}: 画像がありません</span>
       </div>
     );
@@ -33,7 +33,7 @@ export function ExhibitionGallery({
       <img
         src={toAssetUrl(selected.id, 1920) ?? undefined}
         alt={selected.alt || fallbackAlt}
-        className="aspect-video w-full bg-gray-100 object-cover"
+        className="aspect-[4/3] w-full rounded-xl bg-gray-200 object-cover"
       />
       {images.length > 1 && (
         <div className="flex gap-2 overflow-x-auto">
@@ -44,8 +44,8 @@ export function ExhibitionGallery({
               aria-label={image.alt || fallbackAlt}
               aria-pressed={index === selectedIndex}
               onClick={() => setSelectedIndex(index)}
-              className={`h-16 w-24 shrink-0 overflow-hidden ${
-                index === selectedIndex ? 'ring-2 ring-primary' : ''
+              className={`h-12 w-16 shrink-0 overflow-hidden rounded-md bg-gray-200 ${
+                index === selectedIndex ? 'border-[3px] border-primary' : ''
               }`}
             >
               <img

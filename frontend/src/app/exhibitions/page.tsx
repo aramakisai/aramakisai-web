@@ -37,10 +37,8 @@ export default async function ExhibitionsPage({
   }
 
   return (
-    <main className="mx-auto max-w-6xl space-y-8 px-4 py-8 sm:py-12">
-      <h1 className="text-2xl font-bold border-b border-gray-200 pb-2">
-        企画一覧
-      </h1>
+    <main className="mx-auto flex max-w-[1440px] flex-col gap-4 px-4 pt-4 pb-12 lg:gap-6 lg:px-20 lg:pt-12 lg:pb-20">
+      <h1 className="text-center">企画一覧</h1>
       {result === null ? (
         <p role="alert">
           企画情報の取得に失敗しました。しばらくしてから再度お試しください。
@@ -56,10 +54,11 @@ export default async function ExhibitionsPage({
             </p>
           ) : (
             <>
-              <p className="text-sm text-gray-600">
-                {result.total} 件中 {result.rangeStart}-{result.rangeEnd} 件
+              <p className="text-sm text-gray-500">
+                全 {result.total} 件中 {result.rangeStart}–{result.rangeEnd}{' '}
+                件を表示
               </p>
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
                 {result.items.map((exhibition) => (
                   <ExhibitionCard key={exhibition.id} exhibition={exhibition} />
                 ))}

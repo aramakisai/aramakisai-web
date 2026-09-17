@@ -8,14 +8,14 @@ export interface IconProps {
 
 // Material Symbols Sharp (weight 300) の SVG を使用分だけインライン化する。
 // フォント/CDN を読み込まないのは Edge ランタイムと初回表示コストのため。
-function createIcon(testId: string, path: string) {
+function createIcon(testId: string, path: string, viewBox = '0 -960 960 960') {
   const Icon = ({ size = 24, className }: IconProps) => (
     <svg
       aria-hidden="true"
       data-testid={testId}
       width={size}
       height={size}
-      viewBox="0 -960 960 960"
+      viewBox={viewBox}
       fill="currentColor"
       className={className}
     >
@@ -59,6 +59,12 @@ export const ChevronRightIcon = createIcon(
 export const HideImageIcon = createIcon(
   'icon-hide-image',
   'm820-253.39-45.39-45.38v-475.84H298.77L253.39-820H820v566.61Zm-4 183.54L745.85-140H140v-605.85l-69.54-69.54L103.08-848l745.54 745.54L816-69.85ZM267.16-287.77l96.99-125.84 82.23 107.38 59.24-75-320.23-320.23v516.07h516.07L599.08-287.77H267.16ZM537-537Zm-93.46 93.46Z',
+);
+
+export const ImageIcon = createIcon(
+  'icon-image',
+  'M11.1317 28.0096H29.0383L23.6346 20.8204L18.5992 27.2404L15.1729 22.7663L11.1317 28.0096ZM5.83333 34.1667V5.83333H34.1667V34.1667H5.83333ZM7.72458 32.2754H32.2754V7.72458H7.72458V32.2754Z',
+  '0 0 40 40',
 );
 
 export const ArrowBackIcon = createIcon(

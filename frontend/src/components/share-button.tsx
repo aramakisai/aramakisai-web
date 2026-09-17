@@ -56,20 +56,27 @@ export function ShareButton({ title, url }: ShareButtonProps) {
       <button
         type="button"
         onClick={handleClick}
-        className="inline-flex items-center gap-2 px-4 py-2 text-text hover:text-primary"
+        className="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-background px-4 py-2 text-sm leading-[140%] font-medium text-text hover:text-primary"
       >
         <ShareIcon size={20} />
         共有
       </button>
-      {notice.kind === 'copied' && <p role="status">URLをコピーしました</p>}
+      {notice.kind === 'copied' && (
+        <p role="status" className="mt-2 text-sm text-gray-500">
+          URLをコピーしました
+        </p>
+      )}
       {notice.kind === 'copy-failed' && (
-        <div role="alert">
-          <p>コピーに失敗しました。以下のURLを手動でコピーしてください</p>
+        <div role="alert" className="mt-2 text-sm">
+          <p className="text-gray-500">
+            コピーに失敗しました。以下のURLを手動でコピーしてください
+          </p>
           <input
             type="text"
             readOnly
             value={url}
             onFocus={(e) => e.target.select()}
+            className="mt-1 w-full rounded-md border border-gray-200 px-2 py-1 text-text"
           />
         </div>
       )}

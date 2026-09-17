@@ -20,20 +20,20 @@ export function ExhibitionPagination({
 
   return (
     <nav aria-label="ページ送り">
-      <ul className="flex items-center justify-center gap-1">
+      <ul className="flex items-center justify-center gap-2">
         <li>
           {page > 1 ? (
             <Link
               href={hrefForPage(page - 1)}
               aria-label="前のページ"
-              className="flex h-9 w-9 items-center justify-center rounded-full text-text hover:bg-gray-100"
+              className="flex h-10 w-10 items-center justify-center rounded-md border border-gray-200 bg-background text-text hover:bg-gray-100"
             >
               <ChevronLeftIcon size={20} />
             </Link>
           ) : (
             <span
               aria-hidden="true"
-              className="flex h-9 w-9 items-center justify-center text-gray-300"
+              className="flex h-10 w-10 items-center justify-center rounded-md border border-gray-200 bg-background text-gray-300"
             >
               <ChevronLeftIcon size={20} />
             </span>
@@ -44,10 +44,10 @@ export function ExhibitionPagination({
             <Link
               href={hrefForPage(p)}
               aria-current={p === page ? 'page' : undefined}
-              className={`flex h-9 w-9 items-center justify-center rounded-full text-sm ${
+              className={`flex h-10 w-10 items-center justify-center rounded-md border text-sm font-medium text-text ${
                 p === page
-                  ? 'bg-primary text-white'
-                  : 'text-text hover:bg-gray-100'
+                  ? 'border-primary bg-primary'
+                  : 'border-gray-200 bg-background hover:bg-gray-100'
               }`}
             >
               {p}
@@ -59,14 +59,14 @@ export function ExhibitionPagination({
             <Link
               href={hrefForPage(page + 1)}
               aria-label="次のページ"
-              className="flex h-9 w-9 items-center justify-center rounded-full text-text hover:bg-gray-100"
+              className="flex h-10 w-10 items-center justify-center rounded-md border border-gray-200 bg-background text-text hover:bg-gray-100"
             >
               <ChevronRightIcon size={20} />
             </Link>
           ) : (
             <span
               aria-hidden="true"
-              className="flex h-9 w-9 items-center justify-center text-gray-300"
+              className="flex h-10 w-10 items-center justify-center rounded-md border border-gray-200 bg-background text-gray-300"
             >
               <ChevronRightIcon size={20} />
             </span>

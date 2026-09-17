@@ -33,13 +33,13 @@ describe('ExhibitionCard', () => {
     );
     expect(screen.getByText('中央エリア A-1')).toBeInTheDocument();
     expect(screen.getByText('アラマキ祭実行委員会')).toBeInTheDocument();
-    expect(screen.queryByTestId('icon-hide-image')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('icon-image')).not.toBeInTheDocument();
   });
 
   it('renders a gray placeholder with the no-image icon when there is no photo', () => {
     render(<ExhibitionCard exhibition={baseExhibition} />);
 
-    expect(screen.getByTestId('icon-hide-image')).toBeInTheDocument();
+    expect(screen.getByTestId('icon-image')).toBeInTheDocument();
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });
 

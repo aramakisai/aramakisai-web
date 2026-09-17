@@ -22,23 +22,29 @@ export function ExhibitionLinks({ links }: ExhibitionLinksProps) {
   }
 
   return (
-    <ul className="flex gap-3">
-      {links.map((link, index) => (
-        <li key={index}>
-          <a
-            href={link.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={PLATFORM_LABELS[link.platform]}
-          >
-            {link.platform === 'website' ? (
-              <LinkIcon />
-            ) : (
-              <SnsIcon platform={link.platform} />
-            )}
-          </a>
-        </li>
-      ))}
-    </ul>
+    <div className="flex w-full flex-col gap-2">
+      <p className="text-xs leading-[140%] font-medium text-gray-500">リンク</p>
+      <ul className="flex flex-wrap items-center gap-2">
+        {links.map((link, index) => (
+          <li key={index}>
+            <a
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={PLATFORM_LABELS[link.platform]}
+              className="flex items-center justify-center rounded-full border border-gray-200 bg-background p-2"
+            >
+              {link.platform === 'website' ? (
+                <LinkIcon size={20} />
+              ) : (
+                <span className="flex size-5 items-center justify-center [&>svg]:h-full [&>svg]:w-full">
+                  <SnsIcon platform={link.platform} />
+                </span>
+              )}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
