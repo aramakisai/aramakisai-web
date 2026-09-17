@@ -1,5 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+vi.mock('payload', () => ({
+  generatePayloadCookie: () => 'payload-token=jwt',
+  getFieldsToSign: () => ({}),
+  jwtSign: async () => ({ token: 'jwt' }),
+}))
+
+vi.mock('payload/shared', () => ({
+  addSessionToUser: async () => ({ sid: 'sid' }),
+}))
+
 const DISCOVERY = {
   authorization_endpoint: 'https://idp.example.com/application/o/authorize/',
   token_endpoint: 'https://idp.example.com/application/o/token/',
@@ -70,5 +80,69 @@ describe('Authentik の認可経路', () => {
     const response = await authorize.handler({} as never)
     expect(response.status).toBe(302)
     expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('Authentik の callback', () => {
+  beforeEach(() => {
+    process.env.AUTHENTIK_ISSUER_URL = 'https://idp.example.com/'
+    process.env.AUTHENTIK_CLIENT_ID = 'cms-prod'
+    process.env.AUTHENTIK_CLIENT_SECRET = 'secret'
+    process.env.CMS_PUBLIC_URL = 'https://cms.example.com'
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: URL | string) => {
+        const url = input.toString()
+        if (url.includes('openid-configuration')) return Response.json(DISCOVERY)
+        if (url === DISCOVERY.token_endpoint) return Response.json({ access_token: 'at' })
+        return Response.json({
+          sub: 'zitadel-sub',
+          email: 'a@example.com',
+          groups: ['executive'],
+        })
+      }),
+    )
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('sub で引けない既存ユーザーを email で引き当て、sub を張り替える', async () => {
+    const find = vi.fn(async ({ where }: { where: Record<string, unknown> }) =>
+      'email' in where ? { docs: [{ id: 7 }] } : { docs: [] },
+    )
+    const update = vi.fn(async () => ({ id: 7 }))
+    const create = vi.fn(async () => ({ id: 8 }))
+
+    vi.resetModules()
+    const { authentikEndpoints } = await import('./authentik-endpoints')
+    const callback = authentikEndpoints.find((e) => e.path === '/auth/authentik/callback')!
+
+    const response = await callback.handler({
+      url: '/api/auth/authentik/callback?code=c&state=s',
+      headers: new Headers({ cookie: 'authentik_state=s' }),
+      payload: {
+        find,
+        update,
+        create,
+        logger: { error: vi.fn(), warn: vi.fn() },
+        collections: { users: { config: { auth: { tokenExpiration: 100 } } } },
+        config: { cookiePrefix: 'payload' },
+        secret: 'payload-secret',
+      },
+    } as never)
+
+    expect(find).toHaveBeenCalledTimes(2)
+    expect(create).not.toHaveBeenCalled()
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 7,
+        data: expect.objectContaining({ authentik_sub: 'zitadel-sub' }),
+      }),
+    )
+    expect(response.status).toBe(302)
+    expect(response.headers.get('Location')).toBe('/admin')
   })
 })

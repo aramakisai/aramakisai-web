@@ -11,7 +11,9 @@ export const Users: CollectionConfig = {
     {
       // Authentik はメールアドレスの変更を許すため、突合は不変の sub で行う。
       // email で突合すると変更時に別ユーザーが作られ、student_exhibitions.owner の
-      // unique 制約により本人が新しいレコードを作れなくなる
+      // unique 制約により本人が新しいレコードを作れなくなる。
+      // IdP 移行で sub の体系が変わったときだけ、auth/authentik-endpoints.ts が
+      // email で引き当てて一度だけ張り替える
       name: 'authentik_sub',
       type: 'text',
       unique: true,

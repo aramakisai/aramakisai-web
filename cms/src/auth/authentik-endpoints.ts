@@ -1,6 +1,6 @@
 import { randomBytes } from 'crypto'
 
-import type { Endpoint } from 'payload'
+import type { Endpoint, Where } from 'payload'
 import { generatePayloadCookie, getFieldsToSign, jwtSign } from 'payload'
 import { addSessionToUser } from 'payload/shared'
 
@@ -135,22 +135,32 @@ const callback: Endpoint = {
     }
 
     const { payload } = req
-    const existing = await payload.find({
-      collection: 'users',
-      depth: 0,
-      limit: 1,
-      overrideAccess: true,
-      where: { authentik_sub: { equals: identity.subject } },
-    })
+    const findUser = async (where: Where) =>
+      (
+        await payload.find({
+          collection: 'users',
+          depth: 0,
+          limit: 1,
+          overrideAccess: true,
+          where,
+        })
+      ).docs[0]
 
-    // アカウント払い出しは Authentik 側の既存フローが担うため、
+    // IdP 移行で sub の体系が変わり、既存レコードの sub はどれも一致しない。
+    // email の unique 制約により新規作成も通らないため、sub で引けないときだけ
+    // email で引き当てて sub を張り替える (次回以降は sub で引ける)
+    const existing =
+      (await findUser({ authentik_sub: { equals: identity.subject } })) ??
+      (await findUser({ email: { equals: identity.email } }))
+
+    // アカウント払い出しは IdP 側の既存フローが担うため、
     // CMS 側はパスワードを持たない受け皿を作るだけにとどめる
-    const user = existing.docs[0]
+    const user = existing
       ? await payload.update({
           collection: 'users',
-          id: existing.docs[0].id,
-          // メールは Authentik 側で変わりうるため、ログインのたびに追随させる
-          data: { email: identity.email, role: identity.role },
+          id: existing.id,
+          // メールは IdP 側で変わりうるため、ログインのたびに追随させる
+          data: { authentik_sub: identity.subject, email: identity.email, role: identity.role },
           overrideAccess: true,
         })
       : await payload.create({
