@@ -94,14 +94,48 @@ export const StudentExhibitions: CollectionConfig = {
       admin: { description: 'マップ表示ラベル。展示・出店のみ使用' },
     },
     {
+      name: 'stage_name',
+      type: 'text',
+      maxLength: 255,
+      admin: {
+        description: 'ステージ出演時に表示する企画名。未入力なら name を使う',
+        condition: (data) => Array.isArray(data?.category) && data.category.includes('stage'),
+      },
+    },
+    {
       name: 'description',
       type: 'textarea',
-      admin: { description: '一覧表示用短文' },
+      admin: { description: '企画の紹介文' },
     },
     {
       name: 'links',
-      type: 'json',
-      admin: { description: '公式サイト・SNS 等のリンク' },
+      type: 'array',
+      admin: { description: '公式サイト・SNS 等のリンク (並べ替えた順に表示する)' },
+      fields: [
+        {
+          name: 'platform',
+          type: 'select',
+          required: true,
+          options: [
+            { label: 'X', value: 'x' },
+            { label: 'Instagram', value: 'instagram' },
+            { label: 'Facebook', value: 'facebook' },
+            { label: 'YouTube', value: 'youtube' },
+            { label: 'TikTok', value: 'tiktok' },
+            { label: 'LINE', value: 'line' },
+            { label: 'ホームページ', value: 'website' },
+          ],
+        },
+        {
+          name: 'url',
+          type: 'text',
+          required: true,
+          validate: (value: unknown) =>
+            typeof value === 'string' && URL.canParse(value) && value.startsWith('https://')
+              ? true
+              : 'URL は https:// で始まる形式で入力してください',
+        },
+      ],
     },
     {
       name: 'images',
