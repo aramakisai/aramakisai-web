@@ -52,4 +52,29 @@ describe('SnsIcon', () => {
     render(<SnsIcon platform="x" />);
     expect(screen.getByTestId('icon-x')).toHaveAttribute('aria-hidden', 'true');
   });
+
+  it.each([
+    ['x', 'icon-x', '#000000'],
+    ['facebook', 'icon-facebook', '#1877F2'],
+    ['youtube', 'icon-youtube', '#FF0000'],
+    ['line', 'icon-line', '#06C755'],
+  ])('renders %s with its official brand color', (platform, testId, color) => {
+    render(<SnsIcon platform={platform} />);
+    const svg = screen.getByTestId(testId);
+    expect(svg.innerHTML).toContain(color);
+  });
+
+  it('renders Instagram with its official gradient rather than currentColor', () => {
+    render(<SnsIcon platform="instagram" />);
+    const svg = screen.getByTestId('icon-instagram');
+    expect(svg.querySelector('linearGradient')).not.toBeNull();
+    expect(svg.innerHTML).not.toContain('currentColor');
+  });
+
+  it('renders TikTok with its official cyan and magenta layers', () => {
+    render(<SnsIcon platform="tiktok" />);
+    const svg = screen.getByTestId('icon-tiktok');
+    expect(svg.innerHTML).toContain('#25F4EE');
+    expect(svg.innerHTML).toContain('#FE2C55');
+  });
 });

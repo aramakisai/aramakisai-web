@@ -69,3 +69,37 @@
     @apply text-[20px] leading-[140%];
   }
 }
+
+@layer utilities {
+  /*
+   * 企画カードの背景。sRGB 補間を先に宣言してから @supports 内で OKLCH 補間に差し替える。
+   * in oklch 未対応ブラウザは宣言全体をパース不能として捨てるため、単一宣言にすると
+   * 背景が消える。2 段のカスケードは意図的な必須構成 (design.md 参照)。
+   */
+  .exhibition-gradient-bg {
+    background-image: linear-gradient(
+      var(--exhibition-gradient-angle),
+      var(--exhibition-gradient-from),
+      var(--exhibition-gradient-to)
+    );
+  }
+
+  @supports (background-image: linear-gradient(in oklch, red, blue)) {
+    .exhibition-gradient-bg {
+      background-image: linear-gradient(
+        in oklch var(--exhibition-gradient-angle),
+        var(--exhibition-gradient-from),
+        var(--exhibition-gradient-to)
+      );
+    }
+  }
+
+  /* 白 30% レイヤー + SVG ノイズ。彩度の高いパレット原色のまま文字を乗せるとコントラストが不足するため重ねる。 */
+  .exhibition-gradient-bg::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-color: rgb(255 255 255 / 30%);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.55' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  }
+}
