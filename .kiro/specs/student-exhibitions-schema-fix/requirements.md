@@ -143,7 +143,7 @@ RBAC に関する部分 (Requirement 9 / 10 / 12) は本スペックの対象外
 
 理由は Directus 12.1.1 の無償ライセンス (`CORE_LICENSE`) にある。`custom_permission_rules_enabled: false` のため、行レベルフィルタ・フィールド制限・`validation` を持つ `directus_permissions` 行が権限評価から無言で除外される。`student_exhibitor` ロールに求める「自企画のみ編集可」は Directus 上では実現できない。調査結果は research.md の「スパイク結果: Directus 12 の custom permission rule はライセンス機能」および「判断: RBAC は本スペックのスコープから外す」を参照。
 
-Requirement 11 (画像の自動最適化) とその配信経路は実装と単体テストを完了しているが、リポジトリへのマージは保留している。拡張を動作させるには `aramakisai-infra` 側の Deployment 変更が必要で、Payload へ移行すれば不要になる配管のため、移行方針が確定するまで投入しない。実装は `payload-cms-migration` の Requirement 6 で同等機能を実現する際の参照とする。
+Requirement 11 (画像の自動最適化) とその配信経路はリポジトリへ投入しない。拡張を動作させるには `aramakisai-infra` 側の Deployment 変更が必要で、Payload 移行により不要な配管となったため。同等機能は `payload-cms-migration` の Requirement 6 で実現している。
 
 マージしたのは Requirement 1〜8 および 13 に対応するスキーマ定義 (`directus/schema/snapshot.yaml`) のみで、2026-08-27 に prod / staging へ適用済み。
 
