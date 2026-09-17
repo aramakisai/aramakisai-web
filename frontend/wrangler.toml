@@ -7,6 +7,12 @@ compatibility_flags = ["nodejs_compat"]
 # (dns.tf の cloudflare_workers_domain.aramakisai_web_prod) で管理する。
 workers_dev = false
 
+# wrangler 4.44.0 以降、preview_urls の既定は workers_dev に追従する。既定のままだと
+# `wrangler versions upload` が PR プレビュー URL を出力せず、frontend-ci の e2e が
+# E2E_BASE_URL 空で必ず失敗する。本番を workers.dev に露出させずにバージョン単位の
+# プレビュー URL だけを有効にするため、workers_dev とは独立に true を指定する。
+preview_urls = true
+
 [assets]
 directory = ".open-next/assets"
 

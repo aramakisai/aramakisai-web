@@ -552,20 +552,22 @@ export interface StudentExhibition {
    */
   booth_label?: string | null;
   /**
-   * 一覧表示用短文
+   * ステージ出演時に表示する企画名。未入力なら name を使う
+   */
+  stage_name?: string | null;
+  /**
+   * 企画の紹介文
    */
   description?: string | null;
   /**
-   * 公式サイト・SNS 等のリンク
+   * 公式サイト・SNS 等のリンク (並べ替えた順に表示する)
    */
   links?:
     | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
+        platform: 'x' | 'instagram' | 'facebook' | 'youtube' | 'tiktok' | 'line' | 'website';
+        url: string;
+        id?: string | null;
+      }[]
     | null;
   /**
    * 最大 5 枚まで
@@ -889,8 +891,15 @@ export interface StudentExhibitionsSelect<T extends boolean = true> {
   area_id?: T;
   booth_number?: T;
   booth_label?: T;
+  stage_name?: T;
   description?: T;
-  links?: T;
+  links?:
+    | T
+    | {
+        platform?: T;
+        url?: T;
+        id?: T;
+      };
   images?: T;
   updatedAt?: T;
   createdAt?: T;

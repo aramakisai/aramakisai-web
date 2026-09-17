@@ -3,6 +3,7 @@ import * as migration_20260827_084210_owner_unique from './20260827_084210_owner
 import * as migration_20260827_084500_schema_constraints from './20260827_084500_schema_constraints';
 import * as migration_20260828_134029_authentik_sub from './20260828_134029_authentik_sub';
 import * as migration_20260830_073945_add_media_prefix from './20260830_073945_add_media_prefix';
+import * as migration_20260917_190645_student_exhibitions_links_stage_name from './20260917_190645_student_exhibitions_links_stage_name';
 
 export const migrations = [
   {
@@ -28,6 +29,11 @@ export const migrations = [
   {
     up: migration_20260830_073945_add_media_prefix.up,
     down: migration_20260830_073945_add_media_prefix.down,
-    name: '20260830_073945_add_media_prefix'
+    name: '20260830_073945_add_media_prefix',
+  },
+  {
+    up: migration_20260917_190645_student_exhibitions_links_stage_name.up,
+    down: migration_20260917_190645_student_exhibitions_links_stage_name.down,
+    name: '20260917_190645_student_exhibitions_links_stage_name'
   },
 ];
