@@ -20,16 +20,23 @@ describe('ExhibitionLinks', () => {
     expect(anchors[0].querySelector('[data-testid="icon-x"]')).not.toBeNull();
 
     expect(anchors[1]).toHaveAccessibleName('Instagram');
-    expect(anchors[1].querySelector('[data-testid="icon-instagram"]')).not.toBeNull();
+    expect(
+      anchors[1].querySelector('[data-testid="icon-instagram"]'),
+    ).not.toBeNull();
 
     expect(anchors[2]).toHaveAccessibleName('公式サイト');
-    expect(anchors[2].querySelector('[data-testid="icon-link"]')).not.toBeNull();
+    expect(
+      anchors[2].querySelector('[data-testid="icon-link"]'),
+    ).not.toBeNull();
     // ホームページは未知サービス扱いにせず、文字ラベルを出さない
     expect(anchors[2]).not.toHaveTextContent('website');
 
     for (const anchor of anchors) {
       expect(anchor).toHaveAttribute('target', '_blank');
-      expect(anchor).toHaveAttribute('rel', expect.stringContaining('noopener'));
+      expect(anchor).toHaveAttribute(
+        'rel',
+        expect.stringContaining('noopener'),
+      );
     }
   });
 

@@ -3,7 +3,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { notFound } from 'next/navigation';
 import ExhibitionPage, { generateMetadata } from './page';
 import { getExhibitionDetail } from '@/lib/exhibitions';
-import type { ExhibitionDetail, ExhibitionDetailResult } from '@/lib/exhibitions';
+import type {
+  ExhibitionDetail,
+  ExhibitionDetailResult,
+} from '@/lib/exhibitions';
 
 vi.mock('next/navigation', () => ({
   notFound: vi.fn(() => {
@@ -12,9 +15,10 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@/lib/exhibitions', async () => {
-  const actual = await vi.importActual<typeof import('@/lib/exhibitions')>(
-    '@/lib/exhibitions',
-  );
+  const actual =
+    await vi.importActual<typeof import('@/lib/exhibitions')>(
+      '@/lib/exhibitions',
+    );
   return { ...actual, getExhibitionDetail: vi.fn() };
 });
 
@@ -71,17 +75,14 @@ describe('ExhibitionPage', () => {
     expect(screen.getByText('ステージ')).toBeInTheDocument();
     expect(screen.getByText('中央エリア A-1')).toBeInTheDocument();
     expect(screen.getByText('たのしい企画です')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '企画一覧へ戻る' })).toHaveAttribute(
-      'href',
-      '/exhibitions',
-    );
+    expect(
+      screen.getByRole('link', { name: '企画一覧へ戻る' }),
+    ).toHaveAttribute('href', '/exhibitions');
     expect(screen.getByRole('link', { name: 'X' })).toHaveAttribute(
       'href',
       'https://x.com/aramaki',
     );
-    expect(
-      screen.getByRole('button', { name: /共有/ }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /共有/ })).toBeInTheDocument();
   });
 
   it('存在しない ID は notFound を呼ぶ', async () => {
@@ -109,10 +110,9 @@ describe('ExhibitionPage', () => {
 
     expect(notFound).not.toHaveBeenCalled();
     expect(screen.getByRole('alert')).toHaveTextContent('取得');
-    expect(screen.getByRole('link', { name: '企画一覧へ戻る' })).toHaveAttribute(
-      'href',
-      '/exhibitions',
-    );
+    expect(
+      screen.getByRole('link', { name: '企画一覧へ戻る' }),
+    ).toHaveAttribute('href', '/exhibitions');
   });
 
   describe('generateMetadata', () => {
@@ -128,9 +128,9 @@ describe('ExhibitionPage', () => {
       expect(metadata.openGraph?.images).toEqual([
         'https://cms.example.com/assets/42/960',
       ]);
-      expect(
-        (metadata.twitter as { card?: string } | undefined)?.card,
-      ).toBe('summary_large_image');
+      expect((metadata.twitter as { card?: string } | undefined)?.card).toBe(
+        'summary_large_image',
+      );
     });
 
     it('紹介文が未入力なら代替の説明文を使う', async () => {

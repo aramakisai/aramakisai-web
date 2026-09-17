@@ -9,7 +9,11 @@ export interface ExhibitionPaginationProps {
 }
 
 // 通常の <a> によるページ遷移で URL を書き換える。クライアント側の状態は持たない。
-export function ExhibitionPagination({ page, pageCount, hrefForPage }: ExhibitionPaginationProps) {
+export function ExhibitionPagination({
+  page,
+  pageCount,
+  hrefForPage,
+}: ExhibitionPaginationProps) {
   if (pageCount <= 1) return null;
 
   const pages = Array.from({ length: pageCount }, (_, i) => i + 1);
@@ -27,7 +31,10 @@ export function ExhibitionPagination({ page, pageCount, hrefForPage }: Exhibitio
               <ChevronLeftIcon size={20} />
             </Link>
           ) : (
-            <span aria-hidden="true" className="flex h-9 w-9 items-center justify-center text-gray-300">
+            <span
+              aria-hidden="true"
+              className="flex h-9 w-9 items-center justify-center text-gray-300"
+            >
               <ChevronLeftIcon size={20} />
             </span>
           )}
@@ -38,7 +45,9 @@ export function ExhibitionPagination({ page, pageCount, hrefForPage }: Exhibitio
               href={hrefForPage(p)}
               aria-current={p === page ? 'page' : undefined}
               className={`flex h-9 w-9 items-center justify-center rounded-full text-sm ${
-                p === page ? 'bg-primary text-white' : 'text-text hover:bg-gray-100'
+                p === page
+                  ? 'bg-primary text-white'
+                  : 'text-text hover:bg-gray-100'
               }`}
             >
               {p}
@@ -55,7 +64,10 @@ export function ExhibitionPagination({ page, pageCount, hrefForPage }: Exhibitio
               <ChevronRightIcon size={20} />
             </Link>
           ) : (
-            <span aria-hidden="true" className="flex h-9 w-9 items-center justify-center text-gray-300">
+            <span
+              aria-hidden="true"
+              className="flex h-9 w-9 items-center justify-center text-gray-300"
+            >
               <ChevronRightIcon size={20} />
             </span>
           )}

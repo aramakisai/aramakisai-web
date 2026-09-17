@@ -9,7 +9,10 @@ export interface ShareButtonProps {
   readonly url: string;
 }
 
-type Notice = { readonly kind: 'idle' } | { readonly kind: 'copied' } | { readonly kind: 'copy-failed' };
+type Notice =
+  | { readonly kind: 'idle' }
+  | { readonly kind: 'copied' }
+  | { readonly kind: 'copy-failed' };
 
 const NOTICE_DURATION_MS = 3000;
 
@@ -62,7 +65,12 @@ export function ShareButton({ title, url }: ShareButtonProps) {
       {notice.kind === 'copy-failed' && (
         <div role="alert">
           <p>コピーに失敗しました。以下のURLを手動でコピーしてください</p>
-          <input type="text" readOnly value={url} onFocus={(e) => e.target.select()} />
+          <input
+            type="text"
+            readOnly
+            value={url}
+            onFocus={(e) => e.target.select()}
+          />
         </div>
       )}
     </div>

@@ -20,7 +20,9 @@ function srgbToLinear(c: number): number {
 
 function linearToSrgb(c: number): number {
   const clamped = Math.min(1, Math.max(0, c));
-  return clamped <= 0.0031308 ? 12.92 * clamped : 1.055 * clamped ** (1 / 2.4) - 0.055;
+  return clamped <= 0.0031308
+    ? 12.92 * clamped
+    : 1.055 * clamped ** (1 / 2.4) - 0.055;
 }
 
 // 変換式は Björn Ottosson の OKLab 参照実装 (https://bottosson.github.io/posts/oklab/) に準拠。
@@ -94,7 +96,8 @@ function mixOklch(fromHex: string, toHex: string, t: number): Rgb {
 // background-color の合成は CSS の既定 (sRGB のエンコード済み値上でのアルファブレンド) に従う。
 // WCAG のコントラスト計算例 (G18) と同じ前提。
 function blendWithWhite([r, g, b]: Rgb, alpha: number): Rgb {
-  const mix = (channel: number) => Math.round(channel * (1 - alpha) + 255 * alpha);
+  const mix = (channel: number) =>
+    Math.round(channel * (1 - alpha) + 255 * alpha);
   return [mix(r), mix(g), mix(b)];
 }
 
@@ -130,7 +133,10 @@ function worstContrastAlongGradient(fromHex: string, toHex: string): number {
   let worst = Infinity;
   for (let i = 0; i <= SAMPLE_STEPS; i++) {
     const t = i / SAMPLE_STEPS;
-    const background = blendWithWhite(mixOklch(fromHex, toHex, t), WHITE_OVERLAY_ALPHA);
+    const background = blendWithWhite(
+      mixOklch(fromHex, toHex, t),
+      WHITE_OVERLAY_ALPHA,
+    );
     worst = Math.min(worst, contrastRatio(TEXT_RGB, background));
   }
   return worst;
@@ -140,7 +146,10 @@ describe('企画カード配色の全組み合わせコントラスト (要件 3
   it.each(allUnorderedPairs(TOKENS))(
     '%s × %s: グラデーション全域で文字 4.5:1 以上 (アイコンの 3:1 も同色のため同時に満たす)',
     (a, b) => {
-      const worst = worstContrastAlongGradient(GRADIENT_PALETTE[a], GRADIENT_PALETTE[b]);
+      const worst = worstContrastAlongGradient(
+        GRADIENT_PALETTE[a],
+        GRADIENT_PALETTE[b],
+      );
       expect(worst).toBeGreaterThanOrEqual(4.5);
     },
   );

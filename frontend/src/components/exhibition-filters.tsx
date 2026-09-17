@@ -51,7 +51,11 @@ export function ExhibitionFilters({ query, areas }: ExhibitionFiltersProps) {
     }
     const timer = setTimeout(() => {
       router.replace(
-        buildHref({ q: keyword.trim(), categories: query.categories, areaIds: query.areaIds }),
+        buildHref({
+          q: keyword.trim(),
+          categories: query.categories,
+          areaIds: query.areaIds,
+        }),
       );
     }, KEYWORD_DEBOUNCE_MS);
     return () => clearTimeout(timer);
@@ -63,14 +67,18 @@ export function ExhibitionFilters({ query, areas }: ExhibitionFiltersProps) {
     const categories = query.categories.includes(category)
       ? query.categories.filter((c) => c !== category)
       : [...query.categories, category];
-    router.replace(buildHref({ q: keyword.trim(), categories, areaIds: query.areaIds }));
+    router.replace(
+      buildHref({ q: keyword.trim(), categories, areaIds: query.areaIds }),
+    );
   };
 
   const toggleArea = (areaId: number) => {
     const areaIds = query.areaIds.includes(areaId)
       ? query.areaIds.filter((id) => id !== areaId)
       : [...query.areaIds, areaId];
-    router.replace(buildHref({ q: keyword.trim(), categories: query.categories, areaIds }));
+    router.replace(
+      buildHref({ q: keyword.trim(), categories: query.categories, areaIds }),
+    );
   };
 
   return (
@@ -89,7 +97,11 @@ export function ExhibitionFilters({ query, areas }: ExhibitionFiltersProps) {
         />
       </label>
 
-      <div role="group" aria-label="カテゴリで絞り込み" className="flex flex-wrap gap-2">
+      <div
+        role="group"
+        aria-label="カテゴリで絞り込み"
+        className="flex flex-wrap gap-2"
+      >
         {CATEGORY_OPTIONS.map((category) => {
           const pressed = query.categories.includes(category);
           return (
@@ -111,7 +123,11 @@ export function ExhibitionFilters({ query, areas }: ExhibitionFiltersProps) {
       </div>
 
       {areas.length > 0 && (
-        <div role="group" aria-label="エリアで絞り込み" className="flex flex-wrap gap-2">
+        <div
+          role="group"
+          aria-label="エリアで絞り込み"
+          className="flex flex-wrap gap-2"
+        >
           {areas.map((area) => {
             const pressed = query.areaIds.includes(area.id);
             return (

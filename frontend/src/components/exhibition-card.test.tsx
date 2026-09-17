@@ -50,7 +50,9 @@ describe('ExhibitionCard', () => {
   });
 
   it('omits the location when it is not set', () => {
-    render(<ExhibitionCard exhibition={{ ...baseExhibition, location: null }} />);
+    render(
+      <ExhibitionCard exhibition={{ ...baseExhibition, location: null }} />,
+    );
 
     expect(screen.queryByTestId('icon-place')).not.toBeInTheDocument();
   });

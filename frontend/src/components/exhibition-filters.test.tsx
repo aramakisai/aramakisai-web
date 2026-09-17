@@ -39,8 +39,12 @@ describe('ExhibitionFilters', () => {
   });
 
   test('検索欄は現在のキーワードを初期値として表示する', () => {
-    render(<ExhibitionFilters query={baseQuery({ q: 'ロボット' })} areas={areas} />);
-    expect(screen.getByRole('searchbox', { name: '企画を検索' })).toHaveValue('ロボット');
+    render(
+      <ExhibitionFilters query={baseQuery({ q: 'ロボット' })} areas={areas} />,
+    );
+    expect(screen.getByRole('searchbox', { name: '企画を検索' })).toHaveValue(
+      'ロボット',
+    );
   });
 
   test('キーワード入力は確定 (デバウンス) 後に URL クエリを更新する', () => {
@@ -51,7 +55,9 @@ describe('ExhibitionFilters', () => {
     expect(replace).not.toHaveBeenCalled();
 
     vi.advanceTimersByTime(300);
-    expect(replace).toHaveBeenCalledWith('/exhibitions?q=%E3%83%AD%E3%83%9C%E3%83%83%E3%83%88');
+    expect(replace).toHaveBeenCalledWith(
+      '/exhibitions?q=%E3%83%AD%E3%83%9C%E3%83%83%E3%83%88',
+    );
   });
 
   test('キーワード変更時、既存のページ番号を URL に残さない (1 ページ目へ戻す)', () => {
@@ -74,7 +80,10 @@ describe('ExhibitionFilters', () => {
 
   test('選択済みのカテゴリチップを再度選ぶと解除する', () => {
     render(
-      <ExhibitionFilters query={baseQuery({ categories: ['stage'] })} areas={areas} />,
+      <ExhibitionFilters
+        query={baseQuery({ categories: ['stage'] })}
+        areas={areas}
+      />,
     );
 
     const chip = screen.getByRole('button', { name: 'ステージ' });

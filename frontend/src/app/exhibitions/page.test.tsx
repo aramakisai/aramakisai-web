@@ -3,7 +3,10 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { useRouter } from 'next/navigation';
 import ExhibitionsPage from './page';
 import * as exhibitionsModule from '@/lib/exhibitions';
-import type { ExhibitionListResult, ExhibitionSummary } from '@/lib/exhibitions';
+import type {
+  ExhibitionListResult,
+  ExhibitionSummary,
+} from '@/lib/exhibitions';
 
 vi.mock('@/lib/exhibitions', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/exhibitions')>();
@@ -11,7 +14,8 @@ vi.mock('@/lib/exhibitions', async (importOriginal) => {
 });
 
 vi.mock('@/lib/cms-asset-url', () => ({
-  toAssetUrl: (id: string | null) => (id ? `https://example.com/assets/${id}` : null),
+  toAssetUrl: (id: string | null) =>
+    id ? `https://example.com/assets/${id}` : null,
 }));
 
 vi.mock('next/navigation', () => ({
@@ -43,7 +47,9 @@ function exhibition(overrides: Partial<ExhibitionSummary>): ExhibitionSummary {
   };
 }
 
-function listResult(overrides: Partial<ExhibitionListResult>): ExhibitionListResult {
+function listResult(
+  overrides: Partial<ExhibitionListResult>,
+): ExhibitionListResult {
   return {
     items: [],
     total: 0,
@@ -56,8 +62,12 @@ function listResult(overrides: Partial<ExhibitionListResult>): ExhibitionListRes
   };
 }
 
-async function renderPage(searchParams: Record<string, string | string[] | undefined> = {}) {
-  return render(await ExhibitionsPage({ searchParams: Promise.resolve(searchParams) }));
+async function renderPage(
+  searchParams: Record<string, string | string[] | undefined> = {},
+) {
+  return render(
+    await ExhibitionsPage({ searchParams: Promise.resolve(searchParams) }),
+  );
 }
 
 describe('ExhibitionsPage', () => {
@@ -80,29 +90,45 @@ describe('ExhibitionsPage', () => {
 
     await renderPage();
 
-    expect(screen.getByRole('heading', { name: '企画一覧' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: '企画一覧' }),
+    ).toBeInTheDocument();
     expect(screen.getByText('ロボット企画')).toBeInTheDocument();
     expect(screen.getByText('吹奏楽部演奏')).toBeInTheDocument();
     expect(screen.getByText('2 件中 1-2 件')).toBeInTheDocument();
-    expect(screen.getByRole('searchbox', { name: '企画を検索' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('searchbox', { name: '企画を検索' }),
+    ).toBeInTheDocument();
   });
 
   it('0 件: 公開済み企画が無い旨を表示し、条件不一致メッセージは出さない', async () => {
-    vi.mocked(exhibitionsModule.getExhibitionListData).mockResolvedValue(listResult({}));
+    vi.mocked(exhibitionsModule.getExhibitionListData).mockResolvedValue(
+      listResult({}),
+    );
 
     await renderPage();
 
-    expect(screen.getByText('企画はまだ公開されていません')).toBeInTheDocument();
-    expect(screen.queryByText('条件に一致する企画はありません')).not.toBeInTheDocument();
+    expect(
+      screen.getByText('企画はまだ公開されていません'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('条件に一致する企画はありません'),
+    ).not.toBeInTheDocument();
   });
 
   it('条件不一致: 検索条件に一致しない旨を表示し、未公開メッセージは出さない', async () => {
-    vi.mocked(exhibitionsModule.getExhibitionListData).mockResolvedValue(listResult({}));
+    vi.mocked(exhibitionsModule.getExhibitionListData).mockResolvedValue(
+      listResult({}),
+    );
 
     await renderPage({ q: '存在しない企画名' });
 
-    expect(screen.getByText('条件に一致する企画はありません')).toBeInTheDocument();
-    expect(screen.queryByText('企画はまだ公開されていません')).not.toBeInTheDocument();
+    expect(
+      screen.getByText('条件に一致する企画はありません'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('企画はまだ公開されていません'),
+    ).not.toBeInTheDocument();
   });
 
   it('取得失敗: 空の一覧ではなく取得失敗が分かる表示にする', async () => {
@@ -113,7 +139,9 @@ describe('ExhibitionsPage', () => {
     await renderPage();
 
     expect(screen.getByRole('alert')).toHaveTextContent('取得に失敗');
-    expect(screen.queryByText('企画はまだ公開されていません')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('企画はまだ公開されていません'),
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
   });
 

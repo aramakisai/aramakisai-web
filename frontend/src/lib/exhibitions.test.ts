@@ -19,7 +19,12 @@ vi.mock('./cms', () => ({
 
 beforeEach(() => vi.clearAllMocks());
 
-const baseQuery: ExhibitionQuery = { q: '', categories: [], areaIds: [], page: 1 };
+const baseQuery: ExhibitionQuery = {
+  q: '',
+  categories: [],
+  areaIds: [],
+  page: 1,
+};
 
 describe('normalizeText', () => {
   it('全角英数字を半角へ、大文字を小文字へそろえる', () => {
@@ -47,16 +52,16 @@ describe('parseExhibitionQuery', () => {
 
   it('未知のカテゴリを無視し、既知のカテゴリのみ残す (重複排除)', () => {
     expect(
-      parseExhibitionQuery({ category: ['stage', 'unknown', 'stage', 'vendor'] })
-        .categories,
+      parseExhibitionQuery({
+        category: ['stage', 'unknown', 'stage', 'vendor'],
+      }).categories,
     ).toEqual(['stage', 'vendor']);
   });
 
   it('カンマ区切り単一文字列のカテゴリも解釈する', () => {
-    expect(parseExhibitionQuery({ category: 'stage,exhibit' }).categories).toEqual([
-      'stage',
-      'exhibit',
-    ]);
+    expect(
+      parseExhibitionQuery({ category: 'stage,exhibit' }).categories,
+    ).toEqual(['stage', 'exhibit']);
   });
 
   it('エリア ID は数値へ変換し、不正値と重複を除く', () => {
@@ -117,22 +122,25 @@ describe('filterExhibitions', () => {
   ];
 
   it('キーワードは全角/半角・大小文字を無視して企画名または団体名に一致させる', () => {
-    expect(filterExhibitions(items, { ...baseQuery, q: 'abc' }).map((i) => i.id)).toEqual([
-      1, 2,
-    ]);
+    expect(
+      filterExhibitions(items, { ...baseQuery, q: 'abc' }).map((i) => i.id),
+    ).toEqual([1, 2]);
   });
 
   it('カテゴリはいずれか一致で絞り込む', () => {
     expect(
-      filterExhibitions(items, { ...baseQuery, categories: ['stage', 'vendor'] }).map(
-        (i) => i.id,
-      ),
+      filterExhibitions(items, {
+        ...baseQuery,
+        categories: ['stage', 'vendor'],
+      }).map((i) => i.id),
     ).toEqual([2, 3]);
   });
 
   it('エリアはいずれか一致で絞り込む', () => {
     expect(
-      filterExhibitions(items, { ...baseQuery, areaIds: [30] }).map((i) => i.id),
+      filterExhibitions(items, { ...baseQuery, areaIds: [30] }).map(
+        (i) => i.id,
+      ),
     ).toEqual([3]);
   });
 
@@ -148,7 +156,9 @@ describe('filterExhibitions', () => {
   });
 
   it('一致しない場合は空配列を返す', () => {
-    expect(filterExhibitions(items, { ...baseQuery, q: '存在しない' })).toEqual([]);
+    expect(filterExhibitions(items, { ...baseQuery, q: '存在しない' })).toEqual(
+      [],
+    );
   });
 });
 
@@ -156,12 +166,24 @@ describe('paginate', () => {
   const items = Array.from({ length: 5 }, (_, i) => i + 1);
 
   it('指定ページの範囲を切り出す', () => {
-    expect(paginate(items, 1, 2)).toEqual({ items: [1, 2], page: 1, pageCount: 3 });
-    expect(paginate(items, 2, 2)).toEqual({ items: [3, 4], page: 2, pageCount: 3 });
+    expect(paginate(items, 1, 2)).toEqual({
+      items: [1, 2],
+      page: 1,
+      pageCount: 3,
+    });
+    expect(paginate(items, 2, 2)).toEqual({
+      items: [3, 4],
+      page: 2,
+      pageCount: 3,
+    });
   });
 
   it('範囲外の大きいページ番号は最終ページへ丸める', () => {
-    expect(paginate(items, 99, 2)).toEqual({ items: [5], page: 3, pageCount: 3 });
+    expect(paginate(items, 99, 2)).toEqual({
+      items: [5],
+      page: 3,
+      pageCount: 3,
+    });
   });
 
   it('0 以下のページ番号は 1 ページ目へ丸める', () => {
@@ -440,7 +462,10 @@ describe('getExhibitionListData', () => {
 
 describe('getExhibitionDetail', () => {
   function mockDetail(exhibition: unknown, extra: MockDocs = {}) {
-    vi.mocked(cms.findById).mockResolvedValue({ ok: true, value: exhibition } as never);
+    vi.mocked(cms.findById).mockResolvedValue({
+      ok: true,
+      value: exhibition,
+    } as never);
     mockCmsCollections(extra);
   }
 

@@ -22,7 +22,9 @@ function hrefForPage(query: ExhibitionQuery, page: number): string {
   return qs ? `/exhibitions?${qs}` : '/exhibitions';
 }
 
-export default async function ExhibitionsPage({ searchParams }: ExhibitionsPageProps) {
+export default async function ExhibitionsPage({
+  searchParams,
+}: ExhibitionsPageProps) {
   const query = parseExhibitionQuery(await searchParams);
   const hasFilter =
     query.q !== '' || query.categories.length > 0 || query.areaIds.length > 0;
@@ -36,7 +38,9 @@ export default async function ExhibitionsPage({ searchParams }: ExhibitionsPageP
 
   return (
     <main className="mx-auto max-w-6xl space-y-8 px-4 py-8 sm:py-12">
-      <h1 className="text-2xl font-bold border-b border-gray-200 pb-2">企画一覧</h1>
+      <h1 className="text-2xl font-bold border-b border-gray-200 pb-2">
+        企画一覧
+      </h1>
       {result === null ? (
         <p role="alert">
           企画情報の取得に失敗しました。しばらくしてから再度お試しください。
@@ -46,7 +50,9 @@ export default async function ExhibitionsPage({ searchParams }: ExhibitionsPageP
           <ExhibitionFilters query={query} areas={result.areas} />
           {result.total === 0 ? (
             <p>
-              {hasFilter ? '条件に一致する企画はありません' : '企画はまだ公開されていません'}
+              {hasFilter
+                ? '条件に一致する企画はありません'
+                : '企画はまだ公開されていません'}
             </p>
           ) : (
             <>

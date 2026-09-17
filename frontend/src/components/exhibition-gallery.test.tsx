@@ -26,7 +26,9 @@ describe('ExhibitionGallery', () => {
     fireEvent.click(screen.getByRole('button', { name: '写真3' }));
 
     expect(screen.getByRole('img', { name: '写真3' })).toBeInTheDocument();
-    expect(screen.queryByRole('img', { name: '写真1' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('img', { name: '写真1' }),
+    ).not.toBeInTheDocument();
   });
 
   it('shows a no-image placeholder and no thumbnail row when there are no images', () => {

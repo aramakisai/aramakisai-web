@@ -96,7 +96,10 @@ export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
     <main className="mx-auto max-w-4xl space-y-6 px-4 py-8 sm:py-12">
       <BackLink />
 
-      <ExhibitionGallery images={exhibition.images} fallbackAlt={exhibition.name} />
+      <ExhibitionGallery
+        images={exhibition.images}
+        fallbackAlt={exhibition.name}
+      />
 
       <header className="space-y-2">
         <div className="flex flex-wrap gap-2 text-sm text-gray-600">

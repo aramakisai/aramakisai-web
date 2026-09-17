@@ -41,12 +41,7 @@ const InstagramIcon = () => (
         <stop offset="1" stopColor="#4F5BD5" />
       </linearGradient>
     </defs>
-    <rect
-      width="24"
-      height="24"
-      rx="6"
-      fill="url(#sns-instagram-gradient)"
-    />
+    <rect width="24" height="24" rx="6" fill="url(#sns-instagram-gradient)" />
     <rect
       x="4.6"
       y="4.6"

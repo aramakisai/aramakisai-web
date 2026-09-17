@@ -23,12 +23,15 @@ const icons = [
 ] as const;
 
 describe('icons', () => {
-  it.each(icons)('%s は装飾要素として読み上げから除外される', (testId, Icon) => {
-    render(<Icon />);
-    const svg = screen.getByTestId(testId);
-    expect(svg).toHaveAttribute('aria-hidden', 'true');
-    expect(svg).toHaveAttribute('fill', 'currentColor');
-  });
+  it.each(icons)(
+    '%s は装飾要素として読み上げから除外される',
+    (testId, Icon) => {
+      render(<Icon />);
+      const svg = screen.getByTestId(testId);
+      expect(svg).toHaveAttribute('aria-hidden', 'true');
+      expect(svg).toHaveAttribute('fill', 'currentColor');
+    },
+  );
 
   it('既定サイズは 24 で、size と className を上書きできる', () => {
     const { rerender } = render(<PlaceIcon />);

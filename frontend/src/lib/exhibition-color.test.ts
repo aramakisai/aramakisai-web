@@ -4,7 +4,10 @@ import { GRADIENT_PALETTE, getExhibitionGradient } from './exhibition-color';
 
 describe('GRADIENT_PALETTE', () => {
   it('tailwind.config.ts の同名トークンと色値が一致する', () => {
-    const themeColors = tailwindConfig.theme?.extend?.colors as Record<string, string>;
+    const themeColors = tailwindConfig.theme?.extend?.colors as Record<
+      string,
+      string
+    >;
     for (const [token, color] of Object.entries(GRADIENT_PALETTE)) {
       expect(color).toBe(themeColors[token]);
     }
@@ -19,14 +22,26 @@ describe('getExhibitionGradient', () => {
   });
 
   it('from と to は必ず異なるトークンになる', () => {
-    for (const name of ['', 'アラマキ祭', 'Test Project', '荒牧祭実行委員会', 'あ']) {
+    for (const name of [
+      '',
+      'アラマキ祭',
+      'Test Project',
+      '荒牧祭実行委員会',
+      'あ',
+    ]) {
       const gradient = getExhibitionGradient(name);
       expect(gradient.from).not.toBe(gradient.to);
     }
   });
 
   it('角度は 0〜359 の整数になる', () => {
-    for (const name of ['', 'アラマキ祭', 'Test Project', '荒牧祭実行委員会', 'あ']) {
+    for (const name of [
+      '',
+      'アラマキ祭',
+      'Test Project',
+      '荒牧祭実行委員会',
+      'あ',
+    ]) {
       const { angle } = getExhibitionGradient(name);
       expect(Number.isInteger(angle)).toBe(true);
       expect(angle).toBeGreaterThanOrEqual(0);

@@ -1,4 +1,10 @@
-import type { Media, PerformanceSlot, Stage, StudentExhibition, MapArea } from '@/cms-types';
+import type {
+  Media,
+  PerformanceSlot,
+  Stage,
+  StudentExhibition,
+  MapArea,
+} from '@/cms-types';
 import { cms, type CmsFetchError } from './cms';
 
 export type ExhibitionCategory = 'stage' | 'exhibit' | 'vendor' | 'other';
@@ -24,13 +30,7 @@ export interface ExhibitionImage {
 
 export interface ExhibitionLink {
   readonly platform:
-    | 'x'
-    | 'instagram'
-    | 'facebook'
-    | 'youtube'
-    | 'tiktok'
-    | 'line'
-    | 'website';
+    'x' | 'instagram' | 'facebook' | 'youtube' | 'tiktok' | 'line' | 'website';
   readonly url: string;
 }
 
@@ -163,7 +163,11 @@ export function paginate<T>(
   items: readonly T[],
   page: number,
   pageSize: number = PAGE_SIZE,
-): { readonly items: readonly T[]; readonly page: number; readonly pageCount: number } {
+): {
+  readonly items: readonly T[];
+  readonly page: number;
+  readonly pageCount: number;
+} {
   const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
   const safePage = Number.isFinite(page) ? Math.trunc(page) : 1;
   const clampedPage = Math.min(Math.max(1, safePage), pageCount);
@@ -178,12 +182,17 @@ export function paginate<T>(
 // --- CMS からの取得と結合 ----------------------------------------------
 
 /** 数値 ID / populate 済みオブジェクトのどちらでも ID を取り出す (depth 0/1 の両対応) */
-function toRefId(ref: number | { id: number } | null | undefined): number | null {
+function toRefId(
+  ref: number | { id: number } | null | undefined,
+): number | null {
   if (ref === null || ref === undefined) return null;
   return typeof ref === 'object' ? ref.id : ref;
 }
 
-function toExhibitionImage(media: number | Media, fallbackAlt: string): ExhibitionImage {
+function toExhibitionImage(
+  media: number | Media,
+  fallbackAlt: string,
+): ExhibitionImage {
   if (typeof media === 'object') {
     return { id: String(media.id), alt: media.alt || fallbackAlt };
   }
@@ -220,11 +229,13 @@ function resolveLocation(
   context: JoinContext,
 ): { location: string | null; areaIds: readonly number[] } {
   const directAreaId = toRefId(exhibition.area_id);
-  const directArea = directAreaId !== null ? context.areasById.get(directAreaId) : undefined;
+  const directArea =
+    directAreaId !== null ? context.areasById.get(directAreaId) : undefined;
 
   const slots = context.slotsByExhibitionId.get(exhibition.id) ?? [];
-  const stageIds = Array.from(new Set(slots.map((s) => toRefId(s.stage_id))))
-    .filter((id): id is number => id !== null);
+  const stageIds = Array.from(
+    new Set(slots.map((s) => toRefId(s.stage_id))),
+  ).filter((id): id is number => id !== null);
   const stages = stageIds
     .map((id) => context.stagesById.get(id))
     .filter((s): s is Stage => s !== undefined);
@@ -262,7 +273,8 @@ function toExhibitionSummary(
     categories: exhibition.category,
     location,
     areaIds,
-    thumbnail: images.length > 0 ? toExhibitionImage(images[0]!, exhibition.name) : null,
+    thumbnail:
+      images.length > 0 ? toExhibitionImage(images[0]!, exhibition.name) : null,
   };
 }
 
@@ -284,16 +296,22 @@ async function fetchJoinSources(exhibitionId?: number) {
 export async function getExhibitionListData(
   query: ExhibitionQuery,
 ): Promise<ExhibitionListResult> {
-  const [exhibitionsResult, [slotsResult, stagesResult, areasResult]] = await Promise.all([
-    cms.findMany('student_exhibitions', {
-      where: { status: { equals: 'published' } },
-      sort: ['id'],
-      limit: 0,
-      depth: 0,
-    }),
-    fetchJoinSources(),
-  ]);
-  if (!exhibitionsResult.ok || !slotsResult.ok || !stagesResult.ok || !areasResult.ok) {
+  const [exhibitionsResult, [slotsResult, stagesResult, areasResult]] =
+    await Promise.all([
+      cms.findMany('student_exhibitions', {
+        where: { status: { equals: 'published' } },
+        sort: ['id'],
+        limit: 0,
+        depth: 0,
+      }),
+      fetchJoinSources(),
+    ]);
+  if (
+    !exhibitionsResult.ok ||
+    !slotsResult.ok ||
+    !stagesResult.ok ||
+    !areasResult.ok
+  ) {
     throw new Error('企画一覧の取得に失敗しました');
   }
 
@@ -302,7 +320,9 @@ export async function getExhibitionListData(
     stagesResult.value.docs,
     areasResult.value.docs,
   );
-  const items = exhibitionsResult.value.docs.map((e) => toExhibitionSummary(e, context));
+  const items = exhibitionsResult.value.docs.map((e) =>
+    toExhibitionSummary(e, context),
+  );
   const filtered = filterExhibitions(items, query);
   const paginated = paginate(filtered, query.page);
   const total = filtered.length;
@@ -322,8 +342,12 @@ export async function getExhibitionListData(
  * 詳細ページ用の結果。不在・非公開 (missing) と取得失敗 (error) を必ず区別する。
  * 両者を null へ潰すと要件 5.8 (CMS 障害を 404 にしない) を満たせない。
  */
-export async function getExhibitionDetail(id: number): Promise<ExhibitionDetailResult> {
-  const exhibitionResult = await cms.findById('student_exhibitions', id, { depth: 1 });
+export async function getExhibitionDetail(
+  id: number,
+): Promise<ExhibitionDetailResult> {
+  const exhibitionResult = await cms.findById('student_exhibitions', id, {
+    depth: 1,
+  });
   if (!exhibitionResult.ok) {
     if (exhibitionResult.error.kind === 'network') {
       return { kind: 'error', error: exhibitionResult.error };

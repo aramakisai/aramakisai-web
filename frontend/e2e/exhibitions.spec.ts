@@ -15,7 +15,9 @@ test.describe('企画一覧→企画詳細', () => {
     ]) {
       const checkResult = await checkCmsReachable(baseUrl, collection);
       if (checkResult.status === 'cms-dependency-error') {
-        throw new Error(`CMS dependency error (${collection}): ${checkResult.detail}`);
+        throw new Error(
+          `CMS dependency error (${collection}): ${checkResult.detail}`,
+        );
       }
     }
   });
@@ -44,7 +46,9 @@ test.describe('企画一覧→企画詳細', () => {
     await searchBox.fill('展示');
     await expect(page).toHaveURL(/[?&]q=%E5%B1%95%E7%A4%BA/, { timeout: 5000 });
 
-    const stageChip = page.getByRole('group', { name: 'カテゴリで絞り込み' }).getByRole('button', { name: 'ステージ' });
+    const stageChip = page
+      .getByRole('group', { name: 'カテゴリで絞り込み' })
+      .getByRole('button', { name: 'ステージ' });
     await stageChip.click();
     await expect(page).toHaveURL(/[?&]category=stage/);
 
@@ -52,9 +56,13 @@ test.describe('企画一覧→企画詳細', () => {
     const bodyAfterFilter = await page.locator('main').innerText();
 
     await page.goto(urlAfterFilter);
-    await expect(page.getByRole('searchbox', { name: '企画を検索' })).toHaveValue('展示');
     await expect(
-      page.getByRole('group', { name: 'カテゴリで絞り込み' }).getByRole('button', { name: 'ステージ' }),
+      page.getByRole('searchbox', { name: '企画を検索' }),
+    ).toHaveValue('展示');
+    await expect(
+      page
+        .getByRole('group', { name: 'カテゴリで絞り込み' })
+        .getByRole('button', { name: 'ステージ' }),
     ).toHaveAttribute('aria-pressed', 'true');
     await expect(async () => {
       expect(await page.locator('main').innerText()).toBe(bodyAfterFilter);
