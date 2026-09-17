@@ -2,7 +2,6 @@
 import { toAssetUrl } from '@/lib/cms-asset-url';
 import type { FestivalOverview, FestivalTheme } from '@/lib/home-page-types';
 import { RichText } from './rich-text';
-import { Http2ServerRequest } from 'http2';
 
 export interface AboutSectionProps {
   festival: FestivalOverview;
@@ -72,7 +71,7 @@ export function AboutSection({
             aria-labelledby="about-overview-title"
             className="grid grid-cols-1 scroll-mt-24 gap-10 lg:grid-cols-[18rem_minmax(0,1fr)] lg:gap-16"
           >
-            <h2>概要</h2>
+            <h2 id="about-overview-title">概要</h2>
             <div className="min-w-0 max-w-4xl">
               {festival.overviewHtml && (
                 <RichText
@@ -93,9 +92,7 @@ export function AboutSection({
               aria-hidden="true"
               className="mansai-spectrum-line absolute inset-x-0 top-0 h-px opacity-60"
             />
-            <h2>
-                開催スケジュール
-            </h2>
+            <h2 id="about-schedule-title">開催スケジュール</h2>
 
             <div className="min-w-0 max-w-5xl space-y-8 text-base leading-8 text-slate-700 lg:text-lg lg:leading-9">
               {festival.eventDays.length > 0 && (
@@ -167,9 +164,7 @@ export function AboutSection({
                 aria-hidden="true"
                 className="mansai-spectrum-line absolute inset-x-0 top-0 h-px opacity-60"
               />
-              <h2>
-                今年のテーマ
-              </h2>
+              <h2 id="about-theme-title">今年のテーマ</h2>
 
               <div className="min-w-0 max-w-5xl">
                 {theme.imageId && themeImageUrl && (

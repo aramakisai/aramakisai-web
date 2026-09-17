@@ -55,12 +55,18 @@ describe('AboutSection', () => {
     expect(about).toHaveAttribute('id', 'about');
     expect(about).toHaveClass('scroll-mt-24');
 
-    const blockHeadings = within(about).getAllByRole('heading', { level: 3 });
-    expect(blockHeadings.map((heading) => heading.textContent)).toEqual([
-      '01概要',
-      '02開催スケジュール',
-      '03今年のテーマ',
-    ]);
+    expect(
+      within(about).getByRole('heading', { level: 2, name: '概要' }),
+    ).toBeInTheDocument();
+    expect(
+      within(about).getByRole('heading', {
+        level: 2,
+        name: '開催スケジュール',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(about).getByRole('heading', { level: 2, name: '今年のテーマ' }),
+    ).toBeInTheDocument();
 
     expect(
       within(about).getByText('群馬大学荒牧キャンパスを彩る学園祭。'),
@@ -108,8 +114,14 @@ describe('AboutSection', () => {
       screen.getByRole('region', { name: '荒牧祭について' }),
     ).toBeInTheDocument();
     expect(
-      screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent),
-    ).toEqual(['01概要', '02開催スケジュール']);
+      screen.getByRole('heading', { level: 2, name: '概要' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 2, name: '開催スケジュール' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { level: 2, name: '今年のテーマ' }),
+    ).not.toBeInTheDocument();
 
     expect(screen.queryByTestId('schedule-days')).not.toBeInTheDocument();
     expect(screen.queryByTestId('venue-details')).not.toBeInTheDocument();
