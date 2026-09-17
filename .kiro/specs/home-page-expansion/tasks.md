@@ -171,7 +171,7 @@
   - _Requirements: 8.6, 14.6_
   - _Boundary: Header (frontend/src/components/header.tsx)_
 
-- [ ] 8. Validation: 横断的な検証
+- [x] 8. Validation: 横断的な検証
 - [x]* 8.1 一覧→個別記事→404遷移のE2Eテストを追加する
   - トピックス一覧→個別記事、お知らせテーブル→個別記事、存在しないIDアクセス時の404表示をE2Eテストで検証する
   - _Requirements: 8.5, 9.3, 10.3, 10.4_

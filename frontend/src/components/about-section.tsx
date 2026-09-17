@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
-import { toAssetUrl } from '@/lib/directus-asset-url';
+import { toAssetUrl } from '@/lib/cms-asset-url';
 import type { FestivalOverview, FestivalTheme } from '@/lib/home-page-types';
 import { RichText } from './rich-text';
 import { Http2ServerRequest } from 'http2';

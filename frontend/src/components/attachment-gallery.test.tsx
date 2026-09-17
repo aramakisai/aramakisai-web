@@ -3,7 +3,7 @@ import { expect, test, describe, vi } from 'vitest';
 import { AttachmentGallery } from './attachment-gallery';
 import { Attachment } from '../lib/home-page-types';
 
-vi.mock('../lib/directus-asset-url', () => ({
+vi.mock('../lib/cms-asset-url', () => ({
   toAssetUrl: (id: string | null) => {
     if (!id) return null;
     return `https://example.com/assets/${id}`;

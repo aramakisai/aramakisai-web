@@ -1,25 +1,7 @@
 プロジェクト概要
 
-荒牧祭実行委員会のフロントエンド (Next.js) と Directus スキーマを管理するリポジトリ。
-FE は OpenNext (@opennextjs/cloudflare) 経由で Cloudflare Workers にデプロイ、Directus スキーマは Git 管理し K8s Job で自動適用される。
-
-ディレクトリ構成
-
-/
-├── .devcontainer/             開発コンテナ設定
-├── .github/                   GitHub Actions ワークフロー
-├── frontend/
-│   ├── src/
-│   │   ├── app/        App Router
-│   │   ├── components/
-│   │   └── lib/
-│   ├── public/
-│   ├── .infisical.json
-│   └── package.json
-└── directus/
-    ├── schema/
-    │   └── snapshot.yaml    Directus スキーマスナップショット
-    └── migrations/          カスタム migration (必要時のみ)
+荒牧祭実行委員会のフロントエンド (Next.js, `frontend/`) と Payload CMS バックエンド (`cms/`) を管理するモノレポ。
+FE は OpenNext (@opennextjs/cloudflare) 経由で Cloudflare Workers にデプロイ、CMS は Postgres を伴い K8s 上で Payload として稼働し、FE は REST 経由で参照する。
 
 コマンド
 
@@ -34,24 +16,27 @@ pnpm type-check
 # ビルド確認
 pnpm build
 
-bash# Directus スキーマ操作
-# スキーマをファイルに書き出す (Directus が起動している状態で実行)
-npx directus schema snapshot ./directus/schema/snapshot.yaml
+bash# CMS ローカル開発
+cd cms
+pnpm install
+pnpm db:up                      # ローカル Postgres (localhost:5433)
+pnpm migrate                    # スキーマを適用する。起動前に必ず実行する
+infisical run --env=prod -- pnpm dev
 
-# スキーマを Directus に適用 (K8s Job として自動実行されるが手動でも可)
-npx directus schema apply ./directus/schema/snapshot.yaml
+# コレクション/グローバル定義 (src/collections, src/globals) を変更した場合
+pnpm migrate:create <name>      # 差分マイグレーションを生成し src/migrations/index.ts に登録
+pnpm generate:types             # 型を再生成 (frontend/src/cms-types.ts も同時に更新)
 
 bash# K8s クラスタ状態確認
 # kubectl を直接実行してはならない (kubeconfig 未設定でネットワーク到達不可)。
 # 必ず make kubectl 経由で実行すること (Infisical から KUBECONFIG を注入)
 make kubectl ARGS="get pods -A"
-make kubectl ARGS="get externalsecret directus-staging-secrets -n staging"
 
 環境変数
 
-NEXT_PUBLIC_DIRECTUS_URL    Directus の API エンドポイント
-                            prod:  https://api.aramakisai.com
-                            local: http://localhost:8055
+NEXT_PUBLIC_CMS_URL         CMS (Payload) の API エンドポイント
+                            prod:  https://cms.aramakisai.com
+                            local: http://localhost:3000 (cms/ を別ポートで動かす場合は読み替え)
 
 NEXT_PUBLIC_SITE_URL        サイト URL
 
@@ -60,44 +45,32 @@ NEXT_PUBLIC_GA_MEASUREMENT_ID  Google Analytics 4 測定ID (G-XXXXXXXXXX)
                             staging は Cloudflare Access 保護下のため通常は未設定でよい。
 
 本番/staging の値は Infisical で管理する (`--env=prod` / `--env=staging`)。Pages ダッシュボードでの設定ではない。
+CMS (`cms/`) 側の環境変数一覧は `docs/cms-operations.md` 参照。
 
-デプロイフロー (`.github/workflows/frontend-ci.yml`)
+デプロイフロー
 
-PR 作成 (`frontend/**` を変更した場合のみ発火)
-  → Next.js build 等が実行される (失敗したらマージ不可)
-  → PR ごとに一意な Cloudflare Workers プレビュー URL が発行され、PR コメントに投稿される
-  → 詳細 (URL 形式・衝突しないこと等) は `.kiro/steering/tech.md` 参照
+- **`frontend-ci.yml`** (`frontend/**` 変更時発火): PR で build 等を検証 (失敗したらマージ不可)。PR ごとに一意な Cloudflare Workers プレビュー URL が発行され PR コメントに記録される。main merge で本番デプロイ。詳細は `.kiro/steering/tech.md` 参照。
+- **`cms-ci.yml`** (`cms/**` 変更時発火): PR で type-check → migrate → test → build を検証。main merge で本体・migration 用の 2 イメージを GHCR へ push し、`aramakisai-infra` へタグ更新 PR を自動作成する。マージ後 ArgoCD が PreSync Job で `payload migrate` を実行してから Deployment を更新する。
+- **`cms-schema-check.yml`**: `cms/src/collections/**` / `cms/src/globals/**` の変更 PR で base/head のコレクション定義を比較し、フィールド削除・型変更・必須化などの破壊的変更を検出する。承認済みの破壊的変更は PR に `breaking-change-acknowledged` ラベルを付けて検出をスキップする (対応するフロントエンドコードがデプロイ・安定稼働済みであることを確認した上で付与すること)。
 
-main merge
-  → Cloudflare Workers に本番デプロイ
-  → Directus スキーマ変更がある場合:
-      gitops リポジトリに PR が自動作成される
-      → ArgoCD が K8s Job を実行 → directus schema apply
+コンテンツモデルの変更手順
 
-Directus スキーマの変更手順
-
-ローカルの Directus でスキーマを変更
-directus schema snapshot でファイルを更新
-snapshot.yaml を commit して PR を出す
-
-**additive-only ルール**: 新規 collection / field の追加のみ許容する。カラム削除・型変更等の破壊的変更は、対応するフロントエンドコードがデプロイされ安定稼働するまで禁止する。破壊的変更を行う場合はマージ前に必ずチームに周知し、infra 側 PR のチェックリストで確認する。
-
-**一時停止中**: 本番未公開期間 (custom domain 未接続) に限り、上記ルールを機械強制する `additive-schema-check.yml` を一時停止している (`check` job に `if: false`)。再開条件は本番公開判断 (custom domain 接続)。詳細・再開手順は `.kiro/specs/sitemap-schema-review/design.md` を参照。
+Directus の管理画面完結型とは異なり、コレクション/グローバル定義 (`cms/src/collections/`, `cms/src/globals/`) はコードを変更しマイグレーションを経て DB へ反映する。要求から本番反映までの詳細な手順は `docs/cms-operations.md` の「コンテンツモデルの変更手順」参照。
 
 デプロイ先
 - 本番環境
-    - ホームページ本体 aramakisai.com (現状は Cloudflare Workers の workers.dev サブドメインのみ、custom domain 未接続。詳細は `frontend/wrangler.toml` コメント参照)
-    - Directus管理画面 api.aramakisai.com
+    - ホームページ本体 aramakisai.com (Cloudflare Workers、custom domain 接続済み。詳細は `frontend/wrangler.toml` コメント参照)
+    - CMS 管理画面 cms.aramakisai.com
       - なおリポジトリは `aramakisai/aramakisai-infra`
 - ステージング環境
     - ホームページ本体 PR ごとの Cloudflare Workers プレビュー URL (上記デプロイフロー参照)
-    - Directus管理画面 stg-api.aramakisai.com
+    - CMS はステージング環境を持たない (本番のみ)
 
 注意事項
 
 特別な指示がない限りコミットメッセージを含めてすべて日本語を使用すること
-@cloudflare/next-on-pages の制約上、Node.js 専用の API は使用不可 (Edge Runtime)
-Directus スキーマ変更は本番 DB に直接影響するため、staging で必ず事前確認する
+@cloudflare/next-on-pages の制約上、Node.js 専用の API は使用不可 (Edge Runtime、対象は `frontend/` のみ。`cms/` は Node ランタイムでこの制約を受けない)
+CMS のコレクション/グローバル定義の変更は本番 DB に直接影響するため、`cms-schema-check.yml` の検出結果を確認した上でマージすること
 .env は使用禁止
 
 

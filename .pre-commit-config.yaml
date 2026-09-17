@@ -2,10 +2,11 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
+      # Payload が生成するファイルは整形すると再生成時に差分が出て CI が落ちる
       - id: trailing-whitespace
-        exclude: \.md$
+        exclude: '(\.md$|^cms/src/payload-types\.ts$|^frontend/src/cms-types\.ts$|^cms/src/migrations/.*\.(ts|json)$)'
       - id: end-of-file-fixer
-        exclude: \.md$
+        exclude: '(\.md$|^cms/src/payload-types\.ts$|^frontend/src/cms-types\.ts$|^cms/src/migrations/.*\.(ts|json)$)'
       - id: check-yaml
         args: [--allow-multiple-documents]
       - id: check-json

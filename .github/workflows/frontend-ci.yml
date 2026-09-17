@@ -71,7 +71,7 @@ jobs:
         env:
           # env.ts validates these at build time via ./src/env.
           # Dummy values keep the schema check honest without real secrets.
-          NEXT_PUBLIC_DIRECTUS_URL: https://api.example.com
+          NEXT_PUBLIC_CMS_URL: https://cms.example.com
           NEXT_PUBLIC_SITE_URL: https://example.com
 
   deploy-preview:
@@ -120,15 +120,21 @@ jobs:
           echo "INFISICAL_PROJECT_ID=$(python3 -c "import json;print(json.load(open('.infisical.json'))['workspaceId'])")" >> "$GITHUB_ENV"
 
       - name: Build (staging env, inlined by Infisical; Directus URL forced to prod for read-only preview data)
-        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- env NEXT_PUBLIC_DIRECTUS_URL=https://api.aramakisai.com pnpm exec opennextjs-cloudflare build
+        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- env NEXT_PUBLIC_CMS_URL=https://cms.aramakisai.com pnpm exec opennextjs-cloudflare build
 
       - name: Upload Cloudflare Workers preview version
         id: upload_preview
         run: |
           OUTPUT=$(infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec wrangler versions upload)
           echo "$OUTPUT"
-          PREVIEW_URL=$(echo "$OUTPUT" | grep -oE 'https://[a-zA-Z0-9.-]+\.workers\.dev' | head -n1)
-          echo "url=$PREVIEW_URL" >> "$GITHUB_OUTPUT"
+          # wrangler はバージョンのプレビュー URL を出力しないため、バージョン ID から組み立てる。
+          # 形式は https://<バージョン ID の先頭 8 文字>-<worker 名>.<アカウントのサブドメイン>.workers.dev
+          VERSION_ID=$(echo "$OUTPUT" | sed -n 's/^Worker Version ID: \([0-9a-f-]*\)$/\1/p' | head -n1)
+          if [ -z "$VERSION_ID" ]; then
+            echo "::error::wrangler versions upload の出力から Worker Version ID を取得できなかった"
+            exit 1
+          fi
+          echo "url=https://${VERSION_ID:0:8}-aramakisai-web.aramakisai.workers.dev" >> "$GITHUB_OUTPUT"
 
       - name: Find existing preview comment
         uses: peter-evans/find-comment@v3
@@ -201,7 +207,7 @@ jobs:
         run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec tsx scripts/wait-for-preview.ts
 
       - name: Run E2E tests
-        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- env NEXT_PUBLIC_DIRECTUS_URL=https://api.aramakisai.com pnpm test:e2e
+        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- env NEXT_PUBLIC_CMS_URL=https://cms.aramakisai.com pnpm test:e2e
 
       - name: Upload Playwright report (trace/screenshot)
         if: failure()
@@ -265,7 +271,7 @@ jobs:
       - name: Build
         run: pnpm exec opennextjs-cloudflare build
         env:
-          NEXT_PUBLIC_DIRECTUS_URL: https://api.aramakisai.com
+          NEXT_PUBLIC_CMS_URL: https://cms.aramakisai.com
           NEXT_PUBLIC_SITE_URL: https://dev.aramakisai.com
 
       - name: Deploy to Cloudflare Workers (dev)

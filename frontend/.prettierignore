@@ -5,3 +5,4 @@ node_modules/
 pnpm-lock.yaml
 next-env.d.ts
 tsconfig.tsbuildinfo
+src/cms-types.ts

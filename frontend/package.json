@@ -18,7 +18,6 @@
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
   },
   "dependencies": {
-    "@directus/sdk": "^21.0.0",
     "@next/third-parties": "^16.2.10",
     "@opennextjs/cloudflare": "^1.0.0",
     "next": "^15.0.0",

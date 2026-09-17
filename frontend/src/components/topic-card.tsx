@@ -2,7 +2,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Attachment } from '../lib/home-page-types';
-import { toAssetUrl } from '../lib/directus-asset-url';
+import { toAssetUrl } from '../lib/cms-asset-url';
 import { RichText } from './rich-text';
 import { AttachmentGallery } from './attachment-gallery';
 

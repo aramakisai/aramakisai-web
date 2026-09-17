@@ -15,7 +15,7 @@ vi.mock('@/lib/announcements', () => ({
   getAnnouncementById: vi.fn(),
 }));
 
-vi.mock('@/lib/directus-asset-url', () => ({
+vi.mock('@/lib/cms-asset-url', () => ({
   toAssetUrl: (id: string | null) =>
     id ? `https://example.com/assets/${id}` : null,
 }));

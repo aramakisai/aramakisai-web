@@ -1,18 +1,17 @@
 import { expect, test } from '@playwright/test';
-import { checkDirectusReachable } from '../scripts/directus-check';
+import { checkCmsReachable } from '../scripts/cms-check';
 
-// Depends on Directus collections: topics, announcements
+// Depends on CMS collections: topics, announcements
 
 test.describe('一覧→個別記事→404遷移', () => {
   test.beforeAll(async () => {
-    const baseUrl =
-      process.env.NEXT_PUBLIC_DIRECTUS_URL || 'http://localhost:8055';
+    const baseUrl = process.env.NEXT_PUBLIC_CMS_URL || 'http://localhost:3000';
 
     for (const collection of ['topics', 'announcements']) {
-      const checkResult = await checkDirectusReachable(baseUrl, collection);
-      if (checkResult.status === 'directus-dependency-error') {
+      const checkResult = await checkCmsReachable(baseUrl, collection);
+      if (checkResult.status === 'cms-dependency-error') {
         throw new Error(
-          `Directus dependency error (${collection}): ${checkResult.detail}`,
+          `CMS dependency error (${collection}): ${checkResult.detail}`,
         );
       }
     }

@@ -1,15 +1,15 @@
 # aramakisai-web
 
-荒牧祭実行委員会の公式サイト用リポジトリ。フロントエンド (Next.js) と Directus スキーマ定義を管理する。
+荒牧祭実行委員会の公式サイト用リポジトリ。フロントエンド (Next.js) と Payload CMS を管理する。
 
-- 本番サイト: https://aramakisai.com (Cloudflare Pages)
-- Directus 管理画面: https://api.aramakisai.com
+- 本番サイト: https://aramakisai.com (Cloudflare Workers)
+- CMS 管理画面: https://cms.aramakisai.com
 
 ## 構成
 
 ```
-frontend/   Next.js アプリケーション (Cloudflare Pages にデプロイ)
-directus/   Directus スキーマスナップショット・migration
+frontend/   Next.js アプリケーション (Cloudflare Workers にデプロイ)
+cms/        Payload CMS アプリケーション
 .kiro/      Spec-Driven Development の仕様書 (steering / specs)
 ```
 

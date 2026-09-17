@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import React from 'react';
 import { Attachment } from '../lib/home-page-types';
-import { toAssetUrl } from '../lib/directus-asset-url';
+import { toAssetUrl } from '../lib/cms-asset-url';
 
 export interface AttachmentGalleryProps {
   attachments: Attachment[];
