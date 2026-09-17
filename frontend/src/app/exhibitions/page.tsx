@@ -58,7 +58,9 @@ export default async function ExhibitionsPage({
                 全 {result.total} 件中 {result.rangeStart}–{result.rangeEnd}{' '}
                 件を表示
               </p>
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
+              {/* items-start がないと行内の最も高いカードに合わせて伸び、グラデーション帯の
+            下に背景色が残って角丸が効かなくなる。 */}
+              <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-4">
                 {result.items.map((exhibition) => (
                   <ExhibitionCard key={exhibition.id} exhibition={exhibition} />
                 ))}
