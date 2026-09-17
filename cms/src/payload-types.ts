@@ -241,7 +241,7 @@ export interface Announcement {
   } | null;
   body_html?: string | null;
   /**
-   * 公開日時 (未設定は非公開)
+   * 未設定は非公開
    */
   published_at?: string | null;
   /**
@@ -274,21 +274,15 @@ export interface Topic {
     [k: string]: unknown;
   } | null;
   body_html?: string | null;
-  /**
-   * サムネイル画像
-   */
   image?: (number | null) | Media;
   /**
-   * 公開日時 (未設定は非公開)
+   * 未設定は非公開
    */
   published_at?: string | null;
   /**
-   * PDF 添付 (デジタルパンフ等)
+   * デジタルパンフ等
    */
   attachment?: (number | null) | Media;
-  /**
-   * 表示順
-   */
   sort?: number | null;
   /**
    * 複数添付ファイル
@@ -304,16 +298,13 @@ export interface Topic {
 export interface Page {
   id: number;
   /**
-   * ページ識別子 (URLパス相当, UNIQUE)
+   * URLパス相当 (UNIQUE)
    */
   slug: string;
   /**
    * ページ見出し(h1)および<title>タグに使用
    */
   title: string;
-  /**
-   * 本文
-   */
   content?: {
     root: {
       type: string;
@@ -331,16 +322,13 @@ export interface Page {
   } | null;
   content_html?: string | null;
   /**
-   * 埋め込みURL (地図・フォーム等のiframe embed)
+   * 地図・フォーム等のiframe embed
    */
   embed_url?: string | null;
   /**
    * embed_urlのiframe高さ(px)。未指定時は16:9のデフォルト比率
    */
   embed_height?: number | null;
-  /**
-   * 表示順
-   */
   sort?: number | null;
   updatedAt: string;
   createdAt: string;
@@ -353,45 +341,30 @@ export interface Sponsor {
   id: number;
   type: 'ad' | 'sponsor' | 'food_truck' | 'other';
   name: string;
-  /**
-   * ロゴ画像
-   */
   logo?: (number | null) | Media;
-  /**
-   * Webサイト URL
-   */
   url?: string | null;
-  /**
-   * 説明・応援メッセージ
-   */
   description?: string | null;
   /**
-   * 業種タグ (地元協賛のみ)
+   * 地元協賛のみ
    */
   business_category?: string | null;
   /**
-   * 住所 (地元協賛のみ)
+   * 地元協賛のみ
    */
   address?: string | null;
   /**
-   * 協賛ランク (広告協賛のみ)
+   * 広告協賛のみ
    */
-  tier?: ('platinum' | 'gold' | 'silver' | 'bronze') | null;
+  tier?: ('planA' | 'planB' | 'planC' | 'planD') | null;
   /**
-   * マップ配置エリア (広告協賛はNULL)
+   * 広告協賛はNULL
    */
   area_id?: (number | null) | MapArea;
   /**
-   * エリア内ブース番号 (area_id+booth_number UNIQUE)
+   * エリア内番号 (area_id+booth_number UNIQUE)
    */
   booth_number?: number | null;
-  /**
-   * マップ表示ラベル
-   */
   booth_label?: string | null;
-  /**
-   * 表示順
-   */
   sort?: number | null;
   updatedAt: string;
   createdAt: string;
@@ -403,7 +376,7 @@ export interface Sponsor {
 export interface MapArea {
   id: number;
   /**
-   * 表示名 (例: "Aゾーン")
+   * 例: "Aゾーン"
    */
   name: string;
   /**
@@ -418,9 +391,6 @@ export interface MapArea {
     | number
     | boolean
     | null;
-  /**
-   * 表示順
-   */
   sort?: number | null;
   updatedAt: string;
   createdAt: string;
@@ -433,9 +403,6 @@ export interface FaqItem {
   id: number;
   question: string;
   answer: string;
-  /**
-   * 表示順
-   */
   sort?: number | null;
   updatedAt: string;
   createdAt: string;
@@ -446,17 +413,11 @@ export interface FaqItem {
  */
 export interface Stage {
   id: number;
-  /**
-   * ステージ名
-   */
   name: string;
   /**
-   * 出演場所エリア (OSM Polygon)
+   * OSM Polygon
    */
   area_id?: (number | null) | MapArea;
-  /**
-   * 表示順
-   */
   sort?: number | null;
   updatedAt: string;
   createdAt: string;
@@ -467,21 +428,9 @@ export interface Stage {
  */
 export interface TimeSlot {
   id: number;
-  /**
-   * 表示ラベル
-   */
   label: string;
-  /**
-   * 開始時刻
-   */
   start_at: string;
-  /**
-   * 終了時刻
-   */
   end_at: string;
-  /**
-   * 時系列順
-   */
   sort?: number | null;
   updatedAt: string;
   createdAt: string;
@@ -493,19 +442,19 @@ export interface TimeSlot {
 export interface PerformanceSlot {
   id: number;
   /**
-   * ステージ (NOT NULL)
+   * NOT NULL
    */
   stage_id: number | Stage;
   /**
-   * タイムスロット (NOT NULL)
+   * NOT NULL
    */
   time_slot_id: number | TimeSlot;
   /**
-   * 団体 (NULL可。団体なし出演はtitleを使用)
+   * NULL可。団体なし出演はtitleを使用
    */
   exhibition_id?: (number | null) | StudentExhibition;
   /**
-   * 表示名 (exhibition_idがNULLの場合必須)
+   * exhibition_idがNULLの場合必須
    */
   title?: string | null;
   updatedAt: string;
@@ -520,7 +469,7 @@ export interface StudentExhibition {
   owner: number | User;
   status: 'published' | 'draft';
   /**
-   * 企画名。団体名は organization_name を参照
+   * 団体名は organization_name を参照
    */
   name: string;
   /**
@@ -532,7 +481,7 @@ export interface StudentExhibition {
    */
   category: ('stage' | 'exhibit' | 'vendor' | 'other')[];
   /**
-   * ステージ出演枠 (実行委員が割り当てる。閲覧のみ)
+   * 実行委員が割り当てる。閲覧のみ
    */
   performance_slots?: {
     docs?: (number | PerformanceSlot)[];
@@ -540,15 +489,15 @@ export interface StudentExhibition {
     totalDocs?: number;
   };
   /**
-   * マップ配置エリア (NULL=マップ非掲載)。展示・出店のみ使用
+   * NULL=マップ非掲載。展示・出店のみ使用
    */
   area_id?: (number | null) | MapArea;
   /**
-   * エリア内ブース番号 (area_id+booth_number UNIQUE)。展示・出店のみ使用
+   * エリア内番号 (area_id+booth_number UNIQUE)。展示・出店のみ使用
    */
   booth_number?: number | null;
   /**
-   * マップ表示ラベル。展示・出店のみ使用
+   * 展示・出店のみ使用
    */
   booth_label?: string | null;
   /**
@@ -950,9 +899,6 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
  */
 export interface FestivalMeta {
   id: number;
-  /**
-   * 祭名
-   */
   name: string;
   /**
    * 日ごと開催時間 [{label, open, close}]
@@ -966,13 +912,7 @@ export interface FestivalMeta {
     | number
     | boolean
     | null;
-  /**
-   * 駐車場マップ画像
-   */
   parking_map?: (number | null) | Media;
-  /**
-   * SNSリンク一覧
-   */
   sns_links?:
     | {
         [k: string]: unknown;
@@ -982,9 +922,6 @@ export interface FestivalMeta {
     | number
     | boolean
     | null;
-  /**
-   * 祭概要 (WYSIWYG)
-   */
   overview?: {
     root: {
       type: string;
@@ -1002,16 +939,13 @@ export interface FestivalMeta {
   } | null;
   overview_html?: string | null;
   /**
-   * Aboutページ用ヒーロー画像
+   * Aboutページ用
    */
   hero_image?: (number | null) | Media;
   /**
-   * テーマ語 (例: 万彩)
+   * 例: 万彩
    */
   theme_word?: string | null;
-  /**
-   * テーマの説明文 (WYSIWYG)
-   */
   theme_description?: {
     root: {
       type: string;
@@ -1028,21 +962,9 @@ export interface FestivalMeta {
     [k: string]: unknown;
   } | null;
   theme_description_html?: string | null;
-  /**
-   * 会場名
-   */
   venue_name?: string | null;
-  /**
-   * Google Maps 埋め込み URL
-   */
   campus_map_url?: string | null;
-  /**
-   * お問い合わせフォーム URL
-   */
   contact_form_url?: string | null;
-  /**
-   * テーマのメインビジュアル
-   */
   theme_image?: (number | null) | Media;
   /**
    * HTMLのtitleタグ用
@@ -1058,7 +980,7 @@ export interface FestivalMeta {
 export interface PageHome {
   id: number;
   /**
-   * 開催前トップメッセージ
+   * 開催前に表示
    */
   hero_message?: {
     root: {
@@ -1077,7 +999,7 @@ export interface PageHome {
   } | null;
   hero_message_html?: string | null;
   /**
-   * 複数ヒーロー画像
+   * 複数枚設定可
    */
   hero_images?: (number | Media)[] | null;
   updatedAt?: string | null;

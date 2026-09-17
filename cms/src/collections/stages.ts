@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload';
 
 export const Stages: CollectionConfig = {
   slug: 'stages',
+  labels: { singular: 'ステージ', plural: 'ステージ' },
   admin: {
     useAsTitle: 'name',
   },
@@ -12,18 +13,19 @@ export const Stages: CollectionConfig = {
       type: 'text',
       required: true,
       maxLength: 255,
-      admin: { description: 'ステージ名' },
+      label: 'ステージ名',
     },
     {
       name: 'area_id',
       type: 'relationship',
       relationTo: 'map_areas',
-      admin: { description: '出演場所エリア (OSM Polygon)' },
+      label: '出演場所エリア',
+      admin: { description: 'OSM Polygon' },
     },
     {
       name: 'sort',
       type: 'number',
-      admin: { description: '表示順' },
+      label: '表示順',
     },
   ],
 };

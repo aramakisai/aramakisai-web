@@ -4,6 +4,7 @@ import { performanceSlotConstraint } from '../hooks/payload-constraints';
 
 export const PerformanceSlots: CollectionConfig = {
   slug: 'performance_slots',
+  labels: { singular: 'ステージ出演枠', plural: 'ステージ出演枠' },
   admin: {
     useAsTitle: 'title',
   },
@@ -14,26 +15,30 @@ export const PerformanceSlots: CollectionConfig = {
       type: 'relationship',
       relationTo: 'stages',
       required: true,
-      admin: { description: 'ステージ (NOT NULL)' },
+      label: 'ステージ',
+      admin: { description: 'NOT NULL' },
     },
     {
       name: 'time_slot_id',
       type: 'relationship',
       relationTo: 'time_slots',
       required: true,
-      admin: { description: 'タイムスロット (NOT NULL)' },
+      label: 'タイムスロット',
+      admin: { description: 'NOT NULL' },
     },
     {
       name: 'exhibition_id',
       type: 'relationship',
       relationTo: 'student_exhibitions',
-      admin: { description: '団体 (NULL可。団体なし出演はtitleを使用)' },
+      label: '団体',
+      admin: { description: 'NULL可。団体なし出演はtitleを使用' },
     },
     {
       name: 'title',
       type: 'text',
       maxLength: 255,
-      admin: { description: '表示名 (exhibition_idがNULLの場合必須)' },
+      label: '表示名',
+      admin: { description: 'exhibition_idがNULLの場合必須' },
     },
   ],
 };
