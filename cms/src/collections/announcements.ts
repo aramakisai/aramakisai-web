@@ -3,10 +3,11 @@ import type { CollectionConfig } from 'payload';
 
 export const Announcements: CollectionConfig = {
   slug: 'announcements',
+  labels: { singular: 'お知らせ', plural: 'お知らせ' },
   admin: { useAsTitle: 'title', defaultColumns: ['title', 'published_at'] },
   fields: [
-    { name: 'title', type: 'text', required: true, maxLength: 255 },
-    { name: 'body', type: 'richText' },
+    { name: 'title', type: 'text', required: true, maxLength: 255, label: 'タイトル' },
+    { name: 'body', type: 'richText', label: '本文' },
     // フロントエンドは HTML 文字列を受け取る契約のため、lexical から HTML を生成して保存する
     lexicalHTMLField({
       htmlFieldName: 'body_html',
@@ -16,8 +17,9 @@ export const Announcements: CollectionConfig = {
     {
       name: 'published_at',
       type: 'date',
+      label: '公開日時',
       admin: {
-        description: '公開日時 (未設定は非公開)',
+        description: '未設定は非公開',
         date: { pickerAppearance: 'dayAndTime' },
       },
     },
@@ -26,6 +28,7 @@ export const Announcements: CollectionConfig = {
       type: 'upload',
       relationTo: 'media',
       hasMany: true,
+      label: '添付ファイル',
       admin: { description: '複数添付ファイル' },
     },
   ],

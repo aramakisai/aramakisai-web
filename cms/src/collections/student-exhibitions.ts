@@ -5,6 +5,7 @@ import { boothPlacementConstraint } from '../hooks/payload-constraints';
 
 export const StudentExhibitions: CollectionConfig = {
   slug: 'student_exhibitions',
+  labels: { singular: '学生企画', plural: '学生企画' },
   admin: {
     useAsTitle: 'name',
   },
@@ -17,6 +18,7 @@ export const StudentExhibitions: CollectionConfig = {
       required: true,
       // 現行スキーマの user_created UNIQUE (1 ユーザー 1 レコード) を引き継ぐ
       unique: true,
+      label: '所有者',
       // 出展者は users を read できず、管理画面のセレクトが解決できない。
       // 値は下の beforeChange が決めるため、フォームには出さない
       admin: { hidden: true },
@@ -36,9 +38,10 @@ export const StudentExhibitions: CollectionConfig = {
       type: 'select',
       required: true,
       defaultValue: 'draft',
+      label: '公開状態',
       options: [
-        { label: 'published', value: 'published' },
-        { label: 'draft', value: 'draft' },
+        { label: '公開', value: 'published' },
+        { label: '下書き', value: 'draft' },
       ],
     },
     {
@@ -46,13 +49,15 @@ export const StudentExhibitions: CollectionConfig = {
       type: 'text',
       required: true,
       maxLength: 255,
-      admin: { description: '企画名。団体名は organization_name を参照' },
+      label: '企画名',
+      admin: { description: '団体名は organization_name を参照' },
     },
     {
       name: 'organization_name',
       type: 'text',
       required: true,
       maxLength: 255,
+      label: '団体名',
       admin: { description: '学生団体・サークル名' },
     },
     {
@@ -61,11 +66,12 @@ export const StudentExhibitions: CollectionConfig = {
       hasMany: true,
       required: true,
       defaultValue: ['other'],
+      label: 'カテゴリ',
       options: [
-        { label: 'stage', value: 'stage' },
-        { label: 'exhibit', value: 'exhibit' },
-        { label: 'vendor', value: 'vendor' },
-        { label: 'other', value: 'other' },
+        { label: 'ステージ', value: 'stage' },
+        { label: '展示', value: 'exhibit' },
+        { label: '出店', value: 'vendor' },
+        { label: 'その他', value: 'other' },
       ],
       admin: { description: '最大 2 つまで選択する' },
     },
@@ -74,29 +80,34 @@ export const StudentExhibitions: CollectionConfig = {
       type: 'join',
       collection: 'performance_slots',
       on: 'exhibition_id',
-      admin: { description: 'ステージ出演枠 (実行委員が割り当てる。閲覧のみ)' },
+      label: 'ステージ出演枠',
+      admin: { description: '実行委員が割り当てる。閲覧のみ' },
     },
     {
       name: 'area_id',
       type: 'relationship',
       relationTo: 'map_areas',
-      admin: { description: 'マップ配置エリア (NULL=マップ非掲載)。展示・出店のみ使用' },
+      label: 'マップ配置エリア',
+      admin: { description: 'NULL=マップ非掲載。展示・出店のみ使用' },
     },
     {
       name: 'booth_number',
       type: 'number',
-      admin: { description: 'エリア内ブース番号 (area_id+booth_number UNIQUE)。展示・出店のみ使用' },
+      label: 'ブース番号',
+      admin: { description: 'エリア内番号 (area_id+booth_number UNIQUE)。展示・出店のみ使用' },
     },
     {
       name: 'booth_label',
       type: 'text',
       maxLength: 50,
-      admin: { description: 'マップ表示ラベル。展示・出店のみ使用' },
+      label: 'マップ表示ラベル',
+      admin: { description: '展示・出店のみ使用' },
     },
     {
       name: 'stage_name',
       type: 'text',
       maxLength: 255,
+      label: 'ステージ表示名',
       admin: {
         description: 'ステージ出演時に表示する企画名。未入力なら name を使う',
         condition: (data) => Array.isArray(data?.category) && data.category.includes('stage'),
@@ -105,17 +116,20 @@ export const StudentExhibitions: CollectionConfig = {
     {
       name: 'description',
       type: 'textarea',
+      label: '紹介文',
       admin: { description: '企画の紹介文' },
     },
     {
       name: 'links',
       type: 'array',
+      label: 'リンク',
       admin: { description: '公式サイト・SNS 等のリンク (並べ替えた順に表示する)' },
       fields: [
         {
           name: 'platform',
           type: 'select',
           required: true,
+          label: 'プラットフォーム',
           options: [
             { label: 'X', value: 'x' },
             { label: 'Instagram', value: 'instagram' },
@@ -130,6 +144,7 @@ export const StudentExhibitions: CollectionConfig = {
           name: 'url',
           type: 'text',
           required: true,
+          label: 'URL',
           validate: (value: unknown) =>
             typeof value === 'string' && URL.canParse(value) && value.startsWith('https://')
               ? true
@@ -142,6 +157,7 @@ export const StudentExhibitions: CollectionConfig = {
       type: 'upload',
       relationTo: 'media',
       hasMany: true,
+      label: '画像',
       admin: { description: '最大 5 枚まで' },
     },
   ],

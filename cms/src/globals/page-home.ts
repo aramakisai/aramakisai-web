@@ -3,11 +3,13 @@ import type { GlobalConfig } from 'payload';
 
 export const PageHome: GlobalConfig = {
   slug: 'page_home',
+  label: 'トップページ',
   fields: [
     {
       name: 'hero_message',
       type: 'richText',
-      admin: { description: '開催前トップメッセージ' },
+      label: 'トップメッセージ',
+      admin: { description: '開催前に表示' },
     },
     lexicalHTMLField({
       htmlFieldName: 'hero_message_html',
@@ -19,7 +21,8 @@ export const PageHome: GlobalConfig = {
       type: 'upload',
       relationTo: 'media',
       hasMany: true,
-      admin: { description: '複数ヒーロー画像' },
+      label: 'ヒーロー画像',
+      admin: { description: '複数枚設定可' },
     },
   ],
 };

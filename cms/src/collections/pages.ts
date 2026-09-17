@@ -3,6 +3,7 @@ import type { CollectionConfig } from 'payload';
 
 export const Pages: CollectionConfig = {
   slug: 'pages',
+  labels: { singular: '固定ページ', plural: '固定ページ' },
   admin: {
     useAsTitle: 'title',
   },
@@ -14,19 +15,21 @@ export const Pages: CollectionConfig = {
       required: true,
       unique: true,
       maxLength: 100,
-      admin: { description: 'ページ識別子 (URLパス相当, UNIQUE)' },
+      label: 'ページ識別子',
+      admin: { description: 'URLパス相当 (UNIQUE)' },
     },
     {
       name: 'title',
       type: 'text',
       required: true,
       maxLength: 255,
+      label: '見出し',
       admin: { description: 'ページ見出し(h1)および<title>タグに使用' },
     },
     {
       name: 'content',
       type: 'richText',
-      admin: { description: '本文' },
+      label: '本文',
     },
     lexicalHTMLField({
       htmlFieldName: 'content_html',
@@ -37,17 +40,19 @@ export const Pages: CollectionConfig = {
       name: 'embed_url',
       type: 'text',
       maxLength: 500,
-      admin: { description: '埋め込みURL (地図・フォーム等のiframe embed)' },
+      label: '埋め込みURL',
+      admin: { description: '地図・フォーム等のiframe embed' },
     },
     {
       name: 'embed_height',
       type: 'number',
+      label: '埋め込み高さ',
       admin: { description: 'embed_urlのiframe高さ(px)。未指定時は16:9のデフォルト比率' },
     },
     {
       name: 'sort',
       type: 'number',
-      admin: { description: '表示順' },
+      label: '表示順',
     },
   ],
 };
