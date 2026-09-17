@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { cms } from './cms';
 import {
+  buildExhibitionsHref,
   CATEGORY_LABELS,
   PAGE_SIZE,
   filterExhibitions,
@@ -60,14 +61,50 @@ describe('parseExhibitionQuery', () => {
 
   it('カンマ区切り単一文字列のカテゴリも解釈する', () => {
     expect(
-      parseExhibitionQuery({ category: 'stage,exhibit' }).categories,
-    ).toEqual(['stage', 'exhibit']);
+      parseExhibitionQuery({ category: 'vendor,stage' }).categories,
+    ).toEqual(['stage', 'vendor']);
+  });
+
+  it('繰り返しキー形式のカテゴリも解釈する (後方互換)', () => {
+    expect(
+      parseExhibitionQuery({ category: ['vendor', 'stage'] }).categories,
+    ).toEqual(['stage', 'vendor']);
+  });
+
+  it('カテゴリは定義順 (stage/exhibit/vendor/other) にソートする', () => {
+    expect(
+      parseExhibitionQuery({ category: 'other,vendor,stage,exhibit' })
+        .categories,
+    ).toEqual(['stage', 'exhibit', 'vendor', 'other']);
   });
 
   it('エリア ID は数値へ変換し、不正値と重複を除く', () => {
     expect(
       parseExhibitionQuery({ area: ['1', 'abc', '2', '1', '-3', '0'] }).areaIds,
     ).toEqual([1, 2]);
+  });
+
+  it('エリア ID はカンマ区切りでも解釈し、数値昇順にソートする', () => {
+    expect(parseExhibitionQuery({ area: '7,5,6' }).areaIds).toEqual([5, 6, 7]);
+  });
+
+  it('繰り返しキー形式のエリア ID も解釈する (後方互換)', () => {
+    expect(parseExhibitionQuery({ area: ['7', '6', '5'] }).areaIds).toEqual([
+      5, 6, 7,
+    ]);
+  });
+
+  it('選択順が違っても解釈結果 (categories/areaIds) は同じになる', () => {
+    const a = parseExhibitionQuery({
+      category: 'vendor,stage',
+      area: '7,5,6',
+    });
+    const b = parseExhibitionQuery({
+      category: 'stage,vendor',
+      area: '5,6,7',
+    });
+    expect(a.categories).toEqual(b.categories);
+    expect(a.areaIds).toEqual(b.areaIds);
   });
 
   it.each(['0', '-1', '1.5', 'abc', undefined])(
@@ -79,6 +116,54 @@ describe('parseExhibitionQuery', () => {
 
   it('有効なページ番号はそのまま使う', () => {
     expect(parseExhibitionQuery({ page: '3' }).page).toBe(3);
+  });
+});
+
+describe('buildExhibitionsHref', () => {
+  it('カテゴリをカンマ区切り・定義順で連結する', () => {
+    expect(
+      buildExhibitionsHref({
+        q: '',
+        categories: ['vendor', 'stage'],
+        areaIds: [],
+      }),
+    ).toBe('/exhibitions?category=stage,vendor');
+  });
+
+  it('エリア ID をカンマ区切り・数値昇順で連結する', () => {
+    expect(
+      buildExhibitionsHref({ q: '', categories: [], areaIds: [7, 6, 5] }),
+    ).toBe('/exhibitions?area=5,6,7');
+  });
+
+  it('選択順が違っても同じ URL になる', () => {
+    const a = buildExhibitionsHref({
+      q: '',
+      categories: ['stage', 'vendor'],
+      areaIds: [7, 6, 5],
+    });
+    const b = buildExhibitionsHref({
+      q: '',
+      categories: ['vendor', 'stage'],
+      areaIds: [5, 6, 7],
+    });
+    expect(a).toBe(b);
+    expect(a).toBe('/exhibitions?category=stage,vendor&area=5,6,7');
+  });
+
+  it('q は含め、page は 1 以下なら含めない', () => {
+    expect(
+      buildExhibitionsHref({ q: '祭', categories: [], areaIds: [], page: 1 }),
+    ).toBe('/exhibitions?q=%E7%A5%AD');
+    expect(
+      buildExhibitionsHref({ q: '', categories: [], areaIds: [], page: 2 }),
+    ).toBe('/exhibitions?page=2');
+  });
+
+  it('値が空のパラメータは URL に出さない', () => {
+    expect(buildExhibitionsHref({ q: '', categories: [], areaIds: [] })).toBe(
+      '/exhibitions',
+    );
   });
 });
 

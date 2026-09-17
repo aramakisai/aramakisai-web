@@ -99,21 +99,36 @@ function toValues(raw: string | readonly string[] | undefined): string[] {
     .filter((v) => v.length > 0);
 }
 
+/** CATEGORY_VALUES は CMS の select 選択肢順 (cms/src/collections/student-exhibitions.ts) と一致させてある */
+function sortCategories(
+  categories: readonly ExhibitionCategory[],
+): ExhibitionCategory[] {
+  return [...categories].sort(
+    (a, b) => CATEGORY_VALUES.indexOf(a) - CATEGORY_VALUES.indexOf(b),
+  );
+}
+
+function sortAreaIds(areaIds: readonly number[]): number[] {
+  return [...areaIds].sort((a, b) => a - b);
+}
+
 export function parseExhibitionQuery(
   params: Readonly<Record<string, string | readonly string[] | undefined>>,
 ): ExhibitionQuery {
   const qRaw = params.q;
   const q = (Array.isArray(qRaw) ? qRaw[0] : qRaw)?.trim() ?? '';
 
-  const categories = Array.from(
-    new Set(toValues(params.category).filter(isExhibitionCategory)),
+  const categories = sortCategories(
+    Array.from(new Set(toValues(params.category).filter(isExhibitionCategory))),
   );
 
-  const areaIds = Array.from(
-    new Set(
-      toValues(params.area)
-        .map((v) => Number(v))
-        .filter((n) => Number.isInteger(n) && n > 0),
+  const areaIds = sortAreaIds(
+    Array.from(
+      new Set(
+        toValues(params.area)
+          .map((v) => Number(v))
+          .filter((n) => Number.isInteger(n) && n > 0),
+      ),
     ),
   );
 
@@ -122,6 +137,35 @@ export function parseExhibitionQuery(
   const page = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
 
   return { q, categories, areaIds, page };
+}
+
+/**
+ * 検証済みクエリ → URL。同じ条件集合なら選択順によらず同一の文字列になるよう
+ * カテゴリ・エリアを常にソートしてから連結する (一覧ページ送り・フィルタ操作の両方で使う)。
+ */
+export function buildExhibitionsHref(query: {
+  readonly q: string;
+  readonly categories: readonly ExhibitionCategory[];
+  readonly areaIds: readonly number[];
+  readonly page?: number;
+}): string {
+  const params = new URLSearchParams();
+  if (query.q) params.set('q', query.q);
+
+  const categories = sortCategories(query.categories);
+  if (categories.length > 0) params.set('category', categories.join(','));
+
+  const areaIds = sortAreaIds(query.areaIds);
+  if (areaIds.length > 0) params.set('area', areaIds.join(','));
+
+  if (query.page !== undefined && query.page > 1) {
+    params.set('page', String(query.page));
+  }
+
+  // URLSearchParams はカンマを %2C にするが、カンマは RFC 3986 の query で
+  // そのまま使える文字なので、読みやすさを優先して戻す。
+  const qs = params.toString().replaceAll('%2C', ',');
+  return qs ? `/exhibitions?${qs}` : '/exhibitions';
 }
 
 /** 全角/半角・大文字小文字を吸収する照合用の正規化。ひらがな/カタカナは区別する (要件 2.2 の範囲外) */

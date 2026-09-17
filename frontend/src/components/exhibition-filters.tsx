@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SearchIcon } from './icons';
 import {
+  buildExhibitionsHref,
   CATEGORY_LABELS,
   type AreaOption,
   type ExhibitionCategory,
@@ -25,20 +26,6 @@ const CATEGORY_OPTIONS: readonly ExhibitionCategory[] = [
 // 1 打鍵ごとの URL 更新 (履歴汚染・再取得の頻発) を避けるための確定待ち時間 (要件 2.1)
 const KEYWORD_DEBOUNCE_MS = 300;
 
-function buildHref(next: {
-  readonly q: string;
-  readonly categories: readonly ExhibitionCategory[];
-  readonly areaIds: readonly number[];
-}): string {
-  const params = new URLSearchParams();
-  if (next.q) params.set('q', next.q);
-  for (const category of next.categories) params.append('category', category);
-  for (const areaId of next.areaIds) params.append('area', String(areaId));
-  const qs = params.toString();
-  // page は含めない: 条件変更のたびに 1 ページ目へ戻す (要件 2.8)
-  return qs ? `/exhibitions?${qs}` : '/exhibitions';
-}
-
 export function ExhibitionFilters({ query, areas }: ExhibitionFiltersProps) {
   const router = useRouter();
   const [keyword, setKeyword] = useState(query.q);
@@ -49,9 +36,10 @@ export function ExhibitionFilters({ query, areas }: ExhibitionFiltersProps) {
       isFirstRender.current = false;
       return;
     }
+    // page は渡さない: 条件変更のたびに 1 ページ目へ戻す (要件 2.8)
     const timer = setTimeout(() => {
       router.replace(
-        buildHref({
+        buildExhibitionsHref({
           q: keyword.trim(),
           categories: query.categories,
           areaIds: query.areaIds,
@@ -68,7 +56,11 @@ export function ExhibitionFilters({ query, areas }: ExhibitionFiltersProps) {
       ? query.categories.filter((c) => c !== category)
       : [...query.categories, category];
     router.replace(
-      buildHref({ q: keyword.trim(), categories, areaIds: query.areaIds }),
+      buildExhibitionsHref({
+        q: keyword.trim(),
+        categories,
+        areaIds: query.areaIds,
+      }),
     );
   };
 
@@ -77,7 +69,11 @@ export function ExhibitionFilters({ query, areas }: ExhibitionFiltersProps) {
       ? query.areaIds.filter((id) => id !== areaId)
       : [...query.areaIds, areaId];
     router.replace(
-      buildHref({ q: keyword.trim(), categories: query.categories, areaIds }),
+      buildExhibitionsHref({
+        q: keyword.trim(),
+        categories: query.categories,
+        areaIds,
+      }),
     );
   };
 

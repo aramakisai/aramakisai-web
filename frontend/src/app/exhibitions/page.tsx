@@ -1,4 +1,5 @@
 import {
+  buildExhibitionsHref,
   getExhibitionListData,
   parseExhibitionQuery,
   type ExhibitionListResult,
@@ -13,13 +14,7 @@ interface ExhibitionsPageProps {
 }
 
 function hrefForPage(query: ExhibitionQuery, page: number): string {
-  const params = new URLSearchParams();
-  if (query.q) params.set('q', query.q);
-  for (const category of query.categories) params.append('category', category);
-  for (const areaId of query.areaIds) params.append('area', String(areaId));
-  if (page > 1) params.set('page', String(page));
-  const qs = params.toString();
-  return qs ? `/exhibitions?${qs}` : '/exhibitions';
+  return buildExhibitionsHref({ ...query, page });
 }
 
 export default async function ExhibitionsPage({

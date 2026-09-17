@@ -31,7 +31,7 @@
 - ルート `/exhibitions` と `/exhibitions/[id]` の存在・URL 形状・表示内容。
 - 企画の表示モデル (`ExhibitionSummary` / `ExhibitionDetail`) とその整形処理 (`lib/exhibitions.ts`)。
 - 企画カードの外観と配色アルゴリズム (`lib/exhibition-color.ts`、`components/exhibition-card.tsx`)。
-- 検索・ファセット・ページングの意味論と URL クエリの形 (`?q=&category=&area=&page=`)。
+- 検索・ファセット・ページングの意味論と URL クエリの形 (`?q=&category=&area=&page=`。`category` / `area` は複数値をカンマ区切りで連結し、常にソート済みで表す)。
 - `student_exhibitions.links` のフィールド定義とバリデーション、`stage_name` の追加、および `description` の管理画面表記。
 - サイト全体の背景色・グレー階調・アイコンセット (`tailwind.config.ts`、`components/icons.tsx`、`components/sns-icon.tsx`)。
 
@@ -193,7 +193,7 @@ sequenceDiagram
   participant L as lib/exhibitions.ts
   participant C as CMS (REST)
 
-  U->>P: GET /exhibitions?q=&category=&area=&page=
+  U->>P: GET /exhibitions?q=&category=stage,vendor&area=5,6,7&page=
   P->>L: getExhibitionListData(query)
   par 並列取得
     L->>C: GET /api/student_exhibitions?where[status][equals]=published&sort=id&limit=0&depth=0
@@ -209,7 +209,7 @@ sequenceDiagram
   P-->>U: HTML (カード一覧・ファセット・ページ送り)
 ```
 
-取得のいずれか 1 本でも失敗した場合は取得失敗として扱い、空一覧ではなくエラー表示を返す (要件 1.6)。絞り込み条件はサーバー側で確定するため、ブラウザ側の再取得は発生しない。ファセット操作と検索入力は `router.replace` で URL クエリを書き換え、ページ番号を 1 に戻す (要件 2.8)。
+取得のいずれか 1 本でも失敗した場合は取得失敗として扱い、空一覧ではなくエラー表示を返す (要件 1.6)。絞り込み条件はサーバー側で確定するため、ブラウザ側の再取得は発生しない。ファセット操作と検索入力は `router.replace` で URL クエリを書き換え、ページ番号を 1 に戻す (要件 2.8)。`category` / `area` は選択順に関わらず常にソート済みのカンマ区切りで書き出すため、同じ条件集合は必ず同じ URL になる。
 
 一覧の企画取得は `depth: 0` とする。`owner` (未認証で読めない `users` への参照) を populate させないためで、`images` は media の ID 配列として受け取る。一覧で必要なのは先頭 1 枚のサムネイルだけであり、`alt` は企画名をフォールバックとして用いる。個別画像の `alt` が要る詳細ページのみ `depth: 1` で 1 件を取得する。
 
@@ -478,7 +478,7 @@ export function getExhibitionGradient(name: string): ExhibitionGradient;
 
 ##### State Management
 
-- State model: URL クエリ (`q` / `category` / `area` / `page`) が唯一の状態。サーバーコンポーネントがそれを読んで描画する。Next.js 15 では `searchParams` が Promise で渡るため、`await` してから `parseExhibitionQuery` に与える。
+- State model: URL クエリ (`q` / `category` / `area` / `page`) が唯一の状態。サーバーコンポーネントがそれを読んで描画する。Next.js 15 では `searchParams` が Promise で渡るため、`await` してから `parseExhibitionQuery` に与える。`category` / `area` はカンマ区切り (`category=stage,vendor`) を正とし、同一キーの繰り返し (`category=stage&category=vendor`) も後方互換として受け付ける。`parseExhibitionQuery` は両形式を解釈したうえで重複を除き、`category` は定義順 (`stage` / `exhibit` / `vendor` / `other`)、`area` は数値昇順にソートして返すため、選択順に関わらず常に同じ `ExhibitionQuery` になる。URL の書き出しは `lib/exhibitions.ts` の `buildExhibitionsHref` に一本化し、一覧のページ送りとファセット操作 (`components/exhibition-filters.tsx`) の両方がこれを使う。
 - Persistence & consistency: 状態はブラウザ履歴に載るため、同じ URL は同じ結果を返す。
 - Concurrency strategy: 取得は毎リクエスト実行する (キャッシュ・再検証の指定は行わない)。
 
@@ -712,7 +712,7 @@ CMS 通信の失敗は `CmsResult` の判別可能なユニオンで表現し、
 - **利用者起因 (4xx 相当)**:
   - 存在しない ID・非公開の企画 → `notFound()` で「ページが見つからない」表示 (要件 5.7)。
   - 範囲外のページ番号 → 有効なページへ丸めて表示する (要件 2.11)。
-  - 不正なクエリ値 (未知のカテゴリ・数値でないエリア ID) → 無視して既定値で描画する。
+  - 不正なクエリ値 (未知のカテゴリ・数値でないエリア ID・カンマ区切り中の空要素) → 無視して既定値で描画する。
 - **システム起因 (5xx 相当)**:
   - CMS が不通・エラー応答 → 一覧は取得失敗の表示 (要件 1.6)、詳細は取得失敗の表示 (要件 5.8)。空一覧や 404 として扱わない。
 - **業務ルール**:
