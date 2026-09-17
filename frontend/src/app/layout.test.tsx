@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import RootLayout from './layout';
+import RootLayout, { generateMetadata } from './layout';
 import { Footer } from '@/components/footer';
 import * as snsLinksModule from '@/lib/sns-links';
 
@@ -65,5 +65,11 @@ describe('RootLayout', () => {
       'https://x.com/aramakisai_',
     );
     expect(screen.getByRole('contentinfo')).toBeInTheDocument();
+  });
+
+  it('generateMetadata は NEXT_PUBLIC_SITE_URL を metadataBase に設定する', async () => {
+    const metadata = await generateMetadata();
+
+    expect(metadata.metadataBase).toEqual(new URL('http://localhost:3000'));
   });
 });
