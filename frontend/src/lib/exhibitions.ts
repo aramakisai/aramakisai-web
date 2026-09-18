@@ -36,14 +36,14 @@ export interface ExhibitionLink {
 }
 
 /**
- * 企画カード 1 枚分の表示モデル。1 企画レコードが持つ `entries` の行ごとに
- * 1 件の `ExhibitionCardSummary` を生成する (`entries` は CMS 側で 1 件以上を保証、要件 1.2)。
+ * 企画カード 1 枚分の表示モデル。1 企画レコードが選択しているカテゴリごとに
+ * 1 件の `ExhibitionCardSummary` を生成する (企画は CMS 側で 1 つ以上のカテゴリ選択を保証、要件 1.2)。
  */
 export interface ExhibitionCardSummary {
   readonly id: number;
-  /** このカードが表すエントリーのカテゴリ (要件 1.2, 3.4) */
+  /** このカードが表すカテゴリ (要件 1.2, 3.4) */
   readonly category: ExhibitionCategory;
-  /** そのエントリーの企画名 (`entries[].name`、要件 3.4) */
+  /** そのカテゴリの企画内容の企画名 (要件 3.4) */
   readonly displayName: string;
   readonly organizationName: string;
   /** カードの文脈 (category) に応じた場所文字列。未設定なら null (要件 4.5) */
@@ -57,7 +57,7 @@ export interface ExhibitionDetail extends ExhibitionCardSummary {
   readonly description: string | null;
   readonly images: readonly ExhibitionImage[];
   readonly links: readonly ExhibitionLink[];
-  /** この企画が持つ全エントリーのカテゴリ (`entries` の登録順)。詳細ページのカテゴリ一覧表示に使う (要件 5.2) */
+  /** この企画が選択している全カテゴリ (カテゴリ定義順)。詳細ページのカテゴリ一覧表示に使う (要件 5.2) */
   readonly categories: readonly ExhibitionCategory[];
 }
 
@@ -331,36 +331,50 @@ function resolveLocationForCategory(
     : directArea.name;
 }
 
-type ExhibitionEntry = StudentExhibition['entries'][number];
+/** カテゴリ別企画内容欄 (`stage` / `exhibit` / `vendor` / `other`) 1 件分 */
+type ExhibitionCategoryContent = NonNullable<StudentExhibition['stage']>;
 
+/**
+ * カテゴリ別企画内容欄から企画カードを組み立てる。企画名が空 (壊れたデータ) の
+ * 場合は null を返し、そのカテゴリのカードを生成しない (CMS 側では選択済みカテゴリの
+ * 企画名を必須にしているため通常発生しないが、表示側では欠損データでも落ちないようにする)。
+ */
 function toCard(
   exhibition: StudentExhibition,
-  entry: ExhibitionEntry,
+  category: ExhibitionCategory,
   context: JoinContext,
-): ExhibitionCardSummary {
-  const images = entry.images ?? [];
+): ExhibitionCardSummary | null {
+  const content: ExhibitionCategoryContent | undefined = exhibition[category];
+  const displayName = content?.name;
+  if (!displayName) return null;
+
+  const images = content?.images ?? [];
   return {
     id: exhibition.id,
-    category: entry.category,
-    displayName: entry.name,
+    category,
+    displayName,
     organizationName: exhibition.organization_name,
-    location: resolveLocationForCategory(exhibition, entry.category, context),
+    location: resolveLocationForCategory(exhibition, category, context),
     areaIds: resolveAreaIds(exhibition, context),
     thumbnail:
-      images.length > 0 ? toExhibitionImage(images[0]!, entry.name) : null,
+      images.length > 0 ? toExhibitionImage(images[0]!, displayName) : null,
   };
 }
 
 /**
- * 企画レコードを `entries` の行ごとに企画カードへ展開する (要件 1.2)。
- * `entries` の登録順をそのまま保つため、この結果を `flatMap` するだけで
- * ID 昇順 × `entries` 登録順 (要件 1.3) を満たす。
+ * 企画レコードが選択している `categories` をカテゴリ定義順 (`CATEGORY_VALUES`) に
+ * 走査し、企画カードへ展開する (要件 1.2)。この順序をそのまま保つため、この結果を
+ * `flatMap` するだけで ID 昇順 × カテゴリ定義順 (要件 1.3) を満たす。
  */
 function toCards(
   exhibition: StudentExhibition,
   context: JoinContext,
 ): ExhibitionCardSummary[] {
-  return exhibition.entries.map((entry) => toCard(exhibition, entry, context));
+  return CATEGORY_VALUES.filter((category) =>
+    exhibition.categories.includes(category),
+  )
+    .map((category) => toCard(exhibition, category, context))
+    .filter((card): card is ExhibitionCardSummary => card !== null);
 }
 
 async function fetchJoinSources(exhibitionId?: number) {
@@ -424,7 +438,7 @@ export async function getExhibitionListData(
 }
 
 /**
- * 詳細ページ用の結果。不在・非公開・URL の category をその企画が持たない場合 (missing) と
+ * 詳細ページ用の結果。不在・非公開・URL の category をその企画が選択していない場合 (missing) と
  * 取得失敗 (error) を必ず区別する。両者を null へ潰すと要件 5.9 (CMS 障害を 404 にしない) を満たせない。
  */
 export async function getExhibitionDetail(
@@ -446,8 +460,7 @@ export async function getExhibitionDetail(
     return { kind: 'missing' };
   }
 
-  const entry = exhibition.entries.find((e) => e.category === category);
-  if (!entry) {
+  if (!exhibition.categories.includes(category)) {
     return { kind: 'missing' };
   }
 
@@ -461,20 +474,28 @@ export async function getExhibitionDetail(
     stagesResult.value.docs,
     areasResult.value.docs,
   );
-  const card = toCard(exhibition, entry, context);
-  const images = entry.images ?? [];
+  const card = toCard(exhibition, category, context);
+  // 選択済みカテゴリの企画名が空 (壊れたデータ) の場合も不在として扱う (toCards と同じ規約)
+  if (!card) {
+    return { kind: 'missing' };
+  }
+
+  const content: ExhibitionCategoryContent | undefined = exhibition[category];
+  const images = content?.images ?? [];
 
   return {
     kind: 'found',
     value: {
       ...card,
-      description: entry.description ?? null,
-      images: images.map((image) => toExhibitionImage(image, entry.name)),
+      description: content?.description ?? null,
+      images: images.map((image) => toExhibitionImage(image, card.displayName)),
       links: (exhibition.links ?? []).map((link) => ({
         platform: link.platform,
         url: link.url,
       })),
-      categories: exhibition.entries.map((e) => e.category),
+      categories: CATEGORY_VALUES.filter((c) =>
+        exhibition.categories.includes(c),
+      ),
     },
   };
 }

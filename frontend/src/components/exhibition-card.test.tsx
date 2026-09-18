@@ -68,7 +68,7 @@ describe('ExhibitionCard', () => {
     );
   });
 
-  it('derives the gradient seed from the card display name (e.g. stage_name for stage cards), not any other field', () => {
+  it('derives the gradient seed from the card display name (e.g. stage.name for stage cards), not any other field', () => {
     render(
       <ExhibitionCard
         exhibition={{

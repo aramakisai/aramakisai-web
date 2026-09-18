@@ -335,37 +335,72 @@ function mockCmsCollections({
 }
 
 describe('getExhibitionListData', () => {
-  it('entries の行ごとに企画カードへ分割し、ID 昇順 × entries 登録順で並べる', async () => {
+  it('選択しているカテゴリごとに企画カードへ分割し、ID 昇順 × カテゴリ定義順で並べる', async () => {
     mockCmsCollections({
       exhibitions: [
         {
           id: 1,
           organization_name: '団体1',
           area_id: null,
-          entries: [
-            { id: 'e1', category: 'vendor', name: '企画1-出店', images: [] },
-            { id: 'e2', category: 'stage', name: '企画1-出演', images: [] },
-          ],
+          categories: ['vendor', 'stage'],
+          vendor: { name: '企画1-出店', images: [] },
+          stage: { name: '企画1-出演', images: [] },
         },
         {
           id: 2,
           organization_name: '団体2',
           area_id: null,
-          entries: [
-            { id: 'e3', category: 'other', name: '企画2', images: [] },
-          ],
+          categories: ['other'],
+          other: { name: '企画2', images: [] },
         },
       ],
     });
 
     const result = await getExhibitionListData(baseQuery);
-    // CATEGORY_VALUES の定義順 (stage < vendor) では並べ替えず、entries の登録順 (vendor → stage) を保つ
+    // categories 配列の並び (vendor, stage) に関わらず、カテゴリ定義順 (stage → vendor) になる
     expect(result.items.map((i) => `${i.id}:${i.category}`)).toEqual([
-      '1:vendor',
       '1:stage',
+      '1:vendor',
       '2:other',
     ]);
     expect(result.total).toBe(3);
+  });
+
+  it('categories に含まれないカテゴリの企画内容欄は無視する', async () => {
+    mockCmsCollections({
+      exhibitions: [
+        {
+          id: 1,
+          organization_name: '団体A',
+          area_id: null,
+          categories: ['exhibit'],
+          exhibit: { name: '展示名A', images: [] },
+          // categories に含まれないため無視される (管理画面では通常入力されない想定)
+          stage: { name: '出演名A', images: [] },
+        },
+      ],
+    });
+
+    const result = await getExhibitionListData(baseQuery);
+    expect(result.items.map((i) => i.category)).toEqual(['exhibit']);
+  });
+
+  it('選択しているカテゴリの企画内容欄が空 (企画名なし) の場合はそのカテゴリのカードを生成しない', async () => {
+    mockCmsCollections({
+      exhibitions: [
+        {
+          id: 1,
+          organization_name: '団体A',
+          area_id: null,
+          categories: ['stage', 'exhibit'],
+          stage: { images: [] },
+          exhibit: { name: '展示名A', images: [] },
+        },
+      ],
+    });
+
+    const result = await getExhibitionListData(baseQuery);
+    expect(result.items.map((i) => i.category)).toEqual(['exhibit']);
   });
 
   it('ステージのカードは出演ステージ名のみを場所にし、エリアがあっても無視する', async () => {
@@ -376,9 +411,8 @@ describe('getExhibitionListData', () => {
           organization_name: '団体A',
           area_id: 10,
           booth_label: 'A-1',
-          entries: [
-            { id: 'e1', category: 'stage', name: '企画A-出演', images: [] },
-          ],
+          categories: ['stage'],
+          stage: { name: '企画A-出演', images: [] },
         },
       ],
       slots: [
@@ -407,10 +441,9 @@ describe('getExhibitionListData', () => {
           organization_name: '団体A',
           area_id: 10,
           booth_label: 'A-1',
-          entries: [
-            { id: 'e1', category: 'stage', name: '企画A-出演', images: [] },
-            { id: 'e2', category: 'exhibit', name: '企画A-展示', images: [] },
-          ],
+          categories: ['stage', 'exhibit'],
+          stage: { name: '企画A-出演', images: [] },
+          exhibit: { name: '企画A-展示', images: [] },
         },
       ],
       slots: [{ id: 100, stage_id: 1, time_slot_id: 1, exhibition_id: 1 }],
@@ -431,9 +464,8 @@ describe('getExhibitionListData', () => {
           organization_name: '団体A',
           area_id: 10,
           booth_label: null,
-          entries: [
-            { id: 'e1', category: 'exhibit', name: '企画A', images: [] },
-          ],
+          categories: ['exhibit'],
+          exhibit: { name: '企画A', images: [] },
         },
       ],
       areas: [{ id: 10, name: 'Aゾーン' }],
@@ -450,9 +482,8 @@ describe('getExhibitionListData', () => {
           id: 1,
           organization_name: '団体A',
           area_id: null,
-          entries: [
-            { id: 'e1', category: 'stage', name: '企画A-出演', images: [] },
-          ],
+          categories: ['stage'],
+          stage: { name: '企画A-出演', images: [] },
         },
       ],
       slots: [
@@ -478,9 +509,8 @@ describe('getExhibitionListData', () => {
           id: 1,
           organization_name: '団体A',
           area_id: null,
-          entries: [
-            { id: 'e1', category: 'exhibit', name: '企画A', images: [] },
-          ],
+          categories: ['exhibit'],
+          exhibit: { name: '企画A', images: [] },
         },
       ],
     });
@@ -490,17 +520,16 @@ describe('getExhibitionListData', () => {
     expect(result.items[0]?.areaIds).toEqual([]);
   });
 
-  it('カードの企画名はそのエントリーの企画名から直接得る (フォールバックなし)', async () => {
+  it('カードの企画名はそのカテゴリの企画内容から直接得る (フォールバックなし)', async () => {
     mockCmsCollections({
       exhibitions: [
         {
           id: 1,
           organization_name: '団体A',
           area_id: null,
-          entries: [
-            { id: 'e1', category: 'stage', name: '出演名A', images: [] },
-            { id: 'e2', category: 'exhibit', name: '展示名A', images: [] },
-          ],
+          categories: ['stage', 'exhibit'],
+          stage: { name: '出演名A', images: [] },
+          exhibit: { name: '展示名A', images: [] },
         },
       ],
     });
@@ -512,16 +541,15 @@ describe('getExhibitionListData', () => {
     ]);
   });
 
-  it('サムネイルは先頭画像を使い、エントリーの企画名を alt へ使う', async () => {
+  it('サムネイルは先頭画像を使い、そのカテゴリの企画名を alt へ使う', async () => {
     mockCmsCollections({
       exhibitions: [
         {
           id: 1,
           organization_name: '団体A',
           area_id: null,
-          entries: [
-            { id: 'e1', category: 'exhibit', name: '企画A', images: [5, 6] },
-          ],
+          categories: ['exhibit'],
+          exhibit: { name: '企画A', images: [5, 6] },
         },
       ],
     });
@@ -537,9 +565,8 @@ describe('getExhibitionListData', () => {
           id: 1,
           organization_name: '団体A',
           area_id: null,
-          entries: [
-            { id: 'e1', category: 'exhibit', name: '企画A', images: [] },
-          ],
+          categories: ['exhibit'],
+          exhibit: { name: '企画A', images: [] },
         },
       ],
     });
@@ -554,9 +581,8 @@ describe('getExhibitionListData', () => {
         id: i + 1,
         organization_name: '団体',
         area_id: null,
-        entries: [
-          { id: 'e1', category: 'exhibit', name: `企画${i + 1}`, images: [] },
-        ],
+        categories: ['exhibit'],
+        exhibit: { name: `企画${i + 1}`, images: [] },
       })),
       areas: [{ id: 10, name: 'Aゾーン' }],
     });
@@ -607,16 +633,13 @@ describe('getExhibitionDetail', () => {
       organization_name: '団体A',
       status: 'published',
       area_id: null,
-      entries: [
-        {
-          id: 'e1',
-          category: 'exhibit',
-          name: '企画A',
-          description: '紹介文',
-          images: [{ id: 5, alt: '写真の説明' }],
-        },
-        { id: 'e2', category: 'vendor', name: '企画A-出店', images: [] },
-      ],
+      categories: ['exhibit', 'vendor'],
+      exhibit: {
+        name: '企画A',
+        description: '紹介文',
+        images: [{ id: 5, alt: '写真の説明' }],
+      },
+      vendor: { name: '企画A-出店', images: [] },
       links: [{ platform: 'x', url: 'https://x.com/example' }],
     });
 
@@ -636,16 +659,15 @@ describe('getExhibitionDetail', () => {
     expect(result.kind === 'found' && 'name' in result.value).toBe(false);
   });
 
-  it('カテゴリごとにそのエントリーの企画名を返す (フォールバックなし)', async () => {
+  it('カテゴリごとにそのカテゴリの企画内容の企画名を返す (フォールバックなし)', async () => {
     mockDetail({
       id: 1,
       organization_name: '団体A',
       status: 'published',
       area_id: null,
-      entries: [
-        { id: 'e1', category: 'stage', name: '出演名A', images: [] },
-        { id: 'e2', category: 'exhibit', name: '展示名A', images: [] },
-      ],
+      categories: ['stage', 'exhibit'],
+      stage: { name: '出演名A', images: [] },
+      exhibit: { name: '展示名A', images: [] },
     });
 
     expect(await getExhibitionDetail(1, 'stage')).toMatchObject({
@@ -658,13 +680,27 @@ describe('getExhibitionDetail', () => {
     });
   });
 
-  it('その企画が持たない category を指定すると missing を返す', async () => {
+  it('その企画が選択していない category を指定すると missing を返す', async () => {
     mockDetail({
       id: 1,
       organization_name: '団体A',
       status: 'published',
       area_id: null,
-      entries: [{ id: 'e1', category: 'exhibit', name: '企画A', images: [] }],
+      categories: ['exhibit'],
+      exhibit: { name: '企画A', images: [] },
+    });
+
+    expect(await getExhibitionDetail(1, 'stage')).toEqual({ kind: 'missing' });
+  });
+
+  it('選択している category の企画内容欄が空 (企画名なし) の場合は missing を返す', async () => {
+    mockDetail({
+      id: 1,
+      organization_name: '団体A',
+      status: 'published',
+      area_id: null,
+      categories: ['stage'],
+      stage: { images: [] },
     });
 
     expect(await getExhibitionDetail(1, 'stage')).toEqual({ kind: 'missing' });
@@ -698,7 +734,8 @@ describe('getExhibitionDetail', () => {
       organization_name: '団体A',
       status: 'draft',
       area_id: null,
-      entries: [{ id: 'e1', category: 'exhibit', name: '企画A', images: [] }],
+      categories: ['exhibit'],
+      exhibit: { name: '企画A', images: [] },
     });
 
     expect(await getExhibitionDetail(1, 'exhibit')).toEqual({
@@ -726,9 +763,8 @@ describe('getExhibitionDetail', () => {
         organization_name: '団体A',
         status: 'published',
         area_id: null,
-        entries: [
-          { id: 'e1', category: 'exhibit', name: '企画A', images: [] },
-        ],
+        categories: ['exhibit'],
+        exhibit: { name: '企画A', images: [] },
       },
     } as never);
     vi.mocked(cms.findMany).mockImplementation(async (collection) => {

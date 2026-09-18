@@ -15,12 +15,12 @@ async function getPageCount(page: Page): Promise<number> {
 
 interface ExhibitionCardInfo {
   readonly href: string;
-  /** そのカードの entries[].name (企画一覧ページの h4) */
+  /** そのカードのカテゴリ別企画内容の企画名 (企画一覧ページの h4) */
   readonly displayName: string;
   readonly hasPhoto: boolean;
 }
 
-/** 全ページを巡回し、企画カード (= entries の 1 行につき 1 枚) を企画 ID ごとに集める */
+/** 全ページを巡回し、企画カード (= 選択カテゴリ 1 件につき 1 枚) を企画 ID ごとに集める */
 async function collectCardsById(
   page: Page,
 ): Promise<Map<string, ExhibitionCardInfo[]>> {
@@ -51,7 +51,7 @@ async function collectCardsById(
   return cardsById;
 }
 
-/** 複数エントリーを持つ (= 複数カードに分割された) 企画を 1 件探す */
+/** 複数カテゴリを選択している (= 複数カードに分割された) 企画を 1 件探す */
 async function findMultiEntryCards(
   page: Page,
 ): Promise<ExhibitionCardInfo[] | null> {
@@ -130,31 +130,31 @@ test.describe('企画一覧→企画詳細', () => {
     expect(response?.status()).toBe(404);
   });
 
-  test('複数のエントリーを持つ企画は一覧で複数枚のカードとして表示される', async ({
+  test('複数のカテゴリを選択している企画は一覧で複数枚のカードとして表示される', async ({
     page,
   }) => {
     const cards = await findMultiEntryCards(page);
     if (!cards) {
       test.skip(
         true,
-        '複数エントリーを持つ企画が未登録のためカード分割を検証できません',
+        '複数カテゴリを選択している企画が未登録のためカード分割を検証できません',
       );
     }
 
-    // entries の 1 行につき 1 枚のカードなので、同一企画内でカテゴリが重複するカードはない
-    // (CMS 側で同一カテゴリの重複エントリーは保存を拒否するため)
+    // 選択カテゴリ 1 件につき 1 枚のカードなので、同一企画内でカテゴリが重複するカードはない
+    // (categories は複数選択の select のため、同じ値を二重に選択できない)
     const categories = new Set(cards!.map((card) => card.href.split('/')[3]));
     expect(categories.size).toBe(cards!.length);
   });
 
-  test('カードを選ぶと、そのエントリーのカテゴリに対応する詳細ページへ遷移し、そのエントリーの企画名・紹介文・写真が表示される', async ({
+  test('カードを選ぶと、そのカードのカテゴリに対応する詳細ページへ遷移し、そのカテゴリの企画名・紹介文・写真が表示される', async ({
     page,
   }) => {
     const cards = await findMultiEntryCards(page);
     if (!cards) {
       test.skip(
         true,
-        '複数エントリーを持つ企画が未登録のためカード別の遷移を検証できません',
+        '複数カテゴリを選択している企画が未登録のためカード別の遷移を検証できません',
       );
     }
 
@@ -163,7 +163,7 @@ test.describe('企画一覧→企画詳細', () => {
       await page.locator(`main a[href="${card.href}"]`).first().click();
       await expect(page).toHaveURL(new RegExp(`${card.href}$`));
 
-      // 詳細ページの企画名は、遷移元カードのエントリー (entries[].name) と一致する
+      // 詳細ページの企画名は、遷移元カードのカテゴリ別企画内容の企画名と一致する
       await expect(
         page.getByRole('heading', { level: 1 }),
       ).toHaveText(card.displayName);
@@ -175,7 +175,7 @@ test.describe('企画一覧→企画詳細', () => {
         await expect(page.getByTestId('icon-hide-image')).toBeVisible();
       }
 
-      // 紹介文はエントリーの任意項目のため、見出しがある場合のみ本文が表示されることを確認する
+      // 紹介文はカテゴリ別企画内容の任意項目のため、見出しがある場合のみ本文が表示されることを確認する
       const introHeading = page.getByRole('heading', { name: '紹介' });
       if ((await introHeading.count()) > 0) {
         await expect(
