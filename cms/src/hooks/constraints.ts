@@ -66,3 +66,41 @@ export function validateCategoryContents(
     return [{ field: `${key}.name`, message: `${label}を選択した場合は企画名の入力が必要` }];
   });
 }
+
+type StageAssignmentDoc = {
+  readonly exhibition_id?: unknown;
+};
+
+/**
+ * 出演枠に紐づく企画のカテゴリは呼び出し側が DB から引いて渡す。exhibition_id 未指定
+ * (団体なし出演) は、その他のバリデーション (validatePerformanceSlot) の対象であり
+ * ここでは無関係なので null を渡して判定をスキップする。
+ */
+export function validateStageAssignment(
+  doc: StageAssignmentDoc,
+  { exhibitionCategories }: { exhibitionCategories: readonly unknown[] | null },
+): readonly ConstraintViolation[] {
+  if (!hasValue(doc.exhibition_id)) return [];
+  if (exhibitionCategories === null) return [];
+  if (exhibitionCategories.includes('stage')) return [];
+  return [
+    { field: 'exhibition_id', message: 'ステージを選択していない企画は出演枠に割り当てられません' },
+  ];
+}
+
+type StageCategoryDoc = {
+  readonly categories?: unknown;
+};
+
+/** 出演枠の割り当ての有無は呼び出し側が DB から引いて渡す。 */
+export function validateStageCategoryRemoval(
+  doc: StageCategoryDoc,
+  { hasPerformanceSlots }: { hasPerformanceSlots: boolean },
+): readonly ConstraintViolation[] {
+  if (!hasPerformanceSlots) return [];
+  const categories = Array.isArray(doc.categories) ? (doc.categories as unknown[]) : [];
+  if (categories.includes('stage')) return [];
+  return [
+    { field: 'categories', message: '出演枠が割り当てられているためステージの選択を外せません' },
+  ];
+}

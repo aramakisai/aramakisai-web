@@ -5,6 +5,8 @@ import {
   validateBoothPlacement,
   validateCategoryContents,
   validatePerformanceSlot,
+  validateStageAssignment,
+  validateStageCategoryRemoval,
   type ConstraintViolation,
 } from './constraints';
 
@@ -23,6 +25,49 @@ export const performanceSlotConstraint: CollectionBeforeValidateHook = ({ data }
 
 export const categoryContentsConstraint: CollectionBeforeValidateHook = ({ data }) => {
   raise('student_exhibitions', validateCategoryContents(data ?? {}));
+  return data;
+};
+
+/** 出演枠が参照する企画のカテゴリを引いて、ステージ未選択の企画への割り当てを拒否する。 */
+export const stageAssignmentConstraint: CollectionBeforeValidateHook = async ({ data, req }) => {
+  const exhibitionId = data?.exhibition_id;
+  const exhibitionCategories =
+    exhibitionId == null || exhibitionId === ''
+      ? null
+      : ((
+          await req.payload.findByID({
+            collection: 'student_exhibitions',
+            id: exhibitionId as string | number,
+            depth: 0,
+            req,
+          })
+        )?.categories ?? []);
+
+  raise('performance_slots', validateStageAssignment(data ?? {}, { exhibitionCategories }));
+  return data;
+};
+
+/** 更新対象の企画に割り当て済みの出演枠があるかを引いて、ステージ選択の解除を拒否する。 */
+export const stageCategoryConstraint: CollectionBeforeValidateHook = async ({
+  data,
+  originalDoc,
+  req,
+}) => {
+  const exhibitionId = originalDoc?.id;
+  const hasPerformanceSlots = exhibitionId
+    ? (
+        await req.payload.find({
+          collection: 'performance_slots',
+          depth: 0,
+          limit: 1,
+          pagination: false,
+          req,
+          where: { exhibition_id: { equals: exhibitionId } },
+        })
+      ).docs.length > 0
+    : false;
+
+  raise('student_exhibitions', validateStageCategoryRemoval(data ?? {}, { hasPerformanceSlots }));
   return data;
 };
 

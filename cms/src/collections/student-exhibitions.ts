@@ -1,7 +1,11 @@
 import type { CollectionConfig, GroupField } from 'payload';
 
 import { isExecutive, toCmsUser } from '../access/roles';
-import { boothPlacementConstraint, categoryContentsConstraint } from '../hooks/payload-constraints';
+import {
+  boothPlacementConstraint,
+  categoryContentsConstraint,
+  stageCategoryConstraint,
+} from '../hooks/payload-constraints';
 
 const CATEGORIES = [
   { name: 'stage', label: 'ステージ' },
@@ -44,7 +48,11 @@ export const StudentExhibitions: CollectionConfig = {
     useAsTitle: 'organization_name',
   },
   hooks: {
-    beforeValidate: [boothPlacementConstraint('student_exhibitions'), categoryContentsConstraint],
+    beforeValidate: [
+      boothPlacementConstraint('student_exhibitions'),
+      categoryContentsConstraint,
+      stageCategoryConstraint,
+    ],
   },
   fields: [
     {

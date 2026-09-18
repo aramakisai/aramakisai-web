@@ -4,6 +4,8 @@ import {
   validateBoothPlacement,
   validateCategoryContents,
   validatePerformanceSlot,
+  validateStageAssignment,
+  validateStageCategoryRemoval,
 } from './constraints';
 
 describe('validatePerformanceSlot', () => {
@@ -90,5 +92,49 @@ describe('validateCategoryContents', () => {
       { field: 'stage.name', message: 'ステージを選択した場合は企画名の入力が必要' },
       { field: 'vendor.name', message: '出店を選択した場合は企画名の入力が必要' },
     ]);
+  });
+});
+
+describe('validateStageAssignment', () => {
+  it('ステージ未選択の企画への割り当ては拒否する', () => {
+    expect(
+      validateStageAssignment({ exhibition_id: 1 }, { exhibitionCategories: ['exhibit'] }),
+    ).toEqual([
+      { field: 'exhibition_id', message: 'ステージを選択していない企画は出演枠に割り当てられません' },
+    ]);
+  });
+
+  it('ステージ選択済みの企画への割り当ては通す', () => {
+    expect(
+      validateStageAssignment({ exhibition_id: 1 }, { exhibitionCategories: ['stage'] }),
+    ).toEqual([]);
+  });
+
+  it('企画を指定しない出演枠は拒否しない', () => {
+    expect(
+      validateStageAssignment({ exhibition_id: null }, { exhibitionCategories: null }),
+    ).toEqual([]);
+  });
+});
+
+describe('validateStageCategoryRemoval', () => {
+  it('出演枠がある状態でステージを外すと拒否する', () => {
+    expect(
+      validateStageCategoryRemoval({ categories: ['exhibit'] }, { hasPerformanceSlots: true }),
+    ).toEqual([
+      { field: 'categories', message: '出演枠が割り当てられているためステージの選択を外せません' },
+    ]);
+  });
+
+  it('出演枠がある状態でステージを維持していれば通す', () => {
+    expect(
+      validateStageCategoryRemoval({ categories: ['stage'] }, { hasPerformanceSlots: true }),
+    ).toEqual([]);
+  });
+
+  it('出演枠がなければステージを外しても通す', () => {
+    expect(
+      validateStageCategoryRemoval({ categories: ['exhibit'] }, { hasPerformanceSlots: false }),
+    ).toEqual([]);
   });
 });

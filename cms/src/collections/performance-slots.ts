@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload';
 
-import { performanceSlotConstraint } from '../hooks/payload-constraints';
+import { performanceSlotConstraint, stageAssignmentConstraint } from '../hooks/payload-constraints';
 
 export const PerformanceSlots: CollectionConfig = {
   slug: 'performance_slots',
@@ -8,7 +8,7 @@ export const PerformanceSlots: CollectionConfig = {
   admin: {
     useAsTitle: 'title',
   },
-  hooks: { beforeValidate: [performanceSlotConstraint] },
+  hooks: { beforeValidate: [performanceSlotConstraint, stageAssignmentConstraint] },
   fields: [
     {
       name: 'stage_id',
