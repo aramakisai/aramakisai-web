@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { validateBoothPlacement, validatePerformanceSlot } from './constraints';
+import {
+  validateBoothPlacement,
+  validateCategoryContents,
+  validatePerformanceSlot,
+} from './constraints';
 
 describe('validatePerformanceSlot', () => {
   it('exhibition_id があれば通す', () => {
@@ -57,5 +61,34 @@ describe('validateBoothPlacement', () => {
     expect(
       validateBoothPlacement({ area_id: 1, booth_number: null }, { duplicateExists: true }),
     ).toEqual([]);
+  });
+});
+
+describe('validateCategoryContents', () => {
+  it('選択したカテゴリの企画名が空なら違反とする', () => {
+    expect(
+      validateCategoryContents({ categories: ['stage'], stage: { name: '' } }),
+    ).toEqual([{ field: 'stage.name', message: 'ステージを選択した場合は企画名の入力が必要' }]);
+  });
+
+  it('選択したカテゴリの企画名が入っていれば通す', () => {
+    expect(
+      validateCategoryContents({ categories: ['stage'], stage: { name: '特設ステージ団' } }),
+    ).toEqual([]);
+  });
+
+  it('選択していないカテゴリの企画名が空でも通す', () => {
+    expect(
+      validateCategoryContents({ categories: ['stage'], stage: { name: '特設ステージ団' }, exhibit: { name: '' } }),
+    ).toEqual([]);
+  });
+
+  it('複数カテゴリを選択していれば全カテゴリ分検証する', () => {
+    expect(
+      validateCategoryContents({ categories: ['stage', 'vendor'], stage: { name: '' }, vendor: { name: '' } }),
+    ).toEqual([
+      { field: 'stage.name', message: 'ステージを選択した場合は企画名の入力が必要' },
+      { field: 'vendor.name', message: '出店を選択した場合は企画名の入力が必要' },
+    ]);
   });
 });

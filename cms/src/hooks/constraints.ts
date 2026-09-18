@@ -13,6 +13,19 @@ type BoothDoc = {
   readonly booth_number?: unknown;
 };
 
+const CATEGORY_LABELS = {
+  stage: 'ステージ',
+  exhibit: '展示',
+  vendor: '出店',
+  other: 'その他',
+} as const;
+
+type ExhibitionCategory = keyof typeof CATEGORY_LABELS;
+
+type CategoryContentsDoc = {
+  readonly categories?: unknown;
+} & { readonly [K in ExhibitionCategory]?: { readonly name?: unknown } | null };
+
 function hasValue(value: unknown): boolean {
   return value !== null && value !== undefined && value !== '';
 }
@@ -38,4 +51,18 @@ export function validateBoothPlacement(
   return [
     { field: 'booth_number', message: '同じエリア内で既に使われているブース番号' },
   ];
+}
+
+/** 非表示 (未選択カテゴリ) の企画内容欄は admin.condition 側の関心事のため、ここでは選択済みカテゴリだけを見る。 */
+export function validateCategoryContents(
+  doc: CategoryContentsDoc,
+): readonly ConstraintViolation[] {
+  const categories = Array.isArray(doc.categories) ? (doc.categories as unknown[]) : [];
+  return categories.flatMap((category) => {
+    const key = category as ExhibitionCategory;
+    const label = CATEGORY_LABELS[key];
+    if (!label) return [];
+    if (hasValue(doc[key]?.name)) return [];
+    return [{ field: `${key}.name`, message: `${label}を選択した場合は企画名の入力が必要` }];
+  });
 }

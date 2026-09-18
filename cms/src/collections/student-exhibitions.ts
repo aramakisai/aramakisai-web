@@ -1,15 +1,51 @@
-import type { CollectionConfig } from 'payload';
+import type { CollectionConfig, GroupField } from 'payload';
 
 import { isExecutive, toCmsUser } from '../access/roles';
-import { boothPlacementConstraint } from '../hooks/payload-constraints';
+import { boothPlacementConstraint, categoryContentsConstraint } from '../hooks/payload-constraints';
+
+const CATEGORIES = [
+  { name: 'stage', label: 'ステージ' },
+  { name: 'exhibit', label: '展示' },
+  { name: 'vendor', label: '出店' },
+  { name: 'other', label: 'その他' },
+] as const;
+
+function categoryContentGroup(name: (typeof CATEGORIES)[number]['name'], label: string): GroupField {
+  return {
+    name,
+    type: 'group',
+    label: `${label}の企画内容`,
+    admin: {
+      description: `カテゴリで「${label}」を選択したときだけ表示する`,
+      condition: (data) => Array.isArray(data?.categories) && data.categories.includes(name),
+      // 一括編集はレコードごとの categories を評価できず condition が働かないため、
+      // カテゴリを問わず入力欄が常に選択候補へ出てしまう。個別編集画面に限定する
+      disableBulkEdit: true,
+    },
+    fields: [
+      { name: 'name', type: 'text', maxLength: 255, label: '企画名' },
+      { name: 'description', type: 'textarea', label: '紹介文' },
+      {
+        name: 'images',
+        type: 'upload',
+        relationTo: 'media',
+        hasMany: true,
+        label: '画像',
+        admin: { description: '最大 5 枚まで' },
+      },
+    ],
+  };
+}
 
 export const StudentExhibitions: CollectionConfig = {
   slug: 'student_exhibitions',
   labels: { singular: '学生企画', plural: '学生企画' },
   admin: {
-    useAsTitle: 'name',
+    useAsTitle: 'organization_name',
   },
-  hooks: { beforeValidate: [boothPlacementConstraint('student_exhibitions')] },
+  hooks: {
+    beforeValidate: [boothPlacementConstraint('student_exhibitions'), categoryContentsConstraint],
+  },
   fields: [
     {
       name: 'owner',
@@ -45,14 +81,6 @@ export const StudentExhibitions: CollectionConfig = {
       ],
     },
     {
-      name: 'name',
-      type: 'text',
-      required: true,
-      maxLength: 255,
-      label: '企画名',
-      admin: { description: '団体名は organization_name を参照' },
-    },
-    {
       name: 'organization_name',
       type: 'text',
       required: true,
@@ -61,20 +89,16 @@ export const StudentExhibitions: CollectionConfig = {
       admin: { description: '学生団体・サークル名' },
     },
     {
-      name: 'category',
+      name: 'categories',
       type: 'select',
       hasMany: true,
+      // select hasMany は required だけで「1 つ以上選択」を満たす (minRows は select に存在しない)
       required: true,
-      defaultValue: ['other'],
       label: 'カテゴリ',
-      options: [
-        { label: 'ステージ', value: 'stage' },
-        { label: '展示', value: 'exhibit' },
-        { label: '出店', value: 'vendor' },
-        { label: 'その他', value: 'other' },
-      ],
-      admin: { description: '最大 2 つまで選択する' },
+      options: CATEGORIES.map(({ name, label }) => ({ label, value: name })),
+      admin: { description: '1 つ以上選択する (上限なし)' },
     },
+    ...CATEGORIES.map(({ name, label }) => categoryContentGroup(name, label)),
     {
       name: 'performance_slots',
       type: 'join',
@@ -102,25 +126,6 @@ export const StudentExhibitions: CollectionConfig = {
       maxLength: 50,
       label: 'マップ表示ラベル',
       admin: { description: '展示・出店のみ使用' },
-    },
-    {
-      name: 'stage_name',
-      type: 'text',
-      maxLength: 255,
-      label: 'ステージ表示名',
-      admin: {
-        description: 'ステージ出演時に表示する企画名。未入力なら name を使う',
-        condition: (data) => Array.isArray(data?.category) && data.category.includes('stage'),
-        // 一括編集はレコードごとの category を評価できず condition が働かないため、
-        // カテゴリを問わず入力欄が常に選択候補へ出てしまう。個別編集画面に限定する
-        disableBulkEdit: true,
-      },
-    },
-    {
-      name: 'description',
-      type: 'textarea',
-      label: '紹介文',
-      admin: { description: '企画の紹介文' },
     },
     {
       name: 'links',
@@ -154,14 +159,6 @@ export const StudentExhibitions: CollectionConfig = {
               : 'URL は https:// で始まる形式で入力してください',
         },
       ],
-    },
-    {
-      name: 'images',
-      type: 'upload',
-      relationTo: 'media',
-      hasMany: true,
-      label: '画像',
-      admin: { description: '最大 5 枚まで' },
     },
   ],
 };

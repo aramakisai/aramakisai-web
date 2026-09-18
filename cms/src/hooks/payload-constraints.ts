@@ -3,6 +3,7 @@ import { ValidationError } from 'payload';
 
 import {
   validateBoothPlacement,
+  validateCategoryContents,
   validatePerformanceSlot,
   type ConstraintViolation,
 } from './constraints';
@@ -17,6 +18,11 @@ function raise(collection: string, violations: readonly ConstraintViolation[]): 
 
 export const performanceSlotConstraint: CollectionBeforeValidateHook = ({ data }) => {
   raise('performance_slots', validatePerformanceSlot(data ?? {}));
+  return data;
+};
+
+export const categoryContentsConstraint: CollectionBeforeValidateHook = ({ data }) => {
+  raise('student_exhibitions', validateCategoryContents(data ?? {}));
   return data;
 };
 
