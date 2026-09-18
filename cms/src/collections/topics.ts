@@ -3,10 +3,11 @@ import type { CollectionConfig } from 'payload';
 
 export const Topics: CollectionConfig = {
   slug: 'topics',
+  labels: { singular: 'トピック', plural: 'トピック' },
   admin: { useAsTitle: 'title', defaultColumns: ['title', 'sort', 'published_at'] },
   fields: [
-    { name: 'title', type: 'text', required: true, maxLength: 255 },
-    { name: 'body', type: 'richText' },
+    { name: 'title', type: 'text', required: true, maxLength: 255, label: 'タイトル' },
+    { name: 'body', type: 'richText', label: '本文' },
     lexicalHTMLField({
       htmlFieldName: 'body_html',
       lexicalFieldName: 'body',
@@ -16,13 +17,14 @@ export const Topics: CollectionConfig = {
       name: 'image',
       type: 'upload',
       relationTo: 'media',
-      admin: { description: 'サムネイル画像' },
+      label: 'サムネイル画像',
     },
     {
       name: 'published_at',
       type: 'date',
+      label: '公開日時',
       admin: {
-        description: '公開日時 (未設定は非公開)',
+        description: '未設定は非公開',
         date: { pickerAppearance: 'dayAndTime' },
       },
     },
@@ -30,14 +32,16 @@ export const Topics: CollectionConfig = {
       name: 'attachment',
       type: 'upload',
       relationTo: 'media',
-      admin: { description: 'PDF 添付 (デジタルパンフ等)' },
+      label: 'PDF 添付',
+      admin: { description: 'デジタルパンフ等' },
     },
-    { name: 'sort', type: 'number', admin: { description: '表示順' } },
+    { name: 'sort', type: 'number', label: '表示順' },
     {
       name: 'attachments',
       type: 'upload',
       relationTo: 'media',
       hasMany: true,
+      label: '添付ファイル',
       admin: { description: '複数添付ファイル' },
     },
   ],

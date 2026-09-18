@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload';
 
 export const TimeSlots: CollectionConfig = {
   slug: 'time_slots',
+  labels: { singular: 'タイムスロット', plural: 'タイムスロット' },
   admin: {
     useAsTitle: 'label',
   },
@@ -12,14 +13,14 @@ export const TimeSlots: CollectionConfig = {
       type: 'text',
       required: true,
       maxLength: 50,
-      admin: { description: '表示ラベル' },
+      label: '表示ラベル',
     },
     {
       name: 'start_at',
       type: 'date',
       required: true,
+      label: '開始時刻',
       admin: {
-        description: '開始時刻',
         date: { pickerAppearance: 'timeOnly', displayFormat: 'HH:mm' },
       },
     },
@@ -27,15 +28,15 @@ export const TimeSlots: CollectionConfig = {
       name: 'end_at',
       type: 'date',
       required: true,
+      label: '終了時刻',
       admin: {
-        description: '終了時刻',
         date: { pickerAppearance: 'timeOnly', displayFormat: 'HH:mm' },
       },
     },
     {
       name: 'sort',
       type: 'number',
-      admin: { description: '時系列順' },
+      label: '時系列順',
     },
   ],
 };

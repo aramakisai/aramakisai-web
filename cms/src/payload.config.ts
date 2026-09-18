@@ -3,6 +3,7 @@ import { fileURLToPath } from 'url';
 
 import { postgresAdapter } from '@payloadcms/db-postgres';
 import { s3Storage } from '@payloadcms/storage-s3';
+import { ja } from '@payloadcms/translations/languages/ja';
 import { lexicalEditor } from '@payloadcms/richtext-lexical';
 import { buildConfig } from 'payload';
 import sharp from 'sharp';
@@ -32,6 +33,11 @@ export default buildConfig({
   // Authentik OIDC を認証の一次経路とする。ローカル認証は実行委員の緊急用として残す
   endpoints: optionalEnv('AUTHENTIK_ISSUER_URL') ? authentikEndpoints : [],
   editor: lexicalEditor(),
+  // 利用者は実行委員のみで英語需要がないため、言語切替を出さず ja に固定する
+  i18n: {
+    supportedLanguages: { ja },
+    fallbackLanguage: 'ja',
+  },
   cors: optionalEnv('CMS_CORS_ORIGINS')?.split(',') ?? ['*'],
   // フロントエンドは REST しか使わないため GraphQL は公開しない
   graphQL: { disable: true },

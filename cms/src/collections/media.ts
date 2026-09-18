@@ -11,6 +11,7 @@ export const IMAGE_SIZES = [
 
 export const Media: CollectionConfig = {
   slug: 'media',
+  labels: { singular: 'メディア', plural: 'メディア' },
   endpoints: [
     {
       // フロントエンドはファイル ID とサイズ名しか持たないため、実ファイルへの解決はここで行う。
@@ -32,7 +33,7 @@ export const Media: CollectionConfig = {
       },
     },
   ],
-  fields: [{ name: 'alt', type: 'text' }],
+  fields: [{ name: 'alt', type: 'text', label: '代替テキスト' }],
   upload: {
     // 配信時変換を行わないため、アップロード時に WebP へ寄せる
     formatOptions: { format: 'webp', options: { quality: 82 } },
