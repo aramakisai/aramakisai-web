@@ -28,6 +28,8 @@ export async function generateMetadata(): Promise<Metadata> {
       : titleBase;
 
   return {
+    // 相対 URL のメタデータ (og:url 等) を解決するため。toAssetUrl は絶対 URL を返すのでここでは解決されない。
+    metadataBase: new URL(env.NEXT_PUBLIC_SITE_URL),
     title: {
       default: siteTitle,
       template: `%s | ${siteTitle}`,

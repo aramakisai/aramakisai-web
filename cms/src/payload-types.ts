@@ -469,17 +469,57 @@ export interface StudentExhibition {
   owner: number | User;
   status: 'published' | 'draft';
   /**
-   * 団体名は organization_name を参照
-   */
-  name: string;
-  /**
    * 学生団体・サークル名
    */
   organization_name: string;
   /**
-   * 最大 2 つまで選択する
+   * 1 つ以上選択する (上限なし)
    */
-  category: ('stage' | 'exhibit' | 'vendor' | 'other')[];
+  categories: ('stage' | 'exhibit' | 'vendor' | 'other')[];
+  /**
+   * カテゴリで「ステージ」を選択したときだけ表示する
+   */
+  stage?: {
+    name?: string | null;
+    description?: string | null;
+    /**
+     * 最大 5 枚まで
+     */
+    images?: (number | Media)[] | null;
+  };
+  /**
+   * カテゴリで「展示」を選択したときだけ表示する
+   */
+  exhibit?: {
+    name?: string | null;
+    description?: string | null;
+    /**
+     * 最大 5 枚まで
+     */
+    images?: (number | Media)[] | null;
+  };
+  /**
+   * カテゴリで「出店」を選択したときだけ表示する
+   */
+  vendor?: {
+    name?: string | null;
+    description?: string | null;
+    /**
+     * 最大 5 枚まで
+     */
+    images?: (number | Media)[] | null;
+  };
+  /**
+   * カテゴリで「その他」を選択したときだけ表示する
+   */
+  other?: {
+    name?: string | null;
+    description?: string | null;
+    /**
+     * 最大 5 枚まで
+     */
+    images?: (number | Media)[] | null;
+  };
   /**
    * 実行委員が割り当てる。閲覧のみ
    */
@@ -501,14 +541,6 @@ export interface StudentExhibition {
    */
   booth_label?: string | null;
   /**
-   * ステージ出演時に表示する企画名。未入力なら name を使う
-   */
-  stage_name?: string | null;
-  /**
-   * 企画の紹介文
-   */
-  description?: string | null;
-  /**
    * 公式サイト・SNS 等のリンク (並べ替えた順に表示する)
    */
   links?:
@@ -518,10 +550,6 @@ export interface StudentExhibition {
         id?: string | null;
       }[]
     | null;
-  /**
-   * 最大 5 枚まで
-   */
-  images?: (number | Media)[] | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -833,15 +861,40 @@ export interface PerformanceSlotsSelect<T extends boolean = true> {
 export interface StudentExhibitionsSelect<T extends boolean = true> {
   owner?: T;
   status?: T;
-  name?: T;
   organization_name?: T;
-  category?: T;
+  categories?: T;
+  stage?:
+    | T
+    | {
+        name?: T;
+        description?: T;
+        images?: T;
+      };
+  exhibit?:
+    | T
+    | {
+        name?: T;
+        description?: T;
+        images?: T;
+      };
+  vendor?:
+    | T
+    | {
+        name?: T;
+        description?: T;
+        images?: T;
+      };
+  other?:
+    | T
+    | {
+        name?: T;
+        description?: T;
+        images?: T;
+      };
   performance_slots?: T;
   area_id?: T;
   booth_number?: T;
   booth_label?: T;
-  stage_name?: T;
-  description?: T;
   links?:
     | T
     | {
@@ -849,7 +902,6 @@ export interface StudentExhibitionsSelect<T extends boolean = true> {
         url?: T;
         id?: T;
       };
-  images?: T;
   updatedAt?: T;
   createdAt?: T;
 }

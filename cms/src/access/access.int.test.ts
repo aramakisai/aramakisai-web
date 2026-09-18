@@ -41,9 +41,9 @@ describe.skipIf(!hasDatabase)('出展者ロールの access control', () => {
         collection: 'student_exhibitions',
         data: {
           owner: ownerId,
-          name,
           organization_name: name,
-          category: ['other'],
+          categories: ['other'],
+          other: { name },
           status: 'draft',
         },
         overrideAccess: true,
@@ -87,11 +87,11 @@ describe.skipIf(!hasDatabase)('出展者ロールの access control', () => {
     const updated = await payload.update({
       collection: 'student_exhibitions',
       id: ownRecord.id,
-      data: { description: '更新後' },
+      data: { other: { description: '更新後' } },
       overrideAccess: false,
       user: await asOwner(),
     });
-    expect(updated.description).toBe('更新後');
+    expect((updated.other as { description: string }).description).toBe('更新後');
   });
 
   it('他者のレコードを更新しようとすると拒否される', async () => {
@@ -99,7 +99,7 @@ describe.skipIf(!hasDatabase)('出展者ロールの access control', () => {
       payload.update({
         collection: 'student_exhibitions',
         id: otherRecord.id,
-        data: { description: '侵入' },
+        data: { other: { description: '侵入' } },
         overrideAccess: false,
         user: await asOwner(),
       }),
@@ -133,9 +133,9 @@ describe.skipIf(!hasDatabase)('出展者ロールの access control', () => {
     const created = (await payload.create({
       collection: 'student_exhibitions',
       data: {
-        name: `self-${suffix}`,
         organization_name: `self-${suffix}`,
-        category: ['other'],
+        categories: ['other'],
+        other: { name: `self-${suffix}` },
         status: 'draft',
       } as never,
       overrideAccess: false,
@@ -150,9 +150,9 @@ describe.skipIf(!hasDatabase)('出展者ロールの access control', () => {
       collection: 'student_exhibitions',
       data: {
         owner: owner.id,
-        name: `squat-${suffix}`,
         organization_name: `squat-${suffix}`,
-        category: ['other'],
+        categories: ['other'],
+        other: { name: `squat-${suffix}` },
         status: 'draft',
       } as never,
       overrideAccess: false,

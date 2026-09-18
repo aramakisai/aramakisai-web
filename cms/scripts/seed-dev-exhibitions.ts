@@ -145,6 +145,16 @@ function links(count: number, offset: number) {
   });
 }
 
+// stage カテゴリのみ stageName を企画名として優先する。それ以外のカテゴリは e.name を共有する
+function categoryContent(e: ExhibitionSeed, category: Category, imageId: number | undefined) {
+  const name = category === 'stage' ? (e.stageName ?? e.name) : e.name;
+  return {
+    name,
+    description: `${name} の紹介文 (シードデータ)。`,
+    images: imageId === undefined ? undefined : [imageId],
+  };
+}
+
 async function main() {
   assertLocalDatabase();
 
@@ -231,22 +241,23 @@ async function main() {
     const areaIndex = i % areaIds.length;
     const wantsArea = e.locationKind === 'area-label' || e.locationKind === 'area-only';
     const boothNumber = wantsArea ? ++areaBoothCounters[areaIndex]! : undefined;
+    const imageId = e.hasImage ? mediaIds[i % mediaIds.length] : undefined;
+    const categoryFields = Object.fromEntries(
+      e.categories.map((c) => [c, categoryContent(e, c, imageId)]),
+    );
 
     const created = await payload.create({
       collection: 'student_exhibitions',
       data: {
         owner: ownerUser.id,
         status: 'published',
-        name: e.name,
         organization_name: e.organizationName,
-        category: [...e.categories],
-        stage_name: e.stageName,
+        categories: [...e.categories],
         area_id: wantsArea ? areaIds[areaIndex] : undefined,
         booth_number: boothNumber,
         booth_label: e.locationKind === 'area-label' ? `${boothNumber}番ブース` : undefined,
-        description: `${e.name} の紹介文 (シードデータ)。`,
         links: links(e.linkCount, i),
-        images: e.hasImage ? [mediaIds[i % mediaIds.length]!] : undefined,
+        ...categoryFields,
       },
       user: FAKE_EXECUTIVE,
     });

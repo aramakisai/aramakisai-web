@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { validateBoothPlacement, validatePerformanceSlot } from './constraints';
+import {
+  validateBoothPlacement,
+  validateCategoryContents,
+  validatePerformanceSlot,
+  validateStageAssignment,
+  validateStageCategoryRemoval,
+} from './constraints';
 
 describe('validatePerformanceSlot', () => {
   it('exhibition_id があれば通す', () => {
@@ -56,6 +62,79 @@ describe('validateBoothPlacement', () => {
   it('booth_number が NULL なら重複判定の対象外', () => {
     expect(
       validateBoothPlacement({ area_id: 1, booth_number: null }, { duplicateExists: true }),
+    ).toEqual([]);
+  });
+});
+
+describe('validateCategoryContents', () => {
+  it('選択したカテゴリの企画名が空なら違反とする', () => {
+    expect(
+      validateCategoryContents({ categories: ['stage'], stage: { name: '' } }),
+    ).toEqual([{ field: 'stage.name', message: 'ステージを選択した場合は企画名の入力が必要' }]);
+  });
+
+  it('選択したカテゴリの企画名が入っていれば通す', () => {
+    expect(
+      validateCategoryContents({ categories: ['stage'], stage: { name: '特設ステージ団' } }),
+    ).toEqual([]);
+  });
+
+  it('選択していないカテゴリの企画名が空でも通す', () => {
+    expect(
+      validateCategoryContents({ categories: ['stage'], stage: { name: '特設ステージ団' }, exhibit: { name: '' } }),
+    ).toEqual([]);
+  });
+
+  it('複数カテゴリを選択していれば全カテゴリ分検証する', () => {
+    expect(
+      validateCategoryContents({ categories: ['stage', 'vendor'], stage: { name: '' }, vendor: { name: '' } }),
+    ).toEqual([
+      { field: 'stage.name', message: 'ステージを選択した場合は企画名の入力が必要' },
+      { field: 'vendor.name', message: '出店を選択した場合は企画名の入力が必要' },
+    ]);
+  });
+});
+
+describe('validateStageAssignment', () => {
+  it('ステージ未選択の企画への割り当ては拒否する', () => {
+    expect(
+      validateStageAssignment({ exhibition_id: 1 }, { exhibitionCategories: ['exhibit'] }),
+    ).toEqual([
+      { field: 'exhibition_id', message: 'ステージを選択していない企画は出演枠に割り当てられません' },
+    ]);
+  });
+
+  it('ステージ選択済みの企画への割り当ては通す', () => {
+    expect(
+      validateStageAssignment({ exhibition_id: 1 }, { exhibitionCategories: ['stage'] }),
+    ).toEqual([]);
+  });
+
+  it('企画を指定しない出演枠は拒否しない', () => {
+    expect(
+      validateStageAssignment({ exhibition_id: null }, { exhibitionCategories: null }),
+    ).toEqual([]);
+  });
+});
+
+describe('validateStageCategoryRemoval', () => {
+  it('出演枠がある状態でステージを外すと拒否する', () => {
+    expect(
+      validateStageCategoryRemoval({ categories: ['exhibit'] }, { hasPerformanceSlots: true }),
+    ).toEqual([
+      { field: 'categories', message: '出演枠が割り当てられているためステージの選択を外せません' },
+    ]);
+  });
+
+  it('出演枠がある状態でステージを維持していれば通す', () => {
+    expect(
+      validateStageCategoryRemoval({ categories: ['stage'] }, { hasPerformanceSlots: true }),
+    ).toEqual([]);
+  });
+
+  it('出演枠がなければステージを外しても通す', () => {
+    expect(
+      validateStageCategoryRemoval({ categories: ['exhibit'] }, { hasPerformanceSlots: false }),
     ).toEqual([]);
   });
 });

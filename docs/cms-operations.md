@@ -26,7 +26,10 @@ Payload CMS (`cms/`) の運用手順。Directus からの移行に伴い、コ�
    開発者へ伝える
 2. **定義の変更** — 開発者が `cms/src/collections/<slug>.ts` または `cms/src/globals/<slug>.ts` を編集する
 3. **マイグレーション生成** — `cd cms && pnpm migrate:create <name>` で差分マイグレーションを生成し、
-   `cms/src/migrations/index.ts` に登録されていることを確認する
+   `cms/src/migrations/index.ts` に登録されていることを確認する。S3 の環境変数を与えた状態で実行すること。
+   未設定だと `@payloadcms/plugin-cloud-storage` が注入する `media.prefix` がコレクション定義に現れず、
+   本番で使っているこのカラムを削除する差分が生成される (`pnpm generate:importmap` も同じ理由で
+   S3 の環境変数を要する)
 4. **型の再生成** — `pnpm generate:types` を実行する。`frontend/src/cms-types.ts` も同時に更新される
 5. **PR** — 上記の差分を含む PR を出す。`cms-ci` の検証と `cms-schema-check` の破壊的変更検出が走る
 6. **ローカル確認** — 本番同等イメージをローカルで起動し、管理画面の表示と REST の応答を確認する
