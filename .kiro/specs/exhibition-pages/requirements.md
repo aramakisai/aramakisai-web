@@ -218,6 +218,8 @@ Payload CMS の `student_exhibitions` コレクション。未認証では `stat
 8. If 選択されているカテゴリの企画名が入力されていない場合, the CMS shall 保存を拒否し、入力者に理由を表示する
 9. The CMS shall 管理画面の企画一覧で団体名 (`organization_name`) を表示名として用いる
 10. The CMS shall 本スキーマ変更 (カテゴリの複数選択欄への刷新と、選択したカテゴリに連動するカテゴリ別企画内容欄の新設) を、本番に企画レコードが存在しないうちに適用する (適用前に本番の `student_exhibitions` が 0 件であることを確認する)
+11. If ステージを選択していない企画を出演枠 (`performance_slots`) の企画として指定しようとした場合, the CMS shall 保存を拒否し、入力者に理由を表示する
+12. If 出演枠が割り当てられている企画からステージの選択を外そうとした場合, the CMS shall 保存を拒否し、入力者に理由を表示する
 
 ### Requirement 8: 企画の共有
 

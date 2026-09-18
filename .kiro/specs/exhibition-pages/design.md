@@ -279,6 +279,7 @@ flowchart TD
 | 7.5, 7.6, 7.7, 7.8 | `categories` の複数選択・1 つ以上必須・選択カテゴリ連動の企画内容欄・企画名必須/紹介文・写真任意 | `cms/src/collections/student-exhibitions.ts` | `categories` フィールド定義, カテゴリ別企画内容欄 | 移行手順 |
 | 7.9 | 管理画面の表示名を団体名に変更 | `cms/src/collections/student-exhibitions.ts` | `admin.useAsTitle` | — |
 | 7.10 | スキーマ変更の適用条件 (本番 0 件) | `cms/src/collections/student-exhibitions.ts`, マイグレーション | — | 移行手順 |
+| 7.11, 7.12 | カテゴリと出演枠の整合 (ステージ未選択の企画への割り当て拒否・割り当て済み企画のステージ解除拒否) | `cms/src/hooks/constraints.ts`, `cms/src/hooks/payload-constraints.ts`, `cms/src/collections/performance-slots.ts`, `cms/src/collections/student-exhibitions.ts` | `validateStageAssignment`, `validateStageCategoryRemoval` | — |
 | 8.1〜8.4 | 共有と失敗時の案内 | `share-button.tsx` | `ShareButtonProps` | 共有分岐 |
 | 9.1〜9.4 | 背景色・グレー・本文コントラスト・見出し色の据え置き | `tailwind.config.ts` | テーマトークン | — |
 | 9.5, 9.6, 9.7 | アイコンセットと読み上げ除外 | `icons.tsx`, `sns-icon.tsx` | `IconProps` | — |
@@ -685,6 +686,7 @@ export interface IconProps {
 - 選択されているカテゴリの企画内容欄で企画名が入力されていない企画は保存できないこと。
 - カテゴリ別の企画内容欄は、対応するカテゴリが選択されているときだけ管理画面に表示すること。一括編集ではカテゴリの選択有無に関わらず候補に出ないこと (`disableBulkEdit`)。
 - 既存の access control (`payload-access.ts` 経由) と `owner` の扱いを変更しない。
+- ステージを選択していない企画に出演枠を割り当てさせないこと。出演枠が割り当てられている企画からステージの選択を外させないこと。場所の解決がカードのカテゴリで一系統に決まるため、この 2 つがずれると出演枠の情報がどのカードにも現れなくなる。
 
 **Contracts**: Service [x] / API [ ] / Event [ ] / Batch [ ] / State [ ]
 
@@ -710,7 +712,8 @@ export interface ExhibitionCategoryContent {
 - `url` の `validate` は `https://` で始まる解釈可能な URL のみを通し、それ以外は日本語の理由を返す (要件 7.3)。
 - フィールド定義: `name: 'categories'`, `type: 'select'`, `hasMany: true`, `required: true`, `minRows: 1` (要件 7.5)。選択肢は 4 値 (`stage` / `exhibit` / `vendor` / `other`)。上限は設けない。
 - フィールド定義: カテゴリごとに 1 つの group field (`name: 'stage' | 'exhibit' | 'vendor' | 'other'`)。`admin.condition` で `categories` に対応する値が含まれるときだけ表示し、`admin.disableBulkEdit: true` を付与する (要件 7.6)。各 group は `name` (`text`, `maxLength: 255`)、`description` (`textarea`, 任意)、`images` (`upload` to `media`, `hasMany`, 任意, 最大 5 枚) を持つ。Payload の `required` は `admin.condition` と連動せず、非表示の欄が必須のままだと保存できなくなるため `name` を Payload レベルでは必須にしない (要件 7.7)。
-- コレクションの `hooks.beforeValidate` で、選択されている各カテゴリについて対応する group の `name` が空でないことを検証し、空であれば `ValidationError` を投げて保存を拒否する (要件 7.8)。複数選択の `categories` は同じ値を二重に選択できないため、カテゴリ重複を検出するバリデーションは持たない。
+- コレクションの `hooks.beforeValidate` で、選択されている各カテゴリについて対応する group の `name` が空でないことを検証し、空であれば `ValidationError` を投げて保存を拒否する (要件 7.8)。
+- カテゴリと出演枠の整合は、`performance_slots` 側 (割り当て時に対象企画がステージを選択しているか) と `student_exhibitions` 側 (ステージ解除時に出演枠が残っていないか) の両方の `beforeValidate` で検証する (要件 7.11, 7.12)。判定そのものは `cms/src/hooks/constraints.ts` の純関数に置き、DB 参照は呼び出し側が行う (`validateBoothPlacement` と同じ形)。複数選択の `categories` は同じ値を二重に選択できないため、カテゴリ重複を検出するバリデーションは持たない。
 - `admin.useAsTitle` を `organization_name` に変更する (要件 7.9)。
 
 **Implementation Notes**
