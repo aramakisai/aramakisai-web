@@ -2,18 +2,18 @@
 
 ## Overview
 
-**Purpose**: 来場者が学生企画を探し、個々の企画の詳細を確認できる一覧ページ (`/exhibitions`) と詳細ページ (`/exhibitions/[id]`) をフロントエンドに追加する。
+**Purpose**: 来場者が学生企画を探し、個々の企画の詳細を確認できる一覧ページ (`/exhibitions`) と詳細ページ (`/exhibitions/[id]/[category]`) をフロントエンドに追加する。企画の企画名・紹介文・写真は CMS 側でカテゴリの複数選択とカテゴリごとの固定欄 (企画内容) として持ち、一覧・詳細は企画が選択しているカテゴリ単位 (選択カテゴリ 1 件 = 企画カード 1 枚) で表示する (1 企画 1 レコードは維持する)。
 
-**Users**: 一般来場者・学生は企画を検索・絞り込みして目的の企画へ辿り着き、詳細ページで写真・場所・紹介文・団体のリンクを確認し、企画を共有する。出展者は CMS 管理画面で自分の企画のリンクを入力欄から登録する。
+**Users**: 一般来場者・学生は企画を検索・絞り込みして目的の企画へ辿り着き、詳細ページで写真・場所・紹介文・団体のリンクを確認し、企画を共有する。出展者は CMS 管理画面でカテゴリを選び、選択したカテゴリごとに表示される企画内容とリンクを入力欄から登録する。
 
-**Impact**: フロントエンドに 2 ルートと企画表示用のコンポーネント群・データ取得層を追加する。CMS 側では `student_exhibitions.links` を構造化された配列フィールドへ作り替え、出演用の企画名 `stage_name` を追加する。あわせてページ背景色・グレー・アイコンセットをサイト全体で統一し、テーマ「万彩」に沿った表示基盤を導入する。
+**Impact**: フロントエンドに 2 ルートと企画表示用のコンポーネント群・データ取得層を追加する。CMS 側では `student_exhibitions` にカテゴリの複数選択フィールドと、カテゴリごとに条件表示される固定欄 (企画内容: 企画名・紹介文・写真) を新設する。あわせて `links` を構造化された配列フィールドへ作り替える。あわせてページ背景色・グレー・アイコンセットをサイト全体で統一し、テーマ「万彩」に沿った表示基盤を導入する。
 
 ### Goals
 
 - 公開済み企画の一覧・検索・絞り込み・ページ送りを、URL に状態を持つ形で提供する。
 - 企画詳細で写真ギャラリー・場所・紹介文・団体のリンク・共有を提供する。
 - 企画カード・データ整形・配色計算を、`campus-map` / `digital-signage` / `timetable-page` から再利用できる形で切り出す。
-- 出展者が JSON を手書きせずリンクを登録でき、`https://` 以外の URL を保存できないようにする。
+- 出展者が企画名・紹介文・写真をカテゴリごとに分けて登録でき、JSON を手書きせずリンクを登録でき、`https://` 以外の URL を保存できないようにする。
 
 ### Non-Goals
 
@@ -22,17 +22,18 @@
 - タイムテーブルへの導線 (`timetable-page` 実装後に組み込む)。
 - サイト共通ヘッダー・フッターのレイアウト変更 (アイコンの差し替えのみ行う)。
 - `festival_meta.sns_links` のデータ構造変更。
-- 企画の長文紹介文フィールドの新設 (既存の `description` をそのまま紹介文として使う)。
+- 企画レコードが存在する状態でのデータ移行 (本番 0 件を前提とした破壊的変更として適用する)。
 
 ## Boundary Commitments
 
 ### This Spec Owns
 
-- ルート `/exhibitions` と `/exhibitions/[id]` の存在・URL 形状・表示内容。
-- 企画の表示モデル (`ExhibitionSummary` / `ExhibitionDetail`) とその整形処理 (`lib/exhibitions.ts`)。
+- ルート `/exhibitions`・`/exhibitions/[id]/[category]` の存在・URL 形状・表示内容 (`category` を含まない `/exhibitions/[id]` は素の 404 とし、特別なハンドリングは持たない)。
+- 企画カードへの変換 (企画が選択しているカテゴリ 1 件 = 企画カード 1 枚) とその整合。
+- 企画の表示モデル (`ExhibitionCardSummary` / `ExhibitionDetail`) とその整形処理 (`lib/exhibitions.ts`)。
 - 企画カードの外観と配色アルゴリズム (`lib/exhibition-color.ts`、`components/exhibition-card.tsx`)。
 - 検索・ファセット・ページングの意味論と URL クエリの形 (`?q=&category=&area=&page=`。`category` / `area` は複数値をカンマ区切りで連結し、常にソート済みで表す)。
-- `student_exhibitions.links` のフィールド定義とバリデーション、`stage_name` の追加、および `description` の管理画面表記。
+- `student_exhibitions` のカテゴリ複数選択フィールドとカテゴリ別企画内容欄 (企画名・紹介文・写真)、`links` のフィールド定義・バリデーション。
 - サイト全体の背景色・グレー階調・アイコンセット (`tailwind.config.ts`、`components/icons.tsx`、`components/sns-icon.tsx`)。
 
 ### Out of Boundary
@@ -57,9 +58,10 @@
 
 - Figma ファイル「ホームページ」/「企画ページ」の更新 (画面デザインの正)。
 - 企画カードの配色アルゴリズム (ハッシュ・パレット・補間方式) の変更。
-- 詳細ページ URL `/exhibitions/[id]` の変更、および ID 以外のキー (slug 等) の導入。
-- `ExhibitionSummary` / `ExhibitionDetail` のフィールド追加・削除・意味変更。
-- `student_exhibitions.links` / `stage_name` のスキーマ変更。
+- 詳細ページ URL `/exhibitions/[id]/[category]` の変更、および ID 以外のキー (slug 等) の導入。
+- カテゴリ別企画内容の粒度 (カテゴリごとに 1 組の企画名・紹介文・写真) の変更。
+- `ExhibitionCardSummary` / `ExhibitionDetail` のフィールド追加・削除・意味変更。
+- `student_exhibitions` のカテゴリ別企画内容欄 / `links` のスキーマ変更。
 - カード配色のパレット実値 (`GRADIENT_PALETTE`) と `tailwind.config.ts` のカラートークンの対応。
 - 一覧の URL クエリパラメータ名・意味の変更。
 
@@ -91,7 +93,7 @@ graph TD
     EX[lib/exhibitions.ts]
     COLOR[lib/exhibition-color.ts]
     LISTPAGE[app/exhibitions/page.tsx]
-    DETAILPAGE[app/exhibitions/id/page.tsx]
+    DETAILPAGE[app/exhibitions/id/category/page.tsx]
     CARD[components/exhibition-card.tsx]
     FILTERS[components/exhibition-filters.tsx]
     GALLERY[components/exhibition-gallery.tsx]
@@ -121,6 +123,7 @@ graph TD
 - **Selected pattern**: サーバーコンポーネント主体の層構造 (取得層 → 整形の純関数 → 表示)。既存の topics / announcements と同じ形を踏襲する。
 - **Domain/feature boundaries**: CMS からの取得と表示モデルへの整形は `lib/exhibitions.ts` に閉じる。配色計算は `lib/exhibition-color.ts` に単独で切り出し、表示部品と他 spec の双方から使えるようにする。ページは `searchParams` の解釈と描画のみを担う。
 - **絞り込みの所在**: キーワード照合は NFKC 正規化を伴うため CMS の `like` では満たせず、エリア判定はステージ経由の関係を含む。したがって一覧ページは公開済み企画を全件取得し、サーバー側 (Workers 上の SSR) の純関数で絞り込み・ページングを確定させる。判断根拠は `research.md` の「Architecture Pattern Evaluation」を参照。
+- **カード変換の所在**: 企画レコードをカードの配列 (`ExhibitionCardSummary[]`) へ変換する処理 (`toCards`、後述) は `lib/exhibitions.ts` 内で、CMS 取得直後・絞り込み (`filterExhibitions`) の直前に行う。`toCards` はカテゴリ定義順 (`CATEGORY_VALUES`) を走査し、企画が選択しているカテゴリだけをカードへ写す単純な処理で、カテゴリ数に応じた特別な分岐は持たない。以降の絞り込み・並び替え・ページングはすべてカード単位の配列に対して行われ、「企画レコード」という単位は取得層より上には出てこない。
 - **Existing patterns preserved**: `lib/cms.ts` の単一クライアント、`toAssetUrl` による画像 URL 組み立て、詳細ページの `notFound()`、一覧ページの取得失敗フォールバック。
 - **New components rationale**: 企画カードとギャラリー・リンク・共有は他ページからも参照されるため、`components/` に独立させる。アイコンは `components/icons.tsx` に集約してサイト全体で共有する。
 - **Dependency direction**: `cms-types` → `lib/cms` → `lib/exhibitions` → `components` → `app`。逆方向の import を禁止する。`lib/exhibition-color.ts` は他に依存しない葉ノードとする。
@@ -133,8 +136,8 @@ graph TD
 | Frontend | Next.js 15 (App Router) / React 19 | 一覧・詳細ページのサーバーレンダリングと部分的なクライアント操作 | 既存スタック。新規依存なし |
 | Frontend (style) | Tailwind CSS 4 | 配色トークン・レイアウト | `tailwind.config.ts` に背景色とグレーの再定義を追加 |
 | Frontend (assets) | Material Symbols Sharp (weight 300) / 各 SNS の公式ロゴ | UI アイコン・SNS アイコン | 使用分のみ SVG をインライン化し、フォント読み込みは行わない |
-| Backend / CMS | Payload 3 + `@payloadcms/db-postgres` | `links` の配列フィールド化、`description` の表記変更 | 既存スタック |
-| Data / Storage | PostgreSQL 16 | `student_exhibitions_links` テーブルの新設 (Payload の array field) | 本番 0 件のためデータ移行なし |
+| Backend / CMS | Payload 3 + `@payloadcms/db-postgres` | カテゴリ複数選択フィールドの新設と、カテゴリごとに条件表示される企画内容欄 (group field) の新設、`links` の配列フィールド化 | 既存スタック |
+| Data / Storage | PostgreSQL 16 | `student_exhibitions` へのカテゴリ別企画内容カラムの追加と `student_exhibitions_categories` / `student_exhibitions_links` テーブルの新設 (Payload の select hasMany / array field) | 本番 0 件のためデータ移行なし |
 | Infrastructure / Runtime | Cloudflare Workers (`@opennextjs/cloudflare`) | フロントエンドの実行環境 | サーバー側で Node.js 専用 API を使わない |
 
 ## File Structure Plan
@@ -146,8 +149,8 @@ frontend/src/
 ├── app/exhibitions/
 │   ├── page.tsx                   # 一覧。searchParams を解釈し取得・絞り込み・描画
 │   ├── page.test.tsx
-│   └── [id]/
-│       ├── page.tsx               # 詳細。generateMetadata と notFound を担う
+│   └── [id]/[category]/
+│       ├── page.tsx               # 詳細。generateMetadata と notFound を担う (category なしの /exhibitions/[id] はルート不一致で素の 404)
 │       └── page.test.tsx
 ├── components/
 │   ├── exhibition-card.tsx        # 企画カード (サーバーコンポーネント)
@@ -168,8 +171,8 @@ frontend/e2e/
 └── exhibitions.spec.ts            # 一覧→詳細→404 の導線
 
 cms/src/
-├── collections/student-exhibitions.ts   # links の配列化、description の表記変更
-└── migrations/<timestamp>_exhibition_links.ts
+├── collections/student-exhibitions.ts   # categories の複数選択化、カテゴリ別企画内容欄の新設、links の配列化
+└── migrations/<timestamp>_exhibition_category_content.ts
 ```
 
 ### Modified Files
@@ -178,7 +181,7 @@ cms/src/
 - `frontend/src/app/globals.css` — 企画カードの背景クラス (グラデーション + `@supports` による OKLCH 切り替え) を追加する。
 - `frontend/src/components/sns-icon.tsx` — 自作の簡略パスを各サービスの公式ロゴ SVG (公式配色) へ差し替える。既存テストが参照する `data-testid` は維持する。
 - `frontend/src/app/layout.tsx` — OGP 用に `metadataBase` を設定する (相対 URL のメタデータ用。`og:image` は絶対 URL なので影響を受けない)。
-- `cms/src/collections/student-exhibitions.ts` — `links` を `json` から `array` へ変更し、`stage_name` を追加し、`description` の管理画面説明文を改める。
+- `cms/src/collections/student-exhibitions.ts` — カテゴリの複数選択フィールド `categories` (1 つ以上必須、上限なし) を新設し、カテゴリごとに `admin.condition` で表示を切り替える企画内容欄 (`stage` / `exhibit` / `vendor` / `other`、それぞれ `name` / `description` / `images` を持つ group field、`disableBulkEdit: true`) を新設する。`links` は団体単位のまま維持する。`admin.useAsTitle` を `organization_name` に変更する。
 - `cms/src/migrations/index.ts` — 新規マイグレーションを登録する。
 - `cms/src/payload-types.ts` / `frontend/src/cms-types.ts` — `pnpm generate:types` で再生成してコミットする。`cms-ci.yml` は生成物に差分があると失敗するため、CMS 定義の変更と同一 PR に含める。
 
@@ -202,16 +205,32 @@ sequenceDiagram
     L->>C: GET /api/map_areas?limit=0&sort=sort
   end
   C-->>L: docs
-  L->>L: 表示モデルへ整形 (場所・カテゴリ表示名・サムネイル)
+  L->>L: 表示モデルへ整形 (場所・カテゴリ表示名)
+  L->>L: toCards() で企画が選択しているカテゴリを企画カードへ変換 (ID 昇順 × カテゴリ定義順で生成)
   L->>L: filterExhibitions(正規化キーワード・カテゴリ・エリア)
   L->>L: paginate(24 件/ページ、範囲外は有効ページへ丸める)
   L-->>P: { items, total, page, pageCount, areas }
   P-->>U: HTML (カード一覧・ファセット・ページ送り)
 ```
 
-取得のいずれか 1 本でも失敗した場合は取得失敗として扱い、空一覧ではなくエラー表示を返す (要件 1.6)。絞り込み条件はサーバー側で確定するため、ブラウザ側の再取得は発生しない。ファセット操作と検索入力は `router.replace` で URL クエリを書き換え、ページ番号を 1 に戻す (要件 2.8)。`category` / `area` は選択順に関わらず常にソート済みのカンマ区切りで書き出すため、同じ条件集合は必ず同じ URL になる。
+取得のいずれか 1 本でも失敗した場合は取得失敗として扱い、空一覧ではなくエラー表示を返す (要件 1.7)。絞り込み条件はサーバー側で確定するため、ブラウザ側の再取得は発生しない。ファセット操作と検索入力は `router.replace` で URL クエリを書き換え、ページ番号を 1 に戻す (要件 2.8)。`category` / `area` は選択順に関わらず常にソート済みのカンマ区切りで書き出すため、同じ条件集合は必ず同じ URL になる。
 
 一覧の企画取得は `depth: 0` とする。`owner` (未認証で読めない `users` への参照) を populate させないためで、`images` は media の ID 配列として受け取る。一覧で必要なのは先頭 1 枚のサムネイルだけであり、`alt` は企画名をフォールバックとして用いる。個別画像の `alt` が要る詳細ページのみ `depth: 1` で 1 件を取得する。
+
+企画レコードは CMS 取得時点で `sort: ['id']` 済みであり、`toCards` がカテゴリ定義順 (`CATEGORY_VALUES`) を走査して企画が選択しているカテゴリだけをカードへ写すため、要件 1.3 の並び順 (企画 ID 昇順 → 同一企画内はカテゴリ定義順) を満たす。`categories` フィールドに値が格納された順序 (選択順) には依存しない。独立したソート処理は不要。件数・ページング (`total` / `rangeStart` / `rangeEnd` / `pageCount`) はすべてカード配列に対して計算する。
+
+### 詳細ページのカテゴリ解決
+
+```mermaid
+flowchart TD
+  A["GET /exhibitions/[id]/[category]"] --> B{企画が存在し公開されているか}
+  B -- いいえ --> C[404]
+  B -- はい --> D{URL の category が既知の値で、その企画が選択しているカテゴリに含まれるか}
+  D -- いいえ --> C
+  D -- はい --> E[category に対応する企画内容の企画名・紹介文・写真・場所、選択している全カテゴリの一覧で描画]
+```
+
+`category` を含まない `/exhibitions/[id]` へのアクセスは対応する `page.tsx` が存在しないため、アプリケーションコードを介さず Next.js の既定の 404 になる。後方互換のためのリダイレクトは設けない (`campus-map` / `timetable-page` は未実装で、旧 URL への外部参照が現時点で存在しないため)。将来これらの spec が実装され、既存の `/exhibitions/[id]` リンクを保持する必要が生じた場合は、その時点でリダイレクトの要否を再検討する。
 
 ### 共有ボタンの分岐
 
@@ -233,39 +252,46 @@ flowchart TD
 
 | Requirement | Summary | Components | Interfaces | Flows |
 |-------------|---------|------------|------------|-------|
-| 1.1, 1.2, 1.3 | 公開済み企画の一覧・ID 昇順・24 件ページング | `app/exhibitions/page.tsx`, `lib/exhibitions.ts` | `getExhibitionListData`, `paginate` | 一覧取得 |
-| 1.4, 1.5 | 件数表示・レスポンシブ配置 | `app/exhibitions/page.tsx`, `exhibition-card.tsx` | `ExhibitionListResult` | — |
-| 1.6, 1.7 | 取得失敗・0 件の表示 | `app/exhibitions/page.tsx` | `CmsResult` | 一覧取得 |
+| 1.1 | 公開済み企画をカードで表示 | `app/exhibitions/page.tsx`, `lib/exhibitions.ts` | `getExhibitionListData` | 一覧取得 |
+| 1.2 | 選択カテゴリごとの企画カード表示 | `lib/exhibitions.ts` | `toCards` | 一覧取得 |
+| 1.3, 1.4 | ID 昇順 × カテゴリ定義順・24 枚ページング | `lib/exhibitions.ts` | `paginate` | 一覧取得 |
+| 1.5, 1.6 | 総枚数・表示範囲・レスポンシブ配置 | `app/exhibitions/page.tsx`, `exhibition-card.tsx` | `ExhibitionListResult` | — |
+| 1.7, 1.8 | 取得失敗・0 件の表示 | `app/exhibitions/page.tsx` | `CmsResult` | 一覧取得 |
 | 2.1, 2.2 | キーワード照合と正規化 | `lib/exhibitions.ts` | `filterExhibitions`, `normalizeText` | 一覧取得 |
 | 2.3, 2.4, 2.5, 2.6 | カテゴリ・エリア (ステージ経由を含む) の絞り込みと AND 結合 | `lib/exhibitions.ts` | `filterExhibitions`, `ExhibitionSummary.areaIds` | 一覧取得 |
 | 2.7 | ファセット選択肢の構成 | `lib/exhibitions.ts`, `exhibition-filters.tsx` | `ExhibitionFacets`, `CATEGORY_LABELS` | 一覧取得 |
 | 2.8, 2.9 | 条件変更でページリセット・URL への反映 | `exhibition-filters.tsx`, `app/exhibitions/page.tsx` | `ExhibitionQuery`, `parseExhibitionQuery` | 一覧取得 |
 | 2.10, 2.11 | 0 件表示・ページ番号の丸め | `app/exhibitions/page.tsx`, `lib/exhibitions.ts` | `paginate` | 一覧取得 |
 | 3.1, 3.2, 3.3 | カード構成・サムネイル・画像なし表示 | `exhibition-card.tsx` | `ExhibitionCardProps` | — |
-| 3.4, 3.5, 3.6 | 決定的グラデーションと OKLCH 補間 | `lib/exhibition-color.ts` | `getExhibitionGradient` | — |
-| 3.7, 3.8 | コントラスト・枠線なし・hover の影 | `exhibition-card.tsx` | — | — |
-| 3.9, 3.10 | 詳細への遷移・他画面からの再利用 | `exhibition-card.tsx` | `ExhibitionCardProps` | — |
-| 4.1〜4.7 | 場所文字列の組み立て | `lib/exhibitions.ts` | `resolveLocation` | 一覧取得 |
-| 5.1〜5.5 | 詳細表示・ギャラリー・戻る導線 | `app/exhibitions/[id]/page.tsx`, `exhibition-gallery.tsx` | `getExhibitionDetail`, `ExhibitionDetail` | — |
-| 5.6 | OGP・ページ情報 | `app/exhibitions/[id]/page.tsx`, `app/layout.tsx` | `generateMetadata` | — |
-| 5.7, 5.8 | 不在・非公開は 404、取得失敗はエラー表示 | `app/exhibitions/[id]/page.tsx`, `lib/exhibitions.ts` | `ExhibitionDetailResult` | — |
-| 5.9 | ステージ文脈での表示名 | `lib/exhibitions.ts` | `ExhibitionSummary.stageName` | — |
+| 3.4 | カードの企画内容の企画名の表示 | `lib/exhibitions.ts` | `ExhibitionCardSummary.displayName` | — |
+| 3.5, 3.6, 3.7 | 決定的グラデーションと OKLCH 補間 (seed はカードの企画内容の企画名) | `lib/exhibition-color.ts` | `getExhibitionGradient` | — |
+| 3.8, 3.9 | コントラスト・枠線なし・hover の影 | `exhibition-card.tsx` | — | — |
+| 3.10, 3.11 | カテゴリ別詳細ページへの遷移・他画面からの再利用 | `exhibition-card.tsx` | `ExhibitionCardProps` | — |
+| 4.1〜4.6 | カードの文脈 (カードのカテゴリ) に応じた場所文字列の組み立て | `lib/exhibitions.ts` | `resolveLocationForCategory` | 一覧取得 |
+| 5.1 | URL の `category` に一致する企画内容の企画名・紹介文・写真・場所での表示 | `app/exhibitions/[id]/[category]/page.tsx`, `lib/exhibitions.ts` | `getExhibitionDetail`, `ExhibitionDetail` | — |
+| 5.2 | 選択している全カテゴリの一覧表示 | `app/exhibitions/[id]/[category]/page.tsx` | `ExhibitionDetail.categories` | — |
+| 5.3〜5.6 | ギャラリー・戻る導線 | `app/exhibitions/[id]/[category]/page.tsx`, `exhibition-gallery.tsx` | `ExhibitionDetail` | — |
+| 5.7 | OGP・ページ情報 | `app/exhibitions/[id]/[category]/page.tsx`, `app/layout.tsx` | `generateMetadata` | — |
+| 5.8, 5.9 | 不在・非公開・category を企画が選択していない場合は 404、取得失敗はエラー表示 | `app/exhibitions/[id]/[category]/page.tsx`, `lib/exhibitions.ts` | `ExhibitionDetailResult` | 詳細ページのカテゴリ解決 |
 | 6.1〜6.5 | リンクの表示・読み上げ名・新規タブ・0 件時 | `exhibition-links.tsx`, `sns-icon.tsx` | `ExhibitionLink`, `PLATFORM_LABELS` | — |
-| 7.1〜7.6 | CMS の入力欄・選択肢・URL 検証・権限・表記・移行不要 | `cms/src/collections/student-exhibitions.ts`, マイグレーション | `links` フィールド定義 | 移行手順 |
-| 7.7, 7.8 | 出演用の企画名と条件付き表示 | `cms/src/collections/student-exhibitions.ts` | `stage_name` フィールド定義 | 移行手順 |
+| 7.1, 7.2, 7.3 | CMS のリンク入力欄・選択肢・URL 検証 | `cms/src/collections/student-exhibitions.ts` | `links` フィールド定義 | 移行手順 |
+| 7.4 | 出展者のリンク・カテゴリ別企画内容編集権限の維持 | `cms/src/collections/student-exhibitions.ts` | アクセス制御 | 移行手順 |
+| 7.5, 7.6, 7.7, 7.8 | `categories` の複数選択・1 つ以上必須・選択カテゴリ連動の企画内容欄・企画名必須/紹介文・写真任意 | `cms/src/collections/student-exhibitions.ts` | `categories` フィールド定義, カテゴリ別企画内容欄 | 移行手順 |
+| 7.9 | 管理画面の表示名を団体名に変更 | `cms/src/collections/student-exhibitions.ts` | `admin.useAsTitle` | — |
+| 7.10 | スキーマ変更の適用条件 (本番 0 件) | `cms/src/collections/student-exhibitions.ts`, マイグレーション | — | 移行手順 |
 | 8.1〜8.4 | 共有と失敗時の案内 | `share-button.tsx` | `ShareButtonProps` | 共有分岐 |
 | 9.1〜9.4 | 背景色・グレー・本文コントラスト・見出し色の据え置き | `tailwind.config.ts` | テーマトークン | — |
 | 9.5, 9.6, 9.7 | アイコンセットと読み上げ除外 | `icons.tsx`, `sns-icon.tsx` | `IconProps` | — |
-| 10.1, 10.2, 10.3 | URL・整形処理・配色計算の再利用 | `app/exhibitions/[id]`, `lib/exhibitions.ts`, `lib/exhibition-color.ts` | 各 export, `GRADIENT_PALETTE` | — |
+| 10.1, 10.2, 10.3 | URL (id + category)・整形処理・配色計算の再利用 | `app/exhibitions/[id]/[category]`, `lib/exhibitions.ts`, `lib/exhibition-color.ts` | 各 export, `GRADIENT_PALETTE` | — |
 
 ## Components and Interfaces
 
 | Component | Domain/Layer | Intent | Req Coverage | Key Dependencies (P0/P1) | Contracts |
 |-----------|--------------|--------|--------------|--------------------------|-----------|
-| `lib/exhibitions.ts` | Data | CMS 取得・表示モデル整形・絞り込み・ページング | 1, 2, 4, 5, 10 | `lib/cms.ts` (P0), `cms-asset-url` (P1) | Service |
-| `lib/exhibition-color.ts` | Domain | 企画名からカード配色を決定的に導く | 3, 10 | なし | Service |
+| `lib/exhibitions.ts` | Data | CMS 取得・選択カテゴリのカード変換・表示モデル整形・絞り込み・ページング | 1, 2, 3, 4, 5, 10 | `lib/cms.ts` (P0), `cms-asset-url` (P1) | Service |
+| `lib/exhibition-color.ts` | Domain | カードの企画内容の企画名からカード配色を決定的に導く | 3, 10 | なし | Service |
 | `app/exhibitions/page.tsx` | UI | 一覧の描画と `searchParams` の解釈 | 1, 2 | `lib/exhibitions.ts` (P0) | State |
-| `app/exhibitions/[id]/page.tsx` | UI | 詳細の描画とメタデータ生成 | 5, 6, 10 | `lib/exhibitions.ts` (P0) | State |
+| `app/exhibitions/[id]/[category]/page.tsx` | UI | 詳細の描画とメタデータ生成 | 5, 6, 10 | `lib/exhibitions.ts` (P0) | State |
 | `components/exhibition-card.tsx` | UI | 企画カードの表示と遷移 | 1, 3, 4 | `lib/exhibition-color.ts` (P0) | — |
 | `components/exhibition-filters.tsx` | UI | 検索欄とファセットチップ、URL 更新 | 2 | `next/navigation` (P0) | State |
 | `components/exhibition-gallery.tsx` | UI | 写真の切り替え表示 | 5 | — | State |
@@ -273,7 +299,7 @@ flowchart TD
 | `components/exhibition-pagination.tsx` | UI | ページ送り | 1, 2 | — | — |
 | `components/share-button.tsx` | UI | 共有・コピーのフォールバック | 8 | ブラウザ API (P0) | State |
 | `components/icons.tsx` | UI | UI アイコンの供給 | 9 | — | — |
-| `cms/src/collections/student-exhibitions.ts` | CMS | `links` の構造化と表記 | 7 | Payload (P0) | Service |
+| `cms/src/collections/student-exhibitions.ts` | CMS | `categories` (複数選択) とカテゴリ別企画内容欄、`links` の構造化 | 7 | Payload (P0) | Service |
 
 ### Data / フロントエンド取得層
 
@@ -281,19 +307,20 @@ flowchart TD
 
 | Field | Detail |
 |-------|--------|
-| Intent | CMS から企画関連データを取得し、表示モデルへ整形したうえで絞り込みとページングを行う |
-| Requirements | 1.1, 1.2, 1.3, 1.4, 1.6, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.10, 2.11, 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 5.1, 5.7, 5.8, 5.9, 10.2 |
+| Intent | CMS から企画関連データを取得し、企画が選択しているカテゴリごとに企画カードへ変換・整形したうえで絞り込みとページングを行う |
+| Requirements | 1.1, 1.2, 1.3, 1.4, 1.5, 1.7, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.10, 2.11, 3.4, 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 5.1, 5.2, 5.8, 5.9, 10.2 |
 
 **Responsibilities & Constraints**
 
 - CMS 型 (`@/cms-types`) を表示モデルへ変換する唯一の場所。ページ・コンポーネントは CMS 型を直接扱わない。
-- 場所文字列・カテゴリ表示名・サムネイル URL・エリア ID 集合の決定を担う。
-- 絞り込みとページングは副作用のない純関数として切り出し、CMS 通信と分離する。
+- 企画レコードを企画カード (`ExhibitionCardSummary`) の配列へ変換する唯一の場所 (`toCards`)。企画は CMS 側で 1 つ以上のカテゴリ選択を保証しているため、空配列のフォールバックは持たない。
+- カードの文脈 (カードのカテゴリ) に応じた場所文字列・カテゴリ表示名・サムネイル URL・エリア ID 集合の決定を担う。
+- 絞り込みとページングは副作用のない純関数として切り出し、CMS 通信と分離する。カードへの変換後に絞り込みを行う。
 - 公開判定は CMS 側の access control に依存しつつ、明示的に `status=published` も送る。
 
 **Dependencies**
 
-- Inbound: `app/exhibitions/page.tsx`, `app/exhibitions/[id]/page.tsx` — データ取得 (P0)
+- Inbound: `app/exhibitions/page.tsx`, `app/exhibitions/[id]/[category]/page.tsx` — データ取得 (P0)
 - Outbound: `lib/cms.ts` — REST 取得 (P0) / `lib/cms-asset-url.ts` — 画像 URL (P1)
 - External: Payload REST API — `student_exhibitions` / `performance_slots` / `stages` / `map_areas` (P0)
 
@@ -303,6 +330,9 @@ flowchart TD
 
 ```typescript
 export type ExhibitionCategory = 'stage' | 'exhibit' | 'vendor' | 'other';
+
+/** カテゴリ選択肢の表示順・企画カードの並び順 (企画 ID 昇順の次のキー) */
+export const CATEGORY_VALUES: readonly ExhibitionCategory[] = ['stage', 'exhibit', 'vendor', 'other'];
 
 export interface ExhibitionImage {
   readonly id: string;
@@ -314,24 +344,30 @@ export interface ExhibitionLink {
   readonly url: string;
 }
 
-export interface ExhibitionSummary {
+/**
+ * 企画カード 1 枚分の表示モデル。1 企画レコードが選択しているカテゴリごとに
+ * 1 件の `ExhibitionCardSummary` を生成する (企画は CMS 側で 1 つ以上のカテゴリ選択を保証、要件 1.2)。
+ */
+export interface ExhibitionCardSummary {
   readonly id: number;
-  readonly name: string;
-  /** ステージ文脈での表示名。`stage_name` 未入力なら `name` と同じ値 (要件 5.9) */
-  readonly stageName: string;
+  /** このカードが表すカテゴリ (要件 1.2, 3.4) */
+  readonly category: ExhibitionCategory;
+  /** そのカテゴリの企画内容の企画名 (要件 3.4) */
+  readonly displayName: string;
   readonly organizationName: string;
-  readonly categories: readonly ExhibitionCategory[];
-  /** 表示用の場所文字列。未設定なら null (要件 4.6) */
+  /** カードの文脈 (category) に応じた場所文字列。未設定なら null (要件 4.5) */
   readonly location: string | null;
-  /** 絞り込み用。直接設定されたエリアと出演ステージ由来のエリアの和 (要件 2.5) */
+  /** 絞り込み用。直接設定されたエリアと出演ステージ由来のエリアの和 (要件 2.5)。カテゴリに関わらず企画単位で同じ値 */
   readonly areaIds: readonly number[];
   readonly thumbnail: ExhibitionImage | null;
 }
 
-export interface ExhibitionDetail extends ExhibitionSummary {
+export interface ExhibitionDetail extends ExhibitionCardSummary {
   readonly description: string | null;
   readonly images: readonly ExhibitionImage[];
   readonly links: readonly ExhibitionLink[];
+  /** この企画が選択している全カテゴリ (カテゴリ定義順)。詳細ページのカテゴリ一覧表示に使う (要件 5.2) */
+  readonly categories: readonly ExhibitionCategory[];
 }
 
 export interface AreaOption {
@@ -347,7 +383,8 @@ export interface ExhibitionQuery {
 }
 
 export interface ExhibitionListResult {
-  readonly items: readonly ExhibitionSummary[];
+  readonly items: readonly ExhibitionCardSummary[];
+  /** 一致した企画カードの総枚数 (要件 1.6) */
   readonly total: number;
   readonly page: number;
   readonly pageCount: number;
@@ -369,9 +406,9 @@ export function parseExhibitionQuery(
 export function normalizeText(value: string): string;
 
 export function filterExhibitions(
-  items: readonly ExhibitionSummary[],
+  items: readonly ExhibitionCardSummary[],
   query: ExhibitionQuery,
-): readonly ExhibitionSummary[];
+): readonly ExhibitionCardSummary[];
 
 export function paginate<T>(
   items: readonly T[],
@@ -383,26 +420,32 @@ export function paginate<T>(
 export function getExhibitionListData(query: ExhibitionQuery): Promise<ExhibitionListResult>;
 
 /**
- * 詳細ページ用の結果。不在・非公開 (missing) と取得失敗 (error) を必ず区別する。
- * 両者を null へ潰すと要件 5.8 (CMS 障害を 404 にしない) を満たせない。
+ * 詳細ページ用の結果。不在・非公開・URL の category をその企画が選択していない場合 (missing) と
+ * 取得失敗 (error) を必ず区別する。両者を null へ潰すと要件 5.9 (CMS 障害を 404 にしない) を満たせない。
  */
 export type ExhibitionDetailResult =
   | { readonly kind: 'found'; readonly value: ExhibitionDetail }
   | { readonly kind: 'missing' }
   | { readonly kind: 'error'; readonly error: CmsFetchError };
 
-export function getExhibitionDetail(id: number): Promise<ExhibitionDetailResult>;
+export function getExhibitionDetail(
+  id: number,
+  category: ExhibitionCategory,
+): Promise<ExhibitionDetailResult>;
 ```
 
 - `CmsFetchError` は `lib/cms.ts` が公開する判別可能ユニオン (`not_found` / `unauthorized` / `network`)。`not_found` と `unauthorized` (非公開レコードへの参照) を `missing`、それ以外を `error` へ写す。
-- Preconditions: `page` は 1 以上の整数へ正規化済みであること。`id` は数値であること。`parseExhibitionQuery` の入力は `await` 済みの `searchParams` であること (Next.js 15 では `searchParams` は Promise)。
-- Postconditions: `filterExhibitions` は入力の並び順 (ID 昇順) を保つ。`paginate` は範囲外のページを有効範囲へ丸めた `page` を返す。
-- Invariants: `ExhibitionSummary.areaIds` は重複を含まない。`location` は空文字を返さない (未設定は `null`)。
+- Preconditions: `page` は 1 以上の整数へ正規化済みであること。`id` は数値、`category` は `ExhibitionCategory` の値であること。`parseExhibitionQuery` の入力は `await` 済みの `searchParams` であること (Next.js 15 では `searchParams` は Promise)。
+- Postconditions: `filterExhibitions` は入力の並び順 (企画 ID 昇順 × カテゴリ定義順) を保つ。`paginate` は範囲外のページを有効範囲へ丸めた `page` を返す。`getExhibitionDetail` は URL の `category` をその企画が選択していない場合 `missing` を返す (要件 5.8)。
+- Invariants: `ExhibitionCardSummary.areaIds` は重複を含まない。`location` は空文字を返さない (未設定は `null`)。企画は CMS 側で 1 つ以上のカテゴリ選択を保証するため、企画カードが 0 枚になることはない。
 
 **Implementation Notes**
 
 - Integration: `student_exhibitions` / `performance_slots` / `stages` / `map_areas` を並列取得し、ID で結合する。join field には依存しない。一覧は `depth: 0` (owner を populate させない)、詳細は 1 件のみ `depth: 1` (画像の `alt` を得る)。
-- Integration: `stageName` は `stage_name` が空文字・null なら `name` を用いる (要件 5.9)。判定はこの層のみで行い、表示側は `stageName` をそのまま使う。
+- Integration: `toCards(record)` は内部関数で、カテゴリ定義順 (`CATEGORY_VALUES`) を走査し、`record.categories` に含まれるカテゴリだけを対象に、対応する企画内容欄 (`record[category]`) から `displayName` と `location` (`resolveLocationForCategory`、後述) を解決した `ExhibitionCardSummary` を生成する。エクスポートはしない (要件 1.2, 3.4)。
+- Integration: `resolveLocationForCategory(record, category, context)` は `category === 'stage'` なら出演ステージ名のみ (重複除去・連結)、それ以外ならエリア名 + ブース表示名のみを返す。エリアと出演枠のどちらを優先するかという分岐は持たない (要件 4.1〜4.5)。絞り込み用の `areaIds` (直接エリア + 出演ステージ由来エリアの和) は従来どおりカテゴリに関わらず算出する。この関数はカテゴリ別企画内容欄の内容に依存せず、団体単位のフィールド (`area_id` / `booth_label` / `performance_slots`) のみを参照する。
+- Integration: `getExhibitionListData` は取得 → `toCards` (企画ごとに選択カテゴリを展開) → `filterExhibitions` → `paginate` の順で処理する。
+- Integration: `getExhibitionDetail(id, category)` は 1 件取得後、`record.categories` に `category` が含まれるかを確認する。含まれなければ `missing` を返す。含まれる場合は対応する企画内容欄 (`record[category]`) から `ExhibitionCardSummary` 相当のフィールドを解決し、`categories` (選択している全カテゴリ、カテゴリ定義順) を付加して返す。
 - Validation: `parseExhibitionQuery` は未知のカテゴリ値・数値でないエリア ID・0 以下のページ番号を捨てる。
 - Risks: 企画数が数千規模になると全件取得が重くなる。閾値を超えたら CMS 側の絞り込みへ移行する (`research.md` 参照)。
 
@@ -410,12 +453,12 @@ export function getExhibitionDetail(id: number): Promise<ExhibitionDetailResult>
 
 | Field | Detail |
 |-------|--------|
-| Intent | 企画名からカード背景のグラデーション (2 色と角度) を決定的に導く |
-| Requirements | 3.4, 3.5, 3.6, 10.3 |
+| Intent | カードの表示名 (`ExhibitionCardSummary.displayName`) からカード背景のグラデーション (2 色と角度) を決定的に導く |
+| Requirements | 3.6, 3.7, 3.8, 10.3 |
 
 **Responsibilities & Constraints**
 
-- 入力は企画名のみ。時刻・乱数種・環境に依存しない。サーバーとクライアント、および Figma のモックで同じ結果を返す。
+- 入力はカードの表示名のみ。時刻・乱数種・環境に依存しない。サーバーとクライアント、および Figma のモックで同じ結果を返す。
 - 色は既存パレットの 7 色 (`primary` / `secondary` / `accent` / `accent-alt` / `info` / `success` / `warning`) に限定する。
 - 2 色は必ず異なる。角度は 0〜359 の整数。
 
@@ -445,11 +488,11 @@ export interface ExhibitionGradient {
   readonly angle: number;
 }
 
-export function getExhibitionGradient(name: string): ExhibitionGradient;
+export function getExhibitionGradient(displayName: string): ExhibitionGradient;
 ```
 
 - アルゴリズム (Figma のモックと同一、変更は Revalidation Trigger):
-  1. 企画名の UTF-16 コードユニット列に対し FNV-1a 32bit (offset `2166136261`、prime `16777619`、`Math.imul`、最後に `>>> 0`) を適用して種を得る。
+  1. 表示名 (カードのカテゴリに対応する企画内容の企画名) の UTF-16 コードユニット列に対し FNV-1a 32bit (offset `2166136261`、prime `16777619`、`Math.imul`、最後に `>>> 0`) を適用して種を得る。
   2. 種を mulberry32 に与え、1 回目の乱数でパレット 7 色から `from` を選ぶ。
   3. 2 回目の乱数で `from` を除いた 6 色から `to` を選ぶ。
   4. 3 回目の乱数で角度 (0〜359 の整数) を決める。
@@ -461,7 +504,7 @@ export function getExhibitionGradient(name: string): ExhibitionGradient;
 
 **Implementation Notes**
 
-- Validation: 空文字の企画名でも決定的に配色を返す。
+- Validation: 空文字の表示名でも決定的に配色を返す。
 - Risks: パレットや手順を変えると既存の配色がすべて変わる。変更時は依存 spec へ通知する。
 - Risks: `GRADIENT_PALETTE` と `tailwind.config.ts` の値が二重管理になる。片方だけ変えた場合に落ちる単体テストで担保する。
 
@@ -472,7 +515,7 @@ export function getExhibitionGradient(name: string): ExhibitionGradient;
 | Field | Detail |
 |-------|--------|
 | Intent | 一覧ページ。`searchParams` を解釈し、取得結果をカード・ファセット・ページ送りへ配る |
-| Requirements | 1.1, 1.3, 1.4, 1.5, 1.6, 1.7, 2.8, 2.9, 2.10, 2.11 |
+| Requirements | 1.1, 1.4, 1.5, 1.6, 1.7, 1.8, 2.8, 2.9, 2.10, 2.11 |
 
 **Contracts**: Service [ ] / API [ ] / Event [ ] / Batch [ ] / State [x]
 
@@ -487,27 +530,28 @@ export function getExhibitionGradient(name: string): ExhibitionGradient;
 - Integration: 取得失敗は `getExhibitionListData` の例外を捕捉してエラー表示に切り替える (空一覧にしない)。
 - Validation: `page` が範囲外なら `paginate` が丸めた結果を表示する。
 
-#### `app/exhibitions/[id]/page.tsx`
+#### `app/exhibitions/[id]/[category]/page.tsx`
 
 | Field | Detail |
 |-------|--------|
 | Intent | 詳細ページ。取得結果の種別で表示を分岐し、メタデータを生成する |
-| Requirements | 5.1, 5.5, 5.6, 5.7, 5.8, 10.1 |
+| Requirements | 5.1, 5.2, 5.6, 5.7, 5.8, 5.9, 10.1 |
 
 **Contracts**: Service [ ] / API [ ] / Event [ ] / Batch [ ] / State [x]
 
 ##### State Management
 
-- State model: ルートパラメータ `id` のみ。`params` も Next.js 15 では Promise で渡るため `await` する。
+- State model: ルートパラメータ `id` と `category` のみ。`params` は Next.js 15 では Promise で渡るため `await` する。
 - Persistence & consistency: 取得は毎リクエスト実行する。
 - Concurrency strategy: なし (単一取得)。
 
 **Implementation Notes**
 
-- Integration: `getExhibitionDetail(id)` の結果で分岐する。`missing` → `notFound()` (要件 5.7)、`error` → 取得失敗の表示 (要件 5.8)、`found` → 通常描画。`generateMetadata` も同じ分岐に従い、`error` のときは既定のメタデータのみを返す。
+- Integration: `category` が `ExhibitionCategory` の既知の値でなければ `id` の解決を待たずに `notFound()` とする。既知の値であれば `getExhibitionDetail(id, category)` の結果で分岐する。`missing` (存在しない・非公開・その企画が `category` を持たない、のいずれか) → `notFound()` (要件 5.8)、`error` → 取得失敗の表示 (要件 5.9)、`found` → 通常描画。`generateMetadata` も同じ分岐に従い、`error` のときは既定のメタデータのみを返す。
 - Validation: `id` が数値に解釈できない場合は `missing` と同じ扱いにする。
-- OGP (要件 5.6):
-  - `title` は企画名、`description` は `description` の先頭を用い、未入力なら「<出展団体名> の企画」を代替とする。
+- Integration: 見出しの企画名・場所は `ExhibitionDetail`(= URL の `category` に対応する企画内容で解決済みの `ExhibitionCardSummary` を拡張したもの) の `displayName` / `location` をそのまま使う。カテゴリの一覧表示には `ExhibitionDetail.categories` (選択している全カテゴリ、カテゴリ定義順) を使う (要件 5.2)。
+- OGP (要件 5.7):
+  - `title` は `displayName` (URL の `category` に応じた企画名)、`description` は `description` の先頭を用い、未入力なら「<出展団体名> の企画」を代替とする。
   - `og:image` は先頭画像の `card` (960) サイズの URL。画像が無い企画ではサイト既定の画像を用いる。
   - `toAssetUrl` が返すのは `NEXT_PUBLIC_CMS_URL` を含む絶対 URL のため `metadataBase` では解決されない。`metadataBase` は `og:url` など相対値のメタデータのために設定する。
   - `twitter:card` は `summary_large_image` とする。画像の高さは派生サイズから一意に決まらないため `og:image:width` / `height` は付与しない。
@@ -539,19 +583,20 @@ export interface ExhibitionFiltersProps {
 | Field | Detail |
 |-------|--------|
 | Intent | 企画カードの表示。一覧以外 (構内マップ・サイネージ) からも同じ見た目で使う |
-| Requirements | 3.1, 3.2, 3.3, 3.7, 3.8, 3.9, 3.10, 4.1, 4.2 |
+| Requirements | 3.1, 3.2, 3.3, 3.8, 3.9, 3.10, 3.11 |
 
 ```typescript
 export interface ExhibitionCardProps {
-  readonly exhibition: ExhibitionSummary;
+  readonly exhibition: ExhibitionCardSummary;
 }
 ```
 
 **Implementation Notes**
 
-- Integration: `getExhibitionGradient(exhibition.name)` が返す色値と角度をインラインのカスタムプロパティで渡し、`globals.css` のクラスが素のグラデーションと `@supports` 下の OKLCH 版を 2 段で宣言する (`lib/exhibition-color.ts` の描画側の契約を参照)。
+- Integration: 遷移先は `/exhibitions/${exhibition.id}/${exhibition.category}` (要件 3.11)。`exhibition.displayName` / `exhibition.location` はすでにカードのカテゴリに応じて解決済みの値であり、コンポーネント側で名前や場所の選択ロジックは持たない。
+- Integration: `getExhibitionGradient(exhibition.displayName)` が返す色値と角度をインラインのカスタムプロパティで渡し、`globals.css` のクラスが素のグラデーションと `@supports` 下の OKLCH 版を 2 段で宣言する (`lib/exhibition-color.ts` の描画側の契約を参照)。
 - Validation: サムネイルが無い場合はグレーの領域と画像なしアイコンを表示する (要件 3.3)。
-- Risks: 企画名が 2 行になるとカードの高さが伸びる。グリッドの `stretch` で行内の高さを揃える。
+- Risks: 表示名が 2 行になるとカードの高さが伸びる。グリッドの `stretch` で行内の高さを揃える。
 
 #### `components/exhibition-gallery.tsx` / `exhibition-links.tsx` / `exhibition-pagination.tsx`
 
@@ -573,7 +618,7 @@ export interface ExhibitionPaginationProps {
 }
 ```
 
-- ギャラリーは選択中の画像インデックスのみをローカル状態に持つ (要件 5.3)。画像が 0 件ならサムネイル列を描画しない (要件 5.4)。
+- ギャラリーは選択中の画像インデックスのみをローカル状態に持つ (要件 5.4)。画像が 0 件ならサムネイル列を描画しない (要件 5.5)。
 - リンクは 0 件なら欄ごと描画しない (要件 6.5)。各リンクは `target="_blank" rel="noopener noreferrer"` とし、読み上げ用の名前を `aria-label` で与える (要件 6.3, 6.4)。
 - `PLATFORM_LABELS` はプラットフォーム値から読み上げ名 (例: `x` → 「X」、`website` → 「公式サイト」) を返す定数とする。
 
@@ -629,13 +674,16 @@ export interface IconProps {
 
 | Field | Detail |
 |-------|--------|
-| Intent | `links` を構造化した配列フィールドへ変更し、`stage_name` を追加し、`description` の管理画面表記を改める |
-| Requirements | 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8 |
+| Intent | 企画のカテゴリを複数選択フィールドとして提供し、選択したカテゴリごとに条件表示される企画内容欄 (企画名・紹介文・写真) を提供する。あわせて `links` を構造化した配列フィールドとして提供する |
+| Requirements | 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8, 7.9, 7.10 |
 
 **Responsibilities & Constraints**
 
 - 出展者が行単位でリンクを追加・削除・並べ替えできること。
 - `https://` で始まらない URL を保存させない。
+- カテゴリを 1 つも選択していない企画は保存できないこと。
+- 選択されているカテゴリの企画内容欄で企画名が入力されていない企画は保存できないこと。
+- カテゴリ別の企画内容欄は、対応するカテゴリが選択されているときだけ管理画面に表示すること。一括編集ではカテゴリの選択有無に関わらず候補に出ないこと (`disableBulkEdit`)。
 - 既存の access control (`payload-access.ts` 経由) と `owner` の扱いを変更しない。
 
 **Contracts**: Service [x] / API [ ] / Event [ ] / Batch [ ] / State [ ]
@@ -649,74 +697,87 @@ export interface ExhibitionLinkRow {
     | 'x' | 'instagram' | 'facebook' | 'youtube' | 'tiktok' | 'line' | 'website';
   readonly url: string;
 }
+
+/** カテゴリ別企画内容欄 (group field) の中身。カテゴリごとに企画名・紹介文・写真を個別に持つ */
+export interface ExhibitionCategoryContent {
+  readonly name: string;
+  readonly description: string | null;
+  readonly images: readonly string[];
+}
 ```
 
 - フィールド定義: `name: 'links'`, `type: 'array'`, 行は `platform` (`select`, required, 上記 7 値) と `url` (`text`, required)。
 - `url` の `validate` は `https://` で始まる解釈可能な URL のみを通し、それ以外は日本語の理由を返す (要件 7.3)。
-- `description` の `admin.description` を「企画の紹介文」に改める。DB スキーマは変わらない (要件 7.5)。
-- フィールド定義: `name: 'stage_name'`, `type: 'text'`, 任意, `maxLength: 255`。`admin.condition` で `category` に `stage` が含まれるときだけ表示する (要件 7.7, 7.8)。既存フィールドを変えない純粋な追加のため、`cms-schema-check` の破壊的変更には当たらない。
+- フィールド定義: `name: 'categories'`, `type: 'select'`, `hasMany: true`, `required: true`, `minRows: 1` (要件 7.5)。選択肢は 4 値 (`stage` / `exhibit` / `vendor` / `other`)。上限は設けない。
+- フィールド定義: カテゴリごとに 1 つの group field (`name: 'stage' | 'exhibit' | 'vendor' | 'other'`)。`admin.condition` で `categories` に対応する値が含まれるときだけ表示し、`admin.disableBulkEdit: true` を付与する (要件 7.6)。各 group は `name` (`text`, `maxLength: 255`)、`description` (`textarea`, 任意)、`images` (`upload` to `media`, `hasMany`, 任意, 最大 5 枚) を持つ。Payload の `required` は `admin.condition` と連動せず、非表示の欄が必須のままだと保存できなくなるため `name` を Payload レベルでは必須にしない (要件 7.7)。
+- コレクションの `hooks.beforeValidate` で、選択されている各カテゴリについて対応する group の `name` が空でないことを検証し、空であれば `ValidationError` を投げて保存を拒否する (要件 7.8)。複数選択の `categories` は同じ値を二重に選択できないため、カテゴリ重複を検出するバリデーションは持たない。
+- `admin.useAsTitle` を `organization_name` に変更する (要件 7.9)。
 
 **Implementation Notes**
 
-- Integration: Payload の array field は子テーブル (`student_exhibitions_links`) を作る。マイグレーションで旧 `links` (jsonb) カラムを落とし、子テーブルを作成する。
-- Validation: 表示名フィールドは持たない (要件 6.2 によりアイコンのみで表示する)。
-- Risks: `cms-schema-check` が型変更を破壊的変更として検出する。本番 0 件のため `breaking-change-acknowledged` ラベルで通す。
+- Integration: `categories` (`select`, `hasMany: true`) は Payload の postgres アダプタで専用の子テーブルに格納される。カテゴリ別の企画内容欄 (group field) の `name` / `description` は親テーブルへ列として展開され (例: `stage_name`, `stage_description`)、子テーブルは作らない。`images` (group 内の `upload`, `hasMany: true`) は Payload の共有リレーションテーブルにパス付きで格納される。マイグレーションで旧 `entries` 用の子テーブルを廃止し、上記の構造を新設する。
+- Validation: `links` は表示名フィールドを持たない (要件 6.2 によりアイコンのみで表示する)。
+- Risks: `cms-schema-check` がフィールド削除・型変更を破壊的変更として検出する。本番 0 件のため `breaking-change-acknowledged` ラベルで通す (要件 7.10)。
 
 ## Data Models
 
 ### Domain Model
 
-- **企画 (Exhibition)**: 集約ルート。`owner` と 1 対 1 (UNIQUE 制約は維持)。カテゴリを複数持ち、出店と出演を兼ねる団体はカテゴリの複数選択で表す。名前は通常の企画名 (`name`) と、ステージ文脈でのみ使う `stage_name` の 2 つを持ちうる。`stage_name` が空なら `name` が両方の文脈を兼ねる。
-- **リンク (ExhibitionLink)**: 企画に従属する値オブジェクトの並び。順序が表示順を決める。単独では存在しない。
-- **場所**: 企画が直接持つエリア (`area_id` + `booth_label`) と、出演枠経由のステージ (`performance_slots` → `stages`) の 2 系統から導出する。導出規則はフロントエンドの `resolveLocation` が唯一の実装。
-  - エリアと出演枠の双方があればエリアを優先する (要件 4.3)。
-  - 複数ステージに出演する場合は重複を除いて連ねる (要件 4.4)。
-  - ブース表示名が無ければエリア名のみ (要件 4.5)。
-  - どちらも無ければ場所を表示しない (要件 4.6)。
+- **企画 (Exhibition)**: 集約ルート。`owner` と 1 対 1 (UNIQUE 制約は維持)。出店と出演を兼ねる団体はカテゴリを複数選択することで表す。表示層では企画が選択しているカテゴリがそのまま企画カードになる (選択カテゴリ 1 件 = カード 1 枚)。この写像は表示層の関心事であり、複数選択の性質上カテゴリの重複は構造的に発生しない。集約としての企画は常に 1 レコードのままである。
+- **カテゴリ別企画内容 (ExhibitionCategoryContent)**: 企画に従属する値オブジェクト。カテゴリごとに企画名・紹介文・写真を 1 組で持つ。対応するカテゴリが選択されているときだけ意味を持ち、企画名を必須とする。単独では存在しない。
+- **リンク (ExhibitionLink)**: 企画に従属する値オブジェクトの並び。団体単位で持ち、カテゴリ別企画内容とは独立する。順序が表示順を決める。単独では存在しない。
+- **場所**: 企画が直接持つエリア (`area_id` + `booth_label`) と、出演枠経由のステージ (`performance_slots` → `stages`) の 2 系統から導出する。どちらの系統を使うかはカードの文脈 (カテゴリ) が決め、両者を混在させることはない。導出規則はフロントエンドの `resolveLocationForCategory` が唯一の実装。
+  - カードのカテゴリが「ステージ」の場合、出演ステージ経由の場所のみを使う。複数ステージに出演する場合は重複を除いて連ねる (要件 4.1, 4.2)。
+  - カードのカテゴリが「ステージ」以外の場合、エリア経由の場所のみを使う。ブース表示名が無ければエリア名のみ (要件 4.3, 4.4)。
+  - カードの文脈に対応する場所情報が無ければ場所を表示しない (要件 4.5)。
+  - 絞り込み用の `areaIds` (要件 2.5) は、カテゴリに関わらず直接エリアと出演ステージ由来エリアの和として算出する。これは場所の表示とは別の関心事。
 
 ### Logical Data Model
 
 ```mermaid
 erDiagram
   STUDENT_EXHIBITIONS ||--o{ STUDENT_EXHIBITIONS_LINKS : has
+  STUDENT_EXHIBITIONS ||--o{ STUDENT_EXHIBITIONS_CATEGORIES : has
+  STUDENT_EXHIBITIONS }o--o{ MEDIA : category_images
   STUDENT_EXHIBITIONS }o--o| MAP_AREAS : placed_in
   STUDENT_EXHIBITIONS ||--o{ PERFORMANCE_SLOTS : performs
   PERFORMANCE_SLOTS }o--|| STAGES : on
   STAGES }o--o| MAP_AREAS : located_in
-  STUDENT_EXHIBITIONS }o--o{ MEDIA : images
 ```
 
 - `student_exhibitions_links` は `id` / 親 ID / `_order` / `platform` / `url` を持つ (Payload の array field 標準構造)。親削除時はカスケード削除される。
-- 参照整合性・カスケードは Payload の既定に従い、本 spec で独自の制約は追加しない。
+- `student_exhibitions_categories` は `id` / 親 ID / `_order` / `value` を持つ (Payload の select `hasMany` field 標準構造)。親削除時はカスケード削除される。
+- カテゴリ別企画内容の `name` / `description` は `student_exhibitions` テーブルへカテゴリごとの列として直接持つ (group field は子テーブルを作らない)。`images` (group 内の hasMany upload) は Payload の共有リレーションテーブルにパス付きの行として持ち、親削除時はカスケード削除される。
+- 参照整合性・カスケードは Payload の既定に従い、本 spec で独自の制約は追加しない。選択カテゴリの企画名必須チェックは DB 制約ではなくアプリケーション側 (`beforeValidate`) で担保する。
 
 ### Physical Data Model
 
-- `student_exhibitions` の `links` (`jsonb`) カラムを削除し、子テーブル `student_exhibitions_links` を追加する。あわせて `stage_name` (`varchar`, NULL 許容) カラムを追加する。
-- インデックスは親 ID に対する既定のもののみ。リンクは常に親経由で読むため追加しない。
-- 本番は 0 件のため、`up` でのデータ移行処理は不要。`down` は旧 `jsonb` カラムと `stage_name` の削除を復元するが、**パイプライン上に `down` を自動実行する経路は無い** (下記 Migration Strategy のロールバック手順を参照)。
+- `student_exhibitions` の子テーブルだった `student_exhibitions_entries` (旧カテゴリ別エントリー配列) を廃止する。代わりに `categories` の子テーブル `student_exhibitions_categories` を追加し、カテゴリごとの企画名・紹介文カラム (`stage_name` / `stage_description` / `exhibit_name` / `exhibit_description` / `vendor_name` / `vendor_description` / `other_name` / `other_description`) を `student_exhibitions` へ直接追加する。`links` (`jsonb`) カラムを削除し、子テーブル `student_exhibitions_links` を追加する。
+- インデックスは親 ID に対する既定のもののみ。カテゴリ・リンクは常に親経由で読むため追加しない。
+- 本番は 0 件のため、`up` でのデータ移行処理は不要。`down` は削除したカラムを復元するが、**パイプライン上に `down` を自動実行する経路は無い** (下記 Migration Strategy のロールバック手順を参照)。
 
 ### Data Contracts & Integration
 
 - フロントエンドは Payload REST の JSON をそのまま受け取り、`lib/exhibitions.ts` で表示モデルへ変換する。API の追加・変更は行わない。
-- `links` は `depth` に関わらず親ドキュメントに配列として含まれる。
+- `categories` はカテゴリ値の配列、カテゴリ別企画内容欄はカテゴリ名をキーとするオブジェクト、`links` は配列として、いずれも `depth` に関わらず親ドキュメントに含まれる。
 - 画像は ID のみを表示モデルに保持し、URL は `toAssetUrl(id, width)` が組み立てる。
 
 ## Error Handling
 
 ### Error Strategy
 
-CMS 通信の失敗は `CmsResult` の判別可能なユニオンで表現し、ページ側で表示に変換する。一覧は取得層の関数境界で例外を投げ、ページが捕捉する (既存 topics / announcements と同じ規約)。詳細は `ExhibitionDetailResult` で「不在・非公開 (`missing`)」と「取得失敗 (`error`)」を区別したまま返す。既存の `lib/topics.ts` は両者を `null` に潰しているが、本 spec は要件 5.8 があるためこの規約を踏襲しない。
+CMS 通信の失敗は `CmsResult` の判別可能なユニオンで表現し、ページ側で表示に変換する。一覧は取得層の関数境界で例外を投げ、ページが捕捉する (既存 topics / announcements と同じ規約)。詳細は `ExhibitionDetailResult` で「不在・非公開・category 不一致 (`missing`)」と「取得失敗 (`error`)」を区別したまま返す。既存の `lib/topics.ts` は両者を `null` に潰しているが、本 spec は要件 5.9 があるためこの規約を踏襲しない。
 
 ### Error Categories and Responses
 
 - **利用者起因 (4xx 相当)**:
-  - 存在しない ID・非公開の企画 → `notFound()` で「ページが見つからない」表示 (要件 5.7)。
+  - 存在しない ID・非公開の企画・URL の `category` をその企画が選択していない場合 → `notFound()` で「ページが見つからない」表示 (要件 5.8)。
   - 範囲外のページ番号 → 有効なページへ丸めて表示する (要件 2.11)。
   - 不正なクエリ値 (未知のカテゴリ・数値でないエリア ID・カンマ区切り中の空要素) → 無視して既定値で描画する。
 - **システム起因 (5xx 相当)**:
-  - CMS が不通・エラー応答 → 一覧は取得失敗の表示 (要件 1.6)、詳細は取得失敗の表示 (要件 5.8)。空一覧や 404 として扱わない。
+  - CMS が不通・エラー応答 → 一覧は取得失敗の表示 (要件 1.7)、詳細は取得失敗の表示 (要件 5.9)。空一覧や 404 として扱わない。
 - **業務ルール**:
-  - 公開済み企画が 0 件 → 「企画がまだ公開されていない」旨を表示する (要件 1.7)。
+  - 公開済み企画が 0 件 → 「企画がまだ公開されていない」旨を表示する (要件 1.8)。
   - 条件に一致する企画が 0 件 → 「該当する企画がない」旨を表示する (要件 2.10)。
   - CMS の URL 検証違反 → 保存を拒否し、理由を日本語で表示する (要件 7.3)。
 - **ブラウザ API**:
@@ -731,20 +792,21 @@ CMS 取得失敗時はサーバー側のログに残す。新しい監視基盤�
 
 ### Unit Tests
 
-- `getExhibitionGradient` — 同じ企画名が常に同じ配色を返すこと、2 色が必ず異なること、角度が 0〜359 の整数であること、Figma のモックと同じ既知の組み合わせを返すこと。
+- `getExhibitionGradient` — 同じ表示名が常に同じ配色を返すこと、2 色が必ず異なること、角度が 0〜359 の整数であること、Figma のモックと同じ既知の組み合わせを返すこと。
 - `GRADIENT_PALETTE` — 全 7 トークンの色値が `tailwind.config.ts` の対応する値と一致すること (二重管理の検出)。
-- `resolveStageName` 相当 — `stage_name` があればそれを、空・null なら `name` を `stageName` に載せること (要件 5.9)。
-- `normalizeText` / `filterExhibitions` — 全角・半角・大文字小文字をまたいだ一致、企画名と団体名の OR 照合、カテゴリとエリアの AND 結合。
+- `toCards` — 企画が選択しているカテゴリの数だけカードが生成されること、生成順が企画 ID 昇順 × カテゴリ定義順になること、各カードの表示名が対応するカテゴリの企画内容の企画名になること (要件 1.2, 3.4)。
+- `normalizeText` / `filterExhibitions` — 全角・半角・大文字小文字をまたいだ一致、カードの表示名と団体名の OR 照合、カテゴリとエリアの AND 結合。
 - `filterExhibitions` (エリア) — 直接設定されたエリアと、出演ステージ由来のエリアの双方で一致すること。
 - `paginate` — 24 件区切り、範囲外ページの丸め、総ページ数の算出。
-- `resolveLocation` — エリア優先、複数ステージの連結、ブース名なし、いずれも無い場合。
+- `resolveLocationForCategory` — `stage` のカードは出演ステージ名のみ (複数ステージの連結を含む)、それ以外のカードはエリア名 + ブース表示名のみを返すこと、対応する場所情報が無ければ `null` になること。
+- CMS: カテゴリを 1 つも選択していない企画が保存できないこと、選択したカテゴリの企画名が空の企画が保存できないこと (`cms/src/collections/*.test.ts`)。
 
 ### Integration Tests
 
-- `getExhibitionListData` — 4 本の取得結果を結合して表示モデルを組み立てること (CMS クライアントをモックする)。
+- `getExhibitionListData` — 4 本の取得結果を結合し `toCards` でカードへ変換した表示モデルを組み立てること (CMS クライアントをモックする)。
 - `getExhibitionListData` — いずれかの取得が失敗した場合に例外を投げること。
-- `getExhibitionDetail` — 不在・非公開は `missing`、CMS 不通・5xx は `error` を返し、両者を取り違えないこと。
-- `app/exhibitions/[id]/page.tsx` — `missing` で 404、`error` で取得失敗の表示になること (取得失敗を 404 にしないこと)。
+- `getExhibitionDetail` — 不在・非公開・URL の `category` をその企画が選択していない場合は `missing`、CMS 不通・5xx は `error` を返し、両者を取り違えないこと。
+- `app/exhibitions/[id]/[category]/page.tsx` — `missing` (`category` が未知の値、またはその企画が持たない場合を含む) で 404、`error` で取得失敗の表示になること (取得失敗を 404 にしないこと)。
 - `app/exhibitions/page.tsx` — 取得失敗時にエラー表示、0 件時に該当なし表示を出すこと。
 - CMS: `links` の `validate` が `https://` 以外を拒否すること (`cms/src/collections/*.test.ts`)。
 
@@ -752,20 +814,21 @@ CMS 取得失敗時はサーバー側のログに残す。新しい監視基盤�
 
 `frontend/e2e/exhibitions.spec.ts` (冒頭に依存コレクションを明記し、`beforeAll` で `checkCmsReachable` を呼ぶ)。
 
-- 一覧から企画カードを選択して詳細ページへ遷移できること。
+- 一覧から企画カードを選択すると、そのカードの `category` に対応する詳細ページ (`/exhibitions/[id]/[category]`) へ遷移できること。
+- 複数のカテゴリを選択している企画が一覧で複数枚のカードとして表示されること。
 - 検索・カテゴリ絞り込みの結果が URL に反映され、同じ URL を開き直すと同じ結果になること。
 - 存在しない ID の詳細ページが 404 を返すこと。
 
 ### アクセシビリティ・表示の検証
 
 - 背景色を `#fbf8f3` に変更した後、既存ページを含む本文テキストの色 (`text`、`gray-500` / `gray-600` など) とのコントラスト比を実測し、4.5:1 以上であることを確認する (要件 9.3)。下回る階調があれば `tailwind.config.ts` の値を 1 段暗い側へ寄せる。見出し色 `primary` は対象外 (要件 9.4)。
-- カード背景のコントラスト (文字 4.5:1、アイコン 3:1) は、パレット 7 色の全組み合わせを OKLCH 補間 + 白 30% で評価して確認する (要件 3.7)。
+- カード背景のコントラスト (文字 4.5:1、アイコン 3:1) は、パレット 7 色の全組み合わせを OKLCH 補間 + 白 30% で評価して確認する (要件 3.8)。
 
 ## Migration Strategy
 
 ```mermaid
 flowchart TD
-  A[本番 student_exhibitions が 0 件であることを再確認] --> B[定義変更: links を array へ / stage_name 追加]
+  A[本番 student_exhibitions が 0 件であることを再確認] --> B[定義変更: categories の複数選択化 / カテゴリ別企画内容欄の新設 / links を array へ]
   B --> B2[pnpm generate:types で payload-types.ts と cms-types.ts を再生成]
   B2 --> C[pnpm migrate:create でマイグレーション生成・index.ts へ登録]
   C --> D[PR: CMS 定義 + 生成型 + マイグレーション + フロントエンド実装]
@@ -775,14 +838,14 @@ flowchart TD
   G --> H[ArgoCD PreSync で payload migrate → Deployment 更新]
 ```
 
-- 適用時の停止時間: PreSync Job (`cms-migrate`, namespace `prod`) は Deployment の更新より前に走る。旧 `links` カラムを DROP した時点から新イメージの Pod に入れ替わるまでの間、旧イメージの Pod は `student_exhibitions` を読めない (存在しないカラムを SELECT するため)。本番は 0 件でデータ損失は無いが、この間は CMS 管理画面と企画関連の参照が失敗する。祭期間中・告知直後を避けて適用する。
-- ロールバックの引き金: マイグレーション失敗、管理画面でリンクを保存できない、一覧・詳細が表示できない。
+- 適用時の停止時間: PreSync Job (`cms-migrate`, namespace `prod`) は Deployment の更新より前に走る。旧カラムを DROP した時点から新イメージの Pod に入れ替わるまでの間、旧イメージの Pod は `student_exhibitions` を読めない (存在しないカラムを SELECT するため)。本番は 0 件でデータ損失は無いが、この間は CMS 管理画面と企画関連の参照が失敗する。祭期間中・告知直後を避けて適用する。
+- ロールバックの引き金: マイグレーション失敗、管理画面でカテゴリ・企画内容・リンクを保存できない、一覧・詳細が表示できない。
 - ロールバック手順 (自動経路は無い): `cms-migrate` Job は `payload migrate` (up) 固定で、`cms-ci.yml` も up のみ。infra のタグを戻しても DB は新スキーマのままなので CMS は復旧しない。`down` は同じ migrator イメージで手動実行する。
   1. `make kubectl ARGS="-n prod get job cms-migrate -o yaml"` で直前に適用されたイメージタグを確認する。
   2. 同じイメージ (`ghcr.io/aramakisai/aramakisai-cms-migrate:<tag>`) を `command: [node_modules/.bin/payload, migrate:down]`、`envFrom: cms-secrets` で 1 回だけ実行する Job を `make kubectl ARGS="-n prod create -f -"` で流す。
   3. `down` 完了後に infra のイメージタグを直前のものへ戻す PR を出し、ArgoCD に同期させる。
-- 検証ポイント: マイグレーション後に `student_exhibitions_links` と `stage_name` が存在すること、管理画面でリンクを登録・並べ替えできること、`https://` 以外が拒否されること、カテゴリに「ステージ」を含むときだけ `stage_name` が表示されること。
-- 本番にレコードが存在する状態に変わっていた場合は、ラベル付与を止めて移行手順を設計し直す (要件 7.6)。
+- 検証ポイント: マイグレーション後に `student_exhibitions_categories` と `student_exhibitions_links` が存在し、カテゴリ別企画内容欄の列が `student_exhibitions` に存在すること、管理画面でカテゴリの複数選択とリンクの登録・並べ替えができ、選択したカテゴリの企画内容欄だけが表示されること、`https://` 以外の URL とカテゴリ 0 件・企画名未入力が拒否されること、企画一覧の表示名が団体名になっていること。
+- 本番にレコードが存在する状態に変わっていた場合は、ラベル付与を止めて移行手順を設計し直す (要件 7.10)。
 
 ## Performance & Scalability
 
