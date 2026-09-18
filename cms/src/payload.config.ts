@@ -48,6 +48,10 @@ export default buildConfig({
   secret: requireEnv('PAYLOAD_SECRET'),
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
+    // 自動生成は dev/test/build のプロセスをそのまま引き継いで走るため、S3 を無効にした
+    // ローカル環境では s3Storage が注入する media.prefix を欠いた型を書き戻してしまう。
+    // 生成は常にダミーの S3 設定を与える pnpm generate:types からのみ行う
+    autoGenerate: false,
   },
   db: postgresAdapter({
     pool: { connectionString: requireEnv('DATABASE_URL') },
