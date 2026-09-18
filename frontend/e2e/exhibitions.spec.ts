@@ -56,7 +56,9 @@ async function findMultiEntryCards(
   page: Page,
 ): Promise<ExhibitionCardInfo[] | null> {
   const cardsById = await collectCardsById(page);
-  return Array.from(cardsById.values()).find((cards) => cards.length >= 2) ?? null;
+  return (
+    Array.from(cardsById.values()).find((cards) => cards.length >= 2) ?? null
+  );
 }
 
 test.describe('企画一覧→企画詳細', () => {
@@ -164,12 +166,14 @@ test.describe('企画一覧→企画詳細', () => {
       await expect(page).toHaveURL(new RegExp(`${card.href}$`));
 
       // 詳細ページの企画名は、遷移元カードのカテゴリ別企画内容の企画名と一致する
-      await expect(
-        page.getByRole('heading', { level: 1 }),
-      ).toHaveText(card.displayName);
+      await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+        card.displayName,
+      );
 
       if (card.hasPhoto) {
-        await expect(page.locator('main').getByRole('img').first()).toBeVisible();
+        await expect(
+          page.locator('main').getByRole('img').first(),
+        ).toBeVisible();
         await expect(page.getByTestId('icon-hide-image')).toHaveCount(0);
       } else {
         await expect(page.getByTestId('icon-hide-image')).toBeVisible();

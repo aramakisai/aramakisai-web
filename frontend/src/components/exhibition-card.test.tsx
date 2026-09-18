@@ -12,7 +12,10 @@ vi.mock('@/lib/cms-asset-url', () => ({
 vi.mock('@/lib/exhibition-color', async (importOriginal) => {
   const actual =
     await importOriginal<typeof import('@/lib/exhibition-color')>();
-  return { ...actual, getExhibitionGradient: vi.fn(actual.getExhibitionGradient) };
+  return {
+    ...actual,
+    getExhibitionGradient: vi.fn(actual.getExhibitionGradient),
+  };
 });
 
 const baseExhibition: ExhibitionCardSummary = {
@@ -59,7 +62,9 @@ describe('ExhibitionCard', () => {
 
   it('links to the detail page for the card own category', () => {
     render(
-      <ExhibitionCard exhibition={{ ...baseExhibition, id: 7, category: 'stage' }} />,
+      <ExhibitionCard
+        exhibition={{ ...baseExhibition, id: 7, category: 'stage' }}
+      />,
     );
 
     expect(screen.getByRole('link')).toHaveAttribute(

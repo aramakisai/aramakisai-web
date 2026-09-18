@@ -308,10 +308,7 @@ function resolveAreaIds(
  * それ以外はエリア名のみを見る一系統の解決で、優先順位の分岐は持たない (要件 4.1〜4.5)。
  */
 function resolveLocationForCategory(
-  exhibition: Pick<
-    StudentExhibition,
-    'id' | 'area_id' | 'booth_label'
-  >,
+  exhibition: Pick<StudentExhibition, 'id' | 'area_id' | 'booth_label'>,
   category: ExhibitionCategory,
   context: JoinContext,
 ): string | null {
