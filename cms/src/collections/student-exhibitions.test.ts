@@ -71,6 +71,10 @@ describe('stage_name フィールド', () => {
     expect(condition({ category: ['exhibit'] })).toBe(false);
     expect(condition({})).toBe(false);
   });
+
+  it('一括編集の対象から除外する (admin.condition は複数レコード分の category を評価できないため)', () => {
+    expect((stageName.admin as { disableBulkEdit?: boolean }).disableBulkEdit).toBe(true);
+  });
 });
 
 describe('description フィールド', () => {

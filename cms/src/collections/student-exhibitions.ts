@@ -111,6 +111,9 @@ export const StudentExhibitions: CollectionConfig = {
       admin: {
         description: 'ステージ出演時に表示する企画名。未入力なら name を使う',
         condition: (data) => Array.isArray(data?.category) && data.category.includes('stage'),
+        // 一括編集はレコードごとの category を評価できず condition が働かないため、
+        // カテゴリを問わず入力欄が常に選択候補へ出てしまう。個別編集画面に限定する
+        disableBulkEdit: true,
       },
     },
     {
