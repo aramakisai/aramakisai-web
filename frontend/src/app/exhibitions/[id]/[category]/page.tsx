@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
   CATEGORY_LABELS,
+  CATEGORY_VALUES,
   getExhibitionDetail,
   type ExhibitionCategory,
   type ExhibitionDetailResult,
@@ -15,22 +16,30 @@ import { ShareButton } from '@/components/share-button';
 import { ArrowBackIcon, PlaceIcon } from '@/components/icons';
 
 export interface ExhibitionPageProps {
-  readonly params: Promise<{ id: string }>;
+  readonly params: Promise<{ id: string; category: string }>;
 }
 
-async function resolveExhibition(id: string): Promise<ExhibitionDetailResult> {
+function isExhibitionCategory(value: string): value is ExhibitionCategory {
+  return (CATEGORY_VALUES as readonly string[]).includes(value);
+}
+
+async function resolveExhibition(
+  id: string,
+  category: string,
+): Promise<ExhibitionDetailResult> {
   const exhibitionId = Number(id);
-  if (!Number.isInteger(exhibitionId)) {
+  // category を先に検証することで、未知のカテゴリでは不要な取得を発生させない
+  if (!Number.isInteger(exhibitionId) || !isExhibitionCategory(category)) {
     return { kind: 'missing' };
   }
-  return getExhibitionDetail(exhibitionId);
+  return getExhibitionDetail(exhibitionId, category);
 }
 
 export async function generateMetadata({
   params,
 }: ExhibitionPageProps): Promise<Metadata> {
-  const { id } = await params;
-  const result = await resolveExhibition(id);
+  const { id, category } = await params;
+  const result = await resolveExhibition(id, category);
   if (result.kind !== 'found') {
     return {};
   }
@@ -43,16 +52,16 @@ export async function generateMetadata({
     : null;
 
   return {
-    title: exhibition.name,
+    title: exhibition.displayName,
     description,
     openGraph: {
-      title: exhibition.name,
+      title: exhibition.displayName,
       description,
       images: imageUrl ? [imageUrl] : undefined,
     },
     twitter: {
       card: 'summary_large_image',
-      title: exhibition.name,
+      title: exhibition.displayName,
       description,
       images: imageUrl ? [imageUrl] : undefined,
     },
@@ -95,8 +104,8 @@ function CategoryBadge({
 }
 
 export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
-  const { id } = await params;
-  const result = await resolveExhibition(id);
+  const { id, category } = await params;
+  const result = await resolveExhibition(id, category);
 
   if (result.kind === 'missing') {
     notFound();
@@ -114,7 +123,7 @@ export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
   }
 
   const exhibition = result.value;
-  const shareUrl = `${env.NEXT_PUBLIC_SITE_URL}/exhibitions/${exhibition.id}`;
+  const shareUrl = `${env.NEXT_PUBLIC_SITE_URL}/exhibitions/${exhibition.id}/${exhibition.category}`;
 
   return (
     <main className="mx-auto flex max-w-[1440px] flex-col gap-6 px-4 pt-4 pb-12 lg:gap-8 lg:px-20 lg:pt-8 lg:pb-20">
@@ -124,20 +133,18 @@ export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
         <div className="lg:w-[640px] lg:shrink-0">
           <ExhibitionGallery
             images={exhibition.images}
-            fallbackAlt={exhibition.name}
+            fallbackAlt={exhibition.displayName}
           />
         </div>
 
         <div className="flex min-w-0 flex-col gap-3 lg:flex-1 lg:gap-4">
-          {exhibition.categories.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {exhibition.categories.map((category) => (
-                <CategoryBadge key={category} category={category} />
-              ))}
-            </div>
-          )}
+          <div className="flex flex-wrap gap-2">
+            {exhibition.categories.map((c) => (
+              <CategoryBadge key={c} category={c} />
+            ))}
+          </div>
           <h1 className="py-0 text-[24px] leading-[130%] text-primary lg:text-[32px] lg:leading-[125%]">
-            {exhibition.name}
+            {exhibition.displayName}
           </h1>
           <p className="text-base leading-[170%] text-text">
             {exhibition.organizationName}
@@ -151,7 +158,7 @@ export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
 
           <ExhibitionLinks links={exhibition.links} />
 
-          <ShareButton title={exhibition.name} url={shareUrl} />
+          <ShareButton title={exhibition.displayName} url={shareUrl} />
         </div>
       </div>
 

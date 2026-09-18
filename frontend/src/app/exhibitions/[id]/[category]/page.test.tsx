@@ -36,11 +36,11 @@ vi.mock('@/env', () => ({
 
 const baseExhibition: ExhibitionDetail = {
   id: 1,
-  name: 'アラマキ祭実行委員会',
-  stageName: 'アラマキ祭実行委員会',
+  category: 'stage',
+  displayName: 'アラマキ祭実行委員会 (出演名)',
   organizationName: '実行委員会',
-  categories: ['exhibit', 'stage'],
-  location: '中央エリア A-1',
+  categories: ['stage', 'exhibit'],
+  location: '第一ステージ',
   areaIds: [1],
   thumbnail: { id: '42', alt: 'サムネイル' },
   description: 'たのしい企画です',
@@ -60,20 +60,25 @@ describe('ExhibitionPage', () => {
     vi.clearAllMocks();
   });
 
-  it('公開済みの企画情報を表示する', async () => {
+  it('URL の category に応じた企画名・場所・全カテゴリを表示する', async () => {
     mockResult({ kind: 'found', value: baseExhibition });
 
-    const jsx = await ExhibitionPage({ params: Promise.resolve({ id: '1' }) });
+    const jsx = await ExhibitionPage({
+      params: Promise.resolve({ id: '1', category: 'stage' }),
+    });
     render(jsx);
 
-    expect(getExhibitionDetail).toHaveBeenCalledWith(1);
+    expect(getExhibitionDetail).toHaveBeenCalledWith(1, 'stage');
     expect(
-      screen.getByRole('heading', { name: 'アラマキ祭実行委員会', level: 1 }),
+      screen.getByRole('heading', {
+        name: 'アラマキ祭実行委員会 (出演名)',
+        level: 1,
+      }),
     ).toBeInTheDocument();
     expect(screen.getByText('実行委員会')).toBeInTheDocument();
-    expect(screen.getByText('展示')).toBeInTheDocument();
     expect(screen.getByText('ステージ')).toBeInTheDocument();
-    expect(screen.getByText('中央エリア A-1')).toBeInTheDocument();
+    expect(screen.getByText('展示')).toBeInTheDocument();
+    expect(screen.getByText('第一ステージ')).toBeInTheDocument();
     expect(screen.getByText('たのしい企画です')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: '企画一覧へ戻る' }),
@@ -89,14 +94,40 @@ describe('ExhibitionPage', () => {
     mockResult({ kind: 'missing' });
 
     await expect(
-      ExhibitionPage({ params: Promise.resolve({ id: '999' }) }),
+      ExhibitionPage({
+        params: Promise.resolve({ id: '999', category: 'stage' }),
+      }),
     ).rejects.toThrow('NEXT_NOT_FOUND');
+    expect(notFound).toHaveBeenCalled();
+  });
+
+  it('その企画が持たないカテゴリは notFound を呼ぶ', async () => {
+    mockResult({ kind: 'missing' });
+
+    await expect(
+      ExhibitionPage({
+        params: Promise.resolve({ id: '1', category: 'vendor' }),
+      }),
+    ).rejects.toThrow('NEXT_NOT_FOUND');
+    expect(getExhibitionDetail).toHaveBeenCalledWith(1, 'vendor');
     expect(notFound).toHaveBeenCalled();
   });
 
   it('数値でない ID は取得せず notFound を呼ぶ', async () => {
     await expect(
-      ExhibitionPage({ params: Promise.resolve({ id: 'abc' }) }),
+      ExhibitionPage({
+        params: Promise.resolve({ id: 'abc', category: 'stage' }),
+      }),
+    ).rejects.toThrow('NEXT_NOT_FOUND');
+    expect(getExhibitionDetail).not.toHaveBeenCalled();
+    expect(notFound).toHaveBeenCalled();
+  });
+
+  it('未知のカテゴリは取得せず notFound を呼ぶ', async () => {
+    await expect(
+      ExhibitionPage({
+        params: Promise.resolve({ id: '1', category: 'unknown' }),
+      }),
     ).rejects.toThrow('NEXT_NOT_FOUND');
     expect(getExhibitionDetail).not.toHaveBeenCalled();
     expect(notFound).toHaveBeenCalled();
@@ -105,7 +136,9 @@ describe('ExhibitionPage', () => {
   it('取得に失敗した場合は 404 にせず失敗が分かる表示をする', async () => {
     mockResult({ kind: 'error', error: { kind: 'network', status: 500 } });
 
-    const jsx = await ExhibitionPage({ params: Promise.resolve({ id: '1' }) });
+    const jsx = await ExhibitionPage({
+      params: Promise.resolve({ id: '1', category: 'stage' }),
+    });
     render(jsx);
 
     expect(notFound).not.toHaveBeenCalled();
@@ -116,14 +149,14 @@ describe('ExhibitionPage', () => {
   });
 
   describe('generateMetadata', () => {
-    it('企画名と紹介文、画像を OGP として返す', async () => {
+    it('URL の category に応じた企画名・紹介文・画像を OGP として返す', async () => {
       mockResult({ kind: 'found', value: baseExhibition });
 
       const metadata = await generateMetadata({
-        params: Promise.resolve({ id: '1' }),
+        params: Promise.resolve({ id: '1', category: 'stage' }),
       });
 
-      expect(metadata.title).toBe('アラマキ祭実行委員会');
+      expect(metadata.title).toBe('アラマキ祭実行委員会 (出演名)');
       expect(metadata.description).toBe('たのしい企画です');
       expect(metadata.openGraph?.images).toEqual([
         'https://cms.example.com/assets/42/960',
@@ -140,7 +173,7 @@ describe('ExhibitionPage', () => {
       });
 
       const metadata = await generateMetadata({
-        params: Promise.resolve({ id: '1' }),
+        params: Promise.resolve({ id: '1', category: 'stage' }),
       });
 
       expect(metadata.description).toBe('実行委員会 の企画');
@@ -150,7 +183,7 @@ describe('ExhibitionPage', () => {
       mockResult({ kind: 'missing' });
 
       const metadata = await generateMetadata({
-        params: Promise.resolve({ id: '999' }),
+        params: Promise.resolve({ id: '999', category: 'stage' }),
       });
 
       expect(metadata).toEqual({});
@@ -160,7 +193,7 @@ describe('ExhibitionPage', () => {
       mockResult({ kind: 'error', error: { kind: 'network', status: 500 } });
 
       const metadata = await generateMetadata({
-        params: Promise.resolve({ id: '1' }),
+        params: Promise.resolve({ id: '1', category: 'stage' }),
       });
 
       expect(metadata).toEqual({});

@@ -3,15 +3,15 @@ import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import { getExhibitionGradient } from '@/lib/exhibition-color';
 import { toAssetUrl } from '@/lib/cms-asset-url';
-import type { ExhibitionSummary } from '@/lib/exhibitions';
+import type { ExhibitionCardSummary } from '@/lib/exhibitions';
 import { ImageIcon, PlaceIcon } from './icons';
 
 export interface ExhibitionCardProps {
-  readonly exhibition: ExhibitionSummary;
+  readonly exhibition: ExhibitionCardSummary;
 }
 
 export function ExhibitionCard({ exhibition }: ExhibitionCardProps) {
-  const gradient = getExhibitionGradient(exhibition.name);
+  const gradient = getExhibitionGradient(exhibition.displayName);
   // globals.css の .exhibition-gradient-bg が参照する。角度は単位付きでないと
   // linear-gradient() に渡した際に無効な値としてカスケード全体が無視される。
   const gradientStyle = {
@@ -26,7 +26,7 @@ export function ExhibitionCard({ exhibition }: ExhibitionCardProps) {
 
   return (
     <Link
-      href={`/exhibitions/${exhibition.id}`}
+      href={`/exhibitions/${exhibition.id}/${exhibition.category}`}
       className="flex flex-col overflow-clip rounded-xl transition-shadow hover:shadow-lg"
     >
       <div className="flex aspect-[300/225] w-full shrink-0 items-center justify-center overflow-clip bg-gray-200">
@@ -53,7 +53,7 @@ export function ExhibitionCard({ exhibition }: ExhibitionCardProps) {
               {exhibition.location}
             </span>
           )}
-          <h4 className="text-text">{exhibition.name}</h4>
+          <h4 className="text-text">{exhibition.displayName}</h4>
         </div>
       </div>
     </Link>

@@ -4,8 +4,8 @@ import { useRouter } from 'next/navigation';
 import ExhibitionsPage from './page';
 import * as exhibitionsModule from '@/lib/exhibitions';
 import type {
+  ExhibitionCardSummary,
   ExhibitionListResult,
-  ExhibitionSummary,
 } from '@/lib/exhibitions';
 
 vi.mock('@/lib/exhibitions', async (importOriginal) => {
@@ -33,13 +33,14 @@ vi.mocked(useRouter).mockReturnValue({
   replace: vi.fn(),
 } as unknown as ReturnType<typeof useRouter>);
 
-function exhibition(overrides: Partial<ExhibitionSummary>): ExhibitionSummary {
+function exhibition(
+  overrides: Partial<ExhibitionCardSummary>,
+): ExhibitionCardSummary {
   return {
     id: 1,
-    name: '企画',
-    stageName: '企画',
+    category: 'exhibit',
+    displayName: '企画',
     organizationName: '団体',
-    categories: ['exhibit'],
     location: null,
     areaIds: [],
     thumbnail: null,
@@ -79,8 +80,8 @@ describe('ExhibitionsPage', () => {
     vi.mocked(exhibitionsModule.getExhibitionListData).mockResolvedValue(
       listResult({
         items: [
-          exhibition({ id: 1, name: 'ロボット企画' }),
-          exhibition({ id: 2, name: '吹奏楽部演奏' }),
+          exhibition({ id: 1, displayName: 'ロボット企画' }),
+          exhibition({ id: 2, displayName: '吹奏楽部演奏' }),
         ],
         total: 2,
         rangeStart: 1,
@@ -148,7 +149,7 @@ describe('ExhibitionsPage', () => {
   it('ページ送りは現在の検索条件を維持した URL を生成する', async () => {
     vi.mocked(exhibitionsModule.getExhibitionListData).mockResolvedValue(
       listResult({
-        items: [exhibition({ id: 1, name: 'ロボット企画' })],
+        items: [exhibition({ id: 1, displayName: 'ロボット企画' })],
         total: 30,
         page: 1,
         pageCount: 2,
@@ -168,7 +169,7 @@ describe('ExhibitionsPage', () => {
   it('同じ検索条件を開き直すと同じ結果が再現される', async () => {
     vi.mocked(exhibitionsModule.getExhibitionListData).mockResolvedValue(
       listResult({
-        items: [exhibition({ id: 1, name: 'ロボット企画' })],
+        items: [exhibition({ id: 1, displayName: 'ロボット企画' })],
         total: 1,
         rangeStart: 1,
         rangeEnd: 1,

@@ -16,7 +16,8 @@ export const CATEGORY_LABELS: Readonly<Record<ExhibitionCategory, string>> = {
   other: 'その他',
 };
 
-const CATEGORY_VALUES: readonly ExhibitionCategory[] = [
+/** カード分割・並び替え・既定カテゴリ解決が従う定義順 */
+export const CATEGORY_VALUES: readonly ExhibitionCategory[] = [
   'stage',
   'exhibit',
   'vendor',
@@ -34,24 +35,30 @@ export interface ExhibitionLink {
   readonly url: string;
 }
 
-export interface ExhibitionSummary {
+/**
+ * 企画カード 1 枚分の表示モデル。1 企画レコードが持つ `entries` の行ごとに
+ * 1 件の `ExhibitionCardSummary` を生成する (`entries` は CMS 側で 1 件以上を保証、要件 1.2)。
+ */
+export interface ExhibitionCardSummary {
   readonly id: number;
-  readonly name: string;
-  /** ステージ文脈での表示名。`stage_name` 未入力なら `name` と同じ値 (要件 5.9) */
-  readonly stageName: string;
+  /** このカードが表すエントリーのカテゴリ (要件 1.2, 3.4) */
+  readonly category: ExhibitionCategory;
+  /** そのエントリーの企画名 (`entries[].name`、要件 3.4) */
+  readonly displayName: string;
   readonly organizationName: string;
-  readonly categories: readonly ExhibitionCategory[];
-  /** 表示用の場所文字列。未設定なら null (要件 4.6) */
+  /** カードの文脈 (category) に応じた場所文字列。未設定なら null (要件 4.5) */
   readonly location: string | null;
-  /** 絞り込み用。直接設定されたエリアと出演ステージ由来のエリアの和 (要件 2.5) */
+  /** 絞り込み用。直接設定されたエリアと出演ステージ由来のエリアの和 (要件 2.5)。カテゴリに関わらず企画単位で同じ値 */
   readonly areaIds: readonly number[];
   readonly thumbnail: ExhibitionImage | null;
 }
 
-export interface ExhibitionDetail extends ExhibitionSummary {
+export interface ExhibitionDetail extends ExhibitionCardSummary {
   readonly description: string | null;
   readonly images: readonly ExhibitionImage[];
   readonly links: readonly ExhibitionLink[];
+  /** この企画が持つ全エントリーのカテゴリ (`entries` の登録順)。詳細ページのカテゴリ一覧表示に使う (要件 5.2) */
+  readonly categories: readonly ExhibitionCategory[];
 }
 
 export interface AreaOption {
@@ -67,7 +74,8 @@ export interface ExhibitionQuery {
 }
 
 export interface ExhibitionListResult {
-  readonly items: readonly ExhibitionSummary[];
+  readonly items: readonly ExhibitionCardSummary[];
+  /** 一致した企画カードの総枚数 (要件 1.6) */
   readonly total: number;
   readonly page: number;
   readonly pageCount: number;
@@ -176,20 +184,20 @@ export function normalizeText(value: string): string {
 // --- 絞り込み・ページング ----------------------------------------------
 
 export function filterExhibitions(
-  items: readonly ExhibitionSummary[],
+  items: readonly ExhibitionCardSummary[],
   query: ExhibitionQuery,
-): readonly ExhibitionSummary[] {
+): readonly ExhibitionCardSummary[] {
   const q = normalizeText(query.q.trim());
   return items.filter((item) => {
     if (q) {
       const matches =
-        normalizeText(item.name).includes(q) ||
+        normalizeText(item.displayName).includes(q) ||
         normalizeText(item.organizationName).includes(q);
       if (!matches) return false;
     }
     if (
       query.categories.length > 0 &&
-      !item.categories.some((c) => query.categories.includes(c))
+      !query.categories.includes(item.category)
     ) {
       return false;
     }
@@ -267,59 +275,92 @@ function buildJoinContext(
   return { areasById, stagesById, slotsByExhibitionId };
 }
 
-/** 場所文字列と絞り込み用エリア ID を導く。エリアと出演枠の双方があればエリアを優先する (要件 4.3) */
-function resolveLocation(
-  exhibition: Pick<StudentExhibition, 'id' | 'area_id' | 'booth_label'>,
+function stagesOf(
+  exhibition: Pick<StudentExhibition, 'id'>,
   context: JoinContext,
-): { location: string | null; areaIds: readonly number[] } {
-  const directAreaId = toRefId(exhibition.area_id);
-  const directArea =
-    directAreaId !== null ? context.areasById.get(directAreaId) : undefined;
-
+): readonly Stage[] {
   const slots = context.slotsByExhibitionId.get(exhibition.id) ?? [];
   const stageIds = Array.from(
     new Set(slots.map((s) => toRefId(s.stage_id))),
   ).filter((id): id is number => id !== null);
-  const stages = stageIds
+  return stageIds
     .map((id) => context.stagesById.get(id))
     .filter((s): s is Stage => s !== undefined);
+}
 
+/** 絞り込み用エリア ID。カードのカテゴリに関わらず、直接エリアと出演ステージ由来エリアの和を返す (要件 2.5) */
+function resolveAreaIds(
+  exhibition: Pick<StudentExhibition, 'id' | 'area_id'>,
+  context: JoinContext,
+): readonly number[] {
   const areaIds = new Set<number>();
+  const directAreaId = toRefId(exhibition.area_id);
   if (directAreaId !== null) areaIds.add(directAreaId);
-  for (const stage of stages) {
+  for (const stage of stagesOf(exhibition, context)) {
     const stageAreaId = toRefId(stage.area_id);
     if (stageAreaId !== null) areaIds.add(stageAreaId);
   }
-
-  let location: string | null = null;
-  if (directArea) {
-    location = exhibition.booth_label
-      ? `${directArea.name} ${exhibition.booth_label}`
-      : directArea.name;
-  } else if (stages.length > 0) {
-    location = Array.from(new Set(stages.map((s) => s.name))).join('、');
-  }
-
-  return { location, areaIds: Array.from(areaIds) };
+  return Array.from(areaIds);
 }
 
-function toExhibitionSummary(
-  exhibition: StudentExhibition,
+/**
+ * カードの文脈 (category) に応じた場所文字列を導く。`stage` は出演ステージ名のみ、
+ * それ以外はエリア名のみを見る一系統の解決で、優先順位の分岐は持たない (要件 4.1〜4.5)。
+ */
+function resolveLocationForCategory(
+  exhibition: Pick<
+    StudentExhibition,
+    'id' | 'area_id' | 'booth_label'
+  >,
+  category: ExhibitionCategory,
   context: JoinContext,
-): ExhibitionSummary {
-  const { location, areaIds } = resolveLocation(exhibition, context);
-  const images = exhibition.images ?? [];
+): string | null {
+  if (category === 'stage') {
+    const stages = stagesOf(exhibition, context);
+    return stages.length > 0
+      ? Array.from(new Set(stages.map((s) => s.name))).join('、')
+      : null;
+  }
+
+  const directAreaId = toRefId(exhibition.area_id);
+  const directArea =
+    directAreaId !== null ? context.areasById.get(directAreaId) : undefined;
+  if (!directArea) return null;
+  return exhibition.booth_label
+    ? `${directArea.name} ${exhibition.booth_label}`
+    : directArea.name;
+}
+
+type ExhibitionEntry = StudentExhibition['entries'][number];
+
+function toCard(
+  exhibition: StudentExhibition,
+  entry: ExhibitionEntry,
+  context: JoinContext,
+): ExhibitionCardSummary {
+  const images = entry.images ?? [];
   return {
     id: exhibition.id,
-    name: exhibition.name,
-    stageName: exhibition.stage_name || exhibition.name,
+    category: entry.category,
+    displayName: entry.name,
     organizationName: exhibition.organization_name,
-    categories: exhibition.category,
-    location,
-    areaIds,
+    location: resolveLocationForCategory(exhibition, entry.category, context),
+    areaIds: resolveAreaIds(exhibition, context),
     thumbnail:
-      images.length > 0 ? toExhibitionImage(images[0]!, exhibition.name) : null,
+      images.length > 0 ? toExhibitionImage(images[0]!, entry.name) : null,
   };
+}
+
+/**
+ * 企画レコードを `entries` の行ごとに企画カードへ展開する (要件 1.2)。
+ * `entries` の登録順をそのまま保つため、この結果を `flatMap` するだけで
+ * ID 昇順 × `entries` 登録順 (要件 1.3) を満たす。
+ */
+function toCards(
+  exhibition: StudentExhibition,
+  context: JoinContext,
+): ExhibitionCardSummary[] {
+  return exhibition.entries.map((entry) => toCard(exhibition, entry, context));
 }
 
 async function fetchJoinSources(exhibitionId?: number) {
@@ -364,10 +405,10 @@ export async function getExhibitionListData(
     stagesResult.value.docs,
     areasResult.value.docs,
   );
-  const items = exhibitionsResult.value.docs.map((e) =>
-    toExhibitionSummary(e, context),
+  const cards = exhibitionsResult.value.docs.flatMap((e) =>
+    toCards(e, context),
   );
-  const filtered = filterExhibitions(items, query);
+  const filtered = filterExhibitions(cards, query);
   const paginated = paginate(filtered, query.page);
   const total = filtered.length;
 
@@ -383,11 +424,12 @@ export async function getExhibitionListData(
 }
 
 /**
- * 詳細ページ用の結果。不在・非公開 (missing) と取得失敗 (error) を必ず区別する。
- * 両者を null へ潰すと要件 5.8 (CMS 障害を 404 にしない) を満たせない。
+ * 詳細ページ用の結果。不在・非公開・URL の category をその企画が持たない場合 (missing) と
+ * 取得失敗 (error) を必ず区別する。両者を null へ潰すと要件 5.9 (CMS 障害を 404 にしない) を満たせない。
  */
 export async function getExhibitionDetail(
   id: number,
+  category: ExhibitionCategory,
 ): Promise<ExhibitionDetailResult> {
   const exhibitionResult = await cms.findById('student_exhibitions', id, {
     depth: 1,
@@ -396,11 +438,16 @@ export async function getExhibitionDetail(
     if (exhibitionResult.error.kind === 'network') {
       return { kind: 'error', error: exhibitionResult.error };
     }
-    // not_found と unauthorized (非公開レコードへの参照) は利用者から区別できない扱いとする (要件 5.7)
+    // not_found と unauthorized (非公開レコードへの参照) は利用者から区別できない扱いとする (要件 5.8)
     return { kind: 'missing' };
   }
   const exhibition = exhibitionResult.value;
   if (exhibition.status !== 'published') {
+    return { kind: 'missing' };
+  }
+
+  const entry = exhibition.entries.find((e) => e.category === category);
+  if (!entry) {
     return { kind: 'missing' };
   }
 
@@ -414,19 +461,20 @@ export async function getExhibitionDetail(
     stagesResult.value.docs,
     areasResult.value.docs,
   );
-  const summary = toExhibitionSummary(exhibition, context);
-  const images = exhibition.images ?? [];
+  const card = toCard(exhibition, entry, context);
+  const images = entry.images ?? [];
 
   return {
     kind: 'found',
     value: {
-      ...summary,
-      description: exhibition.description ?? null,
-      images: images.map((image) => toExhibitionImage(image, exhibition.name)),
+      ...card,
+      description: entry.description ?? null,
+      images: images.map((image) => toExhibitionImage(image, entry.name)),
       links: (exhibition.links ?? []).map((link) => ({
         platform: link.platform,
         url: link.url,
       })),
+      categories: exhibition.entries.map((e) => e.category),
     },
   };
 }
