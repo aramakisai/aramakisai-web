@@ -78,9 +78,13 @@ jobs:
 
       - name: Render tiles
         run: |
+          # overv/openstreetmap-tile-server の /etc/renderd.conf は
+          # tile_dir=/var/cache/renderd/tiles で、/data/tiles ではない。
+          # ホスト側ディレクトリを実際の書き込み先に直接バインドすることで
+          # docker cp を使わずにレンダリング結果をそのままホストへ反映する
           docker run -d --name tile-server \
             -v osm-data:/data/database/ \
-            -v "$PWD/rendered-tiles:/data/tiles" \
+            -v "$PWD/rendered-tiles:/var/cache/renderd/tiles" \
             -p 8080:80 \
             overv/openstreetmap-tile-server:latest run
 
