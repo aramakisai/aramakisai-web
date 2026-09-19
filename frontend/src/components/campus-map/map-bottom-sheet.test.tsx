@@ -1,7 +1,37 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MapBottomSheet } from './map-bottom-sheet';
 import type { AreaExhibitionListState } from './area-exhibition-list';
+
+// jsdom は PointerEvent を生成できない (document.createEvent('PointerEvent') が
+// 例外を投げる) ため、必要なプロパティを持つ汎用 Event を代わりに送出する
+function firePointer(
+  element: Element,
+  type: 'pointerdown' | 'pointermove' | 'pointerup',
+  props: { clientY: number },
+) {
+  const event = new Event(type, { bubbles: true, cancelable: true });
+  Object.assign(event, { pointerId: 1, button: 0, ...props });
+  fireEvent(element, event);
+}
+
+class MockResizeObserver {
+  static instances: MockResizeObserver[] = [];
+  callback: ResizeObserverCallback;
+  constructor(callback: ResizeObserverCallback) {
+    this.callback = callback;
+    MockResizeObserver.instances.push(this);
+  }
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+  trigger(target: Element) {
+    this.callback(
+      [{ target } as ResizeObserverEntry],
+      this as unknown as ResizeObserver,
+    );
+  }
+}
 
 vi.mock('@/lib/cms-asset-url', () => ({
   toAssetUrl: () => null,
@@ -94,5 +124,109 @@ describe('MapBottomSheet', () => {
     expect(
       screen.getByText('エリア情報の取得に失敗しました'),
     ).toBeInTheDocument();
+  });
+
+  describe('grabber', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('moves one snap step per arrow key and reflects it via aria-expanded', () => {
+      mockMatchMedia(false);
+      const state: AreaExhibitionListState = { kind: 'no-area' };
+      const { getByTestId } = render(<MapBottomSheet state={state} />);
+      const grabber = screen.getByRole('button', {
+        name: /シートの高さを変更/,
+      });
+      const sheet = getByTestId('map-bottom-sheet');
+
+      // 条件あり (no-area) の既定は「中」(380px)。折りたたみへは戻れない
+      expect(sheet.className).toMatch(/h-\[380px\]/);
+      expect(grabber).toHaveAttribute('aria-expanded', 'false');
+
+      fireEvent.keyDown(grabber, { key: 'ArrowDown' });
+      expect(sheet.className).toMatch(/h-\[380px\]/);
+
+      fireEvent.keyDown(grabber, { key: 'ArrowUp' });
+      expect(sheet.className).toMatch(/h-\[55vh\]/);
+      expect(grabber).toHaveAttribute('aria-expanded', 'true');
+
+      fireEvent.keyDown(grabber, { key: 'ArrowUp' });
+      expect(sheet.className).toMatch(/h-\[55vh\]/);
+
+      fireEvent.keyDown(grabber, { key: 'ArrowDown' });
+      expect(sheet.className).toMatch(/h-\[380px\]/);
+    });
+
+    it('lets Enter/Space toggle between the floor and one step up', () => {
+      mockMatchMedia(false);
+      const state: AreaExhibitionListState = { kind: 'unselected' };
+      const { getByTestId } = render(<MapBottomSheet state={state} />);
+      const grabber = screen.getByRole('button', {
+        name: /シートの高さを変更/,
+      });
+      const sheet = getByTestId('map-bottom-sheet');
+
+      expect(sheet.className).not.toMatch(/h-\[/);
+
+      fireEvent.keyDown(grabber, { key: 'Enter' });
+      expect(sheet.className).toMatch(/h-\[380px\]/);
+
+      fireEvent.keyDown(grabber, { key: ' ' });
+      expect(sheet.className).not.toMatch(/h-\[/);
+    });
+
+    it('follows the pointer continuously while dragging and snaps to the nearest position on release', () => {
+      mockMatchMedia(false);
+      window.innerHeight = 800; // 最大スナップ = 55vh = 440px
+      const state: AreaExhibitionListState = { kind: 'no-area' };
+      const { getByTestId } = render(<MapBottomSheet state={state} />);
+      const grabber = screen.getByRole('button', {
+        name: /シートの高さを変更/,
+      });
+      const sheet = getByTestId('map-bottom-sheet');
+
+      const rectSpy = vi
+        .spyOn(sheet, 'getBoundingClientRect')
+        .mockReturnValueOnce({ height: 380 } as DOMRect) // pointerdown: 開始高さ
+        .mockReturnValueOnce({ height: 1000 } as DOMRect); // pointerup: 離した時点の高さ
+
+      firePointer(grabber, 'pointerdown', { clientY: 500 });
+      firePointer(grabber, 'pointermove', { clientY: 400 }); // 100px 上へドラッグ
+
+      // 380 + 100 = 480 は上限 440 でクランプされ、連続して追従する
+      expect(sheet.style.height).toBe('440px');
+
+      firePointer(grabber, 'pointerup', { clientY: 400 });
+
+      // 離した高さ (1000) は 440 (最大) に最も近いのでそこへスナップする
+      expect(sheet.style.height).toBe('');
+      expect(sheet.className).toMatch(/h-\[55vh\]/);
+
+      rectSpy.mockRestore();
+    });
+
+    it('reports its rendered height via ResizeObserver for the caller to follow', () => {
+      mockMatchMedia(false);
+      const onHeightChange = vi.fn();
+      MockResizeObserver.instances.length = 0;
+      vi.stubGlobal('ResizeObserver', MockResizeObserver);
+      const state: AreaExhibitionListState = { kind: 'unselected' };
+      const { getByTestId } = render(
+        <MapBottomSheet state={state} onHeightChange={onHeightChange} />,
+      );
+      const sheet = getByTestId('map-bottom-sheet');
+
+      expect(onHeightChange).toHaveBeenCalled();
+
+      vi.spyOn(sheet, 'getBoundingClientRect').mockReturnValue({
+        height: 380,
+      } as DOMRect);
+      const observer = MockResizeObserver.instances.at(-1);
+      observer?.trigger(sheet);
+      expect(onHeightChange).toHaveBeenLastCalledWith(380);
+
+      vi.unstubAllGlobals();
+    });
   });
 });

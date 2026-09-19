@@ -1,7 +1,8 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import type { CSSProperties } from 'react';
 import type {
   CampusMapArea,
   CampusMapDataResult,
@@ -53,6 +54,7 @@ export function CampusMapScreen({
 }: CampusMapScreenProps) {
   const { filters, keywordInput, setKeywordInput, setCategories, selectArea } =
     useMapFilters(initialFilters);
+  const [sheetHeight, setSheetHeight] = useState(0);
 
   const areas: readonly CampusMapArea[] =
     data.areas.kind === 'loaded' ? data.areas.value : EMPTY_AREAS;
@@ -124,15 +126,24 @@ export function CampusMapScreen({
         listState={listState}
         notice={areaNotice}
       />
-      <MapBottomSheet state={listState} notice={areaNotice} />
+      <MapBottomSheet
+        state={listState}
+        notice={areaNotice}
+        onHeightChange={setSheetHeight}
+      />
       {/*
        * ボトムシートは全幅で画面下端に固定され、Leaflet の bottomright コントロール
-       * (ズーム・出典表記, z-index 1000) より前面 (z-[1050]) に重なる。展開時の最大高さ
-       * (55vh, MapBottomSheet 参照) 分だけ常に余白を確保して隠れないようにする。
-       * ponytail: シートの実高さに追従せず常に最大値ぶん確保する固定値。シートが折りたたまれた
-       * ときにコントロールが不自然に高い位置へ寄る。気になれば ResizeObserver で実測に切り替える
+       * (ズーム・出典表記, z-index 1000) より前面 (z-[1050]) に重なる。シートの高さは
+       * ドラッグで連続的に変わるため、固定値ではなく実測値 (MapBottomSheet からの
+       * onHeightChange) を CSS 変数として margin に反映し、隠れないよう追従させる
        */}
-      <div className="max-md:[&_.leaflet-bottom.leaflet-right]:mb-[calc(55vh+1rem)]">
+      <div
+        data-testid="map-controls-margin"
+        className="max-md:[&_.leaflet-bottom.leaflet-right]:mb-[calc(var(--map-bottom-sheet-height)+1rem)]"
+        style={
+          { '--map-bottom-sheet-height': `${sheetHeight}px` } as CSSProperties
+        }
+      >
         <CampusMapView
           areas={areas}
           selectedAreaId={filters.selectedAreaId}

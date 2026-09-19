@@ -116,6 +116,34 @@ function stubDesktop() {
   }));
 }
 
+/** MapBottomSheet (mobile) を可視・操作可能にする。matchMedia を一致させる */
+function stubMobile() {
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches: false,
+    media: query,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }));
+}
+
+class MockResizeObserver {
+  static instances: MockResizeObserver[] = [];
+  callback: ResizeObserverCallback;
+  constructor(callback: ResizeObserverCallback) {
+    this.callback = callback;
+    MockResizeObserver.instances.push(this);
+  }
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+  trigger(target: Element) {
+    this.callback(
+      [{ target } as ResizeObserverEntry],
+      this as unknown as ResizeObserver,
+    );
+  }
+}
+
 beforeEach(() => {
   state.mapViewProps.length = 0;
   window.history.replaceState(null, '', '/map');
@@ -292,5 +320,40 @@ describe('CampusMapScreen', () => {
     expect(
       screen.getAllByText('エリアはまだ登録されていません').length,
     ).toBeGreaterThan(0);
+  });
+
+  it('follows the bottom sheet height so the map controls margin tracks it', () => {
+    stubMobile();
+    MockResizeObserver.instances.length = 0;
+    vi.stubGlobal('ResizeObserver', MockResizeObserver);
+
+    const { getByTestId } = render(
+      <CampusMapScreen
+        data={dataResult({ areas: { kind: 'loaded', value: [area()] } })}
+        initialFilters={baseFilters()}
+      />,
+    );
+
+    const controlsMargin = getByTestId('map-controls-margin');
+    const sheet = getByTestId('map-bottom-sheet');
+    const observer = MockResizeObserver.instances.at(-1);
+
+    vi.spyOn(sheet, 'getBoundingClientRect').mockReturnValue({
+      height: 150,
+    } as DOMRect);
+    act(() => observer?.trigger(sheet)); // collapsed 相当の低い高さ
+    expect(
+      controlsMargin.style.getPropertyValue('--map-bottom-sheet-height'),
+    ).toBe('150px');
+
+    vi.spyOn(sheet, 'getBoundingClientRect').mockReturnValue({
+      height: 380,
+    } as DOMRect);
+    act(() => observer?.trigger(sheet)); // 中スナップまで手繰り寄せた高さ
+    expect(
+      controlsMargin.style.getPropertyValue('--map-bottom-sheet-height'),
+    ).toBe('380px');
+
+    vi.unstubAllGlobals();
   });
 });
