@@ -87,12 +87,16 @@ jobs:
           # bind mount 先ディレクトリを事前に作らないと docker が root 所有で
           # 自動作成し、renderer が書き込めず "Permission denied" で
           # render_list が失敗する (レスポンス自体は成功扱いになるため気付きにくい)
-          mkdir -p rendered-tiles
-          chmod 777 rendered-tiles
+          #
+          # render_list / renderd は個別の PNG ではなく、8x8 タイルをまとめた
+          # メタタイル (.meta) でしか書き出さない。個別 PNG は後続ステップで
+          # mod_tile の HTTP エンドポイント経由で取得するため、置き場を分ける
+          mkdir -p metatiles
+          chmod 777 metatiles
 
           docker run -d --name tile-server \
             -v osm-data:/data/database/ \
-            -v "$PWD/rendered-tiles:/var/cache/renderd/tiles" \
+            -v "$PWD/metatiles:/var/cache/renderd/tiles" \
             -p 8080:80 \
             overv/openstreetmap-tile-server:latest run
 
@@ -128,11 +132,38 @@ jobs:
                 -Y "$(echo "$range" | jq -r '.yMax')"
             done
 
-          if [ ! -d "rendered-tiles/default" ]; then
-            echo "::error::render_list completed but rendered-tiles/default was not created"
+          if [ ! -d "metatiles/default" ]; then
+            echo "::error::render_list completed but metatiles/default was not created"
             docker logs tile-server
             exit 1
           fi
+
+      - name: Wait for tile server HTTP endpoint
+        run: |
+          # docker run -d 直後は Apache の起動も完了していない。renderd と同様に
+          # ポーリングで確認しないと、後続の取得ステップが接続エラーで無意味に失敗する
+          for i in $(seq 1 30); do
+            status=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/ || true)
+            if [ -n "$status" ] && [ "$status" != "000" ]; then
+              echo "Apache is ready ($((i * 2))s, status=$status)"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "::error::Apache did not become ready within 60s"
+              docker logs tile-server
+              exit 1
+            fi
+            sleep 2
+          done
+
+      # mod_tile はメタタイルを個別 PNG に切り出して HTTP で返す (/tile/{z}/{x}/{y}.png)。
+      # 自前でメタタイル形式をパースせずに済むため、この形式で個別ファイルを揃える
+      - name: Fetch rendered tiles via HTTP
+        run: |
+          mkdir -p rendered-tiles
+          MAP_TILE_SERVER_URL=http://localhost:8080 \
+            MAP_TILES_OUT_DIR="$PWD/rendered-tiles" \
+            pnpm exec tsx scripts/fetch-map-tiles.ts
 
       - name: Verify rendered tiles
         run: MAP_TILES_DIR="$PWD/rendered-tiles" pnpm exec tsx scripts/verify-map-tiles.ts
