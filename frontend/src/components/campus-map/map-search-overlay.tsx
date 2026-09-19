@@ -78,6 +78,19 @@ export function MapSearchOverlay({
         aria-label="カテゴリで絞り込み"
         className="flex flex-nowrap gap-2 overflow-x-auto"
       >
+        <button
+          type="button"
+          id="map-search-overlay-category-all"
+          aria-pressed={categories.length === 0}
+          onClick={() => setCategories([])}
+          className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
+            categories.length === 0
+              ? 'border-primary bg-primary text-text'
+              : 'border-gray-200 bg-white/95 text-text'
+          }`}
+        >
+          すべて
+        </button>
         {CATEGORY_VALUES.map((category) => {
           const pressed = categories.includes(category);
           return (

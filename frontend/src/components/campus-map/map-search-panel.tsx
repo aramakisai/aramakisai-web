@@ -61,6 +61,18 @@ export function MapSearchPanel({
         aria-label="カテゴリで絞り込み"
         className="flex flex-wrap gap-2"
       >
+        <button
+          type="button"
+          aria-pressed={categories.length === 0}
+          onClick={() => onCategoriesChange([])}
+          className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+            categories.length === 0
+              ? 'border-primary bg-primary text-text'
+              : 'border-gray-200 bg-background text-text'
+          }`}
+        >
+          すべて
+        </button>
         {CATEGORY_VALUES.map((category) => {
           const pressed = categories.includes(category);
           return (

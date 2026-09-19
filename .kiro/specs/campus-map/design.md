@@ -66,7 +66,7 @@ route group を所有する立場から、`(fullscreen)` 配下には下部ナ�
 ### Revalidation Triggers
 
 - `map_areas` のフィールド追加・削除・型変更 → `pwa-offline` / `digital-signage` がキャッシュ対象と表示内容を再確認する
-- タイル資産の配信パス (`/map-tiles/{z}/{x}/{y}.png`)、ズーム範囲、地理範囲、総容量の変更 → `pwa-offline` がキャッシュ対象一覧と容量見積もりを再生成する
+- タイル資産の配信パス (`/map-tiles/{z}/{x}/{y}.webp`)、ズーム範囲、地理範囲、総容量の変更 → `pwa-offline` がキャッシュ対象一覧と容量見積もりを再生成する
 - `exhibitions.ts` の `filterExhibitions` / `parseExhibitionQuery` / `buildExhibitionsHref` のシグネチャ変更 → 本 spec と `exhibition-pages` の双方が再検証を要する
 - `exhibitions.ts` への `export` 追加 (`buildJoinContext` / `toCards`) → `exhibition-pages` が同モジュールの内部構造を前提にしていないか再確認する
 - `exhibition-pages` の `resolveLocationForCategory` の仕様変更 → 要件 7.2 が参照する所在地表記が変わるため、本 spec のテストを再確認する
@@ -143,8 +143,9 @@ graph TB
 | Frontend | `@types/leaflet` | Leaflet の型定義 | 新規 devDependency。react-leaflet の型が参照する |
 | Frontend | `leaflet/dist/leaflet.css` | 地図の既定スタイル | Client Component から import する。省くとタイル配置とコントロールが崩れる |
 | Frontend | `zod` (既存) | `geometry` のランタイム検証 | `env.ts` で使用済み |
-| Data / Storage | 静的 PNG タイル (`public/map-tiles/`) | 地図タイルの配信 | z17–19 で約 1323 枚・約 7.7MB。リポジトリに資産としてコミットする |
+| Data / Storage | 静的 webp タイル (`public/map-tiles/`) | 地図タイルの配信 | z16–19。z16 分が加わり枚数と総容量が増える。実測はタスク 11.1 のドライランで確定させる。リポジトリに資産としてコミットする |
 | Tooling | GitHub Actions + `Overv/openstreetmap-tile-server` | タイルの生成 | `workflow_dispatch` の手動実行。成果物は artifact 経由で受け取る |
+| Tooling | `cwebp` (libwebp) | レンダリング結果 (PNG) の webp への変換 | GitHub Actions ランナーへインストールして使う。品質設定は変換スクリプト内の 1 箇所に集約する |
 | Backend | Payload 3 | `map_areas.color` の追加と `geometry` の検証 | 既存。マイグレーション 1 本 |
 | Infrastructure | Cloudflare Workers + OpenNext | 静的アセットとして CDN 配信 | 既存。追加設定なし |
 
@@ -160,8 +161,8 @@ graph TB
 
 frontend/
 ├── public/
-│   └── map-tiles/                      # 生成済みラスタタイル (z17-19)
-│       └── {z}/{x}/{y}.png
+│   └── map-tiles/                      # 生成済みラスタタイル (z16-19)
+│       └── {z}/{x}/{y}.webp
 ├── scripts/
 │   ├── map-tile-bounds.ts              # 設定値からタイル座標範囲と枚数を算出。ワークフローが読む
 │   └── verify-map-tiles.ts             # 生成後の枚数と総容量を検証
@@ -320,6 +321,9 @@ flowchart TD
 | 1.11 | 読み込み中の表示 | CampusMapScreen | `dynamic` の `loading` | 初期表示 |
 | 1.12 | メニューの内容 | MapMenuButton | `MapMenuButtonProps` | — |
 | 1.13 | 範囲外タイル要求の抑止 | CampusMapView | TileLayer の `bounds` | — |
+| 1.14 | ズーム下限 16 | CampusMapView, generate-map-tiles | `CampusMapConfig.minZoom` | — |
+| 1.15 | タイル配信形式は webp | CampusMapView, generate-map-tiles | `CampusMapConfig.tileUrlTemplate` | — |
+| 1.16 | タイル生成時に webp へ変換 | generate-map-tiles | ワークフロー定義 | — |
 | 2.1, 2.7 | ポリゴン描画と不正データ除外 | AreaPolygonLayer, campus-map-geometry | `parsePolygonGeometry` | 初期表示 |
 | 2.2 | エリア名ラベル | AreaLabelMarker | `AreaLabelProps` | — |
 | 2.3 | 描画順と sort 未設定の扱い | campus-map lib, AreaPolygonLayer | `getCampusMapData` の Postconditions | 初期表示 |
@@ -343,6 +347,8 @@ flowchart TD
 | 4.9 | 条件変更時にサーバー往復なし | CampusMapScreen | `useMapFilters` | エリア選択 |
 | 5.1, 5.4 | デスクトップの配置 | MapSidePanel, MapSearchPanel | `AreaExhibitionListProps` | — |
 | 5.2, 5.3 | ボトムシートと高さ可変 | MapBottomSheet | `MapBottomSheetProps` | — |
+| 5.10, 5.11 | グラバーのドラッグとキーボードによる高さ変更 | MapBottomSheet | `MapBottomSheetProps` | — |
+| 5.12, 5.13 | 展開/たたみ込みのトグルと状態の通知 | MapBottomSheet | `aria-*` | — |
 | 5.5, 5.6 | スマートフォンの検索部 | MapSearchOverlay | `MapSearchProps` | — |
 | 5.7 | コントロールの重なり回避 | CampusMapScreen | — | — |
 | 5.8 | 単一ブレークポイント | campus-map-config | `MAP_BREAKPOINT` | — |
@@ -369,7 +375,7 @@ flowchart TD
 
 | Component | Domain/Layer | Intent | Req Coverage | Key Dependencies (P0/P1) | Contracts |
 |-----------|--------------|--------|--------------|--------------------------|-----------|
-| campus-map-config | Data | 地図の定数とブレークポイント | 1.2, 5.8 | — | Service |
+| campus-map-config | Data | 地図の定数とブレークポイント | 1.2, 1.14, 1.15, 5.8 | — | Service |
 | campus-map lib | Data | エリアと出展物の取得・集約 | 2.3, 3, 7.2, 8 | cms client (P0), exhibitions lib (P0) | Service |
 | campus-map-geometry | Data | GeoJSON Polygon の検証と重心算出 | 2.1, 2.7 | zod (P0) | Service |
 | map page | Routing | 初回取得と Client への受け渡し | 1, 3, 8, 9.2 | campus-map lib (P0) | State |
@@ -379,14 +385,14 @@ flowchart TD
 | AreaLabelMarker | UI | エリア名ラベルの表示 | 2.2, 2.5, 6.6 | AreaPolygonLayer (P1) | — |
 | AreaExhibitionList | UI | 出展物リスト本体 (5 状態) | 3, 4.7, 4.8, 10.2 | ExhibitionCard (P0) | — |
 | MapSidePanel | UI | デスクトップの左ペイン | 5.1, 5.4, 10.1 | AreaExhibitionList (P0) | — |
-| MapBottomSheet | UI | スマートフォンのボトムシート | 5.2, 5.3 | AreaExhibitionList (P0) | State |
+| MapBottomSheet | UI | スマートフォンのボトムシート | 5.2, 5.3, 5.10, 5.11, 5.12, 5.13 | AreaExhibitionList (P0) | State |
 | MapSearchPanel | UI | デスクトップの検索部 | 4.1, 5.4, 5.9 | useMapFilters (P0) | — |
 | MapSearchOverlay | UI | スマートフォンの浮動検索部 | 4.1, 5.5, 5.6, 5.9 | useMapFilters (P0) | — |
 | MapZoomControl | UI | 拡大縮小コントロール | 1.6 | CampusMapView (P0) | — |
 | MapMenuButton | UI | サイト内導線への入口 | 1.4, 1.12, 10.3 | — | State |
 | useMapFilters | UI | 絞り込み状態と URL 同期 | 3.10, 4.9, 9 | exhibitions lib (P0) | State |
 | map-areas collection | CMS | 表示色と geometry 検証 | 2.8, 6.1, 6.2, 6.5 | Payload (P0) | State |
-| generate-map-tiles | Tooling | タイル資産の生成 | 1.1, 1.10 | — | Batch |
+| generate-map-tiles | Tooling | タイル資産の生成 | 1.1, 1.10, 1.16 | — | Batch |
 
 ### Data Layer
 
@@ -395,7 +401,7 @@ flowchart TD
 | Field | Detail |
 |-------|--------|
 | Intent | 地図の表示設定とブレークポイントを単一の出所として持つ |
-| Requirements | 1.2, 5.8 |
+| Requirements | 1.2, 1.14, 1.15, 5.8 |
 
 **Responsibilities & Constraints**
 
@@ -675,6 +681,7 @@ export function polygonCentroid(
 - 統合: `CampusMapView` の動的読み込みは本コンポーネント (Client Component) の中で行う。Next.js 15 では Server Component 内の `dynamic(..., { ssr: false })` がビルドエラーになるため、ページから直接呼んではならない
 - 統合: `filterExhibitions(items, query)` は `ExhibitionQuery` を要求し、`areaIds: readonly number[]` と `page: number` を必須で持つ。`CampusMapFilters` から `{ ...filters, areaIds: selectedAreaId === null ? [] : [selectedAreaId], page: 1 }` を組んで渡す
 - 検証: エリア選択・検索・カテゴリのいずれの操作でも、ネットワークリクエストが発生しないことを確認する (要件 3.10 / 4.9)
+- 検証: 拡大縮小コントロールと出典表記の余白は、ボトムシートの実高さを観測して追従させる。シートがグラバー操作で 3 段のスナップ位置を行き来するため、固定値で最大展開時の高さぶんを確保する方式は取らない
 - リスク: 地図の読み込み前でもペインとシートは描画されるため、リストは先に読める
 
 #### CampusMapView
@@ -682,7 +689,7 @@ export function polygonCentroid(
 | Field | Detail |
 |-------|--------|
 | Intent | Leaflet を初期化し、タイル・ポリゴン・コントロールを配置する |
-| Requirements | 1.1, 1.2, 1.5, 1.6, 1.7, 1.8, 1.9, 1.13, 2.4, 2.6, 8.3 |
+| Requirements | 1.1, 1.2, 1.5, 1.6, 1.7, 1.8, 1.9, 1.13, 1.14, 1.15, 2.4, 2.6, 8.3 |
 
 **Responsibilities & Constraints**
 
@@ -873,12 +880,14 @@ export function buildListHeading(
 | Field | Detail |
 |-------|--------|
 | Intent | スマートフォンでリストを画面下部のシートとして表示する |
-| Requirements | 5.2, 5.3 |
+| Requirements | 5.2, 5.3, 5.10, 5.11, 5.12, 5.13 |
 
 **Responsibilities & Constraints**
 
-- 条件が 1 つも指定されていない場合は内容の高さに合わせて縮む。指定時は固定高さでリストをスクロールさせる
-- シートの高さ変更は 2 状態の切り替えで実現し、任意の高さへのドラッグは行わない
+- 高さは `collapsed` (内容の高さに合わせて縮んだ状態。条件が 1 つも指定されていないときの既定) / 中 (380px 相当) / 最大 (55vh) の 3 段のスナップ位置を持つ
+- ドラッグの開始点はグラバー領域に限定する。シート本体はリストのスクロール領域であり、そこでドラッグを取るとスクロールおよび地図のパン操作と競合する
+- ドラッグ中はポインタの移動に連続して追従し、離したときに最も近いスナップ位置へ移動する
+- グラバーはキーボードでも操作できる。上下の矢印キーでスナップ位置を 1 段ずつ移動し、Enter / Space で展開とたたみ込みをトグルする
 - 地図の操作を妨げないよう、シートの外側はポインタイベントを透過させる
 
 **Dependencies**
@@ -890,15 +899,16 @@ export function buildListHeading(
 
 ##### State Management
 
-- State model: 展開状態は `state.kind` から導出する。独立した開閉状態を持たない
+- State model: 現在のスナップ位置 (`collapsed` / 中 / 最大) をローカルに持つ。条件が 1 つも指定されていないときの既定は `collapsed` とする
 - Persistence & consistency: なし。URL には含めない
-- Concurrency strategy: なし
+- Concurrency strategy: ドラッグ中はポインタの移動に連続して追従させ、離した時点で最も近いスナップ位置に確定する
 
 **Implementation Notes**
 
-- 統合: Figma のデザインではグラバーを表示する。ドラッグによる任意高さの変更は本 spec では実装せず、視覚的な手掛かりとしてのみ置く
+- 統合: グラバーは Pointer Events で実装し、タッチとマウスの双方で動作させる。ドラッグの起点はグラバー領域に限定し、シート本体 (スクロール領域) では発火させない
 - 検証: `MAP_BREAKPOINT` 以上では非表示にし、`aria-hidden` と `inert` を付ける (要件 5.9)
-- リスク: グラバーを表示しながらドラッグできないことが来場者の期待を裏切る可能性がある。タップでの開閉を用意するか、実装時に判断する
+- 検証: グラバーはキーボード操作の対象にし、現在のスナップ位置を支援技術に伝える (要件 5.13)
+- リスク: なし
 
 #### MapSearchPanel / MapSearchOverlay
 
@@ -1000,13 +1010,14 @@ export function buildListHeading(
 | Field | Detail |
 |-------|--------|
 | Intent | OSM データから会場周辺のタイルをレンダリングし、配信用の資産として出力する |
-| Requirements | 1.1, 1.10 |
+| Requirements | 1.1, 1.10, 1.16 |
 
 **Responsibilities & Constraints**
 
 - GitHub Actions のワークフローとして実行する。開発者の手元に PostGIS と 30GB のディスクを要求しない
 - `CAMPUS_MAP_CONFIG` の中心座標・範囲・ズーム幅からタイル座標を算出する
 - OpenStreetMap のデータからレンダリングする。他者が運用するタイル配信サービスから画像を取得しない
+- レンダリング結果 (PNG) を `cwebp` で webp に変換してから出力する
 - 生成した枚数と総容量を出力する
 
 **Dependencies**
@@ -1019,14 +1030,14 @@ export function buildListHeading(
 ##### Batch / Job Contract
 
 - Trigger: `.github/workflows/generate-map-tiles.yml` の `workflow_dispatch` による手動実行
-- Input / validation: `frontend/src/lib/campus-map-config.ts` の中心座標・範囲・ズーム幅。`scripts/map-tile-bounds.ts` が算出した枚数が想定 (z17〜19 合計で約 1323 枚) の 1.5 倍を超える場合、レンダリング前に停止する
-- Output / destination: `frontend/public/map-tiles/{z}/{x}/{y}.png` の構造を持つ artifact。開発者がダウンロードしてリポジトリへコミットする
+- Input / validation: `frontend/src/lib/campus-map-config.ts` の中心座標・範囲・ズーム幅。`scripts/map-tile-bounds.ts` が算出した枚数が想定 (z16〜19 合計。実測はタスク 11.1 のドライランで確定させる) の 1.5 倍を超える場合、レンダリング前に停止する
+- Output / destination: `frontend/public/map-tiles/{z}/{x}/{y}.webp` の構造を持つ artifact。開発者がダウンロードしてリポジトリへコミットする
 - Idempotency & recovery: ワークフローは毎回まっさらなランナーで走る。中断した場合は再実行する
 
 **Implementation Notes**
 
 - 統合: 設定値は `lib/campus-map-config.ts` から import する。このモジュールは `cms.ts` / `env.ts` に依存しないため、Next のビルドパイプライン外からも読める
-- 統合: ワークフローの手順は (1) Geofabrik から群馬県の `.osm.pbf` を取得、(2) 対象範囲に切り出し、(3) tile-server コンテナへインポート、(4) z17〜19 をレンダリング、(5) artifact として出力。ロジックは YAML ではなくスクリプトに置く
+- 統合: ワークフローの手順は (1) Geofabrik から群馬県の `.osm.pbf` を取得、(2) 対象範囲に切り出し、(3) tile-server コンテナへインポート、(4) z16〜19 をレンダリング、(5) `cwebp` で webp へ変換、(6) artifact として出力。ロジックは YAML ではなくスクリプトに置く
 - 検証: 生成後に `scripts/verify-map-tiles.ts` が、設定されたズーム範囲のすべてのタイルが存在すること、総容量が想定から大きく外れていないことを確認する
 - 検証: 日本語ラベルが正しく描画されることを目視で確認する。使用するイメージはフォントを同梱している
 - リスク: ランナーのディスク容量が足りない場合、不要なプリインストールソフトを削除して空きを作る
@@ -1100,9 +1111,9 @@ erDiagram
 
 **タイル配信**
 
-- パス: `/map-tiles/{z}/{x}/{y}.png`
-- 形式: PNG。Web メルカトル (EPSG:3857) の標準的な z/x/y タイル座標系
-- 提供範囲: `CAMPUS_MAP_CONFIG.bounds` が定める会場周辺の矩形、ズーム 17〜19
+- パス: `/map-tiles/{z}/{x}/{y}.webp`
+- 形式: webp。レンダリング結果 (PNG) を `cwebp` で変換する。品質設定は変換スクリプト内の 1 箇所に集約する。Web メルカトル (EPSG:3857) の標準的な z/x/y タイル座標系
+- 提供範囲: `CAMPUS_MAP_CONFIG.bounds` が定める会場周辺の矩形、ズーム 16〜19
 - 範囲外の要求: 404。静的アセットとして解決されず Worker スクリプトに回るため、Workers の課金対象になる。クライアント側で TileLayer の `bounds` を指定し、要求そのものを発生させないことが前提 (要件 1.13)
 - ライセンス: OpenStreetMap のデータに由来する Produced Work であり ODbL 1.0。`© OpenStreetMap contributors` の表示とライセンス情報ページへのリンクが必要
 - このパスは `pwa-offline` がキャッシュ対象として参照する契約である。変更する場合は Revalidation Triggers に従う
@@ -1186,7 +1197,7 @@ Leaflet に依存するコンポーネント (`CampusMapView` / `AreaPolygonLaye
 ### Performance
 
 - 初回ペイロード (全カードを含む) のサイズを計測する
-- タイル資産の総容量と枚数が見積もり (約 1323 枚・約 7.7MB) から大きく外れていないことを生成後の検証スクリプトで確認する
+- タイル資産の総容量と枚数が見積もり (z16〜19 でおおむね 1400 枚前後。実測はタスク 11.1 のドライランで確定させる) から大きく外れていないことを生成後の検証スクリプトで確認する
 - エリア選択と絞り込みの操作でネットワークリクエストが発生しないことを E2E で確認する
 
 ## Security Considerations
@@ -1202,7 +1213,7 @@ Leaflet に依存するコンポーネント (`CampusMapView` / `AreaPolygonLaye
 - エリア数は数十件、企画数は数百件を想定する。全件取得とメモリ内絞り込みで十分であり、既存の企画一覧と同じ規模
 - **CMS への負荷**: `lib/cms.ts` はキャッシュ指定を持たず、Server Component の再レンダリングは CMS への実リクエストを伴う。本設計はエリア選択と絞り込みをクライアント側で完結させるため、1 ページビューあたりの CMS 取得は初回の 4 本のみ。当日の負荷の主たる所在はタイル配信ではなく CMS であり、ここを抑えることが設計の目的の 1 つ
 - タイルは静的アセットとして Cloudflare の CDN に乗る。静的アセットへのリクエストは無料かつ無制限。ただし範囲外のタイル要求は 404 として Worker 呼び出しになるため、TileLayer の `bounds` で要求を抑止する
-- ズーム範囲は z17〜19。2304×1792px を覆う z17 のタイル範囲 (9×7 = 63 枚) を基準に、同じ地理範囲を z18 は 4 倍の 252 枚、z19 は 16 倍の 1008 枚で覆う必要があり、合計 1323 枚になる。OSM 公式タイルの実測平均サイズ (z17 約 11.5KB/枚、z18 約 8.1KB/枚、z19 約 5.0KB/枚) で概算すると総容量は約 7.7MB。`pwa-offline` はこの容量をキャッシュ対象として引き継ぐ
+- ズーム範囲は z16〜19。2304×1792px を覆う z17 のタイル範囲 (9×7 = 63 枚) を基準に、z16 はその 4 分の 1 程度、z18 は 4 倍の 252 枚、z19 は 16 倍の 1008 枚で覆う必要があり、合計はおおむね 1400 枚前後になる見込み。実測はタスク 11.1 のドライランで確定させる。配信形式を webp に変えるため総容量の見積もりも変わり、`cwebp` 変換後の実容量はタスク 11.3 の実測で確定させ、design と research の数値を更新する。`pwa-offline` はこの容量をキャッシュ対象として引き継ぐ
 - 地図本体は Client Component であり初期 JS が増える。ペインとシートは地図の読み込み前でも読める
 
 ## Migration Strategy

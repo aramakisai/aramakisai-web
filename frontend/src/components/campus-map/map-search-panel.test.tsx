@@ -41,12 +41,12 @@ describe('MapSearchPanel', () => {
     expect(input.id).toMatch(/^map-search-panel-/);
   });
 
-  it('offers one toggle per category matching the CMS category definition, in order', () => {
+  it('offers an "all" chip plus one toggle per category matching the CMS category definition, in order', () => {
     render(<MapSearchPanel {...baseProps()} />);
     const group = screen.getByRole('group', { name: 'カテゴリで絞り込み' });
     expect(
       Array.from(group.querySelectorAll('button')).map((b) => b.textContent),
-    ).toEqual(['ステージ', '展示', '出店', 'その他']);
+    ).toEqual(['すべて', 'ステージ', '展示', '出店', 'その他']);
   });
 
   it('marks the currently applied categories as pressed', () => {
@@ -59,6 +59,29 @@ describe('MapSearchPanel', () => {
       'aria-pressed',
       'false',
     );
+    expect(screen.getByRole('button', { name: 'すべて' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+  });
+
+  it('marks "all" as pressed when no category is selected', () => {
+    render(<MapSearchPanel {...baseProps({ categories: [] })} />);
+    expect(screen.getByRole('button', { name: 'すべて' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+
+  it('clears the category selection when "all" is clicked', () => {
+    const onCategoriesChange = vi.fn();
+    render(
+      <MapSearchPanel
+        {...baseProps({ categories: ['stage'], onCategoriesChange })}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'すべて' }));
+    expect(onCategoriesChange).toHaveBeenCalledWith([]);
   });
 
   it('adds a category when an unpressed toggle is clicked', () => {

@@ -46,18 +46,29 @@ function isAreaOnly(state: FilteredState): boolean {
   );
 }
 
-/** 適用中の条件と件数から見出し文を組み立てる */
-export function buildListHeading(state: FilteredState): string {
+export interface ListHeading {
+  /** エリア名・キーワード・カテゴリを併記した見出し本体 */
+  readonly heading: string;
+  readonly count: string;
+}
+
+/**
+ * 適用中の条件と件数から見出しを組み立てる。
+ * Figma (AreaExhibitionList / Header) は見出し本体と件数を別要素として持つ 2 段構成のため、
+ * ここでも 1 つの文字列にせず分けて返す。
+ */
+export function buildListHeading(state: FilteredState): ListHeading {
   const segments: string[] = [];
   if (state.areaName) segments.push(state.areaName);
   if (state.keyword) segments.push(`「${state.keyword}」`);
   if (state.categories.length > 0) {
     segments.push(state.categories.map((c) => CATEGORY_LABELS[c]).join('・'));
   }
-  return `${segments.join(' ')} (${state.items.length}件)`;
+  return { heading: segments.join(' '), count: `${state.items.length}件` };
 }
 
 export function AreaExhibitionList({ state, notice }: AreaExhibitionListProps) {
+  const listHeading = state.kind === 'filtered' ? buildListHeading(state) : null;
   return (
     <div aria-live="polite" className="flex flex-col gap-4">
       {notice && <p>{notice}</p>}
@@ -73,9 +84,12 @@ export function AreaExhibitionList({ state, notice }: AreaExhibitionListProps) {
       {state.kind === 'error' && <p role="alert">{state.message}</p>}
       {state.kind === 'filtered' && (
         <>
-          <h2 className="text-base font-bold text-text">
-            {buildListHeading(state)}
-          </h2>
+          <div className="flex flex-col gap-1">
+            <h2 className="text-2xl font-bold text-text">
+              {listHeading?.heading}
+            </h2>
+            <p className="text-sm text-gray-500">{listHeading?.count}</p>
+          </div>
           {state.items.length === 0 ? (
             <p>
               {isAreaOnly(state)

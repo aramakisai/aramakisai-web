@@ -32,7 +32,7 @@ function card(
 }
 
 describe('buildListHeading', () => {
-  it('formats an area-only heading as "<area name> (<count>件)"', () => {
+  it('formats an area-only heading as area name plus a separate count', () => {
     const heading = buildListHeading({
       kind: 'filtered',
       areaName: '中央エリア',
@@ -40,7 +40,7 @@ describe('buildListHeading', () => {
       categories: [],
       items: [card({})],
     });
-    expect(heading).toBe('中央エリア (1件)');
+    expect(heading).toEqual({ heading: '中央エリア', count: '1件' });
   });
 
   it('appends the keyword and category labels when they are also applied', () => {
@@ -51,7 +51,10 @@ describe('buildListHeading', () => {
       categories: ['stage', 'exhibit'],
       items: [card({}), card({ category: 'stage' })],
     });
-    expect(heading).toBe('中央エリア 「ロボット」 ステージ・展示 (2件)');
+    expect(heading).toEqual({
+      heading: '中央エリア 「ロボット」 ステージ・展示',
+      count: '2件',
+    });
   });
 
   it('omits the area segment when no area is selected', () => {
@@ -62,7 +65,7 @@ describe('buildListHeading', () => {
       categories: [],
       items: [],
     });
-    expect(heading).toBe('「ロボット」 (0件)');
+    expect(heading).toEqual({ heading: '「ロボット」', count: '0件' });
   });
 });
 
@@ -102,7 +105,10 @@ describe('AreaExhibitionList', () => {
       ],
     };
     render(<AreaExhibitionList state={state} />);
-    expect(screen.getByText('中央エリア (2件)')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 2, name: '中央エリア' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('2件')).toBeInTheDocument();
     expect(screen.getByText('企画A')).toBeInTheDocument();
     expect(screen.getByText('企画B')).toBeInTheDocument();
   });

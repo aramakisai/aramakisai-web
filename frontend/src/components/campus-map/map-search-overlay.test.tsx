@@ -49,6 +49,41 @@ describe('MapSearchOverlay', () => {
       'aria-pressed',
       'false',
     );
+    expect(screen.getByRole('button', { name: 'すべて' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+  });
+
+  it('marks "all" as pressed when no category is selected', () => {
+    mockMatchMedia(false);
+    render(
+      <MapSearchOverlay
+        keywordInput=""
+        setKeywordInput={vi.fn()}
+        categories={[]}
+        setCategories={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'すべて' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+
+  it('clears the category selection when "all" is clicked', () => {
+    mockMatchMedia(false);
+    const setCategories = vi.fn();
+    render(
+      <MapSearchOverlay
+        keywordInput=""
+        setKeywordInput={vi.fn()}
+        categories={['stage']}
+        setCategories={setCategories}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'すべて' }));
+    expect(setCategories).toHaveBeenCalledWith([]);
   });
 
   it('toggles a category on and off via setCategories without mutating the given array', () => {
