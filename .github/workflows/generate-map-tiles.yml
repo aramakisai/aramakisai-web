@@ -1,0 +1,105 @@
+name: Generate Map Tiles
+
+on:
+  workflow_dispatch: {}
+
+defaults:
+  run:
+    working-directory: frontend
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    name: render OSM tiles for the campus map
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # CAMPUS_MAP_CONFIG から算出した枚数が想定の 1.5 倍を超える場合、
+      # このステップが非ゼロで終了し、後続のレンダリングステップは走らない。
+      - name: Calculate tile bounds
+        id: bounds
+        run: pnpm exec tsx scripts/map-tile-bounds.ts
+
+      # switch2osm 案内の Overv/openstreetmap-tile-server は PostGIS 込みで
+      # 30GB 前後のディスクを要求する。ubuntu-latest のプリインストールを削って空きを作る
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h /
+
+      - name: Download Gunma OSM extract
+        run: |
+          curl -fsSL -o gunma-latest.osm.pbf \
+            https://download.geofabrik.de/asia/japan/gunma-latest.osm.pbf
+
+      - name: Install osmium-tool
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y osmium-tool
+
+      - name: Extract campus bounding box
+        run: |
+          osmium extract --bbox "${{ steps.bounds.outputs.bbox }}" \
+            --strategy complete_ways \
+            -o campus.osm.pbf gunma-latest.osm.pbf
+
+      - name: Import into openstreetmap-tile-server
+        run: |
+          docker run --name import \
+            -v "$PWD/campus.osm.pbf:/data/region.osm.pbf" \
+            -v osm-data:/data/database/ \
+            overv/openstreetmap-tile-server:latest import
+
+      - name: Render tiles
+        run: |
+          docker run -d --name tile-server \
+            -v osm-data:/data/database/ \
+            -v "$PWD/rendered-tiles:/data/tiles" \
+            -p 8080:80 \
+            overv/openstreetmap-tile-server:latest run
+
+          # z17-19 それぞれの範囲を計算結果 (steps.bounds.outputs.zoom-ranges) から取り出し、
+          # コンテナ同梱の render_list (mod_tile) にそのまま渡す。判断ロジックは持たず反復のみ
+          echo '${{ steps.bounds.outputs.zoom-ranges }}' | \
+            jq -c '.[]' | \
+            while read -r range; do
+              zoom=$(echo "$range" | jq -r '.zoom')
+              docker exec tile-server render_list \
+                -a -m default \
+                -z "$zoom" -Z "$zoom" \
+                -x "$(echo "$range" | jq -r '.xMin')" \
+                -X "$(echo "$range" | jq -r '.xMax')" \
+                -y "$(echo "$range" | jq -r '.yMin')" \
+                -Y "$(echo "$range" | jq -r '.yMax')"
+            done
+
+          docker cp tile-server:/data/tiles/default/. rendered-tiles/
+
+      - name: Verify rendered tiles
+        run: MAP_TILES_DIR="$PWD/rendered-tiles" pnpm exec tsx scripts/verify-map-tiles.ts
+
+      - name: Upload tiles artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: map-tiles
+          path: frontend/rendered-tiles
+          retention-days: 14
