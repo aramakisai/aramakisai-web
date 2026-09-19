@@ -696,6 +696,7 @@ export function polygonCentroid(
 - Client Component。`leaflet/dist/leaflet.css` を import する
 - タイルレイヤーの URL テンプレート、表示範囲の上限、ズームの上限と下限を `CAMPUS_MAP_CONFIG` から受け取る
 - 出典表記を Leaflet の attribution 機構で常時表示する
+- ズームコントロールと出典表記の配置は `MAP_BREAKPOINT` で出し分ける。PC はどちらも右下で、ズームが上・出典表記がその下 (画面の角に最も近い)。SP はズームが右下、出典表記が左下 (どちらもボトムシート上端のすぐ上、ほぼ同じ高さ)
 - エリア選択の結果を `onSelectArea` コールバックで親へ通知する。URL の書き換えは行わない
 - 地図コンテナに明示的な高さを与える
 
@@ -722,6 +723,8 @@ export function polygonCentroid(
 - 検証: `minZoom` / `maxZoom` を `CAMPUS_MAP_CONFIG` の値で指定する (要件 1.7 / 1.8)。`maxZoom` が 19 であれば 19 より上のズーム自体が存在しないため、要件 1.9 は `maxZoom` 単体で満たされる。`maxNativeZoom` は `maxZoom` と同値では効果を持たないため指定しない
 - 検証: `errorTileUrl` に透明タイルを指定し、読み込みに失敗したタイルが破損画像として表示されないようにする (要件 8.3)
 - 検証: 地図コンテナの高さは `h-dvh` 等で明示する。高さが決まらないと Leaflet のコンテナが 0px になる
+- 検証: Leaflet は同じ角に複数のコントロールがあるとき、後から `addTo` されたものほど角の内側 (画面端から遠い側) に挿入する (`Control.prototype.addTo` の `corner.insertBefore(container, corner.firstChild)`)。PC の「ズームが上・出典表記が下」は、出典表記を先に、ズームコントロールを後にマウントすることで実現する
+- 検証: SP では出典表記の `position` を `bottomleft` に切り替える。ズームとは別の角になるため二重表示の懸念はなく、OpenStreetMap の帰属表示はブレークポイントに関わらず常に描画される
 - リスク: Tailwind v4 の preflight と `leaflet.css` の競合の有無を実装初期に確認する
 
 #### AreaPolygonLayer

@@ -7,6 +7,7 @@ import { CAMPUS_MAP_CONFIG, MAP_ATTRIBUTION } from '@/lib/campus-map-config';
 import type { CampusMapArea } from '@/lib/campus-map';
 import { AreaPolygonLayer } from './area-polygon-layer';
 import { MapZoomControl } from './map-zoom-control';
+import { useIsAboveMapBreakpoint } from './use-is-above-map-breakpoint';
 
 // leaflet の型は mutable なタプルを要求するため、readonly な設定値をここでキャストする
 const CENTER = CAMPUS_MAP_CONFIG.center as unknown as LatLngExpression;
@@ -28,6 +29,7 @@ export function CampusMapView({
   onSelectArea,
 }: CampusMapViewProps) {
   const { initialZoom, minZoom, maxZoom, tileUrlTemplate } = CAMPUS_MAP_CONFIG;
+  const isAboveBreakpoint = useIsAboveMapBreakpoint();
 
   // 選択中のエリアの再選択は解除として扱う (要件 2.6)。URL の書き換えは呼び出し元に委ねる
   const handleAreaClick = (areaId: number) => {
@@ -61,8 +63,18 @@ export function CampusMapView({
         selectedAreaId={selectedAreaId}
         onAreaClick={handleAreaClick}
       />
+      {/*
+       * Leaflet は同じ角 (position) に複数のコントロールがあるとき、後から addTo された
+       * ものほど角の内側 (画面端から遠い側) に挿入する (Control.prototype.addTo の
+       * corner.insertBefore(container, corner.firstChild) 参照)。PC はズームを上・
+       * 出典表記を角に最も近い下に置きたいため、出典表記を先に、ズームを後にマウントする。
+       * SP は出典表記を bottomleft に出すため互いに別の角となり、この順序は影響しない
+       */}
+      <AttributionControl
+        position={isAboveBreakpoint ? 'bottomright' : 'bottomleft'}
+        prefix={false}
+      />
       <MapZoomControl />
-      <AttributionControl position="bottomright" prefix={false} />
     </MapContainer>
   );
 }

@@ -358,4 +358,17 @@ describe('CampusMapScreen', () => {
 
     vi.unstubAllGlobals();
   });
+
+  it('tracks the bottom sheet height for both the zoom (bottomright) and attribution (bottomleft on SP) corners', () => {
+    stubMobile();
+    const { getByTestId } = render(
+      <CampusMapScreen
+        data={dataResult({ areas: { kind: 'loaded', value: [area()] } })}
+        initialFilters={baseFilters()}
+      />,
+    );
+    const className = getByTestId('map-controls-margin').className;
+    expect(className).toMatch(/leaflet-bottom\.leaflet-right/);
+    expect(className).toMatch(/leaflet-bottom\.leaflet-left/);
+  });
 });

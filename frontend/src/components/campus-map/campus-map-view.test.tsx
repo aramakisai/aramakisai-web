@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CAMPUS_MAP_CONFIG, MAP_ATTRIBUTION } from '@/lib/campus-map-config';
 import type { CampusMapArea } from '@/lib/campus-map';
 
@@ -46,6 +46,15 @@ vi.mock('./map-zoom-control', () => ({
 
 import { CampusMapView } from './campus-map-view';
 
+function mockMatchMedia(matches: boolean) {
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches,
+    media: query,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }));
+}
+
 function area(overrides: Partial<CampusMapArea>): CampusMapArea {
   return {
     id: 1,
@@ -69,6 +78,10 @@ function area(overrides: Partial<CampusMapArea>): CampusMapArea {
 }
 
 describe('CampusMapView', () => {
+  beforeEach(() => {
+    mockMatchMedia(false);
+  });
+
   it('中心・初期ズーム・ズーム範囲・表示範囲の上限を設定値から渡す', () => {
     render(
       <CampusMapView
@@ -174,6 +187,7 @@ describe('CampusMapView', () => {
   });
 
   it('既定の帰属表示コントロールを無効化し旗ロゴなしのものに置き換える', () => {
+    mockMatchMedia(true);
     render(
       <CampusMapView
         areas={[]}
@@ -217,5 +231,57 @@ describe('CampusMapView', () => {
     ) => void;
     onAreaClick(3);
     expect(onSelectArea).toHaveBeenCalledWith(null);
+  });
+
+  it('PC (ブレークポイント以上) では出典表記を bottomright に置く', () => {
+    mockMatchMedia(true);
+    render(
+      <CampusMapView
+        areas={[]}
+        selectedAreaId={null}
+        onSelectArea={() => {}}
+      />,
+    );
+    expect(attributionControlProps.at(-1)!.position).toBe('bottomright');
+  });
+
+  it('SP (ブレークポイント未満) では出典表記を bottomleft に置く', () => {
+    mockMatchMedia(false);
+    render(
+      <CampusMapView
+        areas={[]}
+        selectedAreaId={null}
+        onSelectArea={() => {}}
+      />,
+    );
+    expect(attributionControlProps.at(-1)!.position).toBe('bottomleft');
+  });
+
+  it('出典表記を先に、ズームコントロールを後にマウントする (Leaflet は後着ほど角の内側に挿入するため、PC で両者が同じ角を共有してもズームが上に来る)', () => {
+    const { container } = render(
+      <CampusMapView
+        areas={[]}
+        selectedAreaId={null}
+        onSelectArea={() => {}}
+      />,
+    );
+    const testIds = Array.from(container.querySelectorAll('[data-testid]')).map(
+      (el) => el.getAttribute('data-testid'),
+    );
+    expect(testIds.indexOf('attribution-control')).toBeLessThan(
+      testIds.indexOf('map-zoom-control'),
+    );
+  });
+
+  it('ブレークポイントに関わらずズームと出典表記の両方を常にマウントする (OSM 帰属表示を常時可視にする)', () => {
+    render(
+      <CampusMapView
+        areas={[]}
+        selectedAreaId={null}
+        onSelectArea={() => {}}
+      />,
+    );
+    expect(attributionControlProps.length).toBeGreaterThan(0);
+    expect(mapZoomControlRenderCount).toBeGreaterThan(0);
   });
 });

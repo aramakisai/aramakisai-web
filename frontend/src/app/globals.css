@@ -36,9 +36,19 @@
     0px 20px 25px -5px rgba(156, 163, 176, 0.2);
 }
 
-.leaflet-bottom.leaflet-right .leaflet-control-zoom {
+/*
+ * ズームと出典表記は同じ角 (bottomright, PC) を共有することがあり、右端の余白を
+ * 揃えて縦に並んだときに右辺が一致して見えるようにする。縦方向の間隔は
+ * Leaflet 既定の margin-bottom (leaflet.css の .leaflet-bottom .leaflet-control) に委ねる
+ */
+.leaflet-bottom.leaflet-right .leaflet-control-zoom,
+.leaflet-bottom.leaflet-right .leaflet-control-attribution {
   margin-right: 24px;
-  margin-bottom: 53px;
+}
+
+/* SP は出典表記が bottomleft (画面の角に最も近い) に出るため、左辺の余白を揃える */
+.leaflet-bottom.leaflet-left .leaflet-control-attribution {
+  margin-left: 24px;
 }
 
 .leaflet-bar a.leaflet-control-zoom-in,

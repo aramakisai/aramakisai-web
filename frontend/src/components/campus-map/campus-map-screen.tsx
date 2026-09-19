@@ -121,14 +121,15 @@ export function CampusMapScreen({
         onHeightChange={setSheetHeight}
       />
       {/*
-       * ボトムシートは全幅で画面下端に固定され、Leaflet の bottomright コントロール
-       * (ズーム・出典表記, z-index 1000) より前面 (z-[1050]) に重なる。シートの高さは
+       * ボトムシートは全幅で画面下端に固定され、Leaflet のコントロール (ズーム: bottomright,
+       * 出典表記: SP では bottomleft, z-index 1000) より前面 (z-[1050]) に重なる。シートの高さは
        * ドラッグで連続的に変わるため、固定値ではなく実測値 (MapBottomSheet からの
-       * onHeightChange) を CSS 変数として margin に反映し、隠れないよう追従させる
+       * onHeightChange) を CSS 変数として margin に反映し、隠れないよう追従させる。
+       * SP では出典表記が左下 (leaflet-left) に移るため、両方の角に追従させる
        */}
       <div
         data-testid="map-controls-margin"
-        className="max-md:[&_.leaflet-bottom.leaflet-right]:mb-[calc(var(--map-bottom-sheet-height)+1rem)]"
+        className="max-md:[&_.leaflet-bottom.leaflet-left]:mb-[calc(var(--map-bottom-sheet-height)+1rem)] max-md:[&_.leaflet-bottom.leaflet-right]:mb-[calc(var(--map-bottom-sheet-height)+1rem)]"
         style={
           { '--map-bottom-sheet-height': `${sheetHeight}px` } as CSSProperties
         }
