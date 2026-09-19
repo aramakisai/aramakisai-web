@@ -143,7 +143,7 @@ graph TB
 | Frontend | `@types/leaflet` | Leaflet の型定義 | 新規 devDependency。react-leaflet の型が参照する |
 | Frontend | `leaflet/dist/leaflet.css` | 地図の既定スタイル | Client Component から import する。省くとタイル配置とコントロールが崩れる |
 | Frontend | `zod` (既存) | `geometry` のランタイム検証 | `env.ts` で使用済み |
-| Data / Storage | 静的 webp タイル (`public/map-tiles/`) | 地図タイルの配信 | z16–19。z16 分が加わり枚数と総容量が増える。実測はタスク 11.1 のドライランで確定させる。リポジトリに資産としてコミットする |
+| Data / Storage | 静的 webp タイル (`public/map-tiles/`) | 地図タイルの配信 | z16–19、1454 枚・約 3.83MB。リポジトリに資産としてコミットする |
 | Tooling | GitHub Actions + `Overv/openstreetmap-tile-server` | タイルの生成 | `workflow_dispatch` の手動実行。成果物は artifact 経由で受け取る |
 | Tooling | `cwebp` (libwebp) | レンダリング結果 (PNG) の webp への変換 | GitHub Actions ランナーへインストールして使う。品質設定は変換スクリプト内の 1 箇所に集約する |
 | Backend | Payload 3 | `map_areas.color` の追加と `geometry` の検証 | 既存。マイグレーション 1 本 |
@@ -1197,7 +1197,7 @@ Leaflet に依存するコンポーネント (`CampusMapView` / `AreaPolygonLaye
 ### Performance
 
 - 初回ペイロード (全カードを含む) のサイズを計測する
-- タイル資産の総容量と枚数が見積もり (z16〜19 でおおむね 1400 枚前後。実測はタスク 11.1 のドライランで確定させる) から大きく外れていないことを生成後の検証スクリプトで確認する
+- タイル資産の総容量と枚数 (z16〜19 で 1454 枚・約 3.83MB) を生成後の検証スクリプトで確認する
 - エリア選択と絞り込みの操作でネットワークリクエストが発生しないことを E2E で確認する
 
 ## Security Considerations
@@ -1213,7 +1213,7 @@ Leaflet に依存するコンポーネント (`CampusMapView` / `AreaPolygonLaye
 - エリア数は数十件、企画数は数百件を想定する。全件取得とメモリ内絞り込みで十分であり、既存の企画一覧と同じ規模
 - **CMS への負荷**: `lib/cms.ts` はキャッシュ指定を持たず、Server Component の再レンダリングは CMS への実リクエストを伴う。本設計はエリア選択と絞り込みをクライアント側で完結させるため、1 ページビューあたりの CMS 取得は初回の 4 本のみ。当日の負荷の主たる所在はタイル配信ではなく CMS であり、ここを抑えることが設計の目的の 1 つ
 - タイルは静的アセットとして Cloudflare の CDN に乗る。静的アセットへのリクエストは無料かつ無制限。ただし範囲外のタイル要求は 404 として Worker 呼び出しになるため、TileLayer の `bounds` で要求を抑止する
-- ズーム範囲は z16〜19。2304×1792px を覆う z17 のタイル範囲 (9×7 = 63 枚) を基準に、z16 はその 4 分の 1 程度、z18 は 4 倍の 252 枚、z19 は 16 倍の 1008 枚で覆う必要があり、合計はおおむね 1400 枚前後になる見込み。実測はタスク 11.1 のドライランで確定させる。配信形式を webp に変えるため総容量の見積もりも変わり、`cwebp` 変換後の実容量はタスク 11.3 の実測で確定させ、design と research の数値を更新する。`pwa-offline` はこの容量をキャッシュ対象として引き継ぐ
+- ズーム範囲は z16〜19。2304×1792px を覆う z17 のタイル範囲 (9×7 = 63 枚) を基準に余白を持たせた結果、z16 は 25 枚、z17 は 80 枚、z18 は 285 枚、z19 は 1064 枚となり、合計 1454 枚・約 3.83MB (webp) になる。`pwa-offline` はこの容量をキャッシュ対象として引き継ぐ
 - 地図本体は Client Component であり初期 JS が増える。ペインとシートは地図の読み込み前でも読める
 
 ## Migration Strategy
