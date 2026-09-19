@@ -36,8 +36,10 @@ export function MapBottomSheet({
   onHeightChange,
 }: MapBottomSheetProps) {
   const isAboveBreakpoint = useIsAboveMapBreakpoint();
-  // 独立した開閉状態は持たず、リストの表示状態からそのまま導く (design.md 参照)
-  const collapsed = state.kind === 'unselected';
+  // 独立した開閉状態は持たず、リストの表示状態からそのまま導く (design.md 参照)。
+  // 実コンテンツを持つのは filtered のみで、それ以外 (unselected/no-area/error) は
+  // 常に 1 行の案内だけなので折りたたんでよい
+  const collapsed = state.kind !== 'filtered';
   // 企画リストを内容の高さまで縮めると意味のある「折りたたみ」にならないため、
   // 条件なし (collapsed) のときだけ 0 (折りたたみ) まで下げられるようにする
   const minSnapIndex: SnapIndex = collapsed ? 0 : 1;

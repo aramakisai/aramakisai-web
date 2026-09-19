@@ -67,14 +67,40 @@ describe('MapBottomSheet', () => {
     );
   });
 
-  it('expands to a fixed scrollable height once any condition applies', () => {
+  it('expands to a fixed scrollable height once any condition applies (filtered)', () => {
     mockMatchMedia(false);
-    const state: AreaExhibitionListState = { kind: 'no-area' };
+    const state: AreaExhibitionListState = {
+      kind: 'filtered',
+      areaName: 'Aゾーン',
+      keyword: '',
+      categories: [],
+      items: [],
+    };
     const { getByTestId } = render(<MapBottomSheet state={state} />);
     expect(getByTestId('map-bottom-sheet').className).toMatch(
       /overflow-y-auto/,
     );
   });
+
+  it.each([
+    ['no-area', { kind: 'no-area' } satisfies AreaExhibitionListState],
+    [
+      'error',
+      {
+        kind: 'error',
+        message: '取得に失敗しました',
+      } satisfies AreaExhibitionListState,
+    ],
+  ])(
+    'shrinks to content height for %s, which is a single-line notice with no real content',
+    (_label, state) => {
+      mockMatchMedia(false);
+      const { getByTestId } = render(<MapBottomSheet state={state} />);
+      expect(getByTestId('map-bottom-sheet').className).not.toMatch(
+        /overflow-y-auto/,
+      );
+    },
+  );
 
   it('lets the map receive pointer events outside the sheet itself', () => {
     mockMatchMedia(false);
@@ -133,14 +159,20 @@ describe('MapBottomSheet', () => {
 
     it('moves one snap step per arrow key and reflects it via aria-expanded', () => {
       mockMatchMedia(false);
-      const state: AreaExhibitionListState = { kind: 'no-area' };
+      const state: AreaExhibitionListState = {
+        kind: 'filtered',
+        areaName: 'Aゾーン',
+        keyword: '',
+        categories: [],
+        items: [],
+      };
       const { getByTestId } = render(<MapBottomSheet state={state} />);
       const grabber = screen.getByRole('button', {
         name: /シートの高さを変更/,
       });
       const sheet = getByTestId('map-bottom-sheet');
 
-      // 条件あり (no-area) の既定は「中」(380px)。折りたたみへは戻れない
+      // 条件あり (filtered) の既定は「中」(380px)。折りたたみへは戻れない
       expect(sheet.className).toMatch(/h-\[380px\]/);
       expect(grabber).toHaveAttribute('aria-expanded', 'false');
 
@@ -179,7 +211,13 @@ describe('MapBottomSheet', () => {
     it('follows the pointer continuously while dragging and snaps to the nearest position on release', () => {
       mockMatchMedia(false);
       window.innerHeight = 800; // 最大スナップ = 55vh = 440px
-      const state: AreaExhibitionListState = { kind: 'no-area' };
+      const state: AreaExhibitionListState = {
+        kind: 'filtered',
+        areaName: 'Aゾーン',
+        keyword: '',
+        categories: [],
+        items: [],
+      };
       const { getByTestId } = render(<MapBottomSheet state={state} />);
       const grabber = screen.getByRole('button', {
         name: /シートの高さを変更/,
