@@ -165,10 +165,12 @@ describe('CampusMapScreen', () => {
 
     const menuButton = screen.getByRole('button', { name: 'メニューを開く' });
     const searchbox = screen.getByRole('searchbox', { name: '企画を検索' });
-    const areaGroup = screen.getByRole('group', { name: 'エリアを選択' });
+    const list = screen.getAllByText(
+      '地図上のブロックをタップすると、そこで開催している企画が表示されます',
+    )[0]!;
     const mapView = screen.getByTestId('campus-map-view');
 
-    const inOrder = [menuButton, searchbox, areaGroup, mapView];
+    const inOrder = [menuButton, searchbox, list, mapView];
     for (let i = 0; i < inOrder.length - 1; i += 1) {
       const relation = inOrder[i]!.compareDocumentPosition(inOrder[i + 1]!);
       expect(relation & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -229,7 +231,7 @@ describe('CampusMapScreen', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '中央エリア' }));
+    fireEvent.click(screen.getByText('select-area-1'));
     fireEvent.click(screen.getByRole('button', { name: '展示' }));
     fireEvent.change(screen.getByRole('searchbox', { name: '企画を検索' }), {
       target: { value: 'ロボット' },

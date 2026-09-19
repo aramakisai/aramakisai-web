@@ -8,7 +8,7 @@ import type {
   CampusMapDataResult,
   CampusMapFilters,
 } from '@/lib/campus-map';
-import { filterExhibitions, type AreaOption } from '@/lib/exhibitions';
+import { filterExhibitions } from '@/lib/exhibitions';
 import type { AreaExhibitionListState } from './area-exhibition-list';
 import { MapBottomSheet } from './map-bottom-sheet';
 import { MapMenuButton } from './map-menu-button';
@@ -58,10 +58,6 @@ export function CampusMapScreen({
 
   const areas: readonly CampusMapArea[] =
     data.areas.kind === 'loaded' ? data.areas.value : EMPTY_AREAS;
-  const areaOptions: readonly AreaOption[] = useMemo(
-    () => areas.map((a) => ({ id: a.id, name: a.name })),
-    [areas],
-  );
 
   const listState: AreaExhibitionListState = useMemo(() => {
     if (data.exhibitions.kind === 'error') {
@@ -118,14 +114,7 @@ export function CampusMapScreen({
         categories={filters.categories}
         setCategories={setCategories}
       />
-      <MapSidePanel
-        search={search}
-        areas={areaOptions}
-        selectedAreaId={filters.selectedAreaId}
-        onSelectArea={selectArea}
-        listState={listState}
-        notice={areaNotice}
-      />
+      <MapSidePanel search={search} listState={listState} notice={areaNotice} />
       <MapBottomSheet
         state={listState}
         notice={areaNotice}

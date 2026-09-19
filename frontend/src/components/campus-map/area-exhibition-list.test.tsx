@@ -40,7 +40,7 @@ describe('buildListHeading', () => {
       categories: [],
       items: [card({})],
     });
-    expect(heading).toEqual({ heading: '中央エリア', count: '1件' });
+    expect(heading).toEqual({ heading: '中央エリア', count: '1件の企画' });
   });
 
   it('appends the keyword and category labels when they are also applied', () => {
@@ -53,7 +53,7 @@ describe('buildListHeading', () => {
     });
     expect(heading).toEqual({
       heading: '中央エリア 「ロボット」 ステージ・展示',
-      count: '2件',
+      count: '2件の企画',
     });
   });
 
@@ -65,7 +65,7 @@ describe('buildListHeading', () => {
       categories: [],
       items: [],
     });
-    expect(heading).toEqual({ heading: '「ロボット」', count: '0件' });
+    expect(heading).toEqual({ heading: '「ロボット」', count: '0件の企画' });
   });
 });
 
@@ -108,7 +108,7 @@ describe('AreaExhibitionList', () => {
     expect(
       screen.getByRole('heading', { level: 2, name: '中央エリア' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('2件')).toBeInTheDocument();
+    expect(screen.getByText('2件の企画')).toBeInTheDocument();
     expect(screen.getByText('企画A')).toBeInTheDocument();
     expect(screen.getByText('企画B')).toBeInTheDocument();
   });

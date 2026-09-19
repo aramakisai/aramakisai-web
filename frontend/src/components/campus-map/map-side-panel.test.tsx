@@ -1,6 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { AreaOption } from '@/lib/exhibitions';
 import type { AreaExhibitionListState } from './area-exhibition-list';
 import { MapSidePanel, type MapSidePanelProps } from './map-side-panel';
 
@@ -11,11 +10,6 @@ vi.mock('@/env', () => ({
 vi.mock('@/lib/cms-asset-url', () => ({
   toAssetUrl: () => null,
 }));
-
-const AREAS: readonly AreaOption[] = [
-  { id: 1, name: '中央エリア' },
-  { id: 2, name: '南エリア' },
-];
 
 const UNSELECTED_LIST_STATE: AreaExhibitionListState = { kind: 'unselected' };
 
@@ -29,9 +23,6 @@ function baseProps(
       onKeywordChange: vi.fn(),
       onCategoriesChange: vi.fn(),
     },
-    areas: AREAS,
-    selectedAreaId: null,
-    onSelectArea: vi.fn(),
     listState: UNSELECTED_LIST_STATE,
     ...overrides,
   };
@@ -55,7 +46,7 @@ afterEach(() => {
 });
 
 describe('MapSidePanel', () => {
-  it('renders the search panel, an area selector, and the exhibition list', () => {
+  it('renders the search panel and the exhibition list', () => {
     stubMatchMedia(true);
     render(<MapSidePanel {...baseProps()} />);
 
@@ -63,38 +54,10 @@ describe('MapSidePanel', () => {
       screen.getByRole('searchbox', { name: '企画を検索' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('group', { name: 'エリアを選択' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: '中央エリア' }),
-    ).toBeInTheDocument();
-    expect(
       screen.getByText(
         '地図上のブロックをタップすると、そこで開催している企画が表示されます',
       ),
     ).toBeInTheDocument();
-  });
-
-  it('selects an unselected area on click', () => {
-    stubMatchMedia(true);
-    const onSelectArea = vi.fn();
-    render(<MapSidePanel {...baseProps({ onSelectArea })} />);
-
-    fireEvent.click(screen.getByRole('button', { name: '中央エリア' }));
-    expect(onSelectArea).toHaveBeenCalledWith(1);
-  });
-
-  it('deselects the already-selected area on click (single-select toggle)', () => {
-    stubMatchMedia(true);
-    const onSelectArea = vi.fn();
-    render(
-      <MapSidePanel {...baseProps({ selectedAreaId: 1, onSelectArea })} />,
-    );
-
-    const button = screen.getByRole('button', { name: '中央エリア' });
-    expect(button).toHaveAttribute('aria-pressed', 'true');
-    fireEvent.click(button);
-    expect(onSelectArea).toHaveBeenCalledWith(null);
   });
 
   it('is visible to assistive tech and keyboard at/above the breakpoint', () => {
@@ -116,9 +79,6 @@ describe('MapSidePanel', () => {
     expect(panel).toHaveAttribute('inert');
     // role クエリの既定は aria-hidden 配下を除外するため、Tab 対象からの除外を兼ねて確認する
     expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: '中央エリア' }),
-    ).not.toBeInTheDocument();
   });
 
   it('forwards an optional notice to the exhibition list', () => {

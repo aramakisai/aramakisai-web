@@ -64,7 +64,10 @@ export function buildListHeading(state: FilteredState): ListHeading {
   if (state.categories.length > 0) {
     segments.push(state.categories.map((c) => CATEGORY_LABELS[c]).join('・'));
   }
-  return { heading: segments.join(' '), count: `${state.items.length}件` };
+  return {
+    heading: segments.join(' '),
+    count: `${state.items.length}件の企画`,
+  };
 }
 
 export function AreaExhibitionList({ state, notice }: AreaExhibitionListProps) {

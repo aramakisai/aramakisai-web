@@ -366,7 +366,7 @@ flowchart TD
 | 9.3 | 戻る操作 | CampusMapScreen | `useMapFilters` | — |
 | 9.4 | 企画一覧との共有 | campus-map lib | `buildCampusMapHref` | — |
 | 9.5 | 複数エリア指定時 | campus-map lib | `parseCampusMapQuery` | — |
-| 10.1 | キーボードでのエリア選択 | AreaPolygonLayer, MapSidePanel | `AreaSelectorProps` | — |
+| 10.1 | キーボードでのエリア選択 | AreaPolygonLayer | `attachKeyboardSelection` | — |
 | 10.2 | リスト更新の通知 | AreaExhibitionList | `aria-live` | — |
 | 10.3 | メニューのフォーカス管理 | MapMenuButton | — | — |
 | 10.4 | 領域間のフォーカス移動 | CampusMapScreen | — | — |
@@ -384,7 +384,7 @@ flowchart TD
 | AreaPolygonLayer | UI | ポリゴン描画・選択状態・クリック | 2, 6.3, 6.4, 10.1 | CampusMapView (P0) | State |
 | AreaLabelMarker | UI | エリア名ラベルの表示 | 2.2, 2.5, 6.6 | AreaPolygonLayer (P1) | — |
 | AreaExhibitionList | UI | 出展物リスト本体 (5 状態) | 3, 4.7, 4.8, 10.2 | ExhibitionCard (P0) | — |
-| MapSidePanel | UI | デスクトップの左ペイン | 5.1, 5.4, 10.1 | AreaExhibitionList (P0) | — |
+| MapSidePanel | UI | デスクトップの左ペイン | 5.1, 5.4 | AreaExhibitionList (P0) | — |
 | MapBottomSheet | UI | スマートフォンのボトムシート | 5.2, 5.3, 5.10, 5.11, 5.12, 5.13 | AreaExhibitionList (P0) | State |
 | MapSearchPanel | UI | デスクトップの検索部 | 4.1, 5.4, 5.9 | useMapFilters (P0) | — |
 | MapSearchOverlay | UI | スマートフォンの浮動検索部 | 4.1, 5.5, 5.6, 5.9 | useMapFilters (P0) | — |
@@ -854,13 +854,12 @@ export function buildListHeading(
 | Field | Detail |
 |-------|--------|
 | Intent | デスクトップでリストを地図の左に重ねる |
-| Requirements | 5.1, 5.4, 10.1 |
+| Requirements | 5.1, 5.4 |
 
 **Responsibilities & Constraints**
 
 - 地図の上に浮かぶ固定幅のペインとして表示する。地図が隠れきらない幅に収める
 - 上部に `MapSearchPanel` を、その下に `AreaExhibitionList` を置く
-- エリアをキーボードで選択する代替経路を持つ (要件 10.1 の担保)
 
 **Dependencies**
 
@@ -1150,7 +1149,7 @@ CMS からの取得は `CmsResult` の判別可能ユニオンで返り、例外
 
 ## Accessibility
 
-- **キーボードでのエリア選択 (要件 10.1)**: 地図上のポリゴンをフォーカス可能にすることを第一の手段とする。Leaflet のベクタパスは既定でフォーカス可能ではないため、描画される SVG 要素への `tabindex` 付与が要る。実装が困難な場合は `MapSidePanel` にエリア一覧からの選択 UI を置き、地図を使わずにエリアを選べる経路を保証する
+- **キーボードでのエリア選択 (要件 10.1)**: 地図上のポリゴンをフォーカス可能にする。Leaflet のベクタパスは既定でフォーカス可能ではないため、`AreaPolygonLayer` が描画後の SVG 要素へ `tabindex="0"` / `role="button"` / `aria-label` と Enter・Space の `keydown` ハンドラを付与する (`attachKeyboardSelection`)
 - **リスト更新の通知 (要件 10.2)**: `AreaExhibitionList` の本体を `aria-live="polite"` の領域に置く。見出しに件数を含めることで、更新内容が音声でも伝わる
 - **メニューのフォーカス管理 (要件 10.3)**: `MapMenuButton` が開いている間はフォーカスをメニュー内に保ち、Esc で閉じてトリガーへフォーカスを戻す
 - **領域間の移動 (要件 10.4)**: タブ順は メニューボタン → 検索部 → リスト → 地図 とする。地図は操作対象が多いため後段に置く

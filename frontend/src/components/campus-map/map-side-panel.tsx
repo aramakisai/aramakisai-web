@@ -1,7 +1,6 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
-import type { AreaOption } from '@/lib/exhibitions';
 import {
   AreaExhibitionList,
   type AreaExhibitionListState,
@@ -34,22 +33,11 @@ function useIsDesktop(): boolean {
 
 export interface MapSidePanelProps {
   readonly search: MapSearchProps;
-  readonly areas: readonly AreaOption[];
-  /** ポリゴンとキーボード選択の代替経路 (要件 10.1) が現在選んでいるエリア */
-  readonly selectedAreaId: number | null;
-  readonly onSelectArea: (areaId: number | null) => void;
   readonly listState: AreaExhibitionListState;
   readonly notice?: string | null;
 }
 
-export function MapSidePanel({
-  search,
-  areas,
-  selectedAreaId,
-  onSelectArea,
-  listState,
-  notice,
-}: MapSidePanelProps) {
+export function MapSidePanel({ search, listState, notice }: MapSidePanelProps) {
   const isDesktop = useIsDesktop();
 
   return (
@@ -62,35 +50,8 @@ export function MapSidePanel({
     >
       <MapSearchPanel {...search} />
 
-      {areas.length > 0 && (
-        <div
-          role="group"
-          aria-label="エリアを選択"
-          className="flex flex-wrap gap-2"
-        >
-          {areas.map((area) => {
-            const pressed = area.id === selectedAreaId;
-            return (
-              <button
-                key={area.id}
-                type="button"
-                aria-pressed={pressed}
-                onClick={() => onSelectArea(pressed ? null : area.id)}
-                className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
-                  pressed
-                    ? 'border-primary bg-primary text-text'
-                    : 'border-gray-200 bg-background text-text'
-                }`}
-              >
-                {area.name}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
       {/*
-       * 検索欄・カテゴリ・エリアチップは固定ヘッダーとして残し、リストだけを内側でスクロールさせる。
+       * 検索欄・カテゴリは固定ヘッダーとして残し、リストだけを内側でスクロールさせる。
        * AreaExhibitionList 自体は編集対象外のため、ここでラップして overflow を持たせる
        */}
       <div className="min-h-0 flex-1 overflow-y-auto">
