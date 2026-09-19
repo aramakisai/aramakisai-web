@@ -1,0 +1,144 @@
+'use client';
+
+import dynamic from 'next/dynamic';
+import { useMemo } from 'react';
+import type {
+  CampusMapArea,
+  CampusMapDataResult,
+  CampusMapFilters,
+} from '@/lib/campus-map';
+import { filterExhibitions, type AreaOption } from '@/lib/exhibitions';
+import type { AreaExhibitionListState } from './area-exhibition-list';
+import { MapBottomSheet } from './map-bottom-sheet';
+import { MapMenuButton } from './map-menu-button';
+import { MapSearchOverlay } from './map-search-overlay';
+import { MapSidePanel } from './map-side-panel';
+import { useMapFilters } from './use-map-filters';
+
+// Server Component (map page) の中で ssr:false を指定するとビルドが失敗するため、
+// Client Component であるこのファイルの中で動的読み込みを行う (design.md 参照)
+const CampusMapView = dynamic(
+  () => import('./campus-map-view').then((mod) => mod.CampusMapView),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        role="status"
+        className="flex h-dvh w-full items-center justify-center bg-gray-100 text-text"
+      >
+        地図を読み込んでいます…
+      </div>
+    ),
+  },
+);
+
+const EXHIBITIONS_ERROR_MESSAGE =
+  '出展物の取得に失敗しました。しばらくしてから再度お試しください。';
+
+const AREAS_ERROR_NOTICE =
+  'エリア情報の取得に失敗しました。地図はそのままご利用いただけます。';
+
+// 失敗時の [] を毎レンダー新規生成すると、これを依存配列に含む useMemo が
+// 参照比較で毎回再計算されてしまうため、安定した参照を 1 つだけ持つ
+const EMPTY_AREAS: readonly CampusMapArea[] = [];
+
+export interface CampusMapScreenProps {
+  readonly data: CampusMapDataResult;
+  readonly initialFilters: CampusMapFilters;
+}
+
+export function CampusMapScreen({
+  data,
+  initialFilters,
+}: CampusMapScreenProps) {
+  const { filters, keywordInput, setKeywordInput, setCategories, selectArea } =
+    useMapFilters(initialFilters);
+
+  const areas: readonly CampusMapArea[] =
+    data.areas.kind === 'loaded' ? data.areas.value : EMPTY_AREAS;
+  const areaOptions: readonly AreaOption[] = useMemo(
+    () => areas.map((a) => ({ id: a.id, name: a.name })),
+    [areas],
+  );
+
+  const listState: AreaExhibitionListState = useMemo(() => {
+    if (data.exhibitions.kind === 'error') {
+      return { kind: 'error', message: EXHIBITIONS_ERROR_MESSAGE };
+    }
+
+    if (data.areas.kind === 'loaded' && data.areas.value.length === 0) {
+      return { kind: 'no-area' };
+    }
+
+    const hasCondition =
+      filters.q !== '' ||
+      filters.categories.length > 0 ||
+      filters.selectedAreaId !== null;
+    if (!hasCondition) {
+      return { kind: 'unselected' };
+    }
+
+    const items = filterExhibitions(data.exhibitions.value, {
+      q: filters.q,
+      categories: filters.categories,
+      areaIds: filters.selectedAreaId === null ? [] : [filters.selectedAreaId],
+      page: 1,
+    });
+    const areaName =
+      filters.selectedAreaId === null
+        ? null
+        : (areas.find((a) => a.id === filters.selectedAreaId)?.name ?? null);
+
+    return {
+      kind: 'filtered',
+      areaName,
+      keyword: filters.q,
+      categories: filters.categories,
+      items,
+    };
+  }, [data.exhibitions, data.areas, areas, filters]);
+
+  const areaNotice = data.areas.kind === 'error' ? AREAS_ERROR_NOTICE : null;
+
+  const search = {
+    keyword: keywordInput,
+    categories: filters.categories,
+    onKeywordChange: setKeywordInput,
+    onCategoriesChange: setCategories,
+  };
+
+  return (
+    <div className="relative h-dvh w-full">
+      <MapMenuButton />
+      <MapSearchOverlay
+        keywordInput={keywordInput}
+        setKeywordInput={setKeywordInput}
+        categories={filters.categories}
+        setCategories={setCategories}
+      />
+      <MapSidePanel
+        search={search}
+        areas={areaOptions}
+        selectedAreaId={filters.selectedAreaId}
+        onSelectArea={selectArea}
+        listState={listState}
+        notice={areaNotice}
+      />
+      <MapBottomSheet state={listState} notice={areaNotice} />
+      {/*
+       * ボトムシートは全幅で画面下端に固定され、Leaflet の bottomright コントロール
+       * (ズーム・出典表記, z-index 1000) より前面 (z-[1050]) に重なる。展開時の最大高さ
+       * (55vh, MapBottomSheet 参照) 分だけ常に余白を確保して隠れないようにする。
+       * ponytail: シートの実高さに追従せず常に最大値ぶん確保する固定値。シートが折りたたまれた
+       * ときにコントロールが不自然に高い位置へ寄る。気になれば ResizeObserver で実測に切り替える
+       */}
+      <div className="max-md:[&_.leaflet-bottom.leaflet-right]:mb-[calc(55vh+1rem)]">
+        <CampusMapView
+          areas={areas}
+          selectedAreaId={filters.selectedAreaId}
+          onSelectArea={selectArea}
+        />
+      </div>
+    </div>
+  );
+}
