@@ -51,6 +51,17 @@ export function MapSidePanel({ search, listState, notice }: MapSidePanelProps) {
       <MapSearchPanel {...search} />
 
       {/*
+       * 検索欄・カテゴリとリストを区切る線。Figma ではリスト未選択時にも常に表示される
+       * (AreaExhibitionList の状態と無関係) ため、listState を条件にせず常時描画する。
+       * SP のボトムシートには検索欄自体が無いため対応する線を持たない
+       */}
+      <span
+        data-testid="panel-divider"
+        aria-hidden="true"
+        className="h-px w-full shrink-0 bg-gray-200"
+      />
+
+      {/*
        * 検索欄・カテゴリは固定ヘッダーとして残し、リストだけを内側でスクロールさせる。
        * AreaExhibitionList 自体は編集対象外のため、ここでラップして overflow を持たせる
        */}

@@ -81,6 +81,12 @@ describe('MapSidePanel', () => {
     expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
   });
 
+  it('draws a divider between the search panel and the exhibition list', () => {
+    stubMatchMedia(true);
+    render(<MapSidePanel {...baseProps()} />);
+    expect(screen.getByTestId('panel-divider')).toBeInTheDocument();
+  });
+
   it('forwards an optional notice to the exhibition list', () => {
     stubMatchMedia(true);
     render(

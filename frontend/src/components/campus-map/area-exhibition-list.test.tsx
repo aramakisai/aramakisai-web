@@ -156,6 +156,36 @@ describe('AreaExhibitionList', () => {
     ).toBeInTheDocument();
   });
 
+  it('draws a divider between the heading and the tiles when an area is selected', () => {
+    const state: AreaExhibitionListState = {
+      kind: 'filtered',
+      areaName: '中央エリア',
+      keyword: '',
+      categories: [],
+      items: [card({})],
+    };
+    render(<AreaExhibitionList state={state} />);
+    expect(screen.getByTestId('list-divider')).toBeInTheDocument();
+  });
+
+  it('draws the divider even when the filtered result is empty', () => {
+    const state: AreaExhibitionListState = {
+      kind: 'filtered',
+      areaName: '中央エリア',
+      keyword: '',
+      categories: [],
+      items: [],
+    };
+    render(<AreaExhibitionList state={state} />);
+    expect(screen.getByTestId('list-divider')).toBeInTheDocument();
+  });
+
+  it('omits the divider when no heading is shown', () => {
+    const state: AreaExhibitionListState = { kind: 'unselected' };
+    render(<AreaExhibitionList state={state} />);
+    expect(screen.queryByTestId('list-divider')).not.toBeInTheDocument();
+  });
+
   it('places the list body in a live region so updates are announced to assistive tech', () => {
     const state: AreaExhibitionListState = { kind: 'unselected' };
     const { container } = render(<AreaExhibitionList state={state} />);

@@ -800,6 +800,7 @@ export function polygonCentroid(
 **Responsibilities & Constraints**
 
 - 見出しと件数、出展物タイルの縦並びを描画する
+- 見出し (件数を含む) と出展物タイル一覧の間に区切り線を描画する。区切り線は見出しが表示される場合のみ現れる (未選択時など見出しを描画しない状態では現れない)
 - 未選択時・0 件時・エリア未登録時・エラー時の案内を出し分ける
 - タイルは `ExhibitionCard` をそのまま使う。カードの内部デザインには関与しない
 - 自身はデータ取得も絞り込みも行わない。渡された配列をそのまま並べる
@@ -862,7 +863,7 @@ export function buildListHeading(
 **Responsibilities & Constraints**
 
 - 地図の上に浮かぶ固定幅のペインとして表示する。地図が隠れきらない幅に収める
-- 上部に `MapSearchPanel` を、その下に `AreaExhibitionList` を置く
+- 上部に `MapSearchPanel` を、その下に `AreaExhibitionList` を置く。両者の間に区切り線を描画する (常時表示。`AreaExhibitionList` 内部の区切り線とは別物で、`MapBottomSheet` 側には対応する線を持たない)
 
 **Dependencies**
 

@@ -96,6 +96,16 @@ export function AreaExhibitionList({ state, notice }: AreaExhibitionListProps) {
             </h2>
             <p className="text-sm text-gray-500">{listHeading?.count}</p>
           </div>
+          {/*
+           * PC はカテゴリチップ群との区切り線を MapSidePanel 側 (検索欄とリストの境界) に持つが、
+           * SP のボトムシートは見出しの直前に検索欄が無いため対応する線を持たない。
+           * この見出し下の線は両方に共通して現れる (design.md 参照)
+           */}
+          <span
+            data-testid="list-divider"
+            aria-hidden="true"
+            className="h-px w-full shrink-0 bg-gray-200"
+          />
           {state.items.length === 0 ? (
             <p>
               {isAreaOnly(state)
