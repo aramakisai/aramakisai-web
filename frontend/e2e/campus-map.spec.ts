@@ -119,7 +119,7 @@ test.describe('構内マップと既存ページの通し確認', () => {
     const areaName = await polygon.getAttribute('aria-label');
 
     await expect(
-      page.locator('p:visible', { hasText: '地図でエリアを選ぶと' }),
+      page.locator('p:visible', { hasText: '地図上のブロックをタップすると' }),
     ).toBeVisible();
 
     // ドキュメントが再読み込みされると window に立てた印は失われる。
@@ -148,7 +148,7 @@ test.describe('構内マップと既存ページの通し確認', () => {
 
     await expect(page).not.toHaveURL(/[?&]area=\d+\b/);
     await expect(
-      page.locator('p:visible', { hasText: '地図でエリアを選ぶと' }),
+      page.locator('p:visible', { hasText: '地図上のブロックをタップすると' }),
     ).toBeVisible();
   });
 
@@ -171,7 +171,7 @@ test.describe('構内マップと既存ページの通し確認', () => {
 
     await expect(page).not.toHaveURL(/[?&]area=\d+\b/);
     await expect(
-      page.locator('p:visible', { hasText: '地図でエリアを選ぶと' }),
+      page.locator('p:visible', { hasText: '地図上のブロックをタップすると' }),
     ).toBeVisible();
   });
 

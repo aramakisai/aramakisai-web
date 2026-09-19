@@ -62,7 +62,12 @@ export function AreaExhibitionList({ state, notice }: AreaExhibitionListProps) {
     <div aria-live="polite" className="flex flex-col gap-4">
       {notice && <p>{notice}</p>}
       {state.kind === 'unselected' && (
-        <p>地図でエリアを選ぶと、その周辺の出展物が表示されます</p>
+        <div className="flex flex-col gap-2 text-center">
+          <h2 className="text-base font-bold text-text">
+            エリアを選択してください
+          </h2>
+          <p>地図上のブロックをタップすると、そこで開催している企画が表示されます</p>
+        </div>
       )}
       {state.kind === 'no-area' && <p>エリアはまだ登録されていません</p>}
       {state.kind === 'error' && <p role="alert">{state.message}</p>}

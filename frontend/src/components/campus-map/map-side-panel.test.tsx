@@ -69,7 +69,9 @@ describe('MapSidePanel', () => {
       screen.getByRole('button', { name: '中央エリア' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText('地図でエリアを選ぶと、その周辺の出展物が表示されます'),
+      screen.getByText(
+        '地図上のブロックをタップすると、そこで開催している企画が表示されます',
+      ),
     ).toBeInTheDocument();
   });
 
