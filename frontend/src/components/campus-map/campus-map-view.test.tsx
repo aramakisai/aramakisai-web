@@ -12,6 +12,7 @@ vi.mock('@/lib/cms', () => ({
 const mapContainerProps: Record<string, unknown>[] = [];
 const tileLayerProps: Record<string, unknown>[] = [];
 const areaPolygonLayerProps: Record<string, unknown>[] = [];
+const attributionControlProps: Record<string, unknown>[] = [];
 let mapZoomControlRenderCount = 0;
 
 vi.mock('react-leaflet', () => ({
@@ -22,6 +23,10 @@ vi.mock('react-leaflet', () => ({
   TileLayer: (props: Record<string, unknown>) => {
     tileLayerProps.push(props);
     return <div data-testid="tile-layer" />;
+  },
+  AttributionControl: (props: Record<string, unknown>) => {
+    attributionControlProps.push(props);
+    return <div data-testid="attribution-control" />;
   },
 }));
 
@@ -166,6 +171,20 @@ describe('CampusMapView', () => {
     );
     expect(mapContainerProps.at(-1)!.zoomControl).toBe(false);
     expect(mapZoomControlRenderCount).toBeGreaterThan(0);
+  });
+
+  it('既定の帰属表示コントロールを無効化し旗ロゴなしのものに置き換える', () => {
+    render(
+      <CampusMapView
+        areas={[]}
+        selectedAreaId={null}
+        onSelectArea={() => {}}
+      />,
+    );
+    expect(mapContainerProps.at(-1)!.attributionControl).toBe(false);
+    const props = attributionControlProps.at(-1)!;
+    expect(props.position).toBe('bottomright');
+    expect(props.prefix).toBe(false);
   });
 
   it('未選択のエリアをクリックすると選択中の識別子で通知する', () => {

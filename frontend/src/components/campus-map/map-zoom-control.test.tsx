@@ -17,4 +17,18 @@ describe('MapZoomControl', () => {
     render(<MapZoomControl />);
     expect(zoomControlProps.at(-1)!.position).toBe('bottomright');
   });
+
+  it('拡大/縮小ボタンにアクセシブルな名前を与える', () => {
+    render(<MapZoomControl />);
+    const props = zoomControlProps.at(-1)!;
+    expect(props.zoomInTitle).toBe('拡大');
+    expect(props.zoomOutTitle).toBe('縮小');
+  });
+
+  it('Figma のカスタムアイコンをボタンに使う (既定の +/− テキストではない)', () => {
+    render(<MapZoomControl />);
+    const props = zoomControlProps.at(-1)!;
+    expect(props.zoomInText).toContain('<svg');
+    expect(props.zoomOutText).toContain('<svg');
+  });
 });

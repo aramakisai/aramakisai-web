@@ -58,7 +58,7 @@ export function MapSidePanel({
       inert={!isDesktop}
       // 表示自体は CSS のブレークポイント (MAP_BREAKPOINT) に委ね、aria-hidden/inert は
       // 支援技術とキーボードフォーカスの除外専用に JS 側で同期させる (design.md 参照)
-      className="absolute inset-y-4 left-4 z-[1000] hidden w-[360px] max-w-[calc(50%-2rem)] flex-col gap-4 overflow-y-auto rounded-lg bg-background p-4 shadow-lg md:flex"
+      className="absolute inset-y-6 left-6 z-[1000] hidden w-[348px] max-w-[calc(50%-2rem)] flex-col gap-4 overflow-visible rounded-xl border border-gray-200 bg-white p-6 shadow-card md:flex"
     >
       <MapSearchPanel {...search} />
 
@@ -89,7 +89,13 @@ export function MapSidePanel({
         </div>
       )}
 
-      <AreaExhibitionList state={listState} notice={notice} />
+      {/*
+       * 検索欄・カテゴリ・エリアチップは固定ヘッダーとして残し、リストだけを内側でスクロールさせる。
+       * AreaExhibitionList 自体は編集対象外のため、ここでラップして overflow を持たせる
+       */}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <AreaExhibitionList state={listState} notice={notice} />
+      </div>
     </div>
   );
 }

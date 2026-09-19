@@ -36,6 +36,11 @@ const config: Config = {
         success: '#8cb76b',
         warning: '#e86f30',
       },
+      // Figma の共有スタイル shadow/card (AreaPanel・MapZoomControl で共用)。
+      // Leaflet が生成する DOM は className が届かないため globals.css 側で同じ値を複製している
+      boxShadow: {
+        card: '0px 8px 10px -6px rgba(156, 163, 176, 0.2), 0px 20px 25px -5px rgba(156, 163, 176, 0.2)',
+      },
       spacing: {},
       fontFamily: {},
     },

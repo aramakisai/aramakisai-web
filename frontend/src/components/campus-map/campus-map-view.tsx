@@ -1,7 +1,7 @@
 'use client';
 
 import 'leaflet/dist/leaflet.css';
-import { MapContainer, TileLayer } from 'react-leaflet';
+import { AttributionControl, MapContainer, TileLayer } from 'react-leaflet';
 import type { LatLngBoundsExpression, LatLngExpression } from 'leaflet';
 import { CAMPUS_MAP_CONFIG, MAP_ATTRIBUTION } from '@/lib/campus-map-config';
 import type { CampusMapArea } from '@/lib/campus-map';
@@ -44,6 +44,8 @@ export function CampusMapView({
       maxBoundsViscosity={1}
       // 既定のコントロールは左上固定で MapZoomControl と置き換える (design.md 参照)
       zoomControl={false}
+      // 既定の帰属表示コントロールは Leaflet の旗ロゴが付くため、prefix なしのものに差し替える
+      attributionControl={false}
       className="h-dvh w-full"
     >
       <TileLayer
@@ -60,6 +62,7 @@ export function CampusMapView({
         onAreaClick={handleAreaClick}
       />
       <MapZoomControl />
+      <AttributionControl position="bottomright" prefix={false} />
     </MapContainer>
   );
 }

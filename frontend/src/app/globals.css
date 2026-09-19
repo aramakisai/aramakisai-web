@@ -20,6 +20,47 @@
   }
 }
 
+/*
+ * Leaflet の Control DOM は React の外 (L.Control.onAdd) で生成されるため、
+ * JSX の className がここには届かない。構内マップの MapZoomControl / 出典表記を
+ * Figma のトークン (色は tailwind.config.ts の gray-200/text/gray-500 相当) に合わせるため、
+ * ここだけプレーン CSS で上書きする。leaflet.css 側の同名セレクタより詳細度を必ず上回るように
+ * クラスを重ねており、CSS の読み込み順に依存しない
+ */
+.leaflet-control-zoom.leaflet-bar {
+  overflow: hidden;
+  border: 1px solid #e7e5e4;
+  border-radius: 8px;
+  box-shadow:
+    0px 8px 10px -6px rgba(156, 163, 176, 0.2),
+    0px 20px 25px -5px rgba(156, 163, 176, 0.2);
+}
+
+.leaflet-bottom.leaflet-right .leaflet-control-zoom {
+  margin-right: 24px;
+  margin-bottom: 53px;
+}
+
+.leaflet-bar a.leaflet-control-zoom-in,
+.leaflet-bar a.leaflet-control-zoom-out {
+  display: flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  font: normal;
+  line-height: normal;
+  text-indent: 0;
+  color: #231815;
+  border-bottom-color: #e7e5e4;
+}
+
+.leaflet-container .leaflet-control-attribution {
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #78716c;
+}
+
 @layer base {
   h1:not(.prose *),
   h2:not(.prose *),
