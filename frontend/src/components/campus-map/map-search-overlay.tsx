@@ -32,16 +32,17 @@ export function MapSearchOverlay({
   };
 
   return (
-    // MapMenuButton (top-right, ~60px) と重ならないよう右側に余白を確保する。
     // 入力要素の id は "map-search-overlay-" 接頭辞でデスクトップ側 (MapSearchPanel) と分ける
     <div
-      className="fixed inset-x-4 top-[max(1rem,env(safe-area-inset-top))] z-[1080] flex flex-col gap-2 pr-14 md:hidden"
+      className="fixed inset-x-4 top-[max(1rem,env(safe-area-inset-top))] z-[1080] flex flex-col gap-2 md:hidden"
       aria-hidden={isAboveBreakpoint}
       inert={isAboveBreakpoint}
     >
+      {/* MapMenuButton (top-right, ~60px) の下に潜らないよう、検索ボックスは内側 padding ではなく
+          外側 margin で幅そのものを縮める。カテゴリチップ行はボタンより下にあり右端まで使える */}
       <label
         htmlFor="map-search-overlay-keyword"
-        className="flex items-center gap-2 rounded-md border border-gray-200 bg-white/95 px-4 py-3 shadow-lg backdrop-blur focus-within:border-primary"
+        className="mr-14 flex items-center gap-2 rounded-md border border-gray-200 bg-white/95 px-4 py-[var(--map-search-box-padding-y)] leading-[var(--map-search-box-line-height)] shadow-lg backdrop-blur focus-within:border-primary"
       >
         <SearchIcon size={20} className="text-text" />
         <span className="sr-only">企画を検索</span>

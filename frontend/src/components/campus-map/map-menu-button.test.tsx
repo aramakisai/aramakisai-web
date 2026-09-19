@@ -66,6 +66,14 @@ describe('MapMenuButton', () => {
     expect(document.activeElement).toBe(last);
   });
 
+  it('検索ボックスと縦中心を揃えるための共有トークンでサイズ・位置を指定している', () => {
+    render(<MapMenuButton />);
+    const trigger = screen.getByRole('button', { name: 'メニューを開く' });
+    expect(trigger.className).toMatch(/map-menu-button-position/);
+    expect(trigger.className).toMatch(/h-\[var\(--map-toolbar-size\)\]/);
+    expect(trigger.className).toMatch(/w-\[var\(--map-toolbar-size\)\]/);
+  });
+
   it('Esc キーで閉じてトリガーへフォーカスを戻す', () => {
     render(<MapMenuButton />);
     const trigger = screen.getByRole('button', { name: 'メニューを開く' });

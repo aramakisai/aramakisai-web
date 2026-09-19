@@ -33,6 +33,27 @@ describe('MapSearchOverlay', () => {
     expect(setKeywordInput).toHaveBeenCalledWith('ロボット2');
   });
 
+  it('MapMenuButton と縦中心を揃えるための共有トークンでパディング・行の高さを指定している', () => {
+    mockMatchMedia(false);
+    render(
+      <MapSearchOverlay
+        keywordInput=""
+        setKeywordInput={vi.fn()}
+        categories={[]}
+        setCategories={vi.fn()}
+      />,
+    );
+    const searchBoxLabel = screen
+      .getByRole('searchbox', { name: '企画を検索' })
+      .closest('label');
+    expect(searchBoxLabel?.className).toMatch(
+      /py-\[var\(--map-search-box-padding-y\)\]/,
+    );
+    expect(searchBoxLabel?.className).toMatch(
+      /leading-\[var\(--map-search-box-line-height\)\]/,
+    );
+  });
+
   it('renders one chip per CMS category with the pressed state reflecting the categories prop', () => {
     mockMatchMedia(false);
     render(
@@ -116,6 +137,30 @@ describe('MapSearchOverlay', () => {
     const group = screen.getByRole('group', { name: 'カテゴリで絞り込み' });
     expect(group.className).toMatch(/overflow-x-auto/);
     expect(group.className).not.toMatch(/flex-wrap/);
+  });
+
+  it('reserves right margin for the menu button only on the search box row, not the category row', () => {
+    mockMatchMedia(false);
+    const { container } = render(
+      <MapSearchOverlay
+        keywordInput=""
+        setKeywordInput={vi.fn()}
+        categories={[]}
+        setCategories={vi.fn()}
+      />,
+    );
+    const wrapper = container.firstChild as HTMLElement;
+    const searchBoxLabel = screen
+      .getByRole('searchbox', {
+        name: '企画を検索',
+      })
+      .closest('label');
+    const categoryGroup = screen.getByRole('group', {
+      name: 'カテゴリで絞り込み',
+    });
+    expect(wrapper.className).not.toMatch(/mr-14/);
+    expect(searchBoxLabel?.className).toMatch(/mr-14/);
+    expect(categoryGroup.className).not.toMatch(/mr-14/);
   });
 
   it('uses input identifiers distinct from the desktop search panel', () => {

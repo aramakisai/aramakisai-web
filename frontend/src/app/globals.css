@@ -12,6 +12,35 @@
     #4b946f 72%,
     #b45e8c 100%
   );
+
+  /*
+   * MapMenuButton (直径) と MapSearchOverlay の検索ボックス (上下パディング/行の高さ) の
+   * 単一の基準値。検索ボックスは表示位置を固定し、メニューボタン側をこの値から算出した
+   * オフセットで押し下げて縦中心を揃える (map-menu-button-position 参照)。border は
+   * Tailwind の border ユーティリティの既定 1px を前提とする
+   */
+  --map-toolbar-size: 3rem;
+  --map-search-box-padding-y: 13.5px;
+  --map-search-box-line-height: 1.5rem;
+}
+
+/*
+ * MapMenuButton の top 位置。検索ボックスの中心 (safe-area + 半分の高さ) に合わせるため、
+ * 検索ボックスとボタンの高さの差の半分だけ safe-area 起点からずらす。検索ボックスの
+ * パディング/行の高さが変わってもここが自動追従する
+ */
+.map-menu-button-position {
+  top: calc(
+    max(1rem, env(safe-area-inset-top)) +
+      (
+        (
+            2 * var(--map-search-box-padding-y) +
+              var(--map-search-box-line-height) + 2px
+          ) -
+          var(--map-toolbar-size)
+      ) /
+      2
+  );
 }
 
 @media (prefers-reduced-motion: no-preference) {
