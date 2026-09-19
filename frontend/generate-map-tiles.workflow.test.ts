@@ -51,4 +51,35 @@ describe('generate-map-tiles workflow', () => {
     expect(verifyStepIndex).toBeGreaterThanOrEqual(0);
     expect(uploadStepIndex).toBeGreaterThan(verifyStepIndex);
   });
+
+  it('OSM extract のダウンロード後、osmium で使う前にサイズと PBF ヘッダーを検証する', () => {
+    const downloadStepIndex = steps.findIndex((s) =>
+      s.run?.includes('download.geofabrik.de'),
+    );
+    const verifyDownloadStepIndex = steps.findIndex((s) =>
+      s.run?.includes('scripts/verify-osm-download.ts'),
+    );
+    const extractStepIndex = steps.findIndex((s) =>
+      s.run?.includes('osmium extract'),
+    );
+    expect(downloadStepIndex).toBeGreaterThanOrEqual(0);
+    expect(verifyDownloadStepIndex).toBeGreaterThan(downloadStepIndex);
+    expect(extractStepIndex).toBeGreaterThan(verifyDownloadStepIndex);
+  });
+
+  it('ダウンロードは一時的なネットワーク障害に備えてリトライする', () => {
+    const downloadStep = steps.find((s) =>
+      s.run?.includes('download.geofabrik.de'),
+    );
+    expect(downloadStep?.run).toMatch(/curl [\s\S]*--retry/);
+  });
+
+  it('都道府県単位ではなく実在する地域 extract (kanto) を取得する', () => {
+    const downloadStep = steps.find((s) =>
+      s.run?.includes('download.geofabrik.de'),
+    );
+    expect(downloadStep?.run).toContain(
+      'https://download.geofabrik.de/asia/japan/kanto-latest.osm.pbf',
+    );
+  });
 });
