@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent, PointerEvent } from 'react';
 import { AreaExhibitionList } from './area-exhibition-list';
 import type { AreaExhibitionListState } from './area-exhibition-list';
+import { useIsAboveMapBreakpoint } from './use-is-above-map-breakpoint';
 
 export interface MapBottomSheetProps {
   readonly state: AreaExhibitionListState;
@@ -27,21 +28,6 @@ const SNAP_LABELS: Record<SnapIndex, string> = {
 
 function maxSnapPx(): number {
   return (window.innerHeight * MAX_SNAP_VH) / 100;
-}
-
-// CSS の md: プレフィックスと aria-hidden / inert (CSS では表現できない) を同じ条件で
-// 切り替えるため、Tailwind の既定ブレークポイントと同じクエリを JS 側でも評価する
-function useIsAboveMapBreakpoint(): boolean {
-  const [isAbove, setIsAbove] = useState(false);
-  useEffect(() => {
-    const mql = window.matchMedia('(min-width: 768px)');
-    setIsAbove(mql.matches);
-    const handleChange = (event: MediaQueryListEvent) =>
-      setIsAbove(event.matches);
-    mql.addEventListener('change', handleChange);
-    return () => mql.removeEventListener('change', handleChange);
-  }, []);
-  return isAbove;
 }
 
 export function MapBottomSheet({
