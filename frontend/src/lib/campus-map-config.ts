@@ -21,13 +21,13 @@ export interface CampusMapConfig {
 export const CAMPUS_MAP_CONFIG: CampusMapConfig = {
   center: [36.4318, 139.0464],
   initialZoom: 17,
-  minZoom: 17,
+  minZoom: 16,
   maxZoom: 19,
   bounds: [
     [36.4241, 139.034],
     [36.4395, 139.0588],
   ],
-  tileUrlTemplate: '/map-tiles/{z}/{x}/{y}.png',
+  tileUrlTemplate: '/map-tiles/{z}/{x}/{y}.webp',
 };
 
 /**

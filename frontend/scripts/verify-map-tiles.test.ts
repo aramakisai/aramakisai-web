@@ -1,5 +1,12 @@
-import { describe, it, expect, vi } from 'vitest';
-import { verifyMapTiles, type StatTile } from './verify-map-tiles';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import {
+  verifyMapTiles,
+  createFsStatTile,
+  type StatTile,
+} from './verify-map-tiles';
 import type { CampusMapConfig } from '../src/lib/campus-map-config';
 
 const tinyConfig: Pick<CampusMapConfig, 'bounds' | 'minZoom' | 'maxZoom'> = {
@@ -45,5 +52,36 @@ describe('verifyMapTiles', () => {
       .mockResolvedValue({ exists: true, sizeBytes: 1 });
     const result = await verifyMapTiles(statTile, tinyConfig);
     expect(result.expectedCount).toBeGreaterThan(0);
+  });
+});
+
+describe('createFsStatTile', () => {
+  let dir: string | undefined;
+
+  afterEach(async () => {
+    if (dir) {
+      await rm(dir, { recursive: true, force: true });
+      dir = undefined;
+    }
+  });
+
+  it('webp ファイルを検出する', async () => {
+    dir = await mkdtemp(path.join(tmpdir(), 'verify-map-tiles-test-'));
+    await mkdir(path.join(dir, '16', '1'), { recursive: true });
+    await writeFile(path.join(dir, '16', '1', '2.webp'), Buffer.alloc(10));
+
+    const result = await createFsStatTile(dir)(16, 1, 2);
+
+    expect(result).toEqual({ exists: true, sizeBytes: 10 });
+  });
+
+  it('同じ座標に png しかない場合は欠落として扱う (配信形式は webp 固定)', async () => {
+    dir = await mkdtemp(path.join(tmpdir(), 'verify-map-tiles-test-'));
+    await mkdir(path.join(dir, '16', '1'), { recursive: true });
+    await writeFile(path.join(dir, '16', '1', '2.png'), Buffer.alloc(10));
+
+    const result = await createFsStatTile(dir)(16, 1, 2);
+
+    expect(result.exists).toBe(false);
   });
 });

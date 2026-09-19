@@ -11,14 +11,14 @@ const baseConfig: Pick<CampusMapConfig, 'bounds' | 'minZoom' | 'maxZoom'> = {
     [36.4241, 139.034],
     [36.4395, 139.0588],
   ],
-  minZoom: 17,
+  minZoom: 16,
   maxZoom: 19,
 };
 
 describe('calculateMapTileBounds', () => {
   it('minZoom から maxZoom までの各ズームについて範囲を算出する', () => {
     const result = calculateMapTileBounds(baseConfig);
-    expect(result.zoomRanges.map((r) => r.zoom)).toEqual([17, 18, 19]);
+    expect(result.zoomRanges.map((r) => r.zoom)).toEqual([16, 17, 18, 19]);
   });
 
   it('各ズームの枚数は x 範囲 * y 範囲になる', () => {
@@ -32,7 +32,8 @@ describe('calculateMapTileBounds', () => {
 
   it('ズームが上がるほど範囲 (枚数) が広がる', () => {
     const result = calculateMapTileBounds(baseConfig);
-    const [z17, z18, z19] = result.zoomRanges;
+    const [z16, z17, z18, z19] = result.zoomRanges;
+    expect(z17.count).toBeGreaterThan(z16.count);
     expect(z18.count).toBeGreaterThan(z17.count);
     expect(z19.count).toBeGreaterThan(z18.count);
   });
@@ -57,7 +58,7 @@ describe('calculateMapTileBounds', () => {
 });
 
 describe('exceedsTileCountThreshold', () => {
-  it('想定枚数 (1323) の 1.5 倍ちょうどでは超過にならない', () => {
+  it('想定枚数 (1454) の 1.5 倍ちょうどでは超過にならない', () => {
     expect(
       exceedsTileCountThreshold({
         zoomRanges: [],

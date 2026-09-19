@@ -117,7 +117,7 @@ jobs:
             sleep 2
           done
 
-          # z17-19 それぞれの範囲を計算結果 (steps.bounds.outputs.zoom-ranges) から取り出し、
+          # z16-19 それぞれの範囲を計算結果 (steps.bounds.outputs.zoom-ranges) から取り出し、
           # コンテナ同梱の render_list (mod_tile) にそのまま渡す。判断ロジックは持たず反復のみ
           echo '${{ steps.bounds.outputs.zoom-ranges }}' | \
             jq -c '.[]' | \
@@ -164,6 +164,16 @@ jobs:
           MAP_TILE_SERVER_URL=http://localhost:8080 \
             MAP_TILES_OUT_DIR="$PWD/rendered-tiles" \
             pnpm exec tsx scripts/fetch-map-tiles.ts
+
+      - name: Install cwebp
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y webp
+
+      # 配信形式を webp にすることで転送量を抑える (design.md 参照)。変換ロジックは
+      # スクリプト側に置き、YAML には呼び出しだけを書く
+      - name: Convert rendered tiles to webp
+        run: MAP_TILES_DIR="$PWD/rendered-tiles" pnpm exec tsx scripts/convert-map-tiles-to-webp.ts
 
       - name: Verify rendered tiles
         run: MAP_TILES_DIR="$PWD/rendered-tiles" pnpm exec tsx scripts/verify-map-tiles.ts

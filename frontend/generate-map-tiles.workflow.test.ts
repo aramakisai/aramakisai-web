@@ -134,6 +134,20 @@ describe('generate-map-tiles workflow', () => {
     expect(verifyStepIndex).toBeGreaterThan(fetchStepIndex);
   });
 
+  it('取得後・検証前に PNG を webp へ変換する', () => {
+    const fetchStepIndex = steps.findIndex((s) =>
+      s.run?.includes('scripts/fetch-map-tiles.ts'),
+    );
+    const convertStepIndex = steps.findIndex((s) =>
+      s.run?.includes('scripts/convert-map-tiles-to-webp.ts'),
+    );
+    const verifyStepIndex = steps.findIndex((s) =>
+      s.run?.includes('scripts/verify-map-tiles.ts'),
+    );
+    expect(convertStepIndex).toBeGreaterThan(fetchStepIndex);
+    expect(verifyStepIndex).toBeGreaterThan(convertStepIndex);
+  });
+
   it('メタタイルの置き場と PNG の置き場を分け、artifact と検証は PNG 側を指す', () => {
     const renderStep = steps.find((s) => s.run?.includes('render_list'));
     expect(renderStep?.run).toContain('metatiles');
