@@ -60,7 +60,7 @@ export async function verifyMapTiles(
 
 export function createFsStatTile(tilesDir: string): StatTile {
   return async (zoom, x, y) => {
-    const filePath = path.join(tilesDir, String(zoom), String(x), `${y}.png`);
+    const filePath = path.join(tilesDir, String(zoom), String(x), `${y}.webp`);
     try {
       const fileStat = await stat(filePath);
       return { exists: true, sizeBytes: fileStat.size };
@@ -87,7 +87,7 @@ async function main(): Promise<void> {
   if (result.missingTiles.length > 0) {
     console.error(`${result.missingTiles.length} 枚が欠落しています:`);
     for (const tile of result.missingTiles.slice(0, 20)) {
-      console.error(`  z${tile.zoom}/${tile.x}/${tile.y}.png`);
+      console.error(`  z${tile.zoom}/${tile.x}/${tile.y}.webp`);
     }
     process.exitCode = 1;
   }

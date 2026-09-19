@@ -8,8 +8,8 @@ import {
 } from './campus-map-config';
 
 describe('CAMPUS_MAP_CONFIG', () => {
-  it('ズーム範囲は下限 17・上限 19 で、初期ズームがその範囲内にある', () => {
-    expect(CAMPUS_MAP_CONFIG.minZoom).toBe(17);
+  it('ズーム範囲は下限 16・上限 19 で、初期ズームがその範囲内にある', () => {
+    expect(CAMPUS_MAP_CONFIG.minZoom).toBe(16);
     expect(CAMPUS_MAP_CONFIG.maxZoom).toBe(19);
     expect(CAMPUS_MAP_CONFIG.initialZoom).toBeGreaterThanOrEqual(
       CAMPUS_MAP_CONFIG.minZoom,
@@ -38,6 +38,10 @@ describe('CAMPUS_MAP_CONFIG', () => {
     expect(CAMPUS_MAP_CONFIG.tileUrlTemplate).toContain('{z}');
     expect(CAMPUS_MAP_CONFIG.tileUrlTemplate).toContain('{x}');
     expect(CAMPUS_MAP_CONFIG.tileUrlTemplate).toContain('{y}');
+  });
+
+  it('tileUrlTemplate は webp 配信を指す', () => {
+    expect(CAMPUS_MAP_CONFIG.tileUrlTemplate).toMatch(/\.webp$/);
   });
 });
 

@@ -18,8 +18,8 @@ export interface MapTileBoundsResult {
   readonly totalCount: number;
 }
 
-// design.md の見積もり (z17-19 合計約 1323 枚)。1.5 倍超で生成前に停止する。
-const EXPECTED_TOTAL_TILE_COUNT = 1323;
+// 実測 (z16-19 合計 1454 枚、CAMPUS_MAP_CONFIG のドライラン結果)。1.5 倍超で生成前に停止する。
+const EXPECTED_TOTAL_TILE_COUNT = 1454;
 export const TILE_COUNT_THRESHOLD = EXPECTED_TOTAL_TILE_COUNT * 1.5;
 
 function longitudeToTileX(longitude: number, zoom: number): number {

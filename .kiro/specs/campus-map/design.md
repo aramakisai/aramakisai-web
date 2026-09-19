@@ -143,7 +143,7 @@ graph TB
 | Frontend | `@types/leaflet` | Leaflet の型定義 | 新規 devDependency。react-leaflet の型が参照する |
 | Frontend | `leaflet/dist/leaflet.css` | 地図の既定スタイル | Client Component から import する。省くとタイル配置とコントロールが崩れる |
 | Frontend | `zod` (既存) | `geometry` のランタイム検証 | `env.ts` で使用済み |
-| Data / Storage | 静的 webp タイル (`public/map-tiles/`) | 地図タイルの配信 | z16–19。z16 分が加わり枚数と総容量が増える。実測はタスク 11.1 のドライランで確定させる。リポジトリに資産としてコミットする |
+| Data / Storage | 静的 webp タイル (`public/map-tiles/`) | 地図タイルの配信 | z16–19、1454 枚・約 3.83MB。リポジトリに資産としてコミットする |
 | Tooling | GitHub Actions + `Overv/openstreetmap-tile-server` | タイルの生成 | `workflow_dispatch` の手動実行。成果物は artifact 経由で受け取る |
 | Tooling | `cwebp` (libwebp) | レンダリング結果 (PNG) の webp への変換 | GitHub Actions ランナーへインストールして使う。品質設定は変換スクリプト内の 1 箇所に集約する |
 | Backend | Payload 3 | `map_areas.color` の追加と `geometry` の検証 | 既存。マイグレーション 1 本 |
@@ -1201,7 +1201,7 @@ Leaflet に依存するコンポーネント (`CampusMapView` / `AreaPolygonLaye
 ### Performance
 
 - 初回ペイロード (全カードを含む) のサイズを計測する
-- タイル資産の総容量と枚数が見積もり (z16〜19 でおおむね 1400 枚前後。実測はタスク 11.1 のドライランで確定させる) から大きく外れていないことを生成後の検証スクリプトで確認する
+- タイル資産の総容量と枚数 (z16〜19 で 1454 枚・約 3.83MB) を生成後の検証スクリプトで確認する
 - エリア選択と絞り込みの操作でネットワークリクエストが発生しないことを E2E で確認する
 
 ## Security Considerations
@@ -1217,8 +1217,16 @@ Leaflet に依存するコンポーネント (`CampusMapView` / `AreaPolygonLaye
 - エリア数は数十件、企画数は数百件を想定する。全件取得とメモリ内絞り込みで十分であり、既存の企画一覧と同じ規模
 - **CMS への負荷**: `lib/cms.ts` はキャッシュ指定を持たず、Server Component の再レンダリングは CMS への実リクエストを伴う。本設計はエリア選択と絞り込みをクライアント側で完結させるため、1 ページビューあたりの CMS 取得は初回の 4 本のみ。当日の負荷の主たる所在はタイル配信ではなく CMS であり、ここを抑えることが設計の目的の 1 つ
 - タイルは静的アセットとして Cloudflare の CDN に乗る。静的アセットへのリクエストは無料かつ無制限。ただし範囲外のタイル要求は 404 として Worker 呼び出しになるため、TileLayer の `bounds` で要求を抑止する
-- ズーム範囲は z16〜19。2304×1792px を覆う z17 のタイル範囲 (9×7 = 63 枚) を基準に、z16 はその 4 分の 1 程度、z18 は 4 倍の 252 枚、z19 は 16 倍の 1008 枚で覆う必要があり、合計はおおむね 1400 枚前後になる見込み。実測はタスク 11.1 のドライランで確定させる。配信形式を webp に変えるため総容量の見積もりも変わり、`cwebp` 変換後の実容量はタスク 11.3 の実測で確定させ、design と research の数値を更新する。`pwa-offline` はこの容量をキャッシュ対象として引き継ぐ
+- ズーム範囲は z16〜19。2304×1792px を覆う z17 のタイル範囲 (9×7 = 63 枚) を基準に余白を持たせた結果、z16 は 25 枚、z17 は 80 枚、z18 は 285 枚、z19 は 1064 枚となり、合計 1454 枚・約 3.83MB (webp) になる。`pwa-offline` はこの容量をキャッシュ対象として引き継ぐ
 - 地図本体は Client Component であり初期 JS が増える。ペインとシートは地図の読み込み前でも読める
+
+**初回ペイロードと初期表示の実測** (出展物 32 件・カード 34 件・エリア 8 件のシードデータ、プロダクションビルドをローカルで起動して計測)
+
+- `/map` の HTML 全体 25,498 bytes (gzip 換算 約 6,447 bytes)
+- うち RSC に埋め込まれるデータ 8,872 bytes。内訳はカード配列 6,885 bytes (1 カードあたり約 202 bytes)、エリア配列 1,910 bytes (1 エリアあたり約 239 bytes。geometry の座標配列が支配的)。残り約 16,626 bytes は React の骨格と HTML シェルの固定分
+- `/map` ルートの First Load JS は 132kB (うち shared 103kB)。Leaflet は `next/dynamic({ ssr: false })` で分離されるためこの数値に含まれず、初期表示後に読み込まれる
+- Fast 3G 相当 (down 1.6Mbps / up 750kbps / RTT 150ms) かつ CPU 4 倍スロットリングでの計測値: FCP 約 1.1 秒、地図タイルの初期表示 約 2.6 秒、LCP 約 2.6 秒
+- 企画数が数百件規模になってもカードデータの増分は uncompressed で数十 KB、gzip 後は 20〜25KB 程度に収まる。初期表示の律速はタイル画像の転送であり、カードデータではない。したがって全カードをクライアントへ渡す設計を維持し、カードの項目は絞らない。実データ投入後の再計測でこの想定を大きく超えた場合のみ、表示に必要な最小限のフィールドへ絞ることを検討する
 
 ## Migration Strategy
 
