@@ -120,13 +120,11 @@ jobs:
                 -Y "$(echo "$range" | jq -r '.yMax')"
             done
 
-          if ! docker exec tile-server test -d /data/tiles/default; then
-            echo "::error::render_list completed but /data/tiles/default was not created"
+          if [ ! -d "rendered-tiles/default" ]; then
+            echo "::error::render_list completed but rendered-tiles/default was not created"
             docker logs tile-server
             exit 1
           fi
-
-          docker cp tile-server:/data/tiles/default/. rendered-tiles/
 
       - name: Verify rendered tiles
         run: MAP_TILES_DIR="$PWD/rendered-tiles" pnpm exec tsx scripts/verify-map-tiles.ts

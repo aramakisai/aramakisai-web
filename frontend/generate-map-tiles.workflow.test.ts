@@ -82,4 +82,26 @@ describe('generate-map-tiles workflow', () => {
       'https://download.geofabrik.de/asia/japan/kanto-latest.osm.pbf',
     );
   });
+
+  it('renderd の実際のタイル出力先 (/var/cache/renderd/tiles) をホストへバインドする', () => {
+    const renderStep = steps.find((s) => s.run?.includes('render_list'));
+    const commandLines = (renderStep?.run ?? '')
+      .split('\n')
+      .filter((line) => !line.trim().startsWith('#'))
+      .join('\n');
+    expect(commandLines).toContain(
+      '-v "$PWD/rendered-tiles:/var/cache/renderd/tiles"',
+    );
+    expect(commandLines).not.toContain('/data/tiles');
+    expect(commandLines).not.toContain('docker cp');
+  });
+
+  it('renderd の起動 (ソケット生成) を待ってから render_list を実行する', () => {
+    const renderStep = steps.find((s) => s.run?.includes('render_list'));
+    const run = renderStep?.run ?? '';
+    const socketWaitIndex = run.indexOf('/run/renderd/renderd.sock');
+    const renderListIndex = run.indexOf('render_list');
+    expect(socketWaitIndex).toBeGreaterThanOrEqual(0);
+    expect(renderListIndex).toBeGreaterThan(socketWaitIndex);
+  });
 });
