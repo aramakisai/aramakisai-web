@@ -82,6 +82,14 @@ jobs:
           # tile_dir=/var/cache/renderd/tiles で、/data/tiles ではない。
           # ホスト側ディレクトリを実際の書き込み先に直接バインドすることで
           # docker cp を使わずにレンダリング結果をそのままホストへ反映する
+          #
+          # renderd はコンテナ内で uid 1000 (renderer) として動く。ホスト側の
+          # bind mount 先ディレクトリを事前に作らないと docker が root 所有で
+          # 自動作成し、renderer が書き込めず "Permission denied" で
+          # render_list が失敗する (レスポンス自体は成功扱いになるため気付きにくい)
+          mkdir -p rendered-tiles
+          chmod 777 rendered-tiles
+
           docker run -d --name tile-server \
             -v osm-data:/data/database/ \
             -v "$PWD/rendered-tiles:/var/cache/renderd/tiles" \

@@ -98,9 +98,12 @@ describe('generate-map-tiles workflow', () => {
 
   it('renderd の起動 (ソケット生成) を待ってから render_list を実行する', () => {
     const renderStep = steps.find((s) => s.run?.includes('render_list'));
-    const run = renderStep?.run ?? '';
-    const socketWaitIndex = run.indexOf('/run/renderd/renderd.sock');
-    const renderListIndex = run.indexOf('render_list');
+    const commandLines = (renderStep?.run ?? '')
+      .split('\n')
+      .filter((line) => !line.trim().startsWith('#'))
+      .join('\n');
+    const socketWaitIndex = commandLines.indexOf('/run/renderd/renderd.sock');
+    const renderListIndex = commandLines.indexOf('render_list');
     expect(socketWaitIndex).toBeGreaterThanOrEqual(0);
     expect(renderListIndex).toBeGreaterThan(socketWaitIndex);
   });
