@@ -50,9 +50,7 @@ describe('checkOsmDownload', () => {
   });
 
   it('サイズは十分でも PBF ヘッダーがなければ異常と判定する', async () => {
-    const filePath = await writeTempFile(
-      Buffer.alloc(MIN_EXPECTED_BYTES, 'a'),
-    );
+    const filePath = await writeTempFile(Buffer.alloc(MIN_EXPECTED_BYTES, 'a'));
 
     const result = await checkOsmDownload(filePath);
 

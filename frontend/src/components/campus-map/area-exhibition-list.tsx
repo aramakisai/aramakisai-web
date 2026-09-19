@@ -68,7 +68,8 @@ export function buildListHeading(state: FilteredState): ListHeading {
 }
 
 export function AreaExhibitionList({ state, notice }: AreaExhibitionListProps) {
-  const listHeading = state.kind === 'filtered' ? buildListHeading(state) : null;
+  const listHeading =
+    state.kind === 'filtered' ? buildListHeading(state) : null;
   return (
     <div aria-live="polite" className="flex flex-col gap-4">
       {notice && <p>{notice}</p>}
@@ -77,7 +78,9 @@ export function AreaExhibitionList({ state, notice }: AreaExhibitionListProps) {
           <h2 className="text-base font-bold text-text">
             エリアを選択してください
           </h2>
-          <p>地図上のブロックをタップすると、そこで開催している企画が表示されます</p>
+          <p>
+            地図上のブロックをタップすると、そこで開催している企画が表示されます
+          </p>
         </div>
       )}
       {state.kind === 'no-area' && <p>エリアはまだ登録されていません</p>}
