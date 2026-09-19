@@ -84,6 +84,23 @@ jobs:
             -p 8080:80 \
             overv/openstreetmap-tile-server:latest run
 
+          # run コマンドは内部で PostgreSQL 起動 → Apache 再起動 → renderd 起動の順に
+          # 処理するため、docker run -d 直後は /run/renderd/renderd.sock がまだ存在しない。
+          # 待たずに render_list を叩くと "socket connect failed" のまま
+          # 0 秒で偽の成功ログを返し、実際にはタイルが1枚も書き出されない
+          for i in $(seq 1 30); do
+            if docker exec tile-server test -S /run/renderd/renderd.sock; then
+              echo "renderd is ready ($((i * 2))s)"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "::error::renderd did not become ready within 60s"
+              docker logs tile-server
+              exit 1
+            fi
+            sleep 2
+          done
+
           # z17-19 それぞれの範囲を計算結果 (steps.bounds.outputs.zoom-ranges) から取り出し、
           # コンテナ同梱の render_list (mod_tile) にそのまま渡す。判断ロジックは持たず反復のみ
           echo '${{ steps.bounds.outputs.zoom-ranges }}' | \
@@ -98,6 +115,12 @@ jobs:
                 -y "$(echo "$range" | jq -r '.yMin')" \
                 -Y "$(echo "$range" | jq -r '.yMax')"
             done
+
+          if ! docker exec tile-server test -d /data/tiles/default; then
+            echo "::error::render_list completed but /data/tiles/default was not created"
+            docker logs tile-server
+            exit 1
+          fi
 
           docker cp tile-server:/data/tiles/default/. rendered-tiles/
 
