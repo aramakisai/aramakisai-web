@@ -2,8 +2,6 @@ import type { Metadata } from 'next';
 import { Zen_Old_Mincho } from 'next/font/google';
 import { GoogleAnalytics } from '@next/third-parties/google';
 import './globals.css';
-import { Header } from '@/components/header';
-import { Footer } from '@/components/footer';
 import { getFestivalMeta } from '@/lib/festival-meta';
 import { env } from '@/env';
 
@@ -51,9 +49,7 @@ export default function RootLayout({
   return (
     <html lang="ja" className={zenOldMincho.variable}>
       <body className="flex min-h-screen min-h-dvh min-w-0 flex-col font-sans">
-        <Header />
-        <div className="min-w-0 flex-1">{children}</div>
-        <Footer />
+        {children}
       </body>
       {process.env.NODE_ENV === 'production' && gaMeasurementId && (
         <GoogleAnalytics gaId={gaMeasurementId} />
