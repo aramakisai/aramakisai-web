@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { Footer, footerNavigation } from './footer';
 import * as snsLinksModule from '@/lib/sns-links';
 import * as festivalMetaModule from '@/lib/festival-meta';
+import * as phaseModule from '@/lib/phase';
 import {
   extractSectionIds,
   listAppRoutes,
@@ -24,11 +25,16 @@ vi.mock('@/lib/festival-meta', () => ({
   getContactFormUrl: vi.fn(),
 }));
 
+vi.mock('@/lib/phase', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/phase')>();
+  return { ...actual, visibleNavItems: vi.fn(actual.visibleNavItems) };
+});
+
 const contactFormUrl = 'https://forms.example.com/contact';
 
 describe('Footer', () => {
   async function renderFooter() {
-    return render(await Footer());
+    return render(await Footer({ phase: 'pre_event' }));
   }
 
   beforeEach(() => {
@@ -197,5 +203,22 @@ describe('Footer', () => {
     expect(
       screen.getByText('© 2026 群馬大学荒牧祭実行委員会'),
     ).toBeInTheDocument();
+  });
+
+  test('開催前フェーズで非公開のリンク先を持つ項目を除去する', async () => {
+    vi.mocked(snsLinksModule.getSnsLinks).mockResolvedValue([]);
+    vi.mocked(phaseModule.visibleNavItems).mockReturnValueOnce(
+      footerNavigation.filter((item) => item.href !== '/announcements'),
+    );
+
+    await renderFooter();
+
+    expect(phaseModule.visibleNavItems).toHaveBeenCalledWith(
+      footerNavigation,
+      'pre_event',
+    );
+    expect(
+      screen.queryByRole('link', { name: 'お知らせ' }),
+    ).not.toBeInTheDocument();
   });
 });
