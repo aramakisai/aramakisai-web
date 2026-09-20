@@ -74,6 +74,38 @@ jobs:
           NEXT_PUBLIC_CMS_URL: https://cms.example.com
           NEXT_PUBLIC_SITE_URL: https://example.com
 
+  verify-build-artifacts:
+    name: verify build artifacts (no dev code)
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # 開発用フラグを与えない、本番相当のビルドを対象にする。
+      - name: Check build artifacts for dev code
+        run: pnpm check:build-artifacts
+        env:
+          NEXT_PUBLIC_CMS_URL: https://cms.example.com
+          NEXT_PUBLIC_SITE_URL: https://example.com
+
   deploy-preview:
     name: deploy preview (Workers)
     needs: validate

@@ -153,9 +153,24 @@ describe('.github/workflows/frontend-ci.yml', () => {
     );
     expect(devBuildStep?.env).toMatchObject({ [FLAG_NAME]: 'true' });
 
-    for (const jobName of ['validate', 'deploy-preview', 'e2e', 'deploy-prod']) {
+    for (const jobName of [
+      'validate',
+      'deploy-preview',
+      'e2e',
+      'deploy-prod',
+    ]) {
       expect(JSON.stringify(workflow.jobs[jobName])).not.toContain(FLAG_NAME);
     }
+  });
+
+  it('verifies build artifacts for dev code from a step separate from validate', () => {
+    const workflow = loadWorkflow();
+    const job = workflow.jobs['verify-build-artifacts'];
+    expect(job).toBeDefined();
+    expect([job.needs].flat()).toContain('validate');
+
+    const runCommands = job.steps.filter((s) => s.run).map((s) => s.run);
+    expect(runCommands).toContain('pnpm check:build-artifacts');
   });
 
   it('never registers the phase override flag as a secret reference', () => {
