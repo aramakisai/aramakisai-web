@@ -4,7 +4,6 @@ import {
   PRE_EVENT_PUBLIC_PREFIXES,
   isPublicPath,
   BUILD_PHASE,
-  resolvePhase,
   visibleNavItems,
 } from './phase';
 
