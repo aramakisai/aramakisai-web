@@ -51,10 +51,7 @@ describe('resolveTargetAreas', () => {
     const area2 = makeArea(2);
     const area3 = makeArea(3);
 
-    const result = resolveTargetAreas(
-      [3, 1, 2],
-      [area1, area2, area3],
-    );
+    const result = resolveTargetAreas([3, 1, 2], [area1, area2, area3]);
 
     expect(result?.areas).toEqual([area3, area1, area2]);
     expect(result?.primary).toBe(area3);

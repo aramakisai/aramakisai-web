@@ -11,7 +11,8 @@ import { AreaPin } from './area-pin';
 import { RecenterButton } from './recenter-button';
 
 // leaflet の型は mutable なタプルを要求するため、readonly な設定値をここでキャストする
-const MAX_BOUNDS = CAMPUS_MAP_CONFIG.bounds as unknown as LatLngBoundsExpression;
+const MAX_BOUNDS =
+  CAMPUS_MAP_CONFIG.bounds as unknown as LatLngBoundsExpression;
 
 // 1x1 透明 GIF。読み込みに失敗したタイルを破損画像として表示させない (campus-map-view と同じ対処)
 const TRANSPARENT_TILE_URL =

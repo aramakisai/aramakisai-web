@@ -2,10 +2,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { rm } from 'node:fs/promises';
 import path from 'node:path';
-import {
-  tileCoordsFromBoundsResult,
-  type TileCoord,
-} from './fetch-map-tiles';
+import { tileCoordsFromBoundsResult, type TileCoord } from './fetch-map-tiles';
 import { calculateMapTileBounds } from './map-tile-bounds';
 import { CAMPUS_MAP_CONFIG } from '../src/lib/campus-map-config';
 
@@ -98,8 +95,7 @@ export async function convertMapTilesToWebp(
 
 async function main(): Promise<void> {
   const tilesDir =
-    process.env.MAP_TILES_DIR ??
-    path.join(__dirname, '..', 'rendered-tiles');
+    process.env.MAP_TILES_DIR ?? path.join(__dirname, '..', 'rendered-tiles');
   const coords = tileCoordsFromBoundsResult(
     calculateMapTileBounds(CAMPUS_MAP_CONFIG),
   );

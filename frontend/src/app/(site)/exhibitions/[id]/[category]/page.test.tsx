@@ -342,7 +342,10 @@ describe('ExhibitionPage', () => {
       // id=1 は geometry の検証に失敗し getCampusMapAreas が除外済み
       // (campus-map.test.ts の「geometry の検証に失敗したエリアは除外し、残りを返す」で担保)
       // という前提を再現し、ページには id=2 のみが渡る状態にする
-      mockAreas({ kind: 'loaded', value: [area({ id: 2, name: '第二エリア' })] });
+      mockAreas({
+        kind: 'loaded',
+        value: [area({ id: 2, name: '第二エリア' })],
+      });
 
       const jsx = await ExhibitionPage({
         params: Promise.resolve({ id: '1', category: 'stage' }),

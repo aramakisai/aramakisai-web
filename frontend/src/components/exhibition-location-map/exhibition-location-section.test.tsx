@@ -45,7 +45,9 @@ function area(overrides: Partial<CampusMapArea> = {}): CampusMapArea {
   };
 }
 
-function exhibition(overrides: Partial<ExhibitionDetail> = {}): ExhibitionDetail {
+function exhibition(
+  overrides: Partial<ExhibitionDetail> = {},
+): ExhibitionDetail {
   return {
     id: 1,
     category: 'exhibit',
