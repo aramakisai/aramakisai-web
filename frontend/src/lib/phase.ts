@@ -53,3 +53,39 @@ export function isPublicPath(
     PRE_EVENT_PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))
   );
 }
+
+const FESTIVAL_PHASES: readonly FestivalPhase[] = ['pre_event', 'live'];
+
+function isFestivalPhase(value: string): value is FestivalPhase {
+  return (FESTIVAL_PHASES as readonly string[]).includes(value);
+}
+
+/**
+ * Cookie 値から実効フェーズを解決する。
+ * DEV_OVERRIDE_ENABLED が偽のとき cookieValue は参照されない。
+ * Cookie は利用者が自由に書き換えられる入力であり、語彙に含まれない値は
+ * 信頼境界での入力検証として例外を投げず BUILD_PHASE へ落とす。
+ */
+export function resolvePhase(cookieValue: string | undefined): ResolvedPhase {
+  if (
+    DEV_OVERRIDE_ENABLED &&
+    cookieValue !== undefined &&
+    isFestivalPhase(cookieValue)
+  ) {
+    return { phase: cookieValue, source: 'override' };
+  }
+  return { phase: BUILD_PHASE, source: 'constant' };
+}
+
+function stripAnchor(href: string): string {
+  const hashIndex = href.indexOf('#');
+  return hashIndex === -1 ? href : href.slice(0, hashIndex);
+}
+
+/** ナビ項目を現在のフェーズで絞り込む。href が公開対象でない項目を除去する。 */
+export function visibleNavItems<T extends { readonly href: string }>(
+  items: readonly T[],
+  phase: FestivalPhase,
+): readonly T[] {
+  return items.filter((item) => isPublicPath(stripAnchor(item.href), phase));
+}

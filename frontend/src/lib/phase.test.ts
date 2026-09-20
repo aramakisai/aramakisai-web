@@ -3,6 +3,9 @@ import {
   PRE_EVENT_PUBLIC_PATHS,
   PRE_EVENT_PUBLIC_PREFIXES,
   isPublicPath,
+  BUILD_PHASE,
+  resolvePhase,
+  visibleNavItems,
 } from './phase';
 
 describe('phase 定数', () => {
@@ -77,5 +80,103 @@ describe('isPublicPath', () => {
     expect(isPublicPath('/topics', 'live')).toBe(true);
     expect(isPublicPath('/anything', 'live')).toBe(true);
     expect(isPublicPath('/', 'live')).toBe(true);
+  });
+});
+
+describe('resolvePhase (開発用フラグが真のビルド)', () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('NEXT_PUBLIC_ENABLE_PHASE_OVERRIDE', '');
+  });
+
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('Cookie 未設定のとき BUILD_PHASE を適用元 constant で返す', async () => {
+    const { resolvePhase } = await import('./phase');
+    expect(resolvePhase(undefined)).toEqual({
+      phase: BUILD_PHASE,
+      source: 'constant',
+    });
+  });
+
+  it('Cookie が妥当な値のとき、そのフェーズを適用元 override で返す', async () => {
+    const { resolvePhase } = await import('./phase');
+    expect(resolvePhase('live')).toEqual({ phase: 'live', source: 'override' });
+    expect(resolvePhase('pre_event')).toEqual({
+      phase: 'pre_event',
+      source: 'override',
+    });
+  });
+
+  it('Cookie が語彙に含まれない不正な値のとき、例外を投げず BUILD_PHASE へ落とす', async () => {
+    const { resolvePhase } = await import('./phase');
+    expect(resolvePhase('not-a-phase')).toEqual({
+      phase: BUILD_PHASE,
+      source: 'constant',
+    });
+  });
+});
+
+describe('resolvePhase (開発用フラグが偽のビルド)', () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('NEXT_PUBLIC_ENABLE_PHASE_OVERRIDE', '');
+  });
+
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('妥当な Cookie 値を与えても常に BUILD_PHASE を返す', async () => {
+    const { resolvePhase } = await import('./phase');
+    expect(resolvePhase('live')).toEqual({
+      phase: BUILD_PHASE,
+      source: 'constant',
+    });
+  });
+
+  it('不正な Cookie 値を与えても常に BUILD_PHASE を返す', async () => {
+    const { resolvePhase } = await import('./phase');
+    expect(resolvePhase('not-a-phase')).toEqual({
+      phase: BUILD_PHASE,
+      source: 'constant',
+    });
+  });
+
+  it('Cookie 未設定でも BUILD_PHASE を返す', async () => {
+    const { resolvePhase } = await import('./phase');
+    expect(resolvePhase(undefined)).toEqual({
+      phase: BUILD_PHASE,
+      source: 'constant',
+    });
+  });
+});
+
+describe('visibleNavItems', () => {
+  const items = [
+    { href: '/', label: 'TOP' },
+    { href: '/#about', label: '荒牧祭について' },
+    { href: '/announcements', label: 'お知らせ' },
+    { href: '/topics', label: 'トピックス' },
+    { href: '/exhibitions', label: '企画一覧' },
+  ] as const;
+
+  it('開催前フェーズで非公開のリンク先を持つ項目を除去する', () => {
+    const result = visibleNavItems(items, 'pre_event');
+    expect(result.map((item) => item.href)).toEqual([
+      '/',
+      '/#about',
+      '/announcements',
+    ]);
+  });
+
+  it('アンカー付きのパスを誤って除去しない', () => {
+    const result = visibleNavItems(items, 'pre_event');
+    expect(result.some((item) => item.href === '/#about')).toBe(true);
+  });
+
+  it('開催中フェーズではすべての項目を残す', () => {
+    const result = visibleNavItems(items, 'live');
+    expect(result).toHaveLength(items.length);
   });
 });
