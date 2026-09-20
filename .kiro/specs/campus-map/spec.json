@@ -1,0 +1,22 @@
+{
+  "feature_name": "campus-map",
+  "created_at": "2026-09-01T12:57:22Z",
+  "updated_at": "2026-09-20T00:00:00Z",
+  "language": "ja",
+  "phase": "tasks-generated",
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": false
+    },
+    "design": {
+      "generated": true,
+      "approved": false
+    },
+    "tasks": {
+      "generated": true,
+      "approved": true
+    }
+  },
+  "ready_for_implementation": true
+}

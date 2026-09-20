@@ -6,6 +6,7 @@ import * as migration_20260830_073945_add_media_prefix from './20260830_073945_a
 import * as migration_20260917_190645_student_exhibitions_links_stage_name from './20260917_190645_student_exhibitions_links_stage_name';
 import * as migration_20260918_015706_student_exhibitions_multi_category_content from './20260918_015706_student_exhibitions_multi_category_content';
 import * as migration_20260918_095545_sponsors_tier_plans from './20260918_095545_sponsors_tier_plans';
+import * as migration_20260919_080856_map_areas_color_geometry_validation from './20260919_080856_map_areas_color_geometry_validation';
 
 export const migrations = [
   {
@@ -47,5 +48,10 @@ export const migrations = [
     up: migration_20260918_095545_sponsors_tier_plans.up,
     down: migration_20260918_095545_sponsors_tier_plans.down,
     name: '20260918_095545_sponsors_tier_plans',
+  },
+  {
+    up: migration_20260919_080856_map_areas_color_geometry_validation.up,
+    down: migration_20260919_080856_map_areas_color_geometry_validation.down,
+    name: '20260919_080856_map_areas_color_geometry_validation',
   },
 ];

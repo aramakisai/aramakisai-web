@@ -392,6 +392,10 @@ export interface MapArea {
     | number
     | boolean
     | null;
+  /**
+   * 未設定の場合は既定色で描画する
+   */
+  color?: ('primary' | 'secondary' | 'accent' | 'accent-alt' | 'info' | 'success' | 'warning') | null;
   sort?: number | null;
   updatedAt: string;
   createdAt: string;
@@ -817,6 +821,7 @@ export interface FaqItemsSelect<T extends boolean = true> {
 export interface MapAreasSelect<T extends boolean = true> {
   name?: T;
   geometry?: T;
+  color?: T;
   sort?: T;
   updatedAt?: T;
   createdAt?: T;

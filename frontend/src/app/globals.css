@@ -12,12 +12,92 @@
     #4b946f 72%,
     #b45e8c 100%
   );
+
+  /*
+   * MapMenuButton (直径) と MapSearchOverlay の検索ボックス (上下パディング/行の高さ) の
+   * 単一の基準値。検索ボックスは表示位置を固定し、メニューボタン側をこの値から算出した
+   * オフセットで押し下げて縦中心を揃える (map-menu-button-position 参照)。border は
+   * Tailwind の border ユーティリティの既定 1px を前提とする
+   */
+  --map-toolbar-size: 3rem;
+  --map-search-box-padding-y: 13.5px;
+  --map-search-box-line-height: 1.5rem;
+}
+
+/*
+ * MapMenuButton の top 位置。検索ボックスの中心 (safe-area + 半分の高さ) に合わせるため、
+ * 検索ボックスとボタンの高さの差の半分だけ safe-area 起点からずらす。検索ボックスの
+ * パディング/行の高さが変わってもここが自動追従する
+ */
+.map-menu-button-position {
+  top: calc(
+    max(1rem, env(safe-area-inset-top)) +
+      (
+        (
+            2 * var(--map-search-box-padding-y) +
+              var(--map-search-box-line-height) + 2px
+          ) -
+          var(--map-toolbar-size)
+      ) /
+      2
+  );
 }
 
 @media (prefers-reduced-motion: no-preference) {
   html {
     scroll-behavior: smooth;
   }
+}
+
+/*
+ * Leaflet の Control DOM は React の外 (L.Control.onAdd) で生成されるため、
+ * JSX の className がここには届かない。構内マップの MapZoomControl / 出典表記を
+ * Figma のトークン (色は tailwind.config.ts の gray-200/text/gray-500 相当) に合わせるため、
+ * ここだけプレーン CSS で上書きする。leaflet.css 側の同名セレクタより詳細度を必ず上回るように
+ * クラスを重ねており、CSS の読み込み順に依存しない
+ */
+.leaflet-control-zoom.leaflet-bar {
+  overflow: hidden;
+  border: 1px solid #e7e5e4;
+  border-radius: 8px;
+  box-shadow:
+    0px 8px 10px -6px rgba(156, 163, 176, 0.2),
+    0px 20px 25px -5px rgba(156, 163, 176, 0.2);
+}
+
+/*
+ * ズームと出典表記は同じ角 (bottomright, PC) を共有することがあり、右端の余白を
+ * 揃えて縦に並んだときに右辺が一致して見えるようにする。縦方向の間隔は
+ * Leaflet 既定の margin-bottom (leaflet.css の .leaflet-bottom .leaflet-control) に委ねる
+ */
+.leaflet-bottom.leaflet-right .leaflet-control-zoom,
+.leaflet-bottom.leaflet-right .leaflet-control-attribution {
+  margin-right: 24px;
+}
+
+/* SP は出典表記が bottomleft (画面の角に最も近い) に出るため、左辺の余白を揃える */
+.leaflet-bottom.leaflet-left .leaflet-control-attribution {
+  margin-left: 24px;
+}
+
+.leaflet-bar a.leaflet-control-zoom-in,
+.leaflet-bar a.leaflet-control-zoom-out {
+  display: flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  font: normal;
+  line-height: normal;
+  text-indent: 0;
+  color: #231815;
+  border-bottom-color: #e7e5e4;
+}
+
+.leaflet-container .leaflet-control-attribution {
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #78716c;
 }
 
 @layer base {

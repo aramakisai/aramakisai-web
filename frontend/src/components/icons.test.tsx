@@ -6,6 +6,7 @@ import {
   ChevronRightIcon,
   HideImageIcon,
   LinkIcon,
+  LocationPinIcon,
   PlaceIcon,
   SearchIcon,
   ShareIcon,
@@ -20,6 +21,7 @@ const icons = [
   ['icon-chevron-right', ChevronRightIcon],
   ['icon-hide-image', HideImageIcon],
   ['icon-arrow-back', ArrowBackIcon],
+  ['icon-location-pin', LocationPinIcon],
 ] as const;
 
 describe('icons', () => {
@@ -42,5 +44,12 @@ describe('icons', () => {
     expect(svg).toHaveAttribute('width', '32');
     expect(svg).toHaveAttribute('height', '32');
     expect(svg).toHaveClass('text-red-500');
+  });
+
+  it('LocationPinIcon は fill="currentColor" のため呼び出し側の className で着色できる', () => {
+    render(<LocationPinIcon className="text-accent" />);
+    const svg = screen.getByTestId('icon-location-pin');
+    expect(svg).toHaveAttribute('fill', 'currentColor');
+    expect(svg).toHaveClass('text-accent');
   });
 });
