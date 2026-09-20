@@ -1,4 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import {
+  PRE_EVENT_PUBLIC_PATHS,
+  PRE_EVENT_PUBLIC_PREFIXES,
+  isPublicPath,
+} from './phase';
 
 describe('phase 定数', () => {
   beforeEach(() => {
@@ -40,5 +45,37 @@ describe('phase 定数', () => {
     vi.stubEnv('NEXT_PUBLIC_ENABLE_PHASE_OVERRIDE', '');
     const { DEV_OVERRIDE_ENABLED } = await import('./phase');
     expect(DEV_OVERRIDE_ENABLED).toBe(false);
+  });
+});
+
+describe('isPublicPath', () => {
+  it.each(PRE_EVENT_PUBLIC_PATHS)(
+    '開催前フェーズで公開対象一覧のパス %s は公開と判定する',
+    (path) => {
+      expect(isPublicPath(path, 'pre_event')).toBe(true);
+    },
+  );
+
+  it('開催前フェーズで公開対象一覧に無いパスは非公開と判定する', () => {
+    expect(isPublicPath('/topics', 'pre_event')).toBe(false);
+    expect(isPublicPath('/exhibitions', 'pre_event')).toBe(false);
+    expect(isPublicPath('/map', 'pre_event')).toBe(false);
+  });
+
+  it.each(PRE_EVENT_PUBLIC_PREFIXES)(
+    '開催前フェーズで前置詞 %s に前方一致するパスは公開と判定する',
+    (prefix) => {
+      expect(isPublicPath(`${prefix}123`, 'pre_event')).toBe(true);
+    },
+  );
+
+  it('開催前フェーズで許可外の slug は非公開と判定する', () => {
+    expect(isPublicPath('/some-other-page', 'pre_event')).toBe(false);
+  });
+
+  it('開催中フェーズではすべてのパスを公開と判定する', () => {
+    expect(isPublicPath('/topics', 'live')).toBe(true);
+    expect(isPublicPath('/anything', 'live')).toBe(true);
+    expect(isPublicPath('/', 'live')).toBe(true);
   });
 });
