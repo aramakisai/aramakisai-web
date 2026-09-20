@@ -8,6 +8,7 @@ import type { CampusMapArea } from '@/lib/campus-map';
 import type { AreaBounds } from '@/lib/exhibition-location-map';
 import { AreaPolygonLayer } from '@/components/campus-map/area-polygon-layer';
 import { AreaPin } from './area-pin';
+import { GestureHandling } from './gesture-handling';
 import { RecenterButton } from './recenter-button';
 
 // leaflet の型は mutable なタプルを要求するため、readonly な設定値をここでキャストする
@@ -19,7 +20,10 @@ const TRANSPARENT_TILE_URL =
   'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ycAAAAAAQABAAACAUwAOw==';
 
 export interface ExhibitionLocationMapViewProps {
-  readonly areas: readonly [CampusMapArea, ...CampusMapArea[]];
+  /** 構内全エリア。ポリゴン・ラベルの描画に用いる */
+  readonly areas: readonly CampusMapArea[];
+  /** 企画の所在エリア。ピンの描画対象。areas の部分集合 */
+  readonly targetAreas: readonly [CampusMapArea, ...CampusMapArea[]];
   readonly bounds: AreaBounds;
 }
 
@@ -28,6 +32,7 @@ function handleAreaClick(): void {}
 
 export function ExhibitionLocationMapView({
   areas,
+  targetAreas,
   bounds,
 }: ExhibitionLocationMapViewProps) {
   const { minZoom, maxZoom, tileUrlTemplate } = CAMPUS_MAP_CONFIG;
@@ -36,6 +41,9 @@ export function ExhibitionLocationMapView({
     bounds.southWest,
     bounds.northEast,
   ] as unknown as LatLngBoundsExpression;
+  // このコンポーネントは dynamic(ssr:false) 経由でクライアント専用として読み込まれるため、
+  // レンダー中に window を直接参照してもハイドレーション不整合は起きない
+  const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
 
   return (
     // Figma 実測: MapPreview の高さは SP (95:12 内 95:46) が 240px、PC (95:2 内 95:4) が 360px
@@ -47,6 +55,10 @@ export function ExhibitionLocationMapView({
         maxBounds={MAX_BOUNDS}
         maxBoundsViscosity={1}
         zoomControl={false}
+        // タッチ端末は 1 本指をページスクロールに譲り、2 本指のピンチをズームに使う (GestureHandling 参照)
+        dragging={!isCoarsePointer}
+        // wheel 単体はページスクロールを優先させる。Ctrl/Cmd 併用時のみ GestureHandling が enable する
+        scrollWheelZoom={false}
         className="h-full w-full"
       >
         <TileLayer
@@ -62,10 +74,11 @@ export function ExhibitionLocationMapView({
           selectedAreaId={null}
           onAreaClick={handleAreaClick}
         />
-        {areas.map((area) => (
+        {targetAreas.map((area) => (
           <AreaPin key={area.id} geometry={area.geometry} />
         ))}
         <RecenterButton bounds={bounds} />
+        <GestureHandling />
       </MapContainer>
     </div>
   );

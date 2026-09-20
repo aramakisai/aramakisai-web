@@ -70,6 +70,7 @@ describe('ExhibitionLocationMap', () => {
     render(
       <ExhibitionLocationMap
         areas={[area()]}
+        targetAreas={[area()]}
         bounds={BOUNDS}
         mapHref={MAP_HREF}
         areaNames={['Aゾーン']}
@@ -82,6 +83,7 @@ describe('ExhibitionLocationMap', () => {
     render(
       <ExhibitionLocationMap
         areas={[area()]}
+        targetAreas={[area()]}
         bounds={BOUNDS}
         mapHref={MAP_HREF}
         areaNames={['Aゾーン']}
@@ -101,6 +103,7 @@ describe('ExhibitionLocationMap', () => {
     render(
       <ExhibitionLocationMap
         areas={[area()]}
+        targetAreas={[area()]}
         bounds={BOUNDS}
         mapHref={MAP_HREF}
         areaNames={['Aゾーン', 'Bゾーン']}
@@ -118,6 +121,7 @@ describe('ExhibitionLocationMap', () => {
     render(
       <ExhibitionLocationMap
         areas={[area()]}
+        targetAreas={[area()]}
         bounds={BOUNDS}
         mapHref={MAP_HREF}
         areaNames={['Aゾーン']}

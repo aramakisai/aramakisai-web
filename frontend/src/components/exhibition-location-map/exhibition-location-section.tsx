@@ -41,7 +41,8 @@ export function ExhibitionLocationSection({
       </h2>
       <div className="relative">
         <ExhibitionLocationMap
-          areas={target.areas}
+          areas={areas}
+          targetAreas={target.areas}
           bounds={toAreaBounds(target.areas)}
           mapHref={mapHref}
           areaNames={areaNames}

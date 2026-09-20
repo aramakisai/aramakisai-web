@@ -29,7 +29,10 @@ const ExhibitionLocationMapView = dynamic(
 );
 
 export interface ExhibitionLocationMapProps {
-  readonly areas: readonly [CampusMapArea, ...CampusMapArea[]];
+  /** 構内全エリア。ポリゴン・ラベルの描画に用いる */
+  readonly areas: readonly CampusMapArea[];
+  /** 企画の所在エリア。ピンの描画対象。areas の部分集合 */
+  readonly targetAreas: readonly [CampusMapArea, ...CampusMapArea[]];
   readonly bounds: AreaBounds;
   /** 描画資産の取得に失敗した際に表示する遷移先 */
   readonly mapHref: string;
@@ -39,6 +42,7 @@ export interface ExhibitionLocationMapProps {
 
 export function ExhibitionLocationMap({
   areas,
+  targetAreas,
   bounds,
   mapHref,
   areaNames,
@@ -61,7 +65,11 @@ export function ExhibitionLocationMap({
         </div>
       }
     >
-      <ExhibitionLocationMapView areas={areas} bounds={bounds} />
+      <ExhibitionLocationMapView
+        areas={areas}
+        targetAreas={targetAreas}
+        bounds={bounds}
+      />
     </MapErrorBoundary>
   );
 }

@@ -42,6 +42,11 @@ vi.mock('./recenter-button', () => ({
   },
 }));
 
+// GestureHandling は useMap (react-leaflet) に依存するため、地図構成の検証からは切り離す
+vi.mock('./gesture-handling', () => ({
+  GestureHandling: () => <div data-testid="gesture-handling" />,
+}));
+
 import { ExhibitionLocationMapView } from './exhibition-location-map-view';
 
 function area(overrides: Partial<CampusMapArea>): CampusMapArea {
@@ -71,10 +76,25 @@ const BOUNDS: AreaBounds = {
   northEast: [36.44, 139.02],
 };
 
+// 実機の pointer 種別 (coarse/fine) を切り替える。既定は非タッチ端末 (fine) とする
+function mockMatchMedia(matches: boolean) {
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches,
+    media: query,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }));
+}
+
 describe('ExhibitionLocationMapView', () => {
   it('セクション内の有限高で地図を構成し、ビューポート高に依存させない', () => {
+    mockMatchMedia(false);
     render(
-      <ExhibitionLocationMapView areas={[area({ id: 1 })]} bounds={BOUNDS} />,
+      <ExhibitionLocationMapView
+        areas={[area({ id: 1 })]}
+        targetAreas={[area({ id: 1 })]}
+        bounds={BOUNDS}
+      />,
     );
     const outer = document.querySelector(
       '[data-testid="map-container"]',
@@ -85,8 +105,13 @@ describe('ExhibitionLocationMapView', () => {
   });
 
   it('構内マップと同じ縮尺範囲と表示範囲の上限を適用する', () => {
+    mockMatchMedia(false);
     render(
-      <ExhibitionLocationMapView areas={[area({ id: 1 })]} bounds={BOUNDS} />,
+      <ExhibitionLocationMapView
+        areas={[area({ id: 1 })]}
+        targetAreas={[area({ id: 1 })]}
+        bounds={BOUNDS}
+      />,
     );
     const props = mapContainerProps.at(-1)!;
     expect(props.minZoom).toBe(CAMPUS_MAP_CONFIG.minZoom);
@@ -100,8 +125,13 @@ describe('ExhibitionLocationMapView', () => {
   });
 
   it('初期表示は範囲のみを与え、中心と縮尺を個別には与えない', () => {
+    mockMatchMedia(false);
     render(
-      <ExhibitionLocationMapView areas={[area({ id: 1 })]} bounds={BOUNDS} />,
+      <ExhibitionLocationMapView
+        areas={[area({ id: 1 })]}
+        targetAreas={[area({ id: 1 })]}
+        bounds={BOUNDS}
+      />,
     );
     const props = mapContainerProps.at(-1)!;
     expect(props.bounds).toEqual([BOUNDS.southWest, BOUNDS.northEast]);
@@ -109,17 +139,29 @@ describe('ExhibitionLocationMapView', () => {
     expect(props.zoom).toBeUndefined();
   });
 
-  it('対象エリアをすべて同一の描画規則で描き、選択状態を持たない', () => {
-    const areas = [area({ id: 1 }), area({ id: 2 })] as const;
-    render(<ExhibitionLocationMapView areas={areas} bounds={BOUNDS} />);
+  it('全エリアをポリゴン層へ渡し、選択状態を持たない', () => {
+    mockMatchMedia(false);
+    const allAreas = [area({ id: 1 }), area({ id: 2 }), area({ id: 3 })];
+    render(
+      <ExhibitionLocationMapView
+        areas={allAreas}
+        targetAreas={[area({ id: 1 })]}
+        bounds={BOUNDS}
+      />,
+    );
     const props = areaPolygonLayerProps.at(-1)!;
-    expect(props.areas).toEqual(areas);
+    expect(props.areas).toEqual(allAreas);
     expect(props.selectedAreaId).toBeNull();
   });
 
   it('ポリゴンのクリックに副作用を持たせない', () => {
+    mockMatchMedia(false);
     render(
-      <ExhibitionLocationMapView areas={[area({ id: 1 })]} bounds={BOUNDS} />,
+      <ExhibitionLocationMapView
+        areas={[area({ id: 1 })]}
+        targetAreas={[area({ id: 1 })]}
+        bounds={BOUNDS}
+      />,
     );
     const onAreaClick = areaPolygonLayerProps.at(-1)!.onAreaClick as (
       areaId: number,
@@ -128,29 +170,67 @@ describe('ExhibitionLocationMapView', () => {
     expect(onAreaClick(1)).toBeUndefined();
   });
 
-  it('来場者による拡大縮小と移動を受け付け、操作後も対象エリアの描画とピンが維持される', () => {
-    const areas = [area({ id: 1 }), area({ id: 2 })] as const;
+  it('企画の所在エリアにのみピンを描画する', () => {
+    mockMatchMedia(false);
+    const allAreas = [area({ id: 1 }), area({ id: 2 }), area({ id: 3 })];
+    const targetAreas = [area({ id: 2 })] as const;
     areaPinProps.length = 0;
-    render(<ExhibitionLocationMapView areas={areas} bounds={BOUNDS} />);
+    render(
+      <ExhibitionLocationMapView
+        areas={allAreas}
+        targetAreas={targetAreas}
+        bounds={BOUNDS}
+      />,
+    );
 
-    // 拡大縮小・移動を無効化する props (leaflet の既定は有効) を明示的に false にしていないことを確認する
-    const props = mapContainerProps.at(-1)!;
-    expect(props.dragging).not.toBe(false);
-    expect(props.scrollWheelZoom).not.toBe(false);
-    expect(props.touchZoom).not.toBe(false);
-    expect(props.doubleClickZoom).not.toBe(false);
+    expect(areaPinProps).toHaveLength(1);
+    expect(areaPinProps[0]!.geometry).toEqual(targetAreas[0].geometry);
+  });
 
-    // ポリゴン層とピンは MapContainer の静的な子であり、地図の移動・拡大縮小を購読して
-    // 消える分岐を持たない。操作の有無にかかわらず常に描画され続ける
-    expect(areaPolygonLayerProps.at(-1)!.areas).toEqual(areas);
-    expect(areaPinProps).toHaveLength(2);
-    expect(areaPinProps[0]!.geometry).toEqual(areas[0].geometry);
-    expect(areaPinProps[1]!.geometry).toEqual(areas[1].geometry);
+  it('非タッチ端末では地図のドラッグ移動を許可する', () => {
+    mockMatchMedia(false);
+    render(
+      <ExhibitionLocationMapView
+        areas={[area({ id: 1 })]}
+        targetAreas={[area({ id: 1 })]}
+        bounds={BOUNDS}
+      />,
+    );
+    expect(mapContainerProps.at(-1)!.dragging).toBe(true);
+  });
+
+  it('タッチ端末では地図のドラッグ移動を無効化し、1本指をページスクロールに譲る', () => {
+    mockMatchMedia(true);
+    render(
+      <ExhibitionLocationMapView
+        areas={[area({ id: 1 })]}
+        targetAreas={[area({ id: 1 })]}
+        bounds={BOUNDS}
+      />,
+    );
+    expect(mapContainerProps.at(-1)!.dragging).toBe(false);
+  });
+
+  it('wheel 単体でのズームを無効化し、Ctrl 併用時のみ GestureHandling が扱う', () => {
+    mockMatchMedia(false);
+    render(
+      <ExhibitionLocationMapView
+        areas={[area({ id: 1 })]}
+        targetAreas={[area({ id: 1 })]}
+        bounds={BOUNDS}
+      />,
+    );
+    expect(mapContainerProps.at(-1)!.scrollWheelZoom).toBe(false);
   });
 
   it('初期表示と同じ表示範囲を RecenterButton へ渡す', () => {
+    mockMatchMedia(false);
     render(
-      <ExhibitionLocationMapView areas={[area({ id: 1 })]} bounds={BOUNDS} />,
+      <ExhibitionLocationMapView
+        areas={[area({ id: 1 })]}
+        targetAreas={[area({ id: 1 })]}
+        bounds={BOUNDS}
+      />,
     );
     expect(recenterButtonProps.at(-1)!.bounds).toEqual(BOUNDS);
   });
