@@ -83,7 +83,7 @@ beforeEach(() => {
 
 describe('getHomePage', () => {
   it('トップページのコンテンツを組み立てる', async () => {
-    const result = await getHomePage();
+    const result = await getHomePage('live');
 
     expect(result.heroMessageHtml).toBe('<p>Hello</p>');
     expect(result.heroImages).toEqual([
@@ -169,7 +169,7 @@ describe('getHomePage', () => {
       value: { docs: [], totalDocs: 0 },
     } as never);
 
-    const result = await getHomePage();
+    const result = await getHomePage('live');
 
     expect(result.heroMessageHtml).toBe('');
     expect(result.heroImages).toEqual([]);
@@ -187,7 +187,7 @@ describe('getHomePage', () => {
   });
 
   it('announcements は公開済みを新着順に 10 件まで引く', async () => {
-    await getHomePage();
+    await getHomePage('live');
     const call = vi
       .mocked(cms.findMany)
       .mock.calls.find(([collection]) => collection === 'announcements');
@@ -203,7 +203,7 @@ describe('getHomePage', () => {
       error: { kind: 'network', status: 500 },
     } as never);
 
-    const result = await getHomePage();
+    const result = await getHomePage('live');
 
     expect(result.announcements).toEqual([]);
     expect(result.topics).toEqual([]);
@@ -217,6 +217,34 @@ describe('getHomePage', () => {
       error: { kind: 'network', status: 500 },
     } as never);
 
-    await expect(getHomePage()).rejects.toThrow();
+    await expect(getHomePage('live')).rejects.toThrow();
+  });
+});
+
+describe('getHomePage の phase 引数によるトピックス取得の抑止', () => {
+  it('開催前フェーズでは topics を取得せず空配列を返す', async () => {
+    const result = await getHomePage('pre_event');
+
+    expect(result.topics).toEqual([]);
+    expect(cms.findMany).not.toHaveBeenCalledWith(
+      'topics',
+      expect.anything(),
+    );
+  });
+
+  it('開催中フェーズでは従来どおり topics を取得する', async () => {
+    const result = await getHomePage('live');
+
+    expect(result.topics).toEqual([
+      {
+        id: 2,
+        title: 'T1',
+        body: 'B2',
+        imageId: '21',
+        attachments: [
+          { id: '13', filenameDownload: 'f3.pdf', type: 'application/pdf' },
+        ],
+      },
+    ]);
   });
 });
