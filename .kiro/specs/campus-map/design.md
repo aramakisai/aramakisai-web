@@ -73,6 +73,9 @@ route group を所有する立場から、`(fullscreen)` 配下には下部ナ�
 - route group の構成変更 → シェルなしページを持つ全 spec が配置を再確認する
 - `responsive-navigation` が下部ナビゲーションの配置先を `(site)` 以外に広げる場合 → 本ページのボトムシートとの重なりを再検討する
 - 企画詳細ページの URL 構造の変更 → 本 spec のリンク生成を再確認する
+- `campus-map.ts` への `export` 追加 (`toCampusMapArea`) およびエリア単独取得関数の新設 → `exhibition-location-map` が企画詳細ページの地図表示に用いる。本 spec の公開面が広がるため、変換規則・色解決・形状検証の変更時は同 spec の再検証を要する
+- `AreaPolygonLayer` の props および選択状態の判定規則の変更 → `exhibition-location-map` が同コンポーネントを埋め込み文脈でインスタンス化しているため再検証を要する
+- `CAMPUS_MAP_CONFIG` の縮尺範囲・表示範囲の変更 → `exhibition-location-map` の埋め込み地図が同じ値を適用するため再検証を要する
 
 ## Architecture
 

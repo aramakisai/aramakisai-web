@@ -64,6 +64,7 @@
 - `student_exhibitions` のカテゴリ別企画内容欄 / `links` のスキーマ変更。
 - カード配色のパレット実値 (`GRADIENT_PALETTE`) と `tailwind.config.ts` のカラートークンの対応。
 - 一覧の URL クエリパラメータ名・意味の変更。
+- アイコンセット (`components/icons.tsx`) への追加・変更。`exhibition-location-map` が塗りつぶし形状の位置アイコンを一件追加する。
 
 ## Architecture
 
