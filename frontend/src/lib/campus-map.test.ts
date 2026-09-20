@@ -3,6 +3,7 @@ import tailwindConfig from '../../tailwind.config';
 import { cms } from './cms';
 import {
   buildCampusMapHref,
+  getCampusMapAreas,
   getCampusMapData,
   parseCampusMapQuery,
   resolveAreaColor,
@@ -364,5 +365,63 @@ describe('getCampusMapData', () => {
     if (result.exhibitions.kind === 'loaded') {
       expect(result.exhibitions.value[0]?.areaIds).toEqual([20]);
     }
+  });
+});
+
+describe('getCampusMapAreas', () => {
+  it('エリアのみを要求し、出展物・ステージ・上演枠は取得しない', async () => {
+    mockCmsCollections({
+      areas: [{ id: 1, name: 'Aゾーン', geometry: VALID_POLYGON, sort: 1 }],
+    });
+
+    await getCampusMapAreas();
+
+    const collections = vi
+      .mocked(cms.findMany)
+      .mock.calls.map(([collection]) => collection);
+    expect(collections).toEqual(['map_areas']);
+  });
+
+  it('取得に成功した場合は getCampusMapData と同じ変換規則でエリアを返す', async () => {
+    mockCmsCollections({
+      areas: [
+        { id: 1, name: 'Bゾーン', geometry: VALID_POLYGON, sort: null },
+        { id: 2, name: 'Aゾーン', geometry: VALID_POLYGON, sort: 1 },
+      ],
+    });
+
+    const result = await getCampusMapAreas();
+    expect(result).toEqual({
+      kind: 'loaded',
+      value: [
+        {
+          id: 2,
+          name: 'Aゾーン',
+          geometry: VALID_POLYGON,
+          color: 'secondary',
+          sort: 1,
+        },
+        {
+          id: 1,
+          name: 'Bゾーン',
+          geometry: VALID_POLYGON,
+          color: 'secondary',
+          sort: null,
+        },
+      ],
+    });
+  });
+
+  it('取得に失敗した場合は既存のエリア取得と同じ形のエラー結果を返す', async () => {
+    vi.mocked(cms.findMany).mockResolvedValue({
+      ok: false,
+      error: { kind: 'network', status: 500 },
+    });
+
+    const result = await getCampusMapAreas();
+    expect(result).toEqual({
+      kind: 'error',
+      error: { kind: 'network', status: 500 },
+    });
   });
 });

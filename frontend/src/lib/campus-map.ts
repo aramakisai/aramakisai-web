@@ -114,7 +114,7 @@ export interface CampusMapDataResult {
 }
 
 /** geometry の検証に失敗したエリアは描画対象から除く */
-function toCampusMapArea(area: MapArea): CampusMapArea | null {
+export function toCampusMapArea(area: MapArea): CampusMapArea | null {
   const parsed = parsePolygonGeometry(area.geometry);
   if (parsed.kind === 'invalid') return null;
   return {
@@ -141,6 +141,26 @@ function firstError(results: readonly CmsResult<unknown>[]): CmsFetchError {
   return failed!.error;
 }
 
+function fetchMapAreasDocs() {
+  return cms.findMany('map_areas', { sort: ['sort'], limit: 0, depth: 0 });
+}
+
+function convertMapAreas(docs: readonly MapArea[]): readonly CampusMapArea[] {
+  return sortCampusMapAreas(
+    docs.map(toCampusMapArea).filter((a): a is CampusMapArea => a !== null),
+  );
+}
+
+/** エリアのみを取得する。出展物・ステージ・上演枠は取得しない */
+export async function getCampusMapAreas(): Promise<
+  CampusMapDataResult['areas']
+> {
+  const areasResult = await fetchMapAreasDocs();
+  return areasResult.ok
+    ? { kind: 'loaded', value: convertMapAreas(areasResult.value.docs) }
+    : { kind: 'error', error: areasResult.error };
+}
+
 /**
  * エリアと全出展物カードを取得する。例外を投げず結果型で返す。
  * エリアの取得は 1 回のみとし、出展物側の結合コンテキスト構築にも同じ結果を使う
@@ -149,7 +169,7 @@ function firstError(results: readonly CmsResult<unknown>[]): CmsFetchError {
 export async function getCampusMapData(): Promise<CampusMapDataResult> {
   const [areasResult, exhibitionsResult, stagesResult, slotsResult] =
     await Promise.all([
-      cms.findMany('map_areas', { sort: ['sort'], limit: 0, depth: 0 }),
+      fetchMapAreasDocs(),
       cms.findMany('student_exhibitions', {
         where: { status: { equals: 'published' } },
         sort: ['id'],
@@ -161,14 +181,7 @@ export async function getCampusMapData(): Promise<CampusMapDataResult> {
     ]);
 
   const areas: CampusMapDataResult['areas'] = areasResult.ok
-    ? {
-        kind: 'loaded',
-        value: sortCampusMapAreas(
-          areasResult.value.docs
-            .map(toCampusMapArea)
-            .filter((a): a is CampusMapArea => a !== null),
-        ),
-      }
+    ? { kind: 'loaded', value: convertMapAreas(areasResult.value.docs) }
     : { kind: 'error', error: areasResult.error };
 
   // map_areas の取得に失敗した場合は空のエリア配列を結合コンテキストへ渡す。
