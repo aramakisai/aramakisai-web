@@ -10,8 +10,10 @@ import {
 } from '@/lib/exhibitions';
 import { toAssetUrl } from '@/lib/cms-asset-url';
 import { env } from '@/env';
+import { getCampusMapAreas, type CampusMapArea } from '@/lib/campus-map';
 import { ExhibitionGallery } from '@/components/exhibition-gallery';
 import { ExhibitionLinks } from '@/components/exhibition-links';
+import { ExhibitionLocationSection } from '@/components/exhibition-location-map/exhibition-location-section';
 import { ShareButton } from '@/components/share-button';
 import { ArrowBackIcon, PlaceIcon } from '@/components/icons';
 
@@ -105,7 +107,10 @@ function CategoryBadge({
 
 export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
   const { id, category } = await params;
-  const result = await resolveExhibition(id, category);
+  const [result, areasResult] = await Promise.all([
+    resolveExhibition(id, category),
+    getCampusMapAreas(),
+  ]);
 
   if (result.kind === 'missing') {
     notFound();
@@ -124,6 +129,9 @@ export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
 
   const exhibition = result.value;
   const shareUrl = `${env.NEXT_PUBLIC_SITE_URL}/exhibitions/${exhibition.id}/${exhibition.category}`;
+  // 区画取得失敗をページ全体のエラーへ昇格させないため、ここで空区画へ縮退させる
+  const areas: readonly CampusMapArea[] =
+    areasResult.kind === 'loaded' ? areasResult.value : [];
 
   return (
     <main className="mx-auto flex max-w-[1440px] flex-col gap-6 px-4 pt-4 pb-12 lg:gap-8 lg:px-20 lg:pt-8 lg:pb-20">
@@ -172,6 +180,8 @@ export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
           </p>
         </div>
       )}
+
+      <ExhibitionLocationSection exhibition={exhibition} areas={areas} />
     </main>
   );
 }

@@ -7,6 +7,8 @@ import type {
   ExhibitionDetail,
   ExhibitionDetailResult,
 } from '@/lib/exhibitions';
+import { getCampusMapAreas } from '@/lib/campus-map';
+import type { CampusMapArea, CampusMapDataResult } from '@/lib/campus-map';
 
 vi.mock('next/navigation', () => ({
   notFound: vi.fn(() => {
@@ -20,6 +22,14 @@ vi.mock('@/lib/exhibitions', async () => {
       '@/lib/exhibitions',
     );
   return { ...actual, getExhibitionDetail: vi.fn() };
+});
+
+vi.mock('@/lib/campus-map', async () => {
+  const actual =
+    await vi.importActual<typeof import('@/lib/campus-map')>(
+      '@/lib/campus-map',
+    );
+  return { ...actual, getCampusMapAreas: vi.fn() };
 });
 
 vi.mock('@/lib/cms-asset-url', () => ({
@@ -55,9 +65,37 @@ function mockResult(result: ExhibitionDetailResult) {
   vi.mocked(getExhibitionDetail).mockResolvedValue(result);
 }
 
+function mockAreas(result: CampusMapDataResult['areas']) {
+  vi.mocked(getCampusMapAreas).mockResolvedValue(result);
+}
+
+function area(overrides: Partial<CampusMapArea> = {}): CampusMapArea {
+  return {
+    id: 1,
+    name: '第一ステージ',
+    color: 'primary',
+    sort: 0,
+    geometry: {
+      type: 'Polygon',
+      coordinates: [
+        [
+          [139.0, 36.43],
+          [139.001, 36.43],
+          [139.001, 36.431],
+          [139.0, 36.431],
+          [139.0, 36.43],
+        ],
+      ],
+    },
+    ...overrides,
+  };
+}
+
 describe('ExhibitionPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // 企画位置セクションに無関係なテストでは対象なし扱いとし、他セクションへの影響のみを見る
+    mockAreas({ kind: 'loaded', value: [] });
   });
 
   it('URL の category に応じた企画名・場所・全カテゴリを表示する', async () => {
@@ -131,6 +169,61 @@ describe('ExhibitionPage', () => {
     ).rejects.toThrow('NEXT_NOT_FOUND');
     expect(getExhibitionDetail).not.toHaveBeenCalled();
     expect(notFound).toHaveBeenCalled();
+  });
+
+  it('企画位置セクションが描画される場合も、ギャラリー・基本情報・リンク・紹介が従来どおり描画される (要件 1.1, 4.5)', async () => {
+    mockResult({ kind: 'found', value: baseExhibition });
+    mockAreas({ kind: 'loaded', value: [area()] });
+
+    const jsx = await ExhibitionPage({
+      params: Promise.resolve({ id: '1', category: 'stage' }),
+    });
+    render(jsx);
+
+    expect(
+      screen.getByRole('heading', {
+        name: 'アラマキ祭実行委員会 (出演名)',
+        level: 1,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('実行委員会')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'X' })).toHaveAttribute(
+      'href',
+      'https://x.com/aramaki',
+    );
+    expect(screen.getByText('たのしい企画です')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: '場所', level: 2 }),
+    ).toBeInTheDocument();
+  });
+
+  it('区画データの取得に失敗し企画位置セクションが描画されない場合も、ギャラリー・基本情報・リンク・紹介が従来どおり描画される (要件 1.1, 4.2, 4.5)', async () => {
+    mockResult({ kind: 'found', value: baseExhibition });
+    mockAreas({
+      kind: 'error',
+      error: { kind: 'network', status: 500 },
+    });
+
+    const jsx = await ExhibitionPage({
+      params: Promise.resolve({ id: '1', category: 'stage' }),
+    });
+    render(jsx);
+
+    expect(
+      screen.getByRole('heading', {
+        name: 'アラマキ祭実行委員会 (出演名)',
+        level: 1,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('実行委員会')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'X' })).toHaveAttribute(
+      'href',
+      'https://x.com/aramaki',
+    );
+    expect(screen.getByText('たのしい企画です')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: '場所', level: 2 }),
+    ).not.toBeInTheDocument();
   });
 
   it('取得に失敗した場合は 404 にせず失敗が分かる表示をする', async () => {
