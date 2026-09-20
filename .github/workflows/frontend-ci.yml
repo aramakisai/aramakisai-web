@@ -273,6 +273,9 @@ jobs:
         env:
           NEXT_PUBLIC_CMS_URL: https://cms.aramakisai.com
           NEXT_PUBLIC_SITE_URL: https://dev.aramakisai.com
+          # dev.aramakisai.com は Cloudflare Access で保護された唯一の配信先。
+          # PR プレビューは保護されないため他ジョブには追加せず、Infisical にも登録しない。
+          NEXT_PUBLIC_ENABLE_PHASE_OVERRIDE: 'true'
 
       - name: Deploy to Cloudflare Workers (dev)
         run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec wrangler deploy --env=dev

@@ -143,4 +143,27 @@ describe('.github/workflows/frontend-ci.yml', () => {
     expect(deployStep?.run).toContain('--env=staging');
     expect(deployStep?.run).toContain('wrangler deploy --env=dev');
   });
+
+  it('injects the dev-only phase override flag only into deploy-dev, never validate/preview/prod', () => {
+    const workflow = loadWorkflow();
+    const FLAG_NAME = 'NEXT_PUBLIC_ENABLE_PHASE_OVERRIDE';
+
+    const devBuildStep = workflow.jobs['deploy-dev'].steps.find(
+      (s) => s.run === 'pnpm exec opennextjs-cloudflare build',
+    );
+    expect(devBuildStep?.env).toMatchObject({ [FLAG_NAME]: 'true' });
+
+    for (const jobName of ['validate', 'deploy-preview', 'e2e', 'deploy-prod']) {
+      expect(JSON.stringify(workflow.jobs[jobName])).not.toContain(FLAG_NAME);
+    }
+  });
+
+  it('never registers the phase override flag as a secret reference', () => {
+    const raw = readFileSync(WORKFLOW_PATH, 'utf-8');
+    const flagLines = raw
+      .split('\n')
+      .filter((line) => line.includes('NEXT_PUBLIC_ENABLE_PHASE_OVERRIDE'));
+    expect(flagLines).toHaveLength(1);
+    expect(flagLines[0]).not.toMatch(/secrets\./);
+  });
 });
