@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { notFound } from 'next/navigation';
 import ExhibitionPage, { generateMetadata } from './page';
@@ -239,6 +239,123 @@ describe('ExhibitionPage', () => {
     expect(
       screen.getByRole('link', { name: '企画一覧へ戻る' }),
     ).toHaveAttribute('href', '/exhibitions');
+  });
+
+  // exhibition-location-section.test.tsx がコンポーネント単体の描画可否を検証するのに対し、
+  // ここでは getCampusMapAreas の結果とページの分岐が実際に噛み合うことを確認する
+  describe('企画位置セクションの表示可否 (統合)', () => {
+    function locationSection(): HTMLElement {
+      const heading = screen.getByRole('heading', { name: '場所', level: 2 });
+      const section = heading.closest('section');
+      if (!section) {
+        throw new Error('企画位置セクションの section 要素が見つかりません');
+      }
+      return section;
+    }
+
+    it('所在エリアを持つ企画ではセクションが描画され、キャプションに企画詳細ページの所在地表記が含まれる (要件 4.1)', async () => {
+      mockResult({
+        kind: 'found',
+        value: {
+          ...baseExhibition,
+          category: 'exhibit',
+          categories: ['exhibit'],
+          location: 'Aゾーン・ブース1',
+          areaIds: [1],
+        },
+      });
+      mockAreas({ kind: 'loaded', value: [area()] });
+
+      const jsx = await ExhibitionPage({
+        params: Promise.resolve({ id: '1', category: 'exhibit' }),
+      });
+      render(jsx);
+
+      expect(
+        within(locationSection()).getByText('Aゾーン・ブース1'),
+      ).toBeInTheDocument();
+    });
+
+    it('所在エリアを持たずステージ経由でエリアを解決する企画でもセクションが描画される (要件 4.1)', async () => {
+      // baseExhibition は category: 'stage' で、所在地表記もステージ名 (第一ステージ)。
+      // 直接の area_id を持たずステージの area_id 経由で解決される企画を表す
+      mockResult({ kind: 'found', value: baseExhibition });
+      mockAreas({ kind: 'loaded', value: [area()] });
+
+      const jsx = await ExhibitionPage({
+        params: Promise.resolve({ id: '1', category: 'stage' }),
+      });
+      render(jsx);
+
+      expect(
+        screen.getByRole('heading', { name: '場所', level: 2 }),
+      ).toBeInTheDocument();
+    });
+
+    it('対象エリアを持たない企画ではセクションが描画されず、他のセクションは従来どおり描画される (要件 4.1, 4.5)', async () => {
+      mockResult({ kind: 'found', value: { ...baseExhibition, areaIds: [] } });
+      mockAreas({ kind: 'loaded', value: [area()] });
+
+      const jsx = await ExhibitionPage({
+        params: Promise.resolve({ id: '1', category: 'stage' }),
+      });
+      render(jsx);
+
+      expect(
+        screen.queryByRole('heading', { name: '場所', level: 2 }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', {
+          name: baseExhibition.displayName,
+          level: 1,
+        }),
+      ).toBeInTheDocument();
+      expect(screen.getByText('たのしい企画です')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'X' })).toHaveAttribute(
+        'href',
+        'https://x.com/aramaki',
+      );
+    });
+
+    it('区画データの取得に失敗した場合、セクションは描画されず既存の所在地テキスト表記が維持される (要件 4.2)', async () => {
+      mockResult({ kind: 'found', value: baseExhibition });
+      mockAreas({ kind: 'error', error: { kind: 'network', status: 500 } });
+
+      const jsx = await ExhibitionPage({
+        params: Promise.resolve({ id: '1', category: 'stage' }),
+      });
+      render(jsx);
+
+      expect(
+        screen.queryByRole('heading', { name: '場所', level: 2 }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByText(baseExhibition.location as string),
+      ).toBeInTheDocument();
+    });
+
+    it('形状検証に失敗する区画が混在する場合、当該エリアのみが対象から除外される (要件 4.3, 4.4)', async () => {
+      mockResult({
+        kind: 'found',
+        value: { ...baseExhibition, areaIds: [1, 2] },
+      });
+      // id=1 は geometry の検証に失敗し getCampusMapAreas が除外済み
+      // (campus-map.test.ts の「geometry の検証に失敗したエリアは除外し、残りを返す」で担保)
+      // という前提を再現し、ページには id=2 のみが渡る状態にする
+      mockAreas({ kind: 'loaded', value: [area({ id: 2, name: '第二エリア' })] });
+
+      const jsx = await ExhibitionPage({
+        params: Promise.resolve({ id: '1', category: 'stage' }),
+      });
+      render(jsx);
+
+      expect(
+        screen.getByRole('heading', { name: '場所', level: 2 }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('link', { name: '構内マップで見る' }),
+      ).toHaveAttribute('href', '/map?area=2');
+    });
   });
 
   describe('generateMetadata', () => {
