@@ -4,7 +4,7 @@
 
 本 spec は、開催前の簡易ページとして作られた現行サイトを本番運用に耐える形へ作り直す。対象はトップページ、サイト共通ヘッダー、フッター、グローバルナビゲーション (ハンバーガーメニューと新規の下部ナビゲーション)、構内マップ画面のメニュー、協賛一覧、トピックとお知らせの表示である。
 
-requirements.md が述べるとおり、これら 15 のデザイン単位は Figma に一つも定義されていない。したがって本書は完成した設計書ではなく、**ビジュアルデザインの有無に関わらず確定している構造だけを置いた土台**として扱う。具体的には、ナビゲーション項目定義の配置、協賛種別のスキーマ変更、CMS 取得失敗時の分岐、再検証方針の置き場所といった、デザインが決まっても変わらない部分を書く。色・余白・タイポグラフィ・レイアウトの詳細は一切書かない。
+requirements.md が述べるとおり、これら 15 のデザイン単位は Figma での定義を単位ごとに進めている途中であり、現時点で定義済みなのは一部にとどまる。したがって本書は完成した設計書ではなく、**ビジュアルデザインの有無に関わらず確定している構造だけを置いた土台**として扱う。具体的には、ナビゲーション項目定義の配置、協賛種別のスキーマ変更、CMS 取得失敗時の分岐、再検証方針の置き場所といった、デザインが決まっても変わらない部分を書く。色・余白・タイポグラフィ・レイアウトの詳細は一切書かない。
 
 各デザイン単位のセクションは、現時点では「どのファイルが責務を持つか」「データがどこから来るか」に限って記述する。デザインが起きた単位から、そのセクションへ設計を追記していく。
 
@@ -96,15 +96,18 @@ frontend/src/app/(site)/sponsors/
 └── page.tsx                 # 協賛一覧 (ルート構成は未確定。下記 Requirement 12/13 参照)
 
 cms/src/migrations/
-└── <timestamp>_sponsors_type_multi.ts   # sponsors.type の複数選択化 (要件 16.4)
+├── <timestamp>_sponsors_type_multi.ts        # sponsors.type の複数選択化 (要件 16.4)
+└── <timestamp>_event_days_structured.ts      # event_days の配列化 (要件 20)
 ```
 
 ### 変更ファイル
 
 - `cms/src/collections/sponsors.ts` — `type` を `hasMany` の select にし、選択肢を 4 種へ差し替える
+- `cms/src/globals/festival-meta.ts` — `event_days` を `json` から `array` (`start_at` / `end_at` / `label`) へ変更する
 - `cms/src/migrations/index.ts` — 生成したマイグレーションを登録する
 - `frontend/src/cms-types.ts` — `pnpm generate:types` で再生成する (手書きしない)
-- `frontend/src/lib/home-page-types.ts` — `SponsorSummary.type` を配列型へ変更する
+- `frontend/src/lib/home-page-types.ts` — `SponsorSummary.type` を配列型へ変更し、`EventDay` を `{ label, startAt, endAt }` の構造へ変更する
+- `frontend/src/components/festival-overview.tsx`, `components/about-section.tsx` — `event_days` の新しい形 (ISO 日時) に合わせて表示を改める
 - `frontend/src/lib/home-page.ts` — 取得失敗時に throw せず領域単位で縮退させる (要件 18.1, 18.2)
 - `frontend/src/lib/cms.ts` — 取得に再検証方針を与える (要件 18.3)
 - `frontend/src/components/header.tsx` — `navigationItems` の定義を `lib/navigation.ts` へ移し、間引きを解消する
@@ -213,6 +216,10 @@ export const navigationItems: readonly NavigationItem[];
 ### Requirement 19: 表示の共通基準
 
 - **色とタイポグラフィ** (19.1): `frontend/tailwind.config.ts` の `theme.extend.colors` と `globals.css` を正とする。新しい色値をコンポーネント側に直接書かない。不足するトークンが見つかった場合は `tailwind.config.ts` へ追加する。Figma Foundations はこの写しとして扱う。
+- **本文の最大幅**:
+  - PC: セクションのコンテンツ枠は 1280px (1440px から左右 80px のパディングを引いた幅) とする。その中で長文の段落は 768px (Tailwind の `max-w-3xl`) に制限する。日本語本文は 1 行 35〜45 文字が読みやすく、16px フォントで約 700px に相当するため。既存コードでは `about-section.tsx` の概要文と `static-page-view.tsx` が `max-w-3xl` を使っている
+  - SP: フレーム幅 390px、左右パディング 16px、コンテンツ幅 358px。コンテンツ幅が 768px を下回るため、長文段落の 768px 制限は SP では実質効かない (コンテンツ枠の幅がそのまま段落幅の上限になる)
+- **見出しの色**: `globals.css` の `h1〜h6:not(.prose *)` が基底で `text-primary` を当てており、上書きしない限り見出しは primary になる。上書きは色つきカード上や小さな補助ラベル用途に限る (`exhibition-card.tsx` の h4 が `text-text`、`festival-overview.tsx` の h3 が `text-gray-500`)。
 - **ブレークポイント** (19.2): `frontend/src/lib/breakpoints.ts` に単一の定数として定義し、本 spec が扱う全デザイン単位でこれを用いる。現行のヘッダーは `lg` を境界としているが、値は未確定 (下記)。
 - **フォーカス表示** (19.3): 既存コードが用いている `focus-visible` を基準とする。
 - **動きの抑制** (19.4): 既存コードが用いている Tailwind の `motion-reduce:` を基準とする (`footer.tsx` の `HoverLine` が先行例)。自動再生される動き (ヒーローのスライドショー等) は `prefers-reduced-motion` で停止させる。
@@ -221,7 +228,56 @@ export const navigationItems: readonly NavigationItem[];
 #### 未確定
 
 - ブレークポイントの値。下部ナビゲーションを出す画面幅とヘッダーのナビゲーションを畳む画面幅が一致すべきかどうかが、要件 6 と要件 8 のデザイン確定を待つ。
-- Figma Foundations に写されているトークン (色 14 件・タイポ 9 件) で本 spec の全画面をまかなえるか。
+- Figma Foundations に写されているトークン (色 14 件・タイポ 9 件) で本 spec の全画面をまかなえるか、不足するトークンがあるか。Requirement 1 の実測で判明した事実: `color/background` (`#FBF8F3`) は `tailwind.config.ts` と一致した。一方 Foundations には `gray-300` / `gray-600` / `gray-700` / `gray-800` が存在せず、コード側の `text-gray-600` (お知らせの日付) や `text-gray-700` (表ヘッダー) に対応するトークンがない。また `about-section.tsx` と `hero-section.tsx` は `text-slate-950` / `text-slate-700` / `text-slate-500` という別系統のグレースケールを用いており、Foundations にも `tailwind.config.ts` の gray スケールにも一致しない。この不一致は本 spec のトップページ作り直しで解消される範囲であり、残り 14 単位についても同様の確認が必要かどうかは未確定のまま残る。
+
+### Requirement 20: 開催日程 (event_days) の構造化
+
+#### フィールド定義
+
+`cms/src/globals/festival-meta.ts` の `event_days` を `type: 'json'` から `type: 'array'` へ変更する。各要素は次の 3 フィールドを持つ。
+
+- `start_at` — `type: 'date'`、`required: true`、`admin.date.pickerAppearance: 'dayAndTime'`。その日の開場日時。開催日の年月日と曜日の表示、カウントダウンの算出はここから行う
+- `end_at` — `start_at` と同型 (`pickerAppearance: 'dayAndTime'`) の終了日時
+- `label` — `type: 'text'`、任意入力。「1日目」のような呼び名を管理者が任意で持たせる。未入力時の表示は要件 20.5 に従いフロントエンド側で `start_at` から生成する
+
+独立した日付専用フィールドは持たない。日付と時刻を分けると、`open` / `close` のような時刻専用フィールド (`pickerAppearance: 'timeOnly'`) の DB 実体が `timestamp with time zone` のままになり (Payload の `date` フィールドは picker の見た目によらず常にこの型になる)、日付部分にダミー値が入った状態と時刻専用という入力上の意図がずれて事故の元になる。日時を 1 フィールドで持つことでこのずれを避け、`cms/src/collections/time-slots.ts` の `start_at` / `end_at` という命名にも揃える。
+
+#### スキーマへの影響
+
+Payload の `array` フィールドは JSON 列ではなく子テーブルとして生成される。`cms/src/collections/student-exhibitions.ts` の `links` (`array`) が `20260917_190645_student_exhibitions_links_stage_name` で `jsonb` 列から子テーブル `student_exhibitions_links` へ切り出された変更と同型である。生成される差分は次の形になる。
+
+1. 子テーブル `festival_meta_event_days` (`_order` integer, `_parent_id` integer, `id` varchar PK, `start_at` timestamp(3) with time zone, `end_at` timestamp(3) with time zone, `label` varchar) を作成する
+2. `_parent_id` に `festival_meta(id)` への `ON DELETE CASCADE` 外部キーと、`_order` / `_parent_id` のインデックスを張る
+3. `festival_meta` から `event_days` (`jsonb`) 列を落とす
+
+`start_at` / `end_at` はいずれも Payload の `date` フィールドであり、`pickerAppearance: 'dayAndTime'` によらず DB 上は `timestamp(3) with time zone` になる (`announcements.published_at` / `topics` の日付フィールドと同じ)。子フィールドに `select` を持たないため、新しい enum 型は発生しない。
+
+`pickerAppearance: 'dayAndTime'` は Payload 3.88.0 (`cms/package.json` の現行バージョン) の型定義 (`node_modules/payload/dist/admin/elements/DatePicker.d.ts`) に存在する値であり、`cms/src/collections/announcements.ts` の `published_at` と `cms/src/collections/topics.ts` の該当フィールドで既に使われている。
+
+#### マイグレーション
+
+列の削除と子テーブルの追加を伴うため、Payload のマイグレーションが必要である。手順は `cms/` で `pnpm migrate:create event_days_structured` → `src/migrations/index.ts` へ登録 → `pnpm generate:types` (`frontend/src/cms-types.ts` も更新される)。生成された SQL を手で書き換えない。
+
+#### 既存データの移行
+
+`festival_meta` はグローバル (単一ドキュメント) であり対象は 1 件のみ。旧形式の `event_days` (`[{label, open, close}]` の JSON 配列、年情報なし) は列ごと落ちるため、コードによる自動移行は行わない。マイグレーション適用後、CMS 管理画面から `event_days` を新しい構造 (開場日時・終了日時・表示ラベル) で入力し直す。反映されるまでの間 `event_days` は空になり、曜日・残り日数の算出対象がない状態になる。
+
+#### 破壊的変更の扱い
+
+`cms/scripts/collection-shape.ts` の `detectBreakingChanges` はコレクション/グローバル直下のフィールドを `name` / `type` / `required` / `hasMany` で比較する (ネストした `array` の子フィールドまでは見ない)。`event_days` は `type` が `json` から `array` へ変わるため `type_changed` として検出される。`cms-schema-check.yml` は `cms/src/globals/**` の変更で発火するため、この PR で必ず実行され、要件 20.8 に従い `breaking-change-acknowledged` ラベルを付けたうえでマージする。
+
+#### フロントエンド側の影響
+
+- `frontend/src/cms-types.ts` は `pnpm generate:types` で再生成する。`FestivalMeta.event_days` は `{ id, start_at, end_at, label } []` の配列型になり、現行の `json` 由来の緩い型 (`unknown` 相当) から置き換わる
+- `frontend/src/lib/home-page-types.ts` の `EventDay` を `{ label: string | null; startAt: string; endAt: string }` (`startAt` / `endAt` は ISO 日時文字列) へ変更する
+- `frontend/src/lib/home-page.ts` / `lib/festival-meta.ts` の `meta.event_days as FestivalOverview['eventDays']` によるキャストは、生成された配列型をそのまま用いる形に変え、`as` によるキャストを外す
+- `frontend/src/components/festival-overview.tsx` と `components/about-section.tsx` の表示 (`day.label` / `day.open` / `day.close`) を、`label` が空のときの代替文言の生成、および `open` / `close` の時刻表記が `startAt` / `endAt` の ISO 日時から時刻部分を取り出す形になったことへの対応に改める
+- 曜日と開催日までの残り日数の算出を新設し、`startAt` を用いる。`components/hero-section.tsx` (要件 1.3) が参照する
+
+#### 実装時に確定させる項目
+
+- 曜日の表示形式
+- 本番 `festival_meta.event_days` を新しい構造 (開場日時・終了日時・表示ラベル) で再入力する時期と手順
 
 ## デザイン単位ごとの設計
 
@@ -229,22 +285,35 @@ export const navigationItems: readonly NavigationItem[];
 
 ### Requirement 1: トップページ 開催前フェーズ (PC)
 
-- 開催前フェーズと開催中フェーズのトップページをどのファイル構成で持つか (同一コンポーネント内の分岐か、フェーズごとに別コンポーネントか) は `festival-phase-gate` が定める出し分けの方式に従う。本 spec は各フェーズのトップページが描く内容のみを定める。
-- データは `lib/home-page.ts` の `getHomePage()` から受ける。フェーズごとに取得層を分けず、取得済みの値のうちフェーズで描画する領域を選ぶ。
-- `heroMessageHtml` の重複 (要件 1.1) は、`HeroSection` への引き渡しと `page.tsx:40` 付近の `RichText` 呼び出しのどちらか一方を削除して解消する。現行実装に起因する問題であり、両フェーズに共通の手当てとする。どちらを残すかはヒーロー領域の構成が決まってから判断する。
-- 協賛領域 (要件 1.6) は `getHomePage()` が既に取得済みの `sponsors` を使い、`lib/sponsors.ts` の絞り込みを通して描画する。トップページのための追加取得は行わない。
-- 非公開ページへの導線を持たない (要件 1.7) ことは、本文に置く導線の集合を `festival-phase-gate` が定める開催前フェーズの公開対象の範囲に収めることで担保する。`lib/navigation.ts` の項目をそのまま本文の導線へ流用しない。
-- トピックの 0 件時の非表示 (要件 1.5) は現行の実装で満たされている。
+Figma: ファイル `0kWDqHsLr6xE8b4FFgR1Zx`、ページ「トップページ」、フレーム「トップページ (開催前) / PC (1440)」(`node-id=107:3`)。
 
-**未確定**: セクションの構成と並び順、ヒーロー領域の構成、開催前フェーズで公開されるページへの導線の有無と形、協賛をどこまで見せるか、見出しの文言。
+セクションは Hero (`107:4`) → 荒牧祭とは (`119:3`) → お知らせ (`107:6`) の 3 つのみで構成する (要件 1.6)。
+
+- **Hero**: 背景に画像スライドショー (プレースホルダ画像 + スライドインジケーター) とグラデーションスクリムを敷き、その上に左右 2 ブロックを乗せる。
+  - 左ブロック: 見出し「群馬大学 荒牧祭」(固定文言、CMS に依存しない) の下に、開催日 (`festival_meta.event_days`) ｜ 会場 (`festival_meta.venue_name`) を 1 行で表示する (要件 1.1)
+  - 右ブロック: テーマ (`festival_meta.theme_word`) の下に、開催までの残り日数のカウントダウン (要件 1.2, 1.3) を表示する。カウントダウンの算出は横断的要件 Requirement 20 が定める `event_days.start_at` に依存する
+- **荒牧祭とは**: 見出し「荒牧祭とは」(固定文言) と概要文 (`festival_meta.overview_html`) を表示する (要件 1.4)。`festival_meta.name` は表示しない (要件 1.8)。実値が「第73回 荒牧祭公式ホームページ」というサイトタイトル用の文字列であり、本文の見出しに使う文言ではないため
+- **お知らせ**: 見出し「お知らせ」(固定文言) の下に、Figma コンポーネント `NoticeItem` (ページ「コンポーネント」、`node-id=127:108`) のインスタンスを最大 5 件並べ、「お知らせ一覧へ」導線 (`/announcements`) を添える (要件 1.5)。表示部品は既存の `components/announcements-list.tsx` の `limit` prop を使う
+- `page_home.hero_message_html` は開催前フェーズでは表示しない (要件 1.7)。本番 CMS で値が空であり、掲載不要という判断のため。開催中フェーズで使うかどうかは未確定 (下記)
+- 非公開ページへの導線を持たない (要件 1.9) ことは、本文に置く導線を「お知らせ一覧へ」のみに限ることで担保する。`lib/navigation.ts` の項目をそのまま本文の導線へ流用しない
+- データは `lib/home-page.ts` の `getHomePage()` から受ける。フェーズごとに取得層を分けず、取得済みの値のうちフェーズで描画する領域を選ぶ。開催前フェーズと開催中フェーズのトップページをどのファイル構成で持つか (同一コンポーネント内の分岐か、フェーズごとに別コンポーネントか) は `festival-phase-gate` が定める出し分けの方式に従う
+
+**未確定**: 開催中フェーズと共通にするセクションの範囲、テーマ (`theme_word`) に対応する配色、`page_home.hero_message_html` を開催中フェーズで使うかどうか。
 
 ### Requirement 2: トップページ 開催前フェーズ (SP)
 
-- Requirement 1 と同一のコンポーネントがレスポンシブに対応する。SP 専用のページ・ルートは作らない。
-- ヒーロー画像の表示崩れ (要件 2.2) は `components/hero-section.tsx` で解消する。現行実装に起因する問題であり、開催中フェーズ (要件 4.2) と同一の手当てとする。
-- 下部ナビゲーションを表示しない (要件 2.3) ため、ページ下端の余白 (要件 2.4) も設けない。`(site)/layout.tsx` が与える下端余白は下部ナビゲーションの表示と同じ条件で付け外しし、余白だけが残る状態を作らない。
+Figma: ファイル `0kWDqHsLr6xE8b4FFgR1Zx`、ページ「トップページ」、フレーム「トップページ (開催前) / SP (390)」(`node-id=141:23`)。
 
-**未確定**: ヒーロー画像の表示崩れの具体的な直し方、1 カラムへの落とし込み、横並び領域の SP での並べ方。
+- Requirement 1 と同一のコンポーネントがレスポンシブに対応する。SP 専用のページ・ルートは作らない
+- フレーム幅 390px、左右パディング 16px (コンテンツ幅 358px)。本 spec が扱う SP のデザイン単位はこの値を基準とする (Requirement 19 参照)。既存の「企画一覧 / SP (390)」「企画詳細 / SP (390)」「構内マップ / SP (390)」と同じ幅であり、企画ページ SP の `Main` フレームの `paddingLeft/Right: 16` かつ左揃えの構成を踏襲した
+- セクション構成 (ヒーロー → 荒牧祭とは → お知らせ) と表示する情報は Requirement 1 (PC) と完全に同じで、省略はない (要件 2.1)
+- **Hero**: PC の横 2 ブロックを縦 1 カラムへ変え、見出し「群馬大学 荒牧祭」→ 開催日 → 会場 → テーマ → カウントダウンの順に積む (要件 2.2)。PC の「開催日｜会場」の横並びは 358px のコンテンツ幅に収まらないため別々の行に分ける。全要素を左揃えに統一する (PC はテーマ・カウントダウンのブロックが右揃え)
+  - ヒーロー高さは 658px。`components/hero-section.tsx` の `h-[78svh] min-h-[28rem]` と、Figma 内で SP の基準ビューポート高として扱った 844px (「構内マップ / SP (390)」フレームの高さ) から `844 × 0.78 ≈ 658` で算出した値。`min-h-[28rem]` (448px) を下回らないため実効しない。実装のビューポート高の前提が変われば再検討を要する
+- **荒牧祭とは・お知らせ**: PC と同じ情報を表示する。概要文とお知らせタイトルの折り返し行数は PC より増えるが内容は同一
+- `NoticeItem` (`node-id=127:108`) は PC/SP で共通のコンポーネントをそのまま使い、幅はインスタンス側で FILL にして吸収する。マスターの変更は不要で、PC 側のインスタンスへの影響もない
+- 下部ナビゲーションを表示しない (要件 2.4) ため、ページ下端の余白 (要件 2.5) も設けない。`(site)/layout.tsx` が与える下端余白は下部ナビゲーションの表示と同じ条件で付け外しし、余白だけが残る状態を作らない
+
+**未確定**: ヒーロー画像の表示崩れの具体的な直し方 (高さの決め方、URL バーの伸縮への対応)。Figma 上は 658px を決め打ちしているが、実装での手当ては実機確認が必要なため未確定。開催中フェーズ (Requirement 4) と同一の手当てとするかどうかも含む。
 
 ### Requirement 3: トップページ 開催中フェーズ (PC)
 
@@ -260,9 +329,9 @@ export const navigationItems: readonly NavigationItem[];
 
 - Requirement 3 と同一のコンポーネントがレスポンシブに対応する。SP 専用のページ・ルートは作らない。
 - 下部ナビゲーションに隠れない余白 (要件 4.3) は、個々のセクションではなく `(site)/layout.tsx` のコンテンツ領域に下端余白を与えて確保する。下部ナビゲーションの高さと `env(safe-area-inset-bottom)` を足した値を用いる。
-- ヒーロー画像の表示崩れ (要件 4.2) は Requirement 2 と同一の手当てとする。
+- SP のフレーム幅 390px・左右パディング 16px (コンテンツ幅 358px) は Requirement 2 で確定した値を用いる (Requirement 19 参照)。
 
-**未確定**: ヒーロー画像の表示崩れの具体的な直し方、1 カラムへの落とし込み、横並び領域の SP での並べ方。
+**未確定**: ヒーロー画像の表示崩れの具体的な直し方 (Requirement 2 と同一の手当てとするかを含む)、1 カラムへの落とし込み、横並び領域の SP での並べ方。
 
 ### Requirement 5: サイト共通ヘッダー (PC)
 
@@ -361,7 +430,9 @@ export const navigationItems: readonly NavigationItem[];
 
 | Requirement | 主な設計要素 | 状態 |
 |---|---|---|
-| 1, 2, 3, 4 | `(site)/page.tsx`, `lib/home-page.ts`, `components/hero-section.tsx` | 構造のみ確定 (フェーズの出し分けは `festival-phase-gate`) |
+| 1 | `(site)/page.tsx`, `lib/home-page.ts`, `components/hero-section.tsx`, `components/about-section.tsx`, `components/announcements-list.tsx` | Figma 確定 (開催中フェーズとの共通範囲は未確定) |
+| 2 | `(site)/page.tsx`, `lib/home-page.ts`, `components/hero-section.tsx` | Figma 確定 (ヒーロー画像の崩れ対策の具体案は未確定) |
+| 3, 4 | `(site)/page.tsx`, `lib/home-page.ts`, `components/hero-section.tsx` | 構造のみ確定 (フェーズの出し分けは `festival-phase-gate`) |
 | 5, 6, 7 | `components/header.tsx`, `lib/navigation.ts`, `lib/breakpoints.ts`, 共有フォーカストラップ | 構造のみ確定 |
 | 8 | `components/bottom-navigation.tsx`, `(site)/layout.tsx` | 構造のみ確定 |
 | 9, 10 | `components/footer.tsx`, `lib/navigation.ts` | 構造のみ確定 |
@@ -373,6 +444,7 @@ export const navigationItems: readonly NavigationItem[];
 | 17 | `lib/navigation.ts` | 確定 |
 | 18 | `lib/cms.ts`, `lib/home-page.ts` | 分岐は確定、再検証の値は未確定 |
 | 19 | `tailwind.config.ts`, `globals.css`, `lib/breakpoints.ts` | 基準は確定、境界値は未確定 |
+| 20 | `cms/src/globals/festival-meta.ts`, マイグレーション, `lib/home-page-types.ts`, `components/hero-section.tsx` | 確定 (破壊的変更として検出される) |
 
 ## Testing Strategy
 
@@ -383,5 +455,7 @@ export const navigationItems: readonly NavigationItem[];
 - `cms/src/collections/sponsors.ts` — `type` が 4 値の複数選択かつ必須であること
 - `lib/home-page.ts` — `festival_meta` / `page_home` の取得失敗で throw せず、他領域の値を返すこと
 - `(site)/page.tsx` — CMS 取得失敗時に主見出しが `sr-only` のみにならないこと
+- `cms/src/globals/festival-meta.ts` — `event_days` が配列かつ `start_at` / `end_at` が必須であること
+- `event_days` の `start_at` を用いた曜日・残り日数の算出
 
 デザイン確定後に追加する見た目まわりのテストは、各デザイン単位のセクションへ追記する。
