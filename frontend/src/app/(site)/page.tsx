@@ -11,9 +11,7 @@ import { PHASE_OVERRIDE_COOKIE, resolvePhase } from '@/lib/phase';
 
 export default async function Page() {
   const cookieStore = await cookies();
-  const { phase } = resolvePhase(
-    cookieStore.get(PHASE_OVERRIDE_COOKIE)?.value,
-  );
+  const { phase } = resolvePhase(cookieStore.get(PHASE_OVERRIDE_COOKIE)?.value);
 
   let content: HomePageContent | null = null;
   try {

@@ -11,9 +11,7 @@ export default async function MapPage({ searchParams }: MapPageProps) {
   const initialFilters = parseCampusMapQuery(await searchParams);
   const data = await getCampusMapData();
   const cookieStore = await cookies();
-  const { phase } = resolvePhase(
-    cookieStore.get(PHASE_OVERRIDE_COOKIE)?.value,
-  );
+  const { phase } = resolvePhase(cookieStore.get(PHASE_OVERRIDE_COOKIE)?.value);
 
   return (
     <CampusMapScreen

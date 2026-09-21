@@ -226,10 +226,7 @@ describe('getHomePage の phase 引数によるトピックス取得の抑止', 
     const result = await getHomePage('pre_event');
 
     expect(result.topics).toEqual([]);
-    expect(cms.findMany).not.toHaveBeenCalledWith(
-      'topics',
-      expect.anything(),
-    );
+    expect(cms.findMany).not.toHaveBeenCalledWith('topics', expect.anything());
   });
 
   it('開催中フェーズでは従来どおり topics を取得する', async () => {

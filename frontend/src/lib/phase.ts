@@ -38,15 +38,10 @@ export const PRE_EVENT_PUBLIC_PATHS: readonly string[] = [
 // slug で解決される固定ページ (pages コレクション) はルート単位で許可すると
 // 全 slug が公開されてしまうため、上の完全一致一覧にのみ載せる非対称を採る。
 /** 開催前フェーズでルート単位に公開するパスの前置詞の一覧 (前方一致で判定する)。 */
-export const PRE_EVENT_PUBLIC_PREFIXES: readonly string[] = [
-  '/announcements/',
-];
+export const PRE_EVENT_PUBLIC_PREFIXES: readonly string[] = ['/announcements/'];
 
 /** 指定フェーズにおいて pathname が公開対象かどうかを判定する。 */
-export function isPublicPath(
-  pathname: string,
-  phase: FestivalPhase,
-): boolean {
+export function isPublicPath(pathname: string, phase: FestivalPhase): boolean {
   if (phase === 'live') return true;
   return (
     PRE_EVENT_PUBLIC_PATHS.includes(pathname) ||

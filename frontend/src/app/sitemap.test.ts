@@ -21,7 +21,9 @@ describe('sitemap', () => {
     const urls = result.map((entry) => entry.url);
 
     for (const path of PRE_EVENT_PUBLIC_PATHS) {
-      expect(urls).toContain(new URL(path, 'https://aramakisai.com').toString());
+      expect(urls).toContain(
+        new URL(path, 'https://aramakisai.com').toString(),
+      );
     }
   });
 

@@ -9,9 +9,7 @@ export default async function SiteLayout({
   children: React.ReactNode;
 }) {
   const cookieStore = await cookies();
-  const { phase } = resolvePhase(
-    cookieStore.get(PHASE_OVERRIDE_COOKIE)?.value,
-  );
+  const { phase } = resolvePhase(cookieStore.get(PHASE_OVERRIDE_COOKIE)?.value);
 
   return (
     <>

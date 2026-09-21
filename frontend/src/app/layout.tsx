@@ -4,7 +4,11 @@ import { GoogleAnalytics } from '@next/third-parties/google';
 import { cookies } from 'next/headers';
 import './globals.css';
 import { getFestivalMeta } from '@/lib/festival-meta';
-import { DEV_OVERRIDE_ENABLED, PHASE_OVERRIDE_COOKIE, resolvePhase } from '@/lib/phase';
+import {
+  DEV_OVERRIDE_ENABLED,
+  PHASE_OVERRIDE_COOKIE,
+  resolvePhase,
+} from '@/lib/phase';
 import { PhaseToggle } from '@/components/phase-toggle';
 import { env } from '@/env';
 

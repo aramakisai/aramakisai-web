@@ -26,7 +26,9 @@ describe('PhaseToggle', () => {
   });
 
   it('現在のフェーズと適用元 (定数) を表示する', () => {
-    render(<PhaseToggle resolved={{ phase: 'pre_event', source: 'constant' }} />);
+    render(
+      <PhaseToggle resolved={{ phase: 'pre_event', source: 'constant' }} />,
+    );
     expect(screen.getByText('開催前')).toBeInTheDocument();
     expect(screen.getByText(/定数/)).toBeInTheDocument();
     expect(screen.queryByText(/オーバーライド/)).not.toBeInTheDocument();
@@ -39,7 +41,9 @@ describe('PhaseToggle', () => {
   });
 
   it('操作要素を開くと切り替えボタンが現れ、押すとオーバーライド Cookie を書き込みページを再取得する', () => {
-    render(<PhaseToggle resolved={{ phase: 'pre_event', source: 'constant' }} />);
+    render(
+      <PhaseToggle resolved={{ phase: 'pre_event', source: 'constant' }} />,
+    );
 
     fireEvent.click(screen.getByRole('button', { name: /開催前/ }));
     fireEvent.click(screen.getByRole('button', { name: '開催中に切り替える' }));
@@ -49,7 +53,9 @@ describe('PhaseToggle', () => {
   });
 
   it('適用元が定数のとき、解除ボタンは表示されない', () => {
-    render(<PhaseToggle resolved={{ phase: 'pre_event', source: 'constant' }} />);
+    render(
+      <PhaseToggle resolved={{ phase: 'pre_event', source: 'constant' }} />,
+    );
     fireEvent.click(screen.getByRole('button', { name: /開催前/ }));
     expect(
       screen.queryByRole('button', { name: 'オーバーライドを解除する' }),
