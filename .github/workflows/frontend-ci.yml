@@ -152,7 +152,8 @@ jobs:
           echo "INFISICAL_PROJECT_ID=$(python3 -c "import json;print(json.load(open('.infisical.json'))['workspaceId'])")" >> "$GITHUB_ENV"
 
       - name: Build (staging env, inlined by Infisical; Directus URL forced to prod for read-only preview data)
-        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- env NEXT_PUBLIC_CMS_URL=https://cms.aramakisai.com pnpm exec opennextjs-cloudflare build
+        # PR プレビューはアクセス制御されたプレビュー環境として扱い、開発用フェーズ切替 UI (要件 7-5) を有効にする。
+        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- env NEXT_PUBLIC_CMS_URL=https://cms.aramakisai.com NEXT_PUBLIC_ENABLE_PHASE_OVERRIDE=true pnpm exec opennextjs-cloudflare build
 
       - name: Upload Cloudflare Workers preview version
         id: upload_preview
@@ -305,8 +306,7 @@ jobs:
         env:
           NEXT_PUBLIC_CMS_URL: https://cms.aramakisai.com
           NEXT_PUBLIC_SITE_URL: https://dev.aramakisai.com
-          # dev.aramakisai.com は Cloudflare Access で保護された唯一の配信先。
-          # PR プレビューは保護されないため他ジョブには追加せず、Infisical にも登録しない。
+          # deploy-preview にも同フラグを付与している (要件 7-5)。deploy-prod には付与しない。
           NEXT_PUBLIC_ENABLE_PHASE_OVERRIDE: 'true'
 
       - name: Deploy to Cloudflare Workers (dev)

@@ -144,7 +144,7 @@ describe('.github/workflows/frontend-ci.yml', () => {
     expect(deployStep?.run).toContain('wrangler deploy --env=dev');
   });
 
-  it('injects the dev-only phase override flag only into deploy-dev, never validate/preview/prod', () => {
+  it('injects the phase override flag into deploy-dev and deploy-preview, never validate/e2e/verify-build-artifacts/prod', () => {
     const workflow = loadWorkflow();
     const FLAG_NAME = 'NEXT_PUBLIC_ENABLE_PHASE_OVERRIDE';
 
@@ -153,10 +153,15 @@ describe('.github/workflows/frontend-ci.yml', () => {
     );
     expect(devBuildStep?.env).toMatchObject({ [FLAG_NAME]: 'true' });
 
+    const previewBuildStep = workflow.jobs['deploy-preview'].steps.find((s) =>
+      s.run?.includes('opennextjs-cloudflare build'),
+    );
+    expect(previewBuildStep?.run).toContain(`${FLAG_NAME}=true`);
+
     for (const jobName of [
       'validate',
-      'deploy-preview',
       'e2e',
+      'verify-build-artifacts',
       'deploy-prod',
     ]) {
       expect(JSON.stringify(workflow.jobs[jobName])).not.toContain(FLAG_NAME);
@@ -178,7 +183,9 @@ describe('.github/workflows/frontend-ci.yml', () => {
     const flagLines = raw
       .split('\n')
       .filter((line) => line.includes('NEXT_PUBLIC_ENABLE_PHASE_OVERRIDE'));
-    expect(flagLines).toHaveLength(1);
-    expect(flagLines[0]).not.toMatch(/secrets\./);
+    expect(flagLines).toHaveLength(2);
+    for (const line of flagLines) {
+      expect(line).not.toMatch(/secrets\./);
+    }
   });
 });
