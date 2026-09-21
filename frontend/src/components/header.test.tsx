@@ -3,6 +3,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { usePathname } from 'next/navigation';
 import { Header, navigationItems } from './header';
+import * as phaseModule from '@/lib/phase';
 import {
   extractSectionIds,
   listAppRoutes,
@@ -18,6 +19,11 @@ const aboutSectionPath = join(
 vi.mock('next/navigation', () => ({
   usePathname: vi.fn(),
 }));
+
+vi.mock('@/lib/phase', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/phase')>();
+  return { ...actual, visibleNavItems: vi.fn(actual.visibleNavItems) };
+});
 
 const mockedUsePathname = vi.mocked(usePathname);
 
@@ -60,7 +66,7 @@ describe('Header', () => {
   });
 
   test('renders the 2026 logo and all desktop navigation links', () => {
-    render(<Header />);
+    render(<Header phase="pre_event" />);
 
     expect(screen.getByRole('link', { name: '荒牧祭2026' })).toHaveAttribute(
       'href',
@@ -102,7 +108,7 @@ describe('Header', () => {
   ])('marks the current section for %s', (pathname, label) => {
     mockedUsePathname.mockReturnValue(pathname);
 
-    render(<Header />);
+    render(<Header phase="pre_event" />);
 
     expect(screen.getByRole('link', { name: label })).toHaveAttribute(
       'aria-current',
@@ -113,7 +119,7 @@ describe('Header', () => {
   test('keeps TOP as the current page for the in-page about link', () => {
     mockedUsePathname.mockReturnValue('/');
 
-    render(<Header />);
+    render(<Header phase="pre_event" />);
 
     expect(screen.getByRole('link', { name: 'TOP' })).toHaveAttribute(
       'aria-current',
@@ -125,7 +131,7 @@ describe('Header', () => {
   });
 
   test('provides keyboard-accessible in-page links in the about dropdown', () => {
-    render(<Header />);
+    render(<Header phase="pre_event" />);
 
     const aboutLink = screen.getByRole('link', { name: '荒牧祭について' });
     expect(aboutLink).toHaveAttribute('href', '/#about');
@@ -161,7 +167,7 @@ describe('Header', () => {
   });
 
   test('reuses the Mansai hover line in the main navigation and dropdown', () => {
-    const { container } = render(<Header />);
+    const { container } = render(<Header phase="pre_event" />);
 
     const lines = container.querySelectorAll('.mansai-spectrum-line');
     expect(lines).toHaveLength(7);
@@ -181,7 +187,7 @@ describe('Header', () => {
   });
 
   test('opens a mobile navigation with the three main links', () => {
-    render(<Header />);
+    render(<Header phase="pre_event" />);
 
     const menuButton = screen.getByRole('button', {
       name: 'メニューを開く',
@@ -221,7 +227,7 @@ describe('Header', () => {
   });
 
   test('expands the mobile about submenu by tap and closes after navigation', () => {
-    render(<Header />);
+    render(<Header phase="pre_event" />);
 
     fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
     const mobileNavigation = screen.getByRole('navigation', {
@@ -267,7 +273,7 @@ describe('Header', () => {
   });
 
   test('closes the mobile menu with Escape and returns focus to the toggle', () => {
-    render(<Header />);
+    render(<Header phase="pre_event" />);
 
     const menuButton = screen.getByRole('button', {
       name: 'メニューを開く',
@@ -286,7 +292,7 @@ describe('Header', () => {
   });
 
   test('uses compact mobile sizing and safe-area spacing without changing desktop sizes', () => {
-    const { container } = render(<Header />);
+    const { container } = render(<Header phase="pre_event" />);
 
     const header = container.querySelector('header');
     expect(header).toHaveClass('pt-[env(safe-area-inset-top)]');
@@ -303,5 +309,28 @@ describe('Header', () => {
       'h-[calc(4rem+env(safe-area-inset-top))]',
       'lg:h-[calc(5rem+env(safe-area-inset-top))]',
     );
+  });
+
+  test('開催前フェーズで非公開のリンク先を持つ項目をデスクトップ・モバイル双方から除去する', () => {
+    vi.mocked(phaseModule.visibleNavItems).mockReturnValue(
+      navigationItems.filter((item) => item.href !== '/announcements'),
+    );
+
+    render(<Header phase="pre_event" />);
+
+    expect(phaseModule.visibleNavItems).toHaveBeenCalledWith(
+      navigationItems,
+      'pre_event',
+    );
+    expect(
+      screen.queryByRole('link', { name: 'お知らせ' }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
+    expect(
+      within(
+        screen.getByRole('navigation', { name: 'モバイルナビゲーション' }),
+      ).queryByRole('link', { name: 'お知らせ' }),
+    ).not.toBeInTheDocument();
   });
 });

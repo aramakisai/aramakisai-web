@@ -15,7 +15,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "check:build-artifacts": "opennextjs-cloudflare build && tsx scripts/verify-build-artifacts.ts"
   },
   "dependencies": {
     "@next/third-parties": "^16.2.10",

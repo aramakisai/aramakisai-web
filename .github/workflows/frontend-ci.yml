@@ -74,6 +74,38 @@ jobs:
           NEXT_PUBLIC_CMS_URL: https://cms.example.com
           NEXT_PUBLIC_SITE_URL: https://example.com
 
+  verify-build-artifacts:
+    name: verify build artifacts (no dev code)
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # 開発用フラグを与えない、本番相当のビルドを対象にする。
+      - name: Check build artifacts for dev code
+        run: pnpm check:build-artifacts
+        env:
+          NEXT_PUBLIC_CMS_URL: https://cms.example.com
+          NEXT_PUBLIC_SITE_URL: https://example.com
+
   deploy-preview:
     name: deploy preview (Workers)
     needs: validate
@@ -120,7 +152,8 @@ jobs:
           echo "INFISICAL_PROJECT_ID=$(python3 -c "import json;print(json.load(open('.infisical.json'))['workspaceId'])")" >> "$GITHUB_ENV"
 
       - name: Build (staging env, inlined by Infisical; Directus URL forced to prod for read-only preview data)
-        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- env NEXT_PUBLIC_CMS_URL=https://cms.aramakisai.com pnpm exec opennextjs-cloudflare build
+        # PR プレビューはアクセス制御されたプレビュー環境として扱い、開発用フェーズ切替 UI (要件 7-5) を有効にする。
+        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- env NEXT_PUBLIC_CMS_URL=https://cms.aramakisai.com NEXT_PUBLIC_ENABLE_PHASE_OVERRIDE=true pnpm exec opennextjs-cloudflare build
 
       - name: Upload Cloudflare Workers preview version
         id: upload_preview
@@ -273,6 +306,8 @@ jobs:
         env:
           NEXT_PUBLIC_CMS_URL: https://cms.aramakisai.com
           NEXT_PUBLIC_SITE_URL: https://dev.aramakisai.com
+          # deploy-preview にも同フラグを付与している (要件 7-5)。deploy-prod には付与しない。
+          NEXT_PUBLIC_ENABLE_PHASE_OVERRIDE: 'true'
 
       - name: Deploy to Cloudflare Workers (dev)
         run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec wrangler deploy --env=dev

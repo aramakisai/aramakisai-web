@@ -23,6 +23,10 @@ vi.mock('@/env', () => ({
   },
 }));
 
+vi.mock('next/headers', () => ({
+  cookies: vi.fn(async () => ({ get: vi.fn() })),
+}));
+
 // CampusMapScreen 自体の振る舞い (絞り込み・地図描画等) は campus-map-screen.test.tsx が
 // 担う。ここでは page が取得結果と初期条件をそのまま渡していることだけを検証する
 const screenProps: Record<string, unknown>[] = [];
@@ -133,5 +137,15 @@ describe('MapPage', () => {
       categories: ['stage'],
       selectedAreaId: 3,
     });
+  });
+
+  it('解決したフェーズを CampusMapScreen へ渡す', async () => {
+    vi.mocked(campusMapModule.getCampusMapData).mockResolvedValue(
+      dataResult({}),
+    );
+
+    await renderPage();
+
+    expect(screenProps.at(-1)!.phase).toBe('pre_event');
   });
 });

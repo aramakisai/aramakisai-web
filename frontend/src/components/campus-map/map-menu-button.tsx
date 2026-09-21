@@ -3,10 +3,16 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import Link from 'next/link';
 import { navigationItems } from '@/components/header';
+import { visibleNavItems, type FestivalPhase } from '@/lib/phase';
 
 const FOCUSABLE_SELECTOR = 'a[href]';
 
-export function MapMenuButton() {
+export interface MapMenuButtonProps {
+  readonly phase: FestivalPhase;
+}
+
+export function MapMenuButton({ phase }: MapMenuButtonProps) {
+  const items = visibleNavItems(navigationItems, phase);
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -91,7 +97,7 @@ export function MapMenuButton() {
           >
             <nav aria-label="サイト内ナビゲーション">
               <ul>
-                {navigationItems.map((item) => (
+                {items.map((item) => (
                   <li key={item.href}>
                     <Link
                       href={item.href}
