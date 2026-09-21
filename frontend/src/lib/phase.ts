@@ -49,6 +49,12 @@ export function isPublicPath(pathname: string, phase: FestivalPhase): boolean {
   );
 }
 
+// (fullscreen) レイアウト配下はヘッダー・フッターを持たない前提のページ。ゲート時に
+// (site)/gated へ rewrite するとヘッダー・フッター付きの 404 になり、この前提が崩れる。
+// middleware が rewrite 先を選ぶための一覧としてここに置く
+/** (fullscreen) レイアウト配下にあり、ゲート時は専用のヘッダー・フッター無し 404 へ振り分けるパスの一覧。 */
+export const FULLSCREEN_PRIVATE_PATHS: readonly string[] = ['/map'];
+
 const FESTIVAL_PHASES: readonly FestivalPhase[] = ['pre_event', 'live'];
 
 function isFestivalPhase(value: string): value is FestivalPhase {

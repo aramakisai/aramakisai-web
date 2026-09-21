@@ -42,6 +42,7 @@ const INTENTIONALLY_PRIVATE_ROUTES: readonly string[] = [
   '/exhibitions/[id]/[category]',
   '/map',
   '/gated',
+  '/gated-fullscreen',
 ];
 
 type Classification =
@@ -97,6 +98,16 @@ describe('ルートと公開対象一覧の整合', () => {
 
     expect(gatedRoute).toBeDefined();
     expect(classifyRoute(gatedRoute!)).toBe('intentional_private');
+  });
+
+  test('(fullscreen) 向けのゲート書き換え先ルートも意図的な非公開として宣言されている', () => {
+    const routes = listAppRoutes(appDir);
+    const gatedFullscreenRoute = routes.find(
+      (route) => routePattern(route) === '/gated-fullscreen',
+    );
+
+    expect(gatedFullscreenRoute).toBeDefined();
+    expect(classifyRoute(gatedFullscreenRoute!)).toBe('intentional_private');
   });
 
   test('ナビ項目を描画する全コンポーネントのリンク先が開催前フェーズの公開対象に含まれる', () => {

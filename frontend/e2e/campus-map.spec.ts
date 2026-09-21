@@ -3,12 +3,11 @@ import { checkCmsReachable } from '../scripts/cms-check';
 
 // Depends on CMS collections: map_areas, student_exhibitions, performance_slots, stages, topics, announcements
 
-const EXISTING_LIST_PAGES = [
-  '/',
-  '/exhibitions',
-  '/announcements',
-  '/topics',
-] as const;
+const EXISTING_LIST_PAGES = ['/', '/announcements'] as const;
+
+// festival-phase-gate により開催前フェーズでは非公開。(site)/gated 経由の 404 になる
+// (design.md: gated ルートは (site) 配下に置きヘッダー・フッター付きの通常の 404 に揃える)
+const GATED_LIST_PAGES = ['/exhibitions', '/topics'] as const;
 
 /** 地図の動的読み込みが終わるまで待つ (読み込み中は role="status" のプレースホルダーが出る) */
 async function waitForMapReady(page: Page): Promise<void> {
@@ -61,6 +60,18 @@ test.describe('構内マップと既存ページの通し確認', () => {
     });
   }
 
+  for (const path of GATED_LIST_PAGES) {
+    test(`${path} は開催前フェーズで非公開になりヘッダーとフッター付きの404を返す`, async ({
+      page,
+    }) => {
+      const response = await page.goto(path);
+      expect(response?.status()).toBe(404);
+      expect(new URL(page.url()).pathname).toBe(path);
+      await expect(page.getByRole('banner')).toBeVisible();
+      await expect(page.getByRole('contentinfo')).toBeVisible();
+    });
+  }
+
   test('企画詳細・お知らせ詳細・トピックス詳細ページも route group 移動後にヘッダーとフッターを表示する', async ({
     page,
   }) => {
@@ -94,7 +105,13 @@ test.describe('構内マップと既存ページの通し確認', () => {
   test('地図上に出典表記が表示され、ライセンス情報ページへのリンクを持つ', async ({
     page,
   }) => {
-    await page.goto('/map');
+    const response = await page.goto('/map');
+    if (response?.status() === 404) {
+      test.skip(
+        true,
+        '開催前フェーズでは /map が非公開のため検証できません (festival-phase-gate)',
+      );
+    }
     const attribution = page.locator('.leaflet-control-attribution');
     await expect(attribution).toContainText('OpenStreetMap');
     await expect(

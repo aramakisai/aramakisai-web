@@ -36,6 +36,14 @@ describe('middleware (開発用フラグが偽のビルド)', () => {
     );
   });
 
+  it('(fullscreen) 配下の非公開パスはヘッダー・フッター無しの gated ルートへ書き換える', async () => {
+    const { middleware } = await import('./middleware');
+    const response = middleware(makeRequest('/map'));
+    expect(response.headers.get('x-middleware-rewrite')).toBe(
+      'https://example.com/gated-fullscreen',
+    );
+  });
+
   it('書き換え先にクエリ文字列を引き継がない', async () => {
     const { middleware } = await import('./middleware');
     const response = middleware(makeRequest('/topics?foo=bar'));
