@@ -4,25 +4,26 @@
 
 本 spec は、開催前の簡易ページとして作られた現行サイトを本番運用に耐える形へ作り直す。対象はトップページ、サイト共通ヘッダー、フッター、グローバルナビゲーション (ハンバーガーメニューと新規の下部ナビゲーション)、構内マップ画面のメニュー、協賛一覧、トピックとお知らせの表示である。
 
-requirements.md が述べるとおり、これら 16 のデザイン単位は Figma での定義を単位ごとに進めている途中であり、現時点で定義済みなのは一部にとどまる。したがって本書は完成した設計書ではなく、**ビジュアルデザインの有無に関わらず確定している構造だけを置いた土台**として扱う。具体的には、ナビゲーション項目定義の配置、協賛種別のスキーマ変更、CMS 取得失敗時の分岐、再検証方針の置き場所といった、デザインが決まっても変わらない部分を書く。色・余白・タイポグラフィ・レイアウトの詳細は一切書かない。
+requirements.md が述べるとおり、これら 15 のデザイン単位は Figma での定義を単位ごとに進めている途中であり、現時点で定義済みなのは一部にとどまる。したがって本書は完成した設計書ではなく、**ビジュアルデザインの有無に関わらず確定している構造だけを置いた土台**として扱う。具体的には、ナビゲーション項目定義の配置、協賛種別のスキーマ変更、CMS 取得失敗時の分岐、再検証方針の置き場所といった、デザインが決まっても変わらない部分を書く。色・余白・タイポグラフィ・レイアウトの詳細は一切書かない。
 
 各デザイン単位のセクションは、現時点では「どのファイルが責務を持つか」「データがどこから来るか」に限って記述する。デザインが起きた単位から、そのセクションへ設計を追記していく。
 
 ### Goals
 
 - ナビゲーション項目定義を表示部品から切り離し、ヘッダー・ハンバーガーメニュー・フッター・下部ナビゲーション・MapMenuButton の 5 箇所が同一の定義を参照する状態にする
-- `sponsors.type` を複数選択へ変更し、広告協賛・地域協賛それぞれの一覧を実装できる取得層を用意する
+- `sponsors.type` を複数選択へ変更し、広告協賛一覧を実装できる取得層を用意する
 - CMS の一部取得失敗がページ全体の非表示につながる現状の分岐を、領域単位の縮退へ置き換える
 - 各デザイン単位について、デザイン確定後に追記するだけで実装へ進める構造を定義する
 
 ### Non-Goals
 
-- 本 spec が扱う 16 のデザイン単位のビジュアルデザインの決定 — Figma でのデザイン作成時に確定する
+- 本 spec が扱う 15 のデザイン単位のビジュアルデザインの決定 — Figma でのデザイン作成時に確定する
 - Figma フレームの作成作業そのもの
 - 色・タイポグラフィのトークン自体の再定義 — `frontend/tailwind.config.ts` と `globals.css` を正とする
 - `topics` / `announcements` の CMS データモデル変更
 - 企画一覧・企画詳細ページ本体 (`exhibition-pages`)、構内マップの地図本体 (`campus-map`)、タイムテーブル (`timetable-page`)、サイネージ (`digital-signage`)、駐車場空き状況 (`parking-availability`)
 - 固定ページ (アクセス・お問い合わせ・プライバシーポリシー等) の本文デザイン
+- 地域協賛一覧ページ本体 — ヘッダー・トップページ・フッターからの導線は本 spec が持つが、遷移先のページは扱わない
 
 ## Boundary Commitments
 
@@ -96,7 +97,7 @@ frontend/src/components/
 └── motion-toggle.tsx          # モーション再生/停止の切替ボタン (`'use client'`)。フッターに置く (要件 19.5、9、10)
 
 frontend/src/app/(site)/sponsors/
-└── page.tsx                 # 協賛一覧 (ルート構成は未確定。下記 Requirement 12/13 参照)
+└── page.tsx                 # 広告協賛一覧 (ルート構成は未確定。下記 Requirement 12 参照)
 
 cms/src/migrations/
 ├── <timestamp>_sponsors_type_multi.ts        # sponsors.type の複数選択化 (要件 16.4)
@@ -202,7 +203,7 @@ export const navigationItems: readonly NavigationItem[];
 `getHomePage` の戻り値を、領域ごとに欠落を表現できる形へ改める。
 
 - `festival` / `theme` / `heroMessageHtml` を必須ではなく欠落しうる値として返す
-- 一覧 (`sponsors` / `announcements` / `topics`) は現行どおり失敗を空配列へ倒す。ただし「0 件」と「取得失敗」を区別する必要がある協賛一覧 (要件 12.8 / 13.7) では、`lib/sponsors.ts` が `CmsResult` の失敗を空配列へ倒さずそのまま表示側へ渡す
+- 一覧 (`sponsors` / `announcements` / `topics`) は現行どおり失敗を空配列へ倒す。ただし「0 件」と「取得失敗」を区別する必要がある広告協賛一覧 (要件 12.8) では、`lib/sponsors.ts` が `CmsResult` の失敗を空配列へ倒さずそのまま表示側へ渡す
 - `page.tsx` は `content` の有無でページ全体を分岐させず、領域ごとに分岐する
 
 ヘッダー・フッター・下部ナビゲーションは `(site)/layout.tsx` に属し CMS 取得に依存しない構造のため、要件 18.2 のうちこの 3 つは現行の配置で満たされる。`footer.tsx` は既に `getSnsLinks` / `getContactFormUrl` を個別に try/catch しており、要件 9.9 を満たしている。
@@ -377,11 +378,11 @@ Requirement 5 が定める開催前フェーズのヘッダーは、本 spec が
 
 - 固定ページ: ご来場の際の注意点 / 案内所・落とし物・迷子 / ごみの分別のお願い / よくある質問 (ルートは未確定)
 - `/contact` (お問い合わせ)
-- 広告協賛・地域協賛の各ページ (ルートは Requirement 12 / 13 で未確定)
+- 広告協賛一覧ページ (ルートは Requirement 12 で未確定)
 
 ## デザイン単位ごとの設計
 
-以下 16 単位は、ビジュアルデザインが未定のため、現時点で確定している構造面の方針のみを記す。各単位のデザインが起きた時点で、このセクションへ設計を追記する。
+以下 15 単位は、ビジュアルデザインが未定のため、現時点で確定している構造面の方針のみを記す。各単位のデザインが起きた時点で、このセクションへ設計を追記する。
 
 ### Requirement 1: トップページ 開催前フェーズ (PC)
 
@@ -428,7 +429,7 @@ Figma: ファイル `0kWDqHsLr6xE8b4FFgR1Zx`、ページ「トップページ」
 - **お知らせ**: 見出し「お知らせ」の下に、既存コンポーネント `NoticeItem` (`node-id=127:108`) のインスタンスを 5 件、幅はインスタンス側の FILL で吸収して並べ、「お知らせ一覧へ」(`/announcements`) を添える (要件 3.4)。表示部品は Requirement 1 と同じ `components/announcements-list.tsx` の `limit` prop を使う
 - **荒牧祭とは**: 見出し「荒牧祭とは」(固定文言) と概要文 (`festival_meta.overview_html`) を表示する (要件 3.7)。`festival_meta.name` は本文に表示しない (要件 3.10)。Requirement 1 (要件 1.8) と同じ扱い
 - **アクセス**: 見出し「アクセス」の下に、地図のプレースホルダ (720×320) を左、アクセス情報のテキスト (536px、上下中央揃え) を右に gap 24px で並べ、末尾に「アクセス詳細へ」(`/access`) を添える (要件 3.8)。地図は実際の地図タイルの見た目を模写せず、プレースホルダとして扱う
-- **協賛**: 見出し「協賛」の下に、協賛ロゴのプレースホルダを 4 枚、4 列で表示し、「広告協賛へ」「地域協賛へ」の 2 つの導線を添える (要件 3.3)。広告協賛一覧と地域協賛一覧が別ページのため 2 つに分ける。遷移先のルートは Requirement 12 / 13 のページ構成が未確定のため未確定。全件は Requirement 12 / 13 のページ側で見せ、トップページではロゴ数枚に留める
+- **協賛**: 見出し「協賛」の下に、協賛ロゴのプレースホルダを 4 枚、4 列で表示し、「広告協賛へ」「地域協賛へ」の 2 つの導線を添える (要件 3.3)。広告協賛一覧と地域協賛一覧が別ページのため 2 つに分ける。「広告協賛へ」の遷移先ルートは Requirement 12 のページ構成が未確定のため未確定、「地域協賛へ」の遷移先ページは本 spec の対象外。全件は各一覧ページ側で見せ、トップページではロゴ数枚に留める
 
 見出しは Figma コンポーネント `SectionHeading` (COMPONENT_SET、`node-id=208:118`、`Level` variant: `h1` 44px / `h2` 32px / `h3` 24px / `h4` 20px、`Heading` の TEXT プロパティ) のインスタンスで、上記 7 セクションの見出しはすべて `h2` を使う。このコンポーネントは開催前トップ・企画一覧・企画詳細のセクション見出しにも適用する。
 
@@ -467,7 +468,7 @@ Figma: ファイル `0kWDqHsLr6xE8b4FFgR1Zx`、ページ「コンポーネント
   | before | 1 | 荒牧祭について | `/#about` | なし |
   | before | 2 | お知らせ | `/announcements` | なし |
   | before | 3 | ご案内 | — (子項目のみ) | during と同一の 6 項目 |
-  | before | 4 | 協賛 | — (子項目のみ) | 広告協賛 / 地域協賛 (ルート未確定、Requirement 12/13 参照) |
+  | before | 4 | 協賛 | — (子項目のみ) | 広告協賛 / 地域協賛 (ルート未確定。広告協賛は Requirement 12 参照、地域協賛の遷移先ページは本 spec の対象外) |
 
   「ご来場の際の注意点」「案内所・落とし物・迷子」「ごみの分別のお願い」「よくある質問」の 4 ページのルートは本 spec の対象外で未確定 (下記「開催前フェーズで公開が必要になるパス」参照)。
 - during と before でナビゲーション項目の構成が異なるのは、`festival-phase-gate` の `PRE_EVENT_PUBLIC_PATHS` / `PRE_EVENT_PUBLIC_PREFIXES` (`frontend/src/lib/phase.ts`) が定める開催前フェーズの公開範囲による。企画一覧・構内マップ・トピックは開催前に 404 を返すため before のナビゲーションから外す (要件 5.3)。協賛は before のみ出し、during は当日導線 (企画・マップ等) を優先して外す。
@@ -582,21 +583,13 @@ Figma: `Footer` (`291:1537`) の SP/during (`310:633`、390×1060) / SP/before (
 
 ### Requirement 12: 広告協賛一覧
 
-- 取得は `frontend/src/lib/sponsors.ts` に置く。`cms.findMany('sponsors', { sort: ['sort'], limit: 0, depth: 1 })` を単一の取得とし、種別による振り分けはその結果に対して行う。広告協賛・地域協賛それぞれで CMS を叩かない。
+- 取得は `frontend/src/lib/sponsors.ts` に置く。`cms.findMany('sponsors', { sort: ['sort'], limit: 0, depth: 1 })` を単一の取得とし、種別による振り分けはその結果に対して行う。種別ごとに CMS を叩かない。
 - `type` 配列が `'ad'` を含むものを対象とする (要件 12.1)。並び順は `sort` 昇順 (要件 12.6) で、CMS 側の `defaultSort: 'sort'` および取得時の `sort` 指定で満たされる。
 - 取得失敗 (要件 12.8) と 0 件 (要件 12.7) を区別する必要があるため、`lib/sponsors.ts` は失敗を空配列へ倒さず `CmsResult` の形のまま表示側へ渡す。
 - 表示部品は既存の `components/sponsors-list.tsx` を起点とする。現行は 0 件で `null` を返すため、0 件表示 (要件 12.7) に合わせて改める。
 - 外部リンクは `target="_blank" rel="noopener noreferrer"` (要件 12.5)。現行実装が持っている。
 
-**未確定**: `tier` の一覧への反映、プラン未設定の協賛の扱い、`description` を出すか、ロゴの並べ方、ページ単独か地域協賛と同一ページか。ページ構成が決まるまで `(site)/sponsors/page.tsx` のルートは 1 本とし、分割が必要になった時点で見直す。
-
-### Requirement 13: 地域協賛一覧
-
-- 取得は Requirement 12 と同一。`type` 配列が `'local'` を含むものを対象とする (要件 13.1)。
-- 表示する項目が広告協賛より多い (`business_category` / `address` / `description`) ため、`SponsorSummary` にこれらを追加する。現行の `SponsorSummary` は `id` / `type` / `name` / `logoId` / `url` / `tier` のみを持つ。
-- 0 件と取得失敗の区別 (要件 13.6, 13.7) は Requirement 12 と同じ扱い。
-
-**未確定**: 業種タグによる絞り込みや並べ替えの有無、1 件あたりの見せ方、住所の見せ方と地図サービスへの導線、広告協賛と同一ページに置くか。
+**未確定**: `tier` の一覧への反映、プラン未設定の協賛の扱い、`description` を出すか、ロゴの並べ方、ページ構成。
 
 ### Requirement 14: トピックカード
 
@@ -634,7 +627,7 @@ Figma: `Footer` (`291:1537`) の SP/during (`310:633`、390×1060) / SP/before (
 | 8 | `components/bottom-navigation.tsx`, `(site)/layout.tsx` | 構造のみ確定 |
 | 9, 10 | `components/footer.tsx`, `components/motion-toggle.tsx`, `lib/navigation.ts` | Figma 確定 (`MotionToggle` の配置を含む。メールアドレスの実値、ルート未確定 4 ページの遷移先は未確定) |
 | 11 | `components/campus-map/map-menu-button.tsx`, `lib/navigation.ts` | 構造のみ確定 |
-| 12, 13 | `lib/sponsors.ts`, `components/sponsors-list.tsx`, `(site)/sponsors/page.tsx` | 取得層は確定、表示は未確定 |
+| 12 | `lib/sponsors.ts`, `components/sponsors-list.tsx`, `(site)/sponsors/page.tsx` | 取得層は確定、表示は未確定 |
 | 14 | `components/topic-card.tsx`, `components/topics-list.tsx` | 構造のみ確定 |
 | 15 | `components/announcements-list.tsx` | 構造のみ確定 |
 | 16 | `cms/src/collections/sponsors.ts`, マイグレーション, `lib/home-page-types.ts` | 確定 |
