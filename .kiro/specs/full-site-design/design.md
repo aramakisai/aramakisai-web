@@ -33,7 +33,6 @@ requirements.md が述べるとおり、これら 17 のデザイン単位は Fi
 - `cms/src/collections/sponsors.ts` の `type` フィールド定義と対応するマイグレーション
 - 協賛一覧の取得層と表示部品
 - `frontend/src/app/(site)/layout.tsx` および `(site)` 配下のトップページの構成。開催前フェーズ・開催中フェーズそれぞれのトップページが表示する内容
-- `frontend/src/lib/cms.ts` の再検証方針
 - 下部ナビゲーション (新規)
 - `frontend/src/components/campus-map/map-menu-button.tsx` のメニュー内容 (ボタンの配置要件を含む)
 - `frontend/src/components/rich-text.tsx` のサニタイズ許可リストと見た目
@@ -46,6 +45,7 @@ requirements.md が述べるとおり、これら 17 のデザイン単位は Fi
 - フェーズ切替機構 (フェーズ設定の保持、公開範囲の制御、トップページの出し分け、開発者向けオーバーライド) — `festival-phase-gate` が所有する
 - `sponsors` の `type` 以外のフィールド定義
 - `topics` / `announcements` / `pages` のフィールド定義 (本文 HTML 変換の差し替え (要件 15.5) を除く)
+- `frontend/src/lib/cms.ts` の再検証 (キャッシュ) 方針、CMS 障害時のエラーページとその HTTP ステータス、Service Worker / PWA — 後続の spec で扱う
 
 ### Allowed Dependencies
 
@@ -58,7 +58,6 @@ requirements.md が述べるとおり、これら 17 のデザイン単位は Fi
 
 - `sponsors.type` の選択肢の増減 — 協賛一覧の絞り込み条件を持つ全箇所が再確認を要する
 - ナビゲーション項目定義の型の変更 — 参照する 5 つの表示部品すべてに波及する
-- `frontend/src/lib/cms.ts` の再検証方針の変更 — CMS を参照する全ページの鮮度に波及する
 
 ## Architecture
 
@@ -79,8 +78,6 @@ requirements.md が述べるとおり、これら 17 のデザイン単位は Fi
 | `frontend/src/lib/navigation.ts` | サイト全体のナビゲーション項目定義 | header / ハンバーガーメニュー / footer / 下部ナビゲーション / MapMenuButton |
 | `frontend/src/lib/sponsors.ts` | `sponsors` の取得と種別による絞り込み | トップページの協賛領域 |
 | `frontend/src/lib/breakpoints.ts` | PC 相当 / スマートフォン相当の境界を表す単一の定数 | 本 spec が扱う全デザイン単位 |
-
-`frontend/src/lib/cms.ts` には再検証方針を追加する。新規モジュールは作らず、既存の取得ラッパー 1 箇所で扱う。
 
 ## File Structure Plan
 
@@ -113,7 +110,6 @@ cms/src/migrations/
 - `frontend/src/lib/home-page-types.ts` — `SponsorSummary.type` を配列型へ変更し、`EventDay` を `{ label, startAt, endAt }` の構造へ変更する
 - `frontend/src/components/festival-overview.tsx`, `components/about-section.tsx` — `event_days` の新しい形 (ISO 日時) に合わせて表示を改める
 - `frontend/src/lib/home-page.ts` — 取得失敗時に throw せず領域単位で縮退させる (要件 20.1, 20.2)
-- `frontend/src/lib/cms.ts` — 取得に再検証方針を与える (要件 20.3)
 - `frontend/src/components/header.tsx` — `navigationItems` の定義を `lib/navigation.ts` へ移し、間引きを解消する
 - `frontend/src/components/footer.tsx` — `footerNavigation` を廃し `lib/navigation.ts` を参照する。`components/motion-toggle.tsx` のインスタンスを埋め込む (要件 9、10)
 - `frontend/src/components/campus-map/map-menu-button.tsx` — import 元を `lib/navigation.ts` へ差し替える
@@ -565,7 +561,7 @@ export const navigationItems: readonly NavigationItem[];
 - `header.tsx:17` の間引きコメントは、企画一覧・構内マップ・協賛の項目を定義へ戻したうえで削除する (要件 5.1)。
 - 下部ナビゲーション (Requirement 8) の項目は `navigationItems` とは別の export として定義する。ヘッダーに存在しない「ホーム」を含み、アイコンという表示箇所固有の情報を持つため、`navigationItems` に表示箇所のフラグを足す形は採らない。両者は同じ `href` を指す。
 
-### Requirement 20: CMS 取得失敗時の振る舞いとキャッシュ方針
+### Requirement 20: CMS 取得失敗時の振る舞い
 
 #### 領域単位の縮退
 
@@ -578,15 +574,6 @@ export const navigationItems: readonly NavigationItem[];
 - `page.tsx` は `content` の有無でページ全体を分岐させず、領域ごとに分岐する
 
 ヘッダー・フッター・下部ナビゲーションは `(site)/layout.tsx` に属し CMS 取得に依存しない構造のため、要件 20.2 のうちこの 3 つは現行の配置で満たされる。`footer.tsx` は既に `getSnsLinks` / `getContactFormUrl` を個別に try/catch しており、要件 9.9 を満たしている。
-
-#### 再検証方針
-
-`lib/cms.ts` の `request()` は `fetch` に第 2 引数を渡していない。ここに再検証の指定を追加し、CMS 取得の鮮度をこの 1 箇所で決める (要件 20.3)。取得経路が `request()` に集約されているため、呼び出し側を変更せずに方針を適用できる。
-
-#### 未確定
-
-- 再検証の間隔の値、およびコンテンツの種類ごとに値を変えるかどうか。当日の運用 (お知らせの反映速度への要求) が決まっていないため、実装時に確定させる。
-- 種類ごとに変える場合に、`cms.findMany` 等へ任意引数として渡すか、コレクション単位の表を `cms.ts` 内に持つか。
 
 ### Requirement 21: 表示の共通基準
 
@@ -776,7 +763,7 @@ Requirement 5 が定める開催前フェーズのヘッダーは、本 spec が
 | 17 | `(site)/topics/[id]/page.tsx`, `lib/topics.ts`, `components/rich-text.tsx`, `components/rich-text-image-viewer.tsx` | Figma 確定 |
 | 18 | `cms/src/collections/sponsors.ts`, マイグレーション, `lib/home-page-types.ts` | 確定 |
 | 19 | `lib/navigation.ts` | 確定 |
-| 20 | `lib/cms.ts`, `lib/home-page.ts` | 分岐は確定、再検証の値は未確定 |
+| 20 | `lib/home-page.ts` | 確定 |
 | 21 | `tailwind.config.ts`, `globals.css`, `lib/breakpoints.ts`, `components/motion-toggle.tsx`, `lib/use-motion-preference.ts` | 表示の基準は確定 (ブレークポイントは `lg` 1024px)。モーション切替 (`MotionToggle`) の仕様・配置は確定 |
 | 22 | `cms/src/globals/festival-meta.ts`, マイグレーション, `lib/home-page-types.ts`, `components/hero-section.tsx` | 確定 (破壊的変更として検出される) |
 | 23 | `components/background-shapes.tsx`, `lib/use-motion-preference.ts`, `(site)/layout.tsx`, `tailwind.config.ts` | 色トークン・配置先・個数/サイズ/最小間隔・配置方式 (決定的乱数)・質感・動きの仕様は確定。動きのオン・オフは Requirement 21 のモーション切替に従う |
