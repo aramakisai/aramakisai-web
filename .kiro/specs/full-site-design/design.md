@@ -98,13 +98,15 @@ frontend/src/components/
 
 cms/src/migrations/
 ├── <timestamp>_sponsors_type_multi.ts        # sponsors.type の複数選択化 (要件 18.4)
-└── <timestamp>_event_days_structured.ts      # event_days の配列化 (要件 22)
+├── <timestamp>_event_days_structured.ts      # event_days の配列化 (要件 22)
+└── <timestamp>_festival_meta_access_summary.ts # アクセス文言の追加 (要件 3.11)
 ```
 
 ### 変更ファイル
 
 - `cms/src/collections/sponsors.ts` — `type` を `hasMany` の select にし、選択肢を 4 種へ差し替える
-- `cms/src/globals/festival-meta.ts` — `event_days` を `json` から `array` (`start_at` / `end_at` / `label`) へ変更する
+- `cms/src/globals/festival-meta.ts` — `event_days` を `json` から `array` (`start_at` / `end_at` / `label`) へ変更する。アクセス文言 `access_summary` を追加する (要件 3.11)
+- `cms/scripts/seed-migration.ts` — `event_days` の型変更に追従させる (型チェック対象のため)
 - `cms/src/migrations/index.ts` — 生成したマイグレーションを登録する
 - `frontend/src/cms-types.ts` — `pnpm generate:types` で再生成する (手書きしない)
 - `frontend/src/lib/home-page-types.ts` — `SponsorSummary.type` を配列型へ変更し、`EventDay` を `{ label, startAt, endAt }` の構造へ変更する
@@ -169,8 +171,8 @@ Figma: ファイル `0kWDqHsLr6xE8b4FFgR1Zx`、ページ「トップページ」
 - **企画**: 見出し「企画」(固定文言) の下に、既存コンポーネント `SearchField` (`node-id=2:212`) のインスタンス (幅 480px、プレースホルダはマスターの「企画名・団体名で検索」をそのまま使い上書きしない) を置く。送信時に `/exhibitions` へクエリを渡して遷移させるだけの単純な入力とし、トップページ内では絞り込まない (要件 3.2 の検索導線)。`lib/exhibitions.ts` の `buildExhibitionsHref` で URL を組み立てる点は `components/exhibition-filters.tsx` (`/exhibitions` ページ側の即時絞り込み) と共通化できるが、送信時にのみ遷移する点で同コンポーネントの挙動とは異なるため、別の新規コンポーネントとする。その下にランダムに選んだ企画を、既存コンポーネント `ExhibitionCard` (`node-id=2:139`、`Image=true, State=Default`) のインスタンス (`components/exhibition-card.tsx`) で 4 枚、カード幅 302px・gap 24px (企画一覧 PC `2:217` の `CardGrid` と同じ寸法) で横並びし、末尾に「企画一覧へ」(`/exhibitions`) を添える
 - **お知らせ**: 見出し「お知らせ」の下に、既存コンポーネント `NoticeItem` (`node-id=127:108`) のインスタンスを 5 件、幅はインスタンス側の FILL で吸収して並べ、「お知らせ一覧へ」(`/announcements`) を添える (要件 3.4)。表示部品は Requirement 1 と同じ `components/announcements-list.tsx` の `limit` prop を使う
 - **荒牧祭とは**: 見出し「荒牧祭とは」(固定文言) と概要文 (`festival_meta.overview_html`) を表示する (要件 3.7)。`festival_meta.name` は本文に表示しない (要件 3.10)。Requirement 1 (要件 1.8) と同じ扱い
-- **アクセス**: 見出し「アクセス」の下に、地図のプレースホルダ (720×320) を左、アクセス情報のテキスト (536px、上下中央揃え) を右に gap 24px で並べ、末尾に「アクセス詳細へ」(`/access`) を添える (要件 3.8)。地図は実際の地図タイルの見た目を模写せず、プレースホルダとして扱う
-- **協賛**: 見出し「協賛」の下に、協賛ロゴのプレースホルダを 4 枚、4 列で表示し、「広告協賛へ」「地域協賛へ」の 2 つの導線を添える (要件 3.3)。広告協賛一覧と地域協賛一覧が別ページのため 2 つに分ける。いずれの遷移先ページも本 spec の対象外であり、遷移先ルートは未確定。全件は各一覧ページ側で見せ、トップページではロゴ数枚に留める
+- **アクセス**: 見出し「アクセス」の下に、地図のプレースホルダ (720×320) を左、アクセス情報のテキスト (536px、上下中央揃え) を右に gap 24px で並べ、末尾に「アクセス詳細へ」(`/access`) を添える (要件 3.8)。テキストは `festival_meta.access_summary` (後述の「アクセス文言のフィールド」) から取得し、未設定のときはテキストを出さず導線のみを表示する (要件 3.11)。地図は実際の地図タイルの見た目を模写せず、プレースホルダとして扱う
+- **協賛**: 見出し「協賛」の下に、協賛ロゴのプレースホルダを 4 枚、4 列で表示し、「広告協賛へ」「地域協賛へ」の 2 つの導線を添える (要件 3.3)。広告協賛一覧と地域協賛一覧が別ページのため 2 つに分ける。遷移先は `/sponsors/ad` / `/sponsors/local` で、いずれのページも本 spec の対象外であり、本 spec の時点では 404 を返す。全件は各一覧ページ側で見せ、トップページではロゴ数枚に留める
 
 見出しは Figma コンポーネント `SectionHeading` (COMPONENT_SET、`node-id=208:118`、`Level` variant: `h1` 44px / `h2` 32px / `h3` 24px / `h4` 20px、`Heading` の TEXT プロパティ) のインスタンスで、上記 7 セクションの見出しはすべて `h2` を使う。このコンポーネントは開催前トップ・企画一覧・企画詳細のセクション見出しにも適用する。
 
@@ -209,9 +211,9 @@ Figma: ファイル `0kWDqHsLr6xE8b4FFgR1Zx`、ページ「コンポーネント
   | before | 1 | 荒牧祭について | `/#about` | なし |
   | before | 2 | お知らせ | `/announcements` | なし |
   | before | 3 | ご案内 | — (子項目のみ) | during と同一の 6 項目 |
-  | before | 4 | 協賛 | — (子項目のみ) | 広告協賛 / 地域協賛 (ルート未確定。いずれの遷移先ページも本 spec の対象外) |
+  | before | 4 | 協賛 | — (子項目のみ) | 広告協賛 `/sponsors/ad` / 地域協賛 `/sponsors/local` (いずれの遷移先ページも本 spec の対象外で、本 spec の時点では 404) |
 
-  「ご来場の際の注意点」「案内所・落とし物・迷子」「ごみの分別のお願い」「よくある質問」の 4 ページのルートは本 spec の対象外で未確定 (下記「開催前フェーズで公開が必要になるパス」参照)。
+  「ご来場の際の注意点」`/guidelines`・「案内所・落とし物・迷子」`/info-desk`・「ごみの分別のお願い」`/waste` は `pages` コレクションの固定ページとして登録する。「よくある質問」`/faq` は固定ページではない専用ページで、本体は本 spec の対象外 (本 spec の時点では 404)。下記「開催前フェーズで公開が必要になるパス」参照。
 - during と before でナビゲーション項目の構成が異なるのは、`festival-phase-gate` の `PRE_EVENT_PUBLIC_PATHS` / `PRE_EVENT_PUBLIC_PREFIXES` (`frontend/src/lib/phase.ts`) が定める開催前フェーズの公開範囲による。企画一覧・構内マップ・トピックは開催前に 404 を返すため before のナビゲーションから外す (要件 5.3)。協賛は before のみ出し、during は当日導線 (企画・マップ等) を優先して外す。
 - **現在地の表現** (要件 5.10, 5.11): `usePathname()` と `aria-current="page"` に加え、ラベル直下に厚さ 2px の下線を常時 100% の不透明度で表示する。下線色は親項目ごとに固定し、ラベルの文字色 (`color/text`) は変えない。企画一覧 `color/primary` / 構内マップ `color/secondary` / タイムテーブル `color/info` / お知らせ `color/warning` / ご案内 `color/success` / 荒牧祭について `color/accent-alt` / 協賛 `color/accent`。テキスト色を変えない理由は `color/secondary` (`#7fc8ad`) や `color/info` (`#80c1c6`) が地の `color/background` (`#fbf8f3`) に対してコントラスト比が不足するため。
 - **上端固定** (要件 5.12): 現行の実装を維持する。地は `color/background` の不透明、下端に `color/gray-200` 1px の境界線。スクロールしても高さ・背景・境界線の見え方を変えない。
@@ -320,8 +322,8 @@ Figma: ファイル `0kWDqHsLr6xE8b4FFgR1Zx`、ページ「コンポーネント
 - ファイル: `frontend/src/components/campus-map/map-menu-button.tsx`。本 spec はメニューの中身と配置要件のみを扱い、構内マップページのレイアウトには踏み込まない。
 - import 元を `lib/navigation.ts` へ差し替える (要件 11.2)。
 - フォーカストラップと Esc、地図より先にキー操作を処理する `document` 捕捉 (要件 11.3, 11.4) は現行実装が持っている。Requirement 7 で切り出す共有フックへ移す。
-- **開いたメニュー**: Requirement 7 のハンバーガーメニュー展開状態と同じ画面をそのまま用いる。展開形式・大きさ・子項目の扱いはいずれも Requirement 7 に従い、この画面専用の別実装は作らない (要件 11.2)。
-- **配置**: 地図の右上に置き、PC では上端・右端から 24px、スマートフォン相当の画面幅では右端から 16px とする (上端 18.5px は Figma 実測値)。端末上端のセーフエリアの分は、この上端の余白にさらに加える。地図の拡大・縮小コントロールは右下にあり、位置が競合しない (要件 11.5)。
+- **開いたメニュー**: Requirement 7 のハンバーガーメニュー展開状態と同じ項目・行の構成 (行の高さ・区切り線・子項目のインデントと開閉) の部品を共有し、この画面専用の別実装は作らない。構内マップ画面にはヘッダーが無いため、展開位置と幅だけは異なり、ボタンの直下に幅を固定して開く (要件 11.2)。
+- **配置**: 地図の右上に置き、PC では上端・右端から 24px、スマートフォン相当の画面幅では右端から 16px とする (上端 18.5px は Figma 実測値)。端末上端のセーフエリアの分は、この上端の余白にさらに加える。地図の拡大・縮小コントロールは右下にあり、位置が競合しない (要件 11.5)。PC / SP の位置の切替はサイト共通の境界 `lg` (1024px、要件 21.10) に従う。構内マップ画面の内部 (検索オーバーレイ・サイドパネル) は `campus-map` が定める 768px で切り替わるため、768〜1023px ではマップが PC 表示のままボタンだけ SP の位置になる。
 
 ### Requirement 12: トピックカード
 
@@ -436,7 +438,7 @@ editor: lexicalEditor({
 
 #### 既存データとの互換性 (要件 15.8)
 
-既存の公開済みコンテンツが使っているノードは段落・改行・見出し (`h2`/`h3`)・箇条書き・リンク・太字のみで、いずれも絞り込み後の許可リストに含まれる。見出しは元から `h2`/`h3` のみで `h1`/`h4`〜`h6` を使った既存データはないため、エディタの `enabledHeadingSizes` 制限後も再編集や表示崩れは発生しない。
+既存の公開済みコンテンツが使っているノードは段落・改行・見出し (`h2`/`h3`)・箇条書き・リンク・太字のみで、いずれも絞り込み後の許可リストに含まれる。ただし本番の固定ページ `comittee` の `content_html` は `<h1>` を含む。`h1` は許可リストから外れるため、エディタ機能の絞り込みと同時に CMS 上で該当の見出しを `h2` へ直す運用で対応し、レンダリング側での繰り下げは復活させない。
 
 #### 見た目 (Figma 確定)
 
@@ -472,7 +474,7 @@ Figma: ページ「お知らせページ」の `announcements/[id]/PC` (`436:539
   - 縦は上揃えとし、ファイル名が折り返してもアイコンと形式・サイズは 1 行目に揃える。
   - 画像も他の形式と同じ行で表示し、サムネイルは出さない。見せたい画像は本文 (`RichText`) に埋め込む運用とする。現行の `attachment-gallery.tsx` が画像を `<img>` で並べる処理は削除する。
 - **リンク** (要件 16.7): 行全体を 1 つの `<a href={toAssetUrl(id)} target="_blank" rel="noopener noreferrer">` とする。現行の `download` 属性は外す (CMS のメディアは別オリジンから配信され、ブラウザは別オリジンの `download` 属性を無視するため効果がない)。PDF・画像はブラウザで表示され、ブラウザが表示できない形式はダウンロードになる。
-- **形式とサイズの取得** (要件 16.9): `media` の `mimeTypes` 制限は設けず、フィールドも追加しない。形式はファイル名の拡張子を大文字にしたもの (拡張子が無ければ `mimeType` のサブタイプ) を表示する。サイズは Payload のアップロード標準フィールド `filesize` (バイト数) を用い、`lib/announcements.ts` の `toAttachments()` で `filesize` も取り出すよう改める (現行は `id`・`filename`・`mimeType` のみ)。表示は 1024 を底とし、1 MB 以上は小数 1 桁の MB、未満は整数の KB とする。
+- **形式とサイズの取得** (要件 16.9): `media` の `mimeTypes` 制限は設けず、フィールドも追加しない。形式はファイル名の拡張子を大文字にしたもの (拡張子が無ければ `mimeType` のサブタイプ) を表示する。サイズは Payload のアップロード標準フィールド `filesize` (バイト数) を用い、`lib/cms-media.ts` の `toAttachments()` で `filesize` も取り出すよう改める (現行は `id`・`filename`・`mimeType` のみ)。表示は 1024 を底とし、1 MB 以上は小数 1 桁の MB、未満は整数の KB とする。
 - **メタデータ** (要件 16.10): `generateMetadata` を新設し、`title` にお知らせのタイトルを入れる。現行は未設定。
 - 404 (要件 16.1) は現行の `notFound()` のまま。
 
@@ -527,7 +529,7 @@ Payload の `select` は `hasMany: true` で別テーブルへ切り出される
 
 #### フロントエンド側の影響
 
-`sponsors.type` を参照しているのは `frontend/src/lib/home-page-types.ts` の `SponsorSummary.type` 1 箇所のみ。
+`sponsors.type` を参照しているのは `frontend/src/lib/home-page-types.ts` の `SponsorSummary.type`、それを埋める `frontend/src/lib/home-page.ts`、およびそのテストの旧値 (`'sponsor'`)。協賛の取得は `lib/sponsors.ts` へ一本化し、`getHomePage` からは外す。
 
 ```typescript
 // 変更前
@@ -601,7 +603,7 @@ export const navigationItems: readonly NavigationItem[];
 
   この再定義により、既存の `motion-reduce:` 利用箇所 (`hero-section.tsx` / `footer.tsx` / `header.tsx`) はコードを変更せずに `<html data-motion="reduce">` にも反応する。`data-motion="reduce"` 属性は切替が「停止」を示す間、`<html>` へ付与する。
 
-  `setInterval` で自動送りするヒーローのスライドショーや、`requestAnimationFrame` で駆動する背景の図形装飾の揺れは CSS variant だけでは止まらないため、共有フック `frontend/src/lib/use-motion-preference.ts` (`components/use-background-motion.ts` から改名・移設。背景の図形装飾専用ではなく本 spec の全モーション共通のフックになったため `lib/` へ置く) が返す `reduced: boolean` を読み、`true` の間はタイマー/`requestAnimationFrame` を張らない。
+  `setInterval` で自動送りするヒーローのスライドショーや、`requestAnimationFrame` で駆動する背景の図形装飾の揺れは CSS variant だけでは止まらないため、共有フック `frontend/src/lib/use-motion-preference.ts` (新設。本 spec の全モーション共通のフック) が返す `reduced: boolean` を読み、`true` の間はタイマー/`requestAnimationFrame` を張らない。
 
   **切替 UI**: Figma コンポーネント `MotionToggle` (ページ「コンポーネント」、COMPONENT_SET `node-id=345:2601`、variant `State`=`playing` (`345:2593`) / `paused` (`345:2597`)) をフッターの著作権表示と同じ行 (PC) または著作権表示の直上 (SP) に置く (Requirement 9/10 参照)。ファイルは `frontend/src/components/motion-toggle.tsx` (`'use client'`)。`<button aria-pressed>` のトグルボタンとして実装し、アクセシブルネームは状態によらず「モーション」で固定する (可視ラベルも同じく「モーション」で固定し、状態はアイコンのみで表す)。`aria-pressed` は再生中 (`playing`) で `true`、停止中 (`paused`) で `false` とする。アイコンは Material Symbols Sharp フォント (後述の「アイコン」の方式) の `pause` (再生中に表示、押すと止める) / `play_arrow` (停止中に表示、押すと再生する) を使う。アイコン色は `color/gray-500` とし、フッター内の他のアイコン (`location_on` / `mail` / `open_in_new`) と揃える。
 
@@ -715,7 +717,7 @@ Figma では、図形 1 つぶんの見た目を共通コンポーネント `BgS
 
 #### 配置の決定方法
 
-図形の配置と質感の割り当ては、ページのパス (`pathname`) を種とした決定的乱数で行い、同一ページでは常に同じ結果を SSR とクライアントの双方で描画する。`exhibition-pages` の企画カードが企画名を種とした決定的乱数 (FNV-1a 32bit ハッシュ → mulberry32) でグラデーションを決定している方式 (`.kiro/specs/exhibition-pages/design.md`) と同じ方式を用いる。
+図形の配置と質感の割り当ては、ページのパス (`pathname`) を種とした決定的乱数で行い、同一ページかつ同一のレイアウトでは常に同じ結果を描画する。除外領域とページ高は描画後のレイアウトを計測しないと得られず、個数も画面幅で変わるため、背景装飾はクライアントでのみ描画し、サーバーの描画結果には含めない (要件 23.13)。装飾レイヤーは `aria-hidden` とし、絶対配置で本文のレイアウトに影響しないため、後から描画してもレイアウトシフトは生じない。入場の起点から描き始めるため、SSR 直後に定位置へ描いてから飛ぶちらつきも生じない。レイアウトが変わったとき (リサイズ等) は計測し直して配置を更新する。`exhibition-pages` の企画カードが企画名を種とした決定的乱数 (FNV-1a 32bit ハッシュ → mulberry32) でグラデーションを決定している方式 (`.kiro/specs/exhibition-pages/design.md`) と同じ方式を用いる。
 
 #### 質感
 
@@ -737,12 +739,17 @@ Figma では、図形 1 つぶんの見た目を共通コンポーネント `BgS
 
 **オン・オフ切替**: 背景の図形装飾の動きは Requirement 21 のモーション切替 (`MotionToggle`、21.5〜21.8) とモーションの抑制設定 (21.4) に従う。背景の図形装飾専用の切替は持たない。
 
+### アクセス文言のフィールド (要件 3.11)
+
+`cms/src/globals/festival-meta.ts` に `access_summary` (`type: 'textarea'`、任意入力) を追加する。最寄り駅・バス等からの行き方を数行で書く用途で、詳細はアクセスページ (`/access`) が担う。フィールドの追加のみで既存フィールドの削除・型変更・必須化を伴わないため、`cms-schema-check.yml` は破壊的変更として検出しない。マイグレーションは `pnpm migrate:create festival_meta_access_summary` で生成する。フロントエンドは値が空のときテキストを出さず、改行を保って表示する。
+
 ### 開催前フェーズで公開が必要になるパス
 
 Requirement 5 が定める開催前フェーズのヘッダーは、本 spec が新設する次のページへの導線を持つ。これらは `frontend/src/lib/phase.ts` の `PRE_EVENT_PUBLIC_PATHS` (`PRE_EVENT_PUBLIC_PREFIXES` を要するものはそちらにも) へ追加し、開催前フェーズで公開する。`festival-phase-gate` が所有する値への追加自体は本 spec の実装作業であり、同 spec 自体は変更しない。
 
-- 固定ページ: ご来場の際の注意点 / 案内所・落とし物・迷子 / ごみの分別のお願い / よくある質問 (ルートは未確定)
-- `/contact` (お問い合わせ)
+- 固定ページ: `/guidelines` (ご来場の際の注意点) / `/info-desk` (案内所・落とし物・迷子) / `/waste` (ごみの分別のお願い)
+- `/contact` (お問い合わせ、固定ページとして登録済み)
+- 本体が本 spec の対象外のページ: `/faq` (よくある質問) / `/sponsors/ad` (広告協賛) / `/sponsors/local` (地域協賛)。本 spec の時点では 404 を返すが、公開パスに載せないとナビゲーションから項目が消えるため載せる
 
 ## Requirements Traceability
 
