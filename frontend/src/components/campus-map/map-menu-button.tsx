@@ -2,8 +2,8 @@
 
 import { useId, useRef, useState } from 'react';
 import Link from 'next/link';
-import { navigationItems } from '@/components/header';
-import { visibleNavItems, type FestivalPhase } from '@/lib/phase';
+import { navigationItemsByPhase, linkableChildren } from '@/lib/navigation';
+import type { FestivalPhase } from '@/lib/phase';
 import { MenuIcon } from '@/components/icons';
 import { useFocusTrap } from '@/lib/use-focus-trap';
 
@@ -12,7 +12,7 @@ export interface MapMenuButtonProps {
 }
 
 export function MapMenuButton({ phase }: MapMenuButtonProps) {
-  const items = visibleNavItems(navigationItems, phase);
+  const items = navigationItemsByPhase[phase];
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -64,17 +64,23 @@ export function MapMenuButton({ phase }: MapMenuButtonProps) {
             <nav aria-label="サイト内ナビゲーション">
               <ul>
                 {items.map((item) => (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      onClick={close}
-                      className="block rounded-lg px-3 py-2 text-slate-900 hover:bg-slate-100"
-                    >
-                      {item.label}
-                    </Link>
+                  <li key={item.label}>
+                    {item.href ? (
+                      <Link
+                        href={item.href}
+                        onClick={close}
+                        className="block rounded-lg px-3 py-2 text-slate-900 hover:bg-slate-100"
+                      >
+                        {item.label}
+                      </Link>
+                    ) : (
+                      <span className="block px-3 py-2 text-slate-900">
+                        {item.label}
+                      </span>
+                    )}
                     {item.children && (
                       <ul className="pl-3">
-                        {item.children.map((child) => (
+                        {linkableChildren(item).map((child) => (
                           <li key={child.href}>
                             <Link
                               href={child.href}

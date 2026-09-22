@@ -1,37 +1,65 @@
 'use client';
 
 /* eslint-disable @next/next/no-img-element */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { visibleNavItems, type FestivalPhase } from '@/lib/phase';
+import type { FestivalPhase } from '@/lib/phase';
+import {
+  navigationItemsByPhase,
+  linkableChildren,
+  type NavigationItem,
+} from '@/lib/navigation';
+import { computeDropdownOffset } from '@/lib/dropdown-position';
 import { ExpandMoreIcon } from '@/components/icons';
 
-type NavigationItem = {
-  label: string;
-  href: string;
-  children?: readonly {
-    label: string;
-    href: string;
-  }[];
+export const MAIN_CONTENT_ID = 'main-content';
+
+const PC_DROPDOWN_WIDTH = 224;
+
+// secondary・info はいずれも背景色に対してコントラスト比が不足するため、
+// ラベルの文字色 (color/text) は変えず下線の色だけで現在地を伝える
+const UNDERLINE_COLOR_CLASS: Readonly<Record<string, string>> = {
+  企画一覧: 'bg-primary',
+  構内マップ: 'bg-secondary',
+  タイムテーブル: 'bg-info',
+  お知らせ: 'bg-warning',
+  ご案内: 'bg-success',
+  荒牧祭について: 'bg-accent-alt',
+  協賛: 'bg-accent',
 };
 
-// 企画一覧・会場案内・協賛企業は対応ページが未実装のため一時的に非表示。
-// ページ実装後は navigationItems へ戻す (要件 5.2)。
-export const navigationItems: readonly NavigationItem[] = [
-  { label: 'TOP', href: '/' },
-  {
-    label: '荒牧祭について',
-    href: '/#about',
-    children: [
-      { label: '概要', href: '/#about-overview' },
-      { label: '開催スケジュール', href: '/#about-schedule' },
-      { label: '今年のテーマ', href: '/#about-theme' },
-    ],
-  },
-  { label: 'お知らせ', href: '/announcements' },
-  { label: 'アクセス', href: '/access' },
-];
+function isPathActive(pathname: string, href: string): boolean {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function isItemActive(item: NavigationItem, pathname: string): boolean {
+  if (item.href) return isPathActive(pathname, item.href);
+  return (
+    item.children?.some(
+      (child) => child.href !== undefined && isPathActive(pathname, child.href),
+    ) ?? false
+  );
+}
+
+function NavIndicator({
+  colorClass,
+  active,
+}: {
+  colorClass: string;
+  active: boolean;
+}) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`h-[2px] w-full origin-center transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-none ${colorClass} ${
+        active
+          ? 'scale-x-100 opacity-100'
+          : 'scale-x-0 opacity-0 group-hover:scale-x-100 group-hover:opacity-80 group-focus-within:scale-x-100 group-focus-within:opacity-80'
+      }`}
+    />
+  );
+}
 
 export interface HeaderProps {
   readonly phase: FestivalPhase;
@@ -39,20 +67,28 @@ export interface HeaderProps {
 
 export function Header({ phase }: HeaderProps) {
   const pathname = usePathname();
-  const items = visibleNavItems(navigationItems, phase);
+  const items = navigationItemsByPhase[phase];
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [mobileAboutOpen, setMobileAboutOpen] = useState(false);
+  const [mobileOpenLabel, setMobileOpenLabel] = useState<string | null>(null);
   const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
+
+  // PC ドロップダウンの位置補正用。コンテンツ枠はヘッダー内側の行 (px-20 の内側) と一致するため
+  // その要素の bounding rect をそのまま境界として使う
+  const contentRowRef = useRef<HTMLDivElement>(null);
+  const dropdownTriggerRefs = useRef<Record<string, HTMLLIElement | null>>({});
+  const [dropdownOffsets, setDropdownOffsets] = useState<
+    Readonly<Record<string, { left: number; top: number }>>
+  >({});
 
   const closeMobileMenu = () => {
     setMobileMenuOpen(false);
-    setMobileAboutOpen(false);
+    setMobileOpenLabel(null);
   };
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen((isOpen) => {
       if (isOpen) {
-        setMobileAboutOpen(false);
+        setMobileOpenLabel(null);
       }
       return !isOpen;
     });
@@ -66,7 +102,7 @@ export function Header({ phase }: HeaderProps) {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setMobileMenuOpen(false);
-        setMobileAboutOpen(false);
+        setMobileOpenLabel(null);
         mobileMenuButtonRef.current?.focus();
       }
     };
@@ -75,81 +111,144 @@ export function Header({ phase }: HeaderProps) {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [mobileMenuOpen]);
 
+  useLayoutEffect(() => {
+    const recompute = () => {
+      const row = contentRowRef.current;
+      if (!row) return;
+      const rowRect = row.getBoundingClientRect();
+      // row 自体が左右 padding (コンテンツ枠の余白) を持つため、bounding rect は
+      // 画面端まで含んでしまう。境界はその padding の内側 (コンテンツ枠) を使う
+      const rowStyle = window.getComputedStyle(row);
+      const paddingLeft = parseFloat(rowStyle.paddingLeft) || 0;
+      const paddingRight = parseFloat(rowStyle.paddingRight) || 0;
+      const bounds = {
+        left: rowRect.left + paddingLeft,
+        width: rowRect.width - paddingLeft - paddingRight,
+      };
+
+      const next: Record<string, { left: number; top: number }> = {};
+      for (const item of items) {
+        if (!item.children) continue;
+        const el = dropdownTriggerRefs.current[item.label];
+        if (!el) continue;
+        const itemRect = el.getBoundingClientRect();
+        next[item.label] = {
+          left: computeDropdownOffset(
+            { left: itemRect.left, width: itemRect.width },
+            bounds,
+            PC_DROPDOWN_WIDTH,
+          ),
+          // li はナビ行内で縦中央寄せのため下端がヘッダー下端より上にあり、その差は
+          // フォント計測に依存し固定値にできない。差分を hover 用の透明な橋渡し
+          // 余白として確保し、枠の上端をヘッダー下端に揃える
+          top: rowRect.bottom - itemRect.bottom,
+        };
+      }
+      setDropdownOffsets(next);
+    };
+
+    recompute();
+    window.addEventListener('resize', recompute);
+    return () => window.removeEventListener('resize', recompute);
+  }, [items]);
+
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/60 bg-white/75 pt-[env(safe-area-inset-top)] shadow-[0_1px_18px_rgba(15,23,42,0.06)] backdrop-blur-xl supports-[backdrop-filter]:bg-white/60">
-        <div className="flex h-16 w-full items-center justify-between pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] lg:h-20 lg:pl-6 lg:pr-6 xl:pl-8 xl:pr-8">
+      <a
+        href={`#${MAIN_CONTENT_ID}`}
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[60] focus:rounded-lg focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      >
+        本文へ移動
+      </a>
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-gray-200 bg-background pt-[env(safe-area-inset-top)]">
+        <div
+          ref={contentRowRef}
+          className="flex h-16 w-full items-center justify-between pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] lg:h-20 lg:px-20"
+        >
           <Link
             href="/"
             onClick={closeMobileMenu}
-            className="flex shrink-0 items-center rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sky-600"
+            className="flex shrink-0 items-center rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
           >
             <img
               src="/images/logo-2026.png"
               alt="荒牧祭2026"
-              className="h-8 w-auto lg:h-9 xl:h-10"
+              className="h-8 w-auto lg:h-10"
             />
           </Link>
 
           <nav aria-label="メインナビゲーション" className="hidden lg:block">
-            <ul className="flex items-center gap-1 xl:gap-2">
+            <ul className="flex items-center gap-8">
               {items.map((item) => {
-                const isActive =
-                  item.href === '/'
-                    ? pathname === '/'
-                    : pathname === item.href ||
-                      pathname.startsWith(`${item.href}/`);
+                const active = isItemActive(item, pathname);
+                const colorClass =
+                  UNDERLINE_COLOR_CLASS[item.label] ?? 'bg-primary';
+
+                if (!item.children) {
+                  return (
+                    <li
+                      key={item.label}
+                      className="group flex flex-col items-start gap-1"
+                    >
+                      <Link
+                        href={item.href as string}
+                        aria-current={active ? 'page' : undefined}
+                        className="text-base leading-[1.7] whitespace-nowrap text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      >
+                        {item.label}
+                      </Link>
+                      <NavIndicator colorClass={colorClass} active={active} />
+                    </li>
+                  );
+                }
+
+                const children = linkableChildren(item);
 
                 return (
                   <li
-                    key={item.href}
-                    className={
-                      item.children ? 'group/about relative' : undefined
-                    }
+                    key={item.label}
+                    ref={(el) => {
+                      dropdownTriggerRefs.current[item.label] = el;
+                    }}
+                    className="group relative flex flex-col items-start gap-1"
                   >
-                    <Link
-                      href={item.href}
-                      aria-current={isActive ? 'page' : undefined}
-                      className={`group relative block whitespace-nowrap rounded-full px-3 py-2 text-base font-medium tracking-wide transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600 ${
-                        isActive
-                          ? 'bg-white/70 text-slate-950'
-                          : 'text-slate-700 hover:text-slate-950'
-                      }`}
+                    <button
+                      type="button"
+                      aria-current={active ? 'page' : undefined}
+                      className="flex items-center gap-1 text-base leading-[1.7] whitespace-nowrap text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     >
                       {item.label}
-                      <span
-                        aria-hidden="true"
-                        className={`mansai-spectrum-line absolute inset-x-3 bottom-0 h-px origin-center transition-all duration-200 ${
-                          isActive
-                            ? 'scale-x-100 opacity-100'
-                            : 'scale-x-0 opacity-0 group-hover:scale-x-100 group-hover:opacity-80 group-focus-visible:scale-x-100 group-focus-visible:opacity-80 group-hover/about:scale-x-100 group-hover/about:opacity-80 group-focus-within/about:scale-x-100 group-focus-within/about:opacity-80'
-                        }`}
-                      />
-                    </Link>
+                      <ExpandMoreIcon size={16} />
+                    </button>
+                    <NavIndicator colorClass={colorClass} active={active} />
 
-                    {item.children && (
-                      <div className="pointer-events-none absolute top-full left-1/2 z-20 w-56 -translate-x-1/2 translate-y-1 pt-3 opacity-0 transition-[opacity,transform] duration-200 group-hover/about:pointer-events-auto group-hover/about:translate-y-0 group-hover/about:opacity-100 group-focus-within/about:pointer-events-auto group-focus-within/about:translate-y-0 group-focus-within/about:opacity-100 motion-reduce:transition-none">
-                        <ul
-                          aria-label="荒牧祭についてのサブメニュー"
-                          className="overflow-hidden border border-white/70 bg-white/90 px-2 py-2 shadow-[0_16px_40px_rgba(15,23,42,0.14)] backdrop-blur-xl supports-[backdrop-filter]:bg-white/75"
-                        >
-                          {item.children.map((child) => (
-                            <li key={child.href}>
-                              <Link
-                                href={child.href}
-                                className="group/sub relative block whitespace-nowrap px-4 py-3 text-sm font-medium tracking-wide text-slate-700 transition-colors duration-200 hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-sky-600"
-                              >
-                                {child.label}
-                                <span
-                                  aria-hidden="true"
-                                  className="mansai-spectrum-line absolute inset-x-4 bottom-2 h-px origin-left scale-x-0 opacity-0 transition-all duration-200 group-hover/sub:scale-x-100 group-hover/sub:opacity-80 group-focus-visible/sub:scale-x-100 group-focus-visible/sub:opacity-80 motion-reduce:transition-none"
-                                />
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                    <div
+                      style={
+                        dropdownOffsets[item.label] !== undefined
+                          ? {
+                              left: dropdownOffsets[item.label].left,
+                              paddingTop: dropdownOffsets[item.label].top,
+                            }
+                          : undefined
+                      }
+                      className="pointer-events-none absolute top-full z-20 w-56 -translate-y-1 opacity-0 transition-[opacity,transform] duration-200 ease-out group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100 motion-reduce:transition-none"
+                    >
+                      <ul
+                        aria-label={`${item.label}のサブメニュー`}
+                        className="overflow-hidden rounded-lg border border-gray-200 bg-background"
+                      >
+                        {children.map((child) => (
+                          <li key={child.href}>
+                            <Link
+                              href={child.href}
+                              className="block px-4 py-3 text-sm leading-[1.6] whitespace-nowrap text-text focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
+                            >
+                              {child.label}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   </li>
                 );
               })}
@@ -163,7 +262,7 @@ export function Header({ phase }: HeaderProps) {
             aria-expanded={mobileMenuOpen}
             aria-controls="mobile-navigation"
             onClick={toggleMobileMenu}
-            className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-slate-900 transition-colors hover:bg-white/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600 lg:hidden"
+            className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-text transition-colors hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary lg:hidden"
           >
             <span aria-hidden="true" className="relative block h-5 w-6">
               <span
@@ -189,66 +288,63 @@ export function Header({ phase }: HeaderProps) {
           <nav
             id="mobile-navigation"
             aria-label="モバイルナビゲーション"
-            className="absolute inset-x-0 top-full max-h-[calc(100svh_-_4rem_-_env(safe-area-inset-top))] w-full min-w-0 overflow-y-auto border-b border-slate-200/80 bg-white/95 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_18px_36px_rgba(15,23,42,0.1)] backdrop-blur-xl supports-[backdrop-filter]:bg-white/90 lg:hidden"
+            className="absolute inset-x-0 top-full max-h-[calc(100svh_-_4rem_-_env(safe-area-inset-top))] w-full min-w-0 overflow-y-auto border-b border-gray-200 bg-background pb-[max(1rem,env(safe-area-inset-bottom))] lg:hidden"
           >
             <ul className="px-5 py-3 sm:px-6">
-              {items.map((item) => {
-                const isActive =
-                  item.href === '/'
-                    ? pathname === '/'
-                    : pathname === item.href ||
-                      pathname.startsWith(`${item.href}/`);
+              {items.map((item, index) => {
+                const active = isItemActive(item, pathname);
+                const submenuId = `mobile-submenu-${index}`;
+                const submenuOpen = mobileOpenLabel === item.label;
 
                 return (
                   <li
-                    key={item.href}
-                    className="border-b border-slate-200/70 last:border-b-0"
+                    key={item.label}
+                    className="border-b border-gray-200/70 last:border-b-0"
                   >
                     {item.children ? (
                       <>
                         <div className="flex min-w-0 items-center">
-                          <Link
-                            href={item.href}
-                            onClick={closeMobileMenu}
-                            className={`flex min-h-11 min-w-0 flex-1 items-center py-3 text-base font-medium tracking-wide transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-sky-600 ${
-                              isActive ? 'text-slate-950' : 'text-slate-700'
-                            }`}
+                          <span
+                            aria-current={active ? 'page' : undefined}
+                            className="flex min-h-11 min-w-0 flex-1 items-center py-3 text-base text-text"
                           >
                             {item.label}
-                          </Link>
+                          </span>
                           <button
                             type="button"
-                            aria-label={`荒牧祭についてのサブメニューを${
-                              mobileAboutOpen ? '閉じる' : '開く'
+                            aria-label={`${item.label}のサブメニューを${
+                              submenuOpen ? '閉じる' : '開く'
                             }`}
-                            aria-expanded={mobileAboutOpen}
-                            aria-controls="mobile-about-submenu"
+                            aria-expanded={submenuOpen}
+                            aria-controls={submenuId}
                             onClick={() =>
-                              setMobileAboutOpen((isOpen) => !isOpen)
+                              setMobileOpenLabel((current) =>
+                                current === item.label ? null : item.label,
+                              )
                             }
-                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-slate-700 transition-colors hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-sky-600"
+                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-text transition-colors hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
                           >
                             <ExpandMoreIcon
                               size={20}
                               className={`transition-transform duration-200 motion-reduce:transition-none ${
-                                mobileAboutOpen ? 'rotate-180' : ''
+                                submenuOpen ? 'rotate-180' : ''
                               }`}
                             />
                           </button>
                         </div>
 
-                        {mobileAboutOpen && (
+                        {submenuOpen && (
                           <ul
-                            id="mobile-about-submenu"
-                            aria-label="荒牧祭についてのモバイルサブメニュー"
+                            id={submenuId}
+                            aria-label={`${item.label}のモバイルサブメニュー`}
                             className="pb-3 pl-4"
                           >
-                            {item.children.map((child) => (
+                            {linkableChildren(item).map((child) => (
                               <li key={child.href}>
                                 <Link
                                   href={child.href}
                                   onClick={closeMobileMenu}
-                                  className="flex min-h-11 items-center border-l border-slate-200 px-4 py-2 text-[0.9375rem] tracking-wide text-slate-600 transition-colors hover:border-primary hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
+                                  className="flex min-h-11 items-center border-l border-gray-200 px-4 py-2 text-[0.9375rem] text-text/80 transition-colors hover:border-primary hover:text-text focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
                                 >
                                   {child.label}
                                 </Link>
@@ -259,12 +355,10 @@ export function Header({ phase }: HeaderProps) {
                       </>
                     ) : (
                       <Link
-                        href={item.href}
-                        aria-current={isActive ? 'page' : undefined}
+                        href={item.href as string}
+                        aria-current={active ? 'page' : undefined}
                         onClick={closeMobileMenu}
-                        className={`flex min-h-11 items-center py-3 text-base font-medium tracking-wide transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-sky-600 ${
-                          isActive ? 'text-slate-950' : 'text-slate-700'
-                        }`}
+                        className="flex min-h-11 items-center py-3 text-base text-text"
                       >
                         {item.label}
                       </Link>

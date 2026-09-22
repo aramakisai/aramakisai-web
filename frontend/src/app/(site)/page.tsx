@@ -23,7 +23,7 @@ export default async function Page() {
   const festivalName = content?.festival.name || '荒牧祭';
 
   return (
-    <main>
+    <div>
       <h1 className="sr-only">{festivalName}</h1>
 
       {content && (
@@ -73,6 +73,6 @@ export default async function Page() {
           </div>
         </>
       )}
-    </main>
+    </div>
   );
 }

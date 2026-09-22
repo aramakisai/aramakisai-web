@@ -1,18 +1,12 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
-import { navigationItems } from '@/components/header';
-import * as phaseModule from '@/lib/phase';
+import { describe, expect, it } from 'vitest';
+import { navigationItemsByPhase, linkableChildren } from '@/lib/navigation';
 import { MapMenuButton } from './map-menu-button';
 
-vi.mock('@/lib/phase', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/lib/phase')>();
-  return { ...actual, visibleNavItems: vi.fn(actual.visibleNavItems) };
-});
-
-function flattenHrefs(): string[] {
-  return navigationItems.flatMap((item) => [
-    item.href,
-    ...(item.children?.map((child) => child.href) ?? []),
+function flattenHrefs(phase: 'pre_event' | 'live'): string[] {
+  return navigationItemsByPhase[phase].flatMap((item) => [
+    ...(item.href ? [item.href] : []),
+    ...linkableChildren(item).map((child) => child.href),
   ]);
 }
 
@@ -27,7 +21,7 @@ describe('MapMenuButton', () => {
     fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
 
     const dialog = screen.getByRole('dialog');
-    const hrefs = flattenHrefs();
+    const hrefs = flattenHrefs('pre_event');
     expect(hrefs.length).toBeGreaterThan(0);
     for (const href of hrefs) {
       expect(
@@ -92,23 +86,29 @@ describe('MapMenuButton', () => {
     expect(document.activeElement).toBe(trigger);
   });
 
-  it('開催前フェーズで非公開のリンク先を持つ項目を除去する', () => {
-    vi.mocked(phaseModule.visibleNavItems).mockReturnValue(
-      navigationItems.filter((item) => item.href !== '/announcements'),
-    );
-
+  it('開催前フェーズでは開催中限定の項目 (企画一覧) を含まない', () => {
     render(<MapMenuButton phase="pre_event" />);
     fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
 
-    expect(phaseModule.visibleNavItems).toHaveBeenCalledWith(
-      navigationItems,
-      'pre_event',
-    );
     const dialog = screen.getByRole('dialog');
     expect(
       Array.from(dialog.querySelectorAll('a')).some(
-        (a) => a.getAttribute('href') === '/announcements',
+        (a) => a.getAttribute('href') === '/exhibitions',
       ),
     ).toBe(false);
+  });
+
+  it('開催中フェーズでは企画一覧・構内マップを含む', () => {
+    render(<MapMenuButton phase="live" />);
+    fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
+
+    const dialog = screen.getByRole('dialog');
+    const renderedHrefs = Array.from(dialog.querySelectorAll('a')).map((a) =>
+      a.getAttribute('href'),
+    );
+    expect(renderedHrefs).toEqual(expect.arrayContaining(flattenHrefs('live')));
+    expect(renderedHrefs).toEqual(
+      expect.arrayContaining(['/exhibitions', '/map']),
+    );
   });
 });

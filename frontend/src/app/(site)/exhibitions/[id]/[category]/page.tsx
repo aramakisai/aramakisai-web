@@ -118,12 +118,12 @@ export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
 
   if (result.kind === 'error') {
     return (
-      <main className="mx-auto max-w-[1440px] space-y-6 px-4 py-8 lg:px-20 lg:py-12">
+      <div className="mx-auto max-w-[1440px] space-y-6 px-4 py-8 lg:px-20 lg:py-12">
         <BackLink />
         <p role="alert">
           企画情報の取得に失敗しました。しばらくしてから再度お試しください。
         </p>
-      </main>
+      </div>
     );
   }
 
@@ -134,7 +134,7 @@ export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
     areasResult.kind === 'loaded' ? areasResult.value : [];
 
   return (
-    <main className="mx-auto flex max-w-[1440px] flex-col gap-6 px-4 pt-4 pb-12 lg:gap-8 lg:px-20 lg:pt-8 lg:pb-20">
+    <div className="mx-auto flex max-w-[1440px] flex-col gap-6 px-4 pt-4 pb-12 lg:gap-8 lg:px-20 lg:pt-8 lg:pb-20">
       <BackLink />
 
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-12">
@@ -182,6 +182,6 @@ export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
       )}
 
       <ExhibitionLocationSection exhibition={exhibition} areas={areas} />
-    </main>
+    </div>
   );
 }

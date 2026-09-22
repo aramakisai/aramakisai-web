@@ -18,7 +18,7 @@ export function StaticPageView({
   embedHeight = null,
 }: StaticPageViewProps) {
   return (
-    <main className="mx-auto max-w-3xl space-y-6 px-4 py-8">
+    <div className="mx-auto max-w-3xl space-y-6 px-4 py-8">
       <h1 className="font-bold">{title}</h1>
       <RichText html={contentHtml} className="prose max-w-none" />
       <SandboxedEmbed
@@ -27,6 +27,6 @@ export function StaticPageView({
         className={embedHeight ? 'w-full' : 'w-full aspect-video'}
         style={embedHeight ? { height: `${embedHeight}px` } : undefined}
       />
-    </main>
+    </div>
   );
 }

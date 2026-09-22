@@ -6,7 +6,7 @@ import {
   PRE_EVENT_PUBLIC_PREFIXES,
   isPublicPath,
 } from '@/lib/phase';
-import { navigationItems } from '@/components/header';
+import { navigationItemsByPhase, linkableChildren } from '@/lib/navigation';
 import { footerNavigation } from '@/components/footer';
 
 // footer.tsx は festival-meta.ts (→ cms.ts → env.ts) を経由する。
@@ -112,9 +112,9 @@ describe('ルートと公開対象一覧の整合', () => {
 
   test('ナビ項目を描画する全コンポーネントのリンク先が開催前フェーズの公開対象に含まれる', () => {
     const hrefs = [
-      ...navigationItems.flatMap((item) => [
-        item.href,
-        ...(item.children?.map((child) => child.href) ?? []),
+      ...navigationItemsByPhase.pre_event.flatMap((item) => [
+        ...(item.href ? [item.href] : []),
+        ...linkableChildren(item).map((child) => child.href),
       ]),
       ...footerNavigation.map((item) => item.href),
     ];

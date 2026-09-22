@@ -49,10 +49,10 @@ describe('TopicDetailPage', () => {
     const ui = await TopicDetailPage({ params });
     render(ui);
 
-    // Test main landmark and title
-    expect(screen.getByRole('main').querySelector('h1')).toHaveTextContent(
-      'Test Topic Title',
-    );
+    // main landmark はサイト共通の枠 (layout.tsx) 側に集約したため、ここではページ本体の見出しのみ確認する
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Test Topic Title' }),
+    ).toBeInTheDocument();
 
     // Test body
     expect(screen.getByText('Test Topic Body')).toBeInTheDocument();

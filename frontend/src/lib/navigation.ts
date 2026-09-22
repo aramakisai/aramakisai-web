@@ -7,6 +7,16 @@ export interface NavigationItem {
   readonly children?: readonly NavigationItem[];
 }
 
+/** 子項目は現状すべて遷移先を持つ末端項目のため、href を持つものだけを描画対象にする。 */
+export function linkableChildren(
+  item: NavigationItem,
+): readonly (NavigationItem & { href: string })[] {
+  return (item.children ?? []).filter(
+    (child): child is NavigationItem & { href: string } =>
+      child.href !== undefined,
+  );
+}
+
 export interface BottomNavigationItem {
   readonly label: string;
   readonly href: string;

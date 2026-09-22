@@ -24,7 +24,7 @@ export default async function AnnouncementPage({
   }
 
   return (
-    <main className="mx-auto max-w-4xl space-y-8 px-4 py-8 sm:py-12">
+    <div className="mx-auto max-w-4xl space-y-8 px-4 py-8 sm:py-12">
       <header className="border-b border-gray-200 pb-4">
         <h1 className="text-2xl font-bold mb-2">{announcement.title}</h1>
         <time
@@ -45,6 +45,6 @@ export default async function AnnouncementPage({
           <AttachmentGallery attachments={announcement.attachments} />
         </section>
       )}
-    </main>
+    </div>
   );
 }

@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { Header } from '@/components/header';
+import { Header, MAIN_CONTENT_ID } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { PHASE_OVERRIDE_COOKIE, resolvePhase } from '@/lib/phase';
 
@@ -14,7 +14,9 @@ export default async function SiteLayout({
   return (
     <>
       <Header phase={phase} />
-      <div className="min-w-0 flex-1">{children}</div>
+      <main id={MAIN_CONTENT_ID} className="min-w-0 flex-1">
+        {children}
+      </main>
       <Footer phase={phase} />
     </>
   );
