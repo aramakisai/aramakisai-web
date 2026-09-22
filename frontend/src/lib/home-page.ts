@@ -53,7 +53,8 @@ export async function getHomePage(
     phase === 'pre_event'
       ? null
       : await cms.findMany('topics', {
-          sort: ['sort'],
+          where: publishedFilter(),
+          sort: ['-published_at'],
           limit: 0,
           depth: 1,
         });

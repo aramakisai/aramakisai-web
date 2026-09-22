@@ -11,7 +11,7 @@ type PublishedWhere = { published_at?: { exists?: boolean } };
 beforeEach(() => vi.clearAllMocks());
 
 describe('getTopics', () => {
-  it('公開済みのトピックを sort 順に取得する', async () => {
+  it('公開済みのトピックを公開日時の新しい順に取得する', async () => {
     vi.mocked(cms.findMany).mockResolvedValue({
       ok: true,
       value: {
@@ -48,7 +48,7 @@ describe('getTopics', () => {
 
     const [collection, query] = vi.mocked(cms.findMany).mock.calls[0];
     expect(collection).toBe('topics');
-    expect(query.sort).toEqual(['sort']);
+    expect(query.sort).toEqual(['-published_at']);
     expect(query.depth).toBe(1);
     expect((query.where as PublishedWhere).published_at?.exists).toBe(true);
   });

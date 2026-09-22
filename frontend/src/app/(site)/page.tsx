@@ -87,9 +87,7 @@ export default async function Page() {
               topics={content.topics.map((t) => ({
                 id: t.id,
                 title: t.title,
-                body: t.body,
                 imageId: t.imageId,
-                attachments: t.attachments,
               }))}
             />
           </section>

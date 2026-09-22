@@ -17,7 +17,7 @@ function formatTopic(topic: Topic): TopicSummary {
 export async function getTopics(): Promise<TopicSummary[]> {
   const result = await cms.findMany('topics', {
     where: publishedFilter(),
-    sort: ['sort'],
+    sort: ['-published_at'],
     limit: 0,
     depth: 1,
   });

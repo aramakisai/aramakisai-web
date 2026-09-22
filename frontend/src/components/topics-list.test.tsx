@@ -8,39 +8,31 @@ vi.mock('@/env', () => ({
   },
 }));
 
+vi.mock('@/lib/cms-asset-url', () => ({
+  toAssetUrl: (id: string | null) =>
+    id ? `https://example.com/assets/${id}` : null,
+}));
+
 describe('TopicsList', () => {
   const topics = [
-    {
-      id: 1,
-      title: 'Topic 1',
-      body: '<p>Body 1</p>',
-      imageId: 'img1',
-      attachments: [],
-    },
-    {
-      id: 2,
-      title: 'Topic 2',
-      body: null,
-      imageId: null,
-      attachments: [],
-    },
+    { id: 1, title: 'Topic 1', imageId: 'img1' },
+    { id: 2, title: 'Topic 2', imageId: null },
   ];
 
-  test('renders topics array with images, bodies and links', () => {
+  test('渡された順にトピックカードを並べる', () => {
     render(<TopicsList topics={topics} />);
 
-    expect(
-      screen.getByRole('heading', { level: 3, name: 'Topic 1' }),
-    ).toBeInTheDocument();
-    expect(screen.getByText('Body 1')).toBeInTheDocument();
-    const img1 = screen.getByAltText('Topic 1');
-    expect(img1).toHaveAttribute('src', expect.stringContaining('img1'));
+    const links = screen.getAllByRole('link');
+    expect(links).toHaveLength(2);
+    expect(links[0]).toHaveAttribute('href', '/topics/1');
+    expect(links[1]).toHaveAttribute('href', '/topics/2');
+    expect(screen.getByText('Topic 1')).toBeInTheDocument();
+    expect(screen.getByText('Topic 2')).toBeInTheDocument();
+  });
 
-    expect(
-      screen.getByRole('heading', { level: 3, name: 'Topic 2' }),
-    ).toBeInTheDocument();
-    expect(screen.queryByText('Body 2')).not.toBeInTheDocument();
-    const img2 = screen.getByAltText('Topic 2');
-    expect(img2).toHaveAttribute('src', '/images/no-image.svg');
+  test('0件のとき何も描画しない', () => {
+    const { container } = render(<TopicsList topics={[]} />);
+
+    expect(container).toBeEmptyDOMElement();
   });
 });

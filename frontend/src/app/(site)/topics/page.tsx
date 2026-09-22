@@ -11,12 +11,10 @@ export default async function TopicsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8 px-4 py-8 sm:py-12">
-      <h1 className="text-2xl font-bold border-b border-gray-200 pb-2">
-        トピックス
-      </h1>
+    <div className="mx-auto flex max-w-[1440px] flex-col gap-4 px-4 pt-4 pb-12 lg:gap-6 lg:px-20 lg:pt-12 lg:pb-20">
+      <h1 className="text-center">トピック</h1>
       {topics.length === 0 ? (
-        <p>トピックスはありません</p>
+        <p>トピックはありません</p>
       ) : (
         <TopicsList topics={topics} />
       )}

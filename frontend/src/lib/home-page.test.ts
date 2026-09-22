@@ -263,6 +263,15 @@ describe('getHomePage の phase 引数によるトピックス取得の抑止', 
     expect(cms.findMany).not.toHaveBeenCalledWith('topics', expect.anything());
   });
 
+  it('topics は公開済みを公開日時の新しい順に取得する', async () => {
+    await getHomePage('live');
+    const call = vi
+      .mocked(cms.findMany)
+      .mock.calls.find(([collection]) => collection === 'topics');
+    expect(call?.[1].sort).toEqual(['-published_at']);
+    expect((call?.[1].where as PublishedWhere).published_at?.exists).toBe(true);
+  });
+
   it('開催中フェーズでは従来どおり topics を取得する', async () => {
     const result = await getHomePage('live');
 

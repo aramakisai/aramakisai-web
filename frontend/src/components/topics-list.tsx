@@ -1,8 +1,7 @@
-import React from 'react';
 import { TopicCard, TopicCardProps } from './topic-card';
 
 export interface TopicsListProps {
-  topics: TopicCardProps[];
+  readonly topics: readonly TopicCardProps[];
 }
 
 export function TopicsList({ topics }: TopicsListProps) {
@@ -11,7 +10,7 @@ export function TopicsList({ topics }: TopicsListProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-4">
       {topics.map((topic) => (
         <TopicCard key={topic.id} {...topic} />
       ))}
