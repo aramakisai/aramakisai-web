@@ -1,6 +1,7 @@
 import { publishedFilter } from './announcements';
 import { cms } from './cms';
 import { toAttachments, toMediaId } from './cms-media';
+import { toEventDays } from './event-day';
 import {
   HomePageContent,
   AnnouncementSummary,
@@ -20,7 +21,7 @@ export async function getHomePage(
 
   const festival: FestivalOverview = {
     name: meta.name || '',
-    eventDays: (meta.event_days as FestivalOverview['eventDays']) || [],
+    eventDays: toEventDays(meta.event_days),
     overviewHtml: meta.overview_html || null,
     heroImageId: toMediaId(meta.hero_image),
   };

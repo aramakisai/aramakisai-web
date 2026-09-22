@@ -11,7 +11,13 @@ type PublishedWhere = { published_at?: { exists?: boolean } };
 const META = {
   name: '荒牧祭',
   sns_links: [{ platform: 'twitter', url: 'https://twitter.com' }],
-  event_days: [{ label: '1日目', open: '09:00', close: '17:00' }],
+  event_days: [
+    {
+      label: '1日目',
+      start_at: '2026-09-27T00:00:00.000Z',
+      end_at: '2026-09-27T08:00:00.000Z',
+    },
+  ],
   overview_html: '<p>Overview</p>',
   hero_image: { id: 91, filename: 'meta_hero1.webp', mimeType: 'image/webp' },
   theme_word: '万彩',
@@ -85,7 +91,13 @@ describe('getHomePage', () => {
     ]);
     expect(result.festival).toEqual({
       name: '荒牧祭',
-      eventDays: [{ label: '1日目', open: '09:00', close: '17:00' }],
+      eventDays: [
+        {
+          label: '1日目',
+          startAt: '2026-09-27T00:00:00.000Z',
+          endAt: '2026-09-27T08:00:00.000Z',
+        },
+      ],
       overviewHtml: '<p>Overview</p>',
       heroImageId: '91',
     });
