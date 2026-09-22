@@ -320,4 +320,124 @@ describe('HeroSection', () => {
       expect(screen.getAllByText('群馬大学').length).toBeGreaterThan(0);
     });
   });
+
+  describe('live phase', () => {
+    test('uses a 50svh height without the pre-event minimum height floor', () => {
+      render(<HeroSection {...fullProps} phase="live" />);
+      expect(
+        screen.getByRole('region', { name: '荒牧祭の写真スライドショー' }),
+      ).toHaveClass('h-[50svh]');
+      expect(
+        screen.getByRole('region', { name: '荒牧祭の写真スライドショー' }),
+      ).not.toHaveClass('h-[78svh]', 'min-h-[28rem]');
+    });
+
+    test('has no manual previous/next slide buttons', () => {
+      render(<HeroSection {...fullProps} phase="live" />);
+      expect(
+        screen.queryByRole('button', { name: '前の画像を表示' }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: '次の画像を表示' }),
+      ).not.toBeInTheDocument();
+    });
+
+    test('keeps the slide indicator and automatic slideshow', () => {
+      render(<HeroSection {...fullProps} phase="live" />);
+      expect(
+        screen.getByRole('group', { name: '表示する画像を選択' }),
+      ).toBeInTheDocument();
+
+      act(() => vi.advanceTimersByTime(6_000));
+      expectCurrentSlide(1);
+    });
+
+    test('never renders a countdown, even when countdownDays is given', () => {
+      render(<HeroSection {...fullProps} phase="live" />);
+      expect(screen.queryByText(/開催まであと/)).not.toBeInTheDocument();
+    });
+
+    test('shows the fixed title as a single line on both breakpoints', () => {
+      render(<HeroSection {...fullProps} phase="live" />);
+
+      const mobile = screen.getByTestId('hero-content-mobile');
+      const desktop = screen.getByTestId('hero-content-desktop');
+      for (const region of [mobile, desktop]) {
+        expect(within(region).getByText('群馬大学 荒牧祭')).toBeInTheDocument();
+      }
+    });
+
+    test('sizes the title/theme per breakpoint and joins event days/venue on one line on desktop only', () => {
+      render(<HeroSection {...fullProps} phase="live" />);
+
+      const mobile = screen.getByTestId('hero-content-mobile');
+      const desktop = screen.getByTestId('hero-content-desktop');
+
+      expect(within(mobile).getByText('群馬大学 荒牧祭')).toHaveClass(
+        'text-[32px]',
+        'py-0',
+      );
+      expect(within(mobile).getByText('万彩')).toHaveClass('text-[64px]');
+      expect(within(desktop).getByText('群馬大学 荒牧祭')).toHaveClass(
+        'text-[44px]',
+        'py-0',
+      );
+      expect(within(desktop).getByText('万彩')).toHaveClass('text-[88px]');
+
+      expect(within(desktop).getByText('｜')).toBeInTheDocument();
+      expect(within(mobile).queryByText('｜')).not.toBeInTheDocument();
+      expect(
+        within(mobile).getByText(
+          '11月14日 10:00〜17:30／11月15日 10:00〜16:30',
+        ),
+      ).toBeInTheDocument();
+      expect(
+        within(mobile).getByText('群馬大学 荒牧キャンパス'),
+      ).toBeInTheDocument();
+    });
+
+    test('stacks title, event days, venue, then theme on mobile; title, theme, then meta line on desktop', () => {
+      render(<HeroSection {...fullProps} phase="live" />);
+
+      const mobile = screen.getByTestId('hero-content-mobile');
+      const mobileTexts = Array.from(mobile.children).map(
+        (el) => el.textContent,
+      );
+      expect(mobileTexts).toEqual([
+        '群馬大学 荒牧祭',
+        '11月14日 10:00〜17:30／11月15日 10:00〜16:30',
+        '群馬大学 荒牧キャンパス',
+        '万彩',
+      ]);
+
+      const desktop = screen.getByTestId('hero-content-desktop');
+      const desktopTexts = Array.from(desktop.children).map(
+        (el) => el.textContent,
+      );
+      expect(desktopTexts).toEqual([
+        '群馬大学 荒牧祭',
+        '万彩',
+        '11月14日 10:00〜17:30／11月15日 10:00〜16:30｜群馬大学 荒牧キャンパス',
+      ]);
+    });
+
+    test('omits meta line items independently when the CMS value is missing', () => {
+      render(
+        <HeroSection
+          {...fullProps}
+          phase="live"
+          eventDaysSummary={null}
+          venueName={null}
+          themeWord={null}
+        />,
+      );
+
+      expect(screen.queryByText(/月.*日/)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('群馬大学 荒牧キャンパス'),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText('万彩')).not.toBeInTheDocument();
+      expect(screen.getAllByText('群馬大学 荒牧祭').length).toBeGreaterThan(0);
+    });
+  });
 });
