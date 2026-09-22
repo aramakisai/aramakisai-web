@@ -25,6 +25,11 @@ vi.mock('next/headers', () => ({
   cookies: vi.fn(async () => ({ get: vi.fn() })),
 }));
 
+// 実際の matchMedia/localStorage は use-motion-preference.test.ts が担う。
+vi.mock('@/lib/use-motion-preference', () => ({
+  useMotionPreference: () => ({ reduced: false, toggle: vi.fn() }),
+}));
+
 const content: HomePageContent = {
   heroImages: [
     { id: 'hero-1', filenameDownload: 'hero1.jpg', type: 'image/jpeg' },

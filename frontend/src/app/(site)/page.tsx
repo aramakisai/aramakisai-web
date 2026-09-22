@@ -8,6 +8,7 @@ import { RichText } from '@/components/rich-text';
 import { toAssetUrl } from '@/lib/cms-asset-url';
 import { HomePageContent } from '@/lib/home-page-types';
 import { PHASE_OVERRIDE_COOKIE, resolvePhase } from '@/lib/phase';
+import { formatEventDaysSummary, getDaysUntilEventDay } from '@/lib/event-day';
 
 const EMPTY_CONTENT: HomePageContent = {
   heroImages: [],
@@ -34,6 +35,7 @@ export default async function Page() {
   }
 
   const festivalName = content.festival?.name || '荒牧祭';
+  const eventDays = content.festival?.eventDays ?? [];
 
   return (
     <div>
@@ -44,7 +46,14 @@ export default async function Page() {
           imageUrls={content.heroImages
             .map((image) => toAssetUrl(image.id, 1920))
             .filter((url): url is string => url !== null)}
-          heroMessageHtml={content.heroMessageHtml ?? undefined}
+          eventDaysSummary={formatEventDaysSummary(eventDays)}
+          venueName={content.venueName}
+          themeWord={content.theme?.word ?? null}
+          countdownDays={
+            eventDays.length > 0
+              ? getDaysUntilEventDay(eventDays[0].startAt)
+              : null
+          }
         />
       )}
 

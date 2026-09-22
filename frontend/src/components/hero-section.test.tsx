@@ -10,6 +10,22 @@ const imageUrls = [
   'https://cms.example.com/assets/hero-4',
 ];
 
+const fullProps = {
+  imageUrls,
+  eventDaysSummary: '11月14日 10:00〜17:30／11月15日 10:00〜16:30',
+  venueName: '群馬大学 荒牧キャンパス',
+  themeWord: '万彩',
+  countdownDays: 54,
+};
+
+const useMotionPreferenceMock = vi.fn(() => ({
+  reduced: false,
+  toggle: vi.fn(),
+}));
+vi.mock('@/lib/use-motion-preference', () => ({
+  useMotionPreference: () => useMotionPreferenceMock(),
+}));
+
 function expectCurrentSlide(index: number) {
   const slides = screen.getAllByTestId('hero-slide');
 
@@ -30,6 +46,10 @@ function expectCurrentSlide(index: number) {
 describe('HeroSection', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    useMotionPreferenceMock.mockReturnValue({
+      reduced: false,
+      toggle: vi.fn(),
+    });
   });
 
   afterEach(() => {
@@ -37,7 +57,7 @@ describe('HeroSection', () => {
   });
 
   test('renders the given hero images in order with slideshow controls', () => {
-    const { container } = render(<HeroSection imageUrls={imageUrls} />);
+    const { container } = render(<HeroSection {...fullProps} />);
 
     const images = container.querySelectorAll('img');
     expect(images).toHaveLength(5);
@@ -48,18 +68,10 @@ describe('HeroSection', () => {
       expect(image).toHaveAttribute('alt', '');
       expect(image).toHaveClass('object-cover', 'object-center');
     });
-    expect(container.querySelector('section > .z-10')).toHaveClass(
-      'bg-black/10',
-    );
 
     expect(
       screen.getByRole('region', { name: '荒牧祭の写真スライドショー' }),
-    ).toHaveClass(
-      'h-[78svh]',
-      'min-h-[28rem]',
-      'lg:h-[calc(100vh-5rem)]',
-      'lg:min-h-[30rem]',
-    );
+    ).toHaveClass('h-[78svh]', 'min-h-[28rem]');
     expect(
       screen.getByRole('button', { name: '前の画像を表示' }),
     ).toBeInTheDocument();
@@ -76,7 +88,7 @@ describe('HeroSection', () => {
   });
 
   test('gives the first image loading priority', () => {
-    const { container } = render(<HeroSection imageUrls={imageUrls} />);
+    const { container } = render(<HeroSection {...fullProps} />);
 
     const images = container.querySelectorAll('img');
     expect(images[0]).toHaveAttribute('fetchpriority', 'high');
@@ -88,12 +100,20 @@ describe('HeroSection', () => {
   });
 
   test('renders nothing when there are no images', () => {
-    const { container } = render(<HeroSection imageUrls={[]} />);
+    const { container } = render(
+      <HeroSection
+        imageUrls={[]}
+        eventDaysSummary={null}
+        venueName={null}
+        themeWord={null}
+        countdownDays={null}
+      />,
+    );
     expect(container).toBeEmptyDOMElement();
   });
 
   test('hides previous/next navigation and the slide indicator when there is only one image', () => {
-    render(<HeroSection imageUrls={[imageUrls[0]]} />);
+    render(<HeroSection {...fullProps} imageUrls={[imageUrls[0]]} />);
 
     expect(
       screen.queryByRole('button', { name: '前の画像を表示' }),
@@ -108,7 +128,7 @@ describe('HeroSection', () => {
   });
 
   test('automatically advances every six seconds and loops to the first image', () => {
-    render(<HeroSection imageUrls={imageUrls} />);
+    render(<HeroSection {...fullProps} />);
 
     act(() => vi.advanceTimersByTime(6_000));
     expectCurrentSlide(1);
@@ -120,8 +140,17 @@ describe('HeroSection', () => {
     expectCurrentSlide(0);
   });
 
+  test('does not start the automatic timer while motion is reduced', () => {
+    useMotionPreferenceMock.mockReturnValue({ reduced: true, toggle: vi.fn() });
+    render(<HeroSection {...fullProps} />);
+
+    expect(vi.getTimerCount()).toBe(0);
+    act(() => vi.advanceTimersByTime(6_000));
+    expectCurrentSlide(0);
+  });
+
   test('loops in both directions with the previous and next buttons', () => {
-    render(<HeroSection imageUrls={imageUrls} />);
+    render(<HeroSection {...fullProps} />);
 
     fireEvent.click(screen.getByRole('button', { name: '前の画像を表示' }));
     expectCurrentSlide(4);
@@ -131,7 +160,7 @@ describe('HeroSection', () => {
   });
 
   test('indicator navigation resets the automatic slideshow timer', () => {
-    render(<HeroSection imageUrls={imageUrls} />);
+    render(<HeroSection {...fullProps} />);
 
     act(() => vi.advanceTimersByTime(5_500));
     fireEvent.click(screen.getByRole('button', { name: '3枚目の画像を表示' }));
@@ -145,7 +174,7 @@ describe('HeroSection', () => {
   });
 
   test('selecting the current indicator also resets the automatic timer', () => {
-    render(<HeroSection imageUrls={imageUrls} />);
+    render(<HeroSection {...fullProps} />);
 
     act(() => vi.advanceTimersByTime(5_500));
     fireEvent.click(screen.getByRole('button', { name: '1枚目の画像を表示' }));
@@ -158,7 +187,7 @@ describe('HeroSection', () => {
   });
 
   test('clears the automatic timer when unmounted', () => {
-    const { unmount } = render(<HeroSection imageUrls={imageUrls} />);
+    const { unmount } = render(<HeroSection {...fullProps} />);
 
     expect(vi.getTimerCount()).toBe(1);
     unmount();
@@ -166,12 +195,12 @@ describe('HeroSection', () => {
   });
 
   test('does not start an automatic timer with a single image', () => {
-    render(<HeroSection imageUrls={[imageUrls[0]]} />);
+    render(<HeroSection {...fullProps} imageUrls={[imageUrls[0]]} />);
     expect(vi.getTimerCount()).toBe(0);
   });
 
-  test('uses one-second crossfades and reduced-motion fallbacks', () => {
-    const { container } = render(<HeroSection imageUrls={imageUrls} />);
+  test('uses one-second crossfades and reduced-motion fallbacks, without a zoom animation', () => {
+    const { container } = render(<HeroSection {...fullProps} />);
 
     const slides = screen.getAllByTestId('hero-slide');
     slides.forEach((slide) => {
@@ -179,50 +208,28 @@ describe('HeroSection', () => {
       expect(slide).toHaveClass('motion-reduce:transition-none');
     });
 
-    const style = container.querySelector('style');
-    expect(style).toHaveTextContent('prefers-reduced-motion: reduce');
-    expect(style).toHaveTextContent('scale(1.04)');
-  });
-
-  test('renders an animated scroll indicator below the slide indicators', () => {
-    const { container } = render(<HeroSection imageUrls={imageUrls} />);
-
-    const slideIndicators = screen.getByRole('group', {
-      name: '表示する画像を選択',
+    // ズームのキーフレームを持たない (要件 1.12)
+    expect(container.querySelector('style')).toBeNull();
+    container.querySelectorAll('img').forEach((image) => {
+      expect(image.className).not.toContain('zoom');
     });
-    expect(slideIndicators).toHaveClass('bottom-24');
-
-    const scrollLabel = screen.getByText('SCROLL');
-    expect(scrollLabel).toHaveClass('text-[11px]', 'tracking-[0.32em]');
-
-    const scrollLine = container.querySelector('.aramakisai-scroll-line');
-    expect(scrollLine).toHaveClass('h-12', 'w-px');
-
-    const style = container.querySelector('style');
-    expect(style).toHaveTextContent(
-      'animation: aramakisai-scroll-line 1.8s ease-out infinite',
-    );
-    expect(style).toHaveTextContent('50.1%');
-    expect(style).toHaveTextContent('prefers-reduced-motion: reduce');
-    expect(style).toHaveTextContent(
-      /\.aramakisai-scroll-line\s*{[^}]*animation: none/,
-    );
   });
 
-  test('also stops via the MotionToggle stop flag (data-motion=reduce)', () => {
-    const { container } = render(<HeroSection imageUrls={imageUrls} />);
+  test('does not render a scroll indicator', () => {
+    render(<HeroSection {...fullProps} />);
+    expect(screen.queryByText('SCROLL')).not.toBeInTheDocument();
+  });
 
-    const style = container.querySelector('style');
-    expect(style).toHaveTextContent(
-      /\[data-motion='reduce'\][^{]*\.aramakisai-hero-image[^{]*{[^}]*animation: none/,
+  test('darkens the bottom of the hero with a text-token gradient scrim', () => {
+    const { container } = render(<HeroSection {...fullProps} />);
+    const scrim = container.querySelector(
+      '[aria-hidden="true"].absolute.inset-0.z-10',
     );
-    expect(style).toHaveTextContent(
-      /\[data-motion='reduce'\][^{]*\.aramakisai-scroll-line\s*{[^}]*animation: none/,
-    );
+    expect(scrim).toHaveClass('from-text/50', 'to-transparent');
   });
 
   test('keeps mobile slideshow controls separated with touch-friendly targets', () => {
-    const { container } = render(<HeroSection imageUrls={imageUrls} />);
+    render(<HeroSection {...fullProps} />);
     const controls = screen.getAllByRole('button');
     const previousButton = controls[0];
     const nextButton = controls[1];
@@ -234,13 +241,83 @@ describe('HeroSection', () => {
     expect(nextButton).toHaveClass('right-4', 'lg:right-10');
 
     const slideIndicators = screen.getAllByRole('group')[0];
-    expect(slideIndicators).toHaveClass('bottom-24');
     within(slideIndicators)
       .getAllByRole('button')
       .forEach((button) => expect(button).toHaveClass('h-11', 'w-11'));
+  });
 
-    expect(
-      container.querySelector('.aramakisai-scroll-line')?.parentElement,
-    ).toHaveClass('bottom-4');
+  describe('content overlay', () => {
+    test('renders the fixed title, meta, theme and countdown for both breakpoints', () => {
+      render(<HeroSection {...fullProps} />);
+
+      const mobile = screen.getByTestId('hero-content-mobile');
+      const desktop = screen.getByTestId('hero-content-desktop');
+
+      for (const region of [mobile, desktop]) {
+        expect(within(region).getByText('群馬大学')).toBeInTheDocument();
+        expect(within(region).getByText('荒牧祭')).toBeInTheDocument();
+        expect(
+          within(region).getByText(
+            '11月14日 10:00〜17:30／11月15日 10:00〜16:30',
+          ),
+        ).toBeInTheDocument();
+        expect(
+          within(region).getByText('群馬大学 荒牧キャンパス'),
+        ).toBeInTheDocument();
+        expect(within(region).getByText('万彩')).toBeInTheDocument();
+        expect(
+          within(region).getByText('開催まであと 54 日'),
+        ).toBeInTheDocument();
+      }
+    });
+
+    test('renders theme and countdown in the serif heading font, bold', () => {
+      render(<HeroSection {...fullProps} />);
+
+      const mobile = screen.getByTestId('hero-content-mobile');
+      const desktop = screen.getByTestId('hero-content-desktop');
+
+      for (const region of [mobile, desktop]) {
+        expect(within(region).getByText('万彩')).toHaveClass(
+          'font-mincho',
+          'font-bold',
+        );
+        expect(within(region).getByText('開催まであと 54 日')).toHaveClass(
+          'font-mincho',
+          'font-bold',
+        );
+      }
+    });
+
+    test('joins event days and venue with a full-width bar on desktop only', () => {
+      render(<HeroSection {...fullProps} />);
+      const desktop = screen.getByTestId('hero-content-desktop');
+      expect(within(desktop).getByText('｜')).toBeInTheDocument();
+      expect(
+        screen.queryByText('｜', {
+          selector: '[data-testid="hero-content-mobile"] *',
+        }),
+      ).not.toBeInTheDocument();
+    });
+
+    test('omits meta line items independently when the CMS value is missing', () => {
+      render(
+        <HeroSection
+          {...fullProps}
+          eventDaysSummary={null}
+          venueName={null}
+          themeWord={null}
+          countdownDays={null}
+        />,
+      );
+
+      expect(screen.queryByText(/月.*日/)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('群馬大学 荒牧キャンパス'),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText('万彩')).not.toBeInTheDocument();
+      expect(screen.queryByText(/開催まであと/)).not.toBeInTheDocument();
+      expect(screen.getAllByText('群馬大学').length).toBeGreaterThan(0);
+    });
   });
 });

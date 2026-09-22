@@ -50,7 +50,9 @@ const config: Config = {
         card: '0px 8px 10px -6px rgba(156, 163, 176, 0.2), 0px 20px 25px -5px rgba(156, 163, 176, 0.2)',
       },
       spacing: {},
-      fontFamily: {},
+      fontFamily: {
+        mincho: ['var(--font-zen-old-mincho)', 'serif'],
+      },
       // 既定の `text-xs` (12px) を上書きせず、下部ナビゲーション専用の 10px を別名で追加する (要件 21.11)
       fontSize: {
         'body-xs': ['10px', { lineHeight: '1.6', fontWeight: '400' }],

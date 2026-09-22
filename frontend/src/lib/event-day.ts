@@ -23,10 +23,16 @@ function pad2(n: number): string {
   return String(n).padStart(2, '0');
 }
 
+/** 例: "9月27日" */
+export function formatEventDayDate(startAt: string): string {
+  const { month, date } = toJstParts(startAt);
+  return `${month}月${date}日`;
+}
+
 /** 表示ラベル未設定時の代替文言。例: "9月27日(日)" */
 export function formatEventDayLabel(startAt: string): string {
-  const { month, date, weekday } = toJstParts(startAt);
-  return `${month}月${date}日(${WEEKDAY_LABELS[weekday]})`;
+  const { weekday } = toJstParts(startAt);
+  return `${formatEventDayDate(startAt)}(${WEEKDAY_LABELS[weekday]})`;
 }
 
 export function formatEventDayTime(iso: string): string {
@@ -44,6 +50,22 @@ export function getDaysUntilEventDay(
   const targetUtc = Date.UTC(target.year, target.month - 1, target.date);
   const currentUtc = Date.UTC(current.year, current.month - 1, current.date);
   return Math.round((targetUtc - currentUtc) / DAY_MS);
+}
+
+/** 例: "11月14日 10:00〜17:30" (ヒーローのメタ情報表記。曜日・呼び名は含めない) */
+export function formatEventDaySchedule(day: EventDay): string {
+  return `${formatEventDayDate(day.startAt)} ${formatEventDayTime(day.startAt)}〜${formatEventDayTime(day.endAt)}`;
+}
+
+/** 複数の開催日を「／」で連結する。例: "11月14日 10:00〜17:30／11月15日 10:00〜16:30" */
+export function formatEventDaysSummary(eventDays: EventDay[]): string | null {
+  if (eventDays.length === 0) return null;
+  return eventDays.map(formatEventDaySchedule).join('／');
+}
+
+/** 例: "開催まであと 54 日"。開催日を過ぎた分の負の値は 0 に丸める */
+export function formatCountdownLabel(days: number): string {
+  return `開催まであと ${Math.max(days, 0)} 日`;
 }
 
 export function toEventDays(
