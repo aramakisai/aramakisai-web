@@ -319,6 +319,44 @@ describe('Header', () => {
     expect(dropdown).not.toHaveClass('translate-y-1');
   });
 
+  test.each(['pre_event', 'live'] as const)(
+    '開閉ボタンは 44×44 のタップ領域を確保し、幅24px・太さ2px の横線3本を8px間隔で並べる (%s)',
+    (phase) => {
+      render(<Header phase={phase} />);
+
+      const menuButton = screen.getByRole('button', { name: 'メニューを開く' });
+      expect(menuButton).toHaveAttribute('aria-expanded', 'false');
+      expect(menuButton).toHaveClass('h-11', 'w-11', 'gap-2');
+
+      const lines = menuButton.querySelectorAll('span[aria-hidden="true"]');
+      expect(lines).toHaveLength(3);
+      for (const line of lines) {
+        expect(line).toHaveClass('h-[2px]', 'w-6');
+      }
+    },
+  );
+
+  test.each(['pre_event', 'live'] as const)(
+    '開いた状態で上下の線が回転して交差し、中央の線が消える (%s)',
+    (phase) => {
+      render(<Header phase={phase} />);
+
+      const menuButton = screen.getByRole('button', { name: 'メニューを開く' });
+      fireEvent.click(menuButton);
+      const openButton = screen.getByRole('button', {
+        name: 'メニューを閉じる',
+      });
+      expect(openButton).toHaveAttribute('aria-expanded', 'true');
+
+      const [line1, line2, line3] = openButton.querySelectorAll(
+        'span[aria-hidden="true"]',
+      );
+      expect(line1).toHaveClass('translate-y-2.5', 'rotate-45');
+      expect(line2).toHaveClass('opacity-0');
+      expect(line3).toHaveClass('-translate-y-2.5', '-rotate-45');
+    },
+  );
+
   test('uses compact mobile sizing and safe-area spacing without changing desktop sizes', () => {
     const { container } = render(<Header phase="pre_event" />);
 

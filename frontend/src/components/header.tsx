@@ -262,25 +262,26 @@ export function Header({ phase }: HeaderProps) {
             aria-expanded={mobileMenuOpen}
             aria-controls="mobile-navigation"
             onClick={toggleMobileMenu}
-            className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-text transition-colors hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary lg:hidden"
+            className="flex h-11 w-11 shrink-0 flex-col items-center justify-center gap-2 rounded-full text-text transition-colors hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary lg:hidden"
           >
-            <span aria-hidden="true" className="relative block h-5 w-6">
-              <span
-                className={`absolute left-0 h-0.5 w-6 rounded-full bg-current transition-[top,transform] duration-200 motion-reduce:transition-none ${
-                  mobileMenuOpen ? 'top-[9px] rotate-45' : 'top-0'
-                }`}
-              />
-              <span
-                className={`absolute top-[9px] left-0 h-0.5 w-6 rounded-full bg-current transition-opacity duration-200 motion-reduce:transition-none ${
-                  mobileMenuOpen ? 'opacity-0' : 'opacity-100'
-                }`}
-              />
-              <span
-                className={`absolute left-0 h-0.5 w-6 rounded-full bg-current transition-[top,transform] duration-200 motion-reduce:transition-none ${
-                  mobileMenuOpen ? 'top-[9px] -rotate-45' : 'top-[18px]'
-                }`}
-              />
-            </span>
+            <span
+              aria-hidden="true"
+              className={`h-[2px] w-6 bg-current transition-transform duration-200 ease-out motion-reduce:transition-none ${
+                mobileMenuOpen ? 'translate-y-2.5 rotate-45' : ''
+              }`}
+            />
+            <span
+              aria-hidden="true"
+              className={`h-[2px] w-6 bg-current transition-opacity duration-200 ease-out motion-reduce:transition-none ${
+                mobileMenuOpen ? 'opacity-0' : 'opacity-100'
+              }`}
+            />
+            <span
+              aria-hidden="true"
+              className={`h-[2px] w-6 bg-current transition-transform duration-200 ease-out motion-reduce:transition-none ${
+                mobileMenuOpen ? '-translate-y-2.5 -rotate-45' : ''
+              }`}
+            />
           </button>
         </div>
 
