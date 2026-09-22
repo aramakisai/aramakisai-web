@@ -4,7 +4,7 @@
 
 本 spec は、開催前の簡易ページとして作られた現行サイトを本番運用に耐える形へ作り直す。対象はトップページ、サイト共通ヘッダー、フッター、グローバルナビゲーション (ハンバーガーメニューと新規の下部ナビゲーション)、構内マップ画面のメニュー、協賛一覧、トピックとお知らせの表示である。
 
-requirements.md が述べるとおり、これら 15 のデザイン単位は Figma での定義を単位ごとに進めている途中であり、現時点で定義済みなのは一部にとどまる。したがって本書は完成した設計書ではなく、**ビジュアルデザインの有無に関わらず確定している構造だけを置いた土台**として扱う。具体的には、ナビゲーション項目定義の配置、協賛種別のスキーマ変更、CMS 取得失敗時の分岐、再検証方針の置き場所といった、デザインが決まっても変わらない部分を書く。色・余白・タイポグラフィ・レイアウトの詳細は一切書かない。
+requirements.md が述べるとおり、これら 18 のデザイン単位は Figma での定義を単位ごとに進めている途中であり、現時点で定義済みなのは一部にとどまる。したがって本書は完成した設計書ではなく、**ビジュアルデザインの有無に関わらず確定している構造だけを置いた土台**として扱う。具体的には、ナビゲーション項目定義の配置、協賛種別のスキーマ変更、CMS 取得失敗時の分岐、再検証方針の置き場所といった、デザインが決まっても変わらない部分を書く。色・余白・タイポグラフィ・レイアウトの詳細は一切書かない。
 
 各デザイン単位のセクションは、現時点では「どのファイルが責務を持つか」「データがどこから来るか」に限って記述する。デザインが起きた単位から、そのセクションへ設計を追記していく。
 
@@ -17,12 +17,12 @@ requirements.md が述べるとおり、これら 15 のデザイン単位は Fi
 
 ### Non-Goals
 
-- 本 spec が扱う 15 のデザイン単位のビジュアルデザインの決定 — Figma でのデザイン作成時に確定する
+- 本 spec が扱う 18 のデザイン単位のビジュアルデザインの決定 — Figma でのデザイン作成時に確定する
 - Figma フレームの作成作業そのもの
 - 色・タイポグラフィのトークン自体の再定義 — `frontend/tailwind.config.ts` と `globals.css` を正とする
-- `topics` / `announcements` の CMS データモデル変更
+- `topics` / `announcements` の CMS データモデル変更 (フィールド定義・DB スキーマ)。リッチテキストエディタの使用可能機能の絞り込みはデータモデル変更に当たらないため対象外としない (Requirement 23 参照)
 - 企画一覧・企画詳細ページ本体 (`exhibition-pages`)、構内マップの地図本体 (`campus-map`)、タイムテーブル (`timetable-page`)、サイネージ (`digital-signage`)、駐車場空き状況 (`parking-availability`)
-- 固定ページ (アクセス・お問い合わせ・プライバシーポリシー等) の本文デザイン
+- 固定ページ (アクセス・お問い合わせ・プライバシーポリシー等) の本文以外の部分 (ページ見出し・レイアウト・埋め込み `embed_url`)
 - 地域協賛一覧ページ本体 — ヘッダー・トップページ・フッターからの導線は本 spec が持つが、遷移先のページは扱わない
 
 ## Boundary Commitments
@@ -36,6 +36,8 @@ requirements.md が述べるとおり、これら 15 のデザイン単位は Fi
 - `frontend/src/lib/cms.ts` の再検証方針
 - 下部ナビゲーション (新規)
 - `frontend/src/components/campus-map/map-menu-button.tsx` のメニュー内容 (ボタンの配置要件を含む)
+- `frontend/src/components/rich-text.tsx` のサニタイズ許可リストと見た目
+- `cms/src/payload.config.ts` の Lexical エディタの使用可能機能の設定
 
 ### Out of Boundary
 
@@ -43,7 +45,7 @@ requirements.md が述べるとおり、これら 15 のデザイン単位は Fi
 - 企画カードのデザインと企画詳細の URL — `exhibition-pages` が所有する
 - フェーズ切替機構 (フェーズ設定の保持、公開範囲の制御、トップページの出し分け、開発者向けオーバーライド) — `festival-phase-gate` が所有する
 - `sponsors` の `type` 以外のフィールド定義
-- `topics` / `announcements` のフィールド定義
+- `topics` / `announcements` / `pages` のフィールド定義 (本文 HTML 変換の差し替え (要件 23.5) を除く)
 
 ### Allowed Dependencies
 
@@ -94,7 +96,8 @@ frontend/src/lib/
 frontend/src/components/
 ├── bottom-navigation.tsx      # 下部ナビゲーション (要件 8)
 ├── background-shapes.tsx      # 背景の図形装飾 (要件 22)
-└── motion-toggle.tsx          # モーション再生/停止の切替ボタン (`'use client'`)。フッターに置く (要件 19.5、9、10)
+├── motion-toggle.tsx          # モーション再生/停止の切替ボタン (`'use client'`)。フッターに置く (要件 19.5、9、10)
+└── rich-text-image-viewer.tsx # 本文中の画像の拡大モーダル (`'use client'`、ネイティブ `<dialog>`)。RichText を包む (要件 23.12〜23.19)
 
 frontend/src/app/(site)/sponsors/
 └── page.tsx                 # 広告協賛一覧 (ルート構成は未確定。下記 Requirement 12 参照)
@@ -121,9 +124,11 @@ cms/src/migrations/
 - `frontend/tailwind.config.ts` — 背景の図形装飾専用の色トークン `bansai-*` (要件 22) を `theme.extend.colors` へ追加する
 - `frontend/src/app/globals.css` — `motion-reduce` variant を `@custom-variant` で再定義し、`prefers-reduced-motion: reduce` と `<html data-motion="reduce">` のいずれかで発火するようにする (要件 19.4〜19.8)
 - `frontend/src/app/layout.tsx` — hydration 前に `localStorage` (無ければ `matchMedia`) を評価して `<html data-motion>` を設定するインラインスクリプトを `<head>` に追加する (要件 19.7)
-- `frontend/src/components/icons.tsx` — `pause` / `play_arrow` (Material Symbols Sharp weight 300) を追加する (要件 19.5)
-- `frontend/src/app/(site)/page.tsx` — `heroMessageHtml` の重複表示を解消し、協賛・企画一覧・構内マップの導線を追加する
+- `frontend/src/components/icons.tsx` — SVG インライン実装を Material Symbols Sharp フォントのリガチャ描画へ置き換える。`pause` / `play_arrow` (要件 19.5)・`close` (要件 23.15) を含め、使用するアイコン名を Google Fonts の読み込み対象に列挙する- `frontend/src/app/(site)/page.tsx` — `heroMessageHtml` の重複表示を解消し、協賛・企画一覧・構内マップの導線を追加する
 - `frontend/src/components/sponsors-list.tsx`, `announcements-list.tsx`, `topic-card.tsx`, `topics-list.tsx`, `hero-section.tsx` — デザイン確定後に見た目を改める
+- `frontend/src/components/rich-text.tsx` — サニタイズ許可リストと見出し・引用・画像・水平線の見た目を改める (要件 23)
+- `cms/src/payload.config.ts` — Lexical エディタの使用可能機能を絞り込む (要件 23)
+- `cms/src/collections/announcements.ts`, `topics.ts`, `pages.ts` — `lexicalHTMLField` に Upload ノードの変換の差し替えを渡す (要件 23.5)。生成 HTML の中身だけが変わり、フィールドの名前・型・必須・`hasMany` は変わらない
 
 ## 横断的要件の設計
 
@@ -245,7 +250,7 @@ export const navigationItems: readonly NavigationItem[];
 
   `setInterval` で自動送りするヒーローのスライドショーや、`requestAnimationFrame` で駆動する背景の図形装飾の揺れは CSS variant だけでは止まらないため、共有フック `frontend/src/lib/use-motion-preference.ts` (`components/use-background-motion.ts` から改名・移設。背景の図形装飾専用ではなく本 spec の全モーション共通のフックになったため `lib/` へ置く) が返す `reduced: boolean` を読み、`true` の間はタイマー/`requestAnimationFrame` を張らない。
 
-  **切替 UI**: Figma コンポーネント `MotionToggle` (ページ「コンポーネント」、COMPONENT_SET `node-id=345:2601`、variant `State`=`playing` (`345:2593`) / `paused` (`345:2597`)) をフッターの著作権表示と同じ行 (PC) または著作権表示の直上 (SP) に置く (Requirement 9/10 参照)。ファイルは `frontend/src/components/motion-toggle.tsx` (`'use client'`)。`<button aria-pressed>` のトグルボタンとして実装し、アクセシブルネームは状態によらず「モーション」で固定する (可視ラベルも同じく「モーション」で固定し、状態はアイコンのみで表す)。`aria-pressed` は再生中 (`playing`) で `true`、停止中 (`paused`) で `false` とする。アイコンは `components/icons.tsx` の方式でインライン化した `pause` (再生中に表示、押すと止める) / `play_arrow` (停止中に表示、押すと再生する) を使う。パスは Material Symbols Sharp weight 300・24px の配布 SVG (`google/material-design-icons` リポジトリの `symbols/web/pause/materialsymbolssharp/pause_wght300_24px.svg`、`play_arrow` も同型のパス) をそのまま用いる。アイコン色は `color/gray-500` とし、フッター内の他のアイコン (`location_on` / `mail` / `open_in_new`) と揃える。
+  **切替 UI**: Figma コンポーネント `MotionToggle` (ページ「コンポーネント」、COMPONENT_SET `node-id=345:2601`、variant `State`=`playing` (`345:2593`) / `paused` (`345:2597`)) をフッターの著作権表示と同じ行 (PC) または著作権表示の直上 (SP) に置く (Requirement 9/10 参照)。ファイルは `frontend/src/components/motion-toggle.tsx` (`'use client'`)。`<button aria-pressed>` のトグルボタンとして実装し、アクセシブルネームは状態によらず「モーション」で固定する (可視ラベルも同じく「モーション」で固定し、状態はアイコンのみで表す)。`aria-pressed` は再生中 (`playing`) で `true`、停止中 (`paused`) で `false` とする。アイコンは Material Symbols Sharp フォント (後述の「アイコン」の方式) の `pause` (再生中に表示、押すと止める) / `play_arrow` (停止中に表示、押すと再生する) を使う。アイコン色は `color/gray-500` とし、フッター内の他のアイコン (`location_on` / `mail` / `open_in_new`) と揃える。
 
   **見た目**: 押せる部品として見えるよう、角丸いっぱい (pill、`cornerRadius: 9999`) の枠付きボタンとする。fill は `color/background`、stroke は `color/gray-500` 1px (INSIDE)。`FacetChip` (`2:107`) / `SearchField` (`2:212`) と同じ「fill = `color/background`・stroke 1px INSIDE」の作りに揃え、stroke の色だけ `color/gray-500` にする。新しいフッターの地 (`color/background` に `color/bansai-sage` を 18% で重ねた色、実測 `#edece3` 相当) に対し `color/gray-200` はコントラスト比 1.07 で WCAG 1.4.11 (非テキスト 3:1) を満たさず、`color/gray-500` は 4.05:1 で満たすため。padding は上下 4px・左右 12px、アイコンとラベルの間隔は 4px (変更なし)、見た目の高さは 32px。タップ領域 44px 以上は、この 32px の外側に実装側で見えない padding (擬似要素等) を足して確保する。
   **ホバー**: Figma 上に hover variant は持たない (`FacetChip` / `SearchField` も持たない)。実装では fill を `color/gray-100` に変える。
@@ -257,7 +262,10 @@ export const navigationItems: readonly NavigationItem[];
 
   **初回描画でのちらつき回避**: 保存された状態 (または OS 設定) を `<html data-motion>` へ反映する処理は、React の hydration より前に同期的に行う必要がある。`frontend/src/app/layout.tsx` の `<head>` 内にインラインスクリプト (`<script dangerouslySetInnerHTML>`) を置き、`localStorage` → 無ければ `matchMedia` の順に評価して `document.documentElement.dataset.motion = 'reduce'` を設定する。
 - **横スクロール** (19.9): スマートフォン相当の画面幅で本文に横スクロールを発生させない。
-- **アイコン**: Google Fonts が配布する Material Symbols (Sharp、weight 300) を正とする。`icon/chevron_down` は `expand_more` の配布 SVG をそのまま取り込んだものである。`frontend/src/components/icons.tsx` は現在「Material Symbols Sharp (weight 300) の SVG を使用分だけインライン化する。フォント/CDN を読み込まないのは Edge ランタイムと初回表示コストのため」という方針のコメントを持つが、実際のパスは配布物と一致しない (`ChevronRightIcon` は Sharp wght200 と wght300 の中間の線幅を持ち、Sharp / Outlined / Rounded × wght100〜500 × grad 各種のいずれとも一致しない)。Figma の `icon/*` も同様に配布物と不一致であるため、Figma・コードの双方を配布 SVG から取り直したものへ移行し、`icons.tsx` の方針コメントを Google Fonts の埋め込みを用いる方針へ改める。SNS 各社のブランドアイコン (`brand-*`) は Material Symbols に存在しないため、この移行の対象外とし現状の実装を維持する。
+- **アイコン**: Google Fonts が配布する Material Symbols (Sharp、weight 300) を正とする。グリフの元データは Material Symbols Sharp フォントそのものとし、SVG を取得・再作成・インライン化しない。
+  - Figma: `icon/*` (ページ「コンポーネント」のアイコンセット `215:115`) は、24×24 の COMPONENT の中に Material Symbols Sharp (style `Light` = wght 300)・fontSize 24・lineHeight 24px のテキストノードを 1 つ置き、characters にリガチャ名 (例 `close`、`icon/chevron_down` は `expand_more`) を入れる。色はテキストの塗りの変数バインドで表す。
+  - コード: Google Fonts の Material Symbols Sharp をスタイルシートで読み込み、`<span className="material-symbols-sharp" aria-hidden="true">close</span>` のようにリガチャ名で描画する。`font-variation-settings` で `'wght' 300` を指定する。読み込みは使用するアイコン名だけに絞る (`icon_names` パラメータ)。`frontend/src/components/icons.tsx` の SVG インライン実装はこの方式へ置き換える。現行のパスは配布物とも一致しない (`ChevronRightIcon` は Sharp wght200 と wght300 の中間の線幅を持つ)。
+  - SNS 各社のブランドアイコン (`brand-*`) は Material Symbols に存在しないため対象外とし、現状の実装を維持する。
 
 #### 未確定
 
@@ -382,7 +390,7 @@ Requirement 5 が定める開催前フェーズのヘッダーは、本 spec が
 
 ## デザイン単位ごとの設計
 
-以下 15 単位は、ビジュアルデザインが未定のため、現時点で確定している構造面の方針のみを記す。各単位のデザインが起きた時点で、このセクションへ設計を追記する。
+以下 18 単位は、ビジュアルデザインが未定のため、現時点で確定している構造面の方針のみを記す。各単位のデザインが起きた時点で、このセクションへ設計を追記する。
 
 ### Requirement 1: トップページ 開催前フェーズ (PC)
 
@@ -424,7 +432,7 @@ Figma: ファイル `0kWDqHsLr6xE8b4FFgR1Zx`、ページ「トップページ」
 
 - **Hero**: 高さは `50svh` (ビューポート高の 50%) とする (要件 3.9)。`svh` を用いる理由と `min-h` による下限の考え方は Requirement 1 (要件 1.14) と同一。参照ビューポート高 900px での参考値は 450px。背景は画像スライドショーのプレースホルダ + 黒のグラデーションスクリム (下端に向かって不透明度 55% まで上がる) + スライドインジケーター。重ねる要素は上から見出し「群馬大学 荒牧祭」(固定文言、44px) → テーマ (`festival_meta.theme_word`、88px) → メタ情報「開催日 (`festival_meta.event_days`) ｜ 会場 (`festival_meta.venue_name`)」の 1 行の順で、すべて左揃え・白抜きとする。テーマは見出しの 2 倍のサイズとし Hero 内で最大の要素にする。「開催日：」のようなラベルは付けない。`page_home.hero_message_html` は表示しない (要件 3.1)。開催までの残り日数のカウントダウンと、画像スライドの手動切替 (前後の矢印ボタン) は持たない。前者は開催中に残り日数が意味を持たないため、後者は Requirement 1 (要件 1.11) と異なりスライドショーが装飾に徹するため
 - **トピック**: 見出し「トピック」(`SectionHeading` の `h2`) の下に、Figma コンポーネント `TopicCard` (ページ「コンポーネント」、`node-id=166:113`、単体 COMPONENT + `Title` の TEXT プロパティ。構成は Requirement 14 参照) のインスタンスを 4 枚、カード幅 302px・gap 24px (`spacing/6`) で横並びする (要件 3.5)。企画セクションの `ExhibitionCard` 4 枚、および `/topics` の 4 列と同じ寸法で、302×4 + 24×3 = 1280 でコンテンツ枠の幅と一致する。末尾に「トピック一覧へ」(`/topics`) を添える。0 件のときはセクションごと非表示にする (要件 3.6)。表示部品は既存の `components/topics-list.tsx` / `topic-card.tsx` を起点に改める
-- **主要導線「会場で使う」**: 見出し「会場で使う」の下に、Figma コンポーネント `PrimaryNavCard` (COMPONENT_SET、`node-id=181:130`、`Destination` variant) のインスタンスを `exhibitions` / `map` / `timetable` / `parking` の 4 種類、カード幅 302px・gap 24px で 4 列横並びする。遷移先は企画一覧 (`/exhibitions`)・構内マップ (`/map`)・タイムテーブル (未実装、`timetable-page` が扱う)・駐車場空き情報 (未実装、`parking-availability` が扱う) で、この 4 つへの導線を持つことで要件 3.2 を満たす。バリアントが `exhibitions` / `map` / `timetable` / `parking` の固定 4 種であるため、`CategoryBadge` (`2:106`) と同じ COMPONENT_SET + variant の作りに揃える。アイコンは `components/icons.tsx` の方式 (Material Symbols Sharp weight 300 の SVG を使用分だけインライン化) に揃え、`festival` / `map` / `calendar_clock` / `parking_sign` を追加する。アイコンの色は `color/text` とする (カード背景に淡い色が乗るため、トークン色のままだと背景に埋没する)。カード背景は各バリアントのトークン色 (`exhibitions`→`primary` / `map`→`secondary` / `timetable`→`info` / `parking`→`accent`) を `color/background` に 18% で重ねた濃度とし、stroke `color/gray-200` 1px・角丸 `radius/md` でカード全体を 1 つの面として扱う
+- **主要導線「会場で使う」**: 見出し「会場で使う」の下に、Figma コンポーネント `PrimaryNavCard` (COMPONENT_SET、`node-id=181:130`、`Destination` variant) のインスタンスを `exhibitions` / `map` / `timetable` / `parking` の 4 種類、カード幅 302px・gap 24px で 4 列横並びする。遷移先は企画一覧 (`/exhibitions`)・構内マップ (`/map`)・タイムテーブル (未実装、`timetable-page` が扱う)・駐車場空き情報 (未実装、`parking-availability` が扱う) で、この 4 つへの導線を持つことで要件 3.2 を満たす。バリアントが `exhibitions` / `map` / `timetable` / `parking` の固定 4 種であるため、`CategoryBadge` (`2:106`) と同じ COMPONENT_SET + variant の作りに揃える。アイコンは Material Symbols Sharp フォント (Requirement 19 の「アイコン」の方式) の `festival` / `map` / `calendar_clock` / `parking_sign` を使う。アイコンの色は `color/text` とする (カード背景に淡い色が乗るため、トークン色のままだと背景に埋没する)。カード背景は各バリアントのトークン色 (`exhibitions`→`primary` / `map`→`secondary` / `timetable`→`info` / `parking`→`accent`) を `color/background` に 18% で重ねた濃度とし、stroke `color/gray-200` 1px・角丸 `radius/md` でカード全体を 1 つの面として扱う
 - **企画**: 見出し「企画」(固定文言) の下に、既存コンポーネント `SearchField` (`node-id=2:212`) のインスタンス (幅 480px、プレースホルダはマスターの「企画名・団体名で検索」をそのまま使い上書きしない) を置く。送信時に `/exhibitions` へクエリを渡して遷移させるだけの単純な入力とし、トップページ内では絞り込まない (要件 3.2 の検索導線)。`lib/exhibitions.ts` の `buildExhibitionsHref` で URL を組み立てる点は `components/exhibition-filters.tsx` (`/exhibitions` ページ側の即時絞り込み) と共通化できるが、送信時にのみ遷移する点で同コンポーネントの挙動とは異なるため、別の新規コンポーネントとする。その下にランダムに選んだ企画を、既存コンポーネント `ExhibitionCard` (`node-id=2:139`、`Image=true, State=Default`) のインスタンス (`components/exhibition-card.tsx`) で 4 枚、カード幅 302px・gap 24px (企画一覧 PC `2:217` の `CardGrid` と同じ寸法) で横並びし、末尾に「企画一覧へ」(`/exhibitions`) を添える
 - **お知らせ**: 見出し「お知らせ」の下に、既存コンポーネント `NoticeItem` (`node-id=127:108`) のインスタンスを 5 件、幅はインスタンス側の FILL で吸収して並べ、「お知らせ一覧へ」(`/announcements`) を添える (要件 3.4)。表示部品は Requirement 1 と同じ `components/announcements-list.tsx` の `limit` prop を使う
 - **荒牧祭とは**: 見出し「荒牧祭とは」(固定文言) と概要文 (`festival_meta.overview_html`) を表示する (要件 3.7)。`festival_meta.name` は本文に表示しない (要件 3.10)。Requirement 1 (要件 1.8) と同じ扱い
@@ -547,7 +555,7 @@ Figma: ファイル `0kWDqHsLr6xE8b4FFgR1Zx`、ページ「コンポーネント
 - **アイコンと文字の揃え**: `location_on` / `mail` / `open_in_new` は、図形の上下中心と隣接する文字 1 行目の上下中心を一致させる。Material Symbols は 24px グリッドに余白を含み、和文の視覚中心は行ボックスの中央より下にあるため、要素の枠同士を中央揃えにしても一致しない。描画結果で合わせる。
 - **著作権** (要件 9.8): `label/sm`・`color/gray-600`。区切り線はグリッドと同じ x = 208〜1232 に引き、著作権はその水平中央に置く。
 - **見出し・著作権の文字色** (`color/gray-600`): フッターの地 (`color/background` に `color/bansai-sage` を 18% で重ねた色、実測 `#edece3` 相当) に対し、`color/gray-500` のコントラスト比は 4.05 で WCAG AA (4.5:1) を下回るため、`color/gray-600` (6.43) を用いる。`color/text` (14.6) の文字は変更しない。
-- **アイコン** (要件 9.18): Material Symbols Sharp weight 300 を `components/icons.tsx` の方式でインライン化する。`place` は Material Symbols に単独では存在せず `location_on` に統合されているため、Figma・実装とも `location_on` を用いる (実装側の既存 `PlaceIcon` は同一図形を `icon-place` の testId で持つ)。アイコンは非テキストで 3:1 以上あればよいため、`color/gray-500` (4.05) のまま変更しない。SNS のブランドアイコンは各社のブランド配色のまま変更しない。
+- **アイコン** (要件 9.18): Material Symbols Sharp weight 300 のフォントで描画する (Requirement 19 の「アイコン」の方式)。`place` は Material Symbols に単独では存在せず `location_on` に統合されているため、Figma・実装とも `location_on` を用いる (実装側の既存 `PlaceIcon` は同一図形を `icon-place` の testId で持つ)。アイコンは非テキストで 3:1 以上あればよいため、`color/gray-500` (4.05) のまま変更しない。SNS のブランドアイコンは各社のブランド配色のまま変更しない。
 - **モーション切替** (Requirement 19、19.5〜19.8): Figma コンポーネント `MotionToggle` (ページ「コンポーネント」、COMPONENT_SET `node-id=345:2601`、`State=playing` のインスタンスを使う) を著作権表示と同じ行に置き、右端をグリッドの右端 (x = 1232) に揃える。著作権表示は幅 1024px の中央のまま変えない。実装は `components/motion-toggle.tsx` のインスタンスを `footer.tsx` (サーバーコンポーネント) の中に埋め込む形で行う。
 
 同種サイト 10 件 (五月祭・駒場祭・三田祭・早稲田祭・京大 11 月祭・北大祭・名大祭・まちかね祭・九大祭・一橋祭) を PC 1440px / SP 390px で実地調査した結果を、次の根拠としている。
@@ -625,12 +633,140 @@ Figma: `Footer` (`291:1537`) の SP/during (`310:633`、390×1060) / SP/before (
 
 - ファイル: `frontend/src/app/(site)/announcements/page.tsx`。データは `lib/announcements.ts` の `getAnnouncements()` から全件を受け、ページ分割したうえで Requirement 15 の表示部品 (`components/announcements-list.tsx`) へ渡す。表示部品には `limit` を渡さない (「お知らせ一覧へ」の導線はこのページでは出さない)。
 - 詳細ページ `frontend/src/app/(site)/announcements/[id]/page.tsx` は本単位の対象外。遷移先の URL (`/announcements/{id}`) のみ Requirement 15 と共有する。
-- Figma: ページ「トピックページ」の `announcements/PC` (`399:1003`、1440 幅)、`announcements/SP` (`400:954`、390 幅)、`announcements/SP/empty` (`401:1056`、0 件状態)。ヘッダー・フッター・見出しの扱いはトピック一覧 (`381:2` / `382:834`) と同じ。
+- Figma: ページ「お知らせページ」の `announcements/PC` (`399:1003`、1440 幅)、`announcements/SP` (`400:954`、390 幅)、`announcements/SP/empty` (`401:1056`、0 件状態)。ヘッダー・フッター・見出しの扱いはトピック一覧 (`381:2` / `382:834`) と同じ。
 - 幅・余白 (要件 21.5): トピック一覧と同じく、PC は上 48px・左右 80px・下 80px (コンテンツ幅 1280px)、SP は上 16px・左右 16px・下 48px。見出し・リスト・ページ送りの縦の間隔は PC 24px (`spacing/6`)・SP 16px (`spacing/4`)。現行の `max-w-4xl` (896px) は使わない。
 - 見出し (要件 21.6): `SectionHeading` (`208:118`) の `Level=h1` で「お知らせ」。現行の `<h1 className="font-bold border-b ...">` を置き換える。
 - ページ分割 (要件 21.2): 1 ページ 10 件。ページ番号は企画一覧と同じくクエリ `?page=n` で持ち、`lib/exhibitions.ts` の `paginate` (範囲外を有効ページへ丸める純粋関数) を使う。`paginate` は企画に依存しない汎用関数のため、そのまま import する。
 - ページ送り (要件 21.4): `components/exhibition-pagination.tsx` の `ExhibitionPagination` を `hrefForPage={(p) => \`/announcements?page=${p}\`}` で使う。Figma では企画一覧と同じ `Pagination` (`2:124`) を、リストの下に中央寄せで置く。1 ページに収まるときは部品側 (`pageCount <= 1` で `null`) が非表示にする。0 件のときもページ送りは出さない。
 - 年別・月別の区切りは設けない (要件 21.7)。
+
+### Requirement 23: WYSIWYG 本文 (RichText)
+
+Figma: ファイル `0kWDqHsLr6xE8b4FFgR1Zx`、ページ「コンポーネント」。COMPONENT_SET `RichText` (`node-id=408:555`、variant `Device`=`PC`/`SP`)。
+
+- ファイル: `frontend/src/components/rich-text.tsx` (既存)。お知らせ詳細 (`app/(site)/announcements/[id]/page.tsx`)・トピック詳細 (`app/(site)/topics/[id]/page.tsx`)・固定ページ (`components/static-page-view.tsx`) の 3 箇所とも、この 1 部品を本文表示に用いる (要件 23.1)。現行はトピック詳細のみ個別のユーティリティで本文相当を扱っており、`RichText` へ揃える。
+- **データの出どころ**: `announcements.body_html` / `topics.body_html` / `pages.content_html`。いずれも `lexicalHTMLField({ storeInDB: true })` が保存時に Lexical のドキュメントから生成する HTML で、`RichText` はこの文字列を受け取って `sanitizeHtml()` にかける。
+
+#### サニタイズ許可リスト
+
+`allowedTags` を次の集合に変更する。`h1`・`h5`・`h6` は許可リストから外し、見出しは `h2`〜`h4` のみを通す (要件 23.2, 23.3)。
+
+```
+h2, h3, h4, p, br, strong, em, b, i, span, a, ul, ol, li, blockquote, img, hr
+```
+
+- 下線・取消線は Lexical の HTML 変換が `<span style="text-decoration: underline;">` / `<span style="text-decoration: line-through;">` として書き出す。`span` には `style` のみを許可し、sanitize-html の `allowedStyles` で `text-decoration` の値を `underline` / `line-through` に限定する。それ以外のスタイルは剥離する。
+- `blockquote` は `QuoteNode`、`hr` は `HorizontalRuleNode` の書き出し先タグ。
+- `allowedAttributes` は `a: ['href', 'rel']`、`span: ['style']`、`img: ['src', 'alt']` とする。エディタのリンク設定で「新しいタブで開く」を選んでも `target` は描画しない。
+- 見出しの `transformTags` によるタグの繰り下げ (現行の h1→h2 … h6→h6) は撤廃する。エディタ側が `h2`〜`h4` しか生成しなくなり (下記)、`body_html` / `content_html` に出力される見出しタグが既に `h2` から始まるため、レンダリング側での繰り下げが不要になる (要件 23.4)。`a` の `rel="noopener noreferrer"` を強制する `transformTags.a` は現行のまま残す。
+
+#### 画像 (要件 23.5)
+
+Payload の Upload ノードの既定の HTML 変換 (`UploadHTMLConverterAsync`) は、S3 プラグインが返す実ファイル URL をそのまま `src` に埋め込み、メディアにサイズ違いがあれば `<picture>` と `<source>` を出力する。本サイトは画像 URL を常に `frontend/src/lib/cms-asset-url.ts` の `toAssetUrl(fileId, width)` で組み立てる方針 (`topics.image` の `imageId` 等、既存の全画像参照が従う方針) のため、CMS が焼き込んだ URL を素通しにしない。
+
+- `announcements` / `topics` / `pages` の `lexicalHTMLField` に `converters: ({ defaultConverters }) => ({ ...defaultConverters, upload: ... })` を渡して Upload ノードの変換だけを差し替え、`<img data-media-id="{メディア ID}" alt="{代替テキスト}">` (`src` は持たせない) を出力させる。代替テキストは既定の変換と同じく `node.fields.alt` を優先し、無ければメディアの `alt` を `populate` で取得して用いる。差し替えは 3 コレクションで共有する 1 つの定義から供給する。
+- `rich-text.tsx` の `allowedAttributes.img` に `data-media-id` を加え、`transformTags.img` で `data-media-id` を読み取り `toAssetUrl(id)` を呼んだ結果を `src` に差し替える。`data-media-id` は拡大表示で大きいサイズの URL を組み立て直すために残す。`id` を読み取れない場合 (壊れた HTML 等) は `img` タグごと出力しない。
+
+#### 画像の拡大表示 (要件 23.12〜23.19)
+
+Figma: ページ「コンポーネント」の `RichText 画像拡大 / PC (1440)` (`412:557`)、`RichText 画像拡大 / SP (390)` (`412:559`)。背景幕は `color/text` の不透明度 85%。画像は画面から余白 (PC 64px・SP 16px) を引いた領域に縦横比を保って内接させ中央に置く。閉じるボタンはタップ領域 48×48 で、PC は右上から 16px・SP は 8px 内側に置き、アイコンは Material Symbols Sharp (weight 300) フォントの `close` を `color/background` で用いる (本 spec のアイコン方針どおり Google Fonts の埋め込みで描画し、SVG を持たない)。
+
+- `RichText` はサーバーコンポーネントのまま HTML を描画し、その外側を新設のクライアントコンポーネント `components/rich-text-image-viewer.tsx` で包む。サーバーが出力する HTML は拡大の有無に関わらず同一で、スクリプトが動かない環境では画像がそのまま表示される (要件 23.18)。
+- マウント時に子孫の `img` を `<button type="button" aria-label="画像を拡大: {alt}">` で包み、キーボードで選択できるようにする (要件 23.13)。`dangerouslySetInnerHTML` の中身は React が差分管理しないため、DOM を直接包み替えても再描画で壊れない。クリックはコンテナへの 1 つのリスナーで受け、`closest('button[data-rich-text-image]')` で画像のボタンだけを拾う。リンクなど他の要素の選択は素通しにする。
+- モーダルはネイティブの `<dialog>` を `showModal()` で開く。フォーカスの閉じ込め・Esc での閉じる・背面の操作不能化はブラウザ既定の挙動に任せ、MapMenuButton のような自前のフォーカストラップは作らない (要件 23.15, 23.16)。背景 (`::backdrop` とダイアログ本体の画像外側) のクリックで `close()` し、`close` イベントで選択元のボタンへ `focus()` を戻す。表示中は `document.documentElement` に `overflow: hidden` を付けて背面のスクロールを止める。
+- 拡大画像の `src` は元画像の `data-media-id` から `toAssetUrl(id, 画面幅)` で大きいサイズを組み立て直し、`alt` は元の `img` の値を写す (要件 23.14)。表示は `max-width` / `max-height` を画面から余白を引いた値にし、`object-fit: contain` で縦横比を保つ (要件 23.12)。元画像より大きくは引き伸ばさない。
+- 閉じるボタンは画面右上に置き、`aria-label="閉じる"`。前後送りとキャプションは持たない (要件 23.17)。
+- 開閉のフェードは Requirement 19 のモーション切替の状態と `prefers-reduced-motion` を参照し、停止時は演出なしで開閉する (要件 23.19)。
+
+#### エディタ機能 (`cms/src/payload.config.ts`)
+
+現行の `editor: lexicalEditor()` (引数なしの既定フル機能) を、次の機能へ絞った設定に差し替える。
+
+```typescript
+editor: lexicalEditor({
+  features: ({ defaultFeatures }) =>
+    defaultFeatures
+      .filter(
+        (feature) =>
+          ![
+            'subscript',
+            'superscript',
+            'inlineCode',
+            'checklist',
+            'relationship',
+            'align',
+            'indent',
+          ].includes(feature.key),
+      )
+      .map((feature) =>
+        feature.key === 'heading'
+          ? HeadingFeature({ enabledHeadingSizes: ['h2', 'h3', 'h4'] })
+          : feature,
+      ),
+}),
+```
+
+- 残る機能は見出し (h2〜h4)・段落・太字・斜体・下線・取消線・リンク・箇条書き・番号リスト・引用・画像 (Upload)・水平線・インラインツールバーで、要件 23.2 の表示対象と一致する。
+- `editor` は `buildConfig` 直下の唯一の設定であり、`announcements.body` / `topics.body` / `pages.content` に加えて `festival_meta.overview` / `festival_meta.theme_description` / `page_home.hero_message` にも適用される。既定機能の部分集合への絞り込みであり、この 3 フィールドの既存データが使う要素 (見出し・段落・強調の範囲) を上回って壊すものではない。
+- フィールド定義 (`type: 'richText'` であること自体) は変わらず、DB 上も `body_html` 等の `text` 列がそのまま残るため、フィールドの型・`required`・`hasMany` を比較する `cms/scripts/collection-shape.ts` の `detectBreakingChanges` はこの変更を検出しない。`cms-schema-check.yml` の対象外であり、`breaking-change-acknowledged` ラベルは不要。
+
+#### 既存データとの互換性 (要件 23.8)
+
+既存の公開済みコンテンツが使っているノードは段落・改行・見出し (`h2`/`h3`)・箇条書き・リンク・太字のみで、いずれも絞り込み後の許可リストに含まれる。見出しは元から `h2`/`h3` のみで `h1`/`h4`〜`h6` を使った既存データはないため、エディタの `enabledHeadingSizes` 制限後も再編集や表示崩れは発生しない。
+
+#### 見た目 (Figma 確定)
+
+`Device=PC` (`406:555`、幅 768) と `Device=SP` (`406:607`、幅 358) は要素構成・スタイルが同一で、SP でも見出しを縮小しない。余白は要素の上側のマージンとして持ち、隣接する要素間では大きい方を採る (CSS のマージン相殺と同じ扱い)。本文の最初の要素の上マージンは 0。
+
+- 見出し h2: `heading/h2`、上 48px・下 16px / h3: `heading/h3`、上 32px・下 12px / h4: `heading/h4`、上 24px・下 8px
+- 段落: `body/md`、`color/text`、段落間 16px
+- 太字: Noto Sans JP Bold。斜体: 和文フォントに斜体が無いため欧文部分のみ斜体になる。下線・取消線: 文字色は `color/text`
+- リンク: `color/text` + 下線。`primary` は地 (`color/background`) とのコントラストが不足するため用いない
+- 箇条書き・番号リスト: `body/md`、左インデント 24px、項目間 8px、リストの前後 16px、マーカーは `color/gray-500`。入れ子は 1 段ごとに同じインデントを重ねる
+- 引用: 左罫線 4px `color/gray-200`、左パディング 16px、本文 `body/md` `color/text`、前後 24px
+- 画像: 本文列の幅いっぱい、角丸 0、前後 24px、キャプションなし。縦横比は画像の実寸に従う (Figma の 16:9 はプレースホルダ)
+- 水平線: 1px `color/gray-200`、前後 32px
+
+### Requirement 24: お知らせ詳細ページ
+
+Figma: ページ「お知らせページ」の `announcements/[id]/PC` (`436:5396`、1440 幅) と `announcements/[id]/SP` (`439:5379`、390 幅)。添付ファイル行はページ「コンポーネント」の `AttachmentItem` (`436:5212`)、ファイルアイコンは `icon/draft` (`435:557`)。
+
+- ファイル: `frontend/src/app/(site)/announcements/[id]/page.tsx` (既存)、`frontend/src/components/attachment-gallery.tsx` (既存。トピック詳細は添付ファイルを使わなくなるため、お知らせ詳細専用になる)。データは `lib/announcements.ts` の `getAnnouncementById()`。
+- **ページの枠**: ヘッダー・フッター・外側の padding はお知らせ一覧 (Requirement 21) と同じ (PC 上 48px・左右 80px・下 80px、SP 上 16px・左右 16px・下 48px)。その中に 1 列のカラムを置き、幅は PC 768px をコンテンツ枠 1280px の中央に、SP は 358px とする (要件 24.2)。現行の `max-w-4xl` (896px) は使わない。カラムの要素間は PC 32px (`spacing/8`)・SP 24px (`spacing/6`) で、企画詳細 (`exhibition-pages`) と同じ値。トピック詳細もこの枠・幅・間隔を共有する。
+- カラムの中身は上から次の順 (要件 24.2)。
+  1. **戻る導線**: 企画詳細の戻る導線 (`17:591`) と同じ構成で「お知らせ一覧に戻る」(`/announcements`)。`icon/arrow_back` + `label/md`、`color/gray-500`、左揃え。実装は企画詳細の `ArrowBackIcon` + `Link` と同じ組み方。
+  2. **タイトルと公開日**: 2 つを内側のまとまりとし、間隔を `spacing/2` (8px) に詰めて近接させる。
+     - タイトル: `<h1>` (要件 24.3)。見た目は企画詳細のタイトル (`209:304` / `209:306`) と同じで、PC は `heading/h2` 相当 32px・SP は `heading/h3` 相当 24px、色 `color/primary`。企画詳細は左揃えだが、お知らせ詳細は中央揃えとする。折り返し時に最終行が 1〜2 文字だけ残らないよう `text-wrap: balance` を当てる。
+     - 公開日: `<time dateTime={publishedAt}>`、「2026年9月22日」表記 (要件 24.4)、`body/sm`・`color/gray-500`、中央揃え。表記の組み立ては Requirement 15 の一覧と同じ関数を共有する。現行は `publishedAt` の生文字列を表示している。
+  3. **区切り線**: 1px `color/gray-200`、カラム幅いっぱい。
+  4. **本文**: Requirement 23 の `RichText` に `body_html` を渡す (要件 24.5)。本文の見出しは `h2` から始まるため、ページの `<h1>` と重複しない。
+  5. **添付ファイル**: 見出し「添付ファイル」を `<h2>` とし、本文の `h2` と同じ `heading/h2`・`color/text`・左揃えにする。見出しとリストの間は `spacing/4` (16px)。リストは `<ul>` で各 `<li>` を `AttachmentItem` 1 件とする。添付が 0 件のときは見出しごと出さない (要件 24.8)。
+- **`AttachmentItem`** (要件 24.6): `NoticeItem` と同じく、上下 padding `spacing/3` (12px) の横並びの行と、その下の区切り線 (1px `color/gray-200`) から成る。お知らせ一覧の行と同じ反復にするため。
+  - 左: `icon/draft` 24px (`color/gray-500`)。画像・PDF・その他の形式を問わず同じアイコンを用いる。アイコンの描画方法は本 spec のアイコン方針に従う。
+  - 中央: ファイル名 (`body/md`・`color/text`、残り幅を占め折り返す)。アイコンとの間は `spacing/3` (12px)。
+  - 右: 形式とサイズ「PDF・1.7 MB」(`body/sm`・`color/gray-500`、折り返さない)。中央との間は `spacing/4` (16px)。
+  - 縦は上揃えとし、ファイル名が折り返してもアイコンと形式・サイズは 1 行目に揃える。
+  - 画像も他の形式と同じ行で表示し、サムネイルは出さない。見せたい画像は本文 (`RichText`) に埋め込む運用とする。現行の `attachment-gallery.tsx` が画像を `<img>` で並べる処理は削除する。
+- **リンク** (要件 24.7): 行全体を 1 つの `<a href={toAssetUrl(id)} target="_blank" rel="noopener noreferrer">` とする。現行の `download` 属性は外す (CMS のメディアは別オリジンから配信され、ブラウザは別オリジンの `download` 属性を無視するため効果がない)。PDF・画像はブラウザで表示され、ブラウザが表示できない形式はダウンロードになる。
+- **形式とサイズの取得** (要件 24.9): `media` の `mimeTypes` 制限は設けず、フィールドも追加しない。形式はファイル名の拡張子を大文字にしたもの (拡張子が無ければ `mimeType` のサブタイプ) を表示する。サイズは Payload のアップロード標準フィールド `filesize` (バイト数) を用い、`lib/announcements.ts` の `toAttachments()` で `filesize` も取り出すよう改める (現行は `id`・`filename`・`mimeType` のみ)。表示は 1024 を底とし、1 MB 以上は小数 1 桁の MB、未満は整数の KB とする。
+- **メタデータ** (要件 24.10): `generateMetadata` を新設し、`title` にお知らせのタイトルを入れる。現行は未設定。
+- 404 (要件 24.1) は現行の `notFound()` のまま。
+
+### Requirement 25: トピック詳細ページ
+
+Figma: ページ「トピックページ」の `トピック詳細 / PC (1440)` (`436:1663`、横長サムネイル)、`トピック詳細 / PC (1440) 縦長サムネイル` (`436:1718`)、`トピック詳細 / SP (390)` (`436:1773`)。
+
+- ファイル: `frontend/src/app/(site)/topics/[id]/page.tsx` (既存)。データは `lib/topics.ts` の `getTopicById()`。
+- **ページの枠・列**: Requirement 24 と共有する (列幅 PC 768px・SP 358px、要素間 PC 32px `spacing/8`・SP 24px `spacing/6`)。現行の `max-w-4xl` は使わない (要件 25.2)。
+- カラムの中身は上から次の順 (要件 25.2)。
+  1. **戻る導線**: 企画詳細の戻る導線 (`17:591`) と同じ構成で「トピック一覧に戻る」(`/topics`)。
+  2. **タイトル**: `<h1>` (要件 25.3)。見た目は企画詳細のタイトル (`209:304` / `209:306`) と同じで、PC は `heading/h2` 相当 32px・SP は `heading/h3` 相当 24px、色 `color/primary`。行数の制限はしない。一覧のカードはタイトルを画像に重ねるが、詳細ページでは重ねない。長いタイトルが画像の上では読みにくく、調査した学園祭サイトにも重ねる例がなかったため。揃えはお知らせ詳細と同じ中央揃えとし、折り返し時に最終行が 1〜2 文字だけ残らないよう `text-wrap: balance` を当てる。
+  3. **サムネイル** (要件 25.4〜25.7): `imageId` から `toAssetUrl()` で URL を組み立てる。`width: 100%`・`height: auto` で元画像の縦横比のまま表示し、`max-height` を列の幅と同じ値 (PC 768px・SP 358px) にして、縦長の画像は `object-fit: contain` で中央に寄せる。角丸は `radius/xl` (12px)。一覧のカードは 4:3 で切り抜くため、パンフレットの表紙のような縦長の画像も、詳細ページで全体を見せる。`imageId` が `null` のときは要素ごと描画しない (カードの代替画像は用いない)。画像の選択による拡大は、Requirement 23 の `rich-text-image-viewer.tsx` の仕組みをサムネイルにも適用し、同じモーダルで開く。
+  4. **本文**: Requirement 23 の `RichText` に `body_html` を渡す (要件 25.8)。
+- **重複の回避**: サムネイルは詳細ページの冒頭に自動で表示されるため、本文の冒頭にサムネイルと同じ画像を入れない運用とする。
+- **添付ファイル** (要件 25.11): トピックでは添付ファイルを使わない。現行の `topic-card.tsx` と詳細ページが `AttachmentGallery` を描画している処理を削除し、`TopicSummary` の `attachments` も取り出さない。`topics.attachments` / `topics.attachment` のフィールド定義は残す (要件 25.9)。見せたい画像や資料へのリンクは本文 (`RichText`) に入れる運用とする。
+- **メタデータ** (要件 25.10): `generateMetadata` を新設し、`title` にトピックのタイトルを入れる。
+- 404 (要件 25.1) は現行の `notFound()` のまま。
 
 ## Requirements Traceability
 
@@ -653,6 +789,9 @@ Figma: `Footer` (`291:1537`) の SP/during (`310:633`、390×1060) / SP/before (
 | 20 | `cms/src/globals/festival-meta.ts`, マイグレーション, `lib/home-page-types.ts`, `components/hero-section.tsx` | 確定 (破壊的変更として検出される) |
 | 21 | `(site)/announcements/page.tsx`, `lib/announcements.ts`, `lib/exhibitions.ts` (`paginate`), `components/announcements-list.tsx`, `components/exhibition-pagination.tsx` | Figma 確定 |
 | 22 | `components/background-shapes.tsx`, `lib/use-motion-preference.ts`, `(site)/layout.tsx`, `tailwind.config.ts` | 色トークン・配置先・個数/サイズ/最小間隔・配置方式 (決定的乱数)・質感・動きの仕様は確定。動きのオン・オフは Requirement 19 のモーション切替に従う |
+| 23 | `components/rich-text.tsx`, `components/rich-text-image-viewer.tsx`, `cms/src/payload.config.ts`, `cms/src/collections/{announcements,topics,pages}.ts` | Figma 確定 |
+| 24 | `(site)/announcements/[id]/page.tsx`, `lib/announcements.ts`, `components/attachment-gallery.tsx`, `components/rich-text.tsx` | Figma 確定 (`AttachmentItem` `436:5212`、PC `436:5396` / SP `439:5379`) |
+| 25 | `(site)/topics/[id]/page.tsx`, `lib/topics.ts`, `components/rich-text.tsx`, `components/rich-text-image-viewer.tsx` | Figma 確定 |
 
 ## Testing Strategy
 
@@ -665,5 +804,7 @@ Figma: `Footer` (`291:1537`) の SP/during (`310:633`、390×1060) / SP/before (
 - `(site)/page.tsx` — CMS 取得失敗時に主見出しが `sr-only` のみにならないこと
 - `cms/src/globals/festival-meta.ts` — `event_days` が配列かつ `start_at` / `end_at` が必須であること
 - `event_days` の `start_at` を用いた曜日・残り日数の算出
+- `components/rich-text.tsx` — 許可リスト外のタグ・属性 (`h1`, `h5`, `h6`, `script`, `style` 等) を描画しないこと、`data-media-id` を `toAssetUrl` の呼び出しへ変換すること、`h2`〜`h4` の繰り下げを行わないこと
+- `components/rich-text-image-viewer.tsx` — 画像の選択でモーダルが開き拡大画像に同じ `alt` が付くこと、リンクの選択では開かないこと、閉じるボタン・Esc・背景の操作で閉じて選択元へフォーカスが戻ること、モーション停止時に開閉の演出が無いこと
 
 デザイン確定後に追加する見た目まわりのテストは、各デザイン単位のセクションへ追記する。
