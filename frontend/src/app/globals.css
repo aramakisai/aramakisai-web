@@ -24,6 +24,20 @@
   --map-search-box-line-height: 1.5rem;
 }
 
+.material-symbols-sharp {
+  font-family: 'Material Symbols Sharp';
+  font-weight: 300;
+  font-style: normal;
+  display: inline-block;
+  white-space: nowrap;
+  /* liga を明示しないとアイコン名の文字列がそのまま表示され、字形に変換されない */
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings:
+    'FILL' 0,
+    'GRAD' 0;
+}
+
 /*
  * MapMenuButton の top 位置。検索ボックスの中心 (safe-area + 半分の高さ) に合わせるため、
  * 検索ボックスとボタンの高さの差の半分だけ safe-area 起点からずらす。検索ボックスの

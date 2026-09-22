@@ -17,19 +17,22 @@ export interface AreaPinProps {
 
 // iconSize を [0, 0] にするのは AreaLabelMarker と同じ理由 (中身を transform で位置合わせする)。
 // ラベルは中心配置だが、ピンは先端が重心を指す必要があるため、水平は中央・垂直は下端を基準にする。
-// LocationPinIcon の図形は viewBox の下端付近に先端を持つ (icons.tsx の形状データで確認済み)
+// Material Symbols Sharp の location_on (FILL 1) はフォントの外形データ上、字形の下端が
+// ベースラインより上にある (line-height:1 の行送りの下端との間に約 10.4% 分の空白が残る)。
+// そのまま -translate-y-full だけだと先端が重心の少し上に浮くため、字形の高さの
+// 約 10.4% 分だけ余分に下へ寄せて先端を重心に合わせる
 const PIN_ICON_SIZE: [number, number] = [0, 0];
 
 // Figma 実測: SP (95:12 内 MapPin 101:304) は 32px、PC (95:2 内 MapPin 101:302) は 48px。
-// 両ブレークポイントの値を Tailwind の標準スケールがそのまま表せる (w-8/w-12) ため、
-// カスタム size が渡されない既定時はこの実測値を使う
+// LocationPinIcon (icons.tsx) は size を fontSize として inline style で描画するため、
+// ブレークポイントで上書きするクラスは important 修飾が無いと inline style に負けて効かない
 const DEFAULT_PIN_SIZE = 32;
-const DEFAULT_PIN_MD_CLASS = 'md:w-12 md:h-12';
+const DEFAULT_PIN_MD_CLASS = 'md:text-[48px]! md:leading-[48px]!';
 
 function buildPinIcon(size?: number): DivIcon {
   return divIcon({
     html: renderToStaticMarkup(
-      <span className="-translate-x-1/2 -translate-y-full block">
+      <span className="-translate-x-1/2 -translate-y-[89.58%] block">
         <LocationPinIcon
           size={size ?? DEFAULT_PIN_SIZE}
           className={`text-accent${

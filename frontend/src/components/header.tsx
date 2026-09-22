@@ -5,6 +5,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { visibleNavItems, type FestivalPhase } from '@/lib/phase';
+import { ExpandMoreIcon } from '@/components/icons';
 
 type NavigationItem = {
   label: string;
@@ -227,22 +228,12 @@ export function Header({ phase }: HeaderProps) {
                             }
                             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-slate-700 transition-colors hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-sky-600"
                           >
-                            <svg
-                              aria-hidden="true"
-                              viewBox="0 0 24 24"
-                              className={`h-5 w-5 transition-transform duration-200 motion-reduce:transition-none ${
+                            <ExpandMoreIcon
+                              size={20}
+                              className={`transition-transform duration-200 motion-reduce:transition-none ${
                                 mobileAboutOpen ? 'rotate-180' : ''
                               }`}
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="1.75"
-                            >
-                              <path
-                                d="m7 9.5 5 5 5-5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
+                            />
                           </button>
                         </div>
 

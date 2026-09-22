@@ -68,16 +68,16 @@ describe('AreaPin', () => {
   it('地図に重なっても判別できる寸法をブレークポイントごとに指定する (Figma実測: SP 32px / PC 48px)', () => {
     render(<AreaPin geometry={GEOMETRY} />);
     const html = lastIconHtml();
-    expect(html).toContain('width="32"');
-    expect(html).toContain('md:w-12');
-    expect(html).toContain('md:h-12');
+    expect(html).toContain('font-size:32px');
+    expect(html).toContain('md:text-[48px]!');
+    expect(html).toContain('md:leading-[48px]!');
   });
 
   it('size を指定した場合はその寸法をブレークポイントによらず用いる', () => {
     render(<AreaPin geometry={GEOMETRY} size={40} />);
     const html = lastIconHtml();
-    expect(html).toContain('width="40"');
-    expect(html).not.toContain('md:w-12');
+    expect(html).toContain('font-size:40px');
+    expect(html).not.toContain('md:text-[48px]!');
   });
 
   it('ピン自身はクリックを受け取らない (ポリゴン側に通す)', () => {

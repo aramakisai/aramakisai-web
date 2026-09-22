@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import Link from 'next/link';
 import { navigationItems } from '@/components/header';
 import { visibleNavItems, type FestivalPhase } from '@/lib/phase';
+import { MenuIcon } from '@/components/icons';
 
 const FOCUSABLE_SELECTOR = 'a[href]';
 
@@ -69,14 +70,7 @@ export function MapMenuButton({ phase }: MapMenuButtonProps) {
         className="map-menu-button-position fixed right-[max(1rem,env(safe-area-inset-right))] z-[1100] flex h-[var(--map-toolbar-size)] w-[var(--map-toolbar-size)] items-center justify-center rounded-full bg-white/90 text-slate-900 shadow-lg backdrop-blur focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600"
       >
         <span className="sr-only">メニューを開く</span>
-        <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-6">
-          <path
-            d="M2 5h20M2 12h20M2 19h20"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </svg>
+        <MenuIcon size={24} />
       </button>
 
       {isOpen && (

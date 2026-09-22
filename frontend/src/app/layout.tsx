@@ -19,6 +19,36 @@ const zenOldMincho = Zen_Old_Mincho({
   display: 'swap',
 });
 
+// Material Symbols は next/font/google の対象フォント一覧に無く (アイコン名によるサブセット
+// 指定 (icon_names) を next/font がサポートしないため)、通常の <link> で読み込む。
+// weight/FILL は固定値のみ使うため wght は 300 で固定し、FILL だけ 0..1 の範囲を残して
+// アイコンごとに塗りつぶし版 (位置ピン) と線画版を出し分ける
+const MATERIAL_SYMBOLS_ICON_NAMES = [
+  'arrow_back',
+  'calendar_clock',
+  'chevron_left',
+  'chevron_right',
+  'close',
+  'draft',
+  'expand_more',
+  'festival',
+  'hide_image',
+  'home',
+  'image',
+  'link',
+  'location_on',
+  'mail',
+  'map',
+  'menu',
+  'open_in_new',
+  'parking_sign',
+  'pause',
+  'play_arrow',
+  'search',
+  'share',
+].join(',');
+const MATERIAL_SYMBOLS_HREF = `https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp:opsz,wght,FILL,GRAD@24,300,0..1,0&icon_names=${MATERIAL_SYMBOLS_ICON_NAMES}&display=block`;
+
 export async function generateMetadata(): Promise<Metadata> {
   let name = '';
   try {
@@ -67,6 +97,15 @@ export default async function RootLayout({
 
   return (
     <html lang="ja" className={zenOldMincho.variable}>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        <link rel="stylesheet" href={MATERIAL_SYMBOLS_HREF} />
+      </head>
       <body className="flex min-h-screen min-h-dvh min-w-0 flex-col font-sans">
         {children}
         {phaseToggle}

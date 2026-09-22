@@ -13,7 +13,7 @@ CMS のスキーマ変更 (2.1・2.3・2.7) は `migrations/index.ts`・マイ�
   - トークンの追加後も既存画面の見た目が変わらず、境界の定数と `lg` の一致をテストで確認できる
   - _Requirements: 21.1, 21.2, 21.10, 21.11, 23.4_
 
-- [ ] 1.2 アイコンを Material Symbols Sharp フォントの描画へ置き換える
+- [x] 1.2 アイコンを Material Symbols Sharp フォントの描画へ置き換える
   - Google Fonts の Material Symbols Sharp (weight 300) を、使用するアイコン名だけに絞って読み込む。塗りつぶし版のグリフ (位置ピン) のために FILL 軸も読み込む
   - 読み込み対象は、本 spec で使う `pause` / `play_arrow` / `close` / `expand_more` / `chevron_right` / `arrow_back` / `location_on` / `mail` / `open_in_new` / `draft` / `menu` / `image` / `festival` / `map` / `home` / `calendar_clock` / `parking_sign` に加え、既存画面が使う `search` / `share` / `link` / `chevron_left` / `hide_image` を含める。置き換え前に既存のアイコン利用箇所を洗い出し、一覧から漏れがないことを確かめる
   - アイコン部品の SVG 実装と、ヘッダーの chevron・MapMenuButton の menu に直書きされた SVG をリガチャ名での描画へ置き換える。SNS のブランドアイコンは対象外とする。地図ライブラリへ文字列やマークアップで渡している箇所 (位置ピンの divIcon・拡大縮小コントロール) はフォント描画で表示されることを確かめ、表示できない箇所は現状の SVG を維持する
