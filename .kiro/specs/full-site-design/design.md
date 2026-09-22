@@ -87,10 +87,13 @@ requirements.md が述べるとおり、これら 16 のデザイン単位は Fi
 frontend/src/lib/
 ├── navigation.ts            # ナビゲーション項目定義 (要件 17)
 ├── sponsors.ts              # 協賛の取得と種別絞り込み (要件 12, 13, 16.5)
-└── breakpoints.ts           # PC / SP 境界の単一定義 (要件 19.2)
+├── breakpoints.ts           # PC / SP 境界の単一定義 (要件 19.2)
+└── use-motion-preference.ts # サイト全体のモーション再生/停止の状態 (localStorage 保存・OS 設定へのフォールバック)。background-shapes.tsx・hero-section.tsx 等の JS 制御アニメーションから参照する (要件 19.5〜19.8)
 
 frontend/src/components/
-└── bottom-navigation.tsx    # 下部ナビゲーション (要件 8)
+├── bottom-navigation.tsx      # 下部ナビゲーション (要件 8)
+├── background-shapes.tsx      # 背景の図形装飾 (要件 22)
+└── motion-toggle.tsx          # モーション再生/停止の切替ボタン (`'use client'`)。フッターに置く (要件 19.5、9、10)
 
 frontend/src/app/(site)/sponsors/
 └── page.tsx                 # 協賛一覧 (ルート構成は未確定。下記 Requirement 12/13 参照)
@@ -111,9 +114,13 @@ cms/src/migrations/
 - `frontend/src/lib/home-page.ts` — 取得失敗時に throw せず領域単位で縮退させる (要件 18.1, 18.2)
 - `frontend/src/lib/cms.ts` — 取得に再検証方針を与える (要件 18.3)
 - `frontend/src/components/header.tsx` — `navigationItems` の定義を `lib/navigation.ts` へ移し、間引きを解消する
-- `frontend/src/components/footer.tsx` — `footerNavigation` を廃し `lib/navigation.ts` を参照する
+- `frontend/src/components/footer.tsx` — `footerNavigation` を廃し `lib/navigation.ts` を参照する。`components/motion-toggle.tsx` のインスタンスを埋め込む (要件 9、10)
 - `frontend/src/components/campus-map/map-menu-button.tsx` — import 元を `lib/navigation.ts` へ差し替える
-- `frontend/src/app/(site)/layout.tsx` — 下部ナビゲーションを追加する
+- `frontend/src/app/(site)/layout.tsx` — 下部ナビゲーションを追加する。外側のコンテナ要素を追加し、背景の図形装飾 (要件 22) を敷く
+- `frontend/tailwind.config.ts` — 背景の図形装飾専用の色トークン `bansai-*` (要件 22) を `theme.extend.colors` へ追加する
+- `frontend/src/app/globals.css` — `motion-reduce` variant を `@custom-variant` で再定義し、`prefers-reduced-motion: reduce` と `<html data-motion="reduce">` のいずれかで発火するようにする (要件 19.4〜19.8)
+- `frontend/src/app/layout.tsx` — hydration 前に `localStorage` (無ければ `matchMedia`) を評価して `<html data-motion>` を設定するインラインスクリプトを `<head>` に追加する (要件 19.7)
+- `frontend/src/components/icons.tsx` — `pause` / `play_arrow` (Material Symbols Sharp weight 300) を追加する (要件 19.5)
 - `frontend/src/app/(site)/page.tsx` — `heroMessageHtml` の重複表示を解消し、協賛・企画一覧・構内マップの導線を追加する
 - `frontend/src/components/sponsors-list.tsx`, `announcements-list.tsx`, `topic-card.tsx`, `topics-list.tsx`, `hero-section.tsx` — デザイン確定後に見た目を改める
 
@@ -218,8 +225,37 @@ export const navigationItems: readonly NavigationItem[];
 - **見出しの色**: `globals.css` の `h1〜h6:not(.prose *)` が基底で `text-primary` を当てており、上書きしない限り見出しは primary になる。上書きは色つきカード上や小さな補助ラベル用途に限る (`exhibition-card.tsx` の h4 が `text-text`、`festival-overview.tsx` の h3 が `text-gray-500`)。
 - **ブレークポイント** (19.2): `frontend/src/lib/breakpoints.ts` に単一の定数として定義し、本 spec が扱う全デザイン単位でこれを用いる。境界は現行のヘッダーと同じ `lg` (1024px) を単一の値として用い、ヘッダーのナビゲーションを畳む幅と下部ナビゲーション (Requirement 8) を出す幅を一致させる。両者がずれると、ヘッダーのナビゲーションと下部ナビゲーションが同時に出る幅と、どちらも出ない幅が生まれるため。
 - **フォーカス表示** (19.3): 既存コードが用いている `focus-visible` を基準とする。
-- **動きの抑制** (19.4): 既存コードが用いている Tailwind の `motion-reduce:` を基準とする (`footer.tsx` の `HoverLine` が先行例)。自動再生される動き (ヒーローのスライドショー等) は `prefers-reduced-motion` で停止させる。
-- **横スクロール** (19.5): スマートフォン相当の画面幅で本文に横スクロールを発生させない。
+- **モーションの抑制と切替** (19.4〜19.8): OS の `prefers-reduced-motion: reduce` と、フッターの `MotionToggle` (Requirement 9/10) のいずれか一方でも停止を求めていれば、自動再生される動きと遷移の演出を停止する。対象は本 spec が扱う全デザイン単位の動きで、ヒーローのスライドショーの自動送りとクロスフェード・ヘッダーの PC ドロップダウンとハンバーガーメニューの開閉・ナビゲーション項目のホバー下線・背景の図形装飾 (Requirement 22) の入場と揺れを含む。
+
+  既存コードは Tailwind の `motion-reduce:` variant を基準にしている (`footer.tsx` の `HoverLine` が先行例)。この判定基準自体を拡張し、`frontend/src/app/globals.css` で `motion-reduce` variant を次のとおり再定義する。Tailwind v4 の既定 (`prefers-reduced-motion: reduce` のみ) を上書きし、`<html data-motion="reduce">` でも発火するようにする。
+
+  ```css
+  @custom-variant motion-reduce {
+    @media (prefers-reduced-motion: reduce) {
+      @slot;
+    }
+    &:is([data-motion="reduce"] *, [data-motion="reduce"]) {
+      @slot;
+    }
+  }
+  ```
+
+  この再定義により、既存の `motion-reduce:` 利用箇所 (`hero-section.tsx` / `footer.tsx` / `header.tsx`) はコードを変更せずに `<html data-motion="reduce">` にも反応する。`data-motion="reduce"` 属性は切替が「停止」を示す間、`<html>` へ付与する。
+
+  `setInterval` で自動送りするヒーローのスライドショーや、`requestAnimationFrame` で駆動する背景の図形装飾の揺れは CSS variant だけでは止まらないため、共有フック `frontend/src/lib/use-motion-preference.ts` (`components/use-background-motion.ts` から改名・移設。背景の図形装飾専用ではなく本 spec の全モーション共通のフックになったため `lib/` へ置く) が返す `reduced: boolean` を読み、`true` の間はタイマー/`requestAnimationFrame` を張らない。
+
+  **切替 UI**: Figma コンポーネント `MotionToggle` (ページ「コンポーネント」、COMPONENT_SET `node-id=345:2601`、variant `State`=`playing` (`345:2593`) / `paused` (`345:2597`)) をフッターの著作権表示と同じ行 (PC) または著作権表示の直上 (SP) に置く (Requirement 9/10 参照)。ファイルは `frontend/src/components/motion-toggle.tsx` (`'use client'`)。`<button aria-pressed>` のトグルボタンとして実装し、アクセシブルネームは状態によらず「モーション」で固定する (可視ラベルも同じく「モーション」で固定し、状態はアイコンのみで表す)。`aria-pressed` は再生中 (`playing`) で `true`、停止中 (`paused`) で `false` とする。アイコンは `components/icons.tsx` の方式でインライン化した `pause` (再生中に表示、押すと止める) / `play_arrow` (停止中に表示、押すと再生する) を使う。パスは Material Symbols Sharp weight 300・24px の配布 SVG (`google/material-design-icons` リポジトリの `symbols/web/pause/materialsymbolssharp/pause_wght300_24px.svg`、`play_arrow` も同型のパス) をそのまま用いる。アイコン色は `color/gray-500` とし、フッター内の他のアイコン (`location_on` / `mail` / `open_in_new`) と揃える。
+
+  **見た目**: 押せる部品として見えるよう、角丸いっぱい (pill、`cornerRadius: 9999`) の枠付きボタンとする。fill は `color/background`、stroke は `color/gray-500` 1px (INSIDE)。`FacetChip` (`2:107`) / `SearchField` (`2:212`) と同じ「fill = `color/background`・stroke 1px INSIDE」の作りに揃え、stroke の色だけ `color/gray-500` にする。新しいフッターの地 (`color/background` に `color/bansai-sage` を 18% で重ねた色、実測 `#edece3` 相当) に対し `color/gray-200` はコントラスト比 1.07 で WCAG 1.4.11 (非テキスト 3:1) を満たさず、`color/gray-500` は 4.05:1 で満たすため。padding は上下 4px・左右 12px、アイコンとラベルの間隔は 4px (変更なし)、見た目の高さは 32px。タップ領域 44px 以上は、この 32px の外側に実装側で見えない padding (擬似要素等) を足して確保する。
+  **ホバー**: Figma 上に hover variant は持たない (`FacetChip` / `SearchField` も持たない)。実装では fill を `color/gray-100` に変える。
+  **フォーカス表示**: Requirement 19 (19.3) の `focus-visible` に従う。
+
+  **状態の保存** (19.6): 切替の状態を `localStorage` に保存し、再訪時に引き継ぐ。
+
+  **既定値** (19.7): 状態が保存されていない場合は `window.matchMedia('(prefers-reduced-motion: reduce)')` の評価に従う。
+
+  **初回描画でのちらつき回避**: 保存された状態 (または OS 設定) を `<html data-motion>` へ反映する処理は、React の hydration より前に同期的に行う必要がある。`frontend/src/app/layout.tsx` の `<head>` 内にインラインスクリプト (`<script dangerouslySetInnerHTML>`) を置き、`localStorage` → 無ければ `matchMedia` の順に評価して `document.documentElement.dataset.motion = 'reduce'` を設定する。
+- **横スクロール** (19.9): スマートフォン相当の画面幅で本文に横スクロールを発生させない。
 - **アイコン**: Google Fonts が配布する Material Symbols (Sharp、weight 300) を正とする。`icon/chevron_down` は `expand_more` の配布 SVG をそのまま取り込んだものである。`frontend/src/components/icons.tsx` は現在「Material Symbols Sharp (weight 300) の SVG を使用分だけインライン化する。フォント/CDN を読み込まないのは Edge ランタイムと初回表示コストのため」という方針のコメントを持つが、実際のパスは配布物と一致しない (`ChevronRightIcon` は Sharp wght200 と wght300 の中間の線幅を持ち、Sharp / Outlined / Rounded × wght100〜500 × grad 各種のいずれとも一致しない)。Figma の `icon/*` も同様に配布物と不一致であるため、Figma・コードの双方を配布 SVG から取り直したものへ移行し、`icons.tsx` の方針コメントを Google Fonts の埋め込みを用いる方針へ改める。SNS 各社のブランドアイコン (`brand-*`) は Material Symbols に存在しないため、この移行の対象外とし現状の実装を維持する。
 
 #### 未確定
@@ -275,6 +311,66 @@ Payload の `array` フィールドは JSON 列ではなく子テーブルとし
 - 曜日の表示形式
 - 本番 `festival_meta.event_days` を新しい構造 (開場日時・終了日時・表示ラベル) で再入力する時期と手順
 
+### Requirement 22: 背景の図形装飾
+
+#### 色トークン
+
+`frontend/tailwind.config.ts` の `theme.extend.colors` へ、背景装飾の図形専用の色トークンを追加する。文字色や他の UI 部品には用いない (要件 22.4)。ただし `bansai-sage` は例外で、背景装飾の図形に加えてフッターの地 (Requirement 9/10 参照) にも用いる。Figma Foundations には `color/bansai-*` として同じ値を写す。
+
+| トークン名 | 値 | 由来 |
+|---|---|---|
+| `bansai-ochre` | `#E4AB53` | 黄土 |
+| `bansai-olive` | `#C9BF86` | オリーブ |
+| `bansai-sage` | `#AEB49C` | セージ |
+| `bansai-salmon` | `#DD9B8C` | サーモン |
+| `bansai-rose` | `#E0666D` | ローズ |
+| `bansai-wisteria` | `#D2C6DA` | 藤 |
+| `bansai-aqua` | `#A2C2C6` | 水色 |
+
+Requirement 19 (19.1) の「色とタイポグラフィをトークンから用いる」は本トークンにも適用され、コンポーネント側に色値を直接書かない。
+
+#### 配置先
+
+`frontend/src/app/(site)/layout.tsx` が `Header` と `Footer` を巻く構造であるため (Architecture 節参照)、背景装飾はこの層に置くことで `(fullscreen)/map` を自然に除外できる (要件 22.2)。配置範囲はヘッダーと本文のみとし、フッターの地には図形を配置しない (要件 22.1)。フッターの地は Requirement 9/10 が定める色面 (`color/background` に `bansai-sage` を重ねた面) が単独で担う。
+
+新規ファイル `frontend/src/components/background-shapes.tsx`。現行の `SiteLayout` はラップ要素を持たない Fragment (`<><Header/><div>...</div><Footer/></>`) であるため、装飾レイヤーを敷くために外側のコンテナ要素を追加する。
+
+ヘッダーは画面上端に固定表示し、スクロールしても高さ・背景の見え方を変えない (Requirement 5、要件 5.12)。本文・フッターに連動してスクロールする 1 枚の装飾レイヤーでは、ヘッダー背後の図形もスクロールに応じて動いてしまい、この要件と両立しない。ヘッダー領域の図形と、本文・フッター領域の図形は別レイヤーとして扱う必要がある。
+
+Figma では、図形 1 つぶんの見た目を共通コンポーネント `BgShape` としてページ「コンポーネント」に定義し、各ページフレームの最背面レイヤーに `BackgroundShapes` として配置する。
+
+#### 個数・サイズ・配置の具体値
+
+図形の個数は、PC では 1 ページ全体の高さ 110px あたり 1 個、SP ではその 0.7 倍とし、1 ページあたり 4 個を下限とする (最小間隔と除外領域の制約により、狭い画面では実際の個数が目標値を下回ることがある)。サイズは一辺 22px から 104px の範囲で決定する。
+
+配置は、決定的乱数で座標を試行し、既に置いた図形との中心間隔 (70px に両図形の一辺の長さの合計の 4 分の 1 を加えた距離以上、回転前のサイズで判定) と、除外領域 (本文・ナビゲーション・ボタン・入力欄などの操作要素の外側 10px、フッターの地を含む) のいずれにも抵触しなければ採用する reject sampling (ダーツ投げ法) を用いる。試行回数は個数の 60 倍を上限とし、上限に達した時点でそれまでに配置できた図形数で確定する。
+
+図形ごとに、配置 (サイズ・座標・種類・質感・色) と同じ決定的乱数列から続けて 0 度から 359 度の回転を整数で引き、図形の中心を軸に回転させる (要件 22.27)。除外領域・フッターとの重なり判定は、回転前の size×size の矩形ではなく回転後の軸並行外接矩形 (AABB、一辺 `size * (|cos θ| + |sin θ|)`) を用いる (要件 22.28)。入場アニメーション (要件 22.15) やばねの揺れ (要件 22.19〜22.23) は位置のみを変化させる `translate` 系の transform であり、`rotate` はこれらと合成されたまま図形ごとに固定で保持される。
+
+#### 配置の決定方法
+
+図形の配置と質感の割り当ては、ページのパス (`pathname`) を種とした決定的乱数で行い、同一ページでは常に同じ結果を SSR とクライアントの双方で描画する。`exhibition-pages` の企画カードが企画名を種とした決定的乱数 (FNV-1a 32bit ハッシュ → mulberry32) でグラデーションを決定している方式 (`.kiro/specs/exhibition-pages/design.md`) と同じ方式を用いる。
+
+#### 質感
+
+図形ごとに、質感なし・粒状ノイズ・網点・雲状むらの 4 種から配置と同じ決定的乱数で質感を割り当てる。質感なしの出現確率は他の質感それぞれの 2 倍とする (5 枠中、質感なし 2、粒状ノイズ・網点・雲状むらを各 1)。リング (輪) には質感を割り当てない。
+
+#### 動き
+
+**入場 (初回集約)**: 図形がそのページの表示中に初めて画面に入ったとき、定位置からセクション中心と反対方向へ 40px から 120px ずれた位置を起点に、1 秒 (`cubic-bezier(0.16, 0.84, 0.44, 1)`) かけて定位置へ移動する。判定には IntersectionObserver (`threshold: 0.15`) を用い、図形ごとに交差を検知した時点で個別にアニメーションを開始するため、ページ全体で見たときのずらしは画面へ入るタイミングの違いによって生じる。1 図形につき 1 回限りで、発火後は observe を解除し、画面外へ出ても定位置は変えない。
+
+リング (輪) は 2 つの輪を 1 組とし、それぞれ別方向 (基準の角度からおよそ ±0.7rad ばらけた、ほぼ反対の方向) の起点 (40px から 120px) から寄せる。2 つ目の輪は 1 つ目に 0.1 秒遅れて追従し、定位置では 1 つ目からの相対位置を (7px, 6px) ずらして少し重なった二重の輪として静止する。
+
+**入場後の静止と揺れ**: 入場を終えた図形は時間経過では動かない。ポインター操作またはスクロールの入力がある間だけ、定位置を原点としたばね (剛性 70〜130、減衰係数 10〜16 を図形ごとにばらつかせる) で変位を計算し `translate` へ反映する。入力が止まると同じばねが変位を 0 へ収束させ (軽いオーバーシュートを伴う)、変位・速度がいずれも 0.05 を下回ったら完全に静止させて描画ループ (`requestAnimationFrame`) を止める。
+
+**ポインター反発**: ポインターが動いている間 (最後の `pointermove` から 120ms 以内)、図形ごとの反発半径 (120px から 180px) の内側にある図形へ、ポインターから遠ざかる向きの加速度 (最接近点で最大 1600、半径の境界で 0 へ線形に減衰) を与える。タッチ端末では `pointermove` によるこの反発は行わず、スクロールによる揺れのみが働く。
+
+**スクロール慣性**: スクロール量 (px) に図形ごとの係数 (0.5〜1.3) と全体係数 2.4 を掛けた値を速度へ加算し、下方向のスクロールでは図形を相対的に上へ取り残す向きに、慣性で遅れて追従させる。
+
+**共通**: 変位は図形ごとの上限 (8px から 16px) でクランプする。動かすのは `transform` 系のプロパティ (`translate`) のみとし、画面外 (ビューポート上下 60px の余白を超えた範囲) にある図形は計算を省く。1 フレームあたりの経過時間は 50ms を上限としてクランプする。
+
+**オン・オフ切替**: 背景の図形装飾の動きは Requirement 19 のモーション切替 (`MotionToggle`、19.5〜19.8) とモーションの抑制設定 (19.4) に従う。背景の図形装飾専用の切替は持たない。
+
 ### 開催前フェーズで公開が必要になるパス
 
 Requirement 5 が定める開催前フェーズのヘッダーは、本 spec が新設する次のページへの導線を持つ。これらは `frontend/src/lib/phase.ts` の `PRE_EVENT_PUBLIC_PATHS` (`PRE_EVENT_PUBLIC_PREFIXES` を要するものはそちらにも) へ追加し、開催前フェーズで公開する。`festival-phase-gate` が所有する値への追加自体は本 spec の実装作業であり、同 spec 自体は変更しない。
@@ -297,7 +393,7 @@ Figma: ファイル `0kWDqHsLr6xE8b4FFgR1Zx`、ページ「トップページ」
   - 左ブロック: 見出し「群馬大学 荒牧祭」(固定文言、CMS に依存しない) の下に、開催日 (`festival_meta.event_days`) ｜ 会場 (`festival_meta.venue_name`) を 1 行で表示する (要件 1.1)
   - 右ブロック: テーマ (`festival_meta.theme_word`) の下に、開催までの残り日数のカウントダウン (要件 1.2, 1.3) を表示する。カウントダウンの算出は横断的要件 Requirement 20 が定める `event_days.start_at` に依存する
   - `components/hero-section.tsx` の自動送り (6 秒間隔)・クロスフェード・矢印ボタン・スライドインジケーターは現行のまま残す (要件 1.10, 1.11)。ズームのキーフレーム (`aramakisai-hero-zoom` と、それを適用する `.aramakisai-hero-image--active` の `animation` 指定) と、SCROLL の文字・縦線一式 (`aramakisai-scroll-line` を含む要素) は削除する (要件 1.12, 1.13)
-  - 高さは `78svh` (ビューポート高の 78%) を PC・SP 共通の基準とする (要件 1.14)。単位は `vh` ではなく `svh` (small viewport height) を用いる。モバイルブラウザで URL バーの表示・非表示により実効ビューポート高が変動しても、`svh` は変動しない最小値を基準にするため高さが動かない。`lg:h-[calc(100vh-5rem)] lg:min-h-[30rem]` という PC 専用の上書きは削除する。`min-h-[28rem]` という下限は、`78svh` の値とは独立に、極端に低いビューポートでもヒーローが著しく縮まないための実装上の安全策として残す。自動再生される動き (クロスフェード・自動送り) の `prefers-reduced-motion: reduce` での停止は Requirement 19 (19.4) の既存の定めに従う
+  - 高さは `78svh` (ビューポート高の 78%) を PC・SP 共通の基準とする (要件 1.14)。単位は `vh` ではなく `svh` (small viewport height) を用いる。モバイルブラウザで URL バーの表示・非表示により実効ビューポート高が変動しても、`svh` は変動しない最小値を基準にするため高さが動かない。`lg:h-[calc(100vh-5rem)] lg:min-h-[30rem]` という PC 専用の上書きは削除する。`min-h-[28rem]` という下限は、`78svh` の値とは独立に、極端に低いビューポートでもヒーローが著しく縮まないための実装上の安全策として残す。クロスフェードの `motion-reduce:transition-none` に加え、`setInterval` による自動送り自体を `lib/use-motion-preference.ts` の `reduced` が `true` の間は開始しない。動きを止める条件 (OS のモーションの抑制設定とモーション切替のいずれか) は Requirement 19 (19.4〜19.8) の定めに従う
 - **荒牧祭とは**: 見出し「荒牧祭とは」(固定文言) と概要文 (`festival_meta.overview_html`) を表示する (要件 1.4)。`festival_meta.name` は表示しない (要件 1.8)。実値が「第73回 荒牧祭公式ホームページ」というサイトタイトル用の文字列であり、本文の見出しに使う文言ではないため
 - **お知らせ**: 見出し「お知らせ」(固定文言) の下に、Figma コンポーネント `NoticeItem` (ページ「コンポーネント」、`node-id=127:108`) のインスタンスを最大 5 件並べ、「お知らせ一覧へ」導線 (`/announcements`) を添える (要件 1.5)。表示部品は既存の `components/announcements-list.tsx` の `limit` prop を使う
 - `page_home.hero_message_html` は開催前フェーズでは表示しない (要件 1.7)。本番 CMS で値が空であり、掲載不要という判断のため。開催中フェーズで使うかどうかは未確定 (下記)
@@ -378,7 +474,7 @@ Figma: ファイル `0kWDqHsLr6xE8b4FFgR1Zx`、ページ「コンポーネント
 - **現在地の表現** (要件 5.10, 5.11): `usePathname()` と `aria-current="page"` に加え、ラベル直下に厚さ 2px の下線を常時 100% の不透明度で表示する。下線色は親項目ごとに固定し、ラベルの文字色 (`color/text`) は変えない。企画一覧 `color/primary` / 構内マップ `color/secondary` / タイムテーブル `color/info` / お知らせ `color/warning` / ご案内 `color/success` / 荒牧祭について `color/accent-alt` / 協賛 `color/accent`。テキスト色を変えない理由は `color/secondary` (`#7fc8ad`) や `color/info` (`#80c1c6`) が地の `color/background` (`#fbf8f3`) に対してコントラスト比が不足するため。
 - **上端固定** (要件 5.12): 現行の実装を維持する。地は `color/background` の不透明、下端に `color/gray-200` 1px の境界線。スクロールしても高さ・背景・境界線の見え方を変えない。
 - **寸法**: 高さ 80px、左右 padding 80px (コンテンツ枠 1280px)。ロゴは左・ナビゲーションは右、ナビゲーション項目間は 32px。ロゴは `frontend/public/images/logo-2026.png` (1700×306、比率 5.556:1) を 222×40 で表示する (要件 5.14)。ラベルは `body/md`、色は `color/text`。
-- **PC ドロップダウン** (要件 5.15): 幅 224px、地は `color/background`、stroke `color/gray-200` 1px。各行は `body/sm`、padding 12/16、行の高さ 44px 以上。親項目の水平中央に揃え、コンテンツ枠 (左 80px / 右 1360px) を越える場合は越える側の端をコンテンツ枠に合わせて止める。during の「ご案内」は 5 項目中最後 (中央 1326) のため中央揃えでは右端が 1438 となり 78px 超過するので右端を 1360 に止める (左端 1136)。before の「ご案内」は 4 項目中 3 番目 (中央 1242) のため中央揃えのまま左端 1130 / 右端 1354 に収まる。開閉のアニメーションは不透明度 0→1 と `translateY` -4px→0 を 200ms ease-out で行い、`prefers-reduced-motion: reduce` では無効化する (Requirement 19、19.4)。
+- **PC ドロップダウン** (要件 5.15): 幅 224px、地は `color/background`、stroke `color/gray-200` 1px。各行は `body/sm`、padding 12/16、行の高さ 44px 以上。親項目の水平中央に揃え、コンテンツ枠 (左 80px / 右 1360px) を越える場合は越える側の端をコンテンツ枠に合わせて止める。during の「ご案内」は 5 項目中最後 (中央 1326) のため中央揃えでは右端が 1438 となり 78px 超過するので右端を 1360 に止める (左端 1136)。before の「ご案内」は 4 項目中 3 番目 (中央 1242) のため中央揃えのまま左端 1130 / 右端 1354 に収まる。開閉のアニメーションは不透明度 0→1 と `translateY` -4px→0 を 200ms ease-out で行い、`motion-reduce:` (OS のモーションの抑制設定とモーション切替のいずれか、Requirement 19、19.4/19.8) で無効化する。
 - **ホバー**: ナビ項目にカーソルを重ねると、その項目の色の下線が中央から左右へ (`scale-x` 0→1) 200ms ease-out で伸びると同時に不透明度が 0→80% になる。現在地の下線 (常時表示・不透明度 100%) と区別する。
 
 **未確定**: 本文へ直接移動する手段 (スキップリンク) を置くかどうか。
@@ -391,7 +487,7 @@ Figma: `Header` (`232:956`) の SP/during (`232:942`) / SP/before (`232:949`)。
 - 非表示側を支援技術とキーボードから除外する (要件 6.4) ため、`hidden` によらず表示側のみを DOM に描くか、`hidden` 属性で除外する。現行の `lg:hidden` / `hidden lg:flex` による出し分けは、CSS の `display: none` で両者とも除外されるため要件を満たすが、境界定数への置き換えに合わせて見直す。
 - セーフエリア (要件 6.3) は `env(safe-area-inset-top)` を用いる。
 - **寸法**: 高さ 64px。ロゴは `frontend/public/images/logo-2026.png` を 178×32 で表示する (要件 6.5)。`Phase` による閉じた状態の見た目の差はない (要件 6.7)。
-- **開閉ボタン**: 44×44 のタップ領域に、幅 24px・太さ 2px の横線 3 本を 8px 間隔で配置する (要件 6.6)。開いた状態では上下 2 本が ±45° 回転して中央で交差し、中央の 1 本の不透明度が 1→0 になる (要件 6.8)。200ms ease-out、`prefers-reduced-motion: reduce` で無効化 (Requirement 19、19.4)。
+- **開閉ボタン**: 44×44 のタップ領域に、幅 24px・太さ 2px の横線 3 本を 8px 間隔で配置する (要件 6.6)。開いた状態では上下 2 本が ±45° 回転して中央で交差し、中央の 1 本の不透明度が 1→0 になる (要件 6.8)。200ms ease-out、`motion-reduce:` (OS のモーションの抑制設定とモーション切替のいずれか、Requirement 19、19.4/19.8) で無効化。
 - **ハンバーガーメニューの併存** (要件 6.9): 開催中フェーズでも残す。下部ナビゲーション (Requirement 8) は当日の 5 導線に絞られ、お知らせ・ご案内・協賛への導線を持たないため。開催前フェーズでは下部ナビゲーションを表示しないため、いずれのフェーズでもハンバーガーメニューが必要となる。
 
 ### Requirement 7: ハンバーガーメニュー展開状態
@@ -402,7 +498,7 @@ Figma: `Header / SP Menu Open` (during `234:138` / before `256:256`)。
 - フォーカストラップ (要件 7.4) は現行のヘッダーには無く、`map-menu-button.tsx` が Tab のループ処理を持っている。両者で同じ処理を二重に書かないよう、フォーカストラップを共有のフックへ切り出して両方から使う。
 - **展開形式** (要件 7.8): ヘッダー直下に展開するドロップダウン。全画面オーバーレイやサイドスライドは採らない。
 - **行の見た目** (要件 7.9〜7.11): 各行の高さ 48px、行間に `color/gray-200` 1px の区切り線。子項目は 16px インデントし、左に `color/gray-200` 1px の縦線を添え、ラベルは `body/sm`。子を持つ項目の行の右端に chevron (`icon/chevron_down`) を置き、開閉状態を示す。
-- **アニメーション** (要件 7.12, 7.13): 不透明度 0→1 と `translateY` -8px→0 を 200ms ease-out で行う。`prefers-reduced-motion: reduce` では無効化する (Requirement 19、19.4)。
+- **アニメーション** (要件 7.12, 7.13): 不透明度 0→1 と `translateY` -8px→0 を 200ms ease-out で行う。`motion-reduce:` (OS のモーションの抑制設定とモーション切替のいずれか、Requirement 19、19.4/19.8) で無効化する。
 
 **未確定**: 背面の本文のスクロール抑止と読み上げ除外、外側クリックでの close、SNS をメニュー内に含めるか。
 
@@ -425,18 +521,55 @@ Figma: ファイル `0kWDqHsLr6xE8b4FFgR1Zx`、ページ「コンポーネント
 
 ### Requirement 9: フッター (PC)
 
-- ファイル: `frontend/src/components/footer.tsx` (サーバーコンポーネント)。`(site)/layout.tsx` が巻くため要件 9.10 は現行構造で満たされる。
-- サイト案内ブロックは `footerNavigation` を廃して `lib/navigation.ts` から導出する (要件 9.2)。
-- SNS とお問い合わせの条件付き非表示 (要件 9.4, 9.6, 9.7) と取得失敗時の継続 (要件 9.9) は現行実装が満たしている。
+Figma: ファイル `0kWDqHsLr6xE8b4FFgR1Zx`、ページ「コンポーネント」(`2:2`)。コンポーネント `Footer` (COMPONENT_SET、`291:1537`、variant `Device`=`PC`/`SP` × `Phase`=`before`/`during`)。PC/during `308:609`、PC/before `329:540` (いずれも 1440×595)。`Header` (`232:956`) と同じ variant 構成を採る。企画ページの各フレームの末尾にはこのコンポーネントのインスタンスを置いている。
 
-**未確定**: ブロックの並び順とカラム構成、サイト案内に出す項目の範囲、ロゴの有無、見出しの表記。
+- ファイル: `frontend/src/components/footer.tsx` (サーバーコンポーネント)。`(site)/layout.tsx` が巻くため要件 9.10 は現行構造で満たされる。
+- サイト案内・ご案内ブロックは `footerNavigation` を廃して `lib/navigation.ts` から導出する (要件 9.2, 9.14)。
+- SNS とお問い合わせの条件付き非表示 (要件 9.4, 9.6, 9.7) と取得失敗時の継続 (要件 9.9) は現行実装が満たしている。
+- **構成** (要件 9.11〜9.13): 上から ナビゲーション (3 列) → 主催者情報と公式 SNS → 区切り線 → 著作権。ナビゲーションと主催者情報の間には区切り線を置かず、ブロック間の余白で分ける。ナビゲーションを主催者情報より先に置くのは、フッターでの利用頻度がナビゲーションの方が高いため。
+- **地と外周**: 地は `color/background` の上に `color/bansai-sage` を不透明度 18% で重ねた色 (`bg-secondary/[.18]` ではなく `bg-bansai-sage/[.18]` を `color/background` の上に重ねる形で表す。新しい色トークンは追加しない)。`PrimaryNavCard` (`181:130`) のバリアント背景と同じ「トークン色を `color/background` に 18% で重ねる」作りだが、フッターは実装上も 2 層のまま重ねて表現する。上端の境界線は置かない。ヘッダーとの境界はこの地の色の切り替わりで作る。内容はフレームの水平中央に寄せ、左端 x = 208・右端 x = 1232 の幅 1024px (Tailwind の `max-w-5xl`) に収める。
+- **上段のナビゲーション**: 左から サイト案内・ご案内・サポート の 3 列。各列の幅はその列の最長ラベルの幅とし、1024px の中で列同士の間隔を均等に配分する (サイト案内の左端 = 208、サポートの最長ラベルの右端 = 1232)。列幅を揃えて間隔を固定すると、列ごとの文字幅の違い (約 97 / 154 / 140px) がそのまま見かけの余白の差になるため。during の実測では列間はいずれも約 318px。
+  - during — サイト案内: 企画一覧 / 構内マップ / タイムテーブル / お知らせ一覧 / トピック。ご案内: アクセス / ご来場の際の注意点 / 案内所・落とし物・迷子 / ごみの分別のお願い / よくある質問
+  - before — サイト案内: 荒牧祭について / お知らせ / 広告協賛 / 地域協賛。ご案内は during と同じ
+  - サポート (共通): お問い合わせ (外部フォームのため `open_in_new` を添える) / プライバシーポリシー
+  - ヘッダーの「ご案内」の子項目をそのままご案内ブロックとし、それ以外をサイト案内に置く (要件 9.14)。ヘッダーで「ご案内」の子であるお問い合わせはサポートにのみ置く (要件 9.15)。
+  - ラベルは折り返さない (要件 9.19)。
+- **下段**: 左端 (x = 208) に主催者情報、右端 (x = 1232 に右揃え) に公式 SNS (要件 9.13)。公式 SNS は見出し・アイコン列の両方を右揃えにする。主催者情報の左端はサイト案内の左端に、公式 SNS の右端はサポートの文字の右端に揃える。
+  - 主催者情報 (要件 9.5, 9.16): ロゴ (`frontend/public/images/logo-2026.png` を 122×22) → 実行委員会名称 (`label/bold`・`color/text`) → 所在地 3 行 (`body/sm`) → メールアドレス。所在地とメールには `location_on` / `mail` を添える (要件 9.18)。ロゴはヘッダー (222×40) より小さくし、フッター内では他ブロックの見出しと同じ役割に留める。
+  - 公式 SNS: アイコン 24px・gap 16px の横一列。各サービスの公式ブランド配色のまま用いる (`components/sns-icon.tsx` と同じ方針)。
+- **見出し** (要件 9.17): `label/sm` (Noto Sans JP Medium 12px)・letter-spacing 0.2em・`color/gray-600`。項目 (`body/sm` 14px・`color/text`) より小さく薄くすることで、項目と役割を分ける。すべて日本語 (「サイト案内」「ご案内」「サポート」「公式SNS」)。現行実装の `SUPPORT` / `OFFICIAL SNS` という英字表記は廃する。
+- **間隔**: 次の値はいずれも描画結果の文字・図形の端から端までの距離で、テキストの行ボックスの上下余白は含めない。実装では行ボックスの余白を差し引いた値をマージンに与える。
+  - 見出し (またはロゴ) → 最初の項目: 32px
+  - 項目の行高: 32px (描画上の項目間は 20px)
+  - ブロック間 (ナビゲーション → 主催者情報・公式 SNS、主催者情報 → 区切り線): 48px
+  - 区切り線 → 著作権: 24px
+- **アイコンと文字の揃え**: `location_on` / `mail` / `open_in_new` は、図形の上下中心と隣接する文字 1 行目の上下中心を一致させる。Material Symbols は 24px グリッドに余白を含み、和文の視覚中心は行ボックスの中央より下にあるため、要素の枠同士を中央揃えにしても一致しない。描画結果で合わせる。
+- **著作権** (要件 9.8): `label/sm`・`color/gray-600`。区切り線はグリッドと同じ x = 208〜1232 に引き、著作権はその水平中央に置く。
+- **見出し・著作権の文字色** (`color/gray-600`): フッターの地 (`color/background` に `color/bansai-sage` を 18% で重ねた色、実測 `#edece3` 相当) に対し、`color/gray-500` のコントラスト比は 4.05 で WCAG AA (4.5:1) を下回るため、`color/gray-600` (6.43) を用いる。`color/text` (14.6) の文字は変更しない。
+- **アイコン** (要件 9.18): Material Symbols Sharp weight 300 を `components/icons.tsx` の方式でインライン化する。`place` は Material Symbols に単独では存在せず `location_on` に統合されているため、Figma・実装とも `location_on` を用いる (実装側の既存 `PlaceIcon` は同一図形を `icon-place` の testId で持つ)。アイコンは非テキストで 3:1 以上あればよいため、`color/gray-500` (4.05) のまま変更しない。SNS のブランドアイコンは各社のブランド配色のまま変更しない。
+- **モーション切替** (Requirement 19、19.5〜19.8): Figma コンポーネント `MotionToggle` (ページ「コンポーネント」、COMPONENT_SET `node-id=345:2601`、`State=playing` のインスタンスを使う) を著作権表示と同じ行に置き、右端をグリッドの右端 (x = 1232) に揃える。著作権表示は幅 1024px の中央のまま変えない。実装は `components/motion-toggle.tsx` のインスタンスを `footer.tsx` (サーバーコンポーネント) の中に埋め込む形で行う。
+
+同種サイト 10 件 (五月祭・駒場祭・三田祭・早稲田祭・京大 11 月祭・北大祭・名大祭・まちかね祭・九大祭・一橋祭) を PC 1440px / SP 390px で実地調査した結果を、次の根拠としている。
+
+- 見出しを日本語のみにするのは 8/10 (英字は早稲田祭のみ)
+- PC のカラム数は 3 カラムが最多で 4 件。列幅は均等が 10/10
+- サイトマップを主催者情報・SNS より先に置く: 早稲田祭・北大祭・三田祭・京大 11 月祭。11 月祭は住所をフッターの最後尾に置く
+- 主催者情報をナビゲーションのカラムとは別の枠に置く: 五月祭・駒場祭 (左に主催者情報、右にリンク)、九大祭 (上段にロゴと SNS、区切り線の下にメニュー)
+- ナビゲーションのラベルを折り返す例は 0/10
+- フッターにロゴを置くのは 3/10 と少数派だが、置く 3 件 (11 月祭・九大祭・一橋祭) はいずれも大学ロゴではなくその年のテーマロゴで、11 月祭は高さ 22px (221×22) で置く。`logo-2026.png` (「荒牧祭2026」) はこれに該当するため置く側を採る
 
 ### Requirement 10: フッター (SP)
 
-- Requirement 9 と同一コンポーネントがレスポンシブに対応する。
-- 最下端の余白 (要件 10.2) は Requirement 4 の下端余白と同じ値を用いる。フッターが個別に持たない。下部ナビゲーションを表示しない開催前フェーズではこの余白も与えない。
+Figma: `Footer` (`291:1537`) の SP/during (`310:633`、390×1060) / SP/before (`331:540`)。
 
-**未確定**: ブロックの積み方、折りたたみの有無、SNS アイコンの並べ方と大きさ。
+- Requirement 9 と同一コンポーネントがレスポンシブに対応する。
+- 最下端の余白 (要件 10.2) は Requirement 4 の下端余白と同じ値を用いる。フッターが個別に持たない。下部ナビゲーションを表示しない開催前フェーズではこの余白も与えない。Figma の SP バリアントにもこの余白は含めていない。
+- **積み方** (要件 10.3, 10.4): 左右 padding 16px (コンテンツ幅 358px) の 1 列に、サイト案内 → ご案内 → サポート → 主催者情報 → 公式 SNS → 区切り線 → 著作権 の順で積む。PC と同じく、ナビゲーションを主催者情報より先に置く。
+- **間隔**: PC と同じ値を用いる。見出し (またはロゴ) → 最初の項目 32px、ブロック間 48px、区切り線 → 著作権 24px。ブロック内 32px とブロック間 48px の差によって、見出しがどのブロックに属するかを示す。
+- **折りたたみを持たない** (要件 10.5): アコーディオンは採らない。上記の実地調査で折りたたみを使っていたのは北大祭 1 件のみで、9/10 は SP でも全項目を展開したまま縦積みする。北大祭は PC で 5 カラムと調査対象中最多のリンク数を持つのに対し、本サイトは最大 12 項目にとどまる。
+- **ロゴと SNS** (要件 10.6): ロゴは PC と同じ 122×22。SNS アイコンは PC と同じ 24px・gap 16px の横一列で、SP では左揃え。
+- 著作権はコンテンツ幅の水平中央に置く。実地調査では中央揃えが 7/10 で標準だった (PC のみ左揃えとする 11 月祭が 1 件、著作権表示自体を持たない五月祭・駒場祭が 2 件)。
+- **モーション切替** (Requirement 19、19.5〜19.8): `MotionToggle` (`node-id=345:2601`、`State=playing`) を著作権表示の直上に、著作権と同じくコンテンツ幅の水平中央で置く。
 
 ### Requirement 11: 構内マップの MapMenuButton
 
@@ -499,7 +632,7 @@ Figma: ファイル `0kWDqHsLr6xE8b4FFgR1Zx`、ページ「コンポーネント
 | 3, 4 | `(site)/page.tsx`, `lib/home-page.ts`, `components/hero-section.tsx` | 構造のみ確定 (フェーズの出し分けは `festival-phase-gate`) |
 | 5, 6, 7 | `components/header.tsx`, `lib/navigation.ts`, `lib/breakpoints.ts`, 共有フォーカストラップ | 構造のみ確定 |
 | 8 | `components/bottom-navigation.tsx`, `(site)/layout.tsx` | 構造のみ確定 |
-| 9, 10 | `components/footer.tsx`, `lib/navigation.ts` | 構造のみ確定 |
+| 9, 10 | `components/footer.tsx`, `components/motion-toggle.tsx`, `lib/navigation.ts` | Figma 確定 (`MotionToggle` の配置を含む。メールアドレスの実値、ルート未確定 4 ページの遷移先は未確定) |
 | 11 | `components/campus-map/map-menu-button.tsx`, `lib/navigation.ts` | 構造のみ確定 |
 | 12, 13 | `lib/sponsors.ts`, `components/sponsors-list.tsx`, `(site)/sponsors/page.tsx` | 取得層は確定、表示は未確定 |
 | 14 | `components/topic-card.tsx`, `components/topics-list.tsx` | 構造のみ確定 |
@@ -507,9 +640,10 @@ Figma: ファイル `0kWDqHsLr6xE8b4FFgR1Zx`、ページ「コンポーネント
 | 16 | `cms/src/collections/sponsors.ts`, マイグレーション, `lib/home-page-types.ts` | 確定 |
 | 17 | `lib/navigation.ts` | 確定 |
 | 18 | `lib/cms.ts`, `lib/home-page.ts` | 分岐は確定、再検証の値は未確定 |
-| 19 | `tailwind.config.ts`, `globals.css`, `lib/breakpoints.ts` | 基準は確定、境界値は未確定 |
+| 19 | `tailwind.config.ts`, `globals.css`, `lib/breakpoints.ts`, `components/motion-toggle.tsx`, `lib/use-motion-preference.ts` | 表示の基準は確定、境界値は未確定。モーション切替 (`MotionToggle`) の仕様・配置は確定 |
 | 20 | `cms/src/globals/festival-meta.ts`, マイグレーション, `lib/home-page-types.ts`, `components/hero-section.tsx` | 確定 (破壊的変更として検出される) |
 | 21 | `(site)/announcements/page.tsx`, `lib/announcements.ts`, `components/announcements-list.tsx` | 構造のみ確定 |
+| 22 | `components/background-shapes.tsx`, `lib/use-motion-preference.ts`, `(site)/layout.tsx`, `tailwind.config.ts` | 色トークン・配置先・個数/サイズ/最小間隔・配置方式 (決定的乱数)・質感・動きの仕様は確定。動きのオン・オフは Requirement 19 のモーション切替に従う |
 
 ## Testing Strategy
 
