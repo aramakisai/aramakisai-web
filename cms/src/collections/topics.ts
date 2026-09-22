@@ -1,6 +1,8 @@
 import { lexicalHTMLField } from '@payloadcms/richtext-lexical';
 import type { CollectionConfig } from 'payload';
 
+import { richTextHTMLConverters } from '../lib/rich-text-html-converters';
+
 export const Topics: CollectionConfig = {
   slug: 'topics',
   labels: { singular: 'トピック', plural: 'トピック' },
@@ -12,6 +14,7 @@ export const Topics: CollectionConfig = {
       htmlFieldName: 'body_html',
       lexicalFieldName: 'body',
       storeInDB: true,
+      converters: richTextHTMLConverters,
     }),
     {
       name: 'image',
