@@ -332,19 +332,19 @@ Requirement 19 (19.1) の「色とタイポグラフィをトークンから用�
 
 #### 配置先
 
-`frontend/src/app/(site)/layout.tsx` が `Header` と `Footer` を巻く構造であるため (Architecture 節参照)、背景装飾はこの層に置くことで `(fullscreen)/map` を自然に除外できる (要件 22.2)。配置範囲はヘッダーと本文のみとし、フッターの地には図形を配置しない (要件 22.1)。フッターの地は Requirement 9/10 が定める色面 (`color/background` に `bansai-sage` を重ねた面) が単独で担う。
+`frontend/src/app/(site)/layout.tsx` が `Header` と `Footer` を巻く構造であるため (Architecture 節参照)、背景装飾はこの層に置くことで `(fullscreen)/map` を自然に除外できる (要件 22.2)。配置範囲はヘッダーと本文のみとし、フッターの地には図形を配置しない (要件 22.1)。フッターの地は Requirement 9/10 が定める色面 (`color/background` に `bansai-sage` を重ねた面) が単独で担う。図形はセクション境界で切らない。ページ (ヘッダー・本文) 全体を 1 つの装飾レイヤーとして図形を配置し、切れてよいのはページ左右端のみとする (要件 22.9)。個々のセクションの frame は `fills` を持たず透過とし、地の色はルートフレームの `color/background` のみが担う (写真など color/background 以外の fill を持つ領域には図形を配置しない除外領域として扱う)。
 
 新規ファイル `frontend/src/components/background-shapes.tsx`。現行の `SiteLayout` はラップ要素を持たない Fragment (`<><Header/><div>...</div><Footer/></>`) であるため、装飾レイヤーを敷くために外側のコンテナ要素を追加する。
 
 ヘッダーは画面上端に固定表示し、スクロールしても高さ・背景の見え方を変えない (Requirement 5、要件 5.12)。本文・フッターに連動してスクロールする 1 枚の装飾レイヤーでは、ヘッダー背後の図形もスクロールに応じて動いてしまい、この要件と両立しない。ヘッダー領域の図形と、本文・フッター領域の図形は別レイヤーとして扱う必要がある。
 
-Figma では、図形 1 つぶんの見た目を共通コンポーネント `BgShape` としてページ「コンポーネント」に定義し、各ページフレームの最背面レイヤーに `BackgroundShapes` として配置する。
+Figma では、図形 1 つぶんの見た目を共通コンポーネント `BgShape` としてページ「コンポーネント」に定義し、各ページフレーム直下・全セクションより背面に `BackgroundShapes` を 1 つだけ配置する (セクションごとに分割しない)。
 
 #### 個数・サイズ・配置の具体値
 
 図形の個数は、PC では 1 ページ全体の高さ 110px あたり 1 個、SP ではその 0.7 倍とし、1 ページあたり 4 個を下限とする (最小間隔と除外領域の制約により、狭い画面では実際の個数が目標値を下回ることがある)。サイズは一辺 22px から 104px の範囲で決定する。
 
-配置は、決定的乱数で座標を試行し、既に置いた図形との中心間隔 (70px に両図形の一辺の長さの合計の 4 分の 1 を加えた距離以上、回転前のサイズで判定) と、除外領域 (本文・ナビゲーション・ボタン・入力欄などの操作要素の外側 10px、フッターの地を含む) のいずれにも抵触しなければ採用する reject sampling (ダーツ投げ法) を用いる。試行回数は個数の 60 倍を上限とし、上限に達した時点でそれまでに配置できた図形数で確定する。
+配置はページ (ヘッダー・本文) 全体を 1 つの領域として行い、セクションごとに個数を配分しない。決定的乱数でページ全体の座標を試行し、既に置いた図形との中心間隔 (70px に両図形の一辺の長さの合計の 4 分の 1 を加えた距離以上、回転前のサイズで判定) と、除外領域 (本文・ナビゲーション・ボタン・入力欄などの操作要素の外側 10px。写真など color/background 以外の fill を持つセクションがあればその全体、およびフッターの地を含む) のいずれにも抵触しなければ採用する reject sampling (ダーツ投げ法) を用いる。座標はページ左右端に対して図形の一辺の 0.3 倍のはみ出しを許容する範囲で試行し、上下端はページ (フレーム) の `clipsContent` によって自然に切れる。試行回数は個数の 60 倍を上限とし、上限に達した時点でそれまでに配置できた図形数で確定する。
 
 図形ごとに、配置 (サイズ・座標・種類・質感・色) と同じ決定的乱数列から続けて 0 度から 359 度の回転を整数で引き、図形の中心を軸に回転させる (要件 22.27)。除外領域・フッターとの重なり判定は、回転前の size×size の矩形ではなく回転後の軸並行外接矩形 (AABB、一辺 `size * (|cos θ| + |sin θ|)`) を用いる (要件 22.28)。入場アニメーション (要件 22.15) やばねの揺れ (要件 22.19〜22.23) は位置のみを変化させる `translate` 系の transform であり、`rotate` はこれらと合成されたまま図形ごとに固定で保持される。
 
@@ -423,7 +423,7 @@ Figma: ファイル `0kWDqHsLr6xE8b4FFgR1Zx`、ページ「トップページ」
 セクションは上から Hero (`154:49`) → トピック (`155:54`) → 主要導線「会場で使う」(`155:734`) → 企画 (`156:49`) → お知らせ (`156:751`) → 荒牧祭とは (`156:783`) → アクセス (`156:786`) → 協賛 (`156:798`) の 8 つで構成する。ファイル構成とデータ取得は Requirement 1 と同一の方針に従い、フェーズごとの出し分けは `festival-phase-gate` に従う。
 
 - **Hero**: 高さは `50svh` (ビューポート高の 50%) とする (要件 3.9)。`svh` を用いる理由と `min-h` による下限の考え方は Requirement 1 (要件 1.14) と同一。参照ビューポート高 900px での参考値は 450px。背景は画像スライドショーのプレースホルダ + 黒のグラデーションスクリム (下端に向かって不透明度 55% まで上がる) + スライドインジケーター。重ねる要素は上から見出し「群馬大学 荒牧祭」(固定文言、44px) → テーマ (`festival_meta.theme_word`、88px) → メタ情報「開催日 (`festival_meta.event_days`) ｜ 会場 (`festival_meta.venue_name`)」の 1 行の順で、すべて左揃え・白抜きとする。テーマは見出しの 2 倍のサイズとし Hero 内で最大の要素にする。「開催日：」のようなラベルは付けない。`page_home.hero_message_html` は表示しない (要件 3.1)。開催までの残り日数のカウントダウンと、画像スライドの手動切替 (前後の矢印ボタン) は持たない。前者は開催中に残り日数が意味を持たないため、後者は Requirement 1 (要件 1.11) と異なりスライドショーが装飾に徹するため
-- **トピック**: 見出し「トピック」(`SectionHeading` の `h2`) の下に、Figma コンポーネント `TopicCard` (ページ「コンポーネント」、`node-id=166:113`、単体 COMPONENT + `Title` / `Date` の TEXT プロパティ) のインスタンスを 3 枚、カード幅 416px・gap 16px (`spacing/4`) で横並びする (要件 3.5)。416×3 + 16×2 = 1280 でコンテンツ枠の幅と一致する。末尾に「トピック一覧へ」(`/topics`) を添える。0 件のときはセクションごと非表示にする (要件 3.6)。表示部品は既存の `components/topics-list.tsx` / `topic-card.tsx` を起点に改める
+- **トピック**: 見出し「トピック」(`SectionHeading` の `h2`) の下に、Figma コンポーネント `TopicCard` (ページ「コンポーネント」、`node-id=166:113`、単体 COMPONENT + `Title` の TEXT プロパティ。構成は Requirement 14 参照) のインスタンスを 3 枚、カード幅 416px・gap 16px (`spacing/4`) で横並びする (要件 3.5)。416×3 + 16×2 = 1280 でコンテンツ枠の幅と一致する。末尾に「トピック一覧へ」(`/topics`) を添える。0 件のときはセクションごと非表示にする (要件 3.6)。表示部品は既存の `components/topics-list.tsx` / `topic-card.tsx` を起点に改める
 - **主要導線「会場で使う」**: 見出し「会場で使う」の下に、Figma コンポーネント `PrimaryNavCard` (COMPONENT_SET、`node-id=181:130`、`Destination` variant) のインスタンスを `exhibitions` / `map` / `timetable` / `parking` の 4 種類、カード幅 302px・gap 24px で 4 列横並びする。遷移先は企画一覧 (`/exhibitions`)・構内マップ (`/map`)・タイムテーブル (未実装、`timetable-page` が扱う)・駐車場空き情報 (未実装、`parking-availability` が扱う) で、この 4 つへの導線を持つことで要件 3.2 を満たす。バリアントが `exhibitions` / `map` / `timetable` / `parking` の固定 4 種であるため、`CategoryBadge` (`2:106`) と同じ COMPONENT_SET + variant の作りに揃える。アイコンは `components/icons.tsx` の方式 (Material Symbols Sharp weight 300 の SVG を使用分だけインライン化) に揃え、`festival` / `map` / `calendar_clock` / `parking_sign` を追加する。アイコンの色は `color/text` とする (カード背景に淡い色が乗るため、トークン色のままだと背景に埋没する)。カード背景は各バリアントのトークン色 (`exhibitions`→`primary` / `map`→`secondary` / `timetable`→`info` / `parking`→`accent`) を `color/background` に 18% で重ねた濃度とし、stroke `color/gray-200` 1px・角丸 `radius/md` でカード全体を 1 つの面として扱う
 - **企画**: 見出し「企画」(固定文言) の下に、既存コンポーネント `SearchField` (`node-id=2:212`) のインスタンス (幅 480px、プレースホルダはマスターの「企画名・団体名で検索」をそのまま使い上書きしない) を置く。送信時に `/exhibitions` へクエリを渡して遷移させるだけの単純な入力とし、トップページ内では絞り込まない (要件 3.2 の検索導線)。`lib/exhibitions.ts` の `buildExhibitionsHref` で URL を組み立てる点は `components/exhibition-filters.tsx` (`/exhibitions` ページ側の即時絞り込み) と共通化できるが、送信時にのみ遷移する点で同コンポーネントの挙動とは異なるため、別の新規コンポーネントとする。その下にランダムに選んだ企画を、既存コンポーネント `ExhibitionCard` (`node-id=2:139`、`Image=true, State=Default`) のインスタンス (`components/exhibition-card.tsx`) で 4 枚、カード幅 302px・gap 24px (企画一覧 PC `2:217` の `CardGrid` と同じ寸法) で横並びし、末尾に「企画一覧へ」(`/exhibitions`) を添える
 - **お知らせ**: 見出し「お知らせ」の下に、既存コンポーネント `NoticeItem` (`node-id=127:108`) のインスタンスを 5 件、幅はインスタンス側の FILL で吸収して並べ、「お知らせ一覧へ」(`/announcements`) を添える (要件 3.4)。表示部品は Requirement 1 と同じ `components/announcements-list.tsx` の `limit` prop を使う
@@ -593,11 +593,17 @@ Figma: `Footer` (`291:1537`) の SP/during (`310:633`、390×1060) / SP/before (
 
 ### Requirement 14: トピックカード
 
-- ファイル: `frontend/src/components/topic-card.tsx` と `topics-list.tsx`。データは `lib/topics.ts` の `TopicSummary` で、`imageId` を既に持つ (要件 14.2)。
-- `topics` コレクションの定義は変更しない (要件 14.5)。
-- 代替画像 (要件 14.3) は `imageId` が `null` のときに用いる。素材は未定。
-
-**未確定**: 一覧で本文をどこまで見せるか、添付ファイルを出すか、サムネイルの縦横比、リンク領域の取り方、一覧での並べ方。
+- ファイル: `frontend/src/components/topic-card.tsx` と `topics-list.tsx`。データは `lib/topics.ts` の `TopicSummary` で、`imageId` を既に持つ (要件 14.3)。
+- `topics` コレクションの定義は変更しない (要件 14.6)。
+- 構成: 角丸 `radius/xl` (12px、`ExhibitionCard` と同じ) の四角をカード全体とし、その全面を 4:3 のサムネイル (`object-fit: cover`) で埋める。サムネイルの上に、上端 `color/gray-800` 不透明度 0% から下端 55% へ濃くなる縦方向のグラデーション (Hero のスクリムと同じ到達濃度)を重ね、その下寄りの領域にタイトルを置く。本文・日付を置く Body は持たない。
+- タイトル: `heading/h4` (Zen Old Mincho Bold 20px、`ExhibitionCard` のタイトルと同じ)、色 `color/gray-50` (Hero の白抜き文字と同じ)。カード下端から `spacing/4` (16px) の padding で左揃え・下揃えに置き、2 行で打ち切る (`line-clamp-2`)。カードの高さは幅と 4:3 の比率だけで決まるため、タイトルの行数によらず揃う (要件 14.7)。
+- Figma の `TopicCard` (`node-id=166:113`) は画像 298×160 の下に `Title` / `Date` の Body を置いた暫定版であり、上記の構成で作り直す。`Date` プロパティは削除する (要件 14.1)。
+- カード全体を 1 つの `<a>` とし、画像とタイトルを個別のリンクにしない (要件 14.5)。
+- 本文・添付ファイルを描画しないため、`topic-card.tsx` から `RichText` / `AttachmentGallery` の利用を外す。サムネイルは `imageId` のみから求め、現行の「最初の画像添付を優先する」処理は削除する (要件 14.3)。
+- 代替画像 (要件 14.4) は `imageId` が `null` のときに用い、`ExhibitionCard` の画像なし表示 (中央に `icon/image`) と同じ作りにする。グラデーションとタイトルは画像がある場合と同じく重ねる。
+- 並び順は `lib/topics.ts` の `getTopics` の `sort` を `['-published_at']` に変える (要件 14.8)。`topics.sort` フィールドは残るが並び順には使わない。トップページの 3 枚もこの順の先頭から取る。
+- `/topics` の並べ方は企画一覧と同じ PC 4 列 (カード幅 302px、gap 24px `spacing/6`)・SP 1 列とする (要件 14.9)。件数が少ないためページングは設けない。
+- サムネイルは 4:3 で切り取られるため、パンフレット表紙のような縦長・文字主体の画像は上下が欠ける。`topics.image` には 4:3 で見せる前提の画像を登録する運用とする。
 
 ### Requirement 15: お知らせ一覧
 
