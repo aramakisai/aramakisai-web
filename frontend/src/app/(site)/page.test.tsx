@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Page from './page';
 import * as homePageModule from '@/lib/home-page';
@@ -77,73 +77,116 @@ const content: HomePageContent = {
   ],
 };
 
-describe('Page', () => {
+describe('Page (開催前フェーズ)', () => {
   beforeEach(() => {
     vi.mocked(phaseModule.resolvePhase).mockReturnValue({
-      phase: 'live',
+      phase: 'pre_event',
       source: 'constant',
     });
   });
 
-  it('Hero直後に荒牧祭についてを表示し、開催日程・祭概要が1箇所にのみ描画される', async () => {
+  it('ヒーロー・荒牧祭とは・お知らせの3セクションのみで構成する (要件1.6)', async () => {
     vi.mocked(homePageModule.getHomePage).mockResolvedValue(content);
 
     const ui = await Page();
     render(ui);
 
-    const hero = screen.getByRole('region', {
-      name: '荒牧祭の写真スライドショー',
-    });
     expect(
-      screen.getAllByRole('button', { name: /枚目の画像を表示/ }),
-    ).toHaveLength(2);
-
-    const about = screen.getByRole('region', { name: '荒牧祭について' });
-    expect(hero.nextElementSibling).toBe(about);
-    expect(about).toHaveAttribute('id', 'about');
-
-    // FestivalOverview / FestivalSummary の旧見出しが重複描画されない
-    expect(screen.queryByText('開催日程')).not.toBeInTheDocument();
-    expect(screen.getAllByText('11月14日')).toHaveLength(1);
-    expect(screen.getAllByText('CMS祭概要')).toHaveLength(1);
-
-    expect(screen.getByText('ようこそ')).toBeInTheDocument();
-    expect(screen.getByText('お知らせ1')).toBeInTheDocument();
-    expect(screen.getByText('トピックス')).toBeInTheDocument();
-    expect(screen.getByText('トピック1')).toBeInTheDocument();
-
-    // テーマ・会場名・キャンパスマップがDirectus取得データから描画される
-    expect(within(about).getByTestId('theme-word')).toHaveTextContent('万彩');
-    expect(
-      within(about).getByText('群馬大学 荒牧キャンパス'),
+      screen.getByRole('region', { name: '荒牧祭の写真スライドショー' }),
     ).toBeInTheDocument();
-    expect(within(about).getByTestId('campus-map')).toHaveAttribute(
-      'src',
-      content.campusMapUrl,
-    );
+    expect(
+      screen.getByRole('heading', { level: 2, name: '荒牧祭とは' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'お知らせ' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('お知らせ1')).toBeInTheDocument();
+
+    // トピックスは開催前フェーズでは非公開のためセクションごと出さない (要件1.9)
+    expect(screen.queryByText('トピック1')).not.toBeInTheDocument();
+    expect(homePageModule.getHomePage).toHaveBeenCalledWith('pre_event');
   });
 
-  it('ヒーロー画像URLをDirectusアセットURLへ変換してHeroSectionへ渡す', async () => {
+  it('page_home.hero_message_html と festival_meta.name を本文に表示しない (要件1.7, 1.8)', async () => {
     vi.mocked(homePageModule.getHomePage).mockResolvedValue(content);
 
     const ui = await Page();
     render(ui);
 
-    const slides = screen.getAllByTestId('hero-slide');
-    const images = slides.map((slide) => slide.querySelector('img'));
-    expect(images[0]).toHaveAttribute(
-      'src',
-      'http://localhost:8055/api/media/serve/hero-1/hero',
-    );
-    expect(images[1]).toHaveAttribute(
-      'src',
-      'http://localhost:8055/api/media/serve/hero-2/hero',
-    );
+    expect(screen.queryByText('ようこそ')).not.toBeInTheDocument();
+    // festival_meta.name はページ主見出し (読み上げ専用) にのみ許容され、本文には出ない
+    expect(
+      screen.getByRole('heading', { level: 1, name: '荒牧祭' }),
+    ).toHaveClass('sr-only');
   });
 
-  it('Directus取得エラー時はDirectus由来の領域を描画せず、ページを落とさない', async () => {
+  it('festival_meta.name が本文に出ない (ページ主見出しにのみ許容、要件1.8)', async () => {
+    vi.mocked(homePageModule.getHomePage).mockResolvedValue({
+      ...content,
+      festival: {
+        ...content.festival!,
+        name: '第73回 荒牧祭公式ホームページ',
+      },
+    });
+
+    const ui = await Page();
+    render(ui);
+
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: '第73回 荒牧祭公式ホームページ',
+      }),
+    ).toHaveClass('sr-only');
+    expect(
+      screen.queryByText('第73回 荒牧祭公式ホームページ', {
+        selector: ':not(h1)',
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('本文に開催前フェーズで非公開のページへの導線を持たない (要件1.9)', async () => {
+    vi.mocked(homePageModule.getHomePage).mockResolvedValue(content);
+
+    const ui = await Page();
+    render(ui);
+
+    const hrefs = screen
+      .getAllByRole('link')
+      .map((link) => link.getAttribute('href'));
+
+    for (const href of hrefs) {
+      expect(href).not.toMatch(
+        /^\/(exhibitions|map|topics|timetable|parking)(\/|$)/,
+      );
+    }
+  });
+
+  it('お知らせを新しい順に5件まで表示する', async () => {
+    const announcements = Array.from({ length: 7 }, (_, i) => ({
+      id: i,
+      title: `お知らせ${i}`,
+      body: '',
+      publishedAt: '2026-07-01',
+      attachments: [],
+    }));
+    vi.mocked(homePageModule.getHomePage).mockResolvedValue({
+      ...content,
+      announcements,
+    });
+
+    const ui = await Page();
+    render(ui);
+
+    expect(screen.getAllByRole('listitem')).toHaveLength(5);
+    expect(
+      screen.getByRole('link', { name: /お知らせ一覧へ/ }),
+    ).toHaveAttribute('href', '/announcements');
+  });
+
+  it('取得失敗時もページを落とさず、主見出しと空表示が残る (要件20.1, 20.2)', async () => {
     vi.mocked(homePageModule.getHomePage).mockRejectedValue(
-      new Error('Directus Error'),
+      new Error('CMS Error'),
     );
 
     const ui = await Page();
@@ -153,13 +196,12 @@ describe('Page', () => {
       screen.queryByRole('region', { name: '荒牧祭の写真スライドショー' }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('region', { name: '荒牧祭について' }),
+      screen.queryByRole('heading', { level: 2, name: '荒牧祭とは' }),
     ).not.toBeInTheDocument();
     expect(
       screen.getByRole('heading', { level: 1, name: '荒牧祭' }),
     ).toHaveClass('sr-only');
-    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
-    expect(screen.queryByText('お知らせ1')).not.toBeInTheDocument();
+    expect(screen.getByText('お知らせはありません')).toBeInTheDocument();
   });
 
   it('festival 領域だけ欠落しても、他の領域とページの主見出しは表示を続ける', async () => {
@@ -178,7 +220,7 @@ describe('Page', () => {
       screen.getByRole('region', { name: '荒牧祭の写真スライドショー' }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('region', { name: '荒牧祭について' }),
+      screen.queryByRole('heading', { level: 2, name: '荒牧祭とは' }),
     ).not.toBeInTheDocument();
     expect(
       screen.getByRole('heading', { level: 1, name: '荒牧祭' }),
@@ -186,16 +228,22 @@ describe('Page', () => {
     expect(screen.getByText('お知らせ1')).toBeInTheDocument();
   });
 
-  it('トピックスが0件のとき、見出しごとセクションを描画しない', async () => {
-    vi.mocked(homePageModule.getHomePage).mockResolvedValue({
-      ...content,
-      topics: [],
-    });
+  it('ヒーロー画像URLをCMSアセットURLへ変換してHeroSectionへ渡す', async () => {
+    vi.mocked(homePageModule.getHomePage).mockResolvedValue(content);
 
     const ui = await Page();
     render(ui);
 
-    expect(screen.queryByText('トピックス')).not.toBeInTheDocument();
+    const slides = screen.getAllByTestId('hero-slide');
+    const images = slides.map((slide) => slide.querySelector('img'));
+    expect(images[0]).toHaveAttribute(
+      'src',
+      'http://localhost:8055/api/media/serve/hero-1/hero',
+    );
+    expect(images[1]).toHaveAttribute(
+      'src',
+      'http://localhost:8055/api/media/serve/hero-2/hero',
+    );
   });
 });
 
@@ -204,7 +252,7 @@ describe('フェーズによるトピックス節の出し分け', () => {
     vi.mocked(homePageModule.getHomePage).mockResolvedValue(content);
   });
 
-  it('開催前フェーズではトピックス節を描画せず、解決したフェーズを取得処理へ渡す', async () => {
+  it('開催前フェーズではトピックス節を描画しない', async () => {
     vi.mocked(phaseModule.resolvePhase).mockReturnValue({
       phase: 'pre_event',
       source: 'constant',

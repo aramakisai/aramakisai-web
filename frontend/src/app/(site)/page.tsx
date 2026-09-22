@@ -2,9 +2,8 @@ import { cookies } from 'next/headers';
 import { getHomePage } from '@/lib/home-page';
 import { HeroSection } from '@/components/hero-section';
 import { AboutSection } from '@/components/about-section';
-import { AnnouncementsList } from '@/components/announcements-list';
+import { NoticesSection } from '@/components/notices-section';
 import { TopicsList } from '@/components/topics-list';
-import { RichText } from '@/components/rich-text';
 import { toAssetUrl } from '@/lib/cms-asset-url';
 import { HomePageContent } from '@/lib/home-page-types';
 import { PHASE_OVERRIDE_COOKIE, resolvePhase } from '@/lib/phase';
@@ -57,28 +56,14 @@ export default async function Page() {
         />
       )}
 
-      {content.festival && content.theme && (
-        <AboutSection
-          festival={content.festival}
-          theme={content.theme}
-          venueName={content.venueName}
-          campusMapUrl={content.campusMapUrl}
-        />
+      {content.festival && (
+        <AboutSection overviewHtml={content.festival.overviewHtml} />
       )}
 
-      <div className="mx-auto max-w-6xl space-y-12 px-4 py-12">
-        {content.heroMessageHtml && (
-          <RichText html={content.heroMessageHtml} className="hero-message" />
-        )}
+      <NoticesSection announcements={content.announcements} />
 
-        <section>
-          <h2 className="mb-4 border-b border-gray-200 pb-2 text-2xl font-bold">
-            お知らせ
-          </h2>
-          <AnnouncementsList announcements={content.announcements} limit={5} />
-        </section>
-
-        {phase === 'live' && content.topics.length > 0 && (
+      {phase === 'live' && content.topics.length > 0 && (
+        <div className="mx-auto max-w-6xl px-4 py-12">
           <section>
             <h2 className="mb-4 border-b border-gray-200 pb-2 text-2xl font-bold">
               トピックス
@@ -91,8 +76,8 @@ export default async function Page() {
               }))}
             />
           </section>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
