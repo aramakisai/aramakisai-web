@@ -1031,6 +1031,10 @@ export interface FestivalMeta {
    * HTMLのtitleタグ用
    */
   site_title?: string | null;
+  /**
+   * 最寄り駅・バス等からの行き方を数行で。詳細はアクセスページが担う
+   */
+  access_summary?: string | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1093,6 +1097,7 @@ export interface FestivalMetaSelect<T extends boolean = true> {
   contact_form_url?: T;
   theme_image?: T;
   site_title?: T;
+  access_summary?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
