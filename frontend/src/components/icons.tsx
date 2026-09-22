@@ -8,8 +8,13 @@ export interface IconProps {
 
 // FILL は塗りつぶし版/線画版でアイコンごとに固定値が異なるため、共有クラス側ではなく
 // ここで個々に inline style として上書きする
-function createIcon(testId: string, ligature: string, fill: 0 | 1 = 0) {
-  const Icon = ({ size = 24, className }: IconProps) => (
+function renderIcon(
+  ligature: string,
+  fill: 0 | 1,
+  testId: string,
+  { size = 24, className }: IconProps,
+) {
+  return (
     <span
       aria-hidden="true"
       data-testid={testId}
@@ -23,8 +28,23 @@ function createIcon(testId: string, ligature: string, fill: 0 | 1 = 0) {
       {ligature}
     </span>
   );
+}
+
+function createIcon(testId: string, ligature: string, fill: 0 | 1 = 0) {
+  const Icon = (props: IconProps) => renderIcon(ligature, fill, testId, props);
   Icon.displayName = testId;
   return Icon;
+}
+
+/**
+ * リガチャ名を直接指定する汎用アイコン。下部ナビゲーションのように項目定義側が
+ * リガチャ名を文字列で持つ場合向けで、個別に named export を増やすほどではない用途に使う。
+ */
+export function MaterialIcon({
+  name,
+  ...props
+}: IconProps & { readonly name: string }) {
+  return renderIcon(name, 0, `icon-${name.replace(/_/g, '-')}`, props);
 }
 
 export const PlaceIcon = createIcon('icon-place', 'location_on');

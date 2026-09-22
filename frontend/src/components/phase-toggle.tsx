@@ -40,8 +40,15 @@ export function PhaseToggle({ resolved }: PhaseToggleProps) {
     router.refresh();
   };
 
+  // 下部ナビゲーション (BottomNavigation) は開催中フェーズかつ 1024px 未満でのみ
+  // 表示されるため、同じ条件のときだけこの表示をその上へずらして重なりを避ける
+  const bottomClass =
+    resolved.phase === 'live'
+      ? 'max-lg:bottom-[calc(4rem+1rem+env(safe-area-inset-bottom))]'
+      : '';
+
   return (
-    <div className="fixed bottom-4 left-4 z-50 text-sm">
+    <div className={`fixed bottom-4 left-4 z-50 text-sm ${bottomClass}`}>
       {open && (
         <div className="mb-2 flex flex-col gap-2 rounded-md border border-gray-200 bg-background p-3 shadow-card">
           <button
