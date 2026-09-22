@@ -34,7 +34,7 @@ const LISTS: Record<string, unknown[]> = {
   sponsors: [
     {
       id: 3,
-      type: 'sponsor',
+      type: ['local', 'vendor'],
       name: 'S1',
       logo: { id: 31, filename: 'logo1.webp', mimeType: 'image/webp' },
       url: 'https://sponsor.example.com',
@@ -124,7 +124,7 @@ describe('getHomePage', () => {
     expect(result.sponsors).toEqual([
       {
         id: 3,
-        type: 'sponsor',
+        type: ['local', 'vendor'],
         name: 'S1',
         logoId: '31',
         url: 'https://sponsor.example.com',

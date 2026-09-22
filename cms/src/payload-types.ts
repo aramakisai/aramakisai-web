@@ -340,17 +340,17 @@ export interface Page {
  */
 export interface Sponsor {
   id: number;
-  type: 'ad' | 'sponsor' | 'food_truck' | 'other';
+  type: ('ad' | 'local' | 'vendor' | 'other')[];
   name: string;
   logo?: (number | null) | Media;
   url?: string | null;
   description?: string | null;
   /**
-   * 地元協賛のみ
+   * 地域協賛のみ
    */
   business_category?: string | null;
   /**
-   * 地元協賛のみ
+   * 地域協賛のみ
    */
   address?: string | null;
   /**
@@ -358,13 +358,16 @@ export interface Sponsor {
    */
   tier?: ('planA' | 'planB' | 'planC' | 'planD') | null;
   /**
-   * 広告協賛はNULL
+   * 出店協賛のみ
    */
   area_id?: (number | null) | MapArea;
   /**
-   * エリア内番号 (area_id+booth_number UNIQUE)
+   * エリア内番号 (area_id+booth_number UNIQUE)。出店協賛のみ
    */
   booth_number?: number | null;
+  /**
+   * 出店協賛のみ
+   */
   booth_label?: string | null;
   sort?: number | null;
   updatedAt: string;
