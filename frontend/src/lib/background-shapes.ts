@@ -51,6 +51,13 @@ export interface PlacedShape {
   rotation: number;
   color: ShapeColorToken;
   texture: ShapeTexture;
+  // kind === 'ring' の組の中での役割 (Figma 342:2151/342:2152)。それ以外の kind では undefined
+  ringVariant?: 'primary' | 'secondary';
+  // ring 用。2 つ目 (secondary) の線幅は自身の size ではなく組の 1 つ目 (primary) の
+  // size を基準にした絶対値になる (Figma 342:2152 の stroke-width は 342:2151 と同じ px)
+  ringStrokeWidth?: number;
+  // ring の secondary のみ 0.65 (Figma 342:2152)。未指定は不透明 (1) として扱う
+  opacity?: number;
 }
 
 const MIN_SIZE = 22;
@@ -62,8 +69,14 @@ const SP_DENSITY_FACTOR = 0.7;
 const MIN_COUNT = 4;
 const TRIAL_MULTIPLIER = 60;
 const EDGE_OVERHANG_RATIO = 0.3;
-// 二重リングの定位置での相対オフセット (design.md #動き 参照)
-const RING_OFFSET = { x: 7, y: 6 };
+// 二重リングの secondary (Figma 342:2152) を primary (342:2151, size=64 基準) に対する
+// 比率で表す。design.md 記載の (7px, 6px) は Figma の実測値と食い違うため、Figma を正とする。
+// RingB: 43.52/64 = 0.68、中心オフセット (+21.76, +21.76)/64 = 0.34、線幅は絶対値で
+// primary と共通 (10.24 = 64×0.16、secondary 自身の size には比例しない)
+const RING_STROKE_RATIO = 0.16;
+const RING_B_SIZE_RATIO = 0.68;
+const RING_B_OFFSET_RATIO = 0.34;
+const RING_B_OPACITY = 0.65;
 
 // FNV-1a 32bit と mulberry32 PRNG。exhibition-color.ts (企画カードのグラデーション) と
 // 同じ方式を、種をページパスに変えて用いる (design.md 参照)。乱数生成器自体は
@@ -172,6 +185,13 @@ function buildCandidate(
   }
 
   // リングには質感を割り当てず、2 つ 1 組で少し重ねて配置する (要件 23.14, 23.17)
+  const strokeWidth = size * RING_STROKE_RATIO;
+  const secondSize = size * RING_B_SIZE_RATIO;
+  const offset = size * RING_B_OFFSET_RATIO;
+  const secondCx = cx + offset;
+  const secondCy = cy + offset;
+  const secondAabbSide = rotatedAabbSize(secondSize, rotation);
+
   const first: PlacedShape = {
     kind,
     size,
@@ -180,25 +200,30 @@ function buildCandidate(
     rotation,
     color,
     texture: 'none',
+    ringVariant: 'primary',
+    ringStrokeWidth: strokeWidth,
   };
   const second: PlacedShape = {
     kind,
-    size,
-    x: cx + RING_OFFSET.x,
-    y: cy + RING_OFFSET.y,
+    size: secondSize,
+    x: secondCx,
+    y: secondCy,
     rotation,
     color,
     texture: 'none',
+    ringVariant: 'secondary',
+    ringStrokeWidth: strokeWidth,
+    opacity: RING_B_OPACITY,
   };
   return {
     shapes: [first, second],
     aabbRects: [
       centeredRect(cx, cy, aabbSide),
-      centeredRect(cx + RING_OFFSET.x, cy + RING_OFFSET.y, aabbSide),
+      centeredRect(secondCx, secondCy, secondAabbSide),
     ],
     gapPoints: [
       { x: cx, y: cy, size },
-      { x: cx + RING_OFFSET.x, y: cy + RING_OFFSET.y, size },
+      { x: secondCx, y: secondCy, size: secondSize },
     ],
   };
 }

@@ -102,12 +102,14 @@ describe('computeBackgroundShapePlacement', () => {
       for (let j = i + 1; j < result.length; j++) {
         const a = result[i];
         const b = result[j];
-        // リングの二重配置 (7px, 6px オフセット) は組の内部なので中心間隔の対象外
+        // リングの二重配置 (primary/secondary の組) は組の内部なので中心間隔の対象外。
+        // 組は常に primary の直後に secondary が来る (buildCandidate) ため隣接判定で十分
         const isRingPair =
+          j === i + 1 &&
           a.kind === 'ring' &&
           b.kind === 'ring' &&
-          Math.abs(a.x - b.x) === 7 &&
-          Math.abs(a.y - b.y) === 6;
+          a.ringVariant === 'primary' &&
+          b.ringVariant === 'secondary';
         if (isRingPair) continue;
         const dist = Math.hypot(a.x - b.x, a.y - b.y);
         const minGap = 70 + (a.size + b.size) / 4;
@@ -179,7 +181,7 @@ describe('computeBackgroundShapePlacement', () => {
     }
   });
 
-  it('リングは 2 つ 1 組で (7px, 6px) ずれた位置に配置される', () => {
+  it('リングは 2 つ 1 組で、Figma (342:2151/342:2152) 実測比率でずれた位置に配置される', () => {
     const result = computeBackgroundShapePlacement({
       pathname: '/ring-pair',
       pageHeight: 20000,
@@ -189,11 +191,19 @@ describe('computeBackgroundShapePlacement', () => {
     const rings = result.filter((s) => s.kind === 'ring');
     expect(rings.length % 2).toBe(0);
     for (let i = 0; i < rings.length; i += 2) {
-      const first = rings[i];
-      const second = rings[i + 1];
-      expect(second.x - first.x).toBe(7);
-      expect(second.y - first.y).toBe(6);
-      expect(second.size).toBe(first.size);
+      const primary = rings[i];
+      const secondary = rings[i + 1];
+      expect(primary.ringVariant).toBe('primary');
+      expect(secondary.ringVariant).toBe('secondary');
+      // secondary の直径は primary の 68%、中心は primary から 34% ずれる
+      expect(secondary.size).toBeCloseTo(primary.size * 0.68, 6);
+      expect(secondary.x - primary.x).toBeCloseTo(primary.size * 0.34, 6);
+      expect(secondary.y - primary.y).toBeCloseTo(primary.size * 0.34, 6);
+      // 線幅は secondary 自身の size に比例せず primary と同じ絶対値 (size×16%)
+      expect(secondary.ringStrokeWidth).toBe(primary.ringStrokeWidth);
+      expect(primary.ringStrokeWidth).toBeCloseTo(primary.size * 0.16, 6);
+      expect(primary.opacity).toBeUndefined();
+      expect(secondary.opacity).toBe(0.65);
     }
   });
 

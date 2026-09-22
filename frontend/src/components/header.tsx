@@ -20,6 +20,10 @@ import {
 } from '@/components/navigation-menu-rows';
 
 export const MAIN_CONTENT_ID = 'main-content';
+// BackgroundShapes がヘッダーの高さ範囲の図形をここへ portal する (design.md 参照)。
+// ヘッダーは fixed で内容と不透明な地を自身の背景色で描くため、装飾は地と中身の間に
+// 挟む専用の層をヘッダー自身の中に用意する必要がある
+export const HEADER_BG_SHAPES_SLOT_ID = 'header-bg-shapes-slot';
 
 const PC_DROPDOWN_WIDTH = 224;
 
@@ -300,6 +304,15 @@ export function Header({ phase }: HeaderProps) {
             onNavigate={closeMobileMenu}
           />
         </nav>
+
+        {/* 負の z-index でヘッダー自身の背景 (上の bg-background) より前面、
+            それ以外の (position を持たない) ヘッダーの中身より背面に置く。DOM 順は
+            :scope > div でコンテンツ行を取得している既存テストに影響しないよう末尾に置く */}
+        <div
+          id={HEADER_BG_SHAPES_SLOT_ID}
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+        />
       </header>
       <div
         aria-hidden="true"
