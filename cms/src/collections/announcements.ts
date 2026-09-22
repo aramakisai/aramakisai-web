@@ -1,6 +1,8 @@
 import { lexicalHTMLField } from '@payloadcms/richtext-lexical';
 import type { CollectionConfig } from 'payload';
 
+import { richTextHTMLConverters } from '../lib/rich-text-html-converters';
+
 export const Announcements: CollectionConfig = {
   slug: 'announcements',
   labels: { singular: 'お知らせ', plural: 'お知らせ' },
@@ -13,6 +15,7 @@ export const Announcements: CollectionConfig = {
       htmlFieldName: 'body_html',
       lexicalFieldName: 'body',
       storeInDB: true,
+      converters: richTextHTMLConverters,
     }),
     {
       name: 'published_at',

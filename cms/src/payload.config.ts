@@ -12,6 +12,7 @@ import { authentikEndpoints } from './auth/authentik-endpoints';
 import { collections } from './collections';
 import { optionalEnv, requireEnv } from './env';
 import { globals } from './globals';
+import { richTextEditorFeatures } from './lib/rich-text-editor';
 
 // S3 未設定のローカル開発ではディスク保存にフォールバックする。本番/staging は Infisical が必ず与える。
 const s3Bucket = optionalEnv('S3_BUCKET');
@@ -36,7 +37,7 @@ export default buildConfig({
   globals,
   // Authentik OIDC を認証の一次経路とする。ローカル認証は実行委員の緊急用として残す
   endpoints: optionalEnv('AUTHENTIK_ISSUER_URL') ? authentikEndpoints : [],
-  editor: lexicalEditor(),
+  editor: lexicalEditor({ features: richTextEditorFeatures }),
   // 利用者は実行委員のみで英語需要がないため、言語切替を出さず ja に固定する
   i18n: {
     supportedLanguages: { ja },
