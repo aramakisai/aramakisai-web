@@ -10,8 +10,11 @@ import {
   SponsorSummary,
   SnsLink,
 } from './home-page-types';
+import { FestivalPhase } from './phase';
 
-export async function getHomePage(): Promise<HomePageContent> {
+export async function getHomePage(
+  phase: FestivalPhase,
+): Promise<HomePageContent> {
   const metaResult = await cms.findGlobal('festival_meta', { depth: 1 });
   if (!metaResult.ok) throw new Error('祭メタ情報の取得に失敗しました');
   const meta = metaResult.value;
@@ -62,13 +65,18 @@ export async function getHomePage(): Promise<HomePageContent> {
     attachments: toAttachments(a.attachments),
   }));
 
-  const topicsResult = await cms.findMany('topics', {
-    sort: ['sort'],
-    limit: 0,
-    depth: 1,
-  });
+  // トピックス詳細は開催前フェーズで非公開のため、節を描画しないだけでなく
+  // 毎リクエスト走る取得自体をここで止める (トップページは動的描画のため)。
+  const topicsResult =
+    phase === 'pre_event'
+      ? null
+      : await cms.findMany('topics', {
+          sort: ['sort'],
+          limit: 0,
+          depth: 1,
+        });
   const topics: TopicSummary[] = (
-    topicsResult.ok ? topicsResult.value.docs : []
+    topicsResult?.ok ? topicsResult.value.docs : []
   ).map((t) => ({
     id: t.id,
     title: t.title,

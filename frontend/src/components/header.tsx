@@ -4,6 +4,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { visibleNavItems, type FestivalPhase } from '@/lib/phase';
 
 type NavigationItem = {
   label: string;
@@ -31,8 +32,13 @@ export const navigationItems: readonly NavigationItem[] = [
   { label: 'アクセス', href: '/access' },
 ];
 
-export function Header() {
+export interface HeaderProps {
+  readonly phase: FestivalPhase;
+}
+
+export function Header({ phase }: HeaderProps) {
   const pathname = usePathname();
+  const items = visibleNavItems(navigationItems, phase);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileAboutOpen, setMobileAboutOpen] = useState(false);
   const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
@@ -86,7 +92,7 @@ export function Header() {
 
           <nav aria-label="メインナビゲーション" className="hidden lg:block">
             <ul className="flex items-center gap-1 xl:gap-2">
-              {navigationItems.map((item) => {
+              {items.map((item) => {
                 const isActive =
                   item.href === '/'
                     ? pathname === '/'
@@ -185,7 +191,7 @@ export function Header() {
             className="absolute inset-x-0 top-full max-h-[calc(100svh_-_4rem_-_env(safe-area-inset-top))] w-full min-w-0 overflow-y-auto border-b border-slate-200/80 bg-white/95 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_18px_36px_rgba(15,23,42,0.1)] backdrop-blur-xl supports-[backdrop-filter]:bg-white/90 lg:hidden"
           >
             <ul className="px-5 py-3 sm:px-6">
-              {navigationItems.map((item) => {
+              {items.map((item) => {
                 const isActive =
                   item.href === '/'
                     ? pathname === '/'

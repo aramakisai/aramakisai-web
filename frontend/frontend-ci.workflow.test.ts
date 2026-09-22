@@ -143,4 +143,49 @@ describe('.github/workflows/frontend-ci.yml', () => {
     expect(deployStep?.run).toContain('--env=staging');
     expect(deployStep?.run).toContain('wrangler deploy --env=dev');
   });
+
+  it('injects the phase override flag into deploy-dev and deploy-preview, never validate/e2e/verify-build-artifacts/prod', () => {
+    const workflow = loadWorkflow();
+    const FLAG_NAME = 'NEXT_PUBLIC_ENABLE_PHASE_OVERRIDE';
+
+    const devBuildStep = workflow.jobs['deploy-dev'].steps.find(
+      (s) => s.run === 'pnpm exec opennextjs-cloudflare build',
+    );
+    expect(devBuildStep?.env).toMatchObject({ [FLAG_NAME]: 'true' });
+
+    const previewBuildStep = workflow.jobs['deploy-preview'].steps.find((s) =>
+      s.run?.includes('opennextjs-cloudflare build'),
+    );
+    expect(previewBuildStep?.run).toContain(`${FLAG_NAME}=true`);
+
+    for (const jobName of [
+      'validate',
+      'e2e',
+      'verify-build-artifacts',
+      'deploy-prod',
+    ]) {
+      expect(JSON.stringify(workflow.jobs[jobName])).not.toContain(FLAG_NAME);
+    }
+  });
+
+  it('verifies build artifacts for dev code from a step separate from validate', () => {
+    const workflow = loadWorkflow();
+    const job = workflow.jobs['verify-build-artifacts'];
+    expect(job).toBeDefined();
+    expect([job.needs].flat()).toContain('validate');
+
+    const runCommands = job.steps.filter((s) => s.run).map((s) => s.run);
+    expect(runCommands).toContain('pnpm check:build-artifacts');
+  });
+
+  it('never registers the phase override flag as a secret reference', () => {
+    const raw = readFileSync(WORKFLOW_PATH, 'utf-8');
+    const flagLines = raw
+      .split('\n')
+      .filter((line) => line.includes('NEXT_PUBLIC_ENABLE_PHASE_OVERRIDE'));
+    expect(flagLines).toHaveLength(2);
+    for (const line of flagLines) {
+      expect(line).not.toMatch(/secrets\./);
+    }
+  });
 });

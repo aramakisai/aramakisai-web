@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getSnsLinks } from '@/lib/sns-links';
 import { getContactFormUrl } from '@/lib/festival-meta';
 import type { SnsLink } from '@/lib/home-page-types';
+import { visibleNavItems, type FestivalPhase } from '@/lib/phase';
 import { SnsIcon } from './sns-icon';
 
 export const footerNavigation = [
@@ -22,7 +23,13 @@ function HoverLine() {
   );
 }
 
-export async function Footer() {
+export interface FooterProps {
+  readonly phase: FestivalPhase;
+}
+
+export async function Footer({ phase }: FooterProps) {
+  const items = visibleNavItems(footerNavigation, phase);
+
   let snsLinks: SnsLink[] = [];
   try {
     snsLinks = await getSnsLinks();
@@ -50,7 +57,7 @@ export async function Footer() {
           <nav aria-label="フッターサイト案内">
             <h2 className={sectionHeadingClass}>サイト案内</h2>
             <ul className="mt-7 space-y-2">
-              {footerNavigation.map((item) => (
+              {items.map((item) => (
                 <li key={item.href}>
                   <Link
                     href={item.href}

@@ -1,0 +1,22 @@
+{
+  "feature_name": "festival-phase-gate",
+  "created_at": "2026-09-20T10:28:39Z",
+  "updated_at": "2026-09-21T03:20:00Z",
+  "language": "ja",
+  "phase": "completed",
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": true
+    },
+    "design": {
+      "generated": true,
+      "approved": true
+    },
+    "tasks": {
+      "generated": true,
+      "approved": true
+    }
+  },
+  "ready_for_implementation": true
+}

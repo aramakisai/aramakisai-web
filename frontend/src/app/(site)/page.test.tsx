@@ -1,7 +1,8 @@
 import { render, screen, within } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Page from './page';
 import * as homePageModule from '@/lib/home-page';
+import * as phaseModule from '@/lib/phase';
 import { HomePageContent } from '@/lib/home-page-types';
 
 vi.mock('@/env', () => ({
@@ -13,6 +14,15 @@ vi.mock('@/env', () => ({
 
 vi.mock('@/lib/home-page', () => ({
   getHomePage: vi.fn(),
+}));
+
+vi.mock('@/lib/phase', () => ({
+  resolvePhase: vi.fn(),
+  PHASE_OVERRIDE_COOKIE: 'aramakisai_phase_override',
+}));
+
+vi.mock('next/headers', () => ({
+  cookies: vi.fn(async () => ({ get: vi.fn() })),
 }));
 
 const content: HomePageContent = {
@@ -58,6 +68,13 @@ const content: HomePageContent = {
 };
 
 describe('Page', () => {
+  beforeEach(() => {
+    vi.mocked(phaseModule.resolvePhase).mockReturnValue({
+      phase: 'live',
+      source: 'constant',
+    });
+  });
+
   it('Hero直後に荒牧祭についてを表示し、開催日程・祭概要が1箇所にのみ描画される', async () => {
     vi.mocked(homePageModule.getHomePage).mockResolvedValue(content);
 
@@ -145,5 +162,37 @@ describe('Page', () => {
     render(ui);
 
     expect(screen.queryByText('トピックス')).not.toBeInTheDocument();
+  });
+});
+
+describe('フェーズによるトピックス節の出し分け', () => {
+  beforeEach(() => {
+    vi.mocked(homePageModule.getHomePage).mockResolvedValue(content);
+  });
+
+  it('開催前フェーズではトピックス節を描画せず、解決したフェーズを取得処理へ渡す', async () => {
+    vi.mocked(phaseModule.resolvePhase).mockReturnValue({
+      phase: 'pre_event',
+      source: 'constant',
+    });
+
+    const ui = await Page();
+    render(ui);
+
+    expect(screen.queryByText('トピックス')).not.toBeInTheDocument();
+    expect(homePageModule.getHomePage).toHaveBeenCalledWith('pre_event');
+  });
+
+  it('開催中フェーズでは従来どおりトピックス節を描画する', async () => {
+    vi.mocked(phaseModule.resolvePhase).mockReturnValue({
+      phase: 'live',
+      source: 'constant',
+    });
+
+    const ui = await Page();
+    render(ui);
+
+    expect(screen.getByText('トピックス')).toBeInTheDocument();
+    expect(homePageModule.getHomePage).toHaveBeenCalledWith('live');
   });
 });

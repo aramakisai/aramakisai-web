@@ -66,10 +66,11 @@ describe('.github/workflows/frontend-ci.yml — deploy-preview job', () => {
     const job = workflow.jobs['deploy-preview'];
     const commands = runCommands(job);
 
-    const buildIdx = commands.findIndex((c) =>
-      c.includes(
-        'infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- env NEXT_PUBLIC_CMS_URL=https://cms.aramakisai.com pnpm exec opennextjs-cloudflare build',
-      ),
+    const buildIdx = commands.findIndex(
+      (c) =>
+        c.includes(
+          'infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- env NEXT_PUBLIC_CMS_URL=https://cms.aramakisai.com',
+        ) && c.includes('pnpm exec opennextjs-cloudflare build'),
     );
     const uploadIdx = commands.findIndex((c) =>
       c.includes('wrangler versions upload'),
@@ -77,6 +78,18 @@ describe('.github/workflows/frontend-ci.yml — deploy-preview job', () => {
 
     expect(buildIdx).toBeGreaterThanOrEqual(0);
     expect(uploadIdx).toBeGreaterThan(buildIdx);
+  });
+
+  it('enables the dev phase override flag for the preview build (requirement 7-5)', () => {
+    const workflow = loadWorkflow();
+    const job = workflow.jobs['deploy-preview'];
+    const commands = runCommands(job);
+
+    expect(
+      commands.some((c) =>
+        c.includes('NEXT_PUBLIC_ENABLE_PHASE_OVERRIDE=true'),
+      ),
+    ).toBe(true);
   });
 
   it('does not run wrangler deploy (prod traffic must stay untouched)', () => {

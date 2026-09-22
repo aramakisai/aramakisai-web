@@ -1,3 +1,4 @@
+import { cookies } from 'next/headers';
 import { getHomePage } from '@/lib/home-page';
 import { HeroSection } from '@/components/hero-section';
 import { AboutSection } from '@/components/about-section';
@@ -6,11 +7,15 @@ import { TopicsList } from '@/components/topics-list';
 import { RichText } from '@/components/rich-text';
 import { toAssetUrl } from '@/lib/cms-asset-url';
 import { HomePageContent } from '@/lib/home-page-types';
+import { PHASE_OVERRIDE_COOKIE, resolvePhase } from '@/lib/phase';
 
 export default async function Page() {
+  const cookieStore = await cookies();
+  const { phase } = resolvePhase(cookieStore.get(PHASE_OVERRIDE_COOKIE)?.value);
+
   let content: HomePageContent | null = null;
   try {
-    content = await getHomePage();
+    content = await getHomePage(phase);
   } catch {
     // Directus由来の領域だけを非表示にし、静的なページ構造は維持する
   }
@@ -49,7 +54,7 @@ export default async function Page() {
               />
             </section>
 
-            {content.topics.length > 0 && (
+            {phase === 'live' && content.topics.length > 0 && (
               <section>
                 <h2 className="mb-4 border-b border-gray-200 pb-2 text-2xl font-bold">
                   トピックス
