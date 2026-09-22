@@ -44,9 +44,11 @@ export interface FestivalTheme {
   descriptionHtml: string | null;
 }
 
+export type SponsorType = 'ad' | 'local' | 'vendor' | 'other';
+
 export interface SponsorSummary {
   id: number;
-  type: 'ad' | 'sponsor' | 'food_truck' | 'other';
+  type: readonly SponsorType[];
   name: string;
   logoId: string | null;
   url: string | null;

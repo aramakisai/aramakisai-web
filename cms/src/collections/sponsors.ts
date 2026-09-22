@@ -14,13 +14,14 @@ export const Sponsors: CollectionConfig = {
     {
       name: 'type',
       type: 'select',
+      hasMany: true,
+      // select hasMany は required だけで「1 つ以上選択」を満たす (minRows は select に存在しない)
       required: true,
-      defaultValue: 'sponsor',
       label: '種別',
       options: [
-        { label: '広告', value: 'ad' },
-        { label: '協賛', value: 'sponsor' },
-        { label: 'キッチンカー', value: 'food_truck' },
+        { label: '広告協賛', value: 'ad' },
+        { label: '地域協賛', value: 'local' },
+        { label: '出店協賛', value: 'vendor' },
         { label: 'その他', value: 'other' },
       ],
     },
@@ -53,14 +54,20 @@ export const Sponsors: CollectionConfig = {
       type: 'text',
       maxLength: 100,
       label: '業種タグ',
-      admin: { description: '地元協賛のみ' },
+      admin: {
+        description: '地域協賛のみ',
+        condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
+      },
     },
     {
       name: 'address',
       type: 'text',
       maxLength: 500,
       label: '住所',
-      admin: { description: '地元協賛のみ' },
+      admin: {
+        description: '地域協賛のみ',
+        condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
+      },
     },
     {
       name: 'tier',
@@ -72,26 +79,39 @@ export const Sponsors: CollectionConfig = {
         { label: 'C', value: 'planC' },
         { label: 'D', value: 'planD' },
       ],
-      admin: { description: '広告協賛のみ' },
+      admin: {
+        description: '広告協賛のみ',
+        condition: (data) => Array.isArray(data?.type) && data.type.includes('ad'),
+      },
     },
     {
       name: 'area_id',
       type: 'relationship',
       relationTo: 'map_areas',
       label: 'マップ配置エリア',
-      admin: { description: '広告協賛はNULL' },
+      admin: {
+        description: '出店協賛のみ',
+        condition: (data) => Array.isArray(data?.type) && data.type.includes('vendor'),
+      },
     },
     {
       name: 'booth_number',
       type: 'number',
       label: 'ブース番号',
-      admin: { description: 'エリア内番号 (area_id+booth_number UNIQUE)' },
+      admin: {
+        description: 'エリア内番号 (area_id+booth_number UNIQUE)。出店協賛のみ',
+        condition: (data) => Array.isArray(data?.type) && data.type.includes('vendor'),
+      },
     },
     {
       name: 'booth_label',
       type: 'text',
       maxLength: 50,
       label: 'マップ表示ラベル',
+      admin: {
+        description: '出店協賛のみ',
+        condition: (data) => Array.isArray(data?.type) && data.type.includes('vendor'),
+      },
     },
     {
       name: 'sort',
