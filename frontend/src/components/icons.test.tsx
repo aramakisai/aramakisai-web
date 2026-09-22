@@ -10,7 +10,9 @@ import {
   LinkIcon,
   LocationPinIcon,
   MenuIcon,
+  PauseIcon,
   PlaceIcon,
+  PlayArrowIcon,
   SearchIcon,
   ShareIcon,
 } from './icons';
@@ -28,6 +30,8 @@ const icons = [
   ['icon-arrow-back', ArrowBackIcon, 'arrow_back'],
   ['icon-menu', MenuIcon, 'menu'],
   ['icon-location-pin', LocationPinIcon, 'location_on'],
+  ['icon-pause', PauseIcon, 'pause'],
+  ['icon-play-arrow', PlayArrowIcon, 'play_arrow'],
 ] as const;
 
 describe('icons', () => {

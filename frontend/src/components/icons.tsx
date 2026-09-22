@@ -41,6 +41,8 @@ export const HideImageIcon = createIcon('icon-hide-image', 'hide_image');
 export const ImageIcon = createIcon('icon-image', 'image');
 export const ArrowBackIcon = createIcon('icon-arrow-back', 'arrow_back');
 export const MenuIcon = createIcon('icon-menu', 'menu');
+export const PauseIcon = createIcon('icon-pause', 'pause');
+export const PlayArrowIcon = createIcon('icon-play-arrow', 'play_arrow');
 
 // 位置ピン (地図上のマーカー) は同じ location_on の塗りつぶし版 (FILL 1) を使う
 export const LocationPinIcon = createIcon(
