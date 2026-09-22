@@ -65,7 +65,6 @@ async function main() {
   const festivalMeta = readJson<{
     data: {
       name: string;
-      event_days: JsonValue;
       sns_links: JsonValue;
       overview: string;
       theme_word: string | null;
@@ -80,7 +79,8 @@ async function main() {
     slug: 'festival_meta',
     data: {
       name: festivalMeta.name,
-      event_days: festivalMeta.event_days,
+      // 旧形式は年情報を持たない {label, open, close} の JSON で新しい開場/終了日時と互換がないため、
+      // 移行後に CMS 管理画面から入力し直す前提でここでは投入しない
       sns_links: festivalMeta.sns_links,
       overview: toLexical(festivalMeta.overview),
       theme_word: festivalMeta.theme_word,
