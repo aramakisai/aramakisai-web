@@ -18,6 +18,12 @@ vi.mock('@/lib/sns-links', () => ({
   getSnsLinks: vi.fn(),
 }));
 
+// useMotionPreference は window.matchMedia に依存する (footer.test.tsx と同様、
+// このテストの関心事はレイアウトの配線であり matchMedia の挙動ではないためスタブする)
+vi.mock('@/components/motion-toggle', () => ({
+  MotionToggle: () => <button type="button">モーション</button>,
+}));
+
 vi.mock('next/headers', () => ({
   cookies: vi.fn(async () => ({ get: vi.fn() })),
 }));

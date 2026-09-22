@@ -41,6 +41,8 @@ export const HideImageIcon = createIcon('icon-hide-image', 'hide_image');
 export const ImageIcon = createIcon('icon-image', 'image');
 export const ArrowBackIcon = createIcon('icon-arrow-back', 'arrow_back');
 export const MenuIcon = createIcon('icon-menu', 'menu');
+export const MailIcon = createIcon('icon-mail', 'mail');
+export const OpenInNewIcon = createIcon('icon-open-in-new', 'open_in_new');
 export const PauseIcon = createIcon('icon-pause', 'pause');
 export const PlayArrowIcon = createIcon('icon-play-arrow', 'play_arrow');
 

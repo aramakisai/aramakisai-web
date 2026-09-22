@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { listAppRoutes } from '@/lib/app-routes';
 import {
   PRE_EVENT_PUBLIC_PATHS,
@@ -7,18 +7,6 @@ import {
   isPublicPath,
 } from '@/lib/phase';
 import { navigationItemsByPhase, linkableChildren } from '@/lib/navigation';
-import { footerNavigation } from '@/components/footer';
-
-// footer.tsx は festival-meta.ts (→ cms.ts → env.ts) を経由する。
-// これらは env.ts の環境変数検証を伴う実 I/O を持つため、footer.test.tsx と同様に
-// モジュール解決の段階でモックし、navigationItems の静的な参照だけを取り出す。
-vi.mock('@/lib/sns-links', () => ({
-  getSnsLinks: vi.fn(),
-}));
-
-vi.mock('@/lib/festival-meta', () => ({
-  getContactFormUrl: vi.fn(),
-}));
 
 const appDir = join(process.cwd(), 'src/app');
 
@@ -111,13 +99,12 @@ describe('ルートと公開対象一覧の整合', () => {
   });
 
   test('ナビ項目を描画する全コンポーネントのリンク先が開催前フェーズの公開対象に含まれる', () => {
-    const hrefs = [
-      ...navigationItemsByPhase.pre_event.flatMap((item) => [
-        ...(item.href ? [item.href] : []),
-        ...linkableChildren(item).map((child) => child.href),
-      ]),
-      ...footerNavigation.map((item) => item.href),
-    ];
+    // フッターのサイト案内・ご案内はヘッダーと同じ定義から導出するため、
+    // この一覧でフッターの導線も網羅する。
+    const hrefs = navigationItemsByPhase.pre_event.flatMap((item) => [
+      ...(item.href ? [item.href] : []),
+      ...linkableChildren(item).map((child) => child.href),
+    ]);
 
     for (const href of hrefs) {
       const [path] = href.split('#');

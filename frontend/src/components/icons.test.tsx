@@ -9,7 +9,9 @@ import {
   ImageIcon,
   LinkIcon,
   LocationPinIcon,
+  MailIcon,
   MenuIcon,
+  OpenInNewIcon,
   PauseIcon,
   PlaceIcon,
   PlayArrowIcon,
@@ -30,6 +32,8 @@ const icons = [
   ['icon-arrow-back', ArrowBackIcon, 'arrow_back'],
   ['icon-menu', MenuIcon, 'menu'],
   ['icon-location-pin', LocationPinIcon, 'location_on'],
+  ['icon-mail', MailIcon, 'mail'],
+  ['icon-open-in-new', OpenInNewIcon, 'open_in_new'],
   ['icon-pause', PauseIcon, 'pause'],
   ['icon-play-arrow', PlayArrowIcon, 'play_arrow'],
 ] as const;
