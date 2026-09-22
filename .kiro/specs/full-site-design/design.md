@@ -611,16 +611,26 @@ Figma: `Footer` (`291:1537`) の SP/during (`310:633`、390×1060) / SP/before (
 - 表示件数の上限を呼び出し側から指定する (要件 15.4) 構造は現行の `limit` prop が持っている。上限超過時の一覧ページへの導線は未実装のため追加する。
 - 公開済み・新しい順 (要件 15.1) は `lib/announcements.ts` の `publishedFilter()` と `sort: ['-published_at']` が満たしている。
 - `announcements` の定義は変更せず、サムネイル画像を表示しない (要件 15.6)。
-
-**未確定**: 表示形式、公開日の表記と機械可読形式の有無、選択領域の取り方、区別の有無、トップページと `/announcements` で同じ見た目を使うか。
+- Figma: コンポーネント `NoticeItem` (ページ「コンポーネント」、`node-id=127:108`)。トップページのお知らせセクション (`107:6` / `156:751` / `160:828`) と `/announcements` (Requirement 21) が同じインスタンスを使う (要件 15.11)。
+- 構成: 現行の `<table>` をやめ、`<ul>` の各 `<li>` を `NoticeItem` 1 件とする (要件 15.7)。1 件は横並びの Row (gap `spacing/4` 16px、上下 padding `spacing/3` 12px) と、その下の区切り線 (1px `color/gray-200`) から成る。幅は親の FILL で決まり、PC・SP で構成を変えない。1 行のときの高さは 52px。
+  - 公開日: 幅 120px 固定、`body/sm` (14px/1.6)、色 `color/gray-500`。
+  - タイトル: 残り幅を占める、`body/md` (16px/1.7)、色 `color/text`。行数で打ち切らず折り返す。SP ではタイトル幅が 222px (358 − 120 − 16) になるため、長いタイトルは複数行になり、項目の高さが増える。
+- 公開日は `<time dateTime={publishedAt}>` で包み、表示は「2026年9月22日」(月・日はゼロ埋めしない) とする (要件 15.8)。現行の手組みのゼロ埋め表記 (`09月`) を改める。
+- 項目全体を 1 つの `<Link>` とし、公開日とタイトルを別々のリンクにしない (要件 15.9)。現行は 1 行に日付セルとタイトルセルの 2 つのリンクがある。
+- カテゴリ・重要度のラベルは持たない (要件 15.10)。`announcements` に該当するフィールドがなく、データモデル変更は本 spec の対象外。
+- 上限超過時の導線 (要件 15.4) は、Figma のトップページと同じく右寄せの「お知らせ一覧へ」(`label/bold`、`color/primary`、`icon/chevron_right` 20px) とする。現行の「すべてのお知らせを見る」から文言を改める。
+- 0 件 (要件 15.5) は「お知らせはありません」を `body/md`・`color/gray-500` で表示し、リストは描画しない。
 
 ### Requirement 21: お知らせ一覧ページ
 
-- ファイル: `frontend/src/app/(site)/announcements/page.tsx`。データは `lib/announcements.ts` の `getAnnouncements()` から受け、`limit` を指定せず全件を Requirement 15 の表示部品 (`components/announcements-list.tsx`) へ渡す。
+- ファイル: `frontend/src/app/(site)/announcements/page.tsx`。データは `lib/announcements.ts` の `getAnnouncements()` から全件を受け、ページ分割したうえで Requirement 15 の表示部品 (`components/announcements-list.tsx`) へ渡す。表示部品には `limit` を渡さない (「お知らせ一覧へ」の導線はこのページでは出さない)。
 - 詳細ページ `frontend/src/app/(site)/announcements/[id]/page.tsx` は本単位の対象外。遷移先の URL (`/announcements/{id}`) のみ Requirement 15 と共有する。
-- ページ全体の幅・余白は現行 `max-w-4xl` (896px)。Requirement 19 の共通基準 (PC: 1280px/768px、SP: 390px/16px) との揃え方は未確定 (下記)。
-
-**未確定**: ページ全体の幅と余白の共通基準への合わせ方、見出しの文言と階層、件数が増えたときの提示方法 (1 ページへの一括表示・ページネーション・無限スクロール)、年別・月別の区切りの有無。表示部品自体の見た目 (表示形式やトップページとの異同) は Requirement 15 が扱う。
+- Figma: ページ「トピックページ」の `announcements/PC` (`399:1003`、1440 幅)、`announcements/SP` (`400:954`、390 幅)、`announcements/SP/empty` (`401:1056`、0 件状態)。ヘッダー・フッター・見出しの扱いはトピック一覧 (`381:2` / `382:834`) と同じ。
+- 幅・余白 (要件 21.5): トピック一覧と同じく、PC は上 48px・左右 80px・下 80px (コンテンツ幅 1280px)、SP は上 16px・左右 16px・下 48px。見出し・リスト・ページ送りの縦の間隔は PC 24px (`spacing/6`)・SP 16px (`spacing/4`)。現行の `max-w-4xl` (896px) は使わない。
+- 見出し (要件 21.6): `SectionHeading` (`208:118`) の `Level=h1` で「お知らせ」。現行の `<h1 className="font-bold border-b ...">` を置き換える。
+- ページ分割 (要件 21.2): 1 ページ 10 件。ページ番号は企画一覧と同じくクエリ `?page=n` で持ち、`lib/exhibitions.ts` の `paginate` (範囲外を有効ページへ丸める純粋関数) を使う。`paginate` は企画に依存しない汎用関数のため、そのまま import する。
+- ページ送り (要件 21.4): `components/exhibition-pagination.tsx` の `ExhibitionPagination` を `hrefForPage={(p) => \`/announcements?page=${p}\`}` で使う。Figma では企画一覧と同じ `Pagination` (`2:124`) を、リストの下に中央寄せで置く。1 ページに収まるときは部品側 (`pageCount <= 1` で `null`) が非表示にする。0 件のときもページ送りは出さない。
+- 年別・月別の区切りは設けない (要件 21.7)。
 
 ## Requirements Traceability
 
@@ -635,13 +645,13 @@ Figma: `Footer` (`291:1537`) の SP/during (`310:633`、390×1060) / SP/before (
 | 11 | `components/campus-map/map-menu-button.tsx`, `lib/navigation.ts` | 構造のみ確定 |
 | 12 | `lib/sponsors.ts`, `components/sponsors-list.tsx`, `(site)/sponsors/page.tsx` | 取得層は確定、表示は未確定 |
 | 14 | `components/topic-card.tsx`, `components/topics-list.tsx`, `(site)/topics/page.tsx`, `lib/topics.ts` | Figma 確定 (`TopicCard` `166:113`、トピックページ PC `381:2` / SP `382:834`) |
-| 15 | `components/announcements-list.tsx` | 構造のみ確定 |
+| 15 | `components/announcements-list.tsx` | Figma 確定 |
 | 16 | `cms/src/collections/sponsors.ts`, マイグレーション, `lib/home-page-types.ts` | 確定 |
 | 17 | `lib/navigation.ts` | 確定 |
 | 18 | `lib/cms.ts`, `lib/home-page.ts` | 分岐は確定、再検証の値は未確定 |
 | 19 | `tailwind.config.ts`, `globals.css`, `lib/breakpoints.ts`, `components/motion-toggle.tsx`, `lib/use-motion-preference.ts` | 表示の基準は確定、境界値は未確定。モーション切替 (`MotionToggle`) の仕様・配置は確定 |
 | 20 | `cms/src/globals/festival-meta.ts`, マイグレーション, `lib/home-page-types.ts`, `components/hero-section.tsx` | 確定 (破壊的変更として検出される) |
-| 21 | `(site)/announcements/page.tsx`, `lib/announcements.ts`, `components/announcements-list.tsx` | 構造のみ確定 |
+| 21 | `(site)/announcements/page.tsx`, `lib/announcements.ts`, `lib/exhibitions.ts` (`paginate`), `components/announcements-list.tsx`, `components/exhibition-pagination.tsx` | Figma 確定 |
 | 22 | `components/background-shapes.tsx`, `lib/use-motion-preference.ts`, `(site)/layout.tsx`, `tailwind.config.ts` | 色トークン・配置先・個数/サイズ/最小間隔・配置方式 (決定的乱数)・質感・動きの仕様は確定。動きのオン・オフは Requirement 19 のモーション切替に従う |
 
 ## Testing Strategy
