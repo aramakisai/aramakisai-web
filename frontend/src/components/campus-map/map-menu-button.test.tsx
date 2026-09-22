@@ -1,27 +1,40 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
-import { navigationItemsByPhase, linkableChildren } from '@/lib/navigation';
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import { usePathname } from 'next/navigation';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { navigationItemsByPhase } from '@/lib/navigation';
 import { MapMenuButton } from './map-menu-button';
 
-function flattenHrefs(phase: 'pre_event' | 'live'): string[] {
-  return navigationItemsByPhase[phase].flatMap((item) => [
-    ...(item.href ? [item.href] : []),
-    ...linkableChildren(item).map((child) => child.href),
-  ]);
+vi.mock('next/navigation', () => ({
+  usePathname: vi.fn(),
+}));
+
+const mockedUsePathname = vi.mocked(usePathname);
+
+function topLevelHrefs(phase: 'pre_event' | 'live'): string[] {
+  return navigationItemsByPhase[phase]
+    .filter(
+      (item): item is typeof item & { href: string } => item.href !== undefined,
+    )
+    .map((item) => item.href);
 }
 
 describe('MapMenuButton', () => {
+  beforeEach(() => {
+    mockedUsePathname.mockReturnValue('/map');
+  });
+
   it('初期状態ではメニューを閉じている', () => {
     render(<MapMenuButton phase="pre_event" />);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('トリガーを押すとサイト共通ヘッダーと同じ遷移先の一覧を開く', () => {
+  it('トリガーを押すと直下に固定幅でハンバーガーメニューと同じ項目一覧を開く', () => {
     render(<MapMenuButton phase="pre_event" />);
     fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
 
     const dialog = screen.getByRole('dialog');
-    const hrefs = flattenHrefs('pre_event');
+    expect(dialog).toHaveClass('w-64');
+    const hrefs = topLevelHrefs('pre_event');
     expect(hrefs.length).toBeGreaterThan(0);
     for (const href of hrefs) {
       expect(
@@ -30,6 +43,21 @@ describe('MapMenuButton', () => {
         ),
       ).toBe(true);
     }
+  });
+
+  it('子項目を持つ行を開くとハンバーガーメニューと同じ行部品でその遷移先が現れる', () => {
+    render(<MapMenuButton phase="pre_event" />);
+    fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
+
+    const dialog = screen.getByRole('dialog');
+    expect(
+      within(dialog).queryByRole('link', { name: 'アクセス' }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(within(dialog).getByRole('button', { name: /ご案内/ }));
+    expect(
+      within(dialog).getByRole('link', { name: 'アクセス' }),
+    ).toBeInTheDocument();
   });
 
   it('開いている間は地図へのポインタ操作を遮るオーバーレイを敷く', () => {
@@ -48,14 +76,16 @@ describe('MapMenuButton', () => {
     expect(document.activeElement).toBe(links[0]);
   });
 
-  it('Tab はメニュー内で循環し外へ出ない', () => {
+  it('Tab はメニュー内のリンク・開閉ボタンを含めて循環し外へ出ない', () => {
     render(<MapMenuButton phase="pre_event" />);
     fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
 
     const dialog = screen.getByRole('dialog');
-    const links = Array.from(dialog.querySelectorAll('a'));
-    const last = links[links.length - 1] as HTMLElement;
-    const first = links[0] as HTMLElement;
+    const focusables = Array.from(
+      dialog.querySelectorAll<HTMLElement>('a[href], button'),
+    );
+    const last = focusables[focusables.length - 1];
+    const first = focusables[0];
 
     last.focus();
     fireEvent.keyDown(document, { key: 'Tab' });
@@ -72,6 +102,25 @@ describe('MapMenuButton', () => {
     expect(trigger.className).toMatch(/map-menu-button-position/);
     expect(trigger.className).toMatch(/h-\[var\(--map-toolbar-size\)\]/);
     expect(trigger.className).toMatch(/w-\[var\(--map-toolbar-size\)\]/);
+  });
+
+  it('PC (lg) では右端 24px、SP では右端 16px の位置を持つ', () => {
+    render(<MapMenuButton phase="pre_event" />);
+    const trigger = screen.getByRole('button', { name: 'メニューを開く' });
+    expect(trigger).toHaveClass(
+      'right-[max(1rem,env(safe-area-inset-right))]',
+      'lg:right-[max(1.5rem,env(safe-area-inset-right))]',
+    );
+  });
+
+  it('開いたメニューの直下位置も PC/SP でボタンと同じ右端に揃える', () => {
+    render(<MapMenuButton phase="pre_event" />);
+    fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveClass(
+      'right-[max(1rem,env(safe-area-inset-right))]',
+      'lg:right-[max(1.5rem,env(safe-area-inset-right))]',
+    );
   });
 
   it('Esc キーで閉じてトリガーへフォーカスを戻す', () => {
@@ -106,7 +155,9 @@ describe('MapMenuButton', () => {
     const renderedHrefs = Array.from(dialog.querySelectorAll('a')).map((a) =>
       a.getAttribute('href'),
     );
-    expect(renderedHrefs).toEqual(expect.arrayContaining(flattenHrefs('live')));
+    expect(renderedHrefs).toEqual(
+      expect.arrayContaining(topLevelHrefs('live')),
+    );
     expect(renderedHrefs).toEqual(
       expect.arrayContaining(['/exhibitions', '/map']),
     );

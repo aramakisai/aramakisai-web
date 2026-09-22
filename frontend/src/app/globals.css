@@ -58,6 +58,18 @@
 }
 
 /*
+ * PC (lg = 1024px 以上、サイト共通の境界) は検索ボックスと並ばないため、上記の
+ * 縦中心合わせを外し固定 24px + セーフエリアに切り替える。Tailwind の `lg:` は
+ * @layer utilities に入り非レイヤーの本クラスに常に負けるため、ここでも
+ * メディアクエリを直接書く
+ */
+@media (min-width: 1024px) {
+  .map-menu-button-position {
+    top: calc(1.5rem + env(safe-area-inset-top));
+  }
+}
+
+/*
  * Tailwind v4 既定の motion-reduce variant は prefers-reduced-motion のみで発火する。
  * フッターの MotionToggle による停止指定 (<html data-motion="reduce">) でも
  * motion-reduce: ユーティリティが発火するよう再定義する (要件 21.4, 21.8)

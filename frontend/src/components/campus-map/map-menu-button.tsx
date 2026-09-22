@@ -1,17 +1,19 @@
 'use client';
 
 import { useId, useRef, useState } from 'react';
-import Link from 'next/link';
-import { navigationItemsByPhase, linkableChildren } from '@/lib/navigation';
+import { usePathname } from 'next/navigation';
+import { navigationItemsByPhase } from '@/lib/navigation';
 import type { FestivalPhase } from '@/lib/phase';
 import { MenuIcon } from '@/components/icons';
 import { useFocusTrap } from '@/lib/use-focus-trap';
+import { NavigationMenuRows } from '@/components/navigation-menu-rows';
 
 export interface MapMenuButtonProps {
   readonly phase: FestivalPhase;
 }
 
 export function MapMenuButton({ phase }: MapMenuButtonProps) {
+  const pathname = usePathname();
   const items = navigationItemsByPhase[phase];
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -28,6 +30,8 @@ export function MapMenuButton({ phase }: MapMenuButtonProps) {
     containerRef: dialogRef,
     originRef: triggerRef,
     onClose: () => setIsOpen(false),
+    // 子項目の開閉ボタンも循環対象に含める (NavigationMenuRows が描画する)
+    focusableSelector: 'a[href], button',
   });
 
   return (
@@ -39,7 +43,7 @@ export function MapMenuButton({ phase }: MapMenuButtonProps) {
         aria-expanded={isOpen}
         aria-controls={dialogId}
         onClick={() => setIsOpen(true)}
-        className="map-menu-button-position fixed right-[max(1rem,env(safe-area-inset-right))] z-[1100] flex h-[var(--map-toolbar-size)] w-[var(--map-toolbar-size)] items-center justify-center rounded-full bg-white/90 text-slate-900 shadow-lg backdrop-blur focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600"
+        className="map-menu-button-position fixed right-[max(1rem,env(safe-area-inset-right))] z-[1100] flex h-[var(--map-toolbar-size)] w-[var(--map-toolbar-size)] items-center justify-center rounded-full border border-gray-200 bg-white text-text shadow-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary lg:right-[max(1.5rem,env(safe-area-inset-right))]"
       >
         <span className="sr-only">メニューを開く</span>
         <MenuIcon size={24} />
@@ -59,43 +63,15 @@ export function MapMenuButton({ phase }: MapMenuButtonProps) {
             aria-modal="true"
             aria-label="サイト内メニュー"
             onClick={(event) => event.stopPropagation()}
-            className="absolute top-[max(4.5rem,calc(env(safe-area-inset-top)+4rem))] right-[max(1rem,env(safe-area-inset-right))] w-64 max-w-[calc(100vw-2rem)] rounded-2xl bg-white p-2 shadow-xl"
+            className="absolute top-[max(4.5rem,calc(env(safe-area-inset-top)+4rem))] right-[max(1rem,env(safe-area-inset-right))] w-64 max-w-[calc(100vw-2rem)] rounded-2xl bg-white p-2 shadow-card lg:top-[calc(5rem+env(safe-area-inset-top))] lg:right-[max(1.5rem,env(safe-area-inset-right))]"
           >
             <nav aria-label="サイト内ナビゲーション">
-              <ul>
-                {items.map((item) => (
-                  <li key={item.label}>
-                    {item.href ? (
-                      <Link
-                        href={item.href}
-                        onClick={close}
-                        className="block rounded-lg px-3 py-2 text-slate-900 hover:bg-slate-100"
-                      >
-                        {item.label}
-                      </Link>
-                    ) : (
-                      <span className="block px-3 py-2 text-slate-900">
-                        {item.label}
-                      </span>
-                    )}
-                    {item.children && (
-                      <ul className="pl-3">
-                        {linkableChildren(item).map((child) => (
-                          <li key={child.href}>
-                            <Link
-                              href={child.href}
-                              onClick={close}
-                              className="block rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
-                            >
-                              {child.label}
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </li>
-                ))}
-              </ul>
+              <NavigationMenuRows
+                items={items}
+                pathname={pathname}
+                idPrefix="map-menu"
+                onNavigate={close}
+              />
             </nav>
           </div>
         </div>
