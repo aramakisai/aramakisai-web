@@ -1,12 +1,11 @@
 'use client';
 
-import { useEffect, useId, useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import Link from 'next/link';
 import { navigationItems } from '@/components/header';
 import { visibleNavItems, type FestivalPhase } from '@/lib/phase';
 import { MenuIcon } from '@/components/icons';
-
-const FOCUSABLE_SELECTOR = 'a[href]';
+import { useFocusTrap } from '@/lib/use-focus-trap';
 
 export interface MapMenuButtonProps {
   readonly phase: FestivalPhase;
@@ -24,39 +23,12 @@ export function MapMenuButton({ phase }: MapMenuButtonProps) {
     triggerRef.current?.focus();
   };
 
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const focusables = Array.from(
-      dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR) ??
-        [],
-    );
-    focusables[0]?.focus();
-
-    // Leaflet 側にも独自の keydown ハンドラがあるため、地図より確実に先に処理させるには
-    // document で捕捉するしかない (要件 10.3)
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        close();
-        return;
-      }
-      if (event.key !== 'Tab' || focusables.length === 0) return;
-
-      const first = focusables[0];
-      const last = focusables[focusables.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
+  useFocusTrap({
+    active: isOpen,
+    containerRef: dialogRef,
+    originRef: triggerRef,
+    onClose: () => setIsOpen(false),
+  });
 
   return (
     <>
