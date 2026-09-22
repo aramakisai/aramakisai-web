@@ -46,7 +46,6 @@ const content: HomePageContent = {
   venueName: '群馬大学 荒牧キャンパス',
   campusMapUrl: 'https://www.google.com/maps/embed?pb=!1m2!2m1!1zsomething',
   contactFormUrl: 'https://forms.example.com/contact',
-  sponsors: [],
   announcements: [
     {
       id: 1,

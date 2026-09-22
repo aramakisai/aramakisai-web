@@ -46,15 +46,6 @@ export interface FestivalTheme {
 
 export type SponsorType = 'ad' | 'local' | 'vendor' | 'other';
 
-export interface SponsorSummary {
-  id: number;
-  type: readonly SponsorType[];
-  name: string;
-  logoId: string | null;
-  url: string | null;
-  tier: string | null;
-}
-
 export interface HomePageContent {
   heroImages: Attachment[];
   heroMessageHtml: string;
@@ -64,7 +55,6 @@ export interface HomePageContent {
   venueName: string | null;
   campusMapUrl: string | null;
   contactFormUrl: string | null;
-  sponsors: SponsorSummary[];
   announcements: AnnouncementSummary[];
   topics: TopicSummary[];
 }

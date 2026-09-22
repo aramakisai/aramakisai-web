@@ -31,16 +31,6 @@ const PAGE_HOME = {
 };
 
 const LISTS: Record<string, unknown[]> = {
-  sponsors: [
-    {
-      id: 3,
-      type: ['local', 'vendor'],
-      name: 'S1',
-      logo: { id: 31, filename: 'logo1.webp', mimeType: 'image/webp' },
-      url: 'https://sponsor.example.com',
-      tier: null,
-    },
-  ],
   announcements: [
     {
       id: 1,
@@ -121,16 +111,6 @@ describe('getHomePage', () => {
         ],
       },
     ]);
-    expect(result.sponsors).toEqual([
-      {
-        id: 3,
-        type: ['local', 'vendor'],
-        name: 'S1',
-        logoId: '31',
-        url: 'https://sponsor.example.com',
-        tier: null,
-      },
-    ]);
     expect(result.topics).toEqual([
       {
         id: 2,
@@ -207,7 +187,6 @@ describe('getHomePage', () => {
 
     expect(result.announcements).toEqual([]);
     expect(result.topics).toEqual([]);
-    expect(result.sponsors).toEqual([]);
     expect(result.heroMessageHtml).toBe('<p>Hello</p>');
   });
 
