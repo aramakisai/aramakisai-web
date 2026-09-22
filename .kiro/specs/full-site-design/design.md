@@ -184,11 +184,7 @@ export const navigationItems: readonly NavigationItem[];
 - `header.tsx` からの `navigationItems` の export は廃止し、`map-menu-button.tsx` の import 元を `lib/navigation.ts` へ差し替える。`footer.tsx` の `footerNavigation` も廃止する (要件 17.2)。
 - `lib/navigation.ts` はコンポーネントを import しない (要件 17.4)。したがって `'use client'` を持たず、サーバーコンポーネントである `footer.tsx` からもクライアントコンポーネントである `header.tsx` からも参照できる。
 - `header.tsx:17` の間引きコメントは、企画一覧・構内マップ・協賛の項目を定義へ戻したうえで削除する (要件 5.1)。
-
-#### 未確定
-
-- 項目の最終的な並び順・ラベル・子項目の構成 (要件 5 のデザイン作成時項目)
-- 表示箇所ごとに項目を絞るための情報 (下部ナビゲーションに出すか等) を定義側に持たせるか、表示側で選ぶか。下部ナビゲーションに出す項目数が決まらないと判断できないため、要件 8 のデザイン確定後に決める。
+- 下部ナビゲーション (Requirement 8) の項目は `navigationItems` とは別の export として定義する。ヘッダーに存在しない「ホーム」を含み、アイコンという表示箇所固有の情報を持つため、`navigationItems` に表示箇所のフラグを足す形は採らない。両者は同じ `href` を指す。
 
 ### Requirement 18: CMS 取得失敗時の振る舞いとキャッシュ方針
 
@@ -220,15 +216,15 @@ export const navigationItems: readonly NavigationItem[];
   - PC: セクションのコンテンツ枠は 1280px (1440px から左右 80px のパディングを引いた幅) とする。その中で長文の段落は 768px (Tailwind の `max-w-3xl`) に制限する。日本語本文は 1 行 35〜45 文字が読みやすく、16px フォントで約 700px に相当するため。既存コードでは `about-section.tsx` の概要文と `static-page-view.tsx` が `max-w-3xl` を使っている
   - SP: フレーム幅 390px、左右パディング 16px、コンテンツ幅 358px。コンテンツ幅が 768px を下回るため、長文段落の 768px 制限は SP では実質効かない (コンテンツ枠の幅がそのまま段落幅の上限になる)
 - **見出しの色**: `globals.css` の `h1〜h6:not(.prose *)` が基底で `text-primary` を当てており、上書きしない限り見出しは primary になる。上書きは色つきカード上や小さな補助ラベル用途に限る (`exhibition-card.tsx` の h4 が `text-text`、`festival-overview.tsx` の h3 が `text-gray-500`)。
-- **ブレークポイント** (19.2): `frontend/src/lib/breakpoints.ts` に単一の定数として定義し、本 spec が扱う全デザイン単位でこれを用いる。現行のヘッダーは `lg` を境界としているが、値は未確定 (下記)。
+- **ブレークポイント** (19.2): `frontend/src/lib/breakpoints.ts` に単一の定数として定義し、本 spec が扱う全デザイン単位でこれを用いる。境界は現行のヘッダーと同じ `lg` (1024px) を単一の値として用い、ヘッダーのナビゲーションを畳む幅と下部ナビゲーション (Requirement 8) を出す幅を一致させる。両者がずれると、ヘッダーのナビゲーションと下部ナビゲーションが同時に出る幅と、どちらも出ない幅が生まれるため。
 - **フォーカス表示** (19.3): 既存コードが用いている `focus-visible` を基準とする。
 - **動きの抑制** (19.4): 既存コードが用いている Tailwind の `motion-reduce:` を基準とする (`footer.tsx` の `HoverLine` が先行例)。自動再生される動き (ヒーローのスライドショー等) は `prefers-reduced-motion` で停止させる。
 - **横スクロール** (19.5): スマートフォン相当の画面幅で本文に横スクロールを発生させない。
+- **アイコン**: Google Fonts が配布する Material Symbols (Sharp、weight 300) を正とする。`icon/chevron_down` は `expand_more` の配布 SVG をそのまま取り込んだものである。`frontend/src/components/icons.tsx` は現在「Material Symbols Sharp (weight 300) の SVG を使用分だけインライン化する。フォント/CDN を読み込まないのは Edge ランタイムと初回表示コストのため」という方針のコメントを持つが、実際のパスは配布物と一致しない (`ChevronRightIcon` は Sharp wght200 と wght300 の中間の線幅を持ち、Sharp / Outlined / Rounded × wght100〜500 × grad 各種のいずれとも一致しない)。Figma の `icon/*` も同様に配布物と不一致であるため、Figma・コードの双方を配布 SVG から取り直したものへ移行し、`icons.tsx` の方針コメントを Google Fonts の埋め込みを用いる方針へ改める。SNS 各社のブランドアイコン (`brand-*`) は Material Symbols に存在しないため、この移行の対象外とし現状の実装を維持する。
 
 #### 未確定
 
-- ブレークポイントの値。下部ナビゲーションを出す画面幅とヘッダーのナビゲーションを畳む画面幅が一致すべきかどうかが、要件 6 と要件 8 のデザイン確定を待つ。
-- Figma Foundations に写されているトークン (色 14 件・タイポ 9 件) で本 spec の全画面をまかなえるか、不足するトークンがあるか。Requirement 1 の実測で判明した事実: `color/background` (`#FBF8F3`) は `tailwind.config.ts` と一致した。一方 Foundations には `gray-300` / `gray-600` / `gray-700` / `gray-800` が存在せず、コード側の `text-gray-600` (お知らせの日付) や `text-gray-700` (表ヘッダー) に対応するトークンがない。また `about-section.tsx` と `hero-section.tsx` は `text-slate-950` / `text-slate-700` / `text-slate-500` という別系統のグレースケールを用いており、Foundations にも `tailwind.config.ts` の gray スケールにも一致しない。この不一致は本 spec のトップページ作り直しで解消される範囲であり、残り 14 単位についても同様の確認が必要かどうかは未確定のまま残る。
+- Figma Foundations に写されているトークン (色 14 件・タイポ 9 件) で本 spec の全画面をまかなえるか、不足するトークンがあるか。Requirement 1 の実測で判明した事実: `color/background` (`#FBF8F3`) は `tailwind.config.ts` と一致した。一方 Foundations には `gray-300` / `gray-600` / `gray-700` / `gray-800` が存在せず、コード側の `text-gray-600` (お知らせの日付) や `text-gray-700` (表ヘッダー) に対応するトークンがない。また `about-section.tsx` と `hero-section.tsx` は `text-slate-950` / `text-slate-700` / `text-slate-500` という別系統のグレースケールを用いており、Foundations にも `tailwind.config.ts` の gray スケールにも一致しない。この不一致は本 spec のトップページ作り直しで解消される範囲であり、残り 14 単位についても同様の確認が必要かどうかは未確定のまま残る。 Requirement 8 の実測で判明した事実: 下部ナビゲーションのラベルに 10px が必要となり、Foundations の既存タイポトークンの最小が `body/sm` (14px) であったため、`body/xs` (10px) を Foundations とコード側の双方へ追加する。
 
 ### Requirement 20: 開催日程 (event_days) の構造化
 
@@ -279,6 +275,14 @@ Payload の `array` フィールドは JSON 列ではなく子テーブルとし
 - 曜日の表示形式
 - 本番 `festival_meta.event_days` を新しい構造 (開場日時・終了日時・表示ラベル) で再入力する時期と手順
 
+### 開催前フェーズで公開が必要になるパス
+
+Requirement 5 が定める開催前フェーズのヘッダーは、本 spec が新設する次のページへの導線を持つ。これらは `frontend/src/lib/phase.ts` の `PRE_EVENT_PUBLIC_PATHS` (`PRE_EVENT_PUBLIC_PREFIXES` を要するものはそちらにも) へ追加し、開催前フェーズで公開する。`festival-phase-gate` が所有する値への追加自体は本 spec の実装作業であり、同 spec 自体は変更しない。
+
+- 固定ページ: ご来場の際の注意点 / 案内所・落とし物・迷子 / ごみの分別のお願い / よくある質問 (ルートは未確定)
+- `/contact` (お問い合わせ)
+- 広告協賛・地域協賛の各ページ (ルートは Requirement 12 / 13 で未確定)
+
 ## デザイン単位ごとの設計
 
 以下 16 単位は、ビジュアルデザインが未定のため、現時点で確定している構造面の方針のみを記す。各単位のデザインが起きた時点で、このセクションへ設計を追記する。
@@ -317,55 +321,107 @@ Figma: ファイル `0kWDqHsLr6xE8b4FFgR1Zx`、ページ「トップページ」
 
 ### Requirement 3: トップページ 開催中フェーズ (PC)
 
-- ファイル構成とデータ取得は Requirement 1 と同一の方針に従う。
-- `heroMessageHtml` の重複 (要件 3.1) は Requirement 1 と同一の手当てで解消する。
-- 協賛領域 (要件 3.3) も Requirement 1 と同一に `lib/sponsors.ts` の絞り込みを通して描画する。
-- 企画一覧・構内マップへの導線 (要件 3.2) は、遷移先が `/exhibitions` と `/map` で確定している。導線の形は未確定。
-- トピックの 0 件時の非表示 (要件 3.6) は現行の実装で満たされている。
+Figma: ファイル `0kWDqHsLr6xE8b4FFgR1Zx`、ページ「トップページ」、フレーム「トップページ (開催中) / PC (1440)」(`node-id=154:48`)。
 
-**未確定**: セクションの構成と並び順、ヒーロー領域の構成、導線の形、協賛をトップページでどこまで見せるか、開催前フェーズと共通化するセクションの範囲、見出しの文言。
+セクションは上から Hero (`154:49`) → トピック (`155:54`) → 主要導線「会場で使う」(`155:734`) → 企画 (`156:49`) → お知らせ (`156:751`) → 荒牧祭とは (`156:783`) → アクセス (`156:786`) → 協賛 (`156:798`) の 8 つで構成する。ファイル構成とデータ取得は Requirement 1 と同一の方針に従い、フェーズごとの出し分けは `festival-phase-gate` に従う。
+
+- **Hero**: 高さは `50svh` (ビューポート高の 50%) とする (要件 3.9)。`svh` を用いる理由と `min-h` による下限の考え方は Requirement 1 (要件 1.14) と同一。参照ビューポート高 900px での参考値は 450px。背景は画像スライドショーのプレースホルダ + 黒のグラデーションスクリム (下端に向かって不透明度 55% まで上がる) + スライドインジケーター。重ねる要素は上から見出し「群馬大学 荒牧祭」(固定文言、44px) → テーマ (`festival_meta.theme_word`、88px) → メタ情報「開催日 (`festival_meta.event_days`) ｜ 会場 (`festival_meta.venue_name`)」の 1 行の順で、すべて左揃え・白抜きとする。テーマは見出しの 2 倍のサイズとし Hero 内で最大の要素にする。「開催日：」のようなラベルは付けない。`page_home.hero_message_html` は表示しない (要件 3.1)。開催までの残り日数のカウントダウンと、画像スライドの手動切替 (前後の矢印ボタン) は持たない。前者は開催中に残り日数が意味を持たないため、後者は Requirement 1 (要件 1.11) と異なりスライドショーが装飾に徹するため
+- **トピック**: 見出し「トピック」(`SectionHeading` の `h2`) の下に、Figma コンポーネント `TopicCard` (ページ「コンポーネント」、`node-id=166:113`、単体 COMPONENT + `Title` / `Date` の TEXT プロパティ) のインスタンスを 3 枚、カード幅 416px・gap 16px (`spacing/4`) で横並びする (要件 3.5)。416×3 + 16×2 = 1280 でコンテンツ枠の幅と一致する。末尾に「トピック一覧へ」(`/topics`) を添える。0 件のときはセクションごと非表示にする (要件 3.6)。表示部品は既存の `components/topics-list.tsx` / `topic-card.tsx` を起点に改める
+- **主要導線「会場で使う」**: 見出し「会場で使う」の下に、Figma コンポーネント `PrimaryNavCard` (COMPONENT_SET、`node-id=181:130`、`Destination` variant) のインスタンスを `exhibitions` / `map` / `timetable` / `parking` の 4 種類、カード幅 302px・gap 24px で 4 列横並びする。遷移先は企画一覧 (`/exhibitions`)・構内マップ (`/map`)・タイムテーブル (未実装、`timetable-page` が扱う)・駐車場空き情報 (未実装、`parking-availability` が扱う) で、この 4 つへの導線を持つことで要件 3.2 を満たす。バリアントが `exhibitions` / `map` / `timetable` / `parking` の固定 4 種であるため、`CategoryBadge` (`2:106`) と同じ COMPONENT_SET + variant の作りに揃える。アイコンは `components/icons.tsx` の方式 (Material Symbols Sharp weight 300 の SVG を使用分だけインライン化) に揃え、`festival` / `map` / `calendar_clock` / `parking_sign` を追加する。アイコンの色は `color/text` とする (カード背景に淡い色が乗るため、トークン色のままだと背景に埋没する)。カード背景は各バリアントのトークン色 (`exhibitions`→`primary` / `map`→`secondary` / `timetable`→`info` / `parking`→`accent`) を `color/background` に 18% で重ねた濃度とし、stroke `color/gray-200` 1px・角丸 `radius/md` でカード全体を 1 つの面として扱う
+- **企画**: 見出し「企画」(固定文言) の下に、既存コンポーネント `SearchField` (`node-id=2:212`) のインスタンス (幅 480px、プレースホルダはマスターの「企画名・団体名で検索」をそのまま使い上書きしない) を置く。送信時に `/exhibitions` へクエリを渡して遷移させるだけの単純な入力とし、トップページ内では絞り込まない (要件 3.2 の検索導線)。`lib/exhibitions.ts` の `buildExhibitionsHref` で URL を組み立てる点は `components/exhibition-filters.tsx` (`/exhibitions` ページ側の即時絞り込み) と共通化できるが、送信時にのみ遷移する点で同コンポーネントの挙動とは異なるため、別の新規コンポーネントとする。その下にランダムに選んだ企画を、既存コンポーネント `ExhibitionCard` (`node-id=2:139`、`Image=true, State=Default`) のインスタンス (`components/exhibition-card.tsx`) で 4 枚、カード幅 302px・gap 24px (企画一覧 PC `2:217` の `CardGrid` と同じ寸法) で横並びし、末尾に「企画一覧へ」(`/exhibitions`) を添える
+- **お知らせ**: 見出し「お知らせ」の下に、既存コンポーネント `NoticeItem` (`node-id=127:108`) のインスタンスを 5 件、幅はインスタンス側の FILL で吸収して並べ、「お知らせ一覧へ」(`/announcements`) を添える (要件 3.4)。表示部品は Requirement 1 と同じ `components/announcements-list.tsx` の `limit` prop を使う
+- **荒牧祭とは**: 見出し「荒牧祭とは」(固定文言) と概要文 (`festival_meta.overview_html`) を表示する (要件 3.7)。`festival_meta.name` は本文に表示しない (要件 3.10)。Requirement 1 (要件 1.8) と同じ扱い
+- **アクセス**: 見出し「アクセス」の下に、地図のプレースホルダ (720×320) を左、アクセス情報のテキスト (536px、上下中央揃え) を右に gap 24px で並べ、末尾に「アクセス詳細へ」(`/access`) を添える (要件 3.8)。地図は実際の地図タイルの見た目を模写せず、プレースホルダとして扱う
+- **協賛**: 見出し「協賛」の下に、協賛ロゴのプレースホルダを 4 枚、4 列で表示し、「広告協賛へ」「地域協賛へ」の 2 つの導線を添える (要件 3.3)。広告協賛一覧と地域協賛一覧が別ページのため 2 つに分ける。遷移先のルートは Requirement 12 / 13 のページ構成が未確定のため未確定。全件は Requirement 12 / 13 のページ側で見せ、トップページではロゴ数枚に留める
+
+見出しは Figma コンポーネント `SectionHeading` (COMPONENT_SET、`node-id=208:118`、`Level` variant: `h1` 44px / `h2` 32px / `h3` 24px / `h4` 20px、`Heading` の TEXT プロパティ) のインスタンスで、上記 7 セクションの見出しはすべて `h2` を使う。このコンポーネントは開催前トップ・企画一覧・企画詳細のセクション見出しにも適用する。
+
+セクションの背景色はルートフレームの `color/background` のみが持ち、配下のセクション・カード・行は fill を持たず透過させる。カードの境界は `color/gray-200` 1px の stroke で作る。`FacetChip` (`2:107`) や `SearchField` (`2:212`) が「地と同色の fill + gray-200 の stroke」で境界を作る作りに揃えている。余白は auto-layout の itemSpacing / padding で制御し、座標の手計算に依存しない。セクション上下 padding は 48px (`spacing/12`)、見出しと本文の間隔は 24px (`spacing/6`) を基準とする。寸法・余白・色は既存の variable にバインドする (要件 19.1)。
 
 ### Requirement 4: トップページ 開催中フェーズ (SP)
 
-- Requirement 3 と同一のコンポーネントがレスポンシブに対応する。SP 専用のページ・ルートは作らない。
-- 下部ナビゲーションに隠れない余白 (要件 4.3) は、個々のセクションではなく `(site)/layout.tsx` のコンテンツ領域に下端余白を与えて確保する。下部ナビゲーションの高さと `env(safe-area-inset-bottom)` を足した値を用いる。
-- SP のフレーム幅 390px・左右パディング 16px (コンテンツ幅 358px) は Requirement 2 で確定した値を用いる (Requirement 19 参照)。
+Figma: ファイル `0kWDqHsLr6xE8b4FFgR1Zx`、ページ「トップページ」、フレーム「トップページ (開催中) / SP (390)」(`node-id=158:107`)。
 
-**未確定**: ヒーロー画像の表示崩れの具体的な直し方 (Requirement 2 と同一の手当てとするかを含む)、1 カラムへの落とし込み、横並び領域の SP での並べ方。
+- Requirement 3 と同一のコンポーネントがレスポンシブに対応する。SP 専用のページ・ルートは作らない。
+- フレーム幅 390px、左右パディング 16px (コンテンツ幅 358px) は Requirement 2 で確定した値と同じ基準を用いる (Requirement 19 参照)。
+- セクション構成は Requirement 3 と同じ 8 つ (Hero `158:108` → トピック `159:107` → 主要導線 `160:108` → 企画 `160:125` → お知らせ `160:828` → 荒牧祭とは `160:861` → アクセス `161:161` → 協賛 `161:173`)。この下に下部ナビゲーション回避のための余白を表す Figma 上のフレーム (`161:191`) があるが、これは構図上の表現であり、実装は次項の通り `(site)/layout.tsx` 側で与える。
+- **Hero**: 高さは Requirement 3 (要件 3.9) と共通の `50svh` を用いる。Figma 上の 422px は参照ビューポート高 844px での参考値。要件 4.2 (「ヒーロー画像を表示領域に対して崩れのない形で表示する」) はこの高さの基準で満たされるため、SP 側に別の数値を持つ受入基準は追加しない。Requirement 1 / 2 の対と同じ構成で、数値は PC 側の要件 (要件 3.9) が持ち、SP はそれを参照する。重ねる要素 (`HeroContentColumn`、`node-id=158:117`) は見出し「群馬大学 荒牧祭」(32px) → 開催日 (`festival_meta.event_days`) → 会場 (`festival_meta.venue_name`) → テーマ (`festival_meta.theme_word`、64px) の順で縦に積み、PC (`HeroContent`、`node-id=154:58`。見出し (44px) → テーマ (88px) → メタ情報 1 行) とは並び順が異なる。PC の「開催日｜会場」の 1 行区切り表記はコンテンツ幅 358px には収まらず開催日・会場を別行に分ける必要があり、PC の並び (見出し→テーマ→メタ情報 1 行) をそのまま縦に積めないため、テーマをメタ情報より後ろへ送っている。テーマが見出しの 2 倍のサイズで Hero 内最大の要素になる関係は PC と共通だが、画面幅に対して PC と同じ絶対値では大きすぎるため、見出し 32px・テーマ 64px と PC より縮小する
+- **トピック**: 横スクロールに変える。カード幅 260px、gap 24px (`spacing/6`)
+- **主要導線「会場で使う」**: 2 列 × 2 行。カード幅 171px、gap 16px
+- **企画**: `SearchField` の幅は 358px。`ExhibitionCard` は横スクロールで 3 枚、カード幅 280px、gap 24px
+- **お知らせ・荒牧祭とは**: PC と同じ内容・同じコンポーネントをそのまま使う
+- **アクセス**: 地図プレースホルダとテキストを 1 カラムに縦積みする (PC は横並び)
+- **協賛**: ロゴを 2 列 × 2 行で表示する
+- 下部ナビゲーションに隠れない余白 (要件 4.3) は、個々のセクションではなく `(site)/layout.tsx` のコンテンツ領域に下端余白を与えて確保する。下部ナビゲーションの高さ 64px (Requirement 8) と `env(safe-area-inset-bottom)` を足した値を用いる。この手当ては Requirement 2 (要件 2.5、開催前フェーズでは余白を設けない) と同じ仕組みを、開催中フェーズでは逆に余白を与える形で使う。
 
 ### Requirement 5: サイト共通ヘッダー (PC)
 
-- ファイル: `frontend/src/components/header.tsx` (`'use client'`)。`(site)/layout.tsx` が巻くため、要件 5.7 は現行構造で満たされる。
-- ナビゲーション項目は `lib/navigation.ts` から受ける (Requirement 17)。間引きコメント (`header.tsx:17`) を削除し、企画一覧・構内マップ・協賛を定義へ戻す。
-- 現在地の伝達 (要件 5.5) は現行同様 `usePathname()` と `aria-current` で行う。
-- 上端固定 (要件 5.6) は現行の実装を維持する。
+Figma: ファイル `0kWDqHsLr6xE8b4FFgR1Zx`、ページ「コンポーネント」(`2:2`)。コンポーネント `Header` (COMPONENT_SET、`232:956`、variant `Device`=`PC`/`SP` × `Phase`=`before`/`during`)。PC/during `231:112`、PC/before `232:115`。ドロップダウンを開いた状態は `233:118` (during) / `256:1161` (before)。現在地の下線色一覧は参照用フレーム `247:206`。
 
-**未確定**: 並び順とラベル、子項目を持たせる項目、ロゴとナビゲーションの配置、ヘッダーの高さ、スクロール時の振る舞い、現在地の視覚表現、スキップリンクの有無。
+- ファイル: `frontend/src/components/header.tsx` (`'use client'`)。`(site)/layout.tsx` が巻くため、要件 5.13 は現行構造で満たされる。
+- ナビゲーション項目は `lib/navigation.ts` から受ける (Requirement 17)。間引きコメント (`header.tsx:17`) を削除する。定義は次の表のとおりで、フェーズによる差を `lib/navigation.ts` 側で持つか表示側で絞るかは Requirement 17 の未確定事項に従う。
+
+  | フェーズ | 順 | ラベル | 遷移先 | 子項目 |
+  |---|---|---|---|---|
+  | during | 1 | 企画一覧 | `/exhibitions` | なし |
+  | during | 2 | 構内マップ | `/map` | なし |
+  | during | 3 | タイムテーブル | 未実装 (`timetable-page`) | なし |
+  | during | 4 | お知らせ | — (子項目のみ) | お知らせ一覧 `/announcements` / トピック `/topics` |
+  | during | 5 | ご案内 | — (子項目のみ) | アクセス `/access` / ご来場の際の注意点 / 案内所・落とし物・迷子 / ごみの分別のお願い / よくある質問 / お問い合わせ `/contact` |
+  | before | 1 | 荒牧祭について | `/#about` | なし |
+  | before | 2 | お知らせ | `/announcements` | なし |
+  | before | 3 | ご案内 | — (子項目のみ) | during と同一の 6 項目 |
+  | before | 4 | 協賛 | — (子項目のみ) | 広告協賛 / 地域協賛 (ルート未確定、Requirement 12/13 参照) |
+
+  「ご来場の際の注意点」「案内所・落とし物・迷子」「ごみの分別のお願い」「よくある質問」の 4 ページのルートは本 spec の対象外で未確定 (下記「開催前フェーズで公開が必要になるパス」参照)。
+- during と before でナビゲーション項目の構成が異なるのは、`festival-phase-gate` の `PRE_EVENT_PUBLIC_PATHS` / `PRE_EVENT_PUBLIC_PREFIXES` (`frontend/src/lib/phase.ts`) が定める開催前フェーズの公開範囲による。企画一覧・構内マップ・トピックは開催前に 404 を返すため before のナビゲーションから外す (要件 5.3)。協賛は before のみ出し、during は当日導線 (企画・マップ等) を優先して外す。
+- **現在地の表現** (要件 5.10, 5.11): `usePathname()` と `aria-current="page"` に加え、ラベル直下に厚さ 2px の下線を常時 100% の不透明度で表示する。下線色は親項目ごとに固定し、ラベルの文字色 (`color/text`) は変えない。企画一覧 `color/primary` / 構内マップ `color/secondary` / タイムテーブル `color/info` / お知らせ `color/warning` / ご案内 `color/success` / 荒牧祭について `color/accent-alt` / 協賛 `color/accent`。テキスト色を変えない理由は `color/secondary` (`#7fc8ad`) や `color/info` (`#80c1c6`) が地の `color/background` (`#fbf8f3`) に対してコントラスト比が不足するため。
+- **上端固定** (要件 5.12): 現行の実装を維持する。地は `color/background` の不透明、下端に `color/gray-200` 1px の境界線。スクロールしても高さ・背景・境界線の見え方を変えない。
+- **寸法**: 高さ 80px、左右 padding 80px (コンテンツ枠 1280px)。ロゴは左・ナビゲーションは右、ナビゲーション項目間は 32px。ロゴは `frontend/public/images/logo-2026.png` (1700×306、比率 5.556:1) を 222×40 で表示する (要件 5.14)。ラベルは `body/md`、色は `color/text`。
+- **PC ドロップダウン** (要件 5.15): 幅 224px、地は `color/background`、stroke `color/gray-200` 1px。各行は `body/sm`、padding 12/16、行の高さ 44px 以上。親項目の水平中央に揃え、コンテンツ枠 (左 80px / 右 1360px) を越える場合は越える側の端をコンテンツ枠に合わせて止める。during の「ご案内」は 5 項目中最後 (中央 1326) のため中央揃えでは右端が 1438 となり 78px 超過するので右端を 1360 に止める (左端 1136)。before の「ご案内」は 4 項目中 3 番目 (中央 1242) のため中央揃えのまま左端 1130 / 右端 1354 に収まる。開閉のアニメーションは不透明度 0→1 と `translateY` -4px→0 を 200ms ease-out で行い、`prefers-reduced-motion: reduce` では無効化する (Requirement 19、19.4)。
+- **ホバー**: ナビ項目にカーソルを重ねると、その項目の色の下線が中央から左右へ (`scale-x` 0→1) 200ms ease-out で伸びると同時に不透明度が 0→80% になる。現在地の下線 (常時表示・不透明度 100%) と区別する。
+
+**未確定**: 本文へ直接移動する手段 (スキップリンク) を置くかどうか。
 
 ### Requirement 6: サイト共通ヘッダー (SP)
+
+Figma: `Header` (`232:956`) の SP/during (`232:942`) / SP/before (`232:949`)。
 
 - Requirement 5 と同一コンポーネント内で、`lib/breakpoints.ts` の境界を用いて出し分ける。
 - 非表示側を支援技術とキーボードから除外する (要件 6.4) ため、`hidden` によらず表示側のみを DOM に描くか、`hidden` 属性で除外する。現行の `lg:hidden` / `hidden lg:flex` による出し分けは、CSS の `display: none` で両者とも除外されるため要件を満たすが、境界定数への置き換えに合わせて見直す。
 - セーフエリア (要件 6.3) は `env(safe-area-inset-top)` を用いる。
-
-**未確定**: SP でのヘッダーの高さとロゴの扱い、開閉ボタンのアイコン、開催中フェーズで下部ナビゲーションを導入した後にハンバーガーメニューを残すか。開催前フェーズでは下部ナビゲーションを表示しないため、ハンバーガーメニューは常に必要となる。
+- **寸法**: 高さ 64px。ロゴは `frontend/public/images/logo-2026.png` を 178×32 で表示する (要件 6.5)。`Phase` による閉じた状態の見た目の差はない (要件 6.7)。
+- **開閉ボタン**: 44×44 のタップ領域に、幅 24px・太さ 2px の横線 3 本を 8px 間隔で配置する (要件 6.6)。開いた状態では上下 2 本が ±45° 回転して中央で交差し、中央の 1 本の不透明度が 1→0 になる (要件 6.8)。200ms ease-out、`prefers-reduced-motion: reduce` で無効化 (Requirement 19、19.4)。
+- **ハンバーガーメニューの併存** (要件 6.9): 開催中フェーズでも残す。下部ナビゲーション (Requirement 8) は当日の 5 導線に絞られ、お知らせ・ご案内・協賛への導線を持たないため。開催前フェーズでは下部ナビゲーションを表示しないため、いずれのフェーズでもハンバーガーメニューが必要となる。
 
 ### Requirement 7: ハンバーガーメニュー展開状態
 
+Figma: `Header / SP Menu Open` (during `234:138` / before `256:256`)。
+
 - 現行の `header.tsx:152-280` の開閉ボタンとドロップダウンを起点とする。開閉状態・子項目の開閉状態・Esc での復帰は現行実装が持っている。
 - フォーカストラップ (要件 7.4) は現行のヘッダーには無く、`map-menu-button.tsx` が Tab のループ処理を持っている。両者で同じ処理を二重に書かないよう、フォーカストラップを共有のフックへ切り出して両方から使う。
+- **展開形式** (要件 7.8): ヘッダー直下に展開するドロップダウン。全画面オーバーレイやサイドスライドは採らない。
+- **行の見た目** (要件 7.9〜7.11): 各行の高さ 48px、行間に `color/gray-200` 1px の区切り線。子項目は 16px インデントし、左に `color/gray-200` 1px の縦線を添え、ラベルは `body/sm`。子を持つ項目の行の右端に chevron (`icon/chevron_down`) を置き、開閉状態を示す。
+- **アニメーション** (要件 7.12, 7.13): 不透明度 0→1 と `translateY` -8px→0 を 200ms ease-out で行う。`prefers-reduced-motion: reduce` では無効化する (Requirement 19、19.4)。
 
-**未確定**: 展開形式、背面のスクロール抑止と読み上げ除外、外側クリックでの close、SNS やお問い合わせを含めるか、アニメーション。
+**未確定**: 背面の本文のスクロール抑止と読み上げ除外、外側クリックでの close、SNS をメニュー内に含めるか。
 
 ### Requirement 8: 下部ナビゲーション
 
+Figma: ファイル `0kWDqHsLr6xE8b4FFgR1Zx`、ページ「コンポーネント」。コンポーネント `BottomNavigation` (`267:358`)。現在地の表現は参照用フレーム `BottomNavigation / Active States` (`270:1255`)。SP トップページ (開催中) (`158:107`) の下端にインスタンス (`271:734`) を置いている。
+
 - 新規ファイル `frontend/src/components/bottom-navigation.tsx`。`(site)/layout.tsx` に置く。
 - 表示はフェーズに依存し、開催中フェーズでのみ描画する (要件 8.1, 8.3)。開催前フェーズでは DOM に出さない。現在のフェーズをどう判定するかは `festival-phase-gate` が定めるため、本 spec はフェーズを受け取って描画を切り替えることのみを前提とする。
-- 項目は `lib/navigation.ts` から導出する (要件 8.4)。
-- PC 相当での除外 (要件 8.2) とセーフエリア (要件 8.5) は Requirement 6 / 19 と同じ手段を用いる。
+- **項目** (要件 8.8): 左から企画 (`/exhibitions`)・マップ (`/map`)・ホーム (`/`)・タイムテーブル (未実装、`timetable-page` が扱う)・駐車場 (未実装、`parking-availability` が扱う) の 5 つで、ホームを中央に置く。遷移先は Requirement 3 の主要導線カード `PrimaryNavCard` の 4 種にホームを加えたものと一致し、アイコンも同じものを用いる (`festival` / `map` / `home` / `calendar_clock` / `parking_sign`)。当日その場で参照する導線に絞っており、お知らせ・ご案内・協賛はヘッダーのハンバーガーメニューが受け持つ。
+- **項目定義の持ち方** (要件 8.4): `lib/navigation.ts` に `navigationItems` とは別の export として下部ナビゲーション用の配列を置く (Requirement 17)。ヘッダーに存在しない「ホーム」を含み、かつアイコンという下部ナビゲーション固有の情報を持つため、`navigationItems` 側に表示箇所のフラグを足す形は採らない。両者は同じ `href` を指す。
+- **寸法**: 高さ 64px。5 項目を等幅で並べ、フレーム幅 390px では 1 項目 78px となる。各項目はアイコン 24px とその下のラベル (`body/xs`、10px) で構成し、いずれも項目の水平中央に置く (要件 8.9)。ラベルを 10px とするのは、最長のラベル「タイムテーブル」7 文字が Noto Sans JP ではほぼ全角幅となり、`body/sm` (14px) では 98px、12px でも 84px となって 78px の項目幅に収まらないため。10px では 70px となり左右に 4px ずつ残る。項目全体 (78×64) がタップ領域となるため、ラベルを小さくしても操作対象は縮まない。 ラベルの文言も「企画」「マップ」「ホーム」「タイムテーブル」「駐車場」と、ヘッダーや主要導線カードの「企画一覧」「構内マップ」より短い語を用いる。同じ遷移先に別のラベルを当てることになるが、78px の項目幅に収めるためであり、アイコンと併記するため短くしても指す先は読み取れる。
+- 地は `color/background` の不透明、上端に `color/gray-200` 1px の境界線。ヘッダーが下端に同じ線を持つのと対になる。
+- **現在地の表現** (要件 8.7, 8.10, 8.11): 項目の上端に幅いっぱい・厚さ 2px のインジケーターを表示し、`usePathname()` と `aria-current="page"` を併せて用いる。色は項目ごとに固定で、企画 `color/primary` / マップ `color/secondary` / ホーム `color/accent-alt` / タイムテーブル `color/info` / 駐車場 `color/accent`。`PrimaryNavCard` のバリアントごとの色割当と揃えている。アイコンとラベルの色を `color/text` のまま変えない理由は Requirement 5 (要件 5.11) と同じ。
+- **スクロール連動を持たない** (要件 8.12): 常時固定とする。下端固定バーを持つ既存の学園祭・イベントサイト (三田祭、出雲オロチフェス) も常時固定であり、スクロールに応じて隠す実装は、隠れている間の支援技術からの除外・フォーカス中の項目が画面外に出ないための手当て・`prefers-reduced-motion` の尊重を要する割に、64px の確保で得られる表示領域が小さい。
+- **構内マップページでの非表示** (要件 8.13): `/map` は `(fullscreen)` ルートグループに属し `(site)/layout.tsx` を通らないため、下部ナビゲーションは構造上そこに現れない。同ページでは `MapMenuButton` (Requirement 11) がその役を担う。
+- **ハンバーガーメニューとの併存**: 開催中フェーズでもヘッダーのハンバーガーメニューを残す (要件 6.9)。下部ナビゲーションが当日の 5 導線に絞られ、お知らせ・ご案内・協賛への導線を持たないため。
+- PC 相当での除外 (要件 8.2) とセーフエリア (要件 8.5) は Requirement 6 / 19 と同じ手段を用いる。操作領域は `env(safe-area-inset-bottom)` の内側に収め、バーの地はその外側まで伸ばす。
 - 本文・フッターとの重なり回避 (要件 8.6) は Requirement 4 の下端余白で担保する。下端余白は下部ナビゲーションの描画と同じ条件で与える。
-
-**未確定**: 表示する項目と件数、アイコンとラベル、項目の選び方、構内マップページでの表示可否、スクロール連動の有無、高さ、現在地の視覚表現。
 
 ### Requirement 9: フッター (PC)
 
