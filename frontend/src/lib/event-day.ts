@@ -7,7 +7,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 // 実行環境 (OpenNext/Cloudflare Workers) は UTC で動くため、ローカルタイムゾーンの
 // getters には依存せず、UTC 時刻へ +9h した値を UTC getters で読むことで JST を得る。
-function toJstParts(iso: string) {
+export function toJstParts(iso: string) {
   const jst = new Date(new Date(iso).getTime() + JST_OFFSET_MS);
   return {
     year: jst.getUTCFullYear(),
