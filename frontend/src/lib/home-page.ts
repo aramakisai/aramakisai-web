@@ -7,7 +7,6 @@ import {
   TopicSummary,
   FestivalOverview,
   FestivalTheme,
-  SponsorSummary,
   SnsLink,
 } from './home-page-types';
 import { FestivalPhase } from './phase';
@@ -31,23 +30,6 @@ export async function getHomePage(
     imageId: toMediaId(meta.theme_image),
     descriptionHtml: meta.theme_description_html || null,
   };
-
-  // 一覧の取得失敗は空配列に倒し、他セクションの描画を継続する
-  const sponsorsResult = await cms.findMany('sponsors', {
-    sort: ['sort'],
-    limit: 0,
-    depth: 1,
-  });
-  const sponsors: SponsorSummary[] = (
-    sponsorsResult.ok ? sponsorsResult.value.docs : []
-  ).map((s) => ({
-    id: s.id,
-    type: s.type,
-    name: s.name,
-    logoId: toMediaId(s.logo),
-    url: s.url ?? null,
-    tier: s.tier ?? null,
-  }));
 
   const announcementsResult = await cms.findMany('announcements', {
     where: publishedFilter(),
@@ -98,7 +80,6 @@ export async function getHomePage(
     venueName: meta.venue_name || null,
     campusMapUrl: meta.campus_map_url || null,
     contactFormUrl: meta.contact_form_url || null,
-    sponsors,
     announcements,
     topics,
   };
