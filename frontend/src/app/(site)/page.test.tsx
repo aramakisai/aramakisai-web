@@ -157,6 +157,30 @@ describe('Page', () => {
     expect(screen.queryByText('お知らせ1')).not.toBeInTheDocument();
   });
 
+  it('festival 領域だけ欠落しても、他の領域とページの主見出しは表示を続ける', async () => {
+    vi.mocked(homePageModule.getHomePage).mockResolvedValue({
+      ...content,
+      festival: null,
+      theme: null,
+      venueName: null,
+      campusMapUrl: null,
+    });
+
+    const ui = await Page();
+    render(ui);
+
+    expect(
+      screen.getByRole('region', { name: '荒牧祭の写真スライドショー' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('region', { name: '荒牧祭について' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 1, name: '荒牧祭' }),
+    ).toHaveClass('sr-only');
+    expect(screen.getByText('お知らせ1')).toBeInTheDocument();
+  });
+
   it('トピックスが0件のとき、見出しごとセクションを描画しない', async () => {
     vi.mocked(homePageModule.getHomePage).mockResolvedValue({
       ...content,

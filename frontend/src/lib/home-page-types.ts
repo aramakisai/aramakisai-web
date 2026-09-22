@@ -48,10 +48,10 @@ export type SponsorType = 'ad' | 'local' | 'vendor' | 'other';
 
 export interface HomePageContent {
   heroImages: Attachment[];
-  heroMessageHtml: string;
+  heroMessageHtml: string | null;
   snsLinks: SnsLink[];
-  festival: FestivalOverview;
-  theme: FestivalTheme;
+  festival: FestivalOverview | null;
+  theme: FestivalTheme | null;
   venueName: string | null;
   campusMapUrl: string | null;
   contactFormUrl: string | null;

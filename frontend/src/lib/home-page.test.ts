@@ -163,7 +163,7 @@ describe('getHomePage', () => {
 
     const result = await getHomePage('live');
 
-    expect(result.heroMessageHtml).toBe('');
+    expect(result.heroMessageHtml).toBeNull();
     expect(result.heroImages).toEqual([]);
     expect(result.snsLinks).toEqual([]);
     expect(result.announcements).toEqual([]);
@@ -202,13 +202,56 @@ describe('getHomePage', () => {
     expect(result.heroMessageHtml).toBe('<p>Hello</p>');
   });
 
-  it('シングルトンの取得に失敗した場合は例外を投げる', async () => {
+  it('festival_meta の取得に失敗しても例外を投げず、festival 由来の領域だけが欠落する', async () => {
+    vi.mocked(cms.findGlobal).mockImplementation((async (slug: string) => ({
+      ok: slug !== 'festival_meta',
+      ...(slug === 'festival_meta'
+        ? { error: { kind: 'network', status: 500 } }
+        : { value: PAGE_HOME }),
+    })) as never);
+
+    const result = await getHomePage('live');
+
+    expect(result.festival).toBeNull();
+    expect(result.theme).toBeNull();
+    expect(result.snsLinks).toEqual([]);
+    expect(result.venueName).toBeNull();
+    expect(result.campusMapUrl).toBeNull();
+    expect(result.contactFormUrl).toBeNull();
+    // festival_meta とは無関係な領域は取得できたとおりに残る
+    expect(result.heroMessageHtml).toBe('<p>Hello</p>');
+    expect(result.announcements).toHaveLength(1);
+  });
+
+  it('page_home の取得に失敗しても例外を投げず、hero 由来の領域だけが欠落する', async () => {
+    vi.mocked(cms.findGlobal).mockImplementation((async (slug: string) => ({
+      ok: slug !== 'page_home',
+      ...(slug === 'page_home'
+        ? { error: { kind: 'network', status: 500 } }
+        : { value: META }),
+    })) as never);
+
+    const result = await getHomePage('live');
+
+    expect(result.heroImages).toEqual([]);
+    expect(result.heroMessageHtml).toBeNull();
+    // page_home とは無関係な領域は取得できたとおりに残る
+    expect(result.festival).not.toBeNull();
+    expect(result.venueName).toBe('荒牧キャンパス');
+  });
+
+  it('festival_meta と page_home の両方が失敗しても例外を投げない', async () => {
     vi.mocked(cms.findGlobal).mockResolvedValue({
       ok: false,
       error: { kind: 'network', status: 500 },
     } as never);
 
-    await expect(getHomePage('live')).rejects.toThrow();
+    await expect(getHomePage('live')).resolves.toMatchObject({
+      festival: null,
+      theme: null,
+      heroImages: [],
+      heroMessageHtml: null,
+    });
   });
 });
 
