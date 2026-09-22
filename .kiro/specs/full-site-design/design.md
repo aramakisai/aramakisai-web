@@ -375,7 +375,7 @@ Figma: ファイル `0kWDqHsLr6xE8b4FFgR1Zx`、ページ「コンポーネント
 
 #### サニタイズ許可リスト
 
-`allowedTags` を次の集合に変更する。`h1`・`h5`・`h6` は許可リストから外し、見出しは `h2`〜`h4` のみを通す (要件 15.2, 15.3)。
+`allowedTags` を次の集合に変更する。見出しとして描画するのは `h2`〜`h4` で、`h5`・`h6` は許可リストから外す (要件 15.2, 15.3)。
 
 ```
 h2, h3, h4, p, br, strong, em, b, i, span, a, ul, ol, li, blockquote, img, hr
@@ -384,7 +384,7 @@ h2, h3, h4, p, br, strong, em, b, i, span, a, ul, ol, li, blockquote, img, hr
 - 下線・取消線は Lexical の HTML 変換が `<span style="text-decoration: underline;">` / `<span style="text-decoration: line-through;">` として書き出す。`span` には `style` のみを許可し、sanitize-html の `allowedStyles` で `text-decoration` の値を `underline` / `line-through` に限定する。それ以外のスタイルは剥離する。
 - `blockquote` は `QuoteNode`、`hr` は `HorizontalRuleNode` の書き出し先タグ。
 - `allowedAttributes` は `a: ['href', 'rel']`、`span: ['style']`、`img: ['src', 'alt']` とする。エディタのリンク設定で「新しいタブで開く」を選んでも `target` は描画しない。
-- 見出しの `transformTags` によるタグの繰り下げ (現行の h1→h2 … h6→h6) は撤廃する。エディタ側が `h2`〜`h4` しか生成しなくなり (下記)、`body_html` / `content_html` に出力される見出しタグが既に `h2` から始まるため、レンダリング側での繰り下げが不要になる (要件 15.4)。`a` の `rel="noopener noreferrer"` を強制する `transformTags.a` は現行のまま残す。
+- `transformTags` に `h1: 'h2'` を設定し、本文中の `h1` を `h2` として描画する。`h2`〜`h4` は繰り下げず、そのまま描画する (要件 15.4)。エディタ側は `h2`〜`h4` しか生成しなくなる (下記) ため、新規に作成する本文に `h1` は含まれないが、既に公開済みの本文に含まれる `h1` はこの読み替えで表示を維持する。`a` の `rel="noopener noreferrer"` を強制する `transformTags.a` は現行のまま残す。
 
 #### 画像 (要件 15.5)
 
@@ -438,7 +438,7 @@ editor: lexicalEditor({
 
 #### 既存データとの互換性 (要件 15.8)
 
-既存の公開済みコンテンツが使っているノードは段落・改行・見出し (`h2`/`h3`)・箇条書き・リンク・太字のみで、いずれも絞り込み後の許可リストに含まれる。ただし本番の固定ページ `comittee` の `content_html` は `<h1>` を含む。`h1` は許可リストから外れるため、エディタ機能の絞り込みと同時に CMS 上で該当の見出しを `h2` へ直す運用で対応し、レンダリング側での繰り下げは復活させない。
+既存の公開済みコンテンツが使っているノードは段落・改行・見出し (`h2`/`h3`)・箇条書き・リンク・太字のみで、いずれも絞り込み後の許可リストに含まれる。本番の固定ページ `comittee` の `content_html` のみ `<h1>` を含み、`transformTags` の読み替え (前掲) によりこの `h1` を `h2` として描画する。
 
 #### 見た目 (Figma 確定)
 
@@ -786,7 +786,7 @@ Requirement 5 が定める開催前フェーズのヘッダーは、本 spec が
 - `(site)/page.tsx` — CMS 取得失敗時に主見出しが `sr-only` のみにならないこと
 - `cms/src/globals/festival-meta.ts` — `event_days` が配列かつ `start_at` / `end_at` が必須であること
 - `event_days` の `start_at` を用いた曜日・残り日数の算出
-- `components/rich-text.tsx` — 許可リスト外のタグ・属性 (`h1`, `h5`, `h6`, `script`, `style` 等) を描画しないこと、`data-media-id` を `toAssetUrl` の呼び出しへ変換すること、`h2`〜`h4` の繰り下げを行わないこと
+- `components/rich-text.tsx` — 許可リスト外のタグ・属性 (`h5`, `h6`, `script`, `style` 等) を描画しないこと、本文中の `h1` を `h2` として描画し `h2`〜`h4` はそのまま描画すること、`data-media-id` を `toAssetUrl` の呼び出しへ変換すること
 - `components/rich-text-image-viewer.tsx` — 画像の選択でモーダルが開き拡大画像に同じ `alt` が付くこと、リンクの選択では開かないこと、閉じるボタン・Esc・背景の操作で閉じて選択元へフォーカスが戻ること、モーション停止時に開閉の演出が無いこと
 
 デザイン確定後に追加する見た目まわりのテストは、各デザイン単位のセクションへ追記する。
