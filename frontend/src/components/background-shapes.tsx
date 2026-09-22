@@ -1,6 +1,13 @@
 'use client';
 
-import { useEffect, useState, type CSSProperties } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react';
 import { createPortal } from 'react-dom';
 import { usePathname } from 'next/navigation';
 import {
@@ -10,7 +17,29 @@ import {
   type ShapeColorToken,
   type ShapeTexture,
 } from '@/lib/background-shapes';
+import {
+  clampDisplacement,
+  clampFrameDt,
+  collectSectionRects,
+  computeEntryOffsets,
+  computeRepulsionAccel,
+  deriveShapeMotionParams,
+  isOffscreenVertically,
+  isSettled,
+  scrollVelocityImpulse,
+  stepSpring,
+  ENTRY_DURATION_MS,
+  ENTRY_EASING,
+  INTERSECTION_THRESHOLD,
+  POINTER_ACTIVE_WINDOW_MS,
+  REPULSE_MAX_ACCEL,
+  type EntryOffset,
+  type SectionRect,
+  type ShapeMotionParams,
+  type SpringState,
+} from '@/lib/background-shapes-motion';
 import { collectExcludeRects } from '@/lib/exclude-rects';
+import { useMotionPreference } from '@/lib/use-motion-preference';
 import { HEADER_BG_SHAPES_SLOT_ID, MAIN_CONTENT_ID } from './header';
 
 // (site)/layout.tsx の外側コンテナ (position: relative)。装飾レイヤーはこの内側に
@@ -135,26 +164,275 @@ function ShapeGlyph({ shape }: { shape: PlacedShape }) {
   }
 }
 
-function shapeWrapperStyle(shape: PlacedShape): CSSProperties {
+function shapeWrapperStyle(
+  shape: PlacedShape,
+  entryOffset: EntryOffset | undefined,
+): CSSProperties {
+  const translate = entryOffset
+    ? `translate(${entryOffset.dx}px, ${entryOffset.dy}px) `
+    : '';
   return {
     position: 'absolute',
     left: shape.x - shape.size / 2,
     top: shape.y - shape.size / 2,
     width: shape.size,
     height: shape.size,
-    transform: `rotate(${shape.rotation}deg)`,
+    transform: `${translate}rotate(${shape.rotation}deg)`,
   };
 }
 
-function ShapeList({ shapes }: { shapes: PlacedShape[] }) {
+/**
+ * 図形の入場 (初回だけ画面外寄りの起点から定位置へ寄せる) と、入場後のポインター・
+ * スクロール入力によるばねの揺れを 1 つの `requestAnimationFrame` ループで駆動する
+ * (design.md「動き」、要件 23.15〜23.25)。DOM 要素へは ref 経由で直接 style を
+ * 書き込み、揺れの毎フレーム更新で React の再描画を発生させない
+ */
+function useShapeMotion(
+  shapes: PlacedShape[],
+  entryOffsets: EntryOffset[],
+  motionParams: ShapeMotionParams[],
+  reduced: boolean,
+) {
+  const elsRef = useRef<(HTMLDivElement | null)[]>([]);
+
+  useEffect(() => {
+    elsRef.current.length = shapes.length;
+    // 21.4/23.26: 停止指定の間は入場もばねの揺れも行わない。図形は定位置のまま静止する
+    if (reduced) return;
+
+    const els = elsRef.current;
+    // triggered: 入場アニメーションを開始済みか (要件 23.16「1 図形につき 1 回」の
+    // ガード)。ready: 入場アニメーションが終わり揺れの対象になったか
+    const triggered = new Array<boolean>(shapes.length).fill(false);
+    const ready = new Array<boolean>(shapes.length).fill(false);
+    const timeouts: ReturnType<typeof setTimeout>[] = [];
+
+    // 未対応環境 (旧ブラウザ・IntersectionObserver 非対応の jsdom 等) では入場の
+    // 検知を諦め、揺れだけは動かせるよう定位置から即座に開始する
+    // (measure() の ResizeObserver と同じ feature-detection の方針)
+    const io =
+      typeof IntersectionObserver === 'undefined'
+        ? undefined
+        : new IntersectionObserver(
+            (entries) => {
+              for (const entry of entries) {
+                if (!entry.isIntersecting) continue;
+                const el = entry.target as HTMLDivElement;
+                io?.unobserve(el);
+                const index = els.indexOf(el);
+                // unobserve 後も届きうる遅延コールバックに備え、要件 23.16 の
+                // 「1 図形につき 1 回」を triggered フラグでも保証する
+                if (index === -1 || triggered[index]) continue;
+                triggered[index] = true;
+
+                const offset = entryOffsets[index];
+                const delay = offset.delayMs ? ` ${offset.delayMs}ms` : '';
+                el.style.transition = `transform ${ENTRY_DURATION_MS}ms ${ENTRY_EASING}${delay}`;
+                el.style.transform = `rotate(${shapes[index].rotation}deg)`;
+
+                timeouts.push(
+                  setTimeout(() => {
+                    el.style.transition = '';
+                    ready[index] = true;
+                  }, ENTRY_DURATION_MS + offset.delayMs),
+                );
+              }
+            },
+            { threshold: INTERSECTION_THRESHOLD },
+          );
+
+    if (io) {
+      for (const el of els) if (el) io.observe(el);
+    } else {
+      for (let i = 0; i < shapes.length; i++) {
+        const el = els[i];
+        if (!el) continue;
+        el.style.transform = `rotate(${shapes[i].rotation}deg)`;
+        ready[i] = true;
+      }
+    }
+
+    const springStates: SpringState[] = shapes.map(() => ({
+      x: 0,
+      y: 0,
+      vx: 0,
+      vy: 0,
+    }));
+    let pointer = { x: 0, y: 0 };
+    let isTouch = false;
+    let lastPointerMoveAt = 0;
+    let lastScrollY = window.scrollY;
+    let lastFrameAt: number | null = null;
+    let rafId: number | null = null;
+
+    const tick = (time: number) => {
+      const dtMs = lastFrameAt === null ? 0 : clampFrameDt(time - lastFrameAt);
+      lastFrameAt = time;
+      const dt = dtMs / 1000;
+
+      const pointerActive =
+        !isTouch && Date.now() - lastPointerMoveAt < POINTER_ACTIVE_WINDOW_MS;
+      const scrollY = window.scrollY;
+      const scrollDelta = scrollY - lastScrollY;
+      lastScrollY = scrollY;
+
+      let anyUnsettled = false;
+      // getBoundingClientRect (読み取り) と style.transform (書き込み) を図形ごとに
+      // 交互に行うと、書き込みが直前のレイアウトキャッシュを破棄し次の図形の
+      // 読み取りで強制同期レイアウトが起きる (layout thrashing)。ページ高
+      // 5000px 程度で図形が 40 個を超える見積もり (design.md) のもとスクロール中に
+      // 毎フレーム発生するため、全図形の読み取り・計算を先に済ませ書き込みは
+      // 後でまとめる 2 パスに分ける
+      const nextTransforms: (string | null)[] = new Array(shapes.length).fill(
+        null,
+      );
+
+      for (let i = 0; i < shapes.length; i++) {
+        if (!ready[i]) continue;
+        const el = els[i];
+        if (!el) continue;
+
+        // 23.25: 画面外の図形は計算を省く
+        const rect = el.getBoundingClientRect();
+        if (isOffscreenVertically(rect.top, rect.bottom, window.innerHeight)) {
+          continue;
+        }
+
+        const params = motionParams[i];
+        const state = springStates[i];
+
+        let ax = 0;
+        let ay = 0;
+        if (pointerActive) {
+          const centerX = rect.left + rect.width / 2;
+          const centerY = rect.top + rect.height / 2;
+          const repulsion = computeRepulsionAccel(
+            { x: centerX, y: centerY },
+            pointer,
+            params.repulseRadius,
+            REPULSE_MAX_ACCEL,
+          );
+          ax += repulsion.ax;
+          ay += repulsion.ay;
+        }
+        if (scrollDelta !== 0) {
+          state.vy += scrollVelocityImpulse(scrollDelta, params.scrollCoeff);
+        }
+
+        const stepped = stepSpring(
+          state,
+          { ax, ay },
+          params.stiffness,
+          params.damping,
+          dt,
+        );
+        const clamped = clampDisplacement(
+          stepped.x,
+          stepped.y,
+          params.displacementClamp,
+        );
+        state.x = clamped.x;
+        state.y = clamped.y;
+        state.vx = stepped.vx;
+        state.vy = stepped.vy;
+
+        if (isSettled(state)) {
+          state.x = 0;
+          state.y = 0;
+          state.vx = 0;
+          state.vy = 0;
+        } else {
+          anyUnsettled = true;
+        }
+
+        nextTransforms[i] =
+          `translate(${state.x}px, ${state.y}px) rotate(${shapes[i].rotation}deg)`;
+      }
+
+      for (let i = 0; i < shapes.length; i++) {
+        const transform = nextTransforms[i];
+        if (transform === null) continue;
+        const el = els[i];
+        if (el) el.style.transform = transform;
+      }
+
+      if (pointerActive || scrollDelta !== 0 || anyUnsettled) {
+        rafId = requestAnimationFrame(tick);
+      } else {
+        rafId = null;
+        lastFrameAt = null;
+      }
+    };
+
+    const ensureLoopRunning = () => {
+      if (rafId === null) rafId = requestAnimationFrame(tick);
+    };
+
+    const onPointerMove = (event: PointerEvent) => {
+      isTouch = event.pointerType === 'touch';
+      if (isTouch) return; // 23.22: タッチ端末では反発を行わない
+      pointer = { x: event.clientX, y: event.clientY };
+      lastPointerMoveAt = Date.now();
+      ensureLoopRunning();
+    };
+    const onScroll = () => ensureLoopRunning();
+
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    return () => {
+      io?.disconnect();
+      for (const timeout of timeouts) clearTimeout(timeout);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('scroll', onScroll);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+    };
+  }, [shapes, entryOffsets, motionParams, reduced]);
+
+  return useCallback(
+    (index: number) => (el: HTMLDivElement | null) => {
+      elsRef.current[index] = el;
+    },
+    [],
+  );
+}
+
+function ShapeList({
+  shapes,
+  entryOffsets,
+  reduced,
+}: {
+  shapes: PlacedShape[];
+  entryOffsets: EntryOffset[];
+  reduced: boolean;
+}) {
+  // shapes 自体が毎レンダー新しい配列だと (呼び出し元で未メモ化のとき) ここも
+  // 毎回作り直され、useShapeMotion の effect が無駄に張り直される。shapes の
+  // 参照を基準にメモ化し、呼び出し元の安定化 (BackgroundShapes 側の useMemo) が
+  // そのままここまで効くようにする
+  const motionParams = useMemo(
+    () => shapes.map(deriveShapeMotionParams),
+    [shapes],
+  );
+  const registerEl = useShapeMotion(
+    shapes,
+    entryOffsets,
+    motionParams,
+    reduced,
+  );
+
   return (
     <>
       {shapes.map((shape, index) => (
         <div
           key={index}
+          ref={registerEl(index)}
           data-bg-shape=""
           data-shape-kind={shape.kind}
-          style={shapeWrapperStyle(shape)}
+          style={shapeWrapperStyle(
+            shape,
+            reduced ? undefined : entryOffsets[index],
+          )}
         >
           <ShapeGlyph shape={shape} />
         </div>
@@ -200,6 +478,7 @@ function measure(pathname: string): {
   shapes: PlacedShape[];
   headerHeight: number;
   pageHeight: number;
+  sections: SectionRect[];
 } | null {
   const headerEl = document.querySelector('header');
   const mainEl = document.getElementById(MAIN_CONTENT_ID);
@@ -241,7 +520,11 @@ function measure(pathname: string): {
     excludeRects,
   });
 
-  return { shapes, headerHeight, pageHeight };
+  // 入場 (要件 23.15) の起点方向を決めるための「属するセクションの中心」。
+  // main 直下のセクション要素の矩形も本文と同じくドキュメント座標へ揃える
+  const sections = collectSectionRects(mainEl);
+
+  return { shapes, headerHeight, pageHeight, sections };
 }
 
 /**
@@ -251,10 +534,12 @@ function measure(pathname: string): {
  */
 export function BackgroundShapes() {
   const pathname = usePathname();
+  const { reduced } = useMotionPreference();
   const [state, setState] = useState<{
     shapes: PlacedShape[];
     headerHeight: number;
     pageHeight: number;
+    sections: SectionRect[];
   } | null>(null);
   const [slotEl, setSlotEl] = useState<HTMLElement | null>(null);
 
@@ -276,22 +561,56 @@ export function BackgroundShapes() {
     };
   }, [pathname]);
 
-  if (!state) return null;
+  // state.shapes は再計測 (measure) のときだけ差し替わるが、reduced の切替など
+  // state と無関係な再レンダーのたびにここで新しい配列を作ると、参照の変化を
+  // 検知する useShapeMotion の effect が無駄に張り直され、入場の 1 秒タイマーも
+  // やり直しになる。state.shapes を基準に useMemo で安定させる
+  const shapes = state?.shapes;
+  const headerHeight = state?.headerHeight;
+  const sections = state?.sections;
 
-  const { headerShapes, bodyShapes } = splitShapesByHeaderHeight(
-    state.shapes,
-    state.headerHeight,
+  const { headerShapes, bodyShapes } = useMemo(() => {
+    if (!shapes || headerHeight === undefined) {
+      return {
+        headerShapes: [] as PlacedShape[],
+        bodyShapes: [] as PlacedShape[],
+      };
+    }
+    return splitShapesByHeaderHeight(shapes, headerHeight);
+  }, [shapes, headerHeight]);
+
+  const headerEntryOffsets = useMemo(
+    () => computeEntryOffsets(headerShapes, sections ?? []),
+    [headerShapes, sections],
   );
+  const bodyEntryOffsets = useMemo(
+    () => computeEntryOffsets(bodyShapes, sections ?? []),
+    [bodyShapes, sections],
+  );
+
+  if (!state) return null;
 
   return (
     <>
-      {slotEl && createPortal(<ShapeList shapes={headerShapes} />, slotEl)}
+      {slotEl &&
+        createPortal(
+          <ShapeList
+            shapes={headerShapes}
+            entryOffsets={headerEntryOffsets}
+            reduced={reduced}
+          />,
+          slotEl,
+        )}
       <div
         aria-hidden="true"
         data-bg-shapes-body=""
         className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
       >
-        <ShapeList shapes={bodyShapes} />
+        <ShapeList
+          shapes={bodyShapes}
+          entryOffsets={bodyEntryOffsets}
+          reduced={reduced}
+        />
       </div>
     </>
   );

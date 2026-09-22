@@ -15,6 +15,17 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/topics',
 }));
 
+// 実際の localStorage/matchMedia は use-motion-preference.test.ts が担う。
+// ここでは動きが `reduced` の値に従うことだけをテストするため差し替える
+// (afterEach の vi.restoreAllMocks に巻き込まれないよう vi.mock で固定する)
+const useMotionPreferenceMock = vi.fn(() => ({
+  reduced: false,
+  toggle: vi.fn(),
+}));
+vi.mock('@/lib/use-motion-preference', () => ({
+  useMotionPreference: () => useMotionPreferenceMock(),
+}));
+
 function stubRect(
   el: Element,
   rect: { x: number; y: number; width: number; height: number },
@@ -62,6 +73,7 @@ function Harness() {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  useMotionPreferenceMock.mockReturnValue({ reduced: false, toggle: vi.fn() });
   document.body.innerHTML = '';
 });
 
