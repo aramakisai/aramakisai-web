@@ -115,5 +115,11 @@ export const FestivalMeta: GlobalConfig = {
       label: 'サイトタイトル',
       admin: { description: 'HTMLのtitleタグ用' },
     },
+    {
+      name: 'access_summary',
+      type: 'textarea',
+      label: 'アクセス文言',
+      admin: { description: '最寄り駅・バス等からの行き方を数行で。詳細はアクセスページが担う' },
+    },
   ],
 };

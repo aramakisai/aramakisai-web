@@ -28,3 +28,12 @@ describe('event_days フィールド', () => {
     expect(label.required).toBeFalsy();
   });
 });
+
+describe('access_summary フィールド', () => {
+  const accessSummary = fieldOf(FestivalMeta.fields, 'access_summary');
+
+  it('複数行テキストの任意入力である', () => {
+    expect(accessSummary.type).toBe('textarea');
+    expect(accessSummary.required).toBeFalsy();
+  });
+});
