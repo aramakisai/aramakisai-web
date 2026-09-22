@@ -1,6 +1,10 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { AboutSection } from './about-section';
+
+vi.mock('@/lib/cms-asset-url', () => ({
+  toAssetUrl: () => null,
+}));
 
 describe('AboutSection', () => {
   test('固定文言「荒牧祭とは」の見出しと概要文を表示する (Figma 119:3)', () => {

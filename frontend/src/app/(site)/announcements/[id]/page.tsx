@@ -35,9 +35,7 @@ export default async function AnnouncementPage({
         </time>
       </header>
 
-      <div className="prose max-w-none">
-        <RichText html={announcement.body} />
-      </div>
+      <RichText html={announcement.body} />
 
       {announcement.attachments && announcement.attachments.length > 0 && (
         <section className="border-t border-gray-200 pt-8 mt-8">

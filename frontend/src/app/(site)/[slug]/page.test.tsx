@@ -14,6 +14,10 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
+vi.mock('@/lib/cms-asset-url', () => ({
+  toAssetUrl: () => null,
+}));
+
 describe('StaticPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();

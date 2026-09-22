@@ -1,6 +1,10 @@
 import { render, screen } from '@testing-library/react';
-import { expect, test, describe } from 'vitest';
+import { expect, test, describe, vi } from 'vitest';
 import { StaticPageView } from './static-page-view';
+
+vi.mock('@/lib/cms-asset-url', () => ({
+  toAssetUrl: () => null,
+}));
 
 describe('StaticPageView', () => {
   test('renders title, content and embed', () => {
