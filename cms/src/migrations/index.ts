@@ -9,6 +9,7 @@ import * as migration_20260918_095545_sponsors_tier_plans from './20260918_09554
 import * as migration_20260919_080856_map_areas_color_geometry_validation from './20260919_080856_map_areas_color_geometry_validation';
 import * as migration_20260922_132853_sponsors_type_drop from './20260922_132853_sponsors_type_drop';
 import * as migration_20260922_132916_sponsors_type_add from './20260922_132916_sponsors_type_add';
+import * as migration_20260922_134900_event_days_structured from './20260922_134900_event_days_structured';
 
 export const migrations = [
   {
@@ -64,6 +65,11 @@ export const migrations = [
   {
     up: migration_20260922_132916_sponsors_type_add.up,
     down: migration_20260922_132916_sponsors_type_add.down,
-    name: '20260922_132916_sponsors_type_add'
+    name: '20260922_132916_sponsors_type_add',
+  },
+  {
+    up: migration_20260922_134900_event_days_structured.up,
+    down: migration_20260922_134900_event_days_structured.down,
+    name: '20260922_134900_event_days_structured'
   },
 ];
