@@ -24,7 +24,13 @@ const content: HomePageContent = {
   snsLinks: [{ platform: 'X', url: 'https://x.com' }],
   festival: {
     name: '荒牧祭',
-    eventDays: [{ label: '11月14日', open: '09:00', close: '18:00' }],
+    eventDays: [
+      {
+        label: '11月14日',
+        startAt: '2026-11-14T00:00:00.000Z',
+        endAt: '2026-11-14T09:00:00.000Z',
+      },
+    ],
     overviewHtml: '<p>CMS祭概要</p>',
     heroImageId: null,
   },

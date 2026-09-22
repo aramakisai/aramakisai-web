@@ -26,9 +26,9 @@ export interface TopicSummary {
 }
 
 export interface EventDay {
-  label: string;
-  open: string;
-  close: string;
+  label: string | null;
+  startAt: string;
+  endAt: string;
 }
 
 export interface FestivalOverview {
