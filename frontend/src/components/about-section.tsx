@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import { toAssetUrl } from '@/lib/cms-asset-url';
+import { formatEventDayLabel, formatEventDayTime } from '@/lib/event-day';
 import type { FestivalOverview, FestivalTheme } from '@/lib/home-page-types';
 import { RichText } from './rich-text';
 
@@ -102,7 +103,7 @@ export function AboutSection({
                 >
                   {festival.eventDays.map((day, index) => (
                     <article
-                      key={`${day.label}-${index}`}
+                      key={`${day.startAt}-${index}`}
                       data-testid="schedule-card"
                       className="relative overflow-hidden border border-slate-200 bg-white p-5 text-slate-900 shadow-[0_12px_36px_rgba(15,23,42,0.07)] sm:p-7 lg:p-9"
                     >
@@ -115,10 +116,11 @@ export function AboutSection({
                         DAY {index + 1}
                       </p>
                       <p className="block whitespace-nowrap text-[clamp(1.125rem,5.5vw,1.5rem)] leading-none font-bold tracking-wide text-slate-950 sm:text-2xl lg:text-3xl">
-                        {day.label}
+                        {day.label ?? formatEventDayLabel(day.startAt)}
                       </p>
                       <p className="mt-5 whitespace-nowrap text-[clamp(1rem,5vw,1.25rem)] font-semibold tracking-wide text-slate-700 sm:text-xl lg:text-2xl">
-                        {day.open}〜{day.close}
+                        {formatEventDayTime(day.startAt)}〜
+                        {formatEventDayTime(day.endAt)}
                       </p>
                     </article>
                   ))}
