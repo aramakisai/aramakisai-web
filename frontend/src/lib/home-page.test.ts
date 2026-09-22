@@ -26,6 +26,7 @@ const META = {
   venue_name: '荒牧キャンパス',
   campus_map_url: 'https://www.google.com/maps/embed?pb=xxx',
   contact_form_url: 'https://forms.example.com/contact',
+  access_summary: '最寄駅から徒歩10分',
 };
 
 const PAGE_HOME = {
@@ -111,6 +112,7 @@ describe('getHomePage', () => {
       'https://www.google.com/maps/embed?pb=xxx',
     );
     expect(result.contactFormUrl).toBe('https://forms.example.com/contact');
+    expect(result.accessSummary).toBe('最寄駅から徒歩10分');
     expect(result.announcements).toEqual([
       {
         id: 1,
@@ -153,6 +155,7 @@ describe('getHomePage', () => {
               venue_name: null,
               campus_map_url: null,
               contact_form_url: null,
+              access_summary: null,
             }
           : { hero_message_html: null, hero_images: [] },
     })) as never);
@@ -176,6 +179,7 @@ describe('getHomePage', () => {
     expect(result.venueName).toBeNull();
     expect(result.campusMapUrl).toBeNull();
     expect(result.contactFormUrl).toBeNull();
+    expect(result.accessSummary).toBeNull();
   });
 
   it('announcements は公開済みを新着順に 10 件まで引く', async () => {
@@ -218,6 +222,7 @@ describe('getHomePage', () => {
     expect(result.venueName).toBeNull();
     expect(result.campusMapUrl).toBeNull();
     expect(result.contactFormUrl).toBeNull();
+    expect(result.accessSummary).toBeNull();
     // festival_meta とは無関係な領域は取得できたとおりに残る
     expect(result.heroMessageHtml).toBe('<p>Hello</p>');
     expect(result.announcements).toHaveLength(1);

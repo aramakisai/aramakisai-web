@@ -80,6 +80,7 @@ export async function getHomePage(
     venueName: meta?.venue_name || null,
     campusMapUrl: meta?.campus_map_url || null,
     contactFormUrl: meta?.contact_form_url || null,
+    accessSummary: meta?.access_summary || null,
     announcements,
     topics,
   };

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getSponsors } from './sponsors';
+import { getSponsors, mergeSponsorLogos } from './sponsors';
 import { cms } from './cms';
 
 vi.mock('./cms', () => ({
@@ -98,5 +98,46 @@ describe('getSponsors', () => {
     const result = await getSponsors();
 
     expect(result).toEqual({ ok: false });
+  });
+});
+
+describe('mergeSponsorLogos', () => {
+  it('種別をまたいで重複する協賛を id で 1 件に絞り、初出の種別順を保つ', () => {
+    const ad = {
+      id: 3,
+      name: '広告と地域',
+      logoId: '13',
+      url: null,
+      tier: null,
+    };
+    const local1 = {
+      id: 2,
+      name: '地域のみ',
+      logoId: null,
+      url: null,
+      tier: null,
+    };
+    const local2 = {
+      id: 3,
+      name: '広告と地域',
+      logoId: '13',
+      url: null,
+      tier: null,
+    };
+
+    const merged = mergeSponsorLogos({
+      ad: [ad],
+      local: [local1, local2],
+      vendor: [],
+      other: [],
+    });
+
+    expect(merged.map((s) => s.id)).toEqual([3, 2]);
+  });
+
+  it('全種別が空のとき空配列を返す', () => {
+    expect(
+      mergeSponsorLogos({ ad: [], local: [], vendor: [], other: [] }),
+    ).toEqual([]);
   });
 });

@@ -55,6 +55,8 @@ export interface HomePageContent {
   venueName: string | null;
   campusMapUrl: string | null;
   contactFormUrl: string | null;
+  /** 最寄駅・バス等からの行き方 (`festival_meta.access_summary`)。未設定は null */
+  accessSummary: string | null;
   announcements: AnnouncementSummary[];
   topics: TopicSummary[];
 }
