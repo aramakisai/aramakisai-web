@@ -8,58 +8,20 @@ import type { FestivalPhase } from '@/lib/phase';
 import {
   navigationItemsByPhase,
   linkableChildren,
-  type NavigationItem,
+  isItemActive,
+  underlineColorClassFor,
 } from '@/lib/navigation';
 import { computeDropdownOffset } from '@/lib/dropdown-position';
 import { ExpandMoreIcon } from '@/components/icons';
+import { useFocusTrap } from '@/lib/use-focus-trap';
+import {
+  NavIndicator,
+  NavigationMenuRows,
+} from '@/components/navigation-menu-rows';
 
 export const MAIN_CONTENT_ID = 'main-content';
 
 const PC_DROPDOWN_WIDTH = 224;
-
-// secondary・info はいずれも背景色に対してコントラスト比が不足するため、
-// ラベルの文字色 (color/text) は変えず下線の色だけで現在地を伝える
-const UNDERLINE_COLOR_CLASS: Readonly<Record<string, string>> = {
-  企画一覧: 'bg-primary',
-  構内マップ: 'bg-secondary',
-  タイムテーブル: 'bg-info',
-  お知らせ: 'bg-warning',
-  ご案内: 'bg-success',
-  荒牧祭について: 'bg-accent-alt',
-  協賛: 'bg-accent',
-};
-
-function isPathActive(pathname: string, href: string): boolean {
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
-
-function isItemActive(item: NavigationItem, pathname: string): boolean {
-  if (item.href) return isPathActive(pathname, item.href);
-  return (
-    item.children?.some(
-      (child) => child.href !== undefined && isPathActive(pathname, child.href),
-    ) ?? false
-  );
-}
-
-function NavIndicator({
-  colorClass,
-  active,
-}: {
-  colorClass: string;
-  active: boolean;
-}) {
-  return (
-    <span
-      aria-hidden="true"
-      className={`h-[2px] w-full origin-center transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-none ${colorClass} ${
-        active
-          ? 'scale-x-100 opacity-100'
-          : 'scale-x-0 opacity-0 group-hover:scale-x-100 group-hover:opacity-80 group-focus-within:scale-x-100 group-focus-within:opacity-80'
-      }`}
-    />
-  );
-}
 
 export interface HeaderProps {
   readonly phase: FestivalPhase;
@@ -69,8 +31,9 @@ export function Header({ phase }: HeaderProps) {
   const pathname = usePathname();
   const items = navigationItemsByPhase[phase];
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [mobileOpenLabel, setMobileOpenLabel] = useState<string | null>(null);
+  const headerRef = useRef<HTMLElement>(null);
   const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
+  const mobileNavRef = useRef<HTMLElement>(null);
 
   // PC ドロップダウンの位置補正用。コンテンツ枠はヘッダー内側の行 (px-20 の内側) と一致するため
   // その要素の bounding rect をそのまま境界として使う
@@ -82,33 +45,64 @@ export function Header({ phase }: HeaderProps) {
 
   const closeMobileMenu = () => {
     setMobileMenuOpen(false);
-    setMobileOpenLabel(null);
   };
 
   const toggleMobileMenu = () => {
-    setMobileMenuOpen((isOpen) => {
-      if (isOpen) {
-        setMobileOpenLabel(null);
-      }
-      return !isOpen;
-    });
+    setMobileMenuOpen((isOpen) => !isOpen);
   };
 
+  useFocusTrap({
+    active: mobileMenuOpen,
+    containerRef: mobileNavRef,
+    originRef: mobileMenuButtonRef,
+    onClose: closeMobileMenu,
+    focusableSelector: 'a[href], button',
+  });
+
+  // 開いている間は背面のスクロールを止め、ヘッダーの外側 (本文・フッター・下部
+  // ナビゲーション) を inert にして支援技術の読み上げ・キーボード操作の対象から除外する
+  // (要件 7.14)。開閉ボタンはヘッダー要素の内側にあるため、document.body の直下を
+  // 走査して headerRef (ヘッダー要素自身) だけを除けば両方とも対象外にできる。
+  // `.inert` プロパティではなく属性を直接操作するのは、jsdom がプロパティ側の反映を
+  // 実装しておらずテストで検証できないため
   useEffect(() => {
-    if (!mobileMenuOpen) {
-      return;
+    if (!mobileMenuOpen) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const outsideElements = Array.from(document.body.children).filter(
+      (el) => el !== headerRef.current,
+    );
+    for (const el of outsideElements) {
+      el.setAttribute('inert', '');
     }
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setMobileMenuOpen(false);
-        setMobileOpenLabel(null);
-        mobileMenuButtonRef.current?.focus();
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      for (const el of outsideElements) {
+        el.removeAttribute('inert');
       }
     };
+  }, [mobileMenuOpen]);
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+  // 外側 (メニュー・開閉ボタン以外) の選択で閉じる (要件 7.15)
+  useEffect(() => {
+    if (!mobileMenuOpen) return undefined;
+
+    const handleClick = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (
+        mobileNavRef.current?.contains(target) ||
+        mobileMenuButtonRef.current?.contains(target)
+      ) {
+        return;
+      }
+      closeMobileMenu();
+    };
+
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
   }, [mobileMenuOpen]);
 
   useLayoutEffect(() => {
@@ -154,13 +148,16 @@ export function Header({ phase }: HeaderProps) {
 
   return (
     <>
-      <a
-        href={`#${MAIN_CONTENT_ID}`}
-        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[60] focus:rounded-lg focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      <header
+        ref={headerRef}
+        className="fixed inset-x-0 top-0 z-50 border-b border-gray-200 bg-background pt-[env(safe-area-inset-top)]"
       >
-        本文へ移動
-      </a>
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-gray-200 bg-background pt-[env(safe-area-inset-top)]">
+        <a
+          href={`#${MAIN_CONTENT_ID}`}
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[60] focus:rounded-lg focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          本文へ移動
+        </a>
         <div
           ref={contentRowRef}
           className="flex h-16 w-full items-center justify-between pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] lg:h-20 lg:px-20"
@@ -181,8 +178,7 @@ export function Header({ phase }: HeaderProps) {
             <ul className="flex items-center gap-8">
               {items.map((item) => {
                 const active = isItemActive(item, pathname);
-                const colorClass =
-                  UNDERLINE_COLOR_CLASS[item.label] ?? 'bg-primary';
+                const colorClass = underlineColorClassFor(item.label);
 
                 if (!item.children) {
                   return (
@@ -285,91 +281,25 @@ export function Header({ phase }: HeaderProps) {
           </button>
         </div>
 
-        {mobileMenuOpen && (
-          <nav
-            id="mobile-navigation"
-            aria-label="モバイルナビゲーション"
-            className="absolute inset-x-0 top-full max-h-[calc(100svh_-_4rem_-_env(safe-area-inset-top))] w-full min-w-0 overflow-y-auto border-b border-gray-200 bg-background pb-[max(1rem,env(safe-area-inset-bottom))] lg:hidden"
-          >
-            <ul className="px-5 py-3 sm:px-6">
-              {items.map((item, index) => {
-                const active = isItemActive(item, pathname);
-                const submenuId = `mobile-submenu-${index}`;
-                const submenuOpen = mobileOpenLabel === item.label;
-
-                return (
-                  <li
-                    key={item.label}
-                    className="border-b border-gray-200/70 last:border-b-0"
-                  >
-                    {item.children ? (
-                      <>
-                        <div className="flex min-w-0 items-center">
-                          <span
-                            aria-current={active ? 'page' : undefined}
-                            className="flex min-h-11 min-w-0 flex-1 items-center py-3 text-base text-text"
-                          >
-                            {item.label}
-                          </span>
-                          <button
-                            type="button"
-                            aria-label={`${item.label}のサブメニューを${
-                              submenuOpen ? '閉じる' : '開く'
-                            }`}
-                            aria-expanded={submenuOpen}
-                            aria-controls={submenuId}
-                            onClick={() =>
-                              setMobileOpenLabel((current) =>
-                                current === item.label ? null : item.label,
-                              )
-                            }
-                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-text transition-colors hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
-                          >
-                            <ExpandMoreIcon
-                              size={20}
-                              className={`transition-transform duration-200 motion-reduce:transition-none ${
-                                submenuOpen ? 'rotate-180' : ''
-                              }`}
-                            />
-                          </button>
-                        </div>
-
-                        {submenuOpen && (
-                          <ul
-                            id={submenuId}
-                            aria-label={`${item.label}のモバイルサブメニュー`}
-                            className="pb-3 pl-4"
-                          >
-                            {linkableChildren(item).map((child) => (
-                              <li key={child.href}>
-                                <Link
-                                  href={child.href}
-                                  onClick={closeMobileMenu}
-                                  className="flex min-h-11 items-center border-l border-gray-200 px-4 py-2 text-[0.9375rem] text-text/80 transition-colors hover:border-primary hover:text-text focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
-                                >
-                                  {child.label}
-                                </Link>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </>
-                    ) : (
-                      <Link
-                        href={item.href as string}
-                        aria-current={active ? 'page' : undefined}
-                        onClick={closeMobileMenu}
-                        className="flex min-h-11 items-center py-3 text-base text-text"
-                      >
-                        {item.label}
-                      </Link>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          </nav>
-        )}
+        <nav
+          ref={mobileNavRef}
+          id="mobile-navigation"
+          aria-label="モバイルナビゲーション"
+          aria-hidden={!mobileMenuOpen}
+          inert={!mobileMenuOpen ? true : undefined}
+          className={`absolute inset-x-0 top-full z-40 max-h-[calc(100svh_-_4rem_-_env(safe-area-inset-top))] w-full min-w-0 overflow-y-auto border-b border-gray-200 bg-background pb-[env(safe-area-inset-bottom)] transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none lg:hidden ${
+            mobileMenuOpen
+              ? 'translate-y-0 opacity-100'
+              : 'pointer-events-none -translate-y-2 opacity-0'
+          }`}
+        >
+          <NavigationMenuRows
+            items={items}
+            pathname={pathname}
+            idPrefix="mobile"
+            onNavigate={closeMobileMenu}
+          />
+        </nav>
       </header>
       <div
         aria-hidden="true"

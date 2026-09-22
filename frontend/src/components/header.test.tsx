@@ -148,7 +148,9 @@ describe('Header', () => {
   test('高さ 80px・左右 padding 80px を PC で適用する', () => {
     const { container } = render(<Header phase="pre_event" />);
 
-    const headerInner = container.querySelector('header')?.firstElementChild;
+    const headerInner = container
+      .querySelector('header')
+      ?.querySelector(':scope > div');
     expect(headerInner).toHaveClass('lg:h-20', 'lg:px-20');
   });
 
@@ -194,32 +196,144 @@ describe('Header', () => {
       name: 'モバイルナビゲーション',
     });
 
-    const openAnnouncements = within(mobileNavigation).getByRole('button', {
-      name: 'お知らせのサブメニューを開く',
-    });
-    fireEvent.click(openAnnouncements);
+    fireEvent.click(
+      within(mobileNavigation).getByRole('button', { name: /お知らせ/ }),
+    );
     expect(
       within(mobileNavigation).getByRole('list', {
-        name: 'お知らせのモバイルサブメニュー',
+        name: 'お知らせのサブメニュー',
       }),
     ).toBeInTheDocument();
     // 「ご案内」はまだ閉じたまま
     expect(
       within(mobileNavigation).queryByRole('list', {
-        name: 'ご案内のモバイルサブメニュー',
+        name: 'ご案内のサブメニュー',
       }),
     ).not.toBeInTheDocument();
 
     fireEvent.click(
-      within(mobileNavigation).getByRole('button', {
-        name: 'ご案内のサブメニューを開く',
-      }),
+      within(mobileNavigation).getByRole('button', { name: /ご案内/ }),
     );
+    // 先に開いた「お知らせ」は開いたまま (独立して開閉できる)
     expect(
       within(mobileNavigation).getByRole('list', {
-        name: 'ご案内のモバイルサブメニュー',
+        name: 'お知らせのサブメニュー',
       }),
     ).toBeInTheDocument();
+    expect(
+      within(mobileNavigation).getByRole('list', {
+        name: 'ご案内のサブメニュー',
+      }),
+    ).toBeInTheDocument();
+  });
+
+  test('行の高さは 48px、開いた行の直下に子項目を 16px インデントし左に縦線を添えて表示する', () => {
+    render(<Header phase="pre_event" />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
+    const mobileNavigation = screen.getByRole('navigation', {
+      name: 'モバイルナビゲーション',
+    });
+
+    expect(
+      within(mobileNavigation).getByRole('link', { name: '荒牧祭について' }),
+    ).toHaveClass('min-h-12');
+
+    fireEvent.click(
+      within(mobileNavigation).getByRole('button', { name: /ご案内/ }),
+    );
+    const childLink = within(mobileNavigation).getByRole('link', {
+      name: 'アクセス',
+    });
+    expect(childLink).toHaveClass('pl-8');
+    expect(childLink.parentElement).toHaveClass('border-l', 'border-gray-200');
+  });
+
+  test('開いている間は背面のスクロールを止め、本文・フッターを inert にする。閉じると復元する', () => {
+    const main = document.createElement('main');
+    const footer = document.createElement('footer');
+    document.body.append(main, footer);
+    try {
+      render(<Header phase="pre_event" />);
+
+      fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
+      expect(document.body.style.overflow).toBe('hidden');
+      expect(main).toHaveAttribute('inert');
+      expect(footer).toHaveAttribute('inert');
+
+      fireEvent.keyDown(document, { key: 'Escape' });
+      expect(document.body.style.overflow).toBe('');
+      expect(main).not.toHaveAttribute('inert');
+      expect(footer).not.toHaveAttribute('inert');
+    } finally {
+      main.remove();
+      footer.remove();
+    }
+  });
+
+  test('ヘッダー自身・開閉ボタンは inert にならない', () => {
+    const main = document.createElement('main');
+    document.body.append(main);
+    try {
+      const { container } = render(<Header phase="pre_event" />);
+      fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
+
+      const header = container.querySelector('header');
+      expect(header).not.toHaveAttribute('inert');
+      expect(
+        screen.getByRole('button', { name: 'メニューを閉じる' }),
+      ).not.toHaveAttribute('inert');
+    } finally {
+      main.remove();
+    }
+  });
+
+  test('外側の選択でメニューを閉じる', () => {
+    render(<Header phase="pre_event" />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
+    expect(
+      screen.getByRole('navigation', { name: 'モバイルナビゲーション' }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(document.body);
+
+    expect(
+      screen.queryByRole('navigation', { name: 'モバイルナビゲーション' }),
+    ).not.toBeInTheDocument();
+  });
+
+  test('メニュー内の選択・開閉ボタン自身の選択では外側扱いにならない', () => {
+    render(<Header phase="pre_event" />);
+
+    const menuButton = screen.getByRole('button', { name: 'メニューを開く' });
+    fireEvent.click(menuButton);
+    const mobileNavigation = screen.getByRole('navigation', {
+      name: 'モバイルナビゲーション',
+    });
+
+    fireEvent.click(
+      within(mobileNavigation).getByRole('button', { name: /ご案内/ }),
+    );
+    expect(
+      screen.getByRole('navigation', { name: 'モバイルナビゲーション' }),
+    ).toBeInTheDocument();
+  });
+
+  test('開閉は 200ms ease-out で行い、モーション停止で無効化する', () => {
+    const { container } = render(<Header phase="pre_event" />);
+
+    const nav = container.querySelector('#mobile-navigation');
+    expect(nav).toHaveClass(
+      'transition-[opacity,transform]',
+      'duration-200',
+      'ease-out',
+      'motion-reduce:transition-none',
+    );
+    expect(nav).toHaveClass('opacity-0', '-translate-y-2');
+
+    fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
+    expect(nav).toHaveClass('opacity-100', 'translate-y-0');
   });
 
   test('モバイルメニュー内の項目を選択すると遷移してメニューを閉じる', () => {
@@ -253,6 +367,44 @@ describe('Header', () => {
       screen.queryByRole('navigation', { name: 'モバイルナビゲーション' }),
     ).not.toBeInTheDocument();
     expect(menuButton).toHaveFocus();
+  });
+
+  test('メニューを開いている間、Tab と Shift+Tab はメニュー内で循環する', () => {
+    render(<Header phase="pre_event" />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
+    const mobileNavigation = screen.getByRole('navigation', {
+      name: 'モバイルナビゲーション',
+    });
+
+    const firstLink = within(mobileNavigation).getByRole('link', {
+      name: '荒牧祭について',
+    });
+    const lastButton = within(mobileNavigation).getByRole('button', {
+      name: /協賛/,
+    });
+
+    lastButton.focus();
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(firstLink).toHaveFocus();
+
+    firstLink.focus();
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+    expect(lastButton).toHaveFocus();
+
+    // 子項目を開いてフォーカス可能な要素が増えても、新しい末尾を掴んで循環する
+    fireEvent.click(lastButton);
+    const lastChildLink = within(mobileNavigation).getByRole('link', {
+      name: '地域協賛',
+    });
+
+    lastChildLink.focus();
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(firstLink).toHaveFocus();
+
+    firstLink.focus();
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+    expect(lastChildLink).toHaveFocus();
   });
 
   test('PC ナビ項目 (リンク・ドロップダウントリガー) は body/md の line-height 1.7', () => {
@@ -362,7 +514,7 @@ describe('Header', () => {
 
     const header = container.querySelector('header');
     expect(header).toHaveClass('pt-[env(safe-area-inset-top)]');
-    const headerInner = header?.firstElementChild;
+    const headerInner = header?.querySelector(':scope > div');
     expect(headerInner).toHaveClass('h-16', 'lg:h-20');
     expect(screen.getByRole('img', { name: '荒牧祭2026' })).toHaveClass('h-8');
     expect(

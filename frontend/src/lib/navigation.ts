@@ -17,6 +17,37 @@ export function linkableChildren(
   );
 }
 
+function isPathActive(pathname: string, href: string): boolean {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+/** 子項目だけを持つ親は、いずれかの子項目が現在地のとき現在地として扱う。 */
+export function isItemActive(item: NavigationItem, pathname: string): boolean {
+  if (item.href) return isPathActive(pathname, item.href);
+  return (
+    item.children?.some(
+      (child) => child.href !== undefined && isPathActive(pathname, child.href),
+    ) ?? false
+  );
+}
+
+// secondary・info はいずれも背景色に対してコントラスト比が不足するため、
+// ラベルの文字色 (color/text) は変えず下線・インジケーターの色だけで現在地を伝える
+const UNDERLINE_COLOR_CLASS: Readonly<Record<string, string>> = {
+  企画一覧: 'bg-primary',
+  構内マップ: 'bg-secondary',
+  タイムテーブル: 'bg-info',
+  お知らせ: 'bg-warning',
+  ご案内: 'bg-success',
+  荒牧祭について: 'bg-accent-alt',
+  協賛: 'bg-accent',
+};
+
+/** ヘッダー (PC) とハンバーガーメニューの現在地インジケーターが共有する親項目ごとの色。 */
+export function underlineColorClassFor(label: string): string {
+  return UNDERLINE_COLOR_CLASS[label] ?? 'bg-primary';
+}
+
 export interface BottomNavigationItem {
   readonly label: string;
   readonly href: string;
