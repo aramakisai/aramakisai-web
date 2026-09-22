@@ -596,7 +596,7 @@ Figma: `Footer` (`291:1537`) の SP/during (`310:633`、390×1060) / SP/before (
 - ファイル: `frontend/src/components/topic-card.tsx` と `topics-list.tsx`。データは `lib/topics.ts` の `TopicSummary` で、`imageId` を既に持つ (要件 14.3)。
 - `topics` コレクションの定義は変更しない (要件 14.6)。
 - 構成: 角丸 `radius/xl` (12px、`ExhibitionCard` と同じ) の四角をカード全体とし、その全面を 4:3 のサムネイル (`object-fit: cover`) で埋める。サムネイルの上に、上端 `color/gray-800` 不透明度 0% から下端 55% へ濃くなる縦方向のグラデーション (Hero のスクリムと同じ到達濃度)を重ね、その下寄りの領域にタイトルを置く。本文・日付を置く Body は持たない。
-- タイトル: `heading/h4` (Zen Old Mincho Bold 20px、`ExhibitionCard` のタイトルと同じ)、色 `color/gray-50` (Hero の白抜き文字と同じ)。カード下端から `spacing/4` (16px) の padding で左揃え・下揃えに置き、2 行で打ち切る (`line-clamp-2`)。カードの高さは幅と 4:3 の比率だけで決まるため、タイトルの行数によらず揃う (要件 14.7)。
+- タイトル: `heading/h4` (Zen Old Mincho Bold 20px、`ExhibitionCard` のタイトルと同じ)、色 `color/gray-50` (Hero の白抜き文字と同じ)。カード下端から `spacing/4` (16px) の padding で左揃え・下揃えに置き、2 行で打ち切る (`line-clamp-2`)。長いタイトルが 2 行に折り返すときも下端の位置は変えず、行は上方向へ増やす。カードの高さは幅と 4:3 の比率だけで決まるため、タイトルの行数によらず揃う (要件 14.7)。
 - Figma の `TopicCard` (`node-id=166:113`) は画像 298×160 の下に `Title` / `Date` の Body を置いた暫定版であり、上記の構成で作り直す。`Date` プロパティは削除する (要件 14.1)。
 - カード全体を 1 つの `<a>` とし、画像とタイトルを個別のリンクにしない (要件 14.5)。
 - 本文・添付ファイルを描画しないため、`topic-card.tsx` から `RichText` / `AttachmentGallery` の利用を外す。サムネイルは `imageId` のみから求め、現行の「最初の画像添付を優先する」処理は削除する (要件 14.3)。
@@ -634,7 +634,7 @@ Figma: `Footer` (`291:1537`) の SP/during (`310:633`、390×1060) / SP/before (
 | 9, 10 | `components/footer.tsx`, `components/motion-toggle.tsx`, `lib/navigation.ts` | Figma 確定 (`MotionToggle` の配置を含む。メールアドレスの実値、ルート未確定 4 ページの遷移先は未確定) |
 | 11 | `components/campus-map/map-menu-button.tsx`, `lib/navigation.ts` | 構造のみ確定 |
 | 12 | `lib/sponsors.ts`, `components/sponsors-list.tsx`, `(site)/sponsors/page.tsx` | 取得層は確定、表示は未確定 |
-| 14 | `components/topic-card.tsx`, `components/topics-list.tsx` | 構造のみ確定 |
+| 14 | `components/topic-card.tsx`, `components/topics-list.tsx`, `(site)/topics/page.tsx`, `lib/topics.ts` | Figma 確定 (`TopicCard` `166:113`、トピックページ PC `381:2` / SP `382:834`) |
 | 15 | `components/announcements-list.tsx` | 構造のみ確定 |
 | 16 | `cms/src/collections/sponsors.ts`, マイグレーション, `lib/home-page-types.ts` | 確定 |
 | 17 | `lib/navigation.ts` | 確定 |
