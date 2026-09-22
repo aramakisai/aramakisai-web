@@ -57,8 +57,22 @@
   );
 }
 
+/*
+ * Tailwind v4 既定の motion-reduce variant は prefers-reduced-motion のみで発火する。
+ * フッターの MotionToggle による停止指定 (<html data-motion="reduce">) でも
+ * motion-reduce: ユーティリティが発火するよう再定義する (要件 21.4, 21.8)
+ */
+@custom-variant motion-reduce {
+  @media (prefers-reduced-motion: reduce) {
+    @slot;
+  }
+  &:is([data-motion='reduce'] *, [data-motion='reduce']) {
+    @slot;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
-  html {
+  html:not([data-motion='reduce']) {
     scroll-behavior: smooth;
   }
 }

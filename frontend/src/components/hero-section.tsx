@@ -210,6 +210,20 @@ export function HeroSection({ imageUrls }: HeroSectionProps) {
             transform: scaleY(1);
           }
         }
+
+        /* MotionToggle による停止指定 (要件 21.8)。@custom-variant motion-reduce は
+           Tailwind ユーティリティ専用のため、ここは data-motion 属性を直接見る */
+        :root[data-motion='reduce'] .aramakisai-hero-image,
+        :root[data-motion='reduce'] .aramakisai-hero-image--active {
+          animation: none;
+          transform: scale(1);
+          transition: none;
+        }
+
+        :root[data-motion='reduce'] .aramakisai-scroll-line {
+          animation: none;
+          transform: scaleY(1);
+        }
       `}</style>
     </section>
   );

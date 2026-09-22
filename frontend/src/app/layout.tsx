@@ -49,6 +49,18 @@ const MATERIAL_SYMBOLS_ICON_NAMES = [
 ].join(',');
 const MATERIAL_SYMBOLS_HREF = `https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp:opsz,wght,FILL,GRAD@24,300,0..1,0&icon_names=${MATERIAL_SYMBOLS_ICON_NAMES}&display=block`;
 
+// hydration 前に停止指定を <html> へ反映しないと、初回描画がちらつく
+// (自動送り等が一瞬動いてから止まる)。lib/use-motion-preference.ts の
+// MOTION_STORAGE_KEY / 判定 (OS 設定と保存値の OR) を resolveReduced と一致させること
+const MOTION_INIT_SCRIPT = `
+try {
+  var m;
+  try { m = localStorage.getItem('aramakisai_motion'); } catch (e) { m = null; }
+  var reduced = m === 'reduce' || matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduced) document.documentElement.setAttribute('data-motion', 'reduce');
+} catch (e) {}
+`;
+
 export async function generateMetadata(): Promise<Metadata> {
   let name = '';
   try {
@@ -96,7 +108,7 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang="ja" className={zenOldMincho.variable}>
+    <html lang="ja" className={zenOldMincho.variable} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
@@ -105,6 +117,7 @@ export default async function RootLayout({
           crossOrigin="anonymous"
         />
         <link rel="stylesheet" href={MATERIAL_SYMBOLS_HREF} />
+        <script dangerouslySetInnerHTML={{ __html: MOTION_INIT_SCRIPT }} />
       </head>
       <body className="flex min-h-screen min-h-dvh min-w-0 flex-col font-sans">
         {children}

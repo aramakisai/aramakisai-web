@@ -209,6 +209,18 @@ describe('HeroSection', () => {
     );
   });
 
+  test('also stops via the MotionToggle stop flag (data-motion=reduce)', () => {
+    const { container } = render(<HeroSection imageUrls={imageUrls} />);
+
+    const style = container.querySelector('style');
+    expect(style).toHaveTextContent(
+      /\[data-motion='reduce'\][^{]*\.aramakisai-hero-image[^{]*{[^}]*animation: none/,
+    );
+    expect(style).toHaveTextContent(
+      /\[data-motion='reduce'\][^{]*\.aramakisai-scroll-line\s*{[^}]*animation: none/,
+    );
+  });
+
   test('keeps mobile slideshow controls separated with touch-friendly targets', () => {
     const { container } = render(<HeroSection imageUrls={imageUrls} />);
     const controls = screen.getAllByRole('button');

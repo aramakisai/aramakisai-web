@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { generateMetadata } from './layout';
+import RootLayout, { generateMetadata } from './layout';
 import { PHASE_OVERRIDE_COOKIE } from '@/lib/phase';
 
 vi.mock('@/env', () => ({
@@ -32,6 +32,45 @@ describe('RootLayout', () => {
     const metadata = await generateMetadata();
 
     expect(metadata.metadataBase).toEqual(new URL('http://localhost:3000'));
+  });
+});
+
+describe('RootLayout - モーション抑制の初期反映 (要件 21.7, 21.8)', () => {
+  it('hydration 前に停止指定を判定するスクリプトを <head> に埋め込む', async () => {
+    cookiesGetMock.mockReturnValue(undefined);
+
+    const ui = await RootLayout({ children: <div>content</div> });
+    const html = renderToStaticMarkup(ui);
+
+    expect(html).toContain('aramakisai_motion');
+    expect(html).toContain('prefers-reduced-motion: reduce');
+    expect(html).toContain("setAttribute('data-motion', 'reduce')");
+  });
+
+  it('OS 設定が reduce で保存値が no-preference のとき、hydration 前スクリプトの実行だけで data-motion=reduce が付く (要件 21.4)', async () => {
+    cookiesGetMock.mockReturnValue(undefined);
+
+    const ui = await RootLayout({ children: <div>content</div> });
+    const html = renderToStaticMarkup(ui);
+    const scriptMatch = html.match(/<script>([\s\S]*?)<\/script>/);
+    expect(scriptMatch).not.toBeNull();
+    const scriptBody = scriptMatch![1];
+
+    vi.stubGlobal('localStorage', {
+      getItem: vi.fn().mockReturnValue('no-preference'),
+    });
+    vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: true }));
+    document.documentElement.removeAttribute('data-motion');
+
+    try {
+      new Function(scriptBody)();
+      expect(document.documentElement.getAttribute('data-motion')).toBe(
+        'reduce',
+      );
+    } finally {
+      document.documentElement.removeAttribute('data-motion');
+      vi.unstubAllGlobals();
+    }
   });
 });
 
