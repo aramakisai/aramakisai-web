@@ -57,7 +57,10 @@ export default async function ExhibitionsPage({
             下に背景色が残って角丸が効かなくなる。 */}
               <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-4">
                 {result.items.map((exhibition) => (
-                  <ExhibitionCard key={exhibition.id} exhibition={exhibition} />
+                  <ExhibitionCard
+                    key={`${exhibition.id}-${exhibition.category}`}
+                    exhibition={exhibition}
+                  />
                 ))}
               </div>
               <ExhibitionPagination
