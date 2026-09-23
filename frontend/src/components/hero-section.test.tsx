@@ -239,11 +239,41 @@ describe('HeroSection', () => {
     });
     expect(previousButton).toHaveClass('left-4', 'lg:left-10');
     expect(nextButton).toHaveClass('right-4', 'lg:right-10');
+  });
 
-    const slideIndicators = screen.getAllByRole('group')[0];
-    within(slideIndicators)
-      .getAllByRole('button')
-      .forEach((button) => expect(button).toHaveClass('h-11', 'w-11'));
+  test('sizes and colors the slide indicator dots per the Figma measurements (8px dots, 8px gap, primary/gray-400, no pill background)', () => {
+    render(<HeroSection {...fullProps} />);
+
+    const group = screen.getByRole('group', { name: '表示する画像を選択' });
+    expect(group).toHaveClass('gap-2');
+    expect(group).not.toHaveClass('bg-black/20', 'backdrop-blur-sm');
+
+    const dots = within(group).getAllByRole('button');
+    dots.forEach((dot) =>
+      expect(dot).toHaveClass('h-2', 'w-2', 'rounded-full'),
+    );
+    expect(dots[0]).toHaveClass('bg-primary');
+    dots.slice(1).forEach((dot) => expect(dot).toHaveClass('bg-gray-400'));
+  });
+
+  test('expands the slide indicator hit area via an invisible pseudo-element without growing the visible 8px dot', () => {
+    render(<HeroSection {...fullProps} />);
+
+    const group = screen.getByRole('group', { name: '表示する画像を選択' });
+    const dots = within(group).getAllByRole('button');
+
+    dots.forEach((dot) => {
+      // 見た目のサイズ (8px) は変えない
+      expect(dot).toHaveClass('h-2', 'w-2');
+      // ::before は position: relative な自分自身を基準に配置する
+      expect(dot).toHaveClass('relative');
+      // 当たり判定の拡張は透明な ::before のみで表現し、可視の背景/枠線は追加しない
+      expect(dot).toHaveClass('before:absolute', "before:content-['']");
+      // 左右は間隔 8px の半分 (4px = Tailwind の 1) を超えない
+      expect(dot).toHaveClass('before:-left-1', 'before:-right-1');
+      // 上は SP 390 のカウントダウン行との間隔 (8px) を侵食しない 6px、下は制約が無いため 10px
+      expect(dot).toHaveClass('before:-top-[6px]', 'before:-bottom-[10px]');
+    });
   });
 
   describe('content overlay', () => {
@@ -357,68 +387,22 @@ describe('HeroSection', () => {
       expect(screen.queryByText(/開催まであと/)).not.toBeInTheDocument();
     });
 
-    test('shows the fixed title as a single line on both breakpoints', () => {
-      render(<HeroSection {...fullProps} phase="live" />);
+    test('uses the same fixed two-line title, typography and scrim as the pre-event layout (only the countdown row differs)', () => {
+      const { container } = render(<HeroSection {...fullProps} phase="live" />);
 
       const mobile = screen.getByTestId('hero-content-mobile');
       const desktop = screen.getByTestId('hero-content-desktop');
       for (const region of [mobile, desktop]) {
-        expect(within(region).getByText('群馬大学 荒牧祭')).toBeInTheDocument();
+        expect(within(region).getByText('群馬大学')).toBeInTheDocument();
+        expect(within(region).getByText('荒牧祭')).toBeInTheDocument();
+        expect(within(region).getByText('万彩')).toHaveClass('text-[44px]');
       }
-    });
-
-    test('sizes the title/theme per breakpoint and joins event days/venue on one line on desktop only', () => {
-      render(<HeroSection {...fullProps} phase="live" />);
-
-      const mobile = screen.getByTestId('hero-content-mobile');
-      const desktop = screen.getByTestId('hero-content-desktop');
-
-      expect(within(mobile).getByText('群馬大学 荒牧祭')).toHaveClass(
-        'text-[32px]',
-        'py-0',
-      );
-      expect(within(mobile).getByText('万彩')).toHaveClass('text-[64px]');
-      expect(within(desktop).getByText('群馬大学 荒牧祭')).toHaveClass(
-        'text-[44px]',
-        'py-0',
-      );
-      expect(within(desktop).getByText('万彩')).toHaveClass('text-[88px]');
-
       expect(within(desktop).getByText('｜')).toBeInTheDocument();
-      expect(within(mobile).queryByText('｜')).not.toBeInTheDocument();
-      expect(
-        within(mobile).getByText(
-          '11月14日 10:00〜17:30／11月15日 10:00〜16:30',
-        ),
-      ).toBeInTheDocument();
-      expect(
-        within(mobile).getByText('群馬大学 荒牧キャンパス'),
-      ).toBeInTheDocument();
-    });
 
-    test('stacks title, event days, venue, then theme on mobile; title, theme, then meta line on desktop', () => {
-      render(<HeroSection {...fullProps} phase="live" />);
-
-      const mobile = screen.getByTestId('hero-content-mobile');
-      const mobileTexts = Array.from(mobile.children).map(
-        (el) => el.textContent,
+      const scrim = container.querySelector(
+        '[aria-hidden="true"].absolute.inset-0.z-10',
       );
-      expect(mobileTexts).toEqual([
-        '群馬大学 荒牧祭',
-        '11月14日 10:00〜17:30／11月15日 10:00〜16:30',
-        '群馬大学 荒牧キャンパス',
-        '万彩',
-      ]);
-
-      const desktop = screen.getByTestId('hero-content-desktop');
-      const desktopTexts = Array.from(desktop.children).map(
-        (el) => el.textContent,
-      );
-      expect(desktopTexts).toEqual([
-        '群馬大学 荒牧祭',
-        '万彩',
-        '11月14日 10:00〜17:30／11月15日 10:00〜16:30｜群馬大学 荒牧キャンパス',
-      ]);
+      expect(scrim).toHaveClass('from-text/50', 'to-transparent');
     });
 
     test('omits meta line items independently when the CMS value is missing', () => {
@@ -437,7 +421,7 @@ describe('HeroSection', () => {
         screen.queryByText('群馬大学 荒牧キャンパス'),
       ).not.toBeInTheDocument();
       expect(screen.queryByText('万彩')).not.toBeInTheDocument();
-      expect(screen.getAllByText('群馬大学 荒牧祭').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('群馬大学').length).toBeGreaterThan(0);
     });
   });
 });

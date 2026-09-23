@@ -18,8 +18,10 @@ export interface HeroSectionProps {
   /** 開催日までの残り日数。event_days が空/未取得のとき null */
   countdownDays: number | null;
   /**
-   * 既定は 'pre_event'。'live' は開催中に残り日数が意味を持たないためカウントダウンを、
-   * スライドショーが装飾に徹するため前後の矢印ボタンを持たず、高さも 50svh になる (要件 3.1, 3.9, 4.2)
+   * 既定は 'pre_event'。'live' は開催中に残り日数が意味を持たないためカウントダウン行を、
+   * スライドショーが装飾に徹するため前後の矢印ボタンを持たず、高さも 50svh になる
+   * (要件 3.1, 3.9, 4.2)。レイアウト・タイポグラフィ・スクリム・スライドインジケーターは
+   * Figma の Hero コンポーネント (ShowCountdown プロパティ) に合わせてフェーズ間で共通
    */
   phase?: FestivalPhase;
 }
@@ -110,7 +112,7 @@ export function HeroSection({
         );
       })}
 
-      {/* 下端の文字を読ませるためのグラデーションスクリム */}
+      {/* 下端の文字を読ませるためのグラデーションスクリム (Figma node-id=143:28) */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-t from-text/50 to-transparent"
@@ -120,40 +122,44 @@ export function HeroSection({
         data-testid="hero-content-mobile"
         className="absolute inset-0 z-20 flex flex-col items-start justify-end gap-2 px-4 pb-8 lg:hidden"
       >
-        {isLive ? (
-          <>
-            <h2 className="py-0 text-[32px] leading-[1.2] text-gray-50">
-              群馬大学 荒牧祭
-            </h2>
-            {eventDaysSummary && (
-              <p className="text-[16px] leading-[1.7] text-gray-50">
-                {eventDaysSummary}
-              </p>
-            )}
-            {venueName && (
-              <p className="text-[16px] leading-[1.7] text-gray-50">
-                {venueName}
-              </p>
-            )}
-            {themeWord && (
-              <p className="font-mincho text-[64px] leading-[1.2] font-bold text-gray-50">
-                {themeWord}
-              </p>
-            )}
-          </>
-        ) : (
-          <>
-            <HeroTitle />
-            {eventDaysSummary && (
-              <p className="text-[16px] leading-[1.7] text-gray-50">
-                {eventDaysSummary}
-              </p>
-            )}
-            {venueName && (
-              <p className="text-[16px] leading-[1.7] text-gray-50">
-                {venueName}
-              </p>
-            )}
+        <HeroTitle />
+        {eventDaysSummary && (
+          <p className="text-[16px] leading-[1.7] text-gray-50">
+            {eventDaysSummary}
+          </p>
+        )}
+        {venueName && (
+          <p className="text-[16px] leading-[1.7] text-gray-50">{venueName}</p>
+        )}
+        {themeWord && (
+          <p className="font-mincho text-[44px] leading-[1.2] font-bold text-gray-50">
+            {themeWord}
+          </p>
+        )}
+        {countdownLabel && (
+          <p className="font-mincho text-[20px] leading-[1.4] font-bold text-gray-50">
+            {countdownLabel}
+          </p>
+        )}
+      </div>
+
+      <div
+        data-testid="hero-content-desktop"
+        className="absolute inset-0 z-20 hidden items-end justify-between px-20 pb-12 lg:flex"
+      >
+        <div className="flex flex-col items-start gap-2">
+          <HeroTitle />
+          {(eventDaysSummary || venueName) && (
+            <div className="flex items-center gap-3 text-[16px] leading-[1.7] text-gray-50">
+              {eventDaysSummary && <span>{eventDaysSummary}</span>}
+              {eventDaysSummary && venueName && <span>｜</span>}
+              {venueName && <span>{venueName}</span>}
+            </div>
+          )}
+        </div>
+
+        {(themeWord || countdownLabel) && (
+          <div className="flex flex-col items-end gap-1 text-right">
             {themeWord && (
               <p className="font-mincho text-[44px] leading-[1.2] font-bold text-gray-50">
                 {themeWord}
@@ -164,64 +170,7 @@ export function HeroSection({
                 {countdownLabel}
               </p>
             )}
-          </>
-        )}
-      </div>
-
-      <div
-        data-testid="hero-content-desktop"
-        className={
-          isLive
-            ? 'absolute inset-0 z-20 hidden flex-col items-start justify-end gap-2 px-20 pb-12 lg:flex'
-            : 'absolute inset-0 z-20 hidden items-end justify-between px-20 pb-12 lg:flex'
-        }
-      >
-        {isLive ? (
-          <>
-            <h2 className="py-0 text-[44px] leading-[1.2] text-gray-50">
-              群馬大学 荒牧祭
-            </h2>
-            {themeWord && (
-              <p className="font-mincho text-[88px] leading-[1.2] font-bold text-gray-50">
-                {themeWord}
-              </p>
-            )}
-            {(eventDaysSummary || venueName) && (
-              <div className="flex items-center gap-3 text-[16px] leading-[1.7] text-gray-50">
-                {eventDaysSummary && <span>{eventDaysSummary}</span>}
-                {eventDaysSummary && venueName && <span>｜</span>}
-                {venueName && <span>{venueName}</span>}
-              </div>
-            )}
-          </>
-        ) : (
-          <>
-            <div className="flex flex-col items-start gap-2">
-              <HeroTitle />
-              {(eventDaysSummary || venueName) && (
-                <div className="flex items-center gap-3 text-[16px] leading-[1.7] text-gray-50">
-                  {eventDaysSummary && <span>{eventDaysSummary}</span>}
-                  {eventDaysSummary && venueName && <span>｜</span>}
-                  {venueName && <span>{venueName}</span>}
-                </div>
-              )}
-            </div>
-
-            {(themeWord || countdownLabel) && (
-              <div className="flex flex-col items-end gap-1 text-right">
-                {themeWord && (
-                  <p className="font-mincho text-[44px] leading-[1.2] font-bold text-gray-50">
-                    {themeWord}
-                  </p>
-                )}
-                {countdownLabel && (
-                  <p className="font-mincho text-[20px] leading-[1.4] font-bold text-gray-50">
-                    {countdownLabel}
-                  </p>
-                )}
-              </div>
-            )}
-          </>
+          </div>
         )}
       </div>
 
@@ -251,7 +200,7 @@ export function HeroSection({
         <div
           role="group"
           aria-label="表示する画像を選択"
-          className="absolute bottom-4 left-1/2 z-30 flex -translate-x-1/2 items-center gap-1 rounded-full bg-black/20 px-2 py-1 backdrop-blur-sm lg:bottom-6"
+          className="absolute bottom-4 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 lg:bottom-6"
         >
           {imageUrls.map((src, index) => {
             const isActive = index === activeIndex;
@@ -263,17 +212,18 @@ export function HeroSection({
                 aria-label={`${index + 1}枚目の画像を表示`}
                 aria-pressed={isActive}
                 onClick={() => showSlide(index)}
-                className="group flex h-11 w-11 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white lg:h-8 lg:w-8"
-              >
-                <span
-                  aria-hidden="true"
-                  className={`block rounded-full transition-all duration-200 motion-reduce:transition-none ${
-                    isActive
-                      ? 'h-3 w-3 bg-white shadow-[0_0_12px_rgba(255,255,255,0.8)]'
-                      : 'h-2.5 w-2.5 bg-white/50 group-hover:bg-white/80'
-                  }`}
-                />
-              </button>
+                /*
+                 * 見た目は Figma 実測の 8px ドットのまま変えず、::before の透明な
+                 * 当たり判定だけを拡張する。左右は間隔 8px の半分 (4px) を超えると
+                 * 隣のドットの判定と重なるためそこで頭打ち。上方向は SP 390 幅で
+                 * カウントダウン行との間隔が最も狭く (8px)、6px までなら 2px の
+                 * 安全マージンを残して侵食しない。下方向は隣接要素が無く制約が
+                 * ないため、縦合計が WCAG 2.2 Target Size の 24px に届くよう 10px 取る
+                 */
+                className={`relative h-2 w-2 rounded-full transition-colors duration-200 before:absolute before:-top-[6px] before:-right-1 before:-bottom-[10px] before:-left-1 before:content-[''] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white motion-reduce:transition-none ${
+                  isActive ? 'bg-primary' : 'bg-gray-400 hover:bg-gray-400/80'
+                }`}
+              />
             );
           })}
         </div>

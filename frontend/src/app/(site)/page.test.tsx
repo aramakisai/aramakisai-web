@@ -335,11 +335,23 @@ describe('Page (開催中フェーズ)', () => {
   });
 
   it('festival_meta.name を本文に表示しない (要件3.10)', async () => {
+    // ヒーローの固定ブランド文言 (CMS 非依存、開催前後で共通) と衝突しないよう、
+    // festival_meta.name には区別できる値を与えて検証する (開催前フェーズのテストと同じ手法)
+    vi.mocked(homePageModule.getHomePage).mockResolvedValue({
+      ...content,
+      festival: {
+        ...content.festival!,
+        name: '第73回 荒牧祭公式ホームページ',
+      },
+    });
+
     const ui = await Page();
     render(ui);
 
     expect(
-      screen.queryByText('荒牧祭', { selector: ':not(.sr-only)' }),
+      screen.queryByText('第73回 荒牧祭公式ホームページ', {
+        selector: ':not(.sr-only)',
+      }),
     ).not.toBeInTheDocument();
   });
 
