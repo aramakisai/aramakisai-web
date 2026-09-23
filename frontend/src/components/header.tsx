@@ -1,148 +1,265 @@
 'use client';
 
 /* eslint-disable @next/next/no-img-element */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import type { FestivalPhase } from '@/lib/phase';
+import {
+  navigationItemsByPhase,
+  linkableChildren,
+  isItemActive,
+  underlineColorClassFor,
+} from '@/lib/navigation';
+import { computeDropdownOffset } from '@/lib/dropdown-position';
+import { ExpandMoreIcon } from '@/components/icons';
+import { useFocusTrap } from '@/lib/use-focus-trap';
+import {
+  NavIndicator,
+  NavigationMenuRows,
+} from '@/components/navigation-menu-rows';
 
-type NavigationItem = {
-  label: string;
-  href: string;
-  children?: readonly {
-    label: string;
-    href: string;
-  }[];
-};
+export const MAIN_CONTENT_ID = 'main-content';
+// BackgroundShapes がヘッダーの高さ範囲の図形をここへ portal する (design.md 参照)。
+// ヘッダーは fixed で内容と不透明な地を自身の背景色で描くため、装飾は地と中身の間に
+// 挟む専用の層をヘッダー自身の中に用意する必要がある
+export const HEADER_BG_SHAPES_SLOT_ID = 'header-bg-shapes-slot';
 
-// 企画一覧・会場案内・協賛企業は対応ページが未実装のため一時的に非表示。
-// ページ実装後は navigationItems へ戻す (要件 5.2)。
-export const navigationItems: readonly NavigationItem[] = [
-  { label: 'TOP', href: '/' },
-  {
-    label: '荒牧祭について',
-    href: '/#about',
-    children: [
-      { label: '概要', href: '/#about-overview' },
-      { label: '開催スケジュール', href: '/#about-schedule' },
-      { label: '今年のテーマ', href: '/#about-theme' },
-    ],
-  },
-  { label: 'お知らせ', href: '/announcements' },
-  { label: 'アクセス', href: '/access' },
-];
+const PC_DROPDOWN_WIDTH = 224;
 
-export function Header() {
+export interface HeaderProps {
+  readonly phase: FestivalPhase;
+}
+
+export function Header({ phase }: HeaderProps) {
   const pathname = usePathname();
+  const items = navigationItemsByPhase[phase];
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [mobileAboutOpen, setMobileAboutOpen] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
   const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
+  const mobileNavRef = useRef<HTMLElement>(null);
+
+  // PC ドロップダウンの位置補正用。コンテンツ枠はヘッダー内側の行 (px-20 の内側) と一致するため
+  // その要素の bounding rect をそのまま境界として使う
+  const contentRowRef = useRef<HTMLDivElement>(null);
+  const dropdownTriggerRefs = useRef<Record<string, HTMLLIElement | null>>({});
+  const [dropdownOffsets, setDropdownOffsets] = useState<
+    Readonly<Record<string, { left: number; top: number }>>
+  >({});
 
   const closeMobileMenu = () => {
     setMobileMenuOpen(false);
-    setMobileAboutOpen(false);
   };
 
   const toggleMobileMenu = () => {
-    setMobileMenuOpen((isOpen) => {
-      if (isOpen) {
-        setMobileAboutOpen(false);
-      }
-      return !isOpen;
-    });
+    setMobileMenuOpen((isOpen) => !isOpen);
   };
 
+  useFocusTrap({
+    active: mobileMenuOpen,
+    containerRef: mobileNavRef,
+    originRef: mobileMenuButtonRef,
+    onClose: closeMobileMenu,
+    focusableSelector: 'a[href], button',
+  });
+
+  // 開いている間は背面のスクロールを止め、ヘッダーの外側 (本文・フッター・下部
+  // ナビゲーション) を inert にして支援技術の読み上げ・キーボード操作の対象から除外する
+  // (要件 7.14)。header は SiteLayout の #page-container 配下にあり document.body の
+  // 直接の子ではないため、body.children をそのまま除外走査すると headerRef の祖先
+  // (page-container) ごと inert になり、ヘッダー自身 (開閉ボタンやメニュー項目) への
+  // タップがヒットテストで body まで素通りしてしまう (要素は見えているのにクリックが
+  // 届かない状態になる)。headerRef から body まで祖先を辿り、各階層の兄弟要素だけを
+  // inert にすることで、ネストの深さに関わらずヘッダー自身は確実に除外する。
+  // `.inert` プロパティではなく属性を直接操作するのは、jsdom がプロパティ側の反映を
+  // 実装しておらずテストで検証できないため
   useEffect(() => {
-    if (!mobileMenuOpen) {
-      return;
+    if (!mobileMenuOpen) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const outsideElements: Element[] = [];
+    let node: Element | null = headerRef.current;
+    while (node && node !== document.body) {
+      const parent: Element | null = node.parentElement;
+      if (!parent) break;
+      for (const sibling of Array.from(parent.children)) {
+        if (sibling !== node) outsideElements.push(sibling);
+      }
+      node = parent;
+    }
+    for (const el of outsideElements) {
+      el.setAttribute('inert', '');
     }
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setMobileMenuOpen(false);
-        setMobileAboutOpen(false);
-        mobileMenuButtonRef.current?.focus();
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      for (const el of outsideElements) {
+        el.removeAttribute('inert');
       }
     };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
   }, [mobileMenuOpen]);
+
+  // 外側 (メニュー・開閉ボタン以外) の選択で閉じる (要件 7.15)
+  useEffect(() => {
+    if (!mobileMenuOpen) return undefined;
+
+    const handleClick = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (
+        mobileNavRef.current?.contains(target) ||
+        mobileMenuButtonRef.current?.contains(target)
+      ) {
+        return;
+      }
+      closeMobileMenu();
+    };
+
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [mobileMenuOpen]);
+
+  useLayoutEffect(() => {
+    const recompute = () => {
+      const row = contentRowRef.current;
+      if (!row) return;
+      const rowRect = row.getBoundingClientRect();
+      // row 自体が左右 padding (コンテンツ枠の余白) を持つため、bounding rect は
+      // 画面端まで含んでしまう。境界はその padding の内側 (コンテンツ枠) を使う
+      const rowStyle = window.getComputedStyle(row);
+      const paddingLeft = parseFloat(rowStyle.paddingLeft) || 0;
+      const paddingRight = parseFloat(rowStyle.paddingRight) || 0;
+      const bounds = {
+        left: rowRect.left + paddingLeft,
+        width: rowRect.width - paddingLeft - paddingRight,
+      };
+
+      const next: Record<string, { left: number; top: number }> = {};
+      for (const item of items) {
+        if (!item.children) continue;
+        const el = dropdownTriggerRefs.current[item.label];
+        if (!el) continue;
+        const itemRect = el.getBoundingClientRect();
+        next[item.label] = {
+          left: computeDropdownOffset(
+            { left: itemRect.left, width: itemRect.width },
+            bounds,
+            PC_DROPDOWN_WIDTH,
+          ),
+          // li はナビ行内で縦中央寄せのため下端がヘッダー下端より上にあり、その差は
+          // フォント計測に依存し固定値にできない。差分を hover 用の透明な橋渡し
+          // 余白として確保し、枠の上端をヘッダー下端に揃える
+          top: rowRect.bottom - itemRect.bottom,
+        };
+      }
+      setDropdownOffsets(next);
+    };
+
+    recompute();
+    window.addEventListener('resize', recompute);
+    return () => window.removeEventListener('resize', recompute);
+  }, [items]);
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/60 bg-white/75 pt-[env(safe-area-inset-top)] shadow-[0_1px_18px_rgba(15,23,42,0.06)] backdrop-blur-xl supports-[backdrop-filter]:bg-white/60">
-        <div className="flex h-16 w-full items-center justify-between pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] lg:h-20 lg:pl-6 lg:pr-6 xl:pl-8 xl:pr-8">
+      <header
+        ref={headerRef}
+        className="fixed inset-x-0 top-0 z-50 border-b border-gray-200 bg-background pt-[env(safe-area-inset-top)]"
+      >
+        <a
+          href={`#${MAIN_CONTENT_ID}`}
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[60] focus:rounded-lg focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          本文へ移動
+        </a>
+        <div
+          ref={contentRowRef}
+          className="flex h-16 w-full items-center justify-between pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] lg:h-20 lg:px-20"
+        >
           <Link
             href="/"
             onClick={closeMobileMenu}
-            className="flex shrink-0 items-center rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sky-600"
+            className="flex shrink-0 items-center rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
           >
             <img
               src="/images/logo-2026.png"
               alt="荒牧祭2026"
-              className="h-8 w-auto lg:h-9 xl:h-10"
+              className="h-8 w-auto lg:h-10"
             />
           </Link>
 
           <nav aria-label="メインナビゲーション" className="hidden lg:block">
-            <ul className="flex items-center gap-1 xl:gap-2">
-              {navigationItems.map((item) => {
-                const isActive =
-                  item.href === '/'
-                    ? pathname === '/'
-                    : pathname === item.href ||
-                      pathname.startsWith(`${item.href}/`);
+            <ul className="flex items-center gap-8">
+              {items.map((item) => {
+                const active = isItemActive(item, pathname);
+                const colorClass = underlineColorClassFor(item.label);
+
+                if (!item.children) {
+                  return (
+                    <li
+                      key={item.label}
+                      className="group flex flex-col items-start gap-1"
+                    >
+                      <Link
+                        href={item.href as string}
+                        aria-current={active ? 'page' : undefined}
+                        className="text-base leading-[1.7] whitespace-nowrap text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      >
+                        {item.label}
+                      </Link>
+                      <NavIndicator colorClass={colorClass} active={active} />
+                    </li>
+                  );
+                }
+
+                const children = linkableChildren(item);
 
                 return (
                   <li
-                    key={item.href}
-                    className={
-                      item.children ? 'group/about relative' : undefined
-                    }
+                    key={item.label}
+                    ref={(el) => {
+                      dropdownTriggerRefs.current[item.label] = el;
+                    }}
+                    className="group relative flex flex-col items-start gap-1"
                   >
-                    <Link
-                      href={item.href}
-                      aria-current={isActive ? 'page' : undefined}
-                      className={`group relative block whitespace-nowrap rounded-full px-3 py-2 text-base font-medium tracking-wide transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600 ${
-                        isActive
-                          ? 'bg-white/70 text-slate-950'
-                          : 'text-slate-700 hover:text-slate-950'
-                      }`}
+                    <button
+                      type="button"
+                      aria-current={active ? 'page' : undefined}
+                      className="flex items-center gap-1 text-base leading-[1.7] whitespace-nowrap text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     >
                       {item.label}
-                      <span
-                        aria-hidden="true"
-                        className={`mansai-spectrum-line absolute inset-x-3 bottom-0 h-px origin-center transition-all duration-200 ${
-                          isActive
-                            ? 'scale-x-100 opacity-100'
-                            : 'scale-x-0 opacity-0 group-hover:scale-x-100 group-hover:opacity-80 group-focus-visible:scale-x-100 group-focus-visible:opacity-80 group-hover/about:scale-x-100 group-hover/about:opacity-80 group-focus-within/about:scale-x-100 group-focus-within/about:opacity-80'
-                        }`}
-                      />
-                    </Link>
+                      <ExpandMoreIcon size={16} />
+                    </button>
+                    <NavIndicator colorClass={colorClass} active={active} />
 
-                    {item.children && (
-                      <div className="pointer-events-none absolute top-full left-1/2 z-20 w-56 -translate-x-1/2 translate-y-1 pt-3 opacity-0 transition-[opacity,transform] duration-200 group-hover/about:pointer-events-auto group-hover/about:translate-y-0 group-hover/about:opacity-100 group-focus-within/about:pointer-events-auto group-focus-within/about:translate-y-0 group-focus-within/about:opacity-100 motion-reduce:transition-none">
-                        <ul
-                          aria-label="荒牧祭についてのサブメニュー"
-                          className="overflow-hidden border border-white/70 bg-white/90 px-2 py-2 shadow-[0_16px_40px_rgba(15,23,42,0.14)] backdrop-blur-xl supports-[backdrop-filter]:bg-white/75"
-                        >
-                          {item.children.map((child) => (
-                            <li key={child.href}>
-                              <Link
-                                href={child.href}
-                                className="group/sub relative block whitespace-nowrap px-4 py-3 text-sm font-medium tracking-wide text-slate-700 transition-colors duration-200 hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-sky-600"
-                              >
-                                {child.label}
-                                <span
-                                  aria-hidden="true"
-                                  className="mansai-spectrum-line absolute inset-x-4 bottom-2 h-px origin-left scale-x-0 opacity-0 transition-all duration-200 group-hover/sub:scale-x-100 group-hover/sub:opacity-80 group-focus-visible/sub:scale-x-100 group-focus-visible/sub:opacity-80 motion-reduce:transition-none"
-                                />
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                    <div
+                      style={
+                        dropdownOffsets[item.label] !== undefined
+                          ? {
+                              left: dropdownOffsets[item.label].left,
+                              paddingTop: dropdownOffsets[item.label].top,
+                            }
+                          : undefined
+                      }
+                      className="pointer-events-none absolute top-full z-20 w-56 -translate-y-1 opacity-0 transition-[opacity,transform] duration-200 ease-out group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100 motion-reduce:transition-none"
+                    >
+                      <ul
+                        aria-label={`${item.label}のサブメニュー`}
+                        className="overflow-hidden rounded-lg border border-gray-200 bg-background"
+                      >
+                        {children.map((child) => (
+                          <li key={child.href}>
+                            <Link
+                              href={child.href}
+                              className="block px-4 py-3 text-sm leading-[1.6] whitespace-nowrap text-text focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
+                            >
+                              {child.label}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   </li>
                 );
               })}
@@ -156,128 +273,57 @@ export function Header() {
             aria-expanded={mobileMenuOpen}
             aria-controls="mobile-navigation"
             onClick={toggleMobileMenu}
-            className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-slate-900 transition-colors hover:bg-white/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600 lg:hidden"
+            className="flex h-11 w-11 shrink-0 flex-col items-center justify-center gap-2 rounded-full text-text transition-colors hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary lg:hidden"
           >
-            <span aria-hidden="true" className="relative block h-5 w-6">
-              <span
-                className={`absolute left-0 h-0.5 w-6 rounded-full bg-current transition-[top,transform] duration-200 motion-reduce:transition-none ${
-                  mobileMenuOpen ? 'top-[9px] rotate-45' : 'top-0'
-                }`}
-              />
-              <span
-                className={`absolute top-[9px] left-0 h-0.5 w-6 rounded-full bg-current transition-opacity duration-200 motion-reduce:transition-none ${
-                  mobileMenuOpen ? 'opacity-0' : 'opacity-100'
-                }`}
-              />
-              <span
-                className={`absolute left-0 h-0.5 w-6 rounded-full bg-current transition-[top,transform] duration-200 motion-reduce:transition-none ${
-                  mobileMenuOpen ? 'top-[9px] -rotate-45' : 'top-[18px]'
-                }`}
-              />
-            </span>
+            <span
+              aria-hidden="true"
+              className={`h-[2px] w-6 bg-current transition-transform duration-200 ease-out motion-reduce:transition-none ${
+                mobileMenuOpen ? 'translate-y-2.5 rotate-45' : ''
+              }`}
+            />
+            <span
+              aria-hidden="true"
+              className={`h-[2px] w-6 bg-current transition-opacity duration-200 ease-out motion-reduce:transition-none ${
+                mobileMenuOpen ? 'opacity-0' : 'opacity-100'
+              }`}
+            />
+            <span
+              aria-hidden="true"
+              className={`h-[2px] w-6 bg-current transition-transform duration-200 ease-out motion-reduce:transition-none ${
+                mobileMenuOpen ? '-translate-y-2.5 -rotate-45' : ''
+              }`}
+            />
           </button>
         </div>
 
-        {mobileMenuOpen && (
-          <nav
-            id="mobile-navigation"
-            aria-label="モバイルナビゲーション"
-            className="absolute inset-x-0 top-full max-h-[calc(100svh_-_4rem_-_env(safe-area-inset-top))] w-full min-w-0 overflow-y-auto border-b border-slate-200/80 bg-white/95 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_18px_36px_rgba(15,23,42,0.1)] backdrop-blur-xl supports-[backdrop-filter]:bg-white/90 lg:hidden"
-          >
-            <ul className="px-5 py-3 sm:px-6">
-              {navigationItems.map((item) => {
-                const isActive =
-                  item.href === '/'
-                    ? pathname === '/'
-                    : pathname === item.href ||
-                      pathname.startsWith(`${item.href}/`);
+        <nav
+          ref={mobileNavRef}
+          id="mobile-navigation"
+          aria-label="モバイルナビゲーション"
+          aria-hidden={!mobileMenuOpen}
+          inert={!mobileMenuOpen ? true : undefined}
+          className={`absolute inset-x-0 top-full z-40 max-h-[calc(100svh_-_4rem_-_env(safe-area-inset-top))] w-full min-w-0 overflow-y-auto border-b border-gray-200 bg-background pb-[env(safe-area-inset-bottom)] transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none lg:hidden ${
+            mobileMenuOpen
+              ? 'translate-y-0 opacity-100'
+              : 'pointer-events-none -translate-y-2 opacity-0'
+          }`}
+        >
+          <NavigationMenuRows
+            items={items}
+            pathname={pathname}
+            idPrefix="mobile"
+            onNavigate={closeMobileMenu}
+          />
+        </nav>
 
-                return (
-                  <li
-                    key={item.href}
-                    className="border-b border-slate-200/70 last:border-b-0"
-                  >
-                    {item.children ? (
-                      <>
-                        <div className="flex min-w-0 items-center">
-                          <Link
-                            href={item.href}
-                            onClick={closeMobileMenu}
-                            className={`flex min-h-11 min-w-0 flex-1 items-center py-3 text-base font-medium tracking-wide transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-sky-600 ${
-                              isActive ? 'text-slate-950' : 'text-slate-700'
-                            }`}
-                          >
-                            {item.label}
-                          </Link>
-                          <button
-                            type="button"
-                            aria-label={`荒牧祭についてのサブメニューを${
-                              mobileAboutOpen ? '閉じる' : '開く'
-                            }`}
-                            aria-expanded={mobileAboutOpen}
-                            aria-controls="mobile-about-submenu"
-                            onClick={() =>
-                              setMobileAboutOpen((isOpen) => !isOpen)
-                            }
-                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-slate-700 transition-colors hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-sky-600"
-                          >
-                            <svg
-                              aria-hidden="true"
-                              viewBox="0 0 24 24"
-                              className={`h-5 w-5 transition-transform duration-200 motion-reduce:transition-none ${
-                                mobileAboutOpen ? 'rotate-180' : ''
-                              }`}
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="1.75"
-                            >
-                              <path
-                                d="m7 9.5 5 5 5-5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          </button>
-                        </div>
-
-                        {mobileAboutOpen && (
-                          <ul
-                            id="mobile-about-submenu"
-                            aria-label="荒牧祭についてのモバイルサブメニュー"
-                            className="pb-3 pl-4"
-                          >
-                            {item.children.map((child) => (
-                              <li key={child.href}>
-                                <Link
-                                  href={child.href}
-                                  onClick={closeMobileMenu}
-                                  className="flex min-h-11 items-center border-l border-slate-200 px-4 py-2 text-[0.9375rem] tracking-wide text-slate-600 transition-colors hover:border-primary hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
-                                >
-                                  {child.label}
-                                </Link>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </>
-                    ) : (
-                      <Link
-                        href={item.href}
-                        aria-current={isActive ? 'page' : undefined}
-                        onClick={closeMobileMenu}
-                        className={`flex min-h-11 items-center py-3 text-base font-medium tracking-wide transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-sky-600 ${
-                          isActive ? 'text-slate-950' : 'text-slate-700'
-                        }`}
-                      >
-                        {item.label}
-                      </Link>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          </nav>
-        )}
+        {/* 負の z-index でヘッダー自身の背景 (上の bg-background) より前面、
+            それ以外の (position を持たない) ヘッダーの中身より背面に置く。DOM 順は
+            :scope > div でコンテンツ行を取得している既存テストに影響しないよう末尾に置く */}
+        <div
+          id={HEADER_BG_SHAPES_SLOT_ID}
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+        />
       </header>
       <div
         aria-hidden="true"

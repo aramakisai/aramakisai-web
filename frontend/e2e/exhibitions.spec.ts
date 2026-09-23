@@ -98,7 +98,13 @@ test.describe('企画一覧→企画詳細', () => {
   test('検索・カテゴリ絞り込みがURLに反映され、同じURLで同じ結果になる', async ({
     page,
   }) => {
-    await page.goto('/exhibitions');
+    const response = await page.goto('/exhibitions');
+    if (response?.status() === 404) {
+      test.skip(
+        true,
+        '開催前フェーズでは /exhibitions が非公開のため検証できません (festival-phase-gate)',
+      );
+    }
 
     const searchBox = page.getByRole('searchbox', { name: '企画を検索' });
     await searchBox.fill('展示');

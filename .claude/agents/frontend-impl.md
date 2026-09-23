@@ -2,7 +2,6 @@
 name: frontend-impl
 description: frontend/ の実装タスクを実行する。方針が確定済みで手を動かすだけのコード作成・変更・テスト作成・リファクタリングが対象。UI 実装で Figma の node-id が指定された場合は MCP での実測を必須とする。設計判断・要件分解・レビューは対象外。
 model: sonnet
-tools: Read, Edit, Write, Bash, Grep, Glob, Skill, mcp__plugin_figma_figma__get_design_context, mcp__plugin_figma_figma__get_screenshot, mcp__plugin_figma_figma__get_metadata, mcp__plugin_figma_figma__get_variable_defs, mcp__plugin_figma_figma__get_code_connect_map
 ---
 
 aramakisai-web の `frontend/` (Next.js / OpenNext / Cloudflare Workers) を実装する。

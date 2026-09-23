@@ -10,6 +10,7 @@ import {
   normalizeText,
   paginate,
   parseExhibitionQuery,
+  pickRandomExhibitions,
   type ExhibitionCardSummary,
   type ExhibitionQuery,
 } from './exhibitions';
@@ -306,6 +307,45 @@ describe('CATEGORY_LABELS', () => {
   });
 });
 
+describe('pickRandomExhibitions', () => {
+  const source: ExhibitionCardSummary[] = Array.from(
+    { length: 10 },
+    (_, i) => ({
+      id: i + 1,
+      category: 'exhibit',
+      displayName: `企画${i + 1}`,
+      organizationName: '団体',
+      location: null,
+      areaIds: [],
+      thumbnail: null,
+    }),
+  );
+
+  it('指定件数だけ返し、すべて元の配列に含まれる一意な要素である', () => {
+    const picked = pickRandomExhibitions(source, 4);
+    expect(picked).toHaveLength(4);
+    expect(new Set(picked.map((e) => e.id)).size).toBe(4);
+    for (const item of picked) {
+      expect(source).toContainEqual(item);
+    }
+  });
+
+  it('要素数が指定件数より少ないときは全件を返す', () => {
+    const short = source.slice(0, 2);
+    expect(pickRandomExhibitions(short, 4)).toHaveLength(2);
+  });
+
+  it('空配列を渡すと空配列を返す', () => {
+    expect(pickRandomExhibitions([], 4)).toEqual([]);
+  });
+
+  it('元の配列を変更しない', () => {
+    const copy = [...source];
+    pickRandomExhibitions(source, 4);
+    expect(source).toEqual(copy);
+  });
+});
+
 type MockDocs = {
   exhibitions?: unknown[];
   slots?: unknown[];
@@ -518,6 +558,56 @@ describe('getExhibitionListData', () => {
     const result = await getExhibitionListData(baseQuery);
     expect(result.items[0]?.location).toBeNull();
     expect(result.items[0]?.areaIds).toEqual([]);
+  });
+
+  it('直接の所在エリアと出演ステージの所在エリアの双方を持つ企画では areaIds の先頭が直接の所在エリアになる', async () => {
+    mockCmsCollections({
+      exhibitions: [
+        {
+          id: 1,
+          organization_name: '団体A',
+          area_id: 10,
+          categories: ['exhibit'],
+          exhibit: { name: '企画A', images: [] },
+        },
+      ],
+      slots: [
+        { id: 100, stage_id: 1, time_slot_id: 1, exhibition_id: 1 },
+        { id: 101, stage_id: 2, time_slot_id: 2, exhibition_id: 1 },
+      ],
+      stages: [
+        { id: 1, name: 'ステージ1', area_id: 20 },
+        { id: 2, name: 'ステージ2', area_id: 30 },
+      ],
+    });
+
+    const result = await getExhibitionListData(baseQuery);
+    expect(result.items[0]?.areaIds).toEqual([10, 20, 30]);
+  });
+
+  it('直接の所在エリアを持たずステージ経由でのみ解決する企画では areaIds の先頭が最初の出演ステージの所在エリアになる', async () => {
+    mockCmsCollections({
+      exhibitions: [
+        {
+          id: 1,
+          organization_name: '団体A',
+          area_id: null,
+          categories: ['stage'],
+          stage: { name: '出演A', images: [] },
+        },
+      ],
+      slots: [
+        { id: 100, stage_id: 1, time_slot_id: 1, exhibition_id: 1 },
+        { id: 101, stage_id: 2, time_slot_id: 2, exhibition_id: 1 },
+      ],
+      stages: [
+        { id: 1, name: 'ステージ1', area_id: 20 },
+        { id: 2, name: 'ステージ2', area_id: 30 },
+      ],
+    });
+
+    const result = await getExhibitionListData(baseQuery);
+    expect(result.items[0]?.areaIds).toEqual([20, 30]);
   });
 
   it('カードの企画名はそのカテゴリの企画内容から直接得る (フォールバックなし)', async () => {

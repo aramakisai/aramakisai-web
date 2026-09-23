@@ -149,14 +149,19 @@ export function parseExhibitionQuery(
 
 /**
  * 検証済みクエリ → URL。同じ条件集合なら選択順によらず同一の文字列になるよう
- * カテゴリ・エリアを常にソートしてから連結する (一覧ページ送り・フィルタ操作の両方で使う)。
+ * カテゴリ・エリアを常にソートしてから連結する。パスを引数に取ることで、
+ * 企画一覧 (`buildExhibitionsHref`) と構内マップ (`buildCampusMapHref`) が
+ * 同じ正規化を共有できるようにする。
  */
-export function buildExhibitionsHref(query: {
-  readonly q: string;
-  readonly categories: readonly ExhibitionCategory[];
-  readonly areaIds: readonly number[];
-  readonly page?: number;
-}): string {
+export function buildFilterHref(
+  path: string,
+  query: {
+    readonly q: string;
+    readonly categories: readonly ExhibitionCategory[];
+    readonly areaIds: readonly number[];
+    readonly page?: number;
+  },
+): string {
   const params = new URLSearchParams();
   if (query.q) params.set('q', query.q);
 
@@ -173,7 +178,29 @@ export function buildExhibitionsHref(query: {
   // URLSearchParams はカンマを %2C にするが、カンマは RFC 3986 の query で
   // そのまま使える文字なので、読みやすさを優先して戻す。
   const qs = params.toString().replaceAll('%2C', ',');
-  return qs ? `/exhibitions?${qs}` : '/exhibitions';
+  return qs ? `${path}?${qs}` : path;
+}
+
+/** トップページの企画セクション向け。items.length < count でも全件返す */
+export function pickRandomExhibitions(
+  items: readonly ExhibitionCardSummary[],
+  count: number,
+): ExhibitionCardSummary[] {
+  const shuffled = [...items];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];
+  }
+  return shuffled.slice(0, count);
+}
+
+export function buildExhibitionsHref(query: {
+  readonly q: string;
+  readonly categories: readonly ExhibitionCategory[];
+  readonly areaIds: readonly number[];
+  readonly page?: number;
+}): string {
+  return buildFilterHref('/exhibitions', query);
 }
 
 /** 全角/半角・大文字小文字を吸収する照合用の正規化。ひらがな/カタカナは区別する (要件 2.2 の範囲外) */
@@ -257,7 +284,7 @@ interface JoinContext {
   readonly slotsByExhibitionId: ReadonlyMap<number, readonly PerformanceSlot[]>;
 }
 
-function buildJoinContext(
+export function buildJoinContext(
   slots: readonly PerformanceSlot[],
   stages: readonly Stage[],
   areas: readonly MapArea[],
@@ -363,7 +390,7 @@ function toCard(
  * 走査し、企画カードへ展開する (要件 1.2)。この順序をそのまま保つため、この結果を
  * `flatMap` するだけで ID 昇順 × カテゴリ定義順 (要件 1.3) を満たす。
  */
-function toCards(
+export function toCards(
   exhibition: StudentExhibition,
   context: JoinContext,
 ): ExhibitionCardSummary[] {

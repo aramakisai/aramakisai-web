@@ -8,6 +8,12 @@ const colors = config.theme?.extend?.colors as Record<
 const gray = colors.gray as Record<string, string>;
 const background = colors.background as string;
 
+type FontSizeValue = [string, { lineHeight?: string; fontWeight?: string }];
+const fontSize = config.theme?.extend?.fontSize as Record<
+  string,
+  FontSizeValue
+>;
+
 function channelLuminance(value: number): number {
   const c = value / 255;
   return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
@@ -61,6 +67,38 @@ describe('配色トークン', () => {
       expect(contrastRatio(color, background)).toBeGreaterThanOrEqual(4.5);
     },
   );
+});
+
+describe('背景装飾専用の色トークン (bansai-*)', () => {
+  const bansaiColors: Record<string, string> = {
+    'bansai-ochre': '#e4ab53',
+    'bansai-olive': '#c9bf86',
+    'bansai-sage': '#aeb49c',
+    'bansai-salmon': '#dd9b8c',
+    'bansai-rose': '#e0666d',
+    'bansai-wisteria': '#d2c6da',
+    'bansai-aqua': '#a2c2c6',
+  };
+
+  it.each(Object.entries(bansaiColors))(
+    '%s が Figma Foundations の実測値と一致する',
+    (name, hex) => {
+      expect((colors[name] as string).toLowerCase()).toBe(hex);
+    },
+  );
+});
+
+describe('下部ナビゲーション用の文字サイズトークン (body-xs)', () => {
+  it('10px・行高 1.6・weight 400 を持つ (Figma body/xs 実測値)', () => {
+    const [size, options] = fontSize['body-xs'];
+    expect(size).toBe('10px');
+    expect(options.lineHeight).toBe('1.6');
+    expect(options.fontWeight).toBe('400');
+  });
+
+  it('Tailwind 既定の text-xs (12px) を上書きしない', () => {
+    expect(fontSize.xs).toBeUndefined();
+  });
 });
 
 describe('contrastRatio', () => {

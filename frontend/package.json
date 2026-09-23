@@ -15,14 +15,17 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "check:build-artifacts": "opennextjs-cloudflare build && tsx scripts/verify-build-artifacts.ts"
   },
   "dependencies": {
     "@next/third-parties": "^16.2.10",
     "@opennextjs/cloudflare": "^1.0.0",
+    "leaflet": "1.9.4",
     "next": "^15.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-leaflet": "5.0.0",
     "sanitize-html": "^2.17.6"
   },
   "devDependencies": {
@@ -33,6 +36,7 @@
     "@tailwindcss/typography": "^0.5.20",
     "@testing-library/jest-dom": "^6.0.0",
     "@testing-library/react": "^16.0.0",
+    "@types/leaflet": "^1.9.22",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

@@ -46,10 +46,17 @@ jobs:
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
           df -h /
 
-      - name: Download Gunma OSM extract
+      # Geofabrik は都道府県単位の extract を提供していない (群馬県は kanto extract に含まれる)。
+      # 存在しないパスを叩くと 404 ではなく trailing にトップページを 200 で返すため、
+      # curl -f だけでは検出できない。次の検証ステップでサイズと PBF ヘッダーを確認する
+      - name: Download Kanto OSM extract
         run: |
-          curl -fsSL -o gunma-latest.osm.pbf \
-            https://download.geofabrik.de/asia/japan/gunma-latest.osm.pbf
+          curl -fsSL --retry 3 --retry-delay 5 --retry-connrefused \
+            -o kanto-latest.osm.pbf \
+            https://download.geofabrik.de/asia/japan/kanto-latest.osm.pbf
+
+      - name: Verify downloaded OSM extract
+        run: OSM_PBF_PATH=kanto-latest.osm.pbf pnpm exec tsx scripts/verify-osm-download.ts
 
       - name: Install osmium-tool
         run: |
@@ -60,7 +67,7 @@ jobs:
         run: |
           osmium extract --bbox "${{ steps.bounds.outputs.bbox }}" \
             --strategy complete_ways \
-            -o campus.osm.pbf gunma-latest.osm.pbf
+            -o campus.osm.pbf kanto-latest.osm.pbf
 
       - name: Import into openstreetmap-tile-server
         run: |
@@ -71,13 +78,46 @@ jobs:
 
       - name: Render tiles
         run: |
+          # overv/openstreetmap-tile-server の /etc/renderd.conf は
+          # tile_dir=/var/cache/renderd/tiles で、/data/tiles ではない。
+          # ホスト側ディレクトリを実際の書き込み先に直接バインドすることで
+          # docker cp を使わずにレンダリング結果をそのままホストへ反映する
+          #
+          # renderd はコンテナ内で uid 1000 (renderer) として動く。ホスト側の
+          # bind mount 先ディレクトリを事前に作らないと docker が root 所有で
+          # 自動作成し、renderer が書き込めず "Permission denied" で
+          # render_list が失敗する (レスポンス自体は成功扱いになるため気付きにくい)
+          #
+          # render_list / renderd は個別の PNG ではなく、8x8 タイルをまとめた
+          # メタタイル (.meta) でしか書き出さない。個別 PNG は後続ステップで
+          # mod_tile の HTTP エンドポイント経由で取得するため、置き場を分ける
+          mkdir -p metatiles
+          chmod 777 metatiles
+
           docker run -d --name tile-server \
             -v osm-data:/data/database/ \
-            -v "$PWD/rendered-tiles:/data/tiles" \
+            -v "$PWD/metatiles:/var/cache/renderd/tiles" \
             -p 8080:80 \
             overv/openstreetmap-tile-server:latest run
 
-          # z17-19 それぞれの範囲を計算結果 (steps.bounds.outputs.zoom-ranges) から取り出し、
+          # run コマンドは内部で PostgreSQL 起動 → Apache 再起動 → renderd 起動の順に
+          # 処理するため、docker run -d 直後は /run/renderd/renderd.sock がまだ存在しない。
+          # 待たずに render_list を叩くと "socket connect failed" のまま
+          # 0 秒で偽の成功ログを返し、実際にはタイルが1枚も書き出されない
+          for i in $(seq 1 30); do
+            if docker exec tile-server test -S /run/renderd/renderd.sock; then
+              echo "renderd is ready ($((i * 2))s)"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "::error::renderd did not become ready within 60s"
+              docker logs tile-server
+              exit 1
+            fi
+            sleep 2
+          done
+
+          # z16-19 それぞれの範囲を計算結果 (steps.bounds.outputs.zoom-ranges) から取り出し、
           # コンテナ同梱の render_list (mod_tile) にそのまま渡す。判断ロジックは持たず反復のみ
           echo '${{ steps.bounds.outputs.zoom-ranges }}' | \
             jq -c '.[]' | \
@@ -92,7 +132,48 @@ jobs:
                 -Y "$(echo "$range" | jq -r '.yMax')"
             done
 
-          docker cp tile-server:/data/tiles/default/. rendered-tiles/
+          if [ ! -d "metatiles/default" ]; then
+            echo "::error::render_list completed but metatiles/default was not created"
+            docker logs tile-server
+            exit 1
+          fi
+
+      - name: Wait for tile server HTTP endpoint
+        run: |
+          # docker run -d 直後は Apache の起動も完了していない。renderd と同様に
+          # ポーリングで確認しないと、後続の取得ステップが接続エラーで無意味に失敗する
+          for i in $(seq 1 30); do
+            status=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/ || true)
+            if [ -n "$status" ] && [ "$status" != "000" ]; then
+              echo "Apache is ready ($((i * 2))s, status=$status)"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "::error::Apache did not become ready within 60s"
+              docker logs tile-server
+              exit 1
+            fi
+            sleep 2
+          done
+
+      # mod_tile はメタタイルを個別 PNG に切り出して HTTP で返す (/tile/{z}/{x}/{y}.png)。
+      # 自前でメタタイル形式をパースせずに済むため、この形式で個別ファイルを揃える
+      - name: Fetch rendered tiles via HTTP
+        run: |
+          mkdir -p rendered-tiles
+          MAP_TILE_SERVER_URL=http://localhost:8080 \
+            MAP_TILES_OUT_DIR="$PWD/rendered-tiles" \
+            pnpm exec tsx scripts/fetch-map-tiles.ts
+
+      - name: Install cwebp
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y webp
+
+      # 配信形式を webp にすることで転送量を抑える (design.md 参照)。変換ロジックは
+      # スクリプト側に置き、YAML には呼び出しだけを書く
+      - name: Convert rendered tiles to webp
+        run: MAP_TILES_DIR="$PWD/rendered-tiles" pnpm exec tsx scripts/convert-map-tiles-to-webp.ts
 
       - name: Verify rendered tiles
         run: MAP_TILES_DIR="$PWD/rendered-tiles" pnpm exec tsx scripts/verify-map-tiles.ts

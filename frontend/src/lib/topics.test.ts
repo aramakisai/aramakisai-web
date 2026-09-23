@@ -11,7 +11,7 @@ type PublishedWhere = { published_at?: { exists?: boolean } };
 beforeEach(() => vi.clearAllMocks());
 
 describe('getTopics', () => {
-  it('公開済みのトピックを sort 順に取得する', async () => {
+  it('公開済みのトピックを公開日時の新しい順に取得する', async () => {
     vi.mocked(cms.findMany).mockResolvedValue({
       ok: true,
       value: {
@@ -22,10 +22,6 @@ describe('getTopics', () => {
             title: 'Topic 1',
             body_html: 'Body 1',
             image: { id: 7, filename: 'img1.webp', mimeType: 'image/webp' },
-            attachments: [
-              { id: 11, filename: 'test1.pdf', mimeType: 'application/pdf' },
-              { id: 12, filename: 'test2.pdf', mimeType: 'application/pdf' },
-            ],
           },
         ],
       },
@@ -39,16 +35,12 @@ describe('getTopics', () => {
         title: 'Topic 1',
         body: 'Body 1',
         imageId: '7',
-        attachments: [
-          { id: '11', filenameDownload: 'test1.pdf', type: 'application/pdf' },
-          { id: '12', filenameDownload: 'test2.pdf', type: 'application/pdf' },
-        ],
       },
     ]);
 
     const [collection, query] = vi.mocked(cms.findMany).mock.calls[0];
     expect(collection).toBe('topics');
-    expect(query.sort).toEqual(['sort']);
+    expect(query.sort).toEqual(['-published_at']);
     expect(query.depth).toBe(1);
     expect((query.where as PublishedWhere).published_at?.exists).toBe(true);
   });
@@ -72,9 +64,6 @@ describe('getTopicById', () => {
         title: 'Topic 1',
         body_html: 'Body 1',
         image: 7,
-        attachments: [
-          { id: 11, filename: 'test1.pdf', mimeType: 'application/pdf' },
-        ],
       },
     } as never);
 
@@ -85,9 +74,6 @@ describe('getTopicById', () => {
       title: 'Topic 1',
       body: 'Body 1',
       imageId: '7',
-      attachments: [
-        { id: '11', filenameDownload: 'test1.pdf', type: 'application/pdf' },
-      ],
     });
     expect(cms.findById).toHaveBeenCalledWith('topics', 1, { depth: 1 });
   });

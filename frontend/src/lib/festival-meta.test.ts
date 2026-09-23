@@ -14,7 +14,13 @@ describe('getFestivalMeta', () => {
       ok: true,
       value: {
         name: '荒牧祭',
-        event_days: [{ label: '1日目', open: '09:00', close: '17:00' }],
+        event_days: [
+          {
+            label: '1日目',
+            start_at: '2026-09-27T00:00:00.000Z',
+            end_at: '2026-09-27T08:00:00.000Z',
+          },
+        ],
         overview_html: '<p>概要</p>',
         hero_image: { id: 123, filename: 'hero.webp', mimeType: 'image/webp' },
       },
@@ -25,7 +31,13 @@ describe('getFestivalMeta', () => {
     expect(cms.findGlobal).toHaveBeenCalledWith('festival_meta', { depth: 1 });
     expect(result).toEqual({
       name: '荒牧祭',
-      eventDays: [{ label: '1日目', open: '09:00', close: '17:00' }],
+      eventDays: [
+        {
+          label: '1日目',
+          startAt: '2026-09-27T00:00:00.000Z',
+          endAt: '2026-09-27T08:00:00.000Z',
+        },
+      ],
       overviewHtml: '<p>概要</p>',
       heroImageId: '123',
     });

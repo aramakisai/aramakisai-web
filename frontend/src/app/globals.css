@@ -12,23 +12,155 @@
     #4b946f 72%,
     #b45e8c 100%
   );
+
+  /*
+   * MapMenuButton (直径) と MapSearchOverlay の検索ボックス (上下パディング/行の高さ) の
+   * 単一の基準値。検索ボックスは表示位置を固定し、メニューボタン側をこの値から算出した
+   * オフセットで押し下げて縦中心を揃える (map-menu-button-position 参照)。border は
+   * Tailwind の border ユーティリティの既定 1px を前提とする
+   */
+  --map-toolbar-size: 3rem;
+  --map-search-box-padding-y: 13.5px;
+  --map-search-box-line-height: 1.5rem;
+}
+
+.material-symbols-sharp {
+  font-family: 'Material Symbols Sharp';
+  font-weight: 300;
+  font-style: normal;
+  display: inline-block;
+  white-space: nowrap;
+  /* liga を明示しないとアイコン名の文字列がそのまま表示され、字形に変換されない */
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings:
+    'FILL' 0,
+    'GRAD' 0;
+}
+
+/*
+ * MapMenuButton の top 位置。検索ボックスの中心 (safe-area + 半分の高さ) に合わせるため、
+ * 検索ボックスとボタンの高さの差の半分だけ safe-area 起点からずらす。検索ボックスの
+ * パディング/行の高さが変わってもここが自動追従する
+ */
+.map-menu-button-position {
+  top: calc(
+    max(1rem, env(safe-area-inset-top)) +
+      (
+        (
+            2 * var(--map-search-box-padding-y) +
+              var(--map-search-box-line-height) + 2px
+          ) -
+          var(--map-toolbar-size)
+      ) /
+      2
+  );
+}
+
+/*
+ * PC (lg = 1024px 以上、サイト共通の境界) は検索ボックスと並ばないため、上記の
+ * 縦中心合わせを外し固定 24px + セーフエリアに切り替える。Tailwind の `lg:` は
+ * @layer utilities に入り非レイヤーの本クラスに常に負けるため、ここでも
+ * メディアクエリを直接書く
+ */
+@media (min-width: 1024px) {
+  .map-menu-button-position {
+    top: calc(1.5rem + env(safe-area-inset-top));
+  }
+}
+
+/*
+ * Tailwind v4 既定の motion-reduce variant は prefers-reduced-motion のみで発火する。
+ * フッターの MotionToggle による停止指定 (<html data-motion="reduce">) でも
+ * motion-reduce: ユーティリティが発火するよう再定義する (要件 21.4, 21.8)
+ */
+@custom-variant motion-reduce {
+  @media (prefers-reduced-motion: reduce) {
+    @slot;
+  }
+  &:is([data-motion='reduce'] *, [data-motion='reduce']) {
+    @slot;
+  }
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  html {
+  html:not([data-motion='reduce']) {
     scroll-behavior: smooth;
   }
 }
 
+/*
+ * Leaflet の Control DOM は React の外 (L.Control.onAdd) で生成されるため、
+ * JSX の className がここには届かない。構内マップの MapZoomControl / 出典表記を
+ * Figma のトークン (色は tailwind.config.ts の gray-200/text/gray-500 相当) に合わせるため、
+ * ここだけプレーン CSS で上書きする。leaflet.css 側の同名セレクタより詳細度を必ず上回るように
+ * クラスを重ねており、CSS の読み込み順に依存しない
+ */
+.leaflet-control-zoom.leaflet-bar {
+  overflow: hidden;
+  border: 1px solid #e7e5e4;
+  border-radius: 8px;
+  box-shadow:
+    0px 8px 10px -6px rgba(156, 163, 176, 0.2),
+    0px 20px 25px -5px rgba(156, 163, 176, 0.2);
+}
+
+/*
+ * ズームと出典表記は同じ角 (bottomright, PC) を共有することがあり、右端の余白を
+ * 揃えて縦に並んだときに右辺が一致して見えるようにする。縦方向の間隔は
+ * Leaflet 既定の margin-bottom (leaflet.css の .leaflet-bottom .leaflet-control) に委ねる
+ */
+.leaflet-bottom.leaflet-right .leaflet-control-zoom,
+.leaflet-bottom.leaflet-right .leaflet-control-attribution {
+  margin-right: 24px;
+}
+
+/* SP は出典表記が bottomleft (画面の角に最も近い) に出るため、左辺の余白を揃える */
+.leaflet-bottom.leaflet-left .leaflet-control-attribution {
+  margin-left: 24px;
+}
+
+.leaflet-bar a.leaflet-control-zoom-in,
+.leaflet-bar a.leaflet-control-zoom-out {
+  display: flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  font: normal;
+  line-height: normal;
+  text-indent: 0;
+  color: #231815;
+  border-bottom-color: #e7e5e4;
+}
+
+.leaflet-container .leaflet-control-attribution {
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #78716c;
+}
+
 @layer base {
-  h1:not(.prose *),
-  h2:not(.prose *),
-  h3:not(.prose *),
-  h4:not(.prose *),
-  h5:not(.prose *),
-  h6:not(.prose *) {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: var(--font-zen-old-mincho), serif;
     font-weight: 700;
+  }
+
+  /*
+   * RichText (.rich-text-body) は本文の一部として color/text で描画する (要件 15 参照)。
+   * ページ自身の見出しだけが color/primary を持つ
+   */
+  h1:not(.rich-text-body *),
+  h2:not(.rich-text-body *),
+  h3:not(.rich-text-body *),
+  h4:not(.rich-text-body *),
+  h5:not(.rich-text-body *),
+  h6:not(.rich-text-body *) {
     @apply text-primary;
   }
 }
@@ -47,26 +179,156 @@
 }
 
 @layer base {
-  h1:not(.prose *) {
+  /* RichText は h1 を h2 に読み替えて描画する (transformTags) ため実害は無いが、h2〜h4 の除外規則と揃えておく */
+  h1:not(.rich-text-body *) {
     @apply text-[44px] leading-[120%] py-4 sm:py-6 md:py-8;
   }
 }
 
 @layer base {
-  h2:not(.prose *) {
+  h2:not(.rich-text-body *) {
     @apply text-[32px] leading-[125%] py-3 sm:py-4 md:py-6;
   }
 }
 
 @layer base {
-  h3:not(.prose *) {
+  h3:not(.rich-text-body *) {
     @apply text-[24px] leading-[130%] py-2 sm:py-3 md:py-4;
   }
 }
 
 @layer base {
-  h4:not(.prose *) {
+  h4:not(.rich-text-body *) {
     @apply text-[20px] leading-[140%];
+  }
+}
+
+/*
+ * RichText (Requirement 15) の見出し・段落・リスト・引用・画像・水平線。
+ * Figma `RichText` (408:555) 実測値。見出しは上下マージン、段落以降のブロックは
+ * 上マージンのみを持たせ隣接マージンを相殺させる (design.md 参照)。
+ * 本文の先頭要素は相殺分がコンテナ外へ抜けないよう、末尾要素は設置先 (5.5/5.6 等の
+ * 列レイアウト) に余分な下余白を残さないよう、それぞれ明示的に 0 にする
+ */
+@layer base {
+  .rich-text-body > :first-child {
+    margin-top: 0;
+  }
+
+  .rich-text-body > :last-child {
+    margin-bottom: 0;
+  }
+
+  .rich-text-body h2 {
+    @apply text-text text-[32px] leading-[1.25] mt-12 mb-4;
+  }
+
+  .rich-text-body h3 {
+    @apply text-text text-[24px] leading-[1.3] mt-8 mb-3;
+  }
+
+  .rich-text-body h4 {
+    @apply text-text text-[20px] leading-[1.4] mt-6 mb-2;
+  }
+
+  .rich-text-body p {
+    @apply text-text text-[16px] leading-[1.7] mb-4;
+  }
+
+  .rich-text-body a {
+    @apply text-text underline;
+  }
+
+  /*
+   * Figma 実測 (406:566〜406:626): ul/ol は子の li を 24px 右へ置くだけの箱で、
+   * ネストもこの 24px の積み上げだけで段が付く (list-style は使わず素の箱として扱う)。
+   * マーカーと本文の間隔は li 側で hanging indent (padding-left + 負の text-indent) を
+   * 作って表現する。折り返し行はこの padding-left の位置にぶら下がる
+   */
+  .rich-text-body ul,
+  .rich-text-body ol {
+    @apply list-none pl-6 mt-4 mb-4;
+  }
+
+  /* 箇条書き: マーカー「・」幅16px + 間隔8px = 24px (label は基準+24px = 48px) */
+  .rich-text-body ul > li {
+    padding-left: 24px;
+    text-indent: -24px;
+  }
+
+  .rich-text-body ul > li::before {
+    content: '・';
+    margin-right: 8px;
+    @apply text-gray-500;
+  }
+
+  /* 番号リスト: マーカー「N.」幅14px + 間隔8px = 22px (label は基準+22px = 46px) */
+  .rich-text-body ol {
+    counter-reset: rich-text-ol;
+  }
+
+  .rich-text-body ol > li {
+    padding-left: 22px;
+    text-indent: -22px;
+  }
+
+  .rich-text-body ol > li::before {
+    counter-increment: rich-text-ol;
+    content: counter(rich-text-ol) '.';
+    margin-right: 8px;
+    @apply text-gray-500;
+  }
+
+  .rich-text-body li {
+    @apply mb-2;
+  }
+
+  /*
+   * Lexical のネストは <li><ul>…</ul></li> になるため、リスト自体の mt/mb を消して li の
+   * mb-2 (8px) だけで行間を作る
+   */
+  .rich-text-body li > ul,
+  .rich-text-body li > ol {
+    @apply mt-0 mb-0;
+  }
+
+  /*
+   * ネストを内包する li は本文を持たない入れ物 (Payload の変換出力がそう作る) なので
+   * マーカーと hanging indent を持たせない。段差は内側 ul/ol 自身の pl-6 の積み上げだけで
+   * 作る。::before を content: none にすると counter-increment も発火しなくなるため
+   * 番号リストの採番もこの入れ物 li を数えない
+   */
+  .rich-text-body li:has(> ul),
+  .rich-text-body li:has(> ol) {
+    padding-left: 0;
+    text-indent: 0;
+  }
+
+  .rich-text-body li:has(> ul)::before,
+  .rich-text-body li:has(> ol)::before {
+    content: none;
+  }
+
+  /* 入れ子のマーカーは Figma Nested (406:571) に合わせ「-」・幅6px + 間隔8px = 14px */
+  .rich-text-body li > ul > li {
+    padding-left: 14px;
+    text-indent: -14px;
+  }
+
+  .rich-text-body li > ul > li::before {
+    content: '-';
+  }
+
+  .rich-text-body blockquote {
+    @apply border-l-4 border-gray-200 pl-4 text-text text-[16px] leading-[1.7] my-6;
+  }
+
+  .rich-text-body img {
+    @apply block w-full my-6;
+  }
+
+  .rich-text-body hr {
+    @apply my-8 h-px w-full border-0 bg-gray-200;
   }
 }
 

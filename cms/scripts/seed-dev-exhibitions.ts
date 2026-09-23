@@ -12,7 +12,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { getPayload } from 'payload';
+import { getPayload, type Payload } from 'payload';
 
 import configPromise from '../src/payload.config';
 
@@ -32,38 +32,197 @@ function assertLocalDatabase(): void {
   }
 }
 
+const SEED_EMAIL_PREFIX = 'seed-exhibitor-';
+
+// 2 回目以降の実行でも新しいマップエリア座標を反映できるよう、前回シードした分を全削除してから
+// 入れ直す。参照先を先に消す必要がある (performance_slots → student_exhibitions/stages →
+// map_areas/media/users の順)。ローカル専用データのみを対象にするため assertLocalDatabase() の
+// 後でのみ呼び出すこと。
+async function resetPreviousSeed(payload: Payload): Promise<void> {
+  const already = await payload.find({
+    collection: 'users',
+    where: { email: { like: SEED_EMAIL_PREFIX } },
+    limit: 1,
+  });
+  if (already.docs.length === 0) return;
+
+  console.log('既存のシードデータを検出したため、削除してから再投入する。');
+  const all = { id: { exists: true } };
+  await payload.delete({ collection: 'performance_slots', where: all });
+  await payload.delete({ collection: 'student_exhibitions', where: all });
+  await payload.delete({ collection: 'stages', where: all });
+  await payload.delete({ collection: 'time_slots', where: all });
+  await payload.delete({ collection: 'map_areas', where: all });
+  // media は他のシードスクリプトとも共有されるコレクションのため、全削除すると
+  // seed-dev-content.ts がアップロードした media を巻き込んで消してしまう。
+  // alt プレフィックスでこのスクリプト自身が作った分だけに絞る。
+  await payload.delete({ collection: 'media', where: { alt: { like: 'シード用写真' } } });
+  await payload.delete({ collection: 'users', where: { email: { like: SEED_EMAIL_PREFIX } } });
+}
+
 // このユーザーは DB に存在しないダミー。student_exhibitions.owner の beforeChange hook が
 // 「executive でなければ渡した value を無視して previousValue/req.user?.id を使う」実装のため、
 // Local API で owner を明示指定するには isExecutive(req.user) === true にする必要がある。
 const FAKE_EXECUTIVE = { id: 'seed-script', role: 'executive', collection: 'users' };
 
+// frontend/src/lib/campus-map-config.ts の CAMPUS_MAP_CONFIG.bounds (群馬大学荒牧キャンパス) 内に
+// 収まるよう、キャンパス中心 [36.4318, 139.0464] 周辺に配置した 8 エリア。大きさ・縦横比・頂点数を
+// ばらけさせ、色・表示順は 1 件ずつ未設定にして CMS 側のフォールバック表示を確認できるようにしている。
 const MAP_AREAS = [
-  { name: 'Aゾーン', geometry: polygon(0) },
-  { name: 'Bゾーン', geometry: polygon(1) },
-  { name: 'Cゾーン(屋内)', geometry: polygon(2) },
-  { name: 'Dゾーン(グラウンド)', geometry: polygon(3) },
+  {
+    name: '正門前',
+    color: 'primary',
+    sort: 1,
+    geometry: {
+      type: 'Polygon',
+      coordinates: [
+        [
+          [139.0396, 36.4355],
+          [139.041, 36.43555],
+          [139.0411, 36.4361],
+          [139.03975, 36.43605],
+          [139.0396, 36.4355],
+        ],
+      ],
+    },
+  },
+  {
+    name: '本部棟前広場',
+    color: 'secondary',
+    sort: 2,
+    geometry: {
+      type: 'Polygon',
+      coordinates: [
+        [
+          [139.0447, 36.4355],
+          [139.0481, 36.4355],
+          [139.0481, 36.436],
+          [139.0464, 36.4363],
+          [139.0447, 36.436],
+          [139.0447, 36.4355],
+        ],
+      ],
+    },
+  },
+  {
+    name: '図書館ゾーン',
+    color: 'accent',
+    sort: 3,
+    geometry: {
+      type: 'Polygon',
+      coordinates: [
+        [
+          [139.0513, 36.4354],
+          [139.0527, 36.43535],
+          [139.0535, 36.4358],
+          [139.0532, 36.43625],
+          [139.0518, 36.4363],
+          [139.0511, 36.43585],
+          [139.0513, 36.4354],
+        ],
+      ],
+    },
+  },
+  {
+    name: 'サークル棟エリア',
+    color: 'accent-alt',
+    sort: 4,
+    geometry: {
+      type: 'Polygon',
+      coordinates: [
+        [
+          [139.0388, 36.4308],
+          [139.0405, 36.4307],
+          [139.042, 36.4311],
+          [139.0419, 36.4322],
+          [139.0403, 36.4327],
+          [139.0387, 36.432],
+          [139.0388, 36.4308],
+        ],
+      ],
+    },
+  },
+  {
+    name: '中央イベント広場',
+    color: 'info',
+    sort: 5,
+    geometry: {
+      type: 'Polygon',
+      coordinates: [
+        [
+          [139.0448, 36.4305],
+          [139.0462, 36.4304],
+          [139.0472, 36.4309],
+          [139.0475, 36.4318],
+          [139.047, 36.4327],
+          [139.0458, 36.433],
+          [139.0447, 36.4326],
+          [139.0442, 36.4316],
+          [139.0448, 36.4305],
+        ],
+      ],
+    },
+  },
+  {
+    name: '屋台通り',
+    color: 'success',
+    sort: 6,
+    geometry: {
+      type: 'Polygon',
+      coordinates: [
+        [
+          [139.0506, 36.43155],
+          [139.0542, 36.4315],
+          [139.0543, 36.43205],
+          [139.05055, 36.4321],
+          [139.0506, 36.43155],
+        ],
+      ],
+    },
+  },
+  {
+    name: '駐輪場',
+    color: 'warning',
+    sort: 7,
+    geometry: {
+      type: 'Polygon',
+      coordinates: [
+        [
+          [139.0396, 36.4273],
+          [139.0412, 36.42735],
+          [139.0404, 36.4283],
+          [139.0396, 36.4273],
+        ],
+      ],
+    },
+  },
+  {
+    // 既定色フォールバックと表示順末尾配置の確認用に、あえて色・表示順を未設定にする
+    name: '第一グラウンド屋外イベントエリア',
+    color: undefined,
+    sort: undefined,
+    geometry: {
+      type: 'Polygon',
+      coordinates: [
+        [
+          [139.043, 36.426],
+          [139.0435, 36.4255],
+          [139.047, 36.4253],
+          [139.052, 36.4254],
+          [139.0565, 36.4256],
+          [139.056, 36.428],
+          [139.051, 36.429],
+          [139.046, 36.4288],
+          [139.043, 36.426],
+        ],
+      ],
+    },
+  },
 ] as const;
 
-function polygon(i: number) {
-  const x = 139.0 + i * 0.002;
-  const y = 35.0 + i * 0.002;
-  return {
-    type: 'Polygon',
-    coordinates: [
-      [
-        [x, y],
-        [x + 0.001, y],
-        [x + 0.001, y + 0.001],
-        [x, y + 0.001],
-        [x, y],
-      ],
-    ],
-  };
-}
-
 const STAGES = [
-  { name: 'メインステージ', areaIndex: 3, sort: 1 },
-  { name: 'サブステージ', areaIndex: 2, sort: 2 },
+  { name: 'メインステージ', areaIndex: 7, sort: 1 },
+  { name: 'サブステージ', areaIndex: 4, sort: 2 },
 ] as const;
 
 const TIME_SLOTS = [
@@ -136,8 +295,6 @@ const EXHIBITIONS: readonly ExhibitionSeed[] = [
   { name: 'VR体験コーナー', organizationName: 'VR研究会', categories: ['other'], locationKind: 'none', hasImage: true, linkCount: 1 },
 ];
 
-const SEED_EMAIL_PREFIX = 'seed-exhibitor-';
-
 function links(count: number, offset: number) {
   return Array.from({ length: count }, (_, i) => {
     const platform = PLATFORMS[(offset + i) % PLATFORMS.length]!;
@@ -160,15 +317,7 @@ async function main() {
 
   const payload = await getPayload({ config: configPromise });
 
-  const already = await payload.find({
-    collection: 'users',
-    where: { email: { like: SEED_EMAIL_PREFIX } },
-    limit: 1,
-  });
-  if (already.docs.length > 0) {
-    console.log('シード済みユーザーが既に存在するため、投入をスキップする。');
-    process.exit(0);
-  }
+  await resetPreviousSeed(payload);
 
   // 1. media (使い回し用に3枚アップロード)
   const mediaIds: number[] = [];
@@ -189,7 +338,7 @@ async function main() {
   for (const a of MAP_AREAS) {
     const created = await payload.create({
       collection: 'map_areas',
-      data: { name: a.name, geometry: a.geometry, sort: areaIds.length + 1 },
+      data: { name: a.name, geometry: a.geometry, color: a.color, sort: a.sort },
       user: FAKE_EXECUTIVE,
     });
     areaIds.push(created.id as number);
@@ -221,7 +370,7 @@ async function main() {
   console.log(`time_slots: ${timeSlotIds.length} 件作成`);
 
   // 5. student_exhibitions (+ owner 用ダミーユーザー, + stage-only のための performance_slots)
-  const areaBoothCounters = [0, 0, 0, 0];
+  const areaBoothCounters = areaIds.map(() => 0);
   let performanceSlotCount = 0;
   // (stage_id, time_slot_id) に UNIQUE 制約があるため、組み合わせが尽きないよう
   // 2 軸を独立させず通し番号から導出する
