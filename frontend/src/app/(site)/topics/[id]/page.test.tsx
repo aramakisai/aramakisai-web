@@ -36,11 +36,13 @@ describe('TopicDetailPage', () => {
           id: 'file-1',
           filenameDownload: 'test-image.jpg',
           type: 'image/jpeg',
+          filesize: 102400,
         },
         {
           id: 'file-2',
           filenameDownload: 'test-doc.pdf',
           type: 'application/pdf',
+          filesize: 204800,
         },
       ],
     });
@@ -57,8 +59,8 @@ describe('TopicDetailPage', () => {
     // Test body
     expect(screen.getByText('Test Topic Body')).toBeInTheDocument();
 
-    // Test attachments
-    expect(screen.getByAltText('test-image.jpg')).toBeInTheDocument();
+    // 画像も他形式と同じファイル名の行として表示するため <img> では出ない
+    expect(screen.getByText('test-image.jpg')).toBeInTheDocument();
     expect(screen.getByText('test-doc.pdf')).toBeInTheDocument();
   });
 

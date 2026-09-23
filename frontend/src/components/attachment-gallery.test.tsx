@@ -11,76 +11,56 @@ vi.mock('../lib/cms-asset-url', () => ({
 }));
 
 describe('AttachmentGallery', () => {
-  test('returns null when attachments array is empty', () => {
+  test('添付が 0 件のときは何も描画しない', () => {
     const { container } = render(<AttachmentGallery attachments={[]} />);
     expect(container.firstChild).toBeNull();
   });
 
-  test('renders images and links correctly based on type', () => {
+  test('画像も他形式と同じ行で表示し、拡張子・MB 単位のサイズを示す', () => {
     const attachments: Attachment[] = [
       {
-        id: 'img-1',
-        filenameDownload: 'test-image.png',
-        type: 'image/png',
-      },
-      {
-        id: 'img-2',
-        filenameDownload: 'test-photo.jpg',
-        type: 'image/jpeg',
-      },
-      {
         id: 'doc-1',
-        filenameDownload: 'document.pdf',
+        filenameDownload: '会場配置図(変更後).pdf',
         type: 'application/pdf',
+        filesize: 1782579, // 1.7 MB
       },
       {
-        id: 'doc-2',
-        filenameDownload: 'unknown-file',
-        type: null,
-      },
-      {
-        id: 'doc-3',
-        filenameDownload: 'text.txt',
-        type: 'text/plain',
+        id: 'img-1',
+        filenameDownload: 'photo.png',
+        type: 'image/png',
+        filesize: 204800, // 200 KB
       },
     ];
 
-    const { container } = render(
-      <AttachmentGallery attachments={attachments} />,
-    );
+    render(<AttachmentGallery attachments={attachments} />);
 
-    expect(container.firstChild).toHaveClass('min-w-0', 'max-w-full');
-
-    // Test images
-    const img1 = screen.getByAltText('test-image.png');
-    expect(img1).toBeInTheDocument();
-    expect(img1).toHaveAttribute('src', 'https://example.com/assets/img-1');
-    expect(img1).toHaveClass('h-auto', 'max-w-full');
-
-    const img2 = screen.getByAltText('test-photo.jpg');
-    expect(img2).toBeInTheDocument();
-    expect(img2).toHaveAttribute('src', 'https://example.com/assets/img-2');
-
-    // Test non-images (links)
-    const link1 = screen.getByRole('link', { name: 'document.pdf' });
-    expect(link1).toBeInTheDocument();
+    const link1 = screen.getByRole('link', {
+      name: /会場配置図\(変更後\)\.pdf/,
+    });
     expect(link1).toHaveAttribute('href', 'https://example.com/assets/doc-1');
-    expect(link1).toHaveAttribute('download');
-    expect(link1).toHaveClass(
-      'min-w-0',
-      'max-w-full',
-      'break-words',
-      '[overflow-wrap:anywhere]',
-    );
+    expect(link1).toHaveAttribute('target', '_blank');
+    expect(link1).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(link1).not.toHaveAttribute('download');
+    expect(link1).toHaveTextContent('PDF・1.7 MB');
 
-    const link2 = screen.getByRole('link', { name: 'unknown-file' });
-    expect(link2).toBeInTheDocument();
-    expect(link2).toHaveAttribute('href', 'https://example.com/assets/doc-2');
-    expect(link2).toHaveAttribute('download');
+    const link2 = screen.getByRole('link', { name: /photo\.png/ });
+    expect(link2).toHaveTextContent('PNG・200 KB');
+    // 画像も <img> ではなくファイル名の行として表示する
+    expect(screen.queryByRole('img')).toBeNull();
+  });
 
-    const link3 = screen.getByRole('link', { name: 'text.txt' });
-    expect(link3).toBeInTheDocument();
-    expect(link3).toHaveAttribute('href', 'https://example.com/assets/doc-3');
-    expect(link3).toHaveAttribute('download');
+  test('拡張子が無いファイル名は mimeType のサブタイプを形式として表示する', () => {
+    const attachments: Attachment[] = [
+      {
+        id: 'doc-2',
+        filenameDownload: 'README',
+        type: 'text/plain',
+        filesize: 1024,
+      },
+    ];
+
+    render(<AttachmentGallery attachments={attachments} />);
+
+    expect(screen.getByRole('link')).toHaveTextContent('PLAIN・1 KB');
   });
 });

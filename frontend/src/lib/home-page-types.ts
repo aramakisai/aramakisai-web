@@ -7,6 +7,7 @@ export interface Attachment {
   id: string;
   filenameDownload: string;
   type: string | null;
+  filesize: number | null;
 }
 
 export interface AnnouncementSummary {

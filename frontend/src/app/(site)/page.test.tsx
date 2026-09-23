@@ -46,8 +46,18 @@ vi.mock('@/lib/use-motion-preference', () => ({
 
 const content: HomePageContent = {
   heroImages: [
-    { id: 'hero-1', filenameDownload: 'hero1.jpg', type: 'image/jpeg' },
-    { id: 'hero-2', filenameDownload: 'hero2.jpg', type: 'image/jpeg' },
+    {
+      id: 'hero-1',
+      filenameDownload: 'hero1.jpg',
+      type: 'image/jpeg',
+      filesize: null,
+    },
+    {
+      id: 'hero-2',
+      filenameDownload: 'hero2.jpg',
+      type: 'image/jpeg',
+      filesize: null,
+    },
   ],
   heroMessageHtml: '<p>ようこそ</p>',
   snsLinks: [{ platform: 'X', url: 'https://x.com' }],

@@ -37,6 +37,7 @@ describe('AnnouncementPage', () => {
           id: 'file-1',
           filenameDownload: 'test.pdf',
           type: 'application/pdf',
+          filesize: 1782579,
         },
       ],
     };

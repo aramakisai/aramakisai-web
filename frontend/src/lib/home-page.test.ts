@@ -84,8 +84,18 @@ describe('getHomePage', () => {
 
     expect(result.heroMessageHtml).toBe('<p>Hello</p>');
     expect(result.heroImages).toEqual([
-      { id: '1', filenameDownload: 'hero1.jpg', type: 'image/jpeg' },
-      { id: '2', filenameDownload: 'hero2.jpg', type: 'image/jpeg' },
+      {
+        id: '1',
+        filenameDownload: 'hero1.jpg',
+        type: 'image/jpeg',
+        filesize: null,
+      },
+      {
+        id: '2',
+        filenameDownload: 'hero2.jpg',
+        type: 'image/jpeg',
+        filesize: null,
+      },
     ]);
     expect(result.snsLinks).toEqual([
       { platform: 'twitter', url: 'https://twitter.com' },
@@ -120,8 +130,18 @@ describe('getHomePage', () => {
         body: 'B1',
         publishedAt: '2023-01-01',
         attachments: [
-          { id: '11', filenameDownload: 'f1.png', type: 'image/png' },
-          { id: '12', filenameDownload: 'f2.pdf', type: 'application/pdf' },
+          {
+            id: '11',
+            filenameDownload: 'f1.png',
+            type: 'image/png',
+            filesize: null,
+          },
+          {
+            id: '12',
+            filenameDownload: 'f2.pdf',
+            type: 'application/pdf',
+            filesize: null,
+          },
         ],
       },
     ]);
@@ -132,7 +152,12 @@ describe('getHomePage', () => {
         body: 'B2',
         imageId: '21',
         attachments: [
-          { id: '13', filenameDownload: 'f3.pdf', type: 'application/pdf' },
+          {
+            id: '13',
+            filenameDownload: 'f3.pdf',
+            type: 'application/pdf',
+            filesize: null,
+          },
         ],
       },
     ]);
@@ -287,7 +312,12 @@ describe('getHomePage の phase 引数によるトピックス取得の抑止', 
         body: 'B2',
         imageId: '21',
         attachments: [
-          { id: '13', filenameDownload: 'f3.pdf', type: 'application/pdf' },
+          {
+            id: '13',
+            filenameDownload: 'f3.pdf',
+            type: 'application/pdf',
+            filesize: null,
+          },
         ],
       },
     ]);
