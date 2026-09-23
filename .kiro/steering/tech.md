@@ -92,7 +92,6 @@ make kubectl ARGS="get pods -A"   # kubectl 直実行不可、Infisical 経由 K
 - **.env 禁止 (guard stub パターン, aramakisai-infra 準拠)**: シークレットは Infisical 経由 (`infisical run --env=<env> -- <cmd>`) で注入する。`.env`/`.env.local` は実際の環境変数ファイルではなく、`echo "DO NOT USE THIS FILE. USE Infisical INSTEAD"; exit 1` という**意図的に実行失敗する Git 管理下のダミースクリプト**であり、誤って本物の `.env` を作成・使用することを防ぐ役割を持つ。**上書きして実シークレットを書き込まないこと**。`.gitignore` は `.env.*.local`/`*.local` のみ除外しており、この 2 ファイル自体は追跡対象。
 - **K8s アクセスは `make kubectl` 経由のみ**: ローカルから kubeconfig 未設定で直接到達不可。
 - **CMS コンテンツモデルの変更ゲート**: 破壊的変更は `cms-schema-check.yml` が機械的に検出する。承認された破壊的変更のバイパスは repo admin による branch protection override が前提 (ラベル/コメントでの自動バイパス機構はあえて未実装)。
-- **spec の Boundary Commitments 規約**: `.kiro/specs/*/design.md` は "This Spec Owns / Out of Boundary / Allowed Dependencies / Revalidation Triggers" を明記する規約。他 spec の所有領域に触れる変更は該当 spec の Revalidation Triggers を確認する。
 
 ---
 _Document standards and patterns, not every dependency_
