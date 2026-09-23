@@ -284,6 +284,17 @@ async function main() {
       ],
       access_summary:
         '群馬大学荒牧キャンパスまでは、JR前橋駅からバスで約20分、上毛電鉄中央前橋駅から徒歩約25分です。当日は臨時駐車場もご利用いただけます。',
+      theme_word: '万彩',
+      venue_name: '群馬大学 荒牧キャンパス',
+      campus_map_url:
+        'https://www.google.com/maps/embed?origin=mfe&pb=!1m2!2m1!1z576k6aas5aSn5a2mIOiNkueJp-OCreODo-ODs-ODkeOCuSDjgJIzNzEtODUxMCDnvqTppqznnIzliY3mqYvluILojZLniafnlLo05LiB55uuMg',
+      contact_form_url:
+        'https://docs.google.com/forms/d/e/1FAIpQLSdfNRBPktNU8u_YTWarZUiIW-rhusE9hG_7dqyQHKEq4Vxlpg/viewform?usp=sharing&ouid=103248927242052693439',
+      sns_links: [
+        { platform: 'Instagram', url: 'https://www.instagram.com/aramakisai_' },
+        { platform: 'X', url: 'https://x.com/aramakisai_' },
+        { platform: 'YouTube', url: 'https://www.youtube.com/@aramakisai' },
+      ],
       overview: toLexical(
         '<p>荒牧祭は群馬大学荒牧キャンパスで開催される学園祭です。学生団体による模擬店や展示、ステージ企画など、多彩な催しを2日間にわたってお届けします (シードデータ)。</p>',
       ),
