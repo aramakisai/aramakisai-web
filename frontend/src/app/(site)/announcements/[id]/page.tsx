@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { getAnnouncementById } from '@/lib/announcements';
 import { RichText } from '@/components/rich-text';
+import { RichTextImageViewer } from '@/components/rich-text-image-viewer';
 import { AttachmentGallery } from '@/components/attachment-gallery';
 
 export interface AnnouncementPageProps {
@@ -35,7 +36,9 @@ export default async function AnnouncementPage({
         </time>
       </header>
 
-      <RichText html={announcement.body} />
+      <RichTextImageViewer>
+        <RichText html={announcement.body} />
+      </RichTextImageViewer>
 
       {announcement.attachments && announcement.attachments.length > 0 && (
         <section className="border-t border-gray-200 pt-8 mt-8">

@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { getTopicById } from '@/lib/topics';
 import { RichText } from '@/components/rich-text';
+import { RichTextImageViewer } from '@/components/rich-text-image-viewer';
 import { AttachmentGallery } from '@/components/attachment-gallery';
 
 interface PageProps {
@@ -26,7 +27,11 @@ export default async function TopicDetailPage({ params }: PageProps) {
   return (
     <div className="mx-auto max-w-4xl space-y-8">
       <h1 className="text-3xl font-bold">{topic.title}</h1>
-      {topic.body && <RichText html={topic.body} />}
+      {topic.body && (
+        <RichTextImageViewer>
+          <RichText html={topic.body} />
+        </RichTextImageViewer>
+      )}
       <AttachmentGallery attachments={topic.attachments} />
     </div>
   );

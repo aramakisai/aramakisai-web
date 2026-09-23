@@ -30,7 +30,7 @@ describe('AnnouncementPage', () => {
     const mockAnnouncement = {
       id: 1,
       title: 'テストお知らせ',
-      body: '<p>これはテストです</p>',
+      body: '<p>これはテストです</p><img src="https://example.com/assets/42" alt="添付画像" data-media-id="42">',
       publishedAt: '2026-07-13T10:00:00Z',
       attachments: [
         {
@@ -57,6 +57,14 @@ describe('AnnouncementPage', () => {
 
     // RichText content is rendered
     expect(screen.getByText('これはテストです')).toBeInTheDocument();
+
+    // 本文中の画像は RichTextImageViewer によって拡大用ボタンで包まれる
+    const imageButton = screen.getByRole('button', {
+      name: '画像を拡大: 添付画像',
+    });
+    expect(
+      imageButton.querySelector('img[data-media-id="42"]'),
+    ).toBeInTheDocument();
 
     // Attachment check
     expect(

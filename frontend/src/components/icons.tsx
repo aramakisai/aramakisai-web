@@ -65,6 +65,7 @@ export const MailIcon = createIcon('icon-mail', 'mail');
 export const OpenInNewIcon = createIcon('icon-open-in-new', 'open_in_new');
 export const PauseIcon = createIcon('icon-pause', 'pause');
 export const PlayArrowIcon = createIcon('icon-play-arrow', 'play_arrow');
+export const CloseIcon = createIcon('icon-close', 'close');
 
 // 位置ピン (地図上のマーカー) は同じ location_on の塗りつぶし版 (FILL 1) を使う
 export const LocationPinIcon = createIcon(
