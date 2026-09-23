@@ -181,6 +181,19 @@ export function buildFilterHref(
   return qs ? `${path}?${qs}` : path;
 }
 
+/** トップページの企画セクション向け。items.length < count でも全件返す */
+export function pickRandomExhibitions(
+  items: readonly ExhibitionCardSummary[],
+  count: number,
+): ExhibitionCardSummary[] {
+  const shuffled = [...items];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];
+  }
+  return shuffled.slice(0, count);
+}
+
 export function buildExhibitionsHref(query: {
   readonly q: string;
   readonly categories: readonly ExhibitionCategory[];

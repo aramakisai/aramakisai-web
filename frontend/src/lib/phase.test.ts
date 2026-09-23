@@ -75,6 +75,23 @@ describe('isPublicPath', () => {
     expect(isPublicPath('/some-other-page', 'pre_event')).toBe(false);
   });
 
+  it.each([
+    '/contact',
+    '/guidelines',
+    '/info-desk',
+    '/waste',
+    '/faq',
+    '/sponsors/ad',
+    '/sponsors/local',
+  ])('%s は開催前フェーズで公開される', (path) => {
+    expect(isPublicPath(path, 'pre_event')).toBe(true);
+  });
+
+  it('/sponsors 配下は完全一致のみ公開され、それ以外は非公開と判定する', () => {
+    expect(isPublicPath('/sponsors', 'pre_event')).toBe(false);
+    expect(isPublicPath('/sponsors/other', 'pre_event')).toBe(false);
+  });
+
   it('開催中フェーズではすべてのパスを公開と判定する', () => {
     expect(isPublicPath('/topics', 'live')).toBe(true);
     expect(isPublicPath('/anything', 'live')).toBe(true);

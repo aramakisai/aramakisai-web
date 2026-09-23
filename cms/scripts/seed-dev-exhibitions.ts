@@ -53,7 +53,10 @@ async function resetPreviousSeed(payload: Payload): Promise<void> {
   await payload.delete({ collection: 'stages', where: all });
   await payload.delete({ collection: 'time_slots', where: all });
   await payload.delete({ collection: 'map_areas', where: all });
-  await payload.delete({ collection: 'media', where: all });
+  // media は他のシードスクリプトとも共有されるコレクションのため、全削除すると
+  // seed-dev-content.ts がアップロードした media を巻き込んで消してしまう。
+  // alt プレフィックスでこのスクリプト自身が作った分だけに絞る。
+  await payload.delete({ collection: 'media', where: { alt: { like: 'シード用写真' } } });
   await payload.delete({ collection: 'users', where: { email: { like: SEED_EMAIL_PREFIX } } });
 }
 

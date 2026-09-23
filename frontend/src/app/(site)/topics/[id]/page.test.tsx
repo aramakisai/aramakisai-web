@@ -1,80 +1,139 @@
 import { render, screen } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import TopicDetailPage from './page';
-import { getTopicById } from '@/lib/topics';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import TopicPage, { generateMetadata } from './page';
 import { notFound } from 'next/navigation';
+import { getTopicById } from '@/lib/topics';
+
+vi.mock('next/navigation', () => ({
+  notFound: vi.fn(() => {
+    throw new Error('NEXT_NOT_FOUND');
+  }),
+}));
 
 vi.mock('@/lib/topics', () => ({
   getTopicById: vi.fn(),
 }));
 
-vi.mock('next/navigation', () => ({
-  notFound: vi.fn().mockImplementation(() => {
-    throw new Error('NEXT_NOT_FOUND');
-  }),
+vi.mock('@/lib/cms-asset-url', () => ({
+  toAssetUrl: (id: string | null) =>
+    id ? `https://example.com/assets/${id}` : null,
 }));
 
-vi.mock('@/env', () => ({
-  env: {
-    NEXT_PUBLIC_CMS_URL: 'http://localhost:8055',
-  },
-}));
+const baseTopic = {
+  id: 1,
+  title: 'テストトピック',
+  body: '<p>これはテストです</p>',
+  imageId: '42',
+};
 
-describe('TopicDetailPage', () => {
+describe('TopicPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('renders topic details successfully when topic exists', async () => {
+  it('renders topic correctly when found', async () => {
+    vi.mocked(getTopicById).mockResolvedValue(baseTopic);
+
+    const params = Promise.resolve({ id: '1' });
+    const jsx = await TopicPage({ params });
+    render(jsx);
+
+    expect(getTopicById).toHaveBeenCalledWith(1);
+    expect(
+      screen.getByRole('heading', { name: 'テストトピック', level: 1 }),
+    ).toBeInTheDocument();
+
+    // 戻る導線 (要件 17.2)
+    const backLink = screen.getByRole('link', { name: 'トピック一覧に戻る' });
+    expect(backLink).toHaveAttribute('href', '/topics');
+
+    // サムネイル (要件 17.4)。選択で拡大モーダルが開く (要件 17.7)
+    const thumbnailButton = screen.getByRole('button', {
+      name: '画像を拡大: テストトピック',
+    });
+    const thumbnail = thumbnailButton.querySelector('img');
+    expect(thumbnail).toHaveAttribute('src', 'https://example.com/assets/42');
+    expect(thumbnail).toHaveAttribute('data-media-id', '42');
+
+    // 本文
+    expect(screen.getByText('これはテストです')).toBeInTheDocument();
+  });
+
+  it('サムネイルが無ければ領域ごと出さない (要件 17.6)', async () => {
     vi.mocked(getTopicById).mockResolvedValue({
-      id: 1,
-      title: 'Test Topic Title',
-      body: '<p>Test Topic Body</p>',
+      ...baseTopic,
       imageId: null,
-      attachments: [
-        {
-          id: 'file-1',
-          filenameDownload: 'test-image.jpg',
-          type: 'image/jpeg',
-        },
-        {
-          id: 'file-2',
-          filenameDownload: 'test-doc.pdf',
-          type: 'application/pdf',
-        },
-      ],
     });
 
     const params = Promise.resolve({ id: '1' });
-    const ui = await TopicDetailPage({ params });
-    render(ui);
+    render(await TopicPage({ params }));
 
-    // Test main landmark and title
-    expect(screen.getByRole('main').querySelector('h1')).toHaveTextContent(
-      'Test Topic Title',
-    );
+    expect(
+      screen.queryByRole('button', { name: /画像を拡大/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+  });
 
-    // Test body
-    expect(screen.getByText('Test Topic Body')).toBeInTheDocument();
+  it('添付ファイルを表示しない (要件 17.11)', async () => {
+    vi.mocked(getTopicById).mockResolvedValue(baseTopic);
 
-    // Test attachments
-    expect(screen.getByAltText('test-image.jpg')).toBeInTheDocument();
-    expect(screen.getByText('test-doc.pdf')).toBeInTheDocument();
+    const params = Promise.resolve({ id: '1' });
+    render(await TopicPage({ params }));
+
+    expect(
+      screen.queryByRole('heading', { name: '添付ファイル' }),
+    ).not.toBeInTheDocument();
   });
 
   it('calls notFound when topic does not exist', async () => {
     vi.mocked(getTopicById).mockResolvedValue(null);
 
     const params = Promise.resolve({ id: '999' });
-    await expect(TopicDetailPage({ params })).rejects.toThrow('NEXT_NOT_FOUND');
-
+    await expect(TopicPage({ params })).rejects.toThrow('NEXT_NOT_FOUND');
+    expect(getTopicById).toHaveBeenCalledWith(999);
     expect(notFound).toHaveBeenCalled();
   });
 
-  it('calls notFound when id is not a valid number', async () => {
+  it('calls notFound when id is invalid', async () => {
     const params = Promise.resolve({ id: 'invalid' });
-    await expect(TopicDetailPage({ params })).rejects.toThrow('NEXT_NOT_FOUND');
+    await expect(TopicPage({ params })).rejects.toThrow('NEXT_NOT_FOUND');
 
     expect(notFound).toHaveBeenCalled();
+    expect(getTopicById).not.toHaveBeenCalled();
+  });
+});
+
+describe('generateMetadata', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('uses the topic title as the page title (要件 17.10)', async () => {
+    vi.mocked(getTopicById).mockResolvedValue(baseTopic);
+
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ id: '1' }),
+    });
+
+    expect(metadata).toEqual({ title: 'テストトピック' });
+  });
+
+  it('returns empty metadata when the topic does not exist', async () => {
+    vi.mocked(getTopicById).mockResolvedValue(null);
+
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ id: '999' }),
+    });
+
+    expect(metadata).toEqual({});
+  });
+
+  it('returns empty metadata for an invalid id without fetching', async () => {
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ id: 'invalid' }),
+    });
+
+    expect(metadata).toEqual({});
+    expect(getTopicById).not.toHaveBeenCalled();
   });
 });

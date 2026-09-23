@@ -14,12 +14,13 @@ export function toAttachment(media: MediaRef): Attachment | null {
   const id = toMediaId(media);
   if (id === null) return null;
   if (media === null || media === undefined || typeof media !== 'object') {
-    return { id, filenameDownload: '', type: null };
+    return { id, filenameDownload: '', type: null, filesize: null };
   }
   return {
     id,
     filenameDownload: media.filename ?? '',
     type: media.mimeType ?? null,
+    filesize: media.filesize ?? null,
   };
 }
 

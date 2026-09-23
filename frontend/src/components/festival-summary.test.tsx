@@ -1,6 +1,10 @@
 import { render, screen } from '@testing-library/react';
-import { expect, test, describe } from 'vitest';
+import { expect, test, describe, vi } from 'vitest';
 import { FestivalSummary } from './festival-summary';
+
+vi.mock('@/lib/cms-asset-url', () => ({
+  toAssetUrl: () => null,
+}));
 
 describe('FestivalSummary', () => {
   test('renders RichText content when overviewHtml is provided', () => {

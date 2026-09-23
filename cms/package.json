@@ -20,7 +20,10 @@
     "migrate": "cross-env NODE_OPTIONS=--no-deprecation payload migrate",
     "migrate:status": "cross-env NODE_OPTIONS=--no-deprecation payload migrate:status",
     "db:up": "docker compose up -d db",
-    "db:down": "docker compose down"
+    "db:down": "docker compose down",
+    "seed:dev:exhibitions": "cross-env NODE_OPTIONS=--import=tsx/esm node scripts/seed-dev-exhibitions.ts",
+    "seed:dev:content": "cross-env NODE_OPTIONS=--import=tsx/esm node scripts/seed-dev-content.ts",
+    "seed:dev": "pnpm run seed:dev:exhibitions && pnpm run seed:dev:content"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "3.88.0",

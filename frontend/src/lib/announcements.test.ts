@@ -49,8 +49,18 @@ describe('getAnnouncements', () => {
         body: 'B1',
         publishedAt: '2023-01-01',
         attachments: [
-          { id: '1', filenameDownload: 'file1.jpg', type: 'image/jpeg' },
-          { id: '2', filenameDownload: 'file2.pdf', type: 'application/pdf' },
+          {
+            id: '1',
+            filenameDownload: 'file1.jpg',
+            type: 'image/jpeg',
+            filesize: null,
+          },
+          {
+            id: '2',
+            filenameDownload: 'file2.pdf',
+            type: 'application/pdf',
+            filesize: null,
+          },
         ],
       },
       {

@@ -26,6 +26,7 @@ const META = {
   venue_name: '荒牧キャンパス',
   campus_map_url: 'https://www.google.com/maps/embed?pb=xxx',
   contact_form_url: 'https://forms.example.com/contact',
+  access_summary: '最寄駅から徒歩10分',
 };
 
 const PAGE_HOME = {
@@ -55,9 +56,6 @@ const LISTS: Record<string, unknown[]> = {
       title: 'T1',
       body_html: 'B2',
       image: { id: 21, filename: 'img1.webp', mimeType: 'image/webp' },
-      attachments: [
-        { id: 13, filename: 'f3.pdf', mimeType: 'application/pdf' },
-      ],
     },
   ],
 };
@@ -83,8 +81,18 @@ describe('getHomePage', () => {
 
     expect(result.heroMessageHtml).toBe('<p>Hello</p>');
     expect(result.heroImages).toEqual([
-      { id: '1', filenameDownload: 'hero1.jpg', type: 'image/jpeg' },
-      { id: '2', filenameDownload: 'hero2.jpg', type: 'image/jpeg' },
+      {
+        id: '1',
+        filenameDownload: 'hero1.jpg',
+        type: 'image/jpeg',
+        filesize: null,
+      },
+      {
+        id: '2',
+        filenameDownload: 'hero2.jpg',
+        type: 'image/jpeg',
+        filesize: null,
+      },
     ]);
     expect(result.snsLinks).toEqual([
       { platform: 'twitter', url: 'https://twitter.com' },
@@ -111,6 +119,7 @@ describe('getHomePage', () => {
       'https://www.google.com/maps/embed?pb=xxx',
     );
     expect(result.contactFormUrl).toBe('https://forms.example.com/contact');
+    expect(result.accessSummary).toBe('最寄駅から徒歩10分');
     expect(result.announcements).toEqual([
       {
         id: 1,
@@ -118,8 +127,18 @@ describe('getHomePage', () => {
         body: 'B1',
         publishedAt: '2023-01-01',
         attachments: [
-          { id: '11', filenameDownload: 'f1.png', type: 'image/png' },
-          { id: '12', filenameDownload: 'f2.pdf', type: 'application/pdf' },
+          {
+            id: '11',
+            filenameDownload: 'f1.png',
+            type: 'image/png',
+            filesize: null,
+          },
+          {
+            id: '12',
+            filenameDownload: 'f2.pdf',
+            type: 'application/pdf',
+            filesize: null,
+          },
         ],
       },
     ]);
@@ -129,9 +148,6 @@ describe('getHomePage', () => {
         title: 'T1',
         body: 'B2',
         imageId: '21',
-        attachments: [
-          { id: '13', filenameDownload: 'f3.pdf', type: 'application/pdf' },
-        ],
       },
     ]);
   });
@@ -153,6 +169,7 @@ describe('getHomePage', () => {
               venue_name: null,
               campus_map_url: null,
               contact_form_url: null,
+              access_summary: null,
             }
           : { hero_message_html: null, hero_images: [] },
     })) as never);
@@ -163,7 +180,7 @@ describe('getHomePage', () => {
 
     const result = await getHomePage('live');
 
-    expect(result.heroMessageHtml).toBe('');
+    expect(result.heroMessageHtml).toBeNull();
     expect(result.heroImages).toEqual([]);
     expect(result.snsLinks).toEqual([]);
     expect(result.announcements).toEqual([]);
@@ -176,6 +193,7 @@ describe('getHomePage', () => {
     expect(result.venueName).toBeNull();
     expect(result.campusMapUrl).toBeNull();
     expect(result.contactFormUrl).toBeNull();
+    expect(result.accessSummary).toBeNull();
   });
 
   it('announcements は公開済みを新着順に 10 件まで引く', async () => {
@@ -202,13 +220,57 @@ describe('getHomePage', () => {
     expect(result.heroMessageHtml).toBe('<p>Hello</p>');
   });
 
-  it('シングルトンの取得に失敗した場合は例外を投げる', async () => {
+  it('festival_meta の取得に失敗しても例外を投げず、festival 由来の領域だけが欠落する', async () => {
+    vi.mocked(cms.findGlobal).mockImplementation((async (slug: string) => ({
+      ok: slug !== 'festival_meta',
+      ...(slug === 'festival_meta'
+        ? { error: { kind: 'network', status: 500 } }
+        : { value: PAGE_HOME }),
+    })) as never);
+
+    const result = await getHomePage('live');
+
+    expect(result.festival).toBeNull();
+    expect(result.theme).toBeNull();
+    expect(result.snsLinks).toEqual([]);
+    expect(result.venueName).toBeNull();
+    expect(result.campusMapUrl).toBeNull();
+    expect(result.contactFormUrl).toBeNull();
+    expect(result.accessSummary).toBeNull();
+    // festival_meta とは無関係な領域は取得できたとおりに残る
+    expect(result.heroMessageHtml).toBe('<p>Hello</p>');
+    expect(result.announcements).toHaveLength(1);
+  });
+
+  it('page_home の取得に失敗しても例外を投げず、hero 由来の領域だけが欠落する', async () => {
+    vi.mocked(cms.findGlobal).mockImplementation((async (slug: string) => ({
+      ok: slug !== 'page_home',
+      ...(slug === 'page_home'
+        ? { error: { kind: 'network', status: 500 } }
+        : { value: META }),
+    })) as never);
+
+    const result = await getHomePage('live');
+
+    expect(result.heroImages).toEqual([]);
+    expect(result.heroMessageHtml).toBeNull();
+    // page_home とは無関係な領域は取得できたとおりに残る
+    expect(result.festival).not.toBeNull();
+    expect(result.venueName).toBe('荒牧キャンパス');
+  });
+
+  it('festival_meta と page_home の両方が失敗しても例外を投げない', async () => {
     vi.mocked(cms.findGlobal).mockResolvedValue({
       ok: false,
       error: { kind: 'network', status: 500 },
     } as never);
 
-    await expect(getHomePage('live')).rejects.toThrow();
+    await expect(getHomePage('live')).resolves.toMatchObject({
+      festival: null,
+      theme: null,
+      heroImages: [],
+      heroMessageHtml: null,
+    });
   });
 });
 
@@ -220,6 +282,15 @@ describe('getHomePage の phase 引数によるトピックス取得の抑止', 
     expect(cms.findMany).not.toHaveBeenCalledWith('topics', expect.anything());
   });
 
+  it('topics は公開済みを公開日時の新しい順に取得する', async () => {
+    await getHomePage('live');
+    const call = vi
+      .mocked(cms.findMany)
+      .mock.calls.find(([collection]) => collection === 'topics');
+    expect(call?.[1].sort).toEqual(['-published_at']);
+    expect((call?.[1].where as PublishedWhere).published_at?.exists).toBe(true);
+  });
+
   it('開催中フェーズでは従来どおり topics を取得する', async () => {
     const result = await getHomePage('live');
 
@@ -229,9 +300,6 @@ describe('getHomePage の phase 引数によるトピックス取得の抑止', 
         title: 'T1',
         body: 'B2',
         imageId: '21',
-        attachments: [
-          { id: '13', filenameDownload: 'f3.pdf', type: 'application/pdf' },
-        ],
       },
     ]);
   });

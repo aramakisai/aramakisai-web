@@ -1,33 +1,67 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTopicById } from '@/lib/topics';
+import { toAssetUrl } from '@/lib/cms-asset-url';
 import { RichText } from '@/components/rich-text';
-import { AttachmentGallery } from '@/components/attachment-gallery';
+import { RichTextImageViewer } from '@/components/rich-text-image-viewer';
+import { BackLink, DetailColumn } from '@/components/detail-column';
 
-interface PageProps {
-  params: Promise<{
-    id: string;
-  }>;
+export interface TopicPageProps {
+  params: Promise<{ id: string }>;
 }
 
-export default async function TopicDetailPage({ params }: PageProps) {
-  const resolvedParams = await params;
-  const topicId = Number(resolvedParams.id);
+function toTopicId(id: string): number | null {
+  const parsed = Number(id);
+  return Number.isInteger(parsed) ? parsed : null;
+}
 
-  if (isNaN(topicId)) {
-    notFound();
-  }
+async function resolveTopic(id: string) {
+  const topicId = toTopicId(id);
+  if (topicId === null) return null;
+  return getTopicById(topicId);
+}
 
-  const topic = await getTopicById(topicId);
+export async function generateMetadata({
+  params,
+}: TopicPageProps): Promise<Metadata> {
+  const { id } = await params;
+  const topic = await resolveTopic(id);
+  return topic ? { title: topic.title } : {};
+}
+
+export default async function TopicPage({ params }: TopicPageProps) {
+  const { id } = await params;
+  const topic = await resolveTopic(id);
 
   if (!topic) {
     notFound();
   }
 
+  const thumbnailUrl = toAssetUrl(topic.imageId);
+
   return (
-    <main className="mx-auto max-w-4xl space-y-8">
-      <h1 className="text-3xl font-bold">{topic.title}</h1>
-      {topic.body && <RichText html={topic.body} />}
-      <AttachmentGallery attachments={topic.attachments} />
-    </main>
+    <DetailColumn>
+      <BackLink href="/topics" label="トピック一覧に戻る" />
+
+      <h1 className="w-full text-balance py-0 text-center text-[24px] leading-[130%] text-primary lg:text-[32px] lg:leading-[125%]">
+        {topic.title}
+      </h1>
+
+      <RichTextImageViewer>
+        <div className="flex w-full flex-col gap-6 lg:gap-8">
+          {thumbnailUrl && (
+            // eslint-disable-next-line @next/next/no-img-element -- 実ファイルは配信時に解決するため next/image の最適化対象にできない
+            <img
+              src={thumbnailUrl}
+              alt={topic.title}
+              data-media-id={topic.imageId}
+              className="block h-auto max-h-[358px] w-full rounded-xl object-contain lg:max-h-[768px]"
+            />
+          )}
+
+          {topic.body && <RichText html={topic.body} />}
+        </div>
+      </RichTextImageViewer>
+    </DetailColumn>
   );
 }

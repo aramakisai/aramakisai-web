@@ -61,3 +61,17 @@ export async function getSponsors(): Promise<GetSponsorsResult> {
 
   return { ok: true, value };
 }
+
+/**
+ * トップページの協賛節は種別を問わず代表数件を出すため、複数種別に属す協賛が
+ * 種別ごとの一覧に重複して現れる `SponsorsByType` を id で 1 件に畳む。
+ */
+export function mergeSponsorLogos(byType: SponsorsByType): SponsorListItem[] {
+  const merged = new Map<number, SponsorListItem>();
+  for (const type of SPONSOR_TYPES) {
+    for (const sponsor of byType[type]) {
+      if (!merged.has(sponsor.id)) merged.set(sponsor.id, sponsor);
+    }
+  }
+  return [...merged.values()];
+}

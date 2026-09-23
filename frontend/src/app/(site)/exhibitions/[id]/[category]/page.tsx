@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
   CATEGORY_LABELS,
@@ -15,7 +14,8 @@ import { ExhibitionGallery } from '@/components/exhibition-gallery';
 import { ExhibitionLinks } from '@/components/exhibition-links';
 import { ExhibitionLocationSection } from '@/components/exhibition-location-map/exhibition-location-section';
 import { ShareButton } from '@/components/share-button';
-import { ArrowBackIcon, PlaceIcon } from '@/components/icons';
+import { PlaceIcon } from '@/components/icons';
+import { BackLink } from '@/components/detail-column';
 
 export interface ExhibitionPageProps {
   readonly params: Promise<{ id: string; category: string }>;
@@ -70,18 +70,6 @@ export async function generateMetadata({
   };
 }
 
-function BackLink() {
-  return (
-    <Link
-      href="/exhibitions"
-      className="inline-flex items-center gap-1 text-sm leading-[140%] font-medium text-gray-500 hover:text-primary"
-    >
-      <ArrowBackIcon size={18} className="text-text" />
-      企画一覧へ戻る
-    </Link>
-  );
-}
-
 // Figma は stage/exhibit/other のみ定義。vendor は未定義色のため既存トークンから
 // 他カテゴリと重複しない secondary を割り当てる (ponytail: Figma 追加時に差し替え)
 const CATEGORY_BADGE_COLORS: Readonly<Record<ExhibitionCategory, string>> = {
@@ -118,12 +106,12 @@ export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
 
   if (result.kind === 'error') {
     return (
-      <main className="mx-auto max-w-[1440px] space-y-6 px-4 py-8 lg:px-20 lg:py-12">
-        <BackLink />
+      <div className="mx-auto max-w-[1440px] space-y-6 px-4 py-8 lg:px-20 lg:py-12">
+        <BackLink href="/exhibitions" label="企画一覧へ戻る" />
         <p role="alert">
           企画情報の取得に失敗しました。しばらくしてから再度お試しください。
         </p>
-      </main>
+      </div>
     );
   }
 
@@ -134,8 +122,8 @@ export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
     areasResult.kind === 'loaded' ? areasResult.value : [];
 
   return (
-    <main className="mx-auto flex max-w-[1440px] flex-col gap-6 px-4 pt-4 pb-12 lg:gap-8 lg:px-20 lg:pt-8 lg:pb-20">
-      <BackLink />
+    <div className="mx-auto flex max-w-[1440px] flex-col gap-6 px-4 pt-4 pb-12 lg:gap-8 lg:px-20 lg:pt-8 lg:pb-20">
+      <BackLink href="/exhibitions" label="企画一覧へ戻る" />
 
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-12">
         <div className="lg:w-[640px] lg:shrink-0">
@@ -182,6 +170,6 @@ export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
       )}
 
       <ExhibitionLocationSection exhibition={exhibition} areas={areas} />
-    </main>
+    </div>
   );
 }

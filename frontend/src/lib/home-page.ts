@@ -16,17 +16,16 @@ export async function getHomePage(
   phase: FestivalPhase,
 ): Promise<HomePageContent> {
   const metaResult = await cms.findGlobal('festival_meta', { depth: 1 });
-  if (!metaResult.ok) throw new Error('祭メタ情報の取得に失敗しました');
-  const meta = metaResult.value;
+  const meta = metaResult.ok ? metaResult.value : null;
 
-  const festival: FestivalOverview = {
+  const festival: FestivalOverview | null = meta && {
     name: meta.name || '',
     eventDays: toEventDays(meta.event_days),
     overviewHtml: meta.overview_html || null,
     heroImageId: toMediaId(meta.hero_image),
   };
 
-  const theme: FestivalTheme = {
+  const theme: FestivalTheme | null = meta && {
     word: meta.theme_word || null,
     imageId: toMediaId(meta.theme_image),
     descriptionHtml: meta.theme_description_html || null,
@@ -54,7 +53,8 @@ export async function getHomePage(
     phase === 'pre_event'
       ? null
       : await cms.findMany('topics', {
-          sort: ['sort'],
+          where: publishedFilter(),
+          sort: ['-published_at'],
           limit: 0,
           depth: 1,
         });
@@ -65,22 +65,21 @@ export async function getHomePage(
     title: t.title,
     body: t.body_html ?? null,
     imageId: toMediaId(t.image),
-    attachments: toAttachments(t.attachments),
   }));
 
   const pageHomeResult = await cms.findGlobal('page_home', { depth: 1 });
-  if (!pageHomeResult.ok) throw new Error('トップページの取得に失敗しました');
-  const pageHome = pageHomeResult.value;
+  const pageHome = pageHomeResult.ok ? pageHomeResult.value : null;
 
   return {
-    heroImages: toAttachments(pageHome.hero_images),
-    heroMessageHtml: pageHome.hero_message_html || '',
-    snsLinks: (meta.sns_links as SnsLink[]) || [],
+    heroImages: pageHome ? toAttachments(pageHome.hero_images) : [],
+    heroMessageHtml: pageHome ? pageHome.hero_message_html || null : null,
+    snsLinks: (meta?.sns_links as SnsLink[] | undefined) || [],
     festival,
     theme,
-    venueName: meta.venue_name || null,
-    campusMapUrl: meta.campus_map_url || null,
-    contactFormUrl: meta.contact_form_url || null,
+    venueName: meta?.venue_name || null,
+    campusMapUrl: meta?.campus_map_url || null,
+    contactFormUrl: meta?.contact_form_url || null,
+    accessSummary: meta?.access_summary || null,
     announcements,
     topics,
   };

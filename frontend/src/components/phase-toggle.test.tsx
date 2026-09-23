@@ -74,4 +74,22 @@ describe('PhaseToggle', () => {
     expect(document.cookie).not.toContain(`${PHASE_OVERRIDE_COOKIE}=live`);
     expect(refresh).toHaveBeenCalledTimes(1);
   });
+
+  it('開催中フェーズでは 1024px 未満で下部ナビゲーションの上へずらす', () => {
+    const { container } = render(
+      <PhaseToggle resolved={{ phase: 'live', source: 'constant' }} />,
+    );
+    expect(container.firstChild).toHaveClass(
+      'max-lg:bottom-[calc(4rem+1rem+env(safe-area-inset-bottom))]',
+    );
+  });
+
+  it('開催前フェーズでは下部ナビゲーションが出ないため、ずらさない', () => {
+    const { container } = render(
+      <PhaseToggle resolved={{ phase: 'pre_event', source: 'constant' }} />,
+    );
+    expect(container.firstChild).not.toHaveClass(
+      'max-lg:bottom-[calc(4rem+1rem+env(safe-area-inset-bottom))]',
+    );
+  });
 });

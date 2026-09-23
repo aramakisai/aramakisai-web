@@ -14,28 +14,26 @@ vi.mock('@/env', () => ({
 }));
 
 describe('TopicsPage', () => {
-  it('トピックス一覧が表示される', async () => {
+  it('トピック一覧が表示される', async () => {
     vi.mocked(topicsModule.getTopics).mockResolvedValue([
       {
         id: 1,
         title: 'トピック1',
         body: '本文1',
         imageId: null,
-        attachments: [],
       },
       {
         id: 2,
         title: 'トピック2',
         body: '本文2',
         imageId: null,
-        attachments: [],
       },
     ]);
 
     render(await TopicsPage());
 
     expect(
-      screen.getByRole('heading', { name: 'トピックス' }),
+      screen.getByRole('heading', { name: 'トピック' }),
     ).toBeInTheDocument();
     expect(screen.getByText('トピック1')).toBeInTheDocument();
     expect(screen.getByText('トピック2')).toBeInTheDocument();
@@ -47,9 +45,9 @@ describe('TopicsPage', () => {
     render(await TopicsPage());
 
     expect(
-      screen.getByRole('heading', { name: 'トピックス' }),
+      screen.getByRole('heading', { name: 'トピック' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('トピックスはありません')).toBeInTheDocument();
+    expect(screen.getByText('トピックはありません')).toBeInTheDocument();
   });
 
   it('取得エラー時は空状態メッセージにフォールバックして表示', async () => {
@@ -60,8 +58,8 @@ describe('TopicsPage', () => {
     render(await TopicsPage());
 
     expect(
-      screen.getByRole('heading', { name: 'トピックス' }),
+      screen.getByRole('heading', { name: 'トピック' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('トピックスはありません')).toBeInTheDocument();
+    expect(screen.getByText('トピックはありません')).toBeInTheDocument();
   });
 });

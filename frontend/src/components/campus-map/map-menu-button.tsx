@@ -1,18 +1,20 @@
 'use client';
 
-import { useEffect, useId, useRef, useState } from 'react';
-import Link from 'next/link';
-import { navigationItems } from '@/components/header';
-import { visibleNavItems, type FestivalPhase } from '@/lib/phase';
-
-const FOCUSABLE_SELECTOR = 'a[href]';
+import { useId, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
+import { navigationItemsByPhase } from '@/lib/navigation';
+import type { FestivalPhase } from '@/lib/phase';
+import { MenuIcon } from '@/components/icons';
+import { useFocusTrap } from '@/lib/use-focus-trap';
+import { NavigationMenuRows } from '@/components/navigation-menu-rows';
 
 export interface MapMenuButtonProps {
   readonly phase: FestivalPhase;
 }
 
 export function MapMenuButton({ phase }: MapMenuButtonProps) {
-  const items = visibleNavItems(navigationItems, phase);
+  const pathname = usePathname();
+  const items = navigationItemsByPhase[phase];
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -23,39 +25,14 @@ export function MapMenuButton({ phase }: MapMenuButtonProps) {
     triggerRef.current?.focus();
   };
 
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const focusables = Array.from(
-      dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR) ??
-        [],
-    );
-    focusables[0]?.focus();
-
-    // Leaflet 側にも独自の keydown ハンドラがあるため、地図より確実に先に処理させるには
-    // document で捕捉するしかない (要件 10.3)
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        close();
-        return;
-      }
-      if (event.key !== 'Tab' || focusables.length === 0) return;
-
-      const first = focusables[0];
-      const last = focusables[focusables.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
+  useFocusTrap({
+    active: isOpen,
+    containerRef: dialogRef,
+    originRef: triggerRef,
+    onClose: () => setIsOpen(false),
+    // 子項目の開閉ボタンも循環対象に含める (NavigationMenuRows が描画する)
+    focusableSelector: 'a[href], button',
+  });
 
   return (
     <>
@@ -66,17 +43,10 @@ export function MapMenuButton({ phase }: MapMenuButtonProps) {
         aria-expanded={isOpen}
         aria-controls={dialogId}
         onClick={() => setIsOpen(true)}
-        className="map-menu-button-position fixed right-[max(1rem,env(safe-area-inset-right))] z-[1100] flex h-[var(--map-toolbar-size)] w-[var(--map-toolbar-size)] items-center justify-center rounded-full bg-white/90 text-slate-900 shadow-lg backdrop-blur focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600"
+        className="map-menu-button-position fixed right-[max(1rem,env(safe-area-inset-right))] z-[1100] flex h-[var(--map-toolbar-size)] w-[var(--map-toolbar-size)] items-center justify-center rounded-full border border-gray-200 bg-white text-text shadow-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary lg:right-[max(1.5rem,env(safe-area-inset-right))]"
       >
         <span className="sr-only">メニューを開く</span>
-        <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-6">
-          <path
-            d="M2 5h20M2 12h20M2 19h20"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </svg>
+        <MenuIcon size={24} />
       </button>
 
       {isOpen && (
@@ -93,37 +63,15 @@ export function MapMenuButton({ phase }: MapMenuButtonProps) {
             aria-modal="true"
             aria-label="サイト内メニュー"
             onClick={(event) => event.stopPropagation()}
-            className="absolute top-[max(4.5rem,calc(env(safe-area-inset-top)+4rem))] right-[max(1rem,env(safe-area-inset-right))] w-64 max-w-[calc(100vw-2rem)] rounded-2xl bg-white p-2 shadow-xl"
+            className="absolute top-[max(4.5rem,calc(env(safe-area-inset-top)+4rem))] right-[max(1rem,env(safe-area-inset-right))] w-64 max-w-[calc(100vw-2rem)] rounded-2xl bg-white p-2 shadow-card lg:top-[calc(5rem+env(safe-area-inset-top))] lg:right-[max(1.5rem,env(safe-area-inset-right))]"
           >
             <nav aria-label="サイト内ナビゲーション">
-              <ul>
-                {items.map((item) => (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      onClick={close}
-                      className="block rounded-lg px-3 py-2 text-slate-900 hover:bg-slate-100"
-                    >
-                      {item.label}
-                    </Link>
-                    {item.children && (
-                      <ul className="pl-3">
-                        {item.children.map((child) => (
-                          <li key={child.href}>
-                            <Link
-                              href={child.href}
-                              onClick={close}
-                              className="block rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
-                            >
-                              {child.label}
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </li>
-                ))}
-              </ul>
+              <NavigationMenuRows
+                items={items}
+                pathname={pathname}
+                idPrefix="map-menu"
+                onNavigate={close}
+              />
             </nav>
           </div>
         </div>

@@ -8,39 +8,66 @@ vi.mock('@/env', () => ({
   },
 }));
 
+vi.mock('@/lib/cms-asset-url', () => ({
+  toAssetUrl: (id: string | null) =>
+    id ? `https://example.com/assets/${id}` : null,
+}));
+
 describe('TopicsList', () => {
   const topics = [
-    {
-      id: 1,
-      title: 'Topic 1',
-      body: '<p>Body 1</p>',
-      imageId: 'img1',
-      attachments: [],
-    },
-    {
-      id: 2,
-      title: 'Topic 2',
-      body: null,
-      imageId: null,
-      attachments: [],
-    },
+    { id: 1, title: 'Topic 1', imageId: 'img1' },
+    { id: 2, title: 'Topic 2', imageId: null },
   ];
 
-  test('renders topics array with images, bodies and links', () => {
+  test('渡された順にトピックカードを並べる', () => {
     render(<TopicsList topics={topics} />);
 
-    expect(
-      screen.getByRole('heading', { level: 3, name: 'Topic 1' }),
-    ).toBeInTheDocument();
-    expect(screen.getByText('Body 1')).toBeInTheDocument();
-    const img1 = screen.getByAltText('Topic 1');
-    expect(img1).toHaveAttribute('src', expect.stringContaining('img1'));
+    const links = screen.getAllByRole('link');
+    expect(links).toHaveLength(2);
+    expect(links[0]).toHaveAttribute('href', '/topics/1');
+    expect(links[1]).toHaveAttribute('href', '/topics/2');
+    expect(screen.getByText('Topic 1')).toBeInTheDocument();
+    expect(screen.getByText('Topic 2')).toBeInTheDocument();
+  });
 
+  test('0件のとき何も描画しない', () => {
+    const { container } = render(<TopicsList topics={[]} />);
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  test('variant="scroll" は 4 枚までに絞り「トピック一覧へ」を添える (design.md Requirement 3)', () => {
+    const many = Array.from({ length: 6 }, (_, i) => ({
+      id: i + 1,
+      title: `Topic ${i + 1}`,
+      imageId: null,
+    }));
+
+    render(<TopicsList topics={many} variant="scroll" />);
+
+    expect(screen.getAllByRole('link', { name: /^Topic \d$/ })).toHaveLength(4);
+    const seeAllLink = screen.getByRole('link', { name: /トピック一覧へ/ });
+    expect(seeAllLink).toHaveAttribute('href', '/topics');
+  });
+
+  test('variant="scroll" でも 0 件のとき何も描画しない', () => {
+    const { container } = render(<TopicsList topics={[]} variant="scroll" />);
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  test('variant を省略すると従来どおり件数を絞らず一覧導線も出さない', () => {
+    const many = Array.from({ length: 6 }, (_, i) => ({
+      id: i + 1,
+      title: `Topic ${i + 1}`,
+      imageId: null,
+    }));
+
+    render(<TopicsList topics={many} />);
+
+    expect(screen.getAllByRole('link')).toHaveLength(6);
     expect(
-      screen.getByRole('heading', { level: 3, name: 'Topic 2' }),
-    ).toBeInTheDocument();
-    expect(screen.queryByText('Body 2')).not.toBeInTheDocument();
-    const img2 = screen.getByAltText('Topic 2');
-    expect(img2).toHaveAttribute('src', '/images/no-image.svg');
+      screen.queryByRole('link', { name: /トピック一覧へ/ }),
+    ).not.toBeInTheDocument();
   });
 });

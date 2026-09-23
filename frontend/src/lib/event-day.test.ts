@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
+  formatCountdownLabel,
   formatEventDayLabel,
+  formatEventDaySchedule,
+  formatEventDaysSummary,
   formatEventDayTime,
   getDaysUntilEventDay,
   toEventDays,
@@ -92,5 +95,50 @@ describe('toEventDays', () => {
   it('null/undefined の event_days は空配列を返す', () => {
     expect(toEventDays(null)).toEqual([]);
     expect(toEventDays(undefined)).toEqual([]);
+  });
+});
+
+describe('formatEventDaySchedule', () => {
+  it('曜日・呼び名を含めず月日と開場〜終了時刻を表す', () => {
+    expect(
+      formatEventDaySchedule({
+        label: '1日目',
+        startAt: '2026-11-14T01:00:00.000Z',
+        endAt: '2026-11-14T08:30:00.000Z',
+      }),
+    ).toBe('11月14日 10:00〜17:30');
+  });
+});
+
+describe('formatEventDaysSummary', () => {
+  it('複数の開催日を／で連結する', () => {
+    expect(
+      formatEventDaysSummary([
+        {
+          label: null,
+          startAt: '2026-11-14T01:00:00.000Z',
+          endAt: '2026-11-14T08:30:00.000Z',
+        },
+        {
+          label: null,
+          startAt: '2026-11-15T01:00:00.000Z',
+          endAt: '2026-11-15T07:30:00.000Z',
+        },
+      ]),
+    ).toBe('11月14日 10:00〜17:30／11月15日 10:00〜16:30');
+  });
+
+  it('開催日が0件なら null を返す', () => {
+    expect(formatEventDaysSummary([])).toBeNull();
+  });
+});
+
+describe('formatCountdownLabel', () => {
+  it('残り日数をラベルに埋め込む', () => {
+    expect(formatCountdownLabel(54)).toBe('開催まであと 54 日');
+  });
+
+  it('開催日を過ぎた負の日数は 0 に丸める', () => {
+    expect(formatCountdownLabel(-3)).toBe('開催まであと 0 日');
   });
 });

@@ -10,6 +10,7 @@ import {
   normalizeText,
   paginate,
   parseExhibitionQuery,
+  pickRandomExhibitions,
   type ExhibitionCardSummary,
   type ExhibitionQuery,
 } from './exhibitions';
@@ -303,6 +304,45 @@ describe('CATEGORY_LABELS', () => {
       vendor: '出店',
       other: 'その他',
     });
+  });
+});
+
+describe('pickRandomExhibitions', () => {
+  const source: ExhibitionCardSummary[] = Array.from(
+    { length: 10 },
+    (_, i) => ({
+      id: i + 1,
+      category: 'exhibit',
+      displayName: `企画${i + 1}`,
+      organizationName: '団体',
+      location: null,
+      areaIds: [],
+      thumbnail: null,
+    }),
+  );
+
+  it('指定件数だけ返し、すべて元の配列に含まれる一意な要素である', () => {
+    const picked = pickRandomExhibitions(source, 4);
+    expect(picked).toHaveLength(4);
+    expect(new Set(picked.map((e) => e.id)).size).toBe(4);
+    for (const item of picked) {
+      expect(source).toContainEqual(item);
+    }
+  });
+
+  it('要素数が指定件数より少ないときは全件を返す', () => {
+    const short = source.slice(0, 2);
+    expect(pickRandomExhibitions(short, 4)).toHaveLength(2);
+  });
+
+  it('空配列を渡すと空配列を返す', () => {
+    expect(pickRandomExhibitions([], 4)).toEqual([]);
+  });
+
+  it('元の配列を変更しない', () => {
+    const copy = [...source];
+    pickRandomExhibitions(source, 4);
+    expect(source).toEqual(copy);
   });
 });
 
