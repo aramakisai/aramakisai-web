@@ -11,7 +11,13 @@ type PublishedWhere = { published_at?: { exists?: boolean } };
 const META = {
   name: '荒牧祭',
   sns_links: [{ platform: 'twitter', url: 'https://twitter.com' }],
-  event_days: [{ label: '1日目', open: '09:00', close: '17:00' }],
+  event_days: [
+    {
+      label: '1日目',
+      start_at: '2026-09-27T00:00:00.000Z',
+      end_at: '2026-09-27T08:00:00.000Z',
+    },
+  ],
   overview_html: '<p>Overview</p>',
   hero_image: { id: 91, filename: 'meta_hero1.webp', mimeType: 'image/webp' },
   theme_word: '万彩',
@@ -31,16 +37,6 @@ const PAGE_HOME = {
 };
 
 const LISTS: Record<string, unknown[]> = {
-  sponsors: [
-    {
-      id: 3,
-      type: 'sponsor',
-      name: 'S1',
-      logo: { id: 31, filename: 'logo1.webp', mimeType: 'image/webp' },
-      url: 'https://sponsor.example.com',
-      tier: null,
-    },
-  ],
   announcements: [
     {
       id: 1,
@@ -95,7 +91,13 @@ describe('getHomePage', () => {
     ]);
     expect(result.festival).toEqual({
       name: '荒牧祭',
-      eventDays: [{ label: '1日目', open: '09:00', close: '17:00' }],
+      eventDays: [
+        {
+          label: '1日目',
+          startAt: '2026-09-27T00:00:00.000Z',
+          endAt: '2026-09-27T08:00:00.000Z',
+        },
+      ],
       overviewHtml: '<p>Overview</p>',
       heroImageId: '91',
     });
@@ -119,16 +121,6 @@ describe('getHomePage', () => {
           { id: '11', filenameDownload: 'f1.png', type: 'image/png' },
           { id: '12', filenameDownload: 'f2.pdf', type: 'application/pdf' },
         ],
-      },
-    ]);
-    expect(result.sponsors).toEqual([
-      {
-        id: 3,
-        type: 'sponsor',
-        name: 'S1',
-        logoId: '31',
-        url: 'https://sponsor.example.com',
-        tier: null,
       },
     ]);
     expect(result.topics).toEqual([
@@ -207,7 +199,6 @@ describe('getHomePage', () => {
 
     expect(result.announcements).toEqual([]);
     expect(result.topics).toEqual([]);
-    expect(result.sponsors).toEqual([]);
     expect(result.heroMessageHtml).toBe('<p>Hello</p>');
   });
 

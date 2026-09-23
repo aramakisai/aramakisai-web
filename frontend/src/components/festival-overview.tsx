@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatEventDayLabel, formatEventDayTime } from '../lib/event-day';
 import { FestivalOverview as FestivalOverviewData } from '../lib/home-page-types';
 
 export interface FestivalOverviewProps {
@@ -19,10 +20,11 @@ export function FestivalOverview({ festival }: FestivalOverviewProps) {
           <h3 className="text-sm font-semibold text-gray-500 mb-2">開催日程</h3>
           <ul className="space-y-1">
             {eventDays.map((day, index) => (
-              <li key={`${day.label}-${index}`} className="text-lg font-bold">
-                {day.label}
+              <li key={`${day.startAt}-${index}`} className="text-lg font-bold">
+                {day.label ?? formatEventDayLabel(day.startAt)}
                 <span className="ml-2 text-sm font-normal text-gray-600">
-                  {day.open} - {day.close}
+                  {formatEventDayTime(day.startAt)} -{' '}
+                  {formatEventDayTime(day.endAt)}
                 </span>
               </li>
             ))}

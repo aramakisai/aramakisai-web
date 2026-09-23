@@ -1,6 +1,8 @@
 import { lexicalHTMLField } from '@payloadcms/richtext-lexical';
 import type { CollectionConfig } from 'payload';
 
+import { richTextHTMLConverters } from '../lib/rich-text-html-converters';
+
 export const Pages: CollectionConfig = {
   slug: 'pages',
   labels: { singular: '固定ページ', plural: '固定ページ' },
@@ -35,6 +37,7 @@ export const Pages: CollectionConfig = {
       htmlFieldName: 'content_html',
       lexicalFieldName: 'content',
       storeInDB: true,
+      converters: richTextHTMLConverters,
     }),
     {
       name: 'embed_url',

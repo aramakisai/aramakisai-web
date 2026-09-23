@@ -1,5 +1,6 @@
 import { cms } from './cms';
 import { toMediaId } from './cms-media';
+import { toEventDays } from './event-day';
 import { FestivalOverview } from './home-page-types';
 
 export async function getFestivalMeta(): Promise<FestivalOverview> {
@@ -9,7 +10,7 @@ export async function getFestivalMeta(): Promise<FestivalOverview> {
 
   return {
     name: meta.name || '',
-    eventDays: (meta.event_days as FestivalOverview['eventDays']) || [],
+    eventDays: toEventDays(meta.event_days),
     overviewHtml: meta.overview_html ?? null,
     heroImageId: toMediaId(meta.hero_image),
   };

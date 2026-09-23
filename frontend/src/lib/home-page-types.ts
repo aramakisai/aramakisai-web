@@ -26,9 +26,9 @@ export interface TopicSummary {
 }
 
 export interface EventDay {
-  label: string;
-  open: string;
-  close: string;
+  label: string | null;
+  startAt: string;
+  endAt: string;
 }
 
 export interface FestivalOverview {
@@ -44,14 +44,7 @@ export interface FestivalTheme {
   descriptionHtml: string | null;
 }
 
-export interface SponsorSummary {
-  id: number;
-  type: 'ad' | 'sponsor' | 'food_truck' | 'other';
-  name: string;
-  logoId: string | null;
-  url: string | null;
-  tier: string | null;
-}
+export type SponsorType = 'ad' | 'local' | 'vendor' | 'other';
 
 export interface HomePageContent {
   heroImages: Attachment[];
@@ -62,7 +55,6 @@ export interface HomePageContent {
   venueName: string | null;
   campusMapUrl: string | null;
   contactFormUrl: string | null;
-  sponsors: SponsorSummary[];
   announcements: AnnouncementSummary[];
   topics: TopicSummary[];
 }

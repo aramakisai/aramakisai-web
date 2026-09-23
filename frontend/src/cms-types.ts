@@ -340,17 +340,17 @@ export interface Page {
  */
 export interface Sponsor {
   id: number;
-  type: 'ad' | 'sponsor' | 'food_truck' | 'other';
+  type: ('ad' | 'local' | 'vendor' | 'other')[];
   name: string;
   logo?: (number | null) | Media;
   url?: string | null;
   description?: string | null;
   /**
-   * 地元協賛のみ
+   * 地域協賛のみ
    */
   business_category?: string | null;
   /**
-   * 地元協賛のみ
+   * 地域協賛のみ
    */
   address?: string | null;
   /**
@@ -358,13 +358,16 @@ export interface Sponsor {
    */
   tier?: ('planA' | 'planB' | 'planC' | 'planD') | null;
   /**
-   * 広告協賛はNULL
+   * 出店協賛のみ
    */
   area_id?: (number | null) | MapArea;
   /**
-   * エリア内番号 (area_id+booth_number UNIQUE)
+   * エリア内番号 (area_id+booth_number UNIQUE)。出店協賛のみ
    */
   booth_number?: number | null;
+  /**
+   * 出店協賛のみ
+   */
   booth_label?: string | null;
   sort?: number | null;
   updatedAt: string;
@@ -959,17 +962,16 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
 export interface FestivalMeta {
   id: number;
   name: string;
-  /**
-   * 日ごと開催時間 [{label, open, close}]
-   */
   event_days?:
     | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
+        start_at: string;
+        end_at: string;
+        /**
+         * 例: 1日目。未入力時は開場日時から生成する
+         */
+        label?: string | null;
+        id?: string | null;
+      }[]
     | null;
   parking_map?: (number | null) | Media;
   sns_links?:
@@ -1029,6 +1031,10 @@ export interface FestivalMeta {
    * HTMLのtitleタグ用
    */
   site_title?: string | null;
+  /**
+   * 最寄り駅・バス等からの行き方を数行で。詳細はアクセスページが担う
+   */
+  access_summary?: string | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1070,7 +1076,14 @@ export interface PageHome {
  */
 export interface FestivalMetaSelect<T extends boolean = true> {
   name?: T;
-  event_days?: T;
+  event_days?:
+    | T
+    | {
+        start_at?: T;
+        end_at?: T;
+        label?: T;
+        id?: T;
+      };
   parking_map?: T;
   sns_links?: T;
   overview?: T;
@@ -1084,6 +1097,7 @@ export interface FestivalMetaSelect<T extends boolean = true> {
   contact_form_url?: T;
   theme_image?: T;
   site_title?: T;
+  access_summary?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

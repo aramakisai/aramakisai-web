@@ -12,8 +12,16 @@ vi.mock('@/env', () => ({
 const festival: FestivalOverview = {
   name: '荒牧祭',
   eventDays: [
-    { label: '11月14日', open: '10:00', close: '17:30' },
-    { label: '11月15日', open: '10:00', close: '16:30' },
+    {
+      label: '11月14日',
+      startAt: '2026-11-14T01:00:00.000Z',
+      endAt: '2026-11-14T08:30:00.000Z',
+    },
+    {
+      label: '11月15日',
+      startAt: '2026-11-15T01:00:00.000Z',
+      endAt: '2026-11-15T07:30:00.000Z',
+    },
   ],
   overviewHtml: '<p>群馬大学荒牧キャンパスを彩る学園祭。</p>',
   heroImageId: null,
@@ -128,6 +136,30 @@ describe('AboutSection', () => {
     expect(screen.queryByTestId('campus-map')).not.toBeInTheDocument();
     expect(screen.queryByTestId('theme-visual')).not.toBeInTheDocument();
     expect(screen.queryByTestId('theme-description')).not.toBeInTheDocument();
+  });
+
+  test('表示ラベルが未設定の日は開場日時から生成した文言を出す', () => {
+    render(
+      <AboutSection
+        festival={{
+          ...festival,
+          eventDays: [
+            {
+              label: null,
+              startAt: '2026-11-14T01:00:00.000Z',
+              endAt: '2026-11-14T08:30:00.000Z',
+            },
+          ],
+        }}
+        theme={emptyTheme}
+        venueName={null}
+        campusMapUrl={null}
+      />,
+    );
+
+    const cards = screen.getAllByTestId('schedule-card');
+    expect(cards[0]).toHaveTextContent('11月14日(土)');
+    expect(cards[0]).toHaveTextContent('10:00〜17:30');
   });
 
   test('hides only the map when the URL is not a Google Maps embed URL', () => {

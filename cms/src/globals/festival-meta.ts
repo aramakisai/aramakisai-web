@@ -14,9 +14,30 @@ export const FestivalMeta: GlobalConfig = {
     },
     {
       name: 'event_days',
-      type: 'json',
+      type: 'array',
       label: '開催日程',
-      admin: { description: '日ごと開催時間 [{label, open, close}]' },
+      fields: [
+        {
+          name: 'start_at',
+          type: 'date',
+          required: true,
+          label: '開場日時',
+          admin: { date: { pickerAppearance: 'dayAndTime' } },
+        },
+        {
+          name: 'end_at',
+          type: 'date',
+          required: true,
+          label: '終了日時',
+          admin: { date: { pickerAppearance: 'dayAndTime' } },
+        },
+        {
+          name: 'label',
+          type: 'text',
+          label: '表示ラベル',
+          admin: { description: '例: 1日目。未入力時は開場日時から生成する' },
+        },
+      ],
     },
     {
       name: 'parking_map',
@@ -93,6 +114,12 @@ export const FestivalMeta: GlobalConfig = {
       maxLength: 255,
       label: 'サイトタイトル',
       admin: { description: 'HTMLのtitleタグ用' },
+    },
+    {
+      name: 'access_summary',
+      type: 'textarea',
+      label: 'アクセス文言',
+      admin: { description: '最寄り駅・バス等からの行き方を数行で。詳細はアクセスページが担う' },
     },
   ],
 };
