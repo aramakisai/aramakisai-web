@@ -1,5 +1,5 @@
 /**
- * ローカル開発用シード: announcements / topics / sponsors / festival_meta / pages に
+ * ローカル開発用シード: announcements / topics / sponsors / festival_meta / page_home / pages に
  * フロントエンドのデザイン確認に足る件数・バリエーションを投入する。
  *
  * 実行例:
@@ -257,9 +257,20 @@ async function main() {
   console.log(`sponsors: ${SPONSORS.length} 件作成`);
 
   // 5. festival_meta (カウントダウン表示のため常に未来日になるよう実行時刻起点で算出する)
-  const startAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-  const endAt = new Date(Date.now() + 31 * 24 * 60 * 60 * 1000);
-  const dayAfter = new Date(endAt.getTime() + 24 * 60 * 60 * 1000);
+  // event_days は開場〜終了の実開催時間帯 (JST) を表すため、24時間経過ではなく
+  // 同一日の朝開場・夕方終了という形にする (hero-section.tsx の表示例と同じ形)。
+  const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+  function jstDateTimeIso(daysFromNow: number, hour: number, minute: number): string {
+    const jstNow = new Date(Date.now() + daysFromNow * 24 * 60 * 60 * 1000 + JST_OFFSET_MS);
+    const utcMs = Date.UTC(
+      jstNow.getUTCFullYear(),
+      jstNow.getUTCMonth(),
+      jstNow.getUTCDate(),
+      hour - 9,
+      minute,
+    );
+    return new Date(utcMs).toISOString();
+  }
   // name は required のため、初期状態 (未設定) のローカル DB では event_days/access_summary
   // だけの部分更新がバリデーションで弾かれる。既に値がある場合は上書きしない。
   const currentFestivalMeta = await payload.findGlobal({ slug: 'festival_meta' });
@@ -268,16 +279,28 @@ async function main() {
     data: {
       name: currentFestivalMeta.name ?? '荒牧祭',
       event_days: [
-        { start_at: startAt.toISOString(), end_at: endAt.toISOString(), label: '1日目' },
-        { start_at: endAt.toISOString(), end_at: dayAfter.toISOString(), label: '2日目' },
+        { start_at: jstDateTimeIso(30, 10, 0), end_at: jstDateTimeIso(30, 17, 30), label: '1日目' },
+        { start_at: jstDateTimeIso(31, 10, 0), end_at: jstDateTimeIso(31, 16, 30), label: '2日目' },
       ],
       access_summary:
         '群馬大学荒牧キャンパスまでは、JR前橋駅からバスで約20分、上毛電鉄中央前橋駅から徒歩約25分です。当日は臨時駐車場もご利用いただけます。',
+      overview: toLexical(
+        '<p>荒牧祭は群馬大学荒牧キャンパスで開催される学園祭です。学生団体による模擬店や展示、ステージ企画など、多彩な催しを2日間にわたってお届けします (シードデータ)。</p>',
+      ),
     },
   });
   console.log('festival_meta 更新');
 
-  // 6. pages (既存分はスキップし、不足分のみ最小構成で作成する)
+  // 6. page_home (トップページのヒーロー画像。既存の投入済み画像を流用する)
+  await payload.updateGlobal({
+    slug: 'page_home',
+    data: {
+      hero_images: imageMediaIds.slice(0, 3),
+    },
+  });
+  console.log('page_home 更新');
+
+  // 7. pages (既存分はスキップし、不足分のみ最小構成で作成する)
   const PAGES = [
     { slug: 'guidelines', title: '来場ガイドライン', content: '<p>来場にあたってのお願い事項です (シードデータ)。</p>', sort: 1 },
     { slug: 'info-desk', title: '総合案内所', content: '<p>総合案内所の場所と対応内容です (シードデータ)。</p>', sort: 2 },
