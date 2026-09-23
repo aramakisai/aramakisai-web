@@ -56,9 +56,6 @@ const LISTS: Record<string, unknown[]> = {
       title: 'T1',
       body_html: 'B2',
       image: { id: 21, filename: 'img1.webp', mimeType: 'image/webp' },
-      attachments: [
-        { id: 13, filename: 'f3.pdf', mimeType: 'application/pdf' },
-      ],
     },
   ],
 };
@@ -151,14 +148,6 @@ describe('getHomePage', () => {
         title: 'T1',
         body: 'B2',
         imageId: '21',
-        attachments: [
-          {
-            id: '13',
-            filenameDownload: 'f3.pdf',
-            type: 'application/pdf',
-            filesize: null,
-          },
-        ],
       },
     ]);
   });
@@ -311,14 +300,6 @@ describe('getHomePage の phase 引数によるトピックス取得の抑止', 
         title: 'T1',
         body: 'B2',
         imageId: '21',
-        attachments: [
-          {
-            id: '13',
-            filenameDownload: 'f3.pdf',
-            type: 'application/pdf',
-            filesize: null,
-          },
-        ],
       },
     ]);
   });

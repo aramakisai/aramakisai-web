@@ -65,7 +65,6 @@ export async function getHomePage(
     title: t.title,
     body: t.body_html ?? null,
     imageId: toMediaId(t.image),
-    attachments: toAttachments(t.attachments),
   }));
 
   const pageHomeResult = await cms.findGlobal('page_home', { depth: 1 });

@@ -22,10 +22,6 @@ describe('getTopics', () => {
             title: 'Topic 1',
             body_html: 'Body 1',
             image: { id: 7, filename: 'img1.webp', mimeType: 'image/webp' },
-            attachments: [
-              { id: 11, filename: 'test1.pdf', mimeType: 'application/pdf' },
-              { id: 12, filename: 'test2.pdf', mimeType: 'application/pdf' },
-            ],
           },
         ],
       },
@@ -39,20 +35,6 @@ describe('getTopics', () => {
         title: 'Topic 1',
         body: 'Body 1',
         imageId: '7',
-        attachments: [
-          {
-            id: '11',
-            filenameDownload: 'test1.pdf',
-            type: 'application/pdf',
-            filesize: null,
-          },
-          {
-            id: '12',
-            filenameDownload: 'test2.pdf',
-            type: 'application/pdf',
-            filesize: null,
-          },
-        ],
       },
     ]);
 
@@ -82,9 +64,6 @@ describe('getTopicById', () => {
         title: 'Topic 1',
         body_html: 'Body 1',
         image: 7,
-        attachments: [
-          { id: 11, filename: 'test1.pdf', mimeType: 'application/pdf' },
-        ],
       },
     } as never);
 
@@ -95,14 +74,6 @@ describe('getTopicById', () => {
       title: 'Topic 1',
       body: 'Body 1',
       imageId: '7',
-      attachments: [
-        {
-          id: '11',
-          filenameDownload: 'test1.pdf',
-          type: 'application/pdf',
-          filesize: null,
-        },
-      ],
     });
     expect(cms.findById).toHaveBeenCalledWith('topics', 1, { depth: 1 });
   });

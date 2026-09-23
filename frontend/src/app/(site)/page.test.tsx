@@ -97,7 +97,6 @@ const content: HomePageContent = {
       title: 'トピック1',
       body: '本文',
       imageId: 'img-1',
-      attachments: [],
     },
   ],
 };

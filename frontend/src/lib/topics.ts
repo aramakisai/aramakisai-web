@@ -1,7 +1,7 @@
 import type { Topic } from '@/cms-types';
 import { publishedFilter } from './announcements';
 import { cms } from './cms';
-import { toAttachments, toMediaId } from './cms-media';
+import { toMediaId } from './cms-media';
 import { TopicSummary } from './home-page-types';
 
 function formatTopic(topic: Topic): TopicSummary {
@@ -10,7 +10,6 @@ function formatTopic(topic: Topic): TopicSummary {
     title: topic.title,
     body: topic.body_html ?? null,
     imageId: toMediaId(topic.image),
-    attachments: toAttachments(topic.attachments),
   };
 }
 

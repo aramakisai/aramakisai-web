@@ -23,7 +23,6 @@ export interface TopicSummary {
   title: string;
   body: string | null;
   imageId: string | null;
-  attachments: Attachment[];
 }
 
 export interface EventDay {
