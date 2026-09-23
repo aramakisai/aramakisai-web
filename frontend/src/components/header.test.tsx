@@ -288,6 +288,34 @@ describe('Header', () => {
     }
   });
 
+  test('header が SiteLayout の #page-container のように body の直接の子でなくても、header 自身の祖先を inert にしない (root cause: SP でメニュー項目タップ後に遷移しない)', () => {
+    // 実アプリでは header は body 直下ではなく #page-container 配下にネストされる
+    // (src/app/(site)/layout.tsx)。inert 化の対象を body.children の直接比較で
+    // 決めると、headerRef の祖先である #page-container ごと inert になり、
+    // header 自身 (開閉ボタン・メニュー内リンク) がヒットテストで拾えなくなる
+    const pageContainer = document.createElement('div');
+    pageContainer.id = 'page-container';
+    const mount = document.createElement('div');
+    pageContainer.append(mount);
+    const outsideSibling = document.createElement('main');
+    document.body.append(pageContainer, outsideSibling);
+
+    try {
+      render(<Header phase="pre_event" />, { container: mount });
+
+      fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
+
+      // header の祖先 (#page-container) が inert になると、その子孫である header
+      // 自身も操作不能になってしまうため、祖先側は inert にしてはいけない
+      expect(pageContainer).not.toHaveAttribute('inert');
+      // 一方、本来隠すべき外側要素は引き続き inert にする
+      expect(outsideSibling).toHaveAttribute('inert');
+    } finally {
+      pageContainer.remove();
+      outsideSibling.remove();
+    }
+  });
+
   test('外側の選択でメニューを閉じる', () => {
     render(<Header phase="pre_event" />);
 

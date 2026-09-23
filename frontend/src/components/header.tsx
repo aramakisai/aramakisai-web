@@ -65,8 +65,12 @@ export function Header({ phase }: HeaderProps) {
 
   // 開いている間は背面のスクロールを止め、ヘッダーの外側 (本文・フッター・下部
   // ナビゲーション) を inert にして支援技術の読み上げ・キーボード操作の対象から除外する
-  // (要件 7.14)。開閉ボタンはヘッダー要素の内側にあるため、document.body の直下を
-  // 走査して headerRef (ヘッダー要素自身) だけを除けば両方とも対象外にできる。
+  // (要件 7.14)。header は SiteLayout の #page-container 配下にあり document.body の
+  // 直接の子ではないため、body.children をそのまま除外走査すると headerRef の祖先
+  // (page-container) ごと inert になり、ヘッダー自身 (開閉ボタンやメニュー項目) への
+  // タップがヒットテストで body まで素通りしてしまう (要素は見えているのにクリックが
+  // 届かない状態になる)。headerRef から body まで祖先を辿り、各階層の兄弟要素だけを
+  // inert にすることで、ネストの深さに関わらずヘッダー自身は確実に除外する。
   // `.inert` プロパティではなく属性を直接操作するのは、jsdom がプロパティ側の反映を
   // 実装しておらずテストで検証できないため
   useEffect(() => {
@@ -75,9 +79,16 @@ export function Header({ phase }: HeaderProps) {
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
-    const outsideElements = Array.from(document.body.children).filter(
-      (el) => el !== headerRef.current,
-    );
+    const outsideElements: Element[] = [];
+    let node: Element | null = headerRef.current;
+    while (node && node !== document.body) {
+      const parent: Element | null = node.parentElement;
+      if (!parent) break;
+      for (const sibling of Array.from(parent.children)) {
+        if (sibling !== node) outsideElements.push(sibling);
+      }
+      node = parent;
+    }
     for (const el of outsideElements) {
       el.setAttribute('inert', '');
     }
