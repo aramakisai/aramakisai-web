@@ -12,6 +12,12 @@ export type InvitationResult =
 
 async function attemptSend(req: PayloadRequest, userId: number): Promise<InvitationResult> {
   try {
+    // 本番で SMTP_HOST 未設定はコンソール出力アダプタへの静かなフォールバックを意味し、
+    // 送信済みと誤記録されるため、送信前に検出して失敗として扱う。
+    if (optionalEnv('NODE_ENV') === 'production' && !optionalEnv('SMTP_HOST')) {
+      throw new Error('メール送信の設定がありません');
+    }
+
     const user = await req.payload.findByID({
       collection: 'users',
       id: userId,
