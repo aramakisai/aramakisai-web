@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { canCreate, canDelete, canRead, canUpdate } from './policy';
+import {
+  canCreate,
+  canDelete,
+  canRead,
+  canUpdate,
+  EXHIBITOR_VISIBLE,
+  isHiddenInAdmin,
+} from './policy';
 import type { CmsUser } from './roles';
 
 const NOW = '2026-08-27T00:00:00.000Z';
@@ -11,6 +18,7 @@ describe('canRead', () => {
   it('実行委員は全コレクションを無条件で読める', () => {
     expect(canRead(executive, 'student_exhibitions', NOW)).toBe(true);
     expect(canRead(executive, 'announcements', NOW)).toBe(true);
+    expect(canRead(executive, 'media', NOW)).toBe(true);
     expect(canRead(executive, 'users', NOW)).toBe(true);
   });
 
@@ -35,9 +43,31 @@ describe('canRead', () => {
     expect(canRead(null, 'users', NOW)).toBe(false);
   });
 
-  it('出展者は公開済みの学生企画に加えて自分のレコードを読める', () => {
+  it('出展者は学生企画について自分が所有者のものだけ読める (公開済み他団体は含まない)', () => {
     expect(canRead(exhibitor, 'student_exhibitions', NOW)).toEqual({
-      or: [{ status: { equals: 'published' } }, { owner: { equals: 'user-1' } }],
+      owner: { equals: 'user-1' },
+    });
+  });
+
+  it('出展者は自分のユーザーレコードだけ読める', () => {
+    expect(canRead(exhibitor, 'users', NOW)).toEqual({ id: { equals: 'user-1' } });
+  });
+
+  it('出展者以外に変わらず必要な公開 read はそのまま (マップエリア等)', () => {
+    expect(canRead(exhibitor, 'map_areas', NOW)).toBe(true);
+  });
+
+  it('出展者は自分が所有者のメディアだけ読める', () => {
+    expect(canRead(exhibitor, 'media', NOW)).toEqual({ owner: { equals: 'user-1' } });
+  });
+
+  it('未認証は所有者なし・実行委員所有・公開企画で使用中のメディアだけ読める', () => {
+    expect(canRead(null, 'media', NOW)).toEqual({
+      or: [
+        { owner: { exists: false } },
+        { 'owner.role': { equals: 'executive' } },
+        { used_in_published: { equals: true } },
+      ],
     });
   });
 });
@@ -48,12 +78,12 @@ describe('canCreate', () => {
     expect(canCreate(executive, 'student_exhibitions')).toBe(true);
   });
 
-  it('出展者は学生企画のみ作成できる', () => {
-    expect(canCreate(exhibitor, 'student_exhibitions')).toBe(true);
-  });
-
   it('出展者は画像をアップロードできる', () => {
     expect(canCreate(exhibitor, 'media')).toBe(true);
+  });
+
+  it('出展者は学生企画を作成できない (受け皿レコード方式)', () => {
+    expect(canCreate(exhibitor, 'student_exhibitions')).toBe(false);
   });
 
   it('出展者は他のコレクションを作成できない', () => {
@@ -72,18 +102,28 @@ describe('canUpdate', () => {
   it('実行委員はどのコレクションでも更新できる', () => {
     expect(canUpdate(executive, 'student_exhibitions')).toBe(true);
     expect(canUpdate(executive, 'sponsors')).toBe(true);
+    expect(canUpdate(executive, 'media')).toBe(true);
+    expect(canUpdate(executive, 'users')).toBe(true);
   });
 
-  it('出展者は所有者フィルタ付きで学生企画を更新できる', () => {
+  it('出展者は自分の下書きの学生企画だけ更新できる', () => {
     expect(canUpdate(exhibitor, 'student_exhibitions')).toEqual({
-      owner: { equals: 'user-1' },
+      and: [{ owner: { equals: 'user-1' } }, { status: { equals: 'draft' } }],
     });
+  });
+
+  it('出展者は自分が所有者かつ未使用のメディアだけ更新できる', () => {
+    expect(canUpdate(exhibitor, 'media')).toEqual({
+      and: [{ owner: { equals: 'user-1' } }, { used_in_published: { equals: false } }],
+    });
+  });
+
+  it('出展者は自分のユーザーレコードだけ更新できる', () => {
+    expect(canUpdate(exhibitor, 'users')).toEqual({ id: { equals: 'user-1' } });
   });
 
   it('出展者は他のコレクションを更新できない', () => {
     expect(canUpdate(exhibitor, 'announcements')).toBe(false);
-    expect(canUpdate(exhibitor, 'media')).toBe(false);
-    expect(canUpdate(exhibitor, 'users')).toBe(false);
   });
 
   it('未認証はいかなる更新もできない', () => {
@@ -92,17 +132,43 @@ describe('canUpdate', () => {
 });
 
 describe('canDelete', () => {
-  it('出展者は所有者フィルタ付きで学生企画を削除できる', () => {
-    expect(canDelete(exhibitor, 'student_exhibitions')).toEqual({
-      owner: { equals: 'user-1' },
+  it('出展者は学生企画を削除できない', () => {
+    expect(canDelete(exhibitor, 'student_exhibitions')).toBe(false);
+  });
+
+  it('出展者は自分が所有者かつ未使用のメディアだけ削除できる', () => {
+    expect(canDelete(exhibitor, 'media')).toEqual({
+      and: [{ owner: { equals: 'user-1' } }, { used_in_published: { equals: false } }],
     });
   });
 
-  it('出展者は他のコレクションを削除できない', () => {
-    expect(canDelete(exhibitor, 'media')).toBe(false);
+  it('出展者はユーザーを削除できない', () => {
+    expect(canDelete(exhibitor, 'users')).toBe(false);
   });
 
   it('未認証はいかなる削除もできない', () => {
     expect(canDelete(null, 'announcements')).toBe(false);
+  });
+});
+
+describe('isHiddenInAdmin', () => {
+  it('実行委員には何も隠さない', () => {
+    expect(isHiddenInAdmin(executive, 'users')).toBe(false);
+    expect(isHiddenInAdmin(executive, 'student_exhibitions')).toBe(false);
+    expect(isHiddenInAdmin(executive, 'media')).toBe(false);
+  });
+
+  it('出展者には学生企画とメディア以外を隠す', () => {
+    for (const slug of EXHIBITOR_VISIBLE) {
+      expect(isHiddenInAdmin(exhibitor, slug)).toBe(false);
+    }
+    expect(isHiddenInAdmin(exhibitor, 'users')).toBe(true);
+    expect(isHiddenInAdmin(exhibitor, 'announcements')).toBe(true);
+    expect(isHiddenInAdmin(exhibitor, 'festival_meta')).toBe(true);
+  });
+
+  it('未認証にも学生企画とメディア以外を隠す (管理画面には来ないが安全側に倒す)', () => {
+    expect(isHiddenInAdmin(null, 'users')).toBe(true);
+    expect(isHiddenInAdmin(null, 'student_exhibitions')).toBe(false);
   });
 });

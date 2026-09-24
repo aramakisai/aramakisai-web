@@ -1,7 +1,7 @@
-import type { Access } from 'payload';
+import type { Access, FieldAccess } from 'payload';
 
 import { canCreate, canDelete, canRead, canUpdate } from './policy';
-import { toCmsUser } from './roles';
+import { isExecutive, toCmsUser } from './roles';
 
 /**
  * Payload の `access` は boolean か Where を返す契約であり、policy の戻り値をそのまま渡せる。
@@ -20,3 +20,9 @@ export function accessFor(collection: string): {
     delete: ({ req }) => canDelete(toCmsUser(req.user), collection),
   };
 }
+
+/** 実行委員だけが対象操作を行える。Local API の overrideAccess では評価されない */
+export const executiveOnlyField: FieldAccess = ({ req }) => isExecutive(toCmsUser(req.user));
+
+/** 誰もフォーム・API から書けない。フックが overrideAccess で書く値に使う */
+export const denyField: FieldAccess = () => false;

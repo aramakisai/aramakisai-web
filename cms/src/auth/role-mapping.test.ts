@@ -11,11 +11,11 @@ describe('resolveRole', () => {
     expect(resolveRole(['管理者'])).toBe('executive');
   });
 
-  it('student_exhibitor グループを出展者へ写像する', () => {
-    expect(resolveRole(['student_exhibitor'])).toBe('student_exhibitor');
+  it('student_exhibitor グループは写像せずロール無しになる (荒牧祭SSOから学生団体を切り離す)', () => {
+    expect(resolveRole(['student_exhibitor'])).toBeNull();
   });
 
-  it('実行委員と出展者を兼ねる場合は実行委員を優先する', () => {
+  it('executive と student_exhibitor を両方持つ場合も実行委員として写像する', () => {
     expect(resolveRole(['student_exhibitor', 'executive'])).toBe('executive');
   });
 
