@@ -192,4 +192,9 @@ describe('hooks の結線', () => {
   it('beforeValidate に owner・画像の検証を含む', () => {
     expect(StudentExhibitions.hooks?.beforeValidate).toHaveLength(5);
   });
+
+  it('afterChange/afterDelete にメディア使用状況の再計算 (syncMediaPublication) を置く', () => {
+    expect(StudentExhibitions.hooks?.afterChange).toHaveLength(1);
+    expect(StudentExhibitions.hooks?.afterDelete).toHaveLength(1);
+  });
 });

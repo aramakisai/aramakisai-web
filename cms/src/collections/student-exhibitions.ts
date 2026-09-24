@@ -9,6 +9,7 @@ import {
   ownerConstraint,
   stageCategoryConstraint,
 } from '../hooks/payload-constraints';
+import { syncMediaPublicationAfterChange, syncMediaPublicationAfterDelete } from '../hooks/media-publication';
 
 const CATEGORIES = [
   { name: 'stage', label: 'ステージ' },
@@ -60,6 +61,8 @@ export const StudentExhibitions: CollectionConfig = {
       stageCategoryConstraint,
       imageConstraint,
     ],
+    afterChange: [syncMediaPublicationAfterChange],
+    afterDelete: [syncMediaPublicationAfterDelete],
   },
   fields: [
     {

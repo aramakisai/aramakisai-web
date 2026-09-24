@@ -53,6 +53,18 @@ describe.skipIf(!hasDatabase)('招待メールの送信', () => {
     return user;
   }
 
+  /** REST 相当: access 評価を通す (executive の canCreate 経由) */
+  async function createExhibitorViaRest(email: string) {
+    const user = (await payload.create({
+      collection: 'users',
+      data: { email, role: 'student_exhibitor' },
+      user: executive,
+      overrideAccess: false,
+    })) as { id: number };
+    createdUserIds.push(user.id);
+    return user;
+  }
+
   async function resetPasswordToken(id: number): Promise<{ token: string | null; expiration: string | null }> {
     const raw = (await payload.db.findOne({
       collection: 'users',
@@ -100,6 +112,19 @@ describe.skipIf(!hasDatabase)('招待メールの送信', () => {
     expect(updated.invite_status).toBe('sent');
     expect(updated.invite_sent_at).toBeTruthy();
     expect(updated.invite_error).toBeFalsy();
+  });
+
+  it('REST相当 (実行委員・access評価あり) で作成しても招待メールが 1 通送られ、本文にパスワードが含まれない', async () => {
+    const email = nextEmail();
+    const sendEmail = vi.spyOn(payload, 'sendEmail');
+    const user = await createExhibitorViaRest(email);
+
+    await runInvitationJob(user.id);
+
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+    const [message] = sendEmail.mock.calls[0];
+    expect(message.to).toBe(email);
+    expect(message.html).not.toContain('パスワード:');
   });
 
   it('送信に失敗しても作成は成功し、送信失敗と記録される', async () => {

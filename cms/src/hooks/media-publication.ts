@@ -1,4 +1,4 @@
-import type { PayloadRequest, Where } from 'payload';
+import type { CollectionAfterChangeHook, CollectionAfterDeleteHook, PayloadRequest, Where } from 'payload';
 
 import type { Media, StudentExhibition } from '../payload-types';
 
@@ -72,3 +72,29 @@ export async function syncMediaPublication(
     throw new Error(`media.used_in_published の更新に失敗しました: ${JSON.stringify(errors)}`);
   }
 }
+
+/**
+ * 企画の保存後に使用状況を再計算する。前後いずれかが published のときだけ呼ぶ
+ * (どちらも draft なら公開サイトへの露出に変化が無い)。対象は前後の画像 ID の和集合
+ * (カテゴリの変更・画像の差し替えで参照から外れた ID も再計算に含める)。
+ */
+export const syncMediaPublicationAfterChange: CollectionAfterChangeHook<StudentExhibition> = async ({
+  doc,
+  previousDoc,
+  req,
+}) => {
+  if (doc.status !== 'published' && previousDoc?.status !== 'published') return doc;
+  const ids = new Set([...collectImageIds(doc), ...collectImageIds(previousDoc)]);
+  await syncMediaPublication(req, [...ids]);
+  return doc;
+};
+
+/** 公開中の企画を削除したときは、参照していた画像を使用していない状態に戻す */
+export const syncMediaPublicationAfterDelete: CollectionAfterDeleteHook<StudentExhibition> = async ({
+  doc,
+  req,
+}) => {
+  if (doc?.status !== 'published') return doc;
+  await syncMediaPublication(req, collectImageIds(doc));
+  return doc;
+};
