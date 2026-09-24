@@ -44,6 +44,7 @@ describe.skipIf(!hasDatabase)('招待メールの送信', () => {
 
   afterEach(async () => {
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
     await setContactUrl('https://aramakisai.com/contact');
   });
 
@@ -164,6 +165,20 @@ describe.skipIf(!hasDatabase)('招待メールの送信', () => {
     const updated = await payload.findByID({ collection: 'users', id: user.id, overrideAccess: true });
     expect(updated.invite_status).toBe('failed');
     expect(updated.invite_error).toBe('送信に失敗しました: smtp down');
+  });
+
+  it('production で SMTP_HOST 未設定だと送信されず送信失敗と記録される', async () => {
+    const user = await createExhibitor(nextEmail());
+    const sendEmail = vi.spyOn(payload, 'sendEmail');
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('SMTP_HOST', '');
+
+    await runInvitationJob(user.id);
+
+    expect(sendEmail).not.toHaveBeenCalled();
+    const updated = await payload.findByID({ collection: 'users', id: user.id, overrideAccess: true });
+    expect(updated.invite_status).toBe('failed');
+    expect(updated.invite_error).toBe('送信に失敗しました: メール送信の設定がありません');
   });
 
   it('期限切れの招待リンクは M-E06 で拒否される', async () => {
