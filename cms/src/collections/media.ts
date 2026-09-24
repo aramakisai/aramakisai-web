@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload';
 
+import { denyField, executiveOnlyField } from '../access/payload-access';
+
 /**
  * フロントエンドが要求する表示幅の実測値は 1920 / 960 / 無指定 の 3 種。
  * 無指定は原本 (WebP 変換済み) が受け持つため、生成するのはこの 2 サイズでよい。
@@ -33,7 +35,24 @@ export const Media: CollectionConfig = {
       },
     },
   ],
-  fields: [{ name: 'alt', type: 'text', label: '代替テキスト' }],
+  fields: [
+    { name: 'alt', type: 'text', label: '代替テキスト' },
+    {
+      name: 'owner',
+      type: 'relationship',
+      relationTo: 'users',
+      index: true,
+      label: 'アップロード者',
+      access: { read: executiveOnlyField, create: executiveOnlyField, update: executiveOnlyField },
+    },
+    {
+      name: 'used_in_published',
+      type: 'checkbox',
+      label: '公開企画で使用中',
+      // 値は media-publication の同期処理だけが overrideAccess で書く
+      access: { create: denyField, update: denyField },
+    },
+  ],
   upload: {
     // 配信時変換を行わないため、アップロード時に WebP へ寄せる
     formatOptions: { format: 'webp', options: { quality: 82 } },

@@ -89,6 +89,16 @@ S3 の接続情報 (`S3_BUCKET` 等) が未設定の場合はディスク保存�
 | `AUTHENTIK_ISSUER_URL` / `AUTHENTIK_CLIENT_ID` / `AUTHENTIK_CLIENT_SECRET` | Authentik OIDC | 本番 |
 | `CMS_CORS_ORIGINS` | CORS 許可オリジン (カンマ区切り) | 本番 |
 
+`infisical run --env=prod` には `SMTP_HOST` が入らないため、ローカルはメール送信が無効
+のままで起動し、送信は Payload 既定のコンソール adapter (宛先と件名だけを出力) になる。
+招待メールのパスワード設定リンクを確かめるには、ローカル DB からトークンを直接引く。
+
+```sql
+SELECT reset_password_token FROM users WHERE email = '<宛先のメールアドレス>';
+```
+
+得られたトークンで `http://localhost:3000/admin/reset/<トークン>` を開く。
+
 ## リソース実測値
 
 `next build` した本番相当のサーバー (Node 26 / standalone) をローカルで起動し、

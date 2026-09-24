@@ -80,20 +80,20 @@
   - 完了状態: 両者がロールごとに期待どおりの真偽を返すことを単体テストで確認できる
   - _Requirements: 3.6, 3.7, 3.8, 3.9, 4.18, 7.2, 7.3_
 
-- [ ] 4. スキーマの追加とマイグレーション
-- [ ] 4.1 メディアとユーザーに列を追加する
+- [x] 4. スキーマの追加とマイグレーション
+- [x] 4.1 メディアとユーザーに列を追加する
   - メディアに所有者 (ユーザーへの参照、任意、索引あり、ラベル F-42「アップロード者」) と公開企画での使用中フラグ (ラベル F-44「公開企画で使用中」) を追加する
   - ユーザーに招待状態 (ラベル F-55「招待メール」、選択肢 F-56「送信済み / 送信失敗」)、招待送信日時 (F-57「招待送信日時」)、送信エラー (F-59「送信エラー」)、列を持たない再送指示 (F-61「招待メールを再送」) を追加する
   - どの列にも DB の既定値を持たせず、既存のフィールドの削除・型変更・必須化をしない
   - `payload.config.ts` の `jobs` にタスク `sendInvitation` (入力はユーザー ID、`retries: 2`。処理の中身は 7.5) を登録し、`autoRun` を 10 秒間隔 (`*/10 * * * * *`) にする (`payload/dist/index.js:239-244`)。テスト中は `shouldAutoRun` を偽にする。`jobsCollectionOverrides` で `payload-jobs` の access を実行委員だけにする。これで `payload-jobs` テーブルがマイグレーションに入る
   - 完了状態: 追加したフィールドがコレクション・グローバルの定義に揃い、型チェックが通る
   - _Requirements: 4.10, 4.11, 9.1, 10.3_
-- [ ] 4.2 マイグレーションを生成し型を再生成する
+- [x] 4.2 マイグレーションを生成し型を再生成する
   - `pnpm migrate:create` で追加分のマイグレーションを生成し、`pnpm generate:types` で CMS 側と `frontend/src/cms-types.ts` の型を再生成する
   - 生成されたマイグレーションが、列・索引・外部キー (削除時は NULL にする) と、ジョブキューの `payload-jobs` テーブル (4.1) の追加だけであることを確かめる。S3 プラグインが注入する `media.prefix` の DROP 差分が混ざった場合は取り除き、ローカル起動で生じた importMap の差分はコミットに含めない
   - 完了状態: ローカル DB に `pnpm migrate` が通り、生成型に新しい列が追加されて既存の型が変わっていない
   - _Requirements: 10.3_
-- [ ] 4.3 結合テストの実行環境を用意する
+- [x] 4.3 結合テストの実行環境を用意する
   - 結合テスト (`*.int.test.ts`) は `DATABASE_URL` と `PAYLOAD_SECRET` が無いと `describe.skipIf` でスキップされる。以降の結合テストのタスク (6.2, 8.2〜8.4) の前に、実際に走る状態を作る
   - `cms/` で `pnpm db:up` を実行し、環境変数をコマンドの前に付けて `pnpm migrate` と `pnpm test` を実行する (`.env` ファイルは使わない)
     - `DATABASE_URL=postgres://payload:payload@localhost:5433/payload PAYLOAD_SECRET=<任意の文字列> pnpm migrate`
@@ -148,7 +148,7 @@
   - _Depends: 4.2, 4.3_
 
 - [ ] 7. 学生団体アカウントのローカル発行と招待メール
-- [ ] 7.1 (P) SMTP 送信のメールアダプタを組み込む
+- [x] 7.1 (P) SMTP 送信のメールアダプタを組み込む
   - `@payloadcms/email-nodemailer` (3.88.0) を依存に加え、`SMTP_HOST` が設定されているときだけ docker-mailserver へ 587/STARTTLS で接続するアダプタを有効にする。有効にするときは、S3 の変数と同じく `NOREPLY_SMTP_PASSWORD` を読み込み時に `requireEnv` する。`infisical run --env=prod` には `SMTP_HOST` が入らないため、ローカル起動はコンソール出力のまま動く
   - SMTP に短いタイムアウトを付ける (`connectionTimeout` / `greetingTimeout` / `socketTimeout` を各 10 秒)
   - 送信元とユーザー名を `noreply@aramakisai.com`、送信者名を M-05「荒牧祭実行委員会広報部」にし、TLS のサーバー名を証明書のホスト名に合わせる
@@ -164,7 +164,7 @@
   - 完了状態: 生成した本文に 3 つのリンクと M-02 の全文が含まれることを単体テストで確認できる
   - _Requirements: 4.3, 4.4, 4.6_
   - _Boundary: EmailTemplates_
-- [ ] 7.3 (P) 問い合わせ先 URL を環境変数から読む
+- [x] 7.3 (P) 問い合わせ先 URL を環境変数から読む
   - 既存の環境変数読み出し (`requireEnv`) で `EXHIBITOR_CONTACT_URL` を読む。SMTP 送信を有効にする環境 (`SMTP_HOST` あり) では、S3 の変数と同じく設定読み込み時に読み、未設定なら起動を失敗させる
   - 完了状態: `SMTP_HOST` があるときに未設定だと起動が失敗し、設定時は値を招待処理へ渡せる。本番の値はタスク 2.4 で与える
   - _Requirements: 4.4, 4.9_

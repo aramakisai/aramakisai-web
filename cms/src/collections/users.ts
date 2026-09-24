@@ -1,7 +1,12 @@
 import type { CollectionConfig } from 'payload';
 
-import { executiveOnlyField } from '../access/payload-access';
+import { denyField, executiveOnlyField } from '../access/payload-access';
 import { CMS_ROLES, type CmsRole } from '../access/roles';
+
+const INVITE_STATUSES = [
+  { label: '送信済み', value: 'sent' },
+  { label: '送信失敗', value: 'failed' },
+] as const;
 
 const ROLE_LABELS: Record<CmsRole, string> = {
   executive: '実行委員',
@@ -46,6 +51,33 @@ export const Users: CollectionConfig = {
       // 出展者が自分のレコードを更新できるようになると、自分のロールを書き換えられる。
       // 読み取りは認証後の req.user.role 判定に要るため全員のまま保つ。
       access: { update: executiveOnlyField },
+    },
+    {
+      name: 'invite_status',
+      type: 'select',
+      label: '招待メール',
+      options: INVITE_STATUSES.map(({ label, value }) => ({ label, value })),
+      access: { read: executiveOnlyField, create: denyField, update: denyField },
+    },
+    {
+      name: 'invite_sent_at',
+      type: 'date',
+      label: '招待送信日時',
+      access: { read: executiveOnlyField, create: denyField, update: denyField },
+    },
+    {
+      name: 'invite_error',
+      type: 'text',
+      label: '送信エラー',
+      access: { read: executiveOnlyField, create: denyField, update: denyField },
+    },
+    {
+      name: 'resend_invite',
+      type: 'checkbox',
+      label: '招待メールを再送',
+      // 列を持たない指示フラグ。beforeChange が req.context に移してから消す
+      virtual: true,
+      access: { create: executiveOnlyField, update: executiveOnlyField },
     },
   ],
 };
