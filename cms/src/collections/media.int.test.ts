@@ -35,7 +35,7 @@ describe.skipIf(!hasDatabase)('メディアのアップロード時最適化', (
     payload = await getPayload({ config });
 
     workdir = mkdtempSync(path.join(tmpdir(), 'media-int-'));
-    filePath = path.join(workdir, 'sample.png');
+    filePath = path.join(workdir, `sample-${process.pid}.png`);
     await sharp({
       create: { width: 2400, height: 1600, channels: 3, background: { r: 10, g: 20, b: 30 } },
     })
@@ -93,7 +93,7 @@ describe.skipIf(!hasDatabase)('配信エンドポイントの read access', () =
     payload = await getPayload({ config });
 
     workdir = mkdtempSync(path.join(tmpdir(), 'media-serve-int-'));
-    filePath = path.join(workdir, 'sample.png');
+    filePath = path.join(workdir, `sample-${process.pid}.png`);
     await sharp({
       create: { width: 400, height: 300, channels: 3, background: { r: 1, g: 2, b: 3 } },
     })
@@ -166,7 +166,7 @@ describe.skipIf(!hasDatabase)('メディアの所有者記録と使用中画像�
     payload = await getPayload({ config });
 
     workdir = mkdtempSync(path.join(tmpdir(), 'media-guard-int-'));
-    filePath = path.join(workdir, 'sample.png');
+    filePath = path.join(workdir, `sample-${process.pid}.png`);
     await sharp({
       create: { width: 400, height: 300, channels: 3, background: { r: 8, g: 9, b: 10 } },
     })

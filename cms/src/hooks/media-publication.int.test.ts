@@ -45,7 +45,7 @@ describe.skipIf(!hasDatabase)('syncMediaPublication', () => {
     payload = await getPayload({ config });
 
     workdir = mkdtempSync(path.join(tmpdir(), 'media-publication-int-'));
-    filePath = path.join(workdir, 'sample.png');
+    filePath = path.join(workdir, `sample-${process.pid}.png`);
     await sharp({
       create: { width: 200, height: 150, channels: 3, background: { r: 5, g: 6, b: 7 } },
     })
@@ -154,7 +154,7 @@ describe.skipIf(!hasDatabase)('student_exhibitions „ÅÆ afterChange/afterDelete „
     payload = await getPayload({ config });
 
     workdir = mkdtempSync(path.join(tmpdir(), 'media-publication-wire-int-'));
-    filePath = path.join(workdir, 'sample.png');
+    filePath = path.join(workdir, `sample-${process.pid}.png`);
     await sharp({
       create: { width: 200, height: 150, channels: 3, background: { r: 1, g: 2, b: 3 } },
     })
