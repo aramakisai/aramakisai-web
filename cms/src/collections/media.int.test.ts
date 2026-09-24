@@ -8,6 +8,21 @@ import { IMAGE_SIZES, Media } from './media';
 
 const hasDatabase = Boolean(process.env.DATABASE_URL && process.env.PAYLOAD_SECRET);
 
+/**
+ * 所有者記録の導入前から存在する画像は、作成時のフック (assignMediaOwner) を経ていないため
+ * used_in_published も NULL のままである。Local API 経由の create は常に false を入れてしまう
+ * ため、この状態は直接 SQL で再現するしかない。
+ */
+async function forceLegacyUsedInPublished(
+  payload: Awaited<ReturnType<typeof import('payload').getPayload>>,
+  id: number,
+): Promise<void> {
+  const pool = (
+    payload.db as unknown as { pool: { query: (sql: string, params?: unknown[]) => Promise<unknown> } }
+  ).pool;
+  await pool.query('update media set used_in_published = null where id = $1', [id]);
+}
+
 describe.skipIf(!hasDatabase)('メディアのアップロード時最適化', () => {
   let payload: Awaited<ReturnType<typeof import('payload').getPayload>>;
   let workdir: string;
@@ -100,13 +115,14 @@ describe.skipIf(!hasDatabase)('配信エンドポイントの read access', () =
       user: student as never,
     })) as { id: number };
 
-    // 所有者なしの画像は既存メディアと同じ扱いで未認証にも読める
+    // 所有者なしの画像は既存メディアと同じ扱いで未認証にも読める (移行前の行を模す)
     publicDoc = (await payload.create({
       collection: 'media',
       filePath,
       data: { alt: 'public' },
       overrideAccess: true,
     })) as { id: number };
+    await forceLegacyUsedInPublished(payload, publicDoc.id);
   });
 
   afterAll(async () => {
@@ -321,6 +337,7 @@ describe.skipIf(!hasDatabase)('他人の画像・所有者なしの画像・実�
       data: { alt: 'ownerless' },
       overrideAccess: true,
     })) as { id: number };
+    await forceLegacyUsedInPublished(payload, ownerlessDoc.id);
   });
 
   afterAll(async () => {
@@ -418,5 +435,119 @@ describe.skipIf(!hasDatabase)('他人の画像・所有者なしの画像・実�
     await expect(
       payload.findByID({ collection: 'media', id: forDelete.id, overrideAccess: true }),
     ).rejects.toThrow();
+  });
+});
+
+describe.skipIf(!hasDatabase)('所有者の消滅・ロール変更後の read access', () => {
+  let payload: Awaited<ReturnType<typeof import('payload').getPayload>>;
+  let workdir: string;
+  let filePath: string;
+
+  const suffix = String(process.pid);
+  const serve = async (id: number) => {
+    const { createLocalReq } = await import('payload');
+    const req = await createLocalReq({}, payload);
+    Object.assign(req, { routeParams: { id: String(id), size: 'original' } });
+    const endpoints = Media.endpoints;
+    if (!endpoints) throw new Error('Media.endpoints is not defined');
+    return endpoints[0].handler(req) as Promise<Response>;
+  };
+
+  beforeAll(async () => {
+    const { getPayload } = await import('payload');
+    const sharp = (await import('sharp')).default;
+    const config = (await import('../payload.config')).default;
+    payload = await getPayload({ config });
+
+    workdir = mkdtempSync(path.join(tmpdir(), 'media-role-int-'));
+    filePath = path.join(workdir, `role-${suffix}.png`);
+    await sharp({
+      create: { width: 400, height: 300, channels: 3, background: { r: 20, g: 21, b: 22 } },
+    })
+      .png()
+      .toFile(filePath);
+  });
+
+  afterAll(() => {
+    if (workdir) rmSync(workdir, { recursive: true, force: true });
+  });
+
+  it('出展者ユーザーを削除しても、owner が NULL になった未使用の下書き画像は未認証に公開されない', async () => {
+    const deleted = (await payload.create({
+      collection: 'users',
+      data: {
+        email: `deleted-owner-${suffix}@test.local`,
+        password: 'test-password',
+        role: 'student_exhibitor',
+      },
+      overrideAccess: true,
+    })) as { id: number };
+
+    const doc = (await payload.create({
+      collection: 'media',
+      filePath,
+      data: { alt: 'orphaned' },
+      overrideAccess: true,
+      user: deleted as never,
+    })) as { id: number };
+
+    await payload.delete({ collection: 'users', id: deleted.id, overrideAccess: true });
+
+    // FK の ON DELETE SET NULL で owner が外れていること (前提の確認)
+    const after = await payload.findByID({
+      collection: 'media',
+      id: doc.id,
+      depth: 0,
+      overrideAccess: true,
+    });
+    expect(after.owner).toBeFalsy();
+    expect(after.used_in_published).toBe(false);
+
+    const res = await serve(doc.id);
+    expect(res.status).toBe(404);
+
+    await payload.delete({ collection: 'media', id: doc.id, overrideAccess: true }).catch(() => null);
+  });
+
+  it('出展者が実行委員へ昇格しても、未使用の下書き画像は所有者を外され未認証に公開されない', async () => {
+    const promoted = (await payload.create({
+      collection: 'users',
+      data: {
+        email: `promoted-${suffix}@test.local`,
+        password: 'test-password',
+        role: 'student_exhibitor',
+      },
+      overrideAccess: true,
+    })) as { id: number };
+
+    const doc = (await payload.create({
+      collection: 'media',
+      filePath,
+      data: { alt: 'was draft' },
+      overrideAccess: true,
+      user: promoted as never,
+    })) as { id: number };
+
+    await payload.update({
+      collection: 'users',
+      id: promoted.id,
+      data: { role: 'executive' },
+      overrideAccess: true,
+    });
+
+    const after = await payload.findByID({
+      collection: 'media',
+      id: doc.id,
+      depth: 0,
+      overrideAccess: true,
+    });
+    expect(after.owner).toBeFalsy();
+    expect(after.used_in_published).toBe(false);
+
+    const res = await serve(doc.id);
+    expect(res.status).toBe(404);
+
+    await payload.delete({ collection: 'media', id: doc.id, overrideAccess: true }).catch(() => null);
+    await payload.delete({ collection: 'users', id: promoted.id, overrideAccess: true }).catch(() => null);
   });
 });

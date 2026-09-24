@@ -81,6 +81,25 @@ const queueInvitationEmail: CollectionAfterChangeHook = async ({ doc, operation,
   return doc;
 };
 
+/**
+ * 出展者から他ロールへ変わった (実行委員への昇格等) 際、その人が出展者としてアップロードした
+ * メディアの owner を外す。放置すると media.owner.role が新しいロールに連動し、
+ * publicMediaRead の「所有者が実行委員」条件に未公開の画像まで一致して公開されてしまう (7.9)。
+ */
+const detachMediaOnRoleChange: CollectionAfterChangeHook = async ({ doc, previousDoc, operation, req }) => {
+  if (operation !== 'update') return doc;
+  if (previousDoc?.role !== 'student_exhibitor' || doc.role === 'student_exhibitor') return doc;
+
+  await req.payload.update({
+    collection: 'media',
+    where: { owner: { equals: previousDoc.id } },
+    data: { owner: null },
+    overrideAccess: true,
+    req,
+  });
+  return doc;
+};
+
 export const Users: CollectionConfig = {
   slug: 'users',
   labels: { singular: 'ユーザー', plural: 'ユーザー' },
@@ -90,7 +109,7 @@ export const Users: CollectionConfig = {
   hooks: {
     beforeOperation: [replaceInitialPassword, guardResetToken],
     beforeChange: [captureResendInvite],
-    afterChange: [queueInvitationEmail],
+    afterChange: [queueInvitationEmail, detachMediaOnRoleChange],
   },
   fields: [
     {

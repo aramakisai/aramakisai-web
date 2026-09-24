@@ -41,11 +41,20 @@ function selfFilter(user: CmsUser): Where {
   return { id: { equals: user.id } };
 }
 
-/** 未認証・出展者以外に公開する画像: 所有者なし、所有者が実行委員、または公開企画で使用中のいずれか。 */
+/**
+ * 未認証・出展者以外に公開する画像: 所有者記録の導入前から存在する画像、所有者が実行委員、
+ * または公開企画で使用中のいずれか。
+ *
+ * 「所有者なし」は所有者記録の導入前から存在する画像に限定するため used_in_published も
+ * 未設定であることを併せて見る。所有者記録の導入後に作成された画像は作成時のフックが必ず
+ * used_in_published へ true/false を入れるため、NULL のままなのは移行前の行だけである。
+ * これが無いと、出展者ユーザーの削除で owner が NULL になった未公開の下書き画像が
+ * 未認証に公開されてしまう (media.owner_id は ON DELETE SET NULL)。
+ */
 function publicMediaRead(): Where {
   return {
     or: [
-      { owner: { exists: false } },
+      { and: [{ owner: { exists: false } }, { used_in_published: { exists: false } }] },
       { 'owner.role': { equals: 'executive' } },
       { used_in_published: { equals: true } },
     ],

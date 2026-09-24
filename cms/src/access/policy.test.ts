@@ -61,10 +61,10 @@ describe('canRead', () => {
     expect(canRead(exhibitor, 'media', NOW)).toEqual({ owner: { equals: 'user-1' } });
   });
 
-  it('未認証は所有者なし・実行委員所有・公開企画で使用中のメディアだけ読める', () => {
+  it('未認証は移行前の所有者なしメディア・実行委員所有・公開企画で使用中のメディアだけ読める', () => {
     expect(canRead(null, 'media', NOW)).toEqual({
       or: [
-        { owner: { exists: false } },
+        { and: [{ owner: { exists: false } }, { used_in_published: { exists: false } }] },
         { 'owner.role': { equals: 'executive' } },
         { used_in_published: { equals: true } },
       ],
