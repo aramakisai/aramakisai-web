@@ -34,5 +34,19 @@ export const Announcements: CollectionConfig = {
       label: '添付ファイル',
       admin: { description: '複数添付ファイル' },
     },
+    {
+      name: 'meta_description',
+      type: 'textarea',
+      maxLength: 200,
+      label: '説明文 (meta description)',
+      admin: { description: '未入力時は本文冒頭から自動生成' },
+    },
+    {
+      name: 'og_image',
+      type: 'upload',
+      relationTo: 'media',
+      label: 'OG 画像',
+      admin: { description: '未設定時はサイトの既定画像を使用' },
+    },
   ],
 };
