@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { getHomePage } from '@/lib/home-page';
 import { HeroSection } from '@/components/hero-section';
@@ -20,6 +21,29 @@ import {
   type ExhibitionCardSummary,
 } from '@/lib/exhibitions';
 import { getSponsors, mergeSponsorLogos } from '@/lib/sponsors';
+import { getSiteMetadata } from '@/lib/site-metadata';
+import { buildPageMetadata } from '@/lib/page-metadata';
+import { ROUTE_METADATA } from '@/lib/route-metadata';
+import {
+  buildEventJsonLd,
+  buildOrganizationJsonLd,
+} from '@/lib/structured-data';
+import { JsonLd, type JsonLdObject } from '@/components/json-ld';
+import { env } from '@/env';
+
+export async function generateMetadata(): Promise<Metadata> {
+  const site = await getSiteMetadata();
+
+  return buildPageMetadata({
+    site,
+    // ROUTE_METADATA['/'].title は null (サイトタイトルそのものを使う合図)
+    title: ROUTE_METADATA['/'].title ?? site.siteTitle,
+    description: null,
+    path: '/',
+    ogType: 'website',
+    imageCandidates: [],
+  });
+}
 
 const EMPTY_CONTENT: HomePageContent = {
   heroImages: [],
@@ -59,6 +83,23 @@ async function getSponsorLogos() {
 export default async function Page() {
   const cookieStore = await cookies();
   const { phase } = resolvePhase(cookieStore.get(PHASE_OVERRIDE_COOKIE)?.value);
+  const site = await getSiteMetadata();
+
+  // Event は開催日程が無ければ null (Organization は必ず出す、要件5.8)
+  const eventJsonLd = buildEventJsonLd({
+    site,
+    siteUrl: env.NEXT_PUBLIC_SITE_URL,
+  });
+  const organizationJsonLd = buildOrganizationJsonLd({
+    site,
+    siteUrl: env.NEXT_PUBLIC_SITE_URL,
+  });
+  const structuredData: JsonLdObject = {
+    '@context': 'https://schema.org',
+    '@graph': [eventJsonLd, organizationJsonLd].filter(
+      (item): item is JsonLdObject => item !== null,
+    ),
+  };
 
   let content = EMPTY_CONTENT;
   try {
@@ -86,6 +127,7 @@ export default async function Page() {
 
     return (
       <div>
+        <JsonLd data={structuredData} />
         <h1 className="sr-only">{festivalName}</h1>
 
         {heroImageUrls.length > 0 && (
@@ -144,6 +186,7 @@ export default async function Page() {
 
   return (
     <div>
+      <JsonLd data={structuredData} />
       <h1 className="sr-only">{festivalName}</h1>
 
       {heroImageUrls.length > 0 && (

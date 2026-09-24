@@ -19,11 +19,25 @@ vi.mock('@/lib/cms-asset-url', () => ({
     id ? `https://example.com/assets/${id}` : null,
 }));
 
+vi.mock('@/env', () => ({
+  env: { NEXT_PUBLIC_SITE_URL: 'https://aramakisai.example.com' },
+}));
+
+vi.mock('@/lib/site-metadata', () => ({
+  getSiteMetadata: vi.fn(async () => ({
+    siteTitle: '荒牧祭',
+    description: '荒牧祭公式サイト',
+    ogImageUrl: null,
+    festival: null,
+  })),
+}));
+
 const baseTopic = {
   id: 1,
   title: 'テストトピック',
   body: '<p>これはテストです</p>',
   imageId: '42',
+  metaDescription: null,
 };
 
 describe('TopicPage', () => {
@@ -57,6 +71,27 @@ describe('TopicPage', () => {
 
     // 本文
     expect(screen.getByText('これはテストです')).toBeInTheDocument();
+  });
+
+  it('パンくず (トップ › トピック › タイトル) の BreadcrumbList JSON-LD を出力する (要件 5.7)', async () => {
+    vi.mocked(getTopicById).mockResolvedValue(baseTopic);
+
+    const { container } = render(
+      await TopicPage({ params: Promise.resolve({ id: '1' }) }),
+    );
+
+    const script = container.querySelector(
+      'script[type="application/ld+json"]',
+    );
+    expect(script).not.toBeNull();
+    const data = JSON.parse(script!.textContent!);
+    expect(data['@type']).toBe('BreadcrumbList');
+    expect(
+      data.itemListElement.map((item: { name: string }) => item.name),
+    ).toEqual(['トップ', 'トピック', 'テストトピック']);
+    expect(data.itemListElement[2].item).toBe(
+      'https://aramakisai.example.com/topics/1',
+    );
   });
 
   it('サムネイルが無ければ領域ごと出さない (要件 17.6)', async () => {
@@ -115,25 +150,44 @@ describe('generateMetadata', () => {
       params: Promise.resolve({ id: '1' }),
     });
 
-    expect(metadata).toEqual({ title: 'テストトピック' });
+    expect(metadata.title).toBe('テストトピック');
+    expect(metadata.description).toBe('これはテストです');
+    expect(metadata.alternates).toEqual({ canonical: '/topics/1' });
+    expect(metadata.openGraph?.images).toEqual([
+      { url: 'https://example.com/assets/42' },
+    ]);
   });
 
-  it('returns empty metadata when the topic does not exist', async () => {
+  it('ページ固有の meta description が優先される (要件 6.9)', async () => {
+    vi.mocked(getTopicById).mockResolvedValue({
+      ...baseTopic,
+      metaDescription: '編集者が設定した説明文',
+    });
+
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ id: '1' }),
+    });
+
+    expect(metadata.description).toBe('編集者が設定した説明文');
+  });
+
+  it('サイト既定値へ退避する (取得結果なし、要件 2.10 / 8.1)', async () => {
     vi.mocked(getTopicById).mockResolvedValue(null);
 
     const metadata = await generateMetadata({
       params: Promise.resolve({ id: '999' }),
     });
 
-    expect(metadata).toEqual({});
+    expect(metadata.title).toEqual({ absolute: '荒牧祭' });
+    expect(metadata.description).toBe('荒牧祭公式サイト');
   });
 
-  it('returns empty metadata for an invalid id without fetching', async () => {
+  it('サイト既定値へ退避する (id 不正、取得しない)', async () => {
     const metadata = await generateMetadata({
       params: Promise.resolve({ id: 'invalid' }),
     });
 
-    expect(metadata).toEqual({});
+    expect(metadata.title).toEqual({ absolute: '荒牧祭' });
     expect(getTopicById).not.toHaveBeenCalled();
   });
 });

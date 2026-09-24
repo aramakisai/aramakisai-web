@@ -1,10 +1,16 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import TopicsPage from './page';
+import TopicsPage, { generateMetadata } from './page';
 import * as topicsModule from '@/lib/topics';
+import * as siteMetadataModule from '@/lib/site-metadata';
+import type { SiteMetadata } from '@/lib/site-metadata';
 
 vi.mock('@/lib/topics', () => ({
   getTopics: vi.fn(),
+}));
+
+vi.mock('@/lib/site-metadata', () => ({
+  getSiteMetadata: vi.fn(),
 }));
 
 vi.mock('@/env', () => ({
@@ -12,6 +18,15 @@ vi.mock('@/env', () => ({
     NEXT_PUBLIC_CMS_URL: 'http://localhost:8055',
   },
 }));
+
+const SITE_METADATA: SiteMetadata = {
+  siteTitle: '荒牧祭',
+  description: '荒牧祭公式サイト',
+  ogImageUrl: null,
+  festival: null,
+};
+
+vi.mocked(siteMetadataModule.getSiteMetadata).mockResolvedValue(SITE_METADATA);
 
 describe('TopicsPage', () => {
   it('トピック一覧が表示される', async () => {
@@ -61,5 +76,15 @@ describe('TopicsPage', () => {
       screen.getByRole('heading', { name: 'トピック' }),
     ).toBeInTheDocument();
     expect(screen.getByText('トピックはありません')).toBeInTheDocument();
+  });
+});
+
+describe('generateMetadata (要件2.4)', () => {
+  it('title / description / canonical を設定する', async () => {
+    const metadata = await generateMetadata();
+
+    expect(metadata.title).toBe('トピック');
+    expect(metadata.description).toMatch(/トピック/);
+    expect(metadata.alternates).toEqual({ canonical: '/topics' });
   });
 });

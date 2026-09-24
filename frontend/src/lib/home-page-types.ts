@@ -16,6 +16,13 @@ export interface AnnouncementSummary {
   body: string;
   publishedAt: string;
   attachments: Attachment[];
+  /**
+   * 既存呼び出し側 (home-page.ts) がこのフィールドを持たないオブジェクトを
+   * 組み立てているため任意にしている (SEO メタデータ合成側のみ使用)。
+   */
+  metaDescription?: string | null;
+  ogImageId?: string | null;
+  updatedAt?: string;
 }
 
 export interface TopicSummary {
@@ -23,6 +30,9 @@ export interface TopicSummary {
   title: string;
   body: string | null;
   imageId: string | null;
+  /** 既存呼び出し側 (home-page.ts) との互換のため任意にしている */
+  metaDescription?: string | null;
+  updatedAt?: string;
 }
 
 export interface EventDay {
@@ -36,6 +46,16 @@ export interface FestivalOverview {
   eventDays: EventDay[];
   overviewHtml: string | null;
   heroImageId: string | null;
+}
+
+/** getFestivalMeta() の戻り値。SEO 既定値の解決 (getSiteMetadata) と構造化データ生成が使う */
+export interface FestivalMeta extends FestivalOverview {
+  siteTitle: string | null;
+  metaDescription: string | null;
+  ogImageId: string | null;
+  venueName: string | null;
+  venueAddress: string | null;
+  snsLinks: SnsLink[];
 }
 
 export interface FestivalTheme {

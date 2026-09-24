@@ -44,6 +44,15 @@ vi.mock('@/env', () => ({
   },
 }));
 
+vi.mock('@/lib/site-metadata', () => ({
+  getSiteMetadata: vi.fn(async () => ({
+    siteTitle: '荒牧祭',
+    description: '荒牧祭公式サイト',
+    ogImageUrl: null,
+    festival: null,
+  })),
+}));
+
 const baseExhibition: ExhibitionDetail = {
   id: 1,
   category: 'stage',
@@ -126,6 +135,29 @@ describe('ExhibitionPage', () => {
       'https://x.com/aramaki',
     );
     expect(screen.getByRole('button', { name: /共有/ })).toBeInTheDocument();
+  });
+
+  it('パンくず (トップ › 企画一覧 › 企画名) の BreadcrumbList JSON-LD を出力する (要件 5.7)', async () => {
+    mockResult({ kind: 'found', value: baseExhibition });
+
+    const { container } = render(
+      await ExhibitionPage({
+        params: Promise.resolve({ id: '1', category: 'stage' }),
+      }),
+    );
+
+    const script = container.querySelector(
+      'script[type="application/ld+json"]',
+    );
+    expect(script).not.toBeNull();
+    const data = JSON.parse(script!.textContent!);
+    expect(data['@type']).toBe('BreadcrumbList');
+    expect(
+      data.itemListElement.map((item: { name: string }) => item.name),
+    ).toEqual(['トップ', '企画一覧', 'アラマキ祭実行委員会 (出演名)']);
+    expect(data.itemListElement[2].item).toBe(
+      'https://aramakisai.example.com/exhibitions/1/stage',
+    );
   });
 
   it('存在しない ID は notFound を呼ぶ', async () => {
@@ -371,15 +403,18 @@ describe('ExhibitionPage', () => {
 
       expect(metadata.title).toBe('アラマキ祭実行委員会 (出演名)');
       expect(metadata.description).toBe('たのしい企画です');
+      expect(metadata.alternates).toEqual({
+        canonical: '/exhibitions/1/stage',
+      });
       expect(metadata.openGraph?.images).toEqual([
-        'https://cms.example.com/assets/42/960',
+        { url: 'https://cms.example.com/assets/42/960' },
       ]);
       expect((metadata.twitter as { card?: string } | undefined)?.card).toBe(
         'summary_large_image',
       );
     });
 
-    it('紹介文が未入力なら代替の説明文を使う', async () => {
+    it('紹介文が未入力ならサイト既定の説明文を使う (企画固有の meta description は存在しない)', async () => {
       mockResult({
         kind: 'found',
         value: { ...baseExhibition, description: null },
@@ -389,27 +424,29 @@ describe('ExhibitionPage', () => {
         params: Promise.resolve({ id: '1', category: 'stage' }),
       });
 
-      expect(metadata.description).toBe('実行委員会 の企画');
+      expect(metadata.description).toBe('荒牧祭公式サイト');
     });
 
-    it('見つからない場合は既定のメタデータのみを返す', async () => {
+    it('見つからない場合はサイト既定のメタデータへ退避する (要件 2.10 / 8.1)', async () => {
       mockResult({ kind: 'missing' });
 
       const metadata = await generateMetadata({
         params: Promise.resolve({ id: '999', category: 'stage' }),
       });
 
-      expect(metadata).toEqual({});
+      expect(metadata.title).toEqual({ absolute: '荒牧祭' });
+      expect(metadata.description).toBe('荒牧祭公式サイト');
     });
 
-    it('取得に失敗した場合も既定のメタデータのみを返す', async () => {
+    it('取得に失敗した場合もサイト既定のメタデータへ退避する', async () => {
       mockResult({ kind: 'error', error: { kind: 'network', status: 500 } });
 
       const metadata = await generateMetadata({
         params: Promise.resolve({ id: '1', category: 'stage' }),
       });
 
-      expect(metadata).toEqual({});
+      expect(metadata.title).toEqual({ absolute: '荒牧祭' });
+      expect(metadata.description).toBe('荒牧祭公式サイト');
     });
   });
 });

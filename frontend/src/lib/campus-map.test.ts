@@ -5,6 +5,7 @@ import {
   buildCampusMapHref,
   getCampusMapAreas,
   getCampusMapData,
+  getCampusMapLastModified,
   parseCampusMapQuery,
   resolveAreaColor,
 } from './campus-map';
@@ -423,5 +424,70 @@ describe('getCampusMapAreas', () => {
       kind: 'error',
       error: { kind: 'network', status: 500 },
     });
+  });
+});
+
+describe('getCampusMapLastModified', () => {
+  it('区画・ステージ・公演枠・公開済み企画の最大更新日時を返す', async () => {
+    vi.mocked(cms.findMany).mockImplementation((async (collection: string) => {
+      const table: Record<string, { updatedAt: string }[]> = {
+        map_areas: [{ updatedAt: '2023-01-01T00:00:00.000Z' }],
+        stages: [{ updatedAt: '2023-03-01T00:00:00.000Z' }],
+        performance_slots: [{ updatedAt: '2023-02-01T00:00:00.000Z' }],
+        student_exhibitions: [{ updatedAt: '2023-04-01T00:00:00.000Z' }],
+      };
+      const docs = table[collection] ?? [];
+      return { ok: true, value: { docs, totalDocs: docs.length } };
+    }) as never);
+
+    expect(await getCampusMapLastModified()).toBe('2023-04-01T00:00:00.000Z');
+  });
+
+  it('公開済み企画のみを対象にする where 条件を明示的に送る', async () => {
+    vi.mocked(cms.findMany).mockResolvedValue({
+      ok: true,
+      value: { docs: [], totalDocs: 0 },
+    } as never);
+
+    await getCampusMapLastModified();
+    const call = vi
+      .mocked(cms.findMany)
+      .mock.calls.find(([collection]) => collection === 'student_exhibitions');
+    expect(call?.[1]?.where).toEqual({ status: { equals: 'published' } });
+  });
+
+  it('一部の取得が失敗しても、成功した取得の最大値を返す', async () => {
+    vi.mocked(cms.findMany).mockImplementation((async (collection: string) => {
+      if (collection === 'stages') {
+        return { ok: false, error: { kind: 'network', status: 500 } };
+      }
+      const table: Record<string, { updatedAt: string }[]> = {
+        map_areas: [{ updatedAt: '2023-01-01T00:00:00.000Z' }],
+        performance_slots: [{ updatedAt: '2023-02-01T00:00:00.000Z' }],
+        student_exhibitions: [],
+      };
+      const docs = table[collection] ?? [];
+      return { ok: true, value: { docs, totalDocs: docs.length } };
+    }) as never);
+
+    expect(await getCampusMapLastModified()).toBe('2023-02-01T00:00:00.000Z');
+  });
+
+  it('全取得が失敗した場合は null を返す', async () => {
+    vi.mocked(cms.findMany).mockResolvedValue({
+      ok: false,
+      error: { kind: 'network', status: 500 },
+    } as never);
+
+    expect(await getCampusMapLastModified()).toBeNull();
+  });
+
+  it('取得は成功したがどのコレクションにもレコードが無い場合は null を返す', async () => {
+    vi.mocked(cms.findMany).mockResolvedValue({
+      ok: true,
+      value: { docs: [], totalDocs: 0 },
+    } as never);
+
+    expect(await getCampusMapLastModified()).toBeNull();
   });
 });
