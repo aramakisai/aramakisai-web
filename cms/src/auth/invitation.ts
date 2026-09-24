@@ -1,6 +1,6 @@
 import type { PayloadRequest } from 'payload';
 
-import { optionalEnv, requireEnv } from '../env';
+import { optionalEnv } from '../env';
 import { invitationHtml, invitationSubject } from './email-templates';
 
 /** 招待リンクの有効期限。発行 (再送を含む) から 72 時間の固定値 */
@@ -18,9 +18,10 @@ async function attemptSend(req: PayloadRequest, userId: number): Promise<Invitat
       overrideAccess: true,
       req,
     });
-    // 問い合わせ先は送信を試みるたびに読む。メール無効のローカル環境で未設定な
-    // 場合、この requireEnv の例外がそのまま M-E11 の理由として記録される。
-    const contactUrl = requireEnv('EXHIBITOR_CONTACT_URL');
+    // 問い合わせ先は送信を試みるたびに読む。未設定でも送信は続行し、本文の
+    // 問い合わせ先部分は invitationHtml 側で省く。
+    const meta = await req.payload.findGlobal({ slug: 'festival_meta', overrideAccess: true, req });
+    const contactUrl = meta.exhibitor_contact_url ?? undefined;
     const token = await req.payload.forgotPassword({
       collection: 'users',
       data: { email: user.email },

@@ -21,8 +21,6 @@ import { richTextEditorFeatures } from './lib/rich-text-editor';
 const s3Bucket = optionalEnv('S3_BUCKET');
 // docker-mailserver への接続先。infisical run --env=prod には入らないため、ローカルは常にコンソール出力になる。
 const smtpHost = optionalEnv('SMTP_HOST');
-// SMTP を有効化する環境では起動時に検証する。値自体は送信処理 (sendInvitation) が読む。
-if (smtpHost) requireEnv('EXHIBITOR_CONTACT_URL');
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);

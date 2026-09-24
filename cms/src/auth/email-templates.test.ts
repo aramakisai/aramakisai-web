@@ -46,3 +46,22 @@ describe('invitationHtml', () => {
     expect(html).toContain('<br>');
   });
 });
+
+describe('invitationHtml (contactUrl 未指定)', () => {
+  const html = invitationHtml({
+    resetUrl: 'https://cms.aramakisai.com/admin/reset/token123',
+    loginUrl: 'https://cms.aramakisai.com/admin/login',
+  });
+
+  it('問い合わせ先の文言・リンクを含まない', () => {
+    expect(html).not.toContain('ご不明な点は、下記のフォームからお問い合わせください。');
+    expect(html).not.toContain('<a href="https://aramakisai.com/contact">');
+  });
+
+  it('それ以外の本文は変わらない', () => {
+    expect(html).toContain('入力した内容は、実行委員が確認したうえで公式サイトに公開します。');
+    expect(html).toContain(
+      'なお、パスワード設定リンクは発行から72時間で無効になります。期限切れの場合は、実行委員に招待メールの再送を依頼してください。',
+    );
+  });
+});

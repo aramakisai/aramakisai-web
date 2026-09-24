@@ -92,7 +92,6 @@ S3 の接続情報 (`S3_BUCKET` 等) が未設定の場合はディスク保存�
 | `CMS_CORS_ORIGINS` | CORS 許可オリジン (カンマ区切り) | 本番 |
 | `SMTP_HOST` | 招待メール送信先 (docker-mailserver)。設定時だけ SMTP アダプタを有効化する | 任意 (本番のみ設定) |
 | `NOREPLY_SMTP_PASSWORD` | 送信専用アカウント `noreply@aramakisai.com` のパスワード | `SMTP_HOST` 設定時は必須 |
-| `EXHIBITOR_CONTACT_URL` | 招待メール本文に差し込む問い合わせ先 URL | `SMTP_HOST` 設定時は必須 |
 
 `infisical run --env=prod` には `SMTP_HOST` が入らないため、ローカルはメール送信が無効
 のままで起動し、送信は Payload 既定のコンソール adapter (宛先と件名だけを出力) になる。
@@ -175,7 +174,6 @@ Directus 撤去 (タスク 9.1) 完了済み。`db-cluster.yaml` と `payload` �
 | `CMS_PROD_OIDC_CLIENT_SECRET` | Authentik `cms-prod` プロバイダのクライアントシークレット |
 | `TF_VAR_cms_prod_oidc_client_secret` | 同じ値。Terraform が Authentik 側の定義に使う |
 | `NOREPLY_SMTP_PASSWORD` | 送信専用アカウント `noreply@aramakisai.com` の SMTP パスワード |
-| `EXHIBITOR_CONTACT_URL` | 招待メール本文に差し込む問い合わせ先 URL |
 
 `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` は既存の `HETZNER_OS_*` を再利用する。
 `SMTP_HOST` は Infisical に登録せず、`cms-secrets` の ExternalSecret に固定値
@@ -264,8 +262,10 @@ await payload.create({
 作成 (`afterChange`) の直後にジョブキューに積まれ、最大 10 秒以内に送信される
 (ローカルは `SMTP_HOST` 未設定のためコンソール出力になる。「ローカル開発」参照)。
 送信元は `noreply@aramakisai.com`、件名は M-01、本文にパスワード設定リンク・ログイン画面の
-URL・問い合わせ先 URL を含む。パスワード設定リンクの有効期限は、発行 (再送を含む) から
-72 時間。
+URLを含む。パスワード設定リンクの有効期限は、発行 (再送を含む) から72 時間。
+
+問い合わせ先 URL は「祭基本情報」の「出展者向け問い合わせ先URL」に設定した値を本文に
+差し込む。未設定の場合は招待メールに問い合わせ先の記載自体が載らない。
 
 ### 「招待メール」列の見方
 

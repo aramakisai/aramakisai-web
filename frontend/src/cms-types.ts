@@ -198,6 +198,9 @@ export interface User {
  */
 export interface Media {
   id: number;
+  /**
+   * 画像の内容を短い文で説明してください。画像読込み時にエラーが発生した場合などに表示されます。
+   */
   alt?: string | null;
   owner?: (number | null) | User;
   used_in_published?: boolean | null;
@@ -509,6 +512,9 @@ export interface PerformanceSlot {
 export interface StudentExhibition {
   id: number;
   owner: number | User;
+  /**
+   * 公開は実行委員が行い、公開後は編集できません。
+   */
   status: 'published' | 'draft';
   /**
    * 学生団体・サークル名
@@ -525,7 +531,7 @@ export interface StudentExhibition {
     name?: string | null;
     description?: string | null;
     /**
-     * 最大 5 枚まで
+     * 最大5枚まで。1枚目がサムネイルとして表示されます。
      */
     images?: (number | Media)[] | null;
   };
@@ -536,7 +542,7 @@ export interface StudentExhibition {
     name?: string | null;
     description?: string | null;
     /**
-     * 最大 5 枚まで
+     * 最大5枚まで。1枚目がサムネイルとして表示されます。
      */
     images?: (number | Media)[] | null;
   };
@@ -547,7 +553,7 @@ export interface StudentExhibition {
     name?: string | null;
     description?: string | null;
     /**
-     * 最大 5 枚まで
+     * 最大5枚まで。1枚目がサムネイルとして表示されます。
      */
     images?: (number | Media)[] | null;
   };
@@ -558,12 +564,12 @@ export interface StudentExhibition {
     name?: string | null;
     description?: string | null;
     /**
-     * 最大 5 枚まで
+     * 最大5枚まで。1枚目がサムネイルとして表示されます。
      */
     images?: (number | Media)[] | null;
   };
   /**
-   * 実行委員が割り当てる。閲覧のみ
+   * ステージ出演枠
    */
   performance_slots?: {
     docs?: (number | PerformanceSlot)[];
@@ -571,15 +577,15 @@ export interface StudentExhibition {
     totalDocs?: number;
   };
   /**
-   * NULL=マップ非掲載。展示・出店のみ使用
+   * 割り当てられた出店エリア
    */
   area_id?: (number | null) | MapArea;
   /**
-   * エリア内番号 (area_id+booth_number UNIQUE)。展示・出店のみ使用
+   * 割り当てられた出店グループ内の番号もしくは教室番号
    */
   booth_number?: number | null;
   /**
-   * 展示・出店のみ使用
+   * 割り当てられた出店エリア名
    */
   booth_label?: string | null;
   /**
@@ -588,6 +594,9 @@ export interface StudentExhibition {
   links?:
     | {
         platform: 'x' | 'instagram' | 'facebook' | 'youtube' | 'tiktok' | 'line' | 'website';
+        /**
+         * https://から始まるURLを入力してください。
+         */
         url: string;
         id?: string | null;
       }[]
@@ -1215,6 +1224,10 @@ export interface FestivalMeta {
    * 構造化データ用の会場住所(郵便番号から)
    */
   venue_address?: string | null;
+  /**
+   * 学生団体への招待メールに記載されます。
+   */
+  exhibitor_contact_url?: string | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1281,6 +1294,7 @@ export interface FestivalMetaSelect<T extends boolean = true> {
   meta_description?: T;
   og_image?: T;
   venue_address?: T;
+  exhibitor_contact_url?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

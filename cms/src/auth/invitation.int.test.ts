@@ -14,10 +14,15 @@ describe.skipIf(!hasDatabase)('招待メールの送信', () => {
   let executive: { id: number };
 
   beforeAll(async () => {
-    vi.stubEnv('EXHIBITOR_CONTACT_URL', 'https://aramakisai.com/contact');
     const { getPayload } = await import('payload');
     const config = (await import('../payload.config')).default;
     payload = await getPayload({ config });
+
+    await payload.updateGlobal({
+      slug: 'festival_meta',
+      data: { exhibitor_contact_url: 'https://aramakisai.com/contact' },
+      overrideAccess: true,
+    });
 
     executive = (await payload.create({
       collection: 'users',
@@ -31,12 +36,16 @@ describe.skipIf(!hasDatabase)('招待メールの送信', () => {
     createdUserIds.push(executive.id);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     vi.restoreAllMocks();
+    await payload.updateGlobal({
+      slug: 'festival_meta',
+      data: { exhibitor_contact_url: 'https://aramakisai.com/contact' },
+      overrideAccess: true,
+    });
   });
 
   afterAll(async () => {
-    vi.unstubAllEnvs();
     if (!payload) return;
     for (const id of createdUserIds) {
       await payload.delete({ collection: 'users', id, overrideAccess: true }).catch(() => null);
@@ -106,11 +115,32 @@ describe.skipIf(!hasDatabase)('招待メールの送信', () => {
     expect(message.to).toBe(email);
     expect(message.subject).toBe('【荒牧祭】HP企画ページの入稿用アカウントのご案内');
     expect(message.html).toContain('/admin/reset/');
+    expect(message.html).toContain('https://aramakisai.com/contact');
     expect(message.html).not.toContain('パスワード:');
 
     const updated = await payload.findByID({ collection: 'users', id: user.id, overrideAccess: true });
     expect(updated.invite_status).toBe('sent');
     expect(updated.invite_sent_at).toBeTruthy();
+    expect(updated.invite_error).toBeFalsy();
+  });
+
+  it('問い合わせ先URLが未設定でも送信され、本文に問い合わせ先が含まれず送信済みと記録される', async () => {
+    await payload.updateGlobal({
+      slug: 'festival_meta',
+      data: { exhibitor_contact_url: null },
+      overrideAccess: true,
+    });
+    const sendEmail = vi.spyOn(payload, 'sendEmail');
+    const user = await createExhibitor(nextEmail());
+
+    await runInvitationJob(user.id);
+
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+    const [message] = sendEmail.mock.calls[0];
+    expect(message.html).not.toContain('ご不明な点は、下記のフォームからお問い合わせください。');
+
+    const updated = await payload.findByID({ collection: 'users', id: user.id, overrideAccess: true });
+    expect(updated.invite_status).toBe('sent');
     expect(updated.invite_error).toBeFalsy();
   });
 
