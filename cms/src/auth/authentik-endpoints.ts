@@ -153,14 +153,39 @@ const callback: Endpoint = {
       (await findUser({ authentik_sub: { equals: identity.subject } })) ??
       (await findUser({ email: { equals: identity.email } }))
 
+    // グループ写像から学生団体を外した後は identity.role は実行委員以外に解決されないが、
+    // 万一に備えて新規作成だけは実行委員のときに限る (荒牧祭SSOから学生団体を切り離す保険)
+    if (!existing && identity.role !== 'executive') {
+      req.payload.logger.warn(
+        { subject: identity.subject, role: identity.role },
+        'CMS に対応するグループを持たない',
+      )
+      return Response.json(
+        { errors: [{ message: 'CMS に対応するグループを持たない' }] },
+        { status: 403 },
+      )
+    }
+
+    // 元が学生団体アカウントだったユーザーに実行委員としてログインされた場合、
+    // 学生団体に伝わっていたパスワードで実行委員の権限を得られないよう差し替え、
+    // 既存セッションも今回のログイン以外は無効にする
+    const wasStudentExhibitor = existing?.role === 'student_exhibitor'
+
     // アカウント払い出しは IdP 側の既存フローが担うため、
     // CMS 側はパスワードを持たない受け皿を作るだけにとどめる
     const user = existing
       ? await payload.update({
           collection: 'users',
           id: existing.id,
-          // メールは IdP 側で変わりうるため、ログインのたびに追随させる
-          data: { authentik_sub: identity.subject, email: identity.email, role: identity.role },
+          data: {
+            // メールは IdP 側で変わりうるため、ログインのたびに追随させる
+            authentik_sub: identity.subject,
+            email: identity.email,
+            role: identity.role,
+            ...(wasStudentExhibitor
+              ? { password: randomBytes(32).toString('hex'), sessions: [] }
+              : {}),
+          },
           overrideAccess: true,
         })
       : await payload.create({

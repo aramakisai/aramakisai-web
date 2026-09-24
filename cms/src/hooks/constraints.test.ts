@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  newImageIds,
   validateBoothPlacement,
   validateCategoryContents,
+  validateImageCount,
+  validateImageOwnership,
+  validateOwnerRole,
+  validateOwnerUniqueness,
   validatePerformanceSlot,
   validateStageAssignment,
   validateStageCategoryRemoval,
@@ -136,5 +141,116 @@ describe('validateStageCategoryRemoval', () => {
     expect(
       validateStageCategoryRemoval({ categories: ['exhibit'] }, { hasPerformanceSlots: false }),
     ).toEqual([]);
+  });
+});
+
+describe('validateOwnerRole', () => {
+  it('owner 未指定なら判定の対象外', () => {
+    expect(validateOwnerRole({ owner: null }, { ownerIsStudentExhibitor: false })).toEqual([]);
+  });
+
+  it('学生団体ロールなら通す', () => {
+    expect(validateOwnerRole({ owner: 1 }, { ownerIsStudentExhibitor: true })).toEqual([]);
+  });
+
+  it('学生団体ロールでなければ (未検出も含め) 違反とする', () => {
+    expect(validateOwnerRole({ owner: 1 }, { ownerIsStudentExhibitor: false })).toEqual([
+      { field: 'owner', message: '所有者に学生団体のアカウントを選んでください。' },
+    ]);
+  });
+});
+
+describe('validateOwnerUniqueness', () => {
+  it('owner 未指定なら判定の対象外', () => {
+    expect(validateOwnerUniqueness({ owner: null }, { duplicateOwner: null })).toEqual([]);
+  });
+
+  it('重複が無ければ通す', () => {
+    expect(validateOwnerUniqueness({ owner: 1 }, { duplicateOwner: null })).toEqual([]);
+  });
+
+  it('重複があればメールアドレスと相手の団体名を差し込んで違反とする', () => {
+    expect(
+      validateOwnerUniqueness(
+        { owner: 1 },
+        { duplicateOwner: { email: 'owner@test.local', organizationName: '既存団体' } }, // confidential:allow
+      ),
+    ).toEqual([
+      { field: 'owner', message: 'owner@test.localは既に既存団体の所有者です。' }, // confidential:allow
+    ]);
+  });
+});
+
+describe('validateImageCount', () => {
+  const imagesOf = (count: number) => ({ images: Array.from({ length: count }, (_, i) => i + 1) });
+
+  it('5 枚以下は通す', () => {
+    expect(validateImageCount({ stage: imagesOf(5) })).toEqual([]);
+  });
+
+  it('6 枚以上は違反とする', () => {
+    expect(validateImageCount({ stage: imagesOf(6) })).toEqual([
+      { field: 'stage.images', message: '画像は最大5枚です。' },
+    ]);
+  });
+
+  it('複数カテゴリで超過していれば両方を報告する', () => {
+    expect(validateImageCount({ stage: imagesOf(6), vendor: imagesOf(6) })).toEqual([
+      { field: 'stage.images', message: '画像は最大5枚です。' },
+      { field: 'vendor.images', message: '画像は最大5枚です。' },
+    ]);
+  });
+});
+
+describe('newImageIds', () => {
+  it('originalDoc に無い ID だけを新規として集める', () => {
+    expect(
+      newImageIds(
+        { stage: { images: [1, 2, 3] } },
+        { stage: { images: [1] } },
+      ),
+    ).toEqual([2, 3]);
+  });
+
+  it('originalDoc が無い (create) 場合は全件が新規', () => {
+    expect(newImageIds({ stage: { images: [1, 2] } }, {})).toEqual([1, 2]);
+  });
+
+  it('populate 済みオブジェクト ({ id }) の値も ID として扱う', () => {
+    expect(newImageIds({ stage: { images: [{ id: 1 }] } }, {})).toEqual([1]);
+  });
+
+  it('複数カテゴリ分をまとめて重複なく返す', () => {
+    expect(
+      newImageIds({ stage: { images: [1] }, vendor: { images: [1, 2] } }, {}),
+    ).toEqual([1, 2]);
+  });
+});
+
+describe('validateImageOwnership', () => {
+  it('unauthorizedImageIds が空なら通す', () => {
+    expect(
+      validateImageOwnership({ stage: { images: [1] } }, { unauthorizedImageIds: new Set() }),
+    ).toEqual([]);
+  });
+
+  it('対象カテゴリに未許可の画像 ID があれば違反とする', () => {
+    expect(
+      validateImageOwnership(
+        { stage: { images: [1, 2] } },
+        { unauthorizedImageIds: new Set(['2']) },
+      ),
+    ).toEqual([
+      { field: 'stage.images', message: '【仮】自分がアップロードした画像だけを選べます。' },
+    ]);
+  });
+
+  it('未許可の画像を含まないカテゴリは通す', () => {
+    expect(
+      validateImageOwnership(
+        { stage: { images: [1] }, vendor: { images: [2] } },
+        { unauthorizedImageIds: new Set(['2']) },
+      ),
+    ).toEqual([{ field: 'vendor.images', message: '【仮】自分がアップロードした画像だけを選べます。' }]);
   });
 });

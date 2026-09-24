@@ -1,6 +1,8 @@
 import type { CollectionConfig } from 'payload';
 
 import { accessFor } from '../access/payload-access';
+import { isHiddenInAdmin } from '../access/policy';
+import { toCmsUser } from '../access/roles';
 
 import { Announcements } from './announcements';
 import { FaqItems } from './faq-items';
@@ -22,6 +24,10 @@ import { Users } from './users';
 const withAccess = (collection: CollectionConfig): CollectionConfig => ({
   ...collection,
   access: accessFor(collection.slug),
+  admin: {
+    ...collection.admin,
+    hidden: ({ user }) => isHiddenInAdmin(toCmsUser(user), collection.slug),
+  },
 });
 
 /** コレクションの登録口。1 コレクション 1 ファイルとし、ここへ 1 行追加するだけにとどめる。 */

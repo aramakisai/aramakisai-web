@@ -142,5 +142,16 @@ export const FestivalMeta: GlobalConfig = {
       label: '会場住所',
       admin: { description: '構造化データ用の会場住所(郵便番号から)' },
     },
+    {
+      name: 'exhibitor_contact_url',
+      type: 'text',
+      maxLength: 255,
+      label: '出展者向け問い合わせ先URL',
+      admin: { description: '学生団体への招待メールに記載されます。' },
+      validate: (value: unknown) =>
+        !value || (typeof value === 'string' && URL.canParse(value) && value.startsWith('https://'))
+          ? true
+          : 'URL は https:// で始まる形式で入力してください',
+    },
   ],
 };

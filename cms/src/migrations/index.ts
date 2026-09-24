@@ -12,6 +12,8 @@ import * as migration_20260922_132916_sponsors_type_add from './20260922_132916_
 import * as migration_20260922_134900_event_days_structured from './20260922_134900_event_days_structured';
 import * as migration_20260922_155727_festival_meta_access_summary from './20260922_155727_festival_meta_access_summary';
 import * as migration_20260923_164954_seo_fields from './20260923_164954_seo_fields';
+import * as migration_20260924_130150_exhibitor_admin_ui from './20260924_130150_exhibitor_admin_ui';
+import * as migration_20260924_142843_exhibitor_contact_url from './20260924_142843_exhibitor_contact_url';
 
 export const migrations = [
   {
@@ -82,6 +84,16 @@ export const migrations = [
   {
     up: migration_20260923_164954_seo_fields.up,
     down: migration_20260923_164954_seo_fields.down,
-    name: '20260923_164954_seo_fields'
+    name: '20260923_164954_seo_fields',
+  },
+  {
+    up: migration_20260924_130150_exhibitor_admin_ui.up,
+    down: migration_20260924_130150_exhibitor_admin_ui.down,
+    name: '20260924_130150_exhibitor_admin_ui',
+  },
+  {
+    up: migration_20260924_142843_exhibitor_contact_url.up,
+    down: migration_20260924_142843_exhibitor_contact_url.down,
+    name: '20260924_142843_exhibitor_contact_url'
   },
 ];

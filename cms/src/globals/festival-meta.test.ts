@@ -37,3 +37,25 @@ describe('access_summary フィールド', () => {
     expect(accessSummary.required).toBeFalsy();
   });
 });
+
+describe('exhibitor_contact_url フィールド', () => {
+  const exhibitorContactUrl = fieldOf(FestivalMeta.fields, 'exhibitor_contact_url');
+  const validate = exhibitorContactUrl.validate as (value: unknown) => true | string;
+
+  it('任意入力のテキストである', () => {
+    expect(exhibitorContactUrl.type).toBe('text');
+    expect(exhibitorContactUrl.required).toBeFalsy();
+  });
+
+  it('未入力を許可する', () => {
+    expect(validate(undefined)).toBe(true);
+  });
+
+  it('https:// で始まる URL を許可する', () => {
+    expect(validate('https://aramakisai.com/contact')).toBe(true);
+  });
+
+  it('https:// で始まらない値を拒否する', () => {
+    expect(validate('http://aramakisai.com/contact')).not.toBe(true);
+  });
+});

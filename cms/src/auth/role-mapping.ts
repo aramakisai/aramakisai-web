@@ -7,7 +7,6 @@ import type { CmsRole } from '../access/roles';
 const GROUP_TO_ROLE: Record<string, CmsRole> = {
   管理者: 'executive',
   executive: 'executive',
-  student_exhibitor: 'student_exhibitor',
 };
 
 /** 権限の広い順。兼務時はより広いロールを採る。 */

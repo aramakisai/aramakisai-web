@@ -145,4 +145,114 @@ describe('Authentik の callback', () => {
     expect(response.status).toBe(302)
     expect(response.headers.get('Location')).toBe('/admin')
   })
+
+  it('実行委員の既存ユーザーはパスワード・セッションを変更せずログインできる', async () => {
+    const find = vi.fn(async () => ({ docs: [{ id: 7, role: 'executive' }] }))
+    const update = vi.fn(async () => ({ id: 7 }))
+    const create = vi.fn(async () => ({ id: 8 }))
+
+    vi.resetModules()
+    const { authentikEndpoints } = await import('./authentik-endpoints')
+    const callback = authentikEndpoints.find((e) => e.path === '/auth/authentik/callback')!
+
+    const response = await callback.handler({
+      url: '/api/auth/authentik/callback?code=c&state=s',
+      headers: new Headers({ cookie: 'authentik_state=s' }),
+      payload: {
+        find,
+        update,
+        create,
+        logger: { error: vi.fn(), warn: vi.fn() },
+        collections: { users: { config: { auth: { tokenExpiration: 100 } } } },
+        config: { cookiePrefix: 'payload' },
+        secret: 'payload-secret',
+      },
+    } as never)
+
+    expect(create).not.toHaveBeenCalled()
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 7,
+        data: expect.not.objectContaining({ password: expect.anything(), sessions: expect.anything() }),
+      }),
+    )
+    expect(response.status).toBe(302)
+  })
+
+  it('メールが一致した学生団体アカウントは実行委員になり、パスワードを差し替えて他セッションを無効にする', async () => {
+    const find = vi.fn(async ({ where }: { where: Record<string, unknown> }) =>
+      'email' in where ? { docs: [{ id: 7, role: 'student_exhibitor' }] } : { docs: [] },
+    )
+    const update = vi.fn(async () => ({ id: 7 }))
+    const create = vi.fn(async () => ({ id: 8 }))
+
+    vi.resetModules()
+    const { authentikEndpoints } = await import('./authentik-endpoints')
+    const callback = authentikEndpoints.find((e) => e.path === '/auth/authentik/callback')!
+
+    const response = await callback.handler({
+      url: '/api/auth/authentik/callback?code=c&state=s',
+      headers: new Headers({ cookie: 'authentik_state=s' }),
+      payload: {
+        find,
+        update,
+        create,
+        logger: { error: vi.fn(), warn: vi.fn() },
+        collections: { users: { config: { auth: { tokenExpiration: 100 } } } },
+        config: { cookiePrefix: 'payload' },
+        secret: 'payload-secret',
+      },
+    } as never)
+
+    expect(create).not.toHaveBeenCalled()
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 7,
+        data: expect.objectContaining({
+          role: 'executive',
+          password: expect.stringMatching(/^[0-9a-f]{64}$/),
+          sessions: [],
+        }),
+      }),
+    )
+    expect(response.status).toBe(302)
+  })
+
+  it('OIDC が解決したロールが実行委員でない場合はユーザーを新規作成せず 403 を返す (写像除去後の保険)', async () => {
+    vi.resetModules()
+    vi.doMock('./identity', () => ({
+      toCmsIdentity: () => ({
+        subject: 'zitadel-sub',
+        email: 'a@example.com',
+        role: 'student_exhibitor',
+      }),
+    }))
+
+    const find = vi.fn(async () => ({ docs: [] }))
+    const update = vi.fn()
+    const create = vi.fn()
+
+    const { authentikEndpoints } = await import('./authentik-endpoints')
+    const callback = authentikEndpoints.find((e) => e.path === '/auth/authentik/callback')!
+
+    const response = await callback.handler({
+      url: '/api/auth/authentik/callback?code=c&state=s',
+      headers: new Headers({ cookie: 'authentik_state=s' }),
+      payload: {
+        find,
+        update,
+        create,
+        logger: { error: vi.fn(), warn: vi.fn() },
+        collections: { users: { config: { auth: { tokenExpiration: 100 } } } },
+        config: { cookiePrefix: 'payload' },
+        secret: 'payload-secret',
+      },
+    } as never)
+
+    vi.doUnmock('./identity')
+
+    expect(create).not.toHaveBeenCalled()
+    expect(update).not.toHaveBeenCalled()
+    expect(response.status).toBe(403)
+  })
 })

@@ -80,6 +80,7 @@ export interface Config {
     performance_slots: PerformanceSlot;
     student_exhibitions: StudentExhibition;
     'payload-kv': PayloadKv;
+    'payload-jobs': PayloadJob;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -103,6 +104,7 @@ export interface Config {
     performance_slots: PerformanceSlotsSelect<false> | PerformanceSlotsSelect<true>;
     student_exhibitions: StudentExhibitionsSelect<false> | StudentExhibitionsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
+    'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -125,7 +127,13 @@ export interface Config {
   };
   user: User;
   jobs: {
-    tasks: unknown;
+    tasks: {
+      sendInvitation: TaskSendInvitation;
+      inline: {
+        input: unknown;
+        output: unknown;
+      };
+    };
     workflows: unknown;
   };
 }
@@ -161,6 +169,10 @@ export interface User {
    * ロールはコード上の定義 (CMS_ROLES) からのみ決まる
    */
   role: 'executive' | 'student_exhibitor';
+  invite_status?: ('sent' | 'failed') | null;
+  invite_sent_at?: string | null;
+  invite_error?: string | null;
+  resend_invite?: boolean | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -186,7 +198,12 @@ export interface User {
  */
 export interface Media {
   id: number;
+  /**
+   * 画像の内容を短い文で説明してください。画像読込み時にエラーが発生した場合などに表示されます。
+   */
   alt?: string | null;
+  owner?: (number | null) | User;
+  used_in_published?: boolean | null;
   prefix?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -495,6 +512,9 @@ export interface PerformanceSlot {
 export interface StudentExhibition {
   id: number;
   owner: number | User;
+  /**
+   * 公開は実行委員が行い、公開後は編集できません。
+   */
   status: 'published' | 'draft';
   /**
    * 学生団体・サークル名
@@ -511,7 +531,7 @@ export interface StudentExhibition {
     name?: string | null;
     description?: string | null;
     /**
-     * 最大 5 枚まで
+     * 最大5枚まで。1枚目がサムネイルとして表示されます。
      */
     images?: (number | Media)[] | null;
   };
@@ -522,7 +542,7 @@ export interface StudentExhibition {
     name?: string | null;
     description?: string | null;
     /**
-     * 最大 5 枚まで
+     * 最大5枚まで。1枚目がサムネイルとして表示されます。
      */
     images?: (number | Media)[] | null;
   };
@@ -533,7 +553,7 @@ export interface StudentExhibition {
     name?: string | null;
     description?: string | null;
     /**
-     * 最大 5 枚まで
+     * 最大5枚まで。1枚目がサムネイルとして表示されます。
      */
     images?: (number | Media)[] | null;
   };
@@ -544,12 +564,12 @@ export interface StudentExhibition {
     name?: string | null;
     description?: string | null;
     /**
-     * 最大 5 枚まで
+     * 最大5枚まで。1枚目がサムネイルとして表示されます。
      */
     images?: (number | Media)[] | null;
   };
   /**
-   * 実行委員が割り当てる。閲覧のみ
+   * ステージ出演枠
    */
   performance_slots?: {
     docs?: (number | PerformanceSlot)[];
@@ -557,15 +577,15 @@ export interface StudentExhibition {
     totalDocs?: number;
   };
   /**
-   * NULL=マップ非掲載。展示・出店のみ使用
+   * 割り当てられた出店エリア
    */
   area_id?: (number | null) | MapArea;
   /**
-   * エリア内番号 (area_id+booth_number UNIQUE)。展示・出店のみ使用
+   * 割り当てられた出店グループ内の番号もしくは教室番号
    */
   booth_number?: number | null;
   /**
-   * 展示・出店のみ使用
+   * 割り当てられた出店エリア名
    */
   booth_label?: string | null;
   /**
@@ -574,6 +594,9 @@ export interface StudentExhibition {
   links?:
     | {
         platform: 'x' | 'instagram' | 'facebook' | 'youtube' | 'tiktok' | 'line' | 'website';
+        /**
+         * https://から始まるURLを入力してください。
+         */
         url: string;
         id?: string | null;
       }[]
@@ -597,6 +620,98 @@ export interface PayloadKv {
     | number
     | boolean
     | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs".
+ */
+export interface PayloadJob {
+  id: number;
+  /**
+   * Input data provided to the job
+   */
+  input?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  taskStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  completedAt?: string | null;
+  totalTried?: number | null;
+  /**
+   * If hasError is true this job will not be retried
+   */
+  hasError?: boolean | null;
+  /**
+   * If hasError is true, this is the error that caused it
+   */
+  error?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Task execution log
+   */
+  log?:
+    | {
+        executedAt: string;
+        completedAt: string;
+        taskSlug: 'inline' | 'sendInvitation';
+        taskID: string;
+        input?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        output?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        state: 'failed' | 'succeeded';
+        error?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  taskSlug?: ('inline' | 'sendInvitation') | null;
+  queue?: string | null;
+  waitUntil?: string | null;
+  processing?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -702,6 +817,10 @@ export interface PayloadMigration {
 export interface UsersSelect<T extends boolean = true> {
   authentik_sub?: T;
   role?: T;
+  invite_status?: T;
+  invite_sent_at?: T;
+  invite_error?: T;
+  resend_invite?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -725,6 +844,8 @@ export interface UsersSelect<T extends boolean = true> {
  */
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
+  owner?: T;
+  used_in_published?: T;
   prefix?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -950,6 +1071,37 @@ export interface PayloadKvSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs_select".
+ */
+export interface PayloadJobsSelect<T extends boolean = true> {
+  input?: T;
+  taskStatus?: T;
+  completedAt?: T;
+  totalTried?: T;
+  hasError?: T;
+  error?: T;
+  log?:
+    | T
+    | {
+        executedAt?: T;
+        completedAt?: T;
+        taskSlug?: T;
+        taskID?: T;
+        input?: T;
+        output?: T;
+        state?: T;
+        error?: T;
+        id?: T;
+      };
+  taskSlug?: T;
+  queue?: T;
+  waitUntil?: T;
+  processing?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents_select".
  */
 export interface PayloadLockedDocumentsSelect<T extends boolean = true> {
@@ -1072,6 +1224,10 @@ export interface FestivalMeta {
    * 構造化データ用の会場住所(郵便番号から)
    */
   venue_address?: string | null;
+  /**
+   * 学生団体への招待メールに記載されます。
+   */
+  exhibitor_contact_url?: string | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1138,6 +1294,7 @@ export interface FestivalMetaSelect<T extends boolean = true> {
   meta_description?: T;
   og_image?: T;
   venue_address?: T;
+  exhibitor_contact_url?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -1163,6 +1320,16 @@ export interface CollectionsWidget {
     [k: string]: unknown;
   };
   width: 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskSendInvitation".
+ */
+export interface TaskSendInvitation {
+  input: {
+    userId: number;
+  };
+  output?: unknown;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
