@@ -14,8 +14,13 @@ vi.mock('next/font/google', () => ({
   Zen_Old_Mincho: () => ({ variable: 'font-zen-old-mincho' }),
 }));
 
-vi.mock('@/lib/festival-meta', () => ({
-  getFestivalMeta: vi.fn(),
+vi.mock('@/lib/site-metadata', () => ({
+  getSiteMetadata: vi.fn(async () => ({
+    siteTitle: '荒牧祭',
+    description: '荒牧祭公式サイト',
+    ogImageUrl: null,
+    festival: null,
+  })),
 }));
 
 vi.mock('next/navigation', () => ({
@@ -32,6 +37,20 @@ describe('RootLayout', () => {
     const metadata = await generateMetadata();
 
     expect(metadata.metadataBase).toEqual(new URL('http://localhost:3000'));
+  });
+
+  it('generateMetadata はサイト既定値から openGraph / twitter / robots / description を出力する', async () => {
+    const metadata = await generateMetadata();
+
+    expect(metadata.description).toBe('荒牧祭公式サイト');
+    expect(metadata.openGraph).toMatchObject({
+      type: 'website',
+      siteName: '荒牧祭',
+      locale: 'ja_JP',
+    });
+    expect(metadata.twitter).toMatchObject({ card: 'summary_large_image' });
+    expect(metadata.robots).toEqual({ index: true, follow: true });
+    expect(metadata.alternates).toBeUndefined();
   });
 });
 

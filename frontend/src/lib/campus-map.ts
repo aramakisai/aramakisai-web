@@ -210,3 +210,37 @@ export async function getCampusMapData(): Promise<CampusMapDataResult> {
 
   return { areas, exhibitions };
 }
+
+/**
+ * sitemap 用。`/map` を構成するコレクション (区画・ステージ・公演枠・公開済み企画) それぞれの
+ * 最新 1 件の `updatedAt` から最大値を求める。全取得が失敗した場合のみ null を返す
+ * (要件 4.6 のとおり sitemap エントリ自体は残し、lastModified だけ省略させる)。
+ */
+export async function getCampusMapLastModified(): Promise<string | null> {
+  const results = await Promise.all([
+    cms.findMany('map_areas', { sort: ['-updatedAt'], limit: 1, depth: 0 }),
+    cms.findMany('stages', { sort: ['-updatedAt'], limit: 1, depth: 0 }),
+    cms.findMany('performance_slots', {
+      sort: ['-updatedAt'],
+      limit: 1,
+      depth: 0,
+    }),
+    cms.findMany('student_exhibitions', {
+      where: { status: { equals: 'published' } },
+      sort: ['-updatedAt'],
+      limit: 1,
+      depth: 0,
+    }),
+  ]);
+
+  const timestamps: string[] = [];
+  for (const result of results) {
+    if (!result.ok) continue;
+    const updatedAt = result.value.docs[0]?.updatedAt;
+    if (updatedAt) timestamps.push(updatedAt);
+  }
+
+  return timestamps.length > 0
+    ? timestamps.reduce((latest, t) => (t > latest ? t : latest))
+    : null;
+}

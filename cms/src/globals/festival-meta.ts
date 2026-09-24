@@ -121,5 +121,26 @@ export const FestivalMeta: GlobalConfig = {
       label: 'アクセス文言',
       admin: { description: '最寄り駅・バス等からの行き方を数行で。詳細はアクセスページが担う' },
     },
+    {
+      name: 'meta_description',
+      type: 'textarea',
+      maxLength: 200,
+      label: 'サイト説明文 (meta description)',
+      admin: { description: '検索結果・SNS共有時のサイト説明文。未入力時は祭概要から自動生成' },
+    },
+    {
+      name: 'og_image',
+      type: 'upload',
+      relationTo: 'media',
+      label: '既定 OG 画像',
+      admin: { description: 'SNS共有時の既定画像。未設定時はサイト同梱の既定画像を使用' },
+    },
+    {
+      name: 'venue_address',
+      type: 'text',
+      maxLength: 255,
+      label: '会場住所',
+      admin: { description: '構造化データ用の会場住所(郵便番号から)' },
+    },
   ],
 };

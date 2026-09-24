@@ -249,6 +249,14 @@ export interface Announcement {
    * 複数添付ファイル
    */
   attachments?: (number | Media)[] | null;
+  /**
+   * 未入力時は本文冒頭から自動生成
+   */
+  meta_description?: string | null;
+  /**
+   * 未設定時はサイトの既定画像を使用
+   */
+  og_image?: (number | null) | Media;
   updatedAt: string;
   createdAt: string;
 }
@@ -289,6 +297,10 @@ export interface Topic {
    * 複数添付ファイル
    */
   attachments?: (number | Media)[] | null;
+  /**
+   * 未入力時は本文冒頭から自動生成
+   */
+  meta_description?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -331,6 +343,14 @@ export interface Page {
    */
   embed_height?: number | null;
   sort?: number | null;
+  /**
+   * 未入力時は本文冒頭から自動生成
+   */
+  meta_description?: string | null;
+  /**
+   * 未設定時はサイトの既定画像を使用
+   */
+  og_image?: (number | null) | Media;
   updatedAt: string;
   createdAt: string;
 }
@@ -752,6 +772,8 @@ export interface AnnouncementsSelect<T extends boolean = true> {
   body_html?: T;
   published_at?: T;
   attachments?: T;
+  meta_description?: T;
+  og_image?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -768,6 +790,7 @@ export interface TopicsSelect<T extends boolean = true> {
   attachment?: T;
   sort?: T;
   attachments?: T;
+  meta_description?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -783,6 +806,8 @@ export interface PagesSelect<T extends boolean = true> {
   embed_url?: T;
   embed_height?: T;
   sort?: T;
+  meta_description?: T;
+  og_image?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1035,6 +1060,18 @@ export interface FestivalMeta {
    * 最寄り駅・バス等からの行き方を数行で。詳細はアクセスページが担う
    */
   access_summary?: string | null;
+  /**
+   * 検索結果・SNS共有時のサイト説明文。未入力時は祭概要から自動生成
+   */
+  meta_description?: string | null;
+  /**
+   * SNS共有時の既定画像。未設定時はサイト同梱の既定画像を使用
+   */
+  og_image?: (number | null) | Media;
+  /**
+   * 構造化データ用の会場住所(郵便番号から)
+   */
+  venue_address?: string | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1098,6 +1135,9 @@ export interface FestivalMetaSelect<T extends boolean = true> {
   theme_image?: T;
   site_title?: T;
   access_summary?: T;
+  meta_description?: T;
+  og_image?: T;
+  venue_address?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

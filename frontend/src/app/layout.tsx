@@ -3,7 +3,8 @@ import { Zen_Old_Mincho } from 'next/font/google';
 import { GoogleAnalytics } from '@next/third-parties/google';
 import { cookies } from 'next/headers';
 import './globals.css';
-import { getFestivalMeta } from '@/lib/festival-meta';
+import { getSiteMetadata } from '@/lib/site-metadata';
+import { buildPageMetadata } from '@/lib/page-metadata';
 import {
   DEV_OVERRIDE_ENABLED,
   PHASE_OVERRIDE_COOKIE,
@@ -62,29 +63,22 @@ try {
 `;
 
 export async function generateMetadata(): Promise<Metadata> {
-  let name = '';
-  try {
-    ({ name } = await getFestivalMeta());
-  } catch {
-    name = '';
-  }
-  const titleBase = name || '荒牧祭';
-  const siteTitle =
-    process.env.NODE_ENV === 'development'
-      ? `【開発環境】 ${titleBase}`
-      : titleBase;
+  const site = await getSiteMetadata();
 
   return {
     // 相対 URL のメタデータ (og:url 等) を解決するため。toAssetUrl は絶対 URL を返すのでここでは解決されない。
     metadataBase: new URL(env.NEXT_PUBLIC_SITE_URL),
-    title: {
-      default: siteTitle,
-      template: `%s | ${siteTitle}`,
-    },
-    description: '荒牧祭公式サイト',
     icons: {
       icon: '/images/favicon.png',
     },
+    ...buildPageMetadata({
+      site,
+      title: null,
+      description: null,
+      path: null,
+      ogType: 'website',
+      imageCandidates: [],
+    }),
   };
 }
 

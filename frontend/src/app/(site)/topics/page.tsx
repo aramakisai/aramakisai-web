@@ -1,6 +1,24 @@
+import type { Metadata } from 'next';
 import { getTopics } from '@/lib/topics';
 import { TopicsList } from '@/components/topics-list';
 import { TopicSummary } from '@/lib/home-page-types';
+import { getSiteMetadata } from '@/lib/site-metadata';
+import { buildPageMetadata } from '@/lib/page-metadata';
+import { ROUTE_METADATA } from '@/lib/route-metadata';
+
+export async function generateMetadata(): Promise<Metadata> {
+  const site = await getSiteMetadata();
+  const route = ROUTE_METADATA['/topics'];
+
+  return buildPageMetadata({
+    site,
+    title: route.title,
+    description: route.description,
+    path: '/topics',
+    ogType: 'website',
+    imageCandidates: [],
+  });
+}
 
 export default async function TopicsPage() {
   let topics: TopicSummary[];

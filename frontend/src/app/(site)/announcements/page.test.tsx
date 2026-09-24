@@ -1,11 +1,17 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import AnnouncementsPage from './page';
+import AnnouncementsPage, { generateMetadata } from './page';
 import * as announcementsModule from '@/lib/announcements';
+import * as siteMetadataModule from '@/lib/site-metadata';
 import type { AnnouncementSummary } from '@/lib/home-page-types';
+import type { SiteMetadata } from '@/lib/site-metadata';
 
 vi.mock('@/lib/announcements', () => ({
   getAnnouncements: vi.fn(),
+}));
+
+vi.mock('@/lib/site-metadata', () => ({
+  getSiteMetadata: vi.fn(),
 }));
 
 // paginate の import 元 (@/lib/exhibitions) が @/lib/cms 経由で @/env を検証するため、
@@ -44,9 +50,19 @@ async function renderPage(
   );
 }
 
+const SITE_METADATA: SiteMetadata = {
+  siteTitle: '荒牧祭',
+  description: '荒牧祭公式サイト',
+  ogImageUrl: null,
+  festival: null,
+};
+
 describe('AnnouncementsPage', () => {
   beforeEach(() => {
     vi.mocked(announcementsModule.getAnnouncements).mockReset();
+    vi.mocked(siteMetadataModule.getSiteMetadata).mockResolvedValue(
+      SITE_METADATA,
+    );
   });
 
   it('見出し「お知らせ」を h1 で表示する', async () => {
@@ -128,5 +144,15 @@ describe('AnnouncementsPage', () => {
     expect(
       screen.getByRole('heading', { name: 'お知らせ' }),
     ).toBeInTheDocument();
+  });
+});
+
+describe('generateMetadata (要件2.2, 2.9)', () => {
+  it('title / description を持ち、ページ番号を含まない canonical を設定する', async () => {
+    const metadata = await generateMetadata();
+
+    expect(metadata.title).toBe('お知らせ');
+    expect(metadata.description).toMatch(/お知らせ/);
+    expect(metadata.alternates).toEqual({ canonical: '/announcements' });
   });
 });

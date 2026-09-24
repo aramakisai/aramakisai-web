@@ -1,9 +1,9 @@
 import { cms } from './cms';
 import { toMediaId } from './cms-media';
 import { toEventDays } from './event-day';
-import { FestivalOverview } from './home-page-types';
+import { FestivalMeta, SnsLink } from './home-page-types';
 
-export async function getFestivalMeta(): Promise<FestivalOverview> {
+export async function getFestivalMeta(): Promise<FestivalMeta> {
   const result = await cms.findGlobal('festival_meta', { depth: 1 });
   if (!result.ok) throw new Error('祭メタ情報の取得に失敗しました');
   const meta = result.value;
@@ -13,6 +13,12 @@ export async function getFestivalMeta(): Promise<FestivalOverview> {
     eventDays: toEventDays(meta.event_days),
     overviewHtml: meta.overview_html ?? null,
     heroImageId: toMediaId(meta.hero_image),
+    siteTitle: meta.site_title ?? null,
+    metaDescription: meta.meta_description ?? null,
+    ogImageId: toMediaId(meta.og_image),
+    venueName: meta.venue_name ?? null,
+    venueAddress: meta.venue_address ?? null,
+    snsLinks: (meta.sns_links as SnsLink[] | null | undefined) ?? [],
   };
 }
 

@@ -7,6 +7,7 @@ import {
   filterExhibitions,
   getExhibitionDetail,
   getExhibitionListData,
+  getExhibitionSitemapEntries,
   normalizeText,
   paginate,
   parseExhibitionQuery,
@@ -866,5 +867,73 @@ describe('getExhibitionDetail', () => {
 
     const result = await getExhibitionDetail(1, 'exhibit');
     expect(result.kind).toBe('error');
+  });
+});
+
+describe('getExhibitionSitemapEntries', () => {
+  it('公開済み企画を選択カテゴリごとに列挙し、関連コレクションの取得は行わない', async () => {
+    mockCmsCollections({
+      exhibitions: [
+        {
+          id: 1,
+          organization_name: '団体A',
+          area_id: null,
+          categories: ['stage', 'exhibit'],
+          stage: { name: '企画A-出演', images: [] },
+          exhibit: { name: '企画A-展示', images: [] },
+          updatedAt: '2023-05-01T00:00:00.000Z',
+        },
+      ],
+    });
+
+    const result = await getExhibitionSitemapEntries();
+
+    expect(result).toEqual([
+      { id: 1, category: 'stage', updatedAt: '2023-05-01T00:00:00.000Z' },
+      { id: 1, category: 'exhibit', updatedAt: '2023-05-01T00:00:00.000Z' },
+    ]);
+    const collections = vi
+      .mocked(cms.findMany)
+      .mock.calls.map(([collection]) => collection);
+    expect(collections).toEqual(['student_exhibitions']);
+  });
+
+  it('選択しているカテゴリの企画内容欄が空 (企画名なし) の場合はそのカテゴリを除外する', async () => {
+    mockCmsCollections({
+      exhibitions: [
+        {
+          id: 1,
+          organization_name: '団体A',
+          area_id: null,
+          categories: ['stage', 'exhibit'],
+          stage: { images: [] },
+          exhibit: { name: '企画A-展示', images: [] },
+          updatedAt: '2023-05-01T00:00:00.000Z',
+        },
+      ],
+    });
+
+    const result = await getExhibitionSitemapEntries();
+    expect(result).toEqual([
+      { id: 1, category: 'exhibit', updatedAt: '2023-05-01T00:00:00.000Z' },
+    ]);
+  });
+
+  it('公開状態を明示的に CMS へ送る', async () => {
+    mockCmsCollections({});
+    await getExhibitionSitemapEntries();
+    const call = vi
+      .mocked(cms.findMany)
+      .mock.calls.find(([collection]) => collection === 'student_exhibitions');
+    expect(call?.[1]?.where).toEqual({ status: { equals: 'published' } });
+  });
+
+  it('取得に失敗した場合は例外を投げる', async () => {
+    vi.mocked(cms.findMany).mockResolvedValue({
+      ok: false,
+      error: { kind: 'network', status: 500 },
+    } as never);
+
+    await expect(getExhibitionSitemapEntries()).rejects.toThrow();
   });
 });

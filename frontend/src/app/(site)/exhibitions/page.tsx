@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import {
   buildExhibitionsHref,
   getExhibitionListData,
@@ -8,9 +9,27 @@ import {
 import { ExhibitionCard } from '@/components/exhibition-card';
 import { ExhibitionFilters } from '@/components/exhibition-filters';
 import { ExhibitionPagination } from '@/components/exhibition-pagination';
+import { getSiteMetadata } from '@/lib/site-metadata';
+import { buildPageMetadata } from '@/lib/page-metadata';
+import { ROUTE_METADATA } from '@/lib/route-metadata';
 
 interface ExhibitionsPageProps {
   searchParams: Promise<Record<string, string | readonly string[] | undefined>>;
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const site = await getSiteMetadata();
+  const route = ROUTE_METADATA['/exhibitions'];
+
+  // 検索・絞り込み条件のクエリを含めず、一覧の正規パスを canonical にする (要件2.9)
+  return buildPageMetadata({
+    site,
+    title: route.title,
+    description: route.description,
+    path: '/exhibitions',
+    ogType: 'website',
+    imageCandidates: [],
+  });
 }
 
 function hrefForPage(query: ExhibitionQuery, page: number): string {

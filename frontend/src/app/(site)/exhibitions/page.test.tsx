@@ -1,17 +1,23 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { useRouter } from 'next/navigation';
-import ExhibitionsPage from './page';
+import ExhibitionsPage, { generateMetadata } from './page';
 import * as exhibitionsModule from '@/lib/exhibitions';
+import * as siteMetadataModule from '@/lib/site-metadata';
 import type {
   ExhibitionCardSummary,
   ExhibitionListResult,
 } from '@/lib/exhibitions';
+import type { SiteMetadata } from '@/lib/site-metadata';
 
 vi.mock('@/lib/exhibitions', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/exhibitions')>();
   return { ...actual, getExhibitionListData: vi.fn() };
 });
+
+vi.mock('@/lib/site-metadata', () => ({
+  getSiteMetadata: vi.fn(),
+}));
 
 vi.mock('@/lib/cms-asset-url', () => ({
   toAssetUrl: (id: string | null) =>
@@ -71,9 +77,19 @@ async function renderPage(
   );
 }
 
+const SITE_METADATA: SiteMetadata = {
+  siteTitle: '荒牧祭',
+  description: '荒牧祭公式サイト',
+  ogImageUrl: null,
+  festival: null,
+};
+
 describe('ExhibitionsPage', () => {
   beforeEach(() => {
     vi.mocked(exhibitionsModule.getExhibitionListData).mockReset();
+    vi.mocked(siteMetadataModule.getSiteMetadata).mockResolvedValue(
+      SITE_METADATA,
+    );
   });
 
   it('通常表示: 企画カード・件数・検索欄を表示する', async () => {
@@ -182,5 +198,15 @@ describe('ExhibitionsPage', () => {
 
     const second = await renderPage({ q: 'ロボット' });
     expect(second.container.innerHTML).toBe(firstHtml);
+  });
+});
+
+describe('generateMetadata (要件2.3, 2.9)', () => {
+  it('title / description を持ち、絞り込み条件を含まない canonical を設定する', async () => {
+    const metadata = await generateMetadata();
+
+    expect(metadata.title).toBe('企画一覧');
+    expect(metadata.description).toMatch(/企画/);
+    expect(metadata.alternates).toEqual({ canonical: '/exhibitions' });
   });
 });

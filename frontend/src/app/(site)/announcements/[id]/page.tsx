@@ -6,6 +6,12 @@ import { RichText } from '@/components/rich-text';
 import { RichTextImageViewer } from '@/components/rich-text-image-viewer';
 import { AttachmentGallery } from '@/components/attachment-gallery';
 import { BackLink, DetailColumn } from '@/components/detail-column';
+import { getSiteMetadata } from '@/lib/site-metadata';
+import { buildPageMetadata } from '@/lib/page-metadata';
+import { toMetaDescription } from '@/lib/meta-description';
+import { buildBreadcrumbJsonLd } from '@/lib/structured-data';
+import { JsonLd } from '@/components/json-ld';
+import { env } from '@/env';
 
 export interface AnnouncementPageProps {
   params: Promise<{ id: string }>;
@@ -26,8 +32,24 @@ export async function generateMetadata({
   params,
 }: AnnouncementPageProps): Promise<Metadata> {
   const { id } = await params;
-  const announcement = await resolveAnnouncement(id);
-  return announcement ? { title: announcement.title } : {};
+  const [announcement, site] = await Promise.all([
+    resolveAnnouncement(id),
+    getSiteMetadata(),
+  ]);
+
+  return buildPageMetadata({
+    site,
+    title: announcement?.title ?? site.siteTitle,
+    description: toMetaDescription(
+      [announcement?.metaDescription, announcement?.body],
+      site.description,
+    ),
+    // '1.0' や '01' 等の非正規表記が別 URL として canonical 宣言されるのを防ぐため、
+    // 解決できた場合は正規化済みの announcement.id を使う
+    path: `/announcements/${announcement?.id ?? id}`,
+    ogType: 'article',
+    imageCandidates: [announcement?.ogImageId ?? null],
+  });
 }
 
 export default async function AnnouncementPage({
@@ -40,8 +62,18 @@ export default async function AnnouncementPage({
     notFound();
   }
 
+  const breadcrumb = buildBreadcrumbJsonLd(
+    [
+      { name: 'トップ', path: '/' },
+      { name: 'お知らせ', path: '/announcements' },
+      { name: announcement.title, path: `/announcements/${announcement.id}` },
+    ],
+    env.NEXT_PUBLIC_SITE_URL,
+  );
+
   return (
     <DetailColumn>
+      <JsonLd data={breadcrumb} />
       <BackLink href="/announcements" label="お知らせ一覧に戻る" />
 
       <div className="flex w-full flex-col items-center gap-2">

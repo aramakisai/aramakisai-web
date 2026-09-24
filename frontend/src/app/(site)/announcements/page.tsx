@@ -1,11 +1,30 @@
+import type { Metadata } from 'next';
 import { getAnnouncements } from '@/lib/announcements';
 import { paginate } from '@/lib/exhibitions';
 import { AnnouncementsList } from '@/components/announcements-list';
 import { ExhibitionPagination } from '@/components/exhibition-pagination';
 import { SectionHeading } from '@/components/section-heading';
 import { AnnouncementSummary } from '@/lib/home-page-types';
+import { getSiteMetadata } from '@/lib/site-metadata';
+import { buildPageMetadata } from '@/lib/page-metadata';
+import { ROUTE_METADATA } from '@/lib/route-metadata';
 
 const PAGE_SIZE = 10;
+
+export async function generateMetadata(): Promise<Metadata> {
+  const site = await getSiteMetadata();
+  const route = ROUTE_METADATA['/announcements'];
+
+  // ページ番号を含む URL でも canonical は一覧の正規パスに固定する (要件2.9)
+  return buildPageMetadata({
+    site,
+    title: route.title,
+    description: route.description,
+    path: '/announcements',
+    ogType: 'website',
+    imageCandidates: [],
+  });
+}
 
 interface AnnouncementsPageProps {
   searchParams: Promise<Record<string, string | readonly string[] | undefined>>;

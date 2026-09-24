@@ -15,7 +15,21 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@/lib/cms-asset-url', () => ({
-  toAssetUrl: () => null,
+  toAssetUrl: (id: string | null) =>
+    id ? `https://example.com/assets/${id}` : null,
+}));
+
+vi.mock('@/env', () => ({
+  env: { NEXT_PUBLIC_SITE_URL: 'https://aramakisai.example.com' },
+}));
+
+vi.mock('@/lib/site-metadata', () => ({
+  getSiteMetadata: vi.fn(async () => ({
+    siteTitle: '荒牧祭',
+    description: '荒牧祭公式サイト',
+    ogImageUrl: null,
+    festival: null,
+  })),
 }));
 
 describe('StaticPage', () => {
@@ -73,10 +87,35 @@ describe('StaticPage', () => {
     expect(notFound).toHaveBeenCalled();
   });
 
+  it('パンくず (トップ › タイトル) の BreadcrumbList JSON-LD を出力する (要件 5.7)', async () => {
+    vi.mocked(getPageBySlug).mockResolvedValue({
+      title: 'アクセス',
+      contentHtml: '<p>本文</p>',
+      embedUrl: null,
+      embedHeight: null,
+    });
+
+    const params = Promise.resolve({ slug: 'access' });
+    const { container } = render(await StaticPage({ params }));
+
+    const script = container.querySelector(
+      'script[type="application/ld+json"]',
+    );
+    expect(script).not.toBeNull();
+    const data = JSON.parse(script!.textContent!);
+    expect(data['@type']).toBe('BreadcrumbList');
+    expect(
+      data.itemListElement.map((item: { name: string }) => item.name),
+    ).toEqual(['トップ', 'アクセス']);
+    expect(data.itemListElement[1].item).toBe(
+      'https://aramakisai.example.com/access',
+    );
+  });
+
   it('generateMetadata returns page title when found', async () => {
     vi.mocked(getPageBySlug).mockResolvedValue({
       title: 'アクセス',
-      contentHtml: '',
+      contentHtml: '<p>アクセス方法の説明</p>',
       embedUrl: null,
       embedHeight: null,
     });
@@ -84,15 +123,33 @@ describe('StaticPage', () => {
     const params = Promise.resolve({ slug: 'access' });
     const metadata = await generateMetadata({ params });
 
-    expect(metadata).toEqual({ title: 'アクセス' });
+    expect(metadata.title).toBe('アクセス');
+    expect(metadata.description).toBe('アクセス方法の説明');
+    expect(metadata.alternates).toEqual({ canonical: '/access' });
   });
 
-  it('generateMetadata returns empty object when slug not found', async () => {
+  it('ページ固有の meta description が優先される (要件 6.9)', async () => {
+    vi.mocked(getPageBySlug).mockResolvedValue({
+      title: 'アクセス',
+      contentHtml: '<p>アクセス方法の説明</p>',
+      embedUrl: null,
+      embedHeight: null,
+      metaDescription: '編集者が設定した説明文',
+    });
+
+    const params = Promise.resolve({ slug: 'access' });
+    const metadata = await generateMetadata({ params });
+
+    expect(metadata.description).toBe('編集者が設定した説明文');
+  });
+
+  it('generateMetadata returns site defaults when slug not found (要件 2.10 / 8.1)', async () => {
     vi.mocked(getPageBySlug).mockResolvedValue(null);
 
     const params = Promise.resolve({ slug: 'unknown' });
     const metadata = await generateMetadata({ params });
 
-    expect(metadata).toEqual({});
+    expect(metadata.title).toEqual({ absolute: '荒牧祭' });
+    expect(metadata.description).toBe('荒牧祭公式サイト');
   });
 });

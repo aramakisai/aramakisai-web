@@ -9,7 +9,7 @@ vi.mock('./cms', () => ({
 beforeEach(() => vi.clearAllMocks());
 
 describe('getFestivalMeta', () => {
-  it('festival_meta を取得して FestivalOverview へ変換する', async () => {
+  it('festival_meta を取得して FestivalMeta へ変換する (SEO フィールドを含む)', async () => {
     vi.mocked(cms.findGlobal).mockResolvedValue({
       ok: true,
       value: {
@@ -23,6 +23,12 @@ describe('getFestivalMeta', () => {
         ],
         overview_html: '<p>概要</p>',
         hero_image: { id: 123, filename: 'hero.webp', mimeType: 'image/webp' },
+        site_title: '荒牧祭 公式サイト',
+        meta_description: 'サイトの説明文',
+        og_image: { id: 456, filename: 'og.webp', mimeType: 'image/webp' },
+        venue_name: '荒牧キャンパス',
+        venue_address: '群馬県前橋市...',
+        sns_links: [{ platform: 'x', url: 'https://x.com/example' }],
       },
     } as never);
 
@@ -40,10 +46,16 @@ describe('getFestivalMeta', () => {
       ],
       overviewHtml: '<p>概要</p>',
       heroImageId: '123',
+      siteTitle: '荒牧祭 公式サイト',
+      metaDescription: 'サイトの説明文',
+      ogImageId: '456',
+      venueName: '荒牧キャンパス',
+      venueAddress: '群馬県前橋市...',
+      snsLinks: [{ platform: 'x', url: 'https://x.com/example' }],
     });
   });
 
-  it('event_days / overview / hero_image が null でも既定値へ落とす', async () => {
+  it('event_days / overview / hero_image / SEO フィールドが null でも既定値へ落とす', async () => {
     vi.mocked(cms.findGlobal).mockResolvedValue({
       ok: true,
       value: {
@@ -51,6 +63,12 @@ describe('getFestivalMeta', () => {
         event_days: null,
         overview_html: null,
         hero_image: null,
+        site_title: null,
+        meta_description: null,
+        og_image: null,
+        venue_name: null,
+        venue_address: null,
+        sns_links: null,
       },
     } as never);
 
@@ -59,6 +77,12 @@ describe('getFestivalMeta', () => {
       eventDays: [],
       overviewHtml: null,
       heroImageId: null,
+      siteTitle: null,
+      metaDescription: null,
+      ogImageId: null,
+      venueName: null,
+      venueAddress: null,
+      snsLinks: [],
     });
   });
 

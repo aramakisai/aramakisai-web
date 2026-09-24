@@ -7,7 +7,6 @@ import {
   type ExhibitionCategory,
   type ExhibitionDetailResult,
 } from '@/lib/exhibitions';
-import { toAssetUrl } from '@/lib/cms-asset-url';
 import { env } from '@/env';
 import { getCampusMapAreas, type CampusMapArea } from '@/lib/campus-map';
 import { ExhibitionGallery } from '@/components/exhibition-gallery';
@@ -16,6 +15,11 @@ import { ExhibitionLocationSection } from '@/components/exhibition-location-map/
 import { ShareButton } from '@/components/share-button';
 import { PlaceIcon } from '@/components/icons';
 import { BackLink } from '@/components/detail-column';
+import { getSiteMetadata } from '@/lib/site-metadata';
+import { buildPageMetadata } from '@/lib/page-metadata';
+import { toMetaDescription } from '@/lib/meta-description';
+import { buildBreadcrumbJsonLd } from '@/lib/structured-data';
+import { JsonLd } from '@/components/json-ld';
 
 export interface ExhibitionPageProps {
   readonly params: Promise<{ id: string; category: string }>;
@@ -41,33 +45,24 @@ export async function generateMetadata({
   params,
 }: ExhibitionPageProps): Promise<Metadata> {
   const { id, category } = await params;
-  const result = await resolveExhibition(id, category);
-  if (result.kind !== 'found') {
-    return {};
-  }
+  const [result, site] = await Promise.all([
+    resolveExhibition(id, category),
+    getSiteMetadata(),
+  ]);
+  const exhibition = result.kind === 'found' ? result.value : null;
 
-  const exhibition = result.value;
-  const description =
-    exhibition.description || `${exhibition.organizationName} の企画`;
-  const imageUrl = exhibition.thumbnail
-    ? toAssetUrl(exhibition.thumbnail.id, 960)
-    : null;
-
-  return {
-    title: exhibition.displayName,
-    description,
-    openGraph: {
-      title: exhibition.displayName,
-      description,
-      images: imageUrl ? [imageUrl] : undefined,
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: exhibition.displayName,
-      description,
-      images: imageUrl ? [imageUrl] : undefined,
-    },
-  };
+  // student_exhibitions に専用の meta description フィールドは無いため、本文 (description) →
+  // サイト既定値の2段のみ (announcements/topics/pages とは異なり、ページ固有の CMS フィールドが無い)
+  return buildPageMetadata({
+    site,
+    title: exhibition?.displayName ?? site.siteTitle,
+    description: toMetaDescription([exhibition?.description], site.description),
+    // '1.0' や '01' 等の非正規表記が別 URL として canonical 宣言されるのを防ぐため、
+    // 解決できた場合は正規化済みの exhibition.id を使う
+    path: `/exhibitions/${exhibition?.id ?? id}/${category}`,
+    ogType: 'article',
+    imageCandidates: [exhibition?.thumbnail?.id ?? null],
+  });
 }
 
 // Figma は stage/exhibit/other のみ定義。vendor は未定義色のため既存トークンから
@@ -120,9 +115,21 @@ export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
   // 区画取得失敗をページ全体のエラーへ昇格させないため、ここで空区画へ縮退させる
   const areas: readonly CampusMapArea[] =
     areasResult.kind === 'loaded' ? areasResult.value : [];
+  const breadcrumb = buildBreadcrumbJsonLd(
+    [
+      { name: 'トップ', path: '/' },
+      { name: '企画一覧', path: '/exhibitions' },
+      {
+        name: exhibition.displayName,
+        path: `/exhibitions/${exhibition.id}/${exhibition.category}`,
+      },
+    ],
+    env.NEXT_PUBLIC_SITE_URL,
+  );
 
   return (
     <div className="mx-auto flex max-w-[1440px] flex-col gap-6 px-4 pt-4 pb-12 lg:gap-8 lg:px-20 lg:pt-8 lg:pb-20">
+      <JsonLd data={breadcrumb} />
       <BackLink href="/exhibitions" label="企画一覧へ戻る" />
 
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-12">
