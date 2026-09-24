@@ -13,16 +13,22 @@ describe.skipIf(!hasDatabase)('招待メールの送信', () => {
 
   let executive: { id: number };
 
+  // CI の空 DB には festival_meta の行が無く、必須の祭名を欠いた更新は検証で落ちる
+  const setContactUrl = async (url: string | null) => {
+    const current = await payload.findGlobal({ slug: 'festival_meta', overrideAccess: true });
+    await payload.updateGlobal({
+      slug: 'festival_meta',
+      data: { name: current.name || 'テスト祭', exhibitor_contact_url: url },
+      overrideAccess: true,
+    });
+  };
+
   beforeAll(async () => {
     const { getPayload } = await import('payload');
     const config = (await import('../payload.config')).default;
     payload = await getPayload({ config });
 
-    await payload.updateGlobal({
-      slug: 'festival_meta',
-      data: { exhibitor_contact_url: 'https://aramakisai.com/contact' },
-      overrideAccess: true,
-    });
+    await setContactUrl('https://aramakisai.com/contact');
 
     executive = (await payload.create({
       collection: 'users',
@@ -38,11 +44,7 @@ describe.skipIf(!hasDatabase)('招待メールの送信', () => {
 
   afterEach(async () => {
     vi.restoreAllMocks();
-    await payload.updateGlobal({
-      slug: 'festival_meta',
-      data: { exhibitor_contact_url: 'https://aramakisai.com/contact' },
-      overrideAccess: true,
-    });
+    await setContactUrl('https://aramakisai.com/contact');
   });
 
   afterAll(async () => {
@@ -125,11 +127,7 @@ describe.skipIf(!hasDatabase)('招待メールの送信', () => {
   });
 
   it('問い合わせ先URLが未設定でも送信され、本文に問い合わせ先が含まれず送信済みと記録される', async () => {
-    await payload.updateGlobal({
-      slug: 'festival_meta',
-      data: { exhibitor_contact_url: null },
-      overrideAccess: true,
-    });
+    await setContactUrl(null);
     const sendEmail = vi.spyOn(payload, 'sendEmail');
     const user = await createExhibitor(nextEmail());
 
