@@ -1,12 +1,14 @@
 import { render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import Page from './page';
+import Page, { generateMetadata } from './page';
 import * as homePageModule from '@/lib/home-page';
 import * as phaseModule from '@/lib/phase';
 import * as exhibitionsModule from '@/lib/exhibitions';
 import * as sponsorsModule from '@/lib/sponsors';
+import * as siteMetadataModule from '@/lib/site-metadata';
 import { HomePageContent } from '@/lib/home-page-types';
 import type { ExhibitionCardSummary } from '@/lib/exhibitions';
+import type { SiteMetadata } from '@/lib/site-metadata';
 
 vi.mock('@/env', () => ({
   env: {
@@ -17,6 +19,10 @@ vi.mock('@/env', () => ({
 
 vi.mock('@/lib/home-page', () => ({
   getHomePage: vi.fn(),
+}));
+
+vi.mock('@/lib/site-metadata', () => ({
+  getSiteMetadata: vi.fn(),
 }));
 
 vi.mock('@/lib/phase', () => ({
@@ -100,6 +106,19 @@ const content: HomePageContent = {
     },
   ],
 };
+
+const SITE_METADATA: SiteMetadata = {
+  siteTitle: '荒牧祭',
+  description: '荒牧祭公式サイト',
+  ogImageUrl: null,
+  festival: null,
+};
+
+beforeEach(() => {
+  vi.mocked(siteMetadataModule.getSiteMetadata).mockResolvedValue(
+    SITE_METADATA,
+  );
+});
 
 describe('Page (開催前フェーズ)', () => {
   beforeEach(() => {
@@ -474,5 +493,85 @@ describe('Page (開催中フェーズ)', () => {
     expect(
       screen.getByRole('heading', { level: 2, name: '協賛' }),
     ).toBeInTheDocument();
+  });
+});
+
+describe('generateMetadata (要件2.1)', () => {
+  it('title にサイトタイトルを、description にサイト既定値を、canonical に "/" を設定する', async () => {
+    const metadata = await generateMetadata();
+
+    expect(metadata.title).toEqual({ absolute: '荒牧祭' });
+    expect(metadata.description).toBe('荒牧祭公式サイト');
+    expect(metadata.alternates).toEqual({ canonical: '/' });
+    expect(metadata.openGraph).toMatchObject({
+      type: 'website',
+      siteName: '荒牧祭',
+    });
+    // root layout (title: null) と異なり子ページのため robots は明示しない (継承させる)
+    expect(metadata.robots).toBeUndefined();
+  });
+});
+
+describe('トップページの JSON-LD (要件5.1, 5.5)', () => {
+  beforeEach(() => {
+    vi.mocked(phaseModule.resolvePhase).mockReturnValue({
+      phase: 'pre_event',
+      source: 'constant',
+    });
+    vi.mocked(homePageModule.getHomePage).mockResolvedValue(content);
+  });
+
+  it('開催日程があれば Event と Organization を @graph にまとめた ld+json を出力する', async () => {
+    vi.mocked(siteMetadataModule.getSiteMetadata).mockResolvedValue({
+      ...SITE_METADATA,
+      festival: {
+        name: '荒牧祭',
+        eventDays: [
+          {
+            label: null,
+            startAt: '2026-10-10T09:00:00+09:00',
+            endAt: '2026-10-11T17:00:00+09:00',
+          },
+        ],
+        overviewHtml: null,
+        heroImageId: null,
+        siteTitle: null,
+        metaDescription: null,
+        ogImageId: null,
+        venueName: '群馬大学 荒牧キャンパス',
+        venueAddress: null,
+        snsLinks: [],
+      },
+    });
+
+    const ui = await Page();
+    const { container } = render(ui);
+
+    const script = container.querySelector(
+      'script[type="application/ld+json"]',
+    );
+    expect(script).not.toBeNull();
+    const data = JSON.parse(script!.textContent ?? '{}');
+    expect(data['@context']).toBe('https://schema.org');
+    expect(data['@graph']).toHaveLength(2);
+    expect(data['@graph'][0]['@type']).toBe('Event');
+    expect(data['@graph'][1]['@type']).toBe('Organization');
+  });
+
+  it('開催日程が無くても Organization だけを @graph に出力し、全体の出力を止めない', async () => {
+    vi.mocked(siteMetadataModule.getSiteMetadata).mockResolvedValue(
+      SITE_METADATA,
+    );
+
+    const ui = await Page();
+    const { container } = render(ui);
+
+    const script = container.querySelector(
+      'script[type="application/ld+json"]',
+    );
+    expect(script).not.toBeNull();
+    const data = JSON.parse(script!.textContent ?? '{}');
+    expect(data['@graph']).toHaveLength(1);
+    expect(data['@graph'][0]['@type']).toBe('Organization');
   });
 });

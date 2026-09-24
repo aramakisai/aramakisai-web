@@ -47,5 +47,12 @@ export const Topics: CollectionConfig = {
       label: '添付ファイル',
       admin: { description: '複数添付ファイル' },
     },
+    {
+      name: 'meta_description',
+      type: 'textarea',
+      maxLength: 200,
+      label: '説明文 (meta description)',
+      admin: { description: '未入力時は本文冒頭から自動生成' },
+    },
   ],
 };

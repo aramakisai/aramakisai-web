@@ -10,6 +10,8 @@ function formatTopic(topic: Topic): TopicSummary {
     title: topic.title,
     body: topic.body_html ?? null,
     imageId: toMediaId(topic.image),
+    metaDescription: topic.meta_description ?? null,
+    updatedAt: topic.updatedAt,
   };
 }
 
@@ -24,7 +26,14 @@ export async function getTopics(): Promise<TopicSummary[]> {
   return result.value.docs.map(formatTopic);
 }
 
+/** 一覧 (getTopics) と同じ公開済み条件を id 一致と組み合わせる (要件 8.8, 8.9)。announcements.ts と同じ規約 */
 export async function getTopicById(id: number): Promise<TopicSummary | null> {
-  const result = await cms.findById('topics', id, { depth: 1 });
-  return result.ok ? formatTopic(result.value) : null;
+  const result = await cms.findMany('topics', {
+    where: { id: { equals: id }, ...publishedFilter() },
+    limit: 1,
+    depth: 1,
+  });
+  if (!result.ok) return null;
+  const topic = result.value.docs[0];
+  return topic ? formatTopic(topic) : null;
 }

@@ -73,8 +73,7 @@ import { getCms } from '@/lib/cms';
 - CMS クライアントは `frontend/src/lib/cms.ts` の単一インスタンスを共有する
 - CI ロジックはワークフロー YAML に直接書かず `frontend/scripts/*.ts` / `cms/scripts/*.ts` に切り出し、対応する `*.test.ts` で検証する
 - コンテンツモデルの access control ロジックは `cms/src/access/policy.ts` に集約し、各コレクション定義は `payload-access.ts` 経由で参照する (ロール判定の重複実装を避ける)
-- `.kiro/specs/{feature}/design.md` は "This Spec Owns / Out of Boundary / Allowed Dependencies" で責務境界を明示する規約。新機能追加時は既存 spec の Out of Boundary/Owns と衝突しないか確認する
-- `.kiro/specs/` に機能ごとの仕様書 (requirements / design / tasks) を配置し、Spec-Driven Development のフローに従う
+- `.kiro/specs/` に機能ごとの仕様書 (requirements / design / tasks) を配置し、Spec-Driven Development のフローに従う。spec は使い捨てのすり合わせ資料であり、他 spec をスコープ・境界の根拠にしない (根拠は現行コード・steering・WBS)
 
 ## プロジェクトメモリ同期プロセス (aramakisai-infra 準拠)
 

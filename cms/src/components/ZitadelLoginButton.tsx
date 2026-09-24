@@ -6,7 +6,7 @@ export default function ZitadelLoginButton() {
         className="btn btn--style-secondary btn--size-large"
         style={{ display: 'inline-block', width: '100%' }}
       >
-        Zitadel でログイン
+        荒牧祭SSOでログイン
       </a>
     </div>
   );

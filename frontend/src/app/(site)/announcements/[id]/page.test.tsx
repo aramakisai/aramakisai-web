@@ -20,6 +20,19 @@ vi.mock('@/lib/cms-asset-url', () => ({
     id ? `https://example.com/assets/${id}` : null,
 }));
 
+vi.mock('@/env', () => ({
+  env: { NEXT_PUBLIC_SITE_URL: 'https://aramakisai.example.com' },
+}));
+
+vi.mock('@/lib/site-metadata', () => ({
+  getSiteMetadata: vi.fn(async () => ({
+    siteTitle: '荒牧祭',
+    description: '荒牧祭公式サイト',
+    ogImageUrl: null,
+    festival: null,
+  })),
+}));
+
 const baseAnnouncement = {
   id: 1,
   title: 'テストお知らせ',
@@ -33,6 +46,8 @@ const baseAnnouncement = {
       filesize: 1782579,
     },
   ],
+  metaDescription: null,
+  ogImageId: null,
 };
 
 describe('AnnouncementPage', () => {
@@ -79,6 +94,26 @@ describe('AnnouncementPage', () => {
       screen.getByRole('heading', { name: '添付ファイル', level: 2 }),
     ).toBeInTheDocument();
     expect(screen.getByText('test.pdf')).toBeInTheDocument();
+  });
+
+  it('パンくず (トップ › お知らせ › タイトル) の BreadcrumbList JSON-LD を出力する (要件 5.7)', async () => {
+    vi.mocked(getAnnouncementById).mockResolvedValue(baseAnnouncement);
+
+    const params = Promise.resolve({ id: '1' });
+    const { container } = render(await AnnouncementPage({ params }));
+
+    const script = container.querySelector(
+      'script[type="application/ld+json"]',
+    );
+    expect(script).not.toBeNull();
+    const data = JSON.parse(script!.textContent!);
+    expect(data['@type']).toBe('BreadcrumbList');
+    expect(
+      data.itemListElement.map((item: { name: string }) => item.name),
+    ).toEqual(['トップ', 'お知らせ', 'テストお知らせ']);
+    expect(data.itemListElement[2].item).toBe(
+      'https://aramakisai.example.com/announcements/1',
+    );
   });
 
   it('does not render the attachment heading when there are no attachments', async () => {
@@ -137,25 +172,62 @@ describe('generateMetadata', () => {
       params: Promise.resolve({ id: '1' }),
     });
 
-    expect(metadata).toEqual({ title: 'テストお知らせ' });
+    expect(metadata.title).toBe('テストお知らせ');
+    expect(metadata.description).toBe('これはテストです');
+    expect(metadata.alternates).toEqual({ canonical: '/announcements/1' });
+    expect(metadata.openGraph).toMatchObject({
+      type: 'article',
+      title: 'テストお知らせ',
+      description: 'これはテストです',
+    });
   });
 
-  it('returns empty metadata when the announcement does not exist', async () => {
+  it('ページ固有の meta description が優先される (要件 6.9)', async () => {
+    vi.mocked(getAnnouncementById).mockResolvedValue({
+      ...baseAnnouncement,
+      metaDescription: '編集者が設定した説明文',
+    });
+
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ id: '1' }),
+    });
+
+    expect(metadata.description).toBe('編集者が設定した説明文');
+  });
+
+  it('OG 画像は announcement.ogImageId を採用する', async () => {
+    vi.mocked(getAnnouncementById).mockResolvedValue({
+      ...baseAnnouncement,
+      ogImageId: '99',
+    });
+
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ id: '1' }),
+    });
+
+    expect(metadata.openGraph?.images).toEqual([
+      { url: 'https://example.com/assets/99' },
+    ]);
+  });
+
+  it('サイト既定値へ退避する (取得結果なし、要件 2.10 / 8.1)', async () => {
     vi.mocked(getAnnouncementById).mockResolvedValue(null);
 
     const metadata = await generateMetadata({
       params: Promise.resolve({ id: '999' }),
     });
 
-    expect(metadata).toEqual({});
+    expect(metadata.title).toEqual({ absolute: '荒牧祭' });
+    expect(metadata.description).toBe('荒牧祭公式サイト');
+    expect(metadata.openGraph).toBeDefined();
   });
 
-  it('returns empty metadata for an invalid id without fetching', async () => {
+  it('サイト既定値へ退避する (id 不正、取得しない)', async () => {
     const metadata = await generateMetadata({
       params: Promise.resolve({ id: 'invalid' }),
     });
 
-    expect(metadata).toEqual({});
+    expect(metadata.title).toEqual({ absolute: '荒牧祭' });
     expect(getAnnouncementById).not.toHaveBeenCalled();
   });
 });

@@ -84,6 +84,12 @@ export interface ExhibitionListResult {
   readonly areas: readonly AreaOption[];
 }
 
+export interface ExhibitionSitemapEntry {
+  readonly id: number;
+  readonly category: ExhibitionCategory;
+  readonly updatedAt: string;
+}
+
 export type ExhibitionDetailResult =
   | { readonly kind: 'found'; readonly value: ExhibitionDetail }
   | { readonly kind: 'missing' }
@@ -459,6 +465,31 @@ export async function getExhibitionListData(
     rangeEnd: total === 0 ? 0 : Math.min(paginated.page * PAGE_SIZE, total),
     areas: areasResult.value.docs.map((a) => ({ id: a.id, name: a.name })),
   };
+}
+
+/**
+ * sitemap 用。位置解決 (エリア/ステージ) の結果は使わないため関連コレクションの結合取得を省略し、
+ * 空のコンテキストで toCards を呼ぶことで企画名が空のカテゴリを除く判定だけを再利用する。
+ */
+export async function getExhibitionSitemapEntries(): Promise<
+  readonly ExhibitionSitemapEntry[]
+> {
+  const result = await cms.findMany('student_exhibitions', {
+    where: { status: { equals: 'published' } },
+    sort: ['id'],
+    limit: 0,
+    depth: 0,
+  });
+  if (!result.ok) throw new Error('企画一覧の取得に失敗しました');
+
+  const emptyContext = buildJoinContext([], [], []);
+  return result.value.docs.flatMap((exhibition) =>
+    toCards(exhibition, emptyContext).map((card) => ({
+      id: card.id,
+      category: card.category,
+      updatedAt: exhibition.updatedAt,
+    })),
+  );
 }
 
 /**

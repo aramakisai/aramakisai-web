@@ -1,11 +1,15 @@
 import type { CollectionConfig, GroupField } from 'payload';
 
-import { isExecutive, toCmsUser } from '../access/roles';
+import { executiveOnlyField } from '../access/payload-access';
 import {
   boothPlacementConstraint,
   categoryContentsConstraint,
+  guardPublishedExhibition,
+  imageConstraint,
+  ownerConstraint,
   stageCategoryConstraint,
 } from '../hooks/payload-constraints';
+import { syncMediaPublicationAfterChange, syncMediaPublicationAfterDelete } from '../hooks/media-publication';
 
 const CATEGORIES = [
   { name: 'stage', label: 'ステージ' },
@@ -35,7 +39,7 @@ function categoryContentGroup(name: (typeof CATEGORIES)[number]['name'], label: 
         relationTo: 'media',
         hasMany: true,
         label: '画像',
-        admin: { description: '最大 5 枚まで' },
+        admin: { description: '最大5枚まで。1枚目がサムネイルとして表示されます。' },
       },
     ],
   };
@@ -46,13 +50,19 @@ export const StudentExhibitions: CollectionConfig = {
   labels: { singular: '学生企画', plural: '学生企画' },
   admin: {
     useAsTitle: 'organization_name',
+    defaultColumns: ['organization_name', 'categories', 'status'],
   },
   hooks: {
+    beforeOperation: [guardPublishedExhibition],
     beforeValidate: [
+      ownerConstraint,
       boothPlacementConstraint('student_exhibitions'),
       categoryContentsConstraint,
       stageCategoryConstraint,
+      imageConstraint,
     ],
+    afterChange: [syncMediaPublicationAfterChange],
+    afterDelete: [syncMediaPublicationAfterDelete],
   },
   fields: [
     {
@@ -63,18 +73,11 @@ export const StudentExhibitions: CollectionConfig = {
       // 現行スキーマの user_created UNIQUE (1 ユーザー 1 レコード) を引き継ぐ
       unique: true,
       label: '所有者',
-      // 出展者は users を read できず、管理画面のセレクトが解決できない。
-      // 値は下の beforeChange が決めるため、フォームには出さない
-      admin: { hidden: true },
-      hooks: {
-        // 出展者が owner を指定できると、unique 制約により他人の枠を先に埋めて
-        // その人がレコードを作れない状態にできる。実行委員のみ指定を許す。
-        beforeChange: [
-          ({ previousValue, req, value }) =>
-            isExecutive(toCmsUser(req.user))
-              ? (value ?? req.user?.id)
-              : (previousValue ?? req.user?.id),
-        ],
+      filterOptions: { role: { equals: 'student_exhibitor' } },
+      access: {
+        read: executiveOnlyField,
+        create: executiveOnlyField,
+        update: executiveOnlyField,
       },
     },
     {
@@ -87,6 +90,11 @@ export const StudentExhibitions: CollectionConfig = {
         { label: '公開', value: 'published' },
         { label: '下書き', value: 'draft' },
       ],
+      admin: {
+        position: 'sidebar',
+        description: '公開は実行委員が行い、公開後は編集できません。',
+      },
+      access: { create: executiveOnlyField, update: executiveOnlyField },
     },
     {
       name: 'organization_name',
@@ -113,27 +121,30 @@ export const StudentExhibitions: CollectionConfig = {
       collection: 'performance_slots',
       on: 'exhibition_id',
       label: 'ステージ出演枠',
-      admin: { description: '実行委員が割り当てる。閲覧のみ' },
+      admin: { description: 'ステージ出演枠' },
     },
     {
       name: 'area_id',
       type: 'relationship',
       relationTo: 'map_areas',
       label: 'マップ配置エリア',
-      admin: { description: 'NULL=マップ非掲載。展示・出店のみ使用' },
+      admin: { description: '割り当てられた出店エリア' },
+      access: { create: executiveOnlyField, update: executiveOnlyField },
     },
     {
       name: 'booth_number',
       type: 'number',
       label: 'ブース番号',
-      admin: { description: 'エリア内番号 (area_id+booth_number UNIQUE)。展示・出店のみ使用' },
+      admin: { description: '割り当てられた出店グループ内の番号もしくは教室番号' },
+      access: { create: executiveOnlyField, update: executiveOnlyField },
     },
     {
       name: 'booth_label',
       type: 'text',
       maxLength: 50,
       label: 'マップ表示ラベル',
-      admin: { description: '展示・出店のみ使用' },
+      admin: { description: '割り当てられた出店エリア名' },
+      access: { create: executiveOnlyField, update: executiveOnlyField },
     },
     {
       name: 'links',
@@ -161,6 +172,7 @@ export const StudentExhibitions: CollectionConfig = {
           type: 'text',
           required: true,
           label: 'URL',
+          admin: { description: 'https://から始まるURLを入力してください。' },
           validate: (value: unknown) =>
             typeof value === 'string' && URL.canParse(value) && value.startsWith('https://')
               ? true

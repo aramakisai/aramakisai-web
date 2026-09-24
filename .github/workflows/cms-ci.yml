@@ -64,9 +64,18 @@ jobs:
 
       # 統合テストは手書きマイグレーションが入れた CHECK と複合 UNIQUE を検証するため、
       # 適用より先に走らせると dev push が生成したスキーマを見てしまう
+      # payload CLI は設定読み込み中に何も出力せず exit 0 で終わることがあり (再現は CI 上で散発的)、
+      # 終了コードでは未適用を検出できない。完了ログ "Done." で成否を判定し、冪等なので再試行する
       - name: Apply migrations against a disposable database
         working-directory: cms
-        run: pnpm migrate
+        run: |
+          for attempt in 1 2 3; do
+            pnpm migrate 2>&1 | tee "$RUNNER_TEMP/migrate.log"
+            grep -q 'Done\.' "$RUNNER_TEMP/migrate.log" && exit 0
+            echo "::warning::payload migrate が完了ログを出さずに終了した (試行 $attempt)"
+          done
+          echo "::error::payload migrate が完了しなかった"
+          exit 1
 
       - name: Unit tests
         working-directory: cms

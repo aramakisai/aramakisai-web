@@ -1,9 +1,15 @@
-import type { CollectionBeforeValidateHook } from 'payload';
-import { ValidationError } from 'payload';
+import type { CollectionBeforeOperationHook, CollectionBeforeValidateHook } from 'payload';
+import { APIError, ValidationError } from 'payload';
 
+import { isStudentExhibitor, toCmsUser } from '../access/roles';
 import {
+  newImageIds,
   validateBoothPlacement,
   validateCategoryContents,
+  validateImageCount,
+  validateImageOwnership,
+  validateOwnerRole,
+  validateOwnerUniqueness,
   validatePerformanceSlot,
   validateStageAssignment,
   validateStageCategoryRemoval,
@@ -105,3 +111,120 @@ export function boothPlacementConstraint(
     return data;
   };
 }
+
+/**
+ * owner の指定は実行委員限定 (フィールド access) だが、判定はロール・重複とも Local API
+ * (overrideAccess) 経由の書き込みも同じ経路を通す必要があるため beforeValidate に置く。
+ */
+export const ownerConstraint: CollectionBeforeValidateHook = async ({ data, originalDoc, req }) => {
+  const ownerId = data?.owner;
+  if (ownerId == null || ownerId === '') return data;
+
+  const ownerUser = await req.payload
+    .findByID({
+      collection: 'users',
+      id: ownerId as string | number,
+      depth: 0,
+      disableErrors: true,
+      req,
+    })
+    .catch(() => null);
+
+  const roleViolations = validateOwnerRole(data ?? {}, {
+    ownerIsStudentExhibitor: ownerUser?.role === 'student_exhibitor',
+  });
+  if (roleViolations.length > 0) {
+    raise('student_exhibitions', roleViolations);
+    return data;
+  }
+
+  const duplicates = await req.payload.find({
+    collection: 'student_exhibitions',
+    depth: 0,
+    limit: 1,
+    pagination: false,
+    req,
+    where: {
+      and: [
+        { owner: { equals: ownerId } },
+        ...(originalDoc?.id ? [{ id: { not_equals: originalDoc.id } }] : []),
+      ],
+    },
+  });
+  const duplicate = duplicates.docs[0] as { organization_name?: string } | undefined;
+
+  raise(
+    'student_exhibitions',
+    validateOwnerUniqueness(data ?? {}, {
+      duplicateOwner: duplicate
+        ? { email: ownerUser?.email ?? '', organizationName: duplicate.organization_name ?? '' }
+        : null,
+    }),
+  );
+  return data;
+};
+
+/**
+ * 画像枚数の上限 (M-E07) は全員対象。所有者チェック (M-E17) は学生団体のリクエストだけが対象
+ * (実行委員・Local API は他団体の画像も差し替えられる必要があるため)。
+ */
+export const imageConstraint: CollectionBeforeValidateHook = async ({ data, originalDoc, req }) => {
+  const doc = (data ?? {}) as Parameters<typeof validateImageCount>[0];
+  const violations: ConstraintViolation[] = [...validateImageCount(doc)];
+
+  if (isStudentExhibitor(toCmsUser(req.user))) {
+    const candidateIds = newImageIds(doc, (originalDoc ?? {}) as typeof doc);
+    if (candidateIds.length > 0) {
+      const owned = await req.payload.find({
+        collection: 'media',
+        depth: 0,
+        pagination: false,
+        overrideAccess: true,
+        req,
+        where: { id: { in: candidateIds as (string | number)[] } },
+      });
+      const authorizedIds = new Set(
+        owned.docs
+          .filter((m) => String(m.owner ?? '') === String(req.user?.id ?? ''))
+          .map((m) => String(m.id)),
+      );
+      const unauthorizedImageIds = new Set(
+        candidateIds.map(String).filter((id) => !authorizedIds.has(id)),
+      );
+      violations.push(...validateImageOwnership(doc, { unauthorizedImageIds }));
+    }
+  }
+
+  raise('student_exhibitions', violations);
+  return data;
+};
+
+/**
+ * access 評価 (Where で published を除外) より前に案内付きで拒否するため beforeOperation に置く。
+ * 本人の企画でなければ何もせず、後段の access に Forbidden を任せる (他団体の公開状態を漏らさない)。
+ */
+export const guardPublishedExhibition: CollectionBeforeOperationHook = async ({
+  args,
+  operation,
+  overrideAccess,
+  req,
+}) => {
+  if (operation !== 'update' || overrideAccess === true) return;
+  if (!isStudentExhibitor(toCmsUser(req.user))) return;
+
+  const id = (args as { id?: string | number }).id;
+  if (id == null) return;
+
+  const doc = await req.payload
+    .findByID({ collection: 'student_exhibitions', id, depth: 0, overrideAccess: true, req })
+    .catch(() => null);
+  if (!doc) return;
+
+  const ownerId =
+    doc.owner !== null && typeof doc.owner === 'object'
+      ? (doc.owner as { id?: unknown }).id
+      : doc.owner;
+  if (String(ownerId) !== String(req.user?.id) || doc.status !== 'published') return;
+
+  throw new APIError('公開中の企画のため、修正は実行委員に依頼してください。', 403, undefined, true);
+};
