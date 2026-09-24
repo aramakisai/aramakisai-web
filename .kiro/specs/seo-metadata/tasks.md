@@ -132,7 +132,7 @@
   - 完了状態: 4 コマンドが全て成功する
   - _Requirements: 8.7_
 
-- [ ] 6.2 PR プレビュー URL で出力を確認する
+- [x] 6.2 PR プレビュー URL で出力を確認する
   - 各ページの `<head>` を取得し、og:* / twitter:* / canonical / ld+json の存在と、`og:image` / `twitter:image` が CMS 画像または静的既定画像の絶対 URL を指すことを確認する
   - `/robots.txt` と `/sitemap.xml` が公開範囲どおりであることを確認する
   - 構造化データの検証ツールでトップの Event と詳細の BreadcrumbList に必須プロパティ欠落の重大エラーが無いことを確認する
