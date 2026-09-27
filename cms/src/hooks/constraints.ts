@@ -31,6 +31,7 @@ type CategoryContentValue = {
 type CategoryContentsDoc = {
   readonly organization_name?: unknown;
   readonly categories?: unknown;
+  readonly status?: unknown;
 } & { readonly [K in ExhibitionCategory]?: CategoryContentValue | null };
 
 function hasValue(value: unknown): boolean {
@@ -61,15 +62,16 @@ export function validateBoothPlacement(
 }
 
 /**
- * 実行委員は owner・categories だけ入力すれば保存できる (団体名・企画内容は代理入力の対象外)
- * ため、この必須項目チェックは学生団体本人の保存にだけ課す。非表示 (未選択カテゴリ) の企画内容欄は
- * admin.condition 側の関心事のため、選択済みカテゴリだけを見る。
+ * 実行委員は owner・categories だけ入力すれば保存できる (団体名・企画内容は代理入力の対象外) ため、
+ * 通常の保存では学生団体本人にだけこの必須項目チェックを課す。ただし公開後は実行委員代理入力でも
+ * 内容が揃っている必要があるため、status が published のときはロール不問で課す。非表示 (未選択
+ * カテゴリ) の企画内容欄は admin.condition 側の関心事のため、選択済みカテゴリだけを見る。
  */
 export function validateCategoryContents(
   doc: CategoryContentsDoc,
   { isStudentExhibitor }: { isStudentExhibitor: boolean },
 ): readonly ConstraintViolation[] {
-  if (!isStudentExhibitor) return [];
+  if (!isStudentExhibitor && doc.status !== 'published') return [];
 
   const violations: ConstraintViolation[] = [];
   if (!hasValue(doc.organization_name)) {

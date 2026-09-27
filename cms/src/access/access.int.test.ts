@@ -361,6 +361,18 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
       });
     });
 
+    it('実行委員が内容空のまま published にすると保存できない', async () => {
+      await expect(
+        payload.update({
+          collection: 'student_exhibitions',
+          id: otherRecord.id,
+          data: { organization_name: '', other: { description: '' }, status: 'published' },
+          overrideAccess: false,
+          user: await asUser(executive.id),
+        }),
+      ).rejects.toThrow();
+    });
+
     it('学生団体は categories を変更できない (executiveOnlyField)', async () => {
       const updated = await payload.update({
         collection: 'student_exhibitions',

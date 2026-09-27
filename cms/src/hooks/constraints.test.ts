@@ -138,6 +138,29 @@ describe('validateCategoryContents', () => {
       { field: 'vendor.images', message: '出店を選択した場合は画像が1枚以上必要' },
     ]);
   });
+
+  it('実行委員でも status が published なら欠落を違反とする', () => {
+    expect(
+      validateCategoryContents(
+        { categories: ['stage'], stage: {}, status: 'published' },
+        { isStudentExhibitor: false },
+      ),
+    ).toEqual([
+      { field: 'organization_name', message: '団体名の入力が必要' },
+      { field: 'stage.name', message: 'ステージを選択した場合は企画名の入力が必要' },
+      { field: 'stage.description', message: 'ステージを選択した場合は紹介文の入力が必要' },
+      { field: 'stage.images', message: 'ステージを選択した場合は画像が1枚以上必要' },
+    ]);
+  });
+
+  it('実行委員が status を draft のまま保存するなら欠落を通す', () => {
+    expect(
+      validateCategoryContents(
+        { categories: ['stage'], stage: {}, status: 'draft' },
+        { isStudentExhibitor: false },
+      ),
+    ).toEqual([]);
+  });
 });
 
 describe('validateStageAssignment', () => {
