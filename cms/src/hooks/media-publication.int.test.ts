@@ -78,7 +78,7 @@ describe.skipIf(!hasDatabase)('syncMediaPublication', () => {
         organization_name: `sync-${suffix}`,
         status: 'published',
         categories: ['exhibit'],
-        exhibit: { name: `sync-${suffix}`, images: [mediaA.id] },
+        exhibit: { name: `sync-${suffix}`, description: `sync-${suffix}`, images: [mediaA.id] },
       },
       overrideAccess: true,
     })) as { id: number };
@@ -199,7 +199,7 @@ describe.skipIf(!hasDatabase)('student_exhibitions の afterChange/afterDelete �
         organization_name: suffix,
         status: 'draft',
         categories: ['exhibit'],
-        exhibit: { name: suffix, images: [media.id] },
+        exhibit: { name: suffix, description: suffix, images: [media.id] },
       },
       overrideAccess: true,
     })) as { id: number };
@@ -239,7 +239,7 @@ describe.skipIf(!hasDatabase)('student_exhibitions の afterChange/afterDelete �
         organization_name: suffix,
         status: 'published',
         categories: ['exhibit'],
-        exhibit: { name: suffix, images: [media.id] },
+        exhibit: { name: suffix, description: suffix, images: [media.id] },
       },
       overrideAccess: true,
     })) as { id: number };
@@ -331,7 +331,7 @@ describe.skipIf(!hasDatabase)('公開状態と未認証の read access の連動
         organization_name: suffix,
         status: 'draft',
         categories: ['exhibit'],
-        exhibit: { name: suffix, images: [mediaA.id] },
+        exhibit: { name: suffix, description: suffix, images: [mediaA.id] },
       },
       overrideAccess: true,
     })) as { id: number };
@@ -359,7 +359,7 @@ describe.skipIf(!hasDatabase)('公開状態と未認証の read access の連動
     await payload.update({
       collection: 'student_exhibitions',
       id: exhibition!.id,
-      data: { status: 'published', exhibit: { name: suffix, images: [mediaA.id] } },
+      data: { status: 'published', exhibit: { name: suffix, description: suffix, images: [mediaA.id] } },
       overrideAccess: true,
     });
     expect(await canReadUnauthenticated(mediaA.id)).toBe(true);
@@ -369,7 +369,7 @@ describe.skipIf(!hasDatabase)('公開状態と未認証の read access の連動
     await payload.update({
       collection: 'student_exhibitions',
       id: exhibition!.id,
-      data: { exhibit: { name: suffix, images: [mediaB.id] } },
+      data: { exhibit: { name: suffix, description: suffix, images: [mediaB.id] } },
       overrideAccess: true,
     });
 
@@ -443,7 +443,7 @@ describe.skipIf(!hasDatabase)('他人の画像を企画に指定すると拒否�
         organization_name: suffix,
         status: 'draft',
         categories: ['exhibit'],
-        exhibit: { name: suffix, images: [mediaOfA.id] },
+        exhibit: { name: suffix, description: suffix, images: [mediaOfA.id] },
       },
       overrideAccess: true,
     })) as { id: number };

@@ -17,11 +17,11 @@ const INVITE_STATUSES = [
 
 const ROLE_LABELS: Record<CmsRole, string> = {
   executive: '実行委員',
-  student_exhibitor: '出展者',
+  student_exhibitor: '学生団体',
 };
 
 /**
- * 出展者ロール (未指定時の既定値を含む) の作成では、管理画面・API のどちらから届いた
+ * 学生団体ロール (未指定時の既定値を含む) の作成では、管理画面・API のどちらから届いた
  * パスワードも使わない。パスワードは招待メールのリンクからしか設定させないため。
  */
 const replaceInitialPassword: CollectionBeforeOperationHook = (arg) => {
@@ -82,7 +82,7 @@ const queueInvitationEmail: CollectionAfterChangeHook = async ({ doc, operation,
 };
 
 /**
- * 出展者から他ロールへ変わった (実行委員への昇格等) 際、その人が出展者としてアップロードした
+ * 学生団体から他ロールへ変わった (実行委員への昇格等) 際、その人が学生団体としてアップロードした
  * メディアの owner を外す。放置すると media.owner.role が新しいロールに連動し、
  * publicMediaRead の「所有者が実行委員」条件に未公開の画像まで一致して公開されてしまう (7.9)。
  */
@@ -113,7 +113,7 @@ export const Users: CollectionConfig = {
   },
   fields: [
     {
-      // 上書き定義。自分のレコードを更新できる出展者が、自分のメールアドレスを
+      // 上書き定義。自分のレコードを更新できる学生団体が、自分のメールアドレスを
       // 書き換えられないようにする (読み取りは基底のまま制限しない)。
       name: 'email',
       type: 'email',
@@ -141,7 +141,7 @@ export const Users: CollectionConfig = {
       label: 'ロール',
       options: CMS_ROLES.map((role) => ({ label: ROLE_LABELS[role], value: role })),
       admin: { description: 'ロールはコード上の定義 (CMS_ROLES) からのみ決まる' },
-      // 出展者が自分のレコードを更新できるようになると、自分のロールを書き換えられる。
+      // 学生団体が自分のレコードを更新できるようになると、自分のロールを書き換えられる。
       // 読み取りは認証後の req.user.role 判定に要るため全員のまま保つ。
       access: { create: executiveOnlyField, update: executiveOnlyField },
     },

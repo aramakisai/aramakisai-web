@@ -146,7 +146,7 @@ export const FestivalMeta: GlobalConfig = {
       name: 'exhibitor_contact_url',
       type: 'text',
       maxLength: 255,
-      label: '出展者向け問い合わせ先URL',
+      label: '学生団体向け問い合わせ先URL',
       admin: { description: '学生団体への招待メールに記載されます。' },
       validate: (value: unknown) =>
         !value || (typeof value === 'string' && URL.canParse(value) && value.startsWith('https://'))

@@ -472,7 +472,7 @@ describe.skipIf(!hasDatabase)('所有者の消滅・ロール変更後の read a
     if (workdir) rmSync(workdir, { recursive: true, force: true });
   });
 
-  it('出展者ユーザーを削除しても、owner が NULL になった未使用の下書き画像は未認証に公開されない', async () => {
+  it('学生団体ユーザーを削除しても、owner が NULL になった未使用の下書き画像は未認証に公開されない', async () => {
     const deleted = (await payload.create({
       collection: 'users',
       data: {
@@ -509,7 +509,7 @@ describe.skipIf(!hasDatabase)('所有者の消滅・ロール変更後の read a
     await payload.delete({ collection: 'media', id: doc.id, overrideAccess: true }).catch(() => null);
   });
 
-  it('出展者が実行委員へ昇格しても、未使用の下書き画像は所有者を外され未認証に公開されない', async () => {
+  it('学生団体が実行委員へ昇格しても、未使用の下書き画像は所有者を外され未認証に公開されない', async () => {
     const promoted = (await payload.create({
       collection: 'users',
       data: {
