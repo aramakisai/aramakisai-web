@@ -383,7 +383,7 @@ function toCard(
     id: exhibition.id,
     category,
     displayName,
-    organizationName: exhibition.organization_name,
+    organizationName: exhibition.organization_name ?? '',
     location: resolveLocationForCategory(exhibition, category, context),
     areaIds: resolveAreaIds(exhibition, context),
     thumbnail:

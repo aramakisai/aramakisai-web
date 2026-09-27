@@ -1,9 +1,13 @@
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 // 実 DB を要求するため、DATABASE_URL が無い環境ではスキップする
 const hasDatabase = Boolean(process.env.DATABASE_URL && process.env.PAYLOAD_SECRET);
 
-describe.skipIf(!hasDatabase)('出展者ロールの access control', () => {
+describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
   let payload: Awaited<ReturnType<typeof import('payload').getPayload>>;
   let owner: { id: number };
   let other: { id: number };
@@ -17,6 +21,8 @@ describe.skipIf(!hasDatabase)('出展者ロールの access control', () => {
   let publishedRecord: { id: number };
   let assign1Record: number | undefined;
   let assign2Record: number | undefined;
+  let image: { id: number };
+  let workdir: string;
 
   const ownerIdOf = (value: unknown) =>
     typeof value === 'object' && value !== null ? (value as { id: number }).id : value;
@@ -25,8 +31,23 @@ describe.skipIf(!hasDatabase)('出展者ロールの access control', () => {
 
   beforeAll(async () => {
     const { getPayload } = await import('payload');
+    const sharp = (await import('sharp')).default;
     const config = (await import('../payload.config')).default;
     payload = await getPayload({ config });
+
+    workdir = mkdtempSync(path.join(tmpdir(), 'access-int-'));
+    // 他の結合テストファイルと同じ worker (pid 共有) で並行実行されても、アップロード先の
+    // filename が衝突しないよう他ファイルと異なる接頭辞にする
+    const filePath = path.join(workdir, `access-int-${suffix}.png`);
+    await sharp({ create: { width: 8, height: 8, channels: 3, background: { r: 0, g: 0, b: 0 } } })
+      .png()
+      .toFile(filePath);
+    image = (await payload.create({
+      collection: 'media',
+      filePath,
+      data: { alt: 'test' },
+      overrideAccess: true,
+    })) as { id: number };
 
     const createUser = async (email: string, role: 'student_exhibitor' | 'executive') =>
       (await payload.create({
@@ -43,6 +64,8 @@ describe.skipIf(!hasDatabase)('出展者ロールの access control', () => {
     assignee1 = await createUser(`assignee1-${suffix}@test.local`, 'student_exhibitor');
     assignee2 = await createUser(`assignee2-${suffix}@test.local`, 'student_exhibitor');
 
+    // 学生団体の必須項目チェック (M-E?) を満たす完全なデータで作成する。不完全な状態は
+    // 各テストが個別に data で欠損させて検証するため、フィクスチャは常に完全にしておく。
     const createExhibition = async (ownerId: number, name: string, status: 'draft' | 'published') =>
       (await payload.create({
         collection: 'student_exhibitions',
@@ -50,7 +73,7 @@ describe.skipIf(!hasDatabase)('出展者ロールの access control', () => {
           owner: ownerId,
           organization_name: name,
           categories: ['other'],
-          other: { name },
+          other: { name, description: `${name}の紹介文`, images: [image.id] },
           status,
         },
         overrideAccess: true,
@@ -62,6 +85,7 @@ describe.skipIf(!hasDatabase)('出展者ロールの access control', () => {
   });
 
   afterAll(async () => {
+    if (workdir) rmSync(workdir, { recursive: true, force: true });
     if (!payload) return;
     for (const id of [ownRecord?.id, otherRecord?.id, publishedRecord?.id, assign1Record, assign2Record]) {
       if (id) {
@@ -74,6 +98,9 @@ describe.skipIf(!hasDatabase)('出展者ロールの access control', () => {
       if (id) {
         await payload.delete({ collection: 'users', id, overrideAccess: true }).catch(() => null);
       }
+    }
+    if (image?.id) {
+      await payload.delete({ collection: 'media', id: image.id, overrideAccess: true }).catch(() => null);
     }
   });
 
@@ -285,6 +312,76 @@ describe.skipIf(!hasDatabase)('出展者ロールの access control', () => {
         expect(data?.errors?.[0]?.path).toBe('owner');
         expect(data?.errors?.[0]?.message).toMatch(/^.+は既に.+の所有者です。$/);
       }
+    });
+
+    it('実行委員は owner と categories だけで作成できる (団体名・企画内容は必須にしない)', async () => {
+      const minimalOwner = (await payload.create({
+        collection: 'users',
+        data: { email: `minimal-${suffix}@test.local`, password: 'test-password', role: 'student_exhibitor' },
+        overrideAccess: true,
+      })) as { id: number };
+      const created = (await payload.create({
+        collection: 'student_exhibitions',
+        data: { owner: minimalOwner.id, categories: ['other'] } as never,
+        overrideAccess: false,
+        user: await asUser(executive.id),
+      })) as { id: number; owner: unknown };
+
+      expect(ownerIdOf(created.owner)).toBe(minimalOwner.id);
+      await payload.delete({ collection: 'student_exhibitions', id: created.id, overrideAccess: true });
+      await payload.delete({ collection: 'users', id: minimalOwner.id, overrideAccess: true });
+    });
+
+    it('学生団体は団体名・企画名・紹介文・画像のいずれかが欠けていると保存できない', async () => {
+      const self = await asOwner();
+      const violationOf = async (data: Record<string, unknown>) => {
+        const error = (await payload
+          .update({ collection: 'student_exhibitions', id: ownRecord.id, data, overrideAccess: false, user: self })
+          .catch((e: unknown) => e)) as {
+          data?: { errors?: { path: string; message: string }[] };
+        };
+        return error.data?.errors ?? [];
+      };
+
+      expect(await violationOf({ organization_name: '' })).toContainEqual({
+        path: 'organization_name',
+        message: '団体名の入力が必要',
+      });
+      expect(await violationOf({ other: { name: '' } })).toContainEqual({
+        path: 'other.name',
+        message: 'その他を選択した場合は企画名の入力が必要',
+      });
+      expect(await violationOf({ other: { description: '' } })).toContainEqual({
+        path: 'other.description',
+        message: 'その他を選択した場合は紹介文の入力が必要',
+      });
+      expect(await violationOf({ other: { images: [] } })).toContainEqual({
+        path: 'other.images',
+        message: 'その他を選択した場合は画像が1枚以上必要',
+      });
+    });
+
+    it('実行委員が内容空のまま published にすると保存できない', async () => {
+      await expect(
+        payload.update({
+          collection: 'student_exhibitions',
+          id: otherRecord.id,
+          data: { organization_name: '', other: { description: '' }, status: 'published' },
+          overrideAccess: false,
+          user: await asUser(executive.id),
+        }),
+      ).rejects.toThrow();
+    });
+
+    it('学生団体は categories を変更できない (executiveOnlyField)', async () => {
+      const updated = await payload.update({
+        collection: 'student_exhibitions',
+        id: ownRecord.id,
+        data: { categories: ['stage'] },
+        overrideAccess: false,
+        user: await asOwner(),
+      });
+      expect(updated.categories).toEqual(['other']);
     });
   });
 

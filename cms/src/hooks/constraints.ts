@@ -22,9 +22,17 @@ const CATEGORY_LABELS = {
 
 type ExhibitionCategory = keyof typeof CATEGORY_LABELS;
 
+type CategoryContentValue = {
+  readonly name?: unknown;
+  readonly description?: unknown;
+  readonly images?: unknown;
+};
+
 type CategoryContentsDoc = {
+  readonly organization_name?: unknown;
   readonly categories?: unknown;
-} & { readonly [K in ExhibitionCategory]?: { readonly name?: unknown } | null };
+  readonly status?: unknown;
+} & { readonly [K in ExhibitionCategory]?: CategoryContentValue | null };
 
 function hasValue(value: unknown): boolean {
   return value !== null && value !== undefined && value !== '';
@@ -53,18 +61,39 @@ export function validateBoothPlacement(
   ];
 }
 
-/** 非表示 (未選択カテゴリ) の企画内容欄は admin.condition 側の関心事のため、ここでは選択済みカテゴリだけを見る。 */
+/**
+ * 実行委員は owner・categories だけ入力すれば保存できる (団体名・企画内容は代理入力の対象外) ため、
+ * 通常の保存では学生団体本人にだけこの必須項目チェックを課す。ただし公開後は実行委員代理入力でも
+ * 内容が揃っている必要があるため、status が published のときはロール不問で課す。非表示 (未選択
+ * カテゴリ) の企画内容欄は admin.condition 側の関心事のため、選択済みカテゴリだけを見る。
+ */
 export function validateCategoryContents(
   doc: CategoryContentsDoc,
+  { isStudentExhibitor }: { isStudentExhibitor: boolean },
 ): readonly ConstraintViolation[] {
+  if (!isStudentExhibitor && doc.status !== 'published') return [];
+
+  const violations: ConstraintViolation[] = [];
+  if (!hasValue(doc.organization_name)) {
+    violations.push({ field: 'organization_name', message: '団体名の入力が必要' });
+  }
+
   const categories = Array.isArray(doc.categories) ? (doc.categories as unknown[]) : [];
-  return categories.flatMap((category) => {
+  for (const category of categories) {
     const key = category as ExhibitionCategory;
     const label = CATEGORY_LABELS[key];
-    if (!label) return [];
-    if (hasValue(doc[key]?.name)) return [];
-    return [{ field: `${key}.name`, message: `${label}を選択した場合は企画名の入力が必要` }];
-  });
+    if (!label) continue;
+    if (!hasValue(doc[key]?.name)) {
+      violations.push({ field: `${key}.name`, message: `${label}を選択した場合は企画名の入力が必要` });
+    }
+    if (!hasValue(doc[key]?.description)) {
+      violations.push({ field: `${key}.description`, message: `${label}を選択した場合は紹介文の入力が必要` });
+    }
+    if (imageIdsOf(doc[key]?.images).length === 0) {
+      violations.push({ field: `${key}.images`, message: `${label}を選択した場合は画像が1枚以上必要` });
+    }
+  }
+  return violations;
 }
 
 type StageAssignmentDoc = {

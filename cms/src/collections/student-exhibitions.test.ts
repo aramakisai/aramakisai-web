@@ -12,6 +12,7 @@ const linkFields = links.fields as readonly unknown[];
 const url = fieldOf(linkFields, 'url');
 const platform = fieldOf(linkFields, 'platform');
 const categories = fieldOf(StudentExhibitions.fields, 'categories');
+const organizationName = fieldOf(StudentExhibitions.fields, 'organization_name');
 const stageGroup = fieldOf(StudentExhibitions.fields, 'stage');
 const owner = fieldOf(StudentExhibitions.fields, 'owner');
 const status = fieldOf(StudentExhibitions.fields, 'status');
@@ -81,6 +82,21 @@ describe('categories フィールド', () => {
       'vendor',
       'other',
     ]);
+  });
+
+  it('読みは制限せず、書きは実行委員だけに許可する', () => {
+    expect(callAccess(categories, 'read', 'student_exhibitor')).toBeUndefined();
+    expect(callAccess(categories, 'create', 'executive')).toBe(true);
+    expect(callAccess(categories, 'create', 'student_exhibitor')).toBe(false);
+    expect(callAccess(categories, 'update', 'executive')).toBe(true);
+    expect(callAccess(categories, 'update', 'student_exhibitor')).toBe(false);
+  });
+});
+
+describe('organization_name フィールド', () => {
+  it('フィールド定義としては必須にしない (必須チェックは学生団体の保存だけに課す)', () => {
+    expect(organizationName.type).toBe('text');
+    expect(organizationName.required).toBeFalsy();
   });
 });
 

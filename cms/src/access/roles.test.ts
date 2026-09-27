@@ -27,7 +27,7 @@ describe('ロール述語', () => {
     expect(isExecutive(null)).toBe(false);
   });
 
-  it('出展者を判別する', () => {
+  it('学生団体を判別する', () => {
     expect(isStudentExhibitor({ id: 1, role: 'student_exhibitor' })).toBe(true);
     expect(isStudentExhibitor(null)).toBe(false);
   });

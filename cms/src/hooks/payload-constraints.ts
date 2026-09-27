@@ -29,8 +29,13 @@ export const performanceSlotConstraint: CollectionBeforeValidateHook = ({ data }
   return data;
 };
 
-export const categoryContentsConstraint: CollectionBeforeValidateHook = ({ data }) => {
-  raise('student_exhibitions', validateCategoryContents(data ?? {}));
+export const categoryContentsConstraint: CollectionBeforeValidateHook = ({ data, req }) => {
+  raise(
+    'student_exhibitions',
+    validateCategoryContents(data ?? {}, {
+      isStudentExhibitor: isStudentExhibitor(toCmsUser(req.user)),
+    }),
+  );
   return data;
 };
 
