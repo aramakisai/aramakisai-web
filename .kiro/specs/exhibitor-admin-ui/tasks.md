@@ -26,15 +26,15 @@
   - _Requirements: 5.3, 5.4_
   - _Boundary: OidcCallback_
 
-- [ ] 2. aramakisai-infra 側の作業 (別リポジトリ)
-- [ ] 2.1 (P) CMS の Secret に送信専用アカウントの SMTP パスワードを追加する
+- [x] 2. aramakisai-infra 側の作業 (別リポジトリ)
+- [x] 2.1 (P) CMS の Secret に送信専用アカウントの SMTP パスワードを追加する
   - `cms-secrets` の ExternalSecret に、Infisical の `NOREPLY_SMTP_PASSWORD` を参照する項目と、テンプレート側の出力を追加する
   - migrate の PreSync Job は `cms-secrets` しか読まない (`gitops/manifests/prod/cms/migrate-job.yaml:25-27`) ため、SMTP 関連の値は Deployment の env ではなく `cms-secrets` に入れる。2.2・2.4 と同じ変更でマージする
   - 完了状態: 本番の `cms-secrets` に `NOREPLY_SMTP_PASSWORD` が入り、CMS の Pod から環境変数として読める
   - このタスクを前提にするコードタスク: 7.1 (本番で SMTP 送信を有効にする)、8.5 (本番反映後の招待メール送信確認)
   - _Requirements: 4.7_
   - _Boundary: aramakisai-infra cms-secrets_
-- [ ] 2.2 (P) CMS の Secret に SMTP 接続先を追加する
+- [x] 2.2 (P) CMS の Secret に SMTP 接続先を追加する
   - `cms-secrets` の ExternalSecret の `template.data` に、クラスタ内 docker-mailserver の Service を指す固定値 `SMTP_HOST` を追加する (migrate の PreSync Job でも読めるように、Deployment の env には置かない)
   - 完了状態: 本番の CMS Pod と migrate Job に `SMTP_HOST=mailserver.prod.svc.cluster.local` が設定される
   - このタスクを前提にするコードタスク: 7.1、8.5 (2.1 と同じ)
@@ -46,7 +46,7 @@
   - このタスクを前提にするコードタスク: 1.1・3.2・6.1 による未認証の非公開化 (7.9) を本番で完結させる。コードの実装・テストは前提にしない
   - _Requirements: 7.9_
   - _Boundary: aramakisai-infra object storage_
-- [ ] 2.4 (P) 問い合わせ先 URL を CMS に渡す
+- [x] 2.4 (P) 問い合わせ先 URL を CMS に渡す
   - Infisical の prod に `EXHIBITOR_CONTACT_URL` を登録し、`cms-secrets` の ExternalSecret の `data` と `template.data` に追加する (migrate Job も読めるように Deployment の env には置かない)
   - 2.1・2.2 と同時に反映する (`SMTP_HOST` が入ると起動時に必須になるため)
   - 完了状態: 本番の CMS Pod と migrate Job で `EXHIBITOR_CONTACT_URL` が読める
