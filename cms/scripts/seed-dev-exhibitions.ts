@@ -60,10 +60,12 @@ async function resetPreviousSeed(payload: Payload): Promise<void> {
   await payload.delete({ collection: 'users', where: { email: { like: SEED_EMAIL_PREFIX } } });
 }
 
-// このユーザーは DB に存在しないダミー。student_exhibitions.owner の beforeChange hook が
-// 「executive でなければ渡した value を無視して previousValue/req.user?.id を使う」実装のため、
-// Local API で owner を明示指定するには isExecutive(req.user) === true にする必要がある。
-const FAKE_EXECUTIVE = { id: 'seed-script', role: 'executive', collection: 'users' };
+// student_exhibitions.owner の beforeChange hook が「executive でなければ渡した value を無視して
+// previousValue/req.user?.id を使う」実装のため、Local API で owner を明示指定するには
+// isExecutive(req.user) === true にする必要がある。また media.owner (アップロード者) は
+// relationship 型で実在 ID を要求するため、DB に存在しないダミー ID は使えない。main() 内で
+// 実行委員アカウントを実際に作成してから代入する。
+let FAKE_EXECUTIVE: { id: number; role: 'executive'; collection: 'users' };
 
 // frontend/src/lib/campus-map-config.ts の CAMPUS_MAP_CONFIG.bounds (群馬大学荒牧キャンパス) 内に
 // 収まるよう、キャンパス中心 [36.4318, 139.0464] 周辺に配置した 8 エリア。大きさ・縦横比・頂点数を
@@ -319,6 +321,16 @@ async function main() {
 
   await resetPreviousSeed(payload);
 
+  const executiveUser = await payload.create({
+    collection: 'users',
+    data: {
+      email: `${SEED_EMAIL_PREFIX}executive@example.invalid`,
+      password: 'seed-dev-password-1234',
+      role: 'executive',
+    },
+  });
+  FAKE_EXECUTIVE = { id: executiveUser.id as number, role: 'executive', collection: 'users' };
+
   // 1. media (使い回し用に3枚アップロード)
   const mediaIds: number[] = [];
   for (const f of IMAGE_FILES) {
@@ -399,7 +411,9 @@ async function main() {
       collection: 'student_exhibitions',
       data: {
         owner: ownerUser.id,
-        status: 'published',
+        // 画像なしのエントリは validateCategoryContents (公開時は name/description/images 必須) に
+        // 抵触するため draft にする。
+        status: e.hasImage ? 'published' : 'draft',
         organization_name: e.organizationName,
         categories: [...e.categories],
         area_id: wantsArea ? areaIds[areaIndex] : undefined,
