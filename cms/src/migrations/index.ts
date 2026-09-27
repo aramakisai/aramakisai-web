@@ -14,6 +14,7 @@ import * as migration_20260922_155727_festival_meta_access_summary from './20260
 import * as migration_20260923_164954_seo_fields from './20260923_164954_seo_fields';
 import * as migration_20260924_130150_exhibitor_admin_ui from './20260924_130150_exhibitor_admin_ui';
 import * as migration_20260924_142843_exhibitor_contact_url from './20260924_142843_exhibitor_contact_url';
+import * as migration_20260927_074248_student_exhibitions_organization_name_optional from './20260927_074248_student_exhibitions_organization_name_optional';
 
 export const migrations = [
   {
@@ -94,6 +95,11 @@ export const migrations = [
   {
     up: migration_20260924_142843_exhibitor_contact_url.up,
     down: migration_20260924_142843_exhibitor_contact_url.down,
-    name: '20260924_142843_exhibitor_contact_url'
+    name: '20260924_142843_exhibitor_contact_url',
+  },
+  {
+    up: migration_20260927_074248_student_exhibitions_organization_name_optional.up,
+    down: migration_20260927_074248_student_exhibitions_organization_name_optional.down,
+    name: '20260927_074248_student_exhibitions_organization_name_optional'
   },
 ];

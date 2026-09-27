@@ -12,7 +12,7 @@ describe('executiveOnlyField', () => {
     );
   });
 
-  it('出展者・未認証には false を返す', () => {
+  it('学生団体・未認証には false を返す', () => {
     expect(
       executiveOnlyField({ req: reqWith({ id: 1, role: 'student_exhibitor' }) } as never),
     ).toBe(false);

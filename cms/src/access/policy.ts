@@ -4,10 +4,10 @@ import { isExecutive, isStudentExhibitor, type CmsUser } from './roles';
 
 export type AccessResult = boolean | Where;
 
-/** 出展者ロールに管理画面ナビ・ダッシュボードで見せるコレクション/グローバルの slug。 */
+/** 学生団体ロールに管理画面ナビ・ダッシュボードで見せるコレクション/グローバルの slug。 */
 export const EXHIBITOR_VISIBLE = ['student_exhibitions', 'media'] as const;
 
-/** 出展者に作成を許すコレクション。student_exhibitions は受け皿レコード方式のため対象外。 */
+/** 学生団体に作成を許すコレクション。student_exhibitions は受け皿レコード方式のため対象外。 */
 const EXHIBITOR_CREATABLE = ['media'] as const;
 
 /**
@@ -42,13 +42,13 @@ function selfFilter(user: CmsUser): Where {
 }
 
 /**
- * 未認証・出展者以外に公開する画像: 所有者記録の導入前から存在する画像、所有者が実行委員、
+ * 未認証・学生団体以外に公開する画像: 所有者記録の導入前から存在する画像、所有者が実行委員、
  * または公開企画で使用中のいずれか。
  *
  * 「所有者なし」は所有者記録の導入前から存在する画像に限定するため used_in_published も
  * 未設定であることを併せて見る。所有者記録の導入後に作成された画像は作成時のフックが必ず
  * used_in_published へ true/false を入れるため、NULL のままなのは移行前の行だけである。
- * これが無いと、出展者ユーザーの削除で owner が NULL になった未公開の下書き画像が
+ * これが無いと、学生団体ユーザーの削除で owner が NULL になった未公開の下書き画像が
  * 未認証に公開されてしまう (media.owner_id は ON DELETE SET NULL)。
  */
 function publicMediaRead(): Where {

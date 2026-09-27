@@ -519,7 +519,7 @@ export interface StudentExhibition {
   /**
    * 学生団体・サークル名
    */
-  organization_name: string;
+  organization_name?: string | null;
   /**
    * 1 つ以上選択する (上限なし)
    */

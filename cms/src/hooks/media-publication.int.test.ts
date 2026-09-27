@@ -443,7 +443,7 @@ describe.skipIf(!hasDatabase)('他人の画像を企画に指定すると拒否�
         organization_name: suffix,
         status: 'draft',
         categories: ['exhibit'],
-        exhibit: { name: suffix, images: [mediaOfA.id] },
+        exhibit: { name: suffix, description: suffix, images: [mediaOfA.id] },
       },
       overrideAccess: true,
     })) as { id: number };

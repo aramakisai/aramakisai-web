@@ -99,7 +99,6 @@ export const StudentExhibitions: CollectionConfig = {
     {
       name: 'organization_name',
       type: 'text',
-      required: true,
       maxLength: 255,
       label: '団体名',
       admin: { description: '学生団体・サークル名' },
@@ -113,6 +112,7 @@ export const StudentExhibitions: CollectionConfig = {
       label: 'カテゴリ',
       options: CATEGORIES.map(({ name, label }) => ({ label, value: name })),
       admin: { description: '1 つ以上選択する (上限なし)' },
+      access: { create: executiveOnlyField, update: executiveOnlyField },
     },
     ...CATEGORIES.map(({ name, label }) => categoryContentGroup(name, label)),
     {

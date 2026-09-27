@@ -72,30 +72,70 @@ describe('validateBoothPlacement', () => {
 });
 
 describe('validateCategoryContents', () => {
-  it('選択したカテゴリの企画名が空なら違反とする', () => {
-    expect(
-      validateCategoryContents({ categories: ['stage'], stage: { name: '' } }),
-    ).toEqual([{ field: 'stage.name', message: 'ステージを選択した場合は企画名の入力が必要' }]);
-  });
+  const fullContent = { name: '特設ステージ団', description: '紹介文', images: [1] };
 
-  it('選択したカテゴリの企画名が入っていれば通す', () => {
+  it('実行委員には団体名・企画内容の必須チェックを課さない', () => {
     expect(
-      validateCategoryContents({ categories: ['stage'], stage: { name: '特設ステージ団' } }),
+      validateCategoryContents(
+        { categories: ['stage'], stage: {} },
+        { isStudentExhibitor: false },
+      ),
     ).toEqual([]);
   });
 
-  it('選択していないカテゴリの企画名が空でも通す', () => {
+  it('学生団体は団体名が空なら違反とする', () => {
     expect(
-      validateCategoryContents({ categories: ['stage'], stage: { name: '特設ステージ団' }, exhibit: { name: '' } }),
-    ).toEqual([]);
+      validateCategoryContents(
+        { organization_name: '', categories: [] },
+        { isStudentExhibitor: true },
+      ),
+    ).toEqual([{ field: 'organization_name', message: '団体名の入力が必要' }]);
   });
 
-  it('複数カテゴリを選択していれば全カテゴリ分検証する', () => {
+  it('学生団体は選択したカテゴリの企画名・紹介文・画像が空なら違反とする', () => {
     expect(
-      validateCategoryContents({ categories: ['stage', 'vendor'], stage: { name: '' }, vendor: { name: '' } }),
+      validateCategoryContents(
+        { organization_name: '団体', categories: ['stage'], stage: {} },
+        { isStudentExhibitor: true },
+      ),
     ).toEqual([
       { field: 'stage.name', message: 'ステージを選択した場合は企画名の入力が必要' },
+      { field: 'stage.description', message: 'ステージを選択した場合は紹介文の入力が必要' },
+      { field: 'stage.images', message: 'ステージを選択した場合は画像が1枚以上必要' },
+    ]);
+  });
+
+  it('学生団体は選択したカテゴリの企画内容が揃っていれば通す', () => {
+    expect(
+      validateCategoryContents(
+        { organization_name: '団体', categories: ['stage'], stage: fullContent },
+        { isStudentExhibitor: true },
+      ),
+    ).toEqual([]);
+  });
+
+  it('学生団体は選択していないカテゴリの企画内容が空でも通す', () => {
+    expect(
+      validateCategoryContents(
+        { organization_name: '団体', categories: ['stage'], stage: fullContent, exhibit: {} },
+        { isStudentExhibitor: true },
+      ),
+    ).toEqual([]);
+  });
+
+  it('学生団体は複数カテゴリを選択していれば全カテゴリ分検証する', () => {
+    expect(
+      validateCategoryContents(
+        { organization_name: '団体', categories: ['stage', 'vendor'], stage: {}, vendor: {} },
+        { isStudentExhibitor: true },
+      ),
+    ).toEqual([
+      { field: 'stage.name', message: 'ステージを選択した場合は企画名の入力が必要' },
+      { field: 'stage.description', message: 'ステージを選択した場合は紹介文の入力が必要' },
+      { field: 'stage.images', message: 'ステージを選択した場合は画像が1枚以上必要' },
       { field: 'vendor.name', message: '出店を選択した場合は企画名の入力が必要' },
+      { field: 'vendor.description', message: '出店を選択した場合は紹介文の入力が必要' },
+      { field: 'vendor.images', message: '出店を選択した場合は画像が1枚以上必要' },
     ]);
   });
 });
