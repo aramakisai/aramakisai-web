@@ -129,6 +129,12 @@ async function renderAndMeasure(shapes: PlacedShape[]) {
   return document.querySelectorAll<HTMLElement>('[data-bg-shape]');
 }
 
+function matchingIOs(el: Element): MockIntersectionObserver[] {
+  return MockIntersectionObserver.instances.filter((instance) =>
+    instance.observe.mock.calls.some(([target]) => target === el),
+  );
+}
+
 /**
  * el を observe した IntersectionObserver のうち最後に登録されたものを返す。
  * ヘッダー高さの再計測 (resize) で shapes/entryOffsets の参照が変わり
@@ -136,11 +142,18 @@ async function renderAndMeasure(shapes: PlacedShape[]) {
  * 要素を observe した記録を残したまま残留する。先頭 (find) を拾うとその古い
  * closure を掴んでしまい、trigger しても現在動いている RAF ループの ready
  * フラグには反映されない。
+ *
+ * renderAndMeasure の waitFor は data-bg-shape 要素の出現 (コミット) しか
+ * 待たず、その後に非同期でフラッシュされる useShapeMotion 側の passive
+ * effect (IntersectionObserver の登録) までは待たない。両者の間に順序保証は
+ * ないため、要素出現より effect のフラッシュが遅れる余地がある (CI の
+ * 高負荷時にまれに顕在化する)。ここで登録自体を待ち直す。
  */
-function findActiveIO(el: Element): MockIntersectionObserver {
-  const matches = MockIntersectionObserver.instances.filter((instance) =>
-    instance.observe.mock.calls.some(([target]) => target === el),
-  );
+async function findActiveIO(el: Element): Promise<MockIntersectionObserver> {
+  await waitFor(() => {
+    expect(matchingIOs(el).length).toBeGreaterThan(0);
+  });
+  const matches = matchingIOs(el);
   return matches[matches.length - 1];
 }
 
@@ -191,7 +204,7 @@ describe('BackgroundShapes の動き', () => {
     const els = await renderAndMeasure([shape({ cy: 300 })]);
     const el = els[0];
 
-    const io = findActiveIO(el);
+    const io = await findActiveIO(el);
 
     vi.useFakeTimers();
     io.trigger(el, true);
@@ -230,7 +243,7 @@ describe('BackgroundShapes の動き', () => {
     const els = await renderAndMeasure([shape({ cy: 300 })]);
     const el = els[0];
 
-    const io = findActiveIO(el);
+    const io = await findActiveIO(el);
     vi.useFakeTimers({ toFake: [...RAF_FAKE_TIMERS] });
     completeEntry(io, el);
     const restingTransform = el.style.transform;
@@ -253,7 +266,7 @@ describe('BackgroundShapes の動き', () => {
     const els = await renderAndMeasure([shape({ cy: 300 })]);
     const el = els[0];
 
-    const io = findActiveIO(el);
+    const io = await findActiveIO(el);
     vi.useFakeTimers({ toFake: [...RAF_FAKE_TIMERS] });
     completeEntry(io, el);
     const restingTransform = el.style.transform;
@@ -290,7 +303,7 @@ describe('BackgroundShapes の動き', () => {
     const rings = el.querySelectorAll<HTMLElement>('[data-bg-ring]');
     expect(rings).toHaveLength(2);
 
-    const io = findActiveIO(el);
+    const io = await findActiveIO(el);
     vi.useFakeTimers({ toFake: [...RAF_FAKE_TIMERS] });
     io.trigger(el, true);
     // 2 つ目の輪は 150ms 遅延するため、入場所要時間 (1400ms) + 150ms 経過させる
