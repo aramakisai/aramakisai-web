@@ -160,7 +160,10 @@ jobs:
           PROJECT_ID=$(python3 -c "import json;print(json.load(open('.infisical.json'))['workspaceId'])")
           infisical run --token="$INFISICAL_TOKEN" --projectId="$PROJECT_ID" --env=prod -- bash -c '
             echo "::add-mask::$GH_APP_ID"
-            echo "::add-mask::$GH_APP_PRIVATE_KEY"
+            # ::add-mask:: は 1 行目しか登録せず 2 行目以降を平文でログに出すため、行ごとにマスクする
+            while IFS= read -r line; do
+              [ -n "$line" ] && echo "::add-mask::$line"
+            done <<< "$GH_APP_PRIVATE_KEY"
             echo "app_id=$GH_APP_ID" >> "$GITHUB_OUTPUT"
             {
               echo "private_key<<EOF"
