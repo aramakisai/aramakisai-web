@@ -11,7 +11,7 @@ export function BackLink({ href, label }: BackLinkProps) {
   return (
     <Link
       href={href}
-      className="inline-flex items-center gap-1 text-sm leading-[140%] font-medium text-gray-500 hover:text-primary"
+      className="inline-flex items-center gap-1 text-sm leading-[140%] font-medium text-gray-600 hover:text-text"
     >
       <ArrowBackIcon size={18} className="text-text" />
       {label}

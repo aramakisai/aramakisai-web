@@ -34,7 +34,7 @@ export function FeaturedExhibitions({ exhibitions }: FeaturedExhibitionsProps) {
         href="/exhibitions"
         className="flex items-center justify-end gap-2 self-end text-sm font-bold"
       >
-        <span className="text-primary">企画一覧へ</span>
+        <span className="text-text">企画一覧へ</span>
         <ChevronRightIcon size={20} className="text-text" />
       </Link>
     </div>

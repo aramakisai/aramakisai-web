@@ -154,8 +154,8 @@
   }
 
   /*
-   * RichText (.rich-text-body) は本文の一部として color/text で描画する (要件 15 参照)。
-   * ページ自身の見出しだけが color/primary を持つ
+   * ページ自身の見出しの既定色 (要件 2.1)。RichText (.rich-text-body) の見出しは
+   * 別ルールで同じ color/text を個別に指定しているため、二重適用を避けてここでは除く
    */
   h1:not(.rich-text-body *),
   h2:not(.rich-text-body *),
@@ -163,7 +163,7 @@
   h4:not(.rich-text-body *),
   h5:not(.rich-text-body *),
   h6:not(.rich-text-body *) {
-    @apply text-primary;
+    @apply text-text;
   }
 }
 
@@ -176,7 +176,12 @@
 
 @layer base {
   body {
-    @apply text-text bg-background;
+    /*
+     * ページの地は白 (要件 2.3)。background トークン (#fbf8f3) はフッター等
+     * 自身の面色として使い続けるため、ここでは Tailwind 既定の white を使い
+     * トークンの値自体は変えない
+     */
+    @apply text-text bg-white;
     line-height: 1.8;
     letter-spacing: 0.02em;
   }
@@ -263,7 +268,7 @@
   .rich-text-body ul > li::before {
     content: '・';
     margin-right: 8px;
-    @apply text-gray-500;
+    @apply text-gray-600;
   }
 
   /* 番号リスト: マーカー「N.」幅14px + 間隔8px = 22px (label は基準+22px = 46px) */
@@ -280,7 +285,7 @@
     counter-increment: rich-text-ol;
     content: counter(rich-text-ol) '.';
     margin-right: 8px;
-    @apply text-gray-500;
+    @apply text-gray-600;
   }
 
   .rich-text-body li {

@@ -23,7 +23,7 @@ export function ExhibitionLinks({ links }: ExhibitionLinksProps) {
 
   return (
     <div className="flex w-full flex-col gap-2">
-      <p className="text-xs leading-[140%] font-medium text-gray-500">リンク</p>
+      <p className="text-xs leading-[140%] font-medium text-gray-600">リンク</p>
       <ul className="flex flex-wrap items-center gap-2">
         {links.map((link, index) => (
           <li key={index}>

@@ -12,10 +12,17 @@ const CSS_PATH = path.join(
 );
 const root = postcss.parse(readFileSync(CSS_PATH, 'utf8'));
 
-function findRuleBySelector(selector: string): Rule | undefined {
+// h1:not(.rich-text-body *) は「見出しの既定色」(複数セレクタの並び) と
+// 「h1 のサイズ・行の高さ」(単独セレクタ) の 2 つの別ルールに現れるため、
+// 単純な includes() では後勝ちで区別が付かない。一致するセレクタの個数で区別する
+function findRuleBySelector(
+  selector: string,
+  exclusive: boolean,
+): Rule | undefined {
   let found: Rule | undefined;
   root.walkRules((rule) => {
-    if (rule.selectors.includes(selector)) found = rule;
+    if (!rule.selectors.includes(selector)) return;
+    if (exclusive === (rule.selectors.length === 1)) found = rule;
   });
   return found;
 }
@@ -37,7 +44,7 @@ function applyParams(rule: Rule): string {
 }
 
 describe('見出しの既定スタイル (h1〜h6)', () => {
-  const rule = findRuleBySelector('h1');
+  const rule = findRuleBySelector('h1', false);
 
   it('h1 を含む共有ルールが存在する', () => {
     expect(rule).toBeDefined();
@@ -59,7 +66,7 @@ describe('見出しの既定スタイル (h1〜h6)', () => {
 
 describe('h1 のサイズ・行の高さ (要件 1.3)', () => {
   it('現行値 (44px / 120%) を保つ', () => {
-    const rule = findRuleBySelector('h1:not(.rich-text-body *)');
+    const rule = findRuleBySelector('h1:not(.rich-text-body *)', true);
     expect(rule).toBeDefined();
     const params = applyParams(rule!);
     expect(params).toContain('text-[44px]');
@@ -68,7 +75,7 @@ describe('h1 のサイズ・行の高さ (要件 1.3)', () => {
 });
 
 describe('本文 (body) のスタイル (要件 1.4)', () => {
-  const rule = findRuleBySelector('body');
+  const rule = findRuleBySelector('body', true);
 
   it('行の高さ 180%', () => {
     expect(declValue(rule!, 'line-height')).toBe('1.8');
@@ -81,8 +88,28 @@ describe('本文 (body) のスタイル (要件 1.4)', () => {
 
 describe('RichText 本文中の h2 (要件 1.5)', () => {
   it('25px にする', () => {
-    const rule = findRuleBySelector('.rich-text-body h2');
+    const rule = findRuleBySelector('.rich-text-body h2', true);
     expect(rule).toBeDefined();
     expect(applyParams(rule!)).toContain('text-[25px]');
+  });
+});
+
+describe('見出しの既定色 (要件 2.1)', () => {
+  it('color/primary ではなく color/text を使う', () => {
+    const rule = findRuleBySelector('h1:not(.rich-text-body *)', false);
+    expect(rule).toBeDefined();
+    const params = applyParams(rule!);
+    expect(params).toContain('text-text');
+    expect(params).not.toContain('text-primary');
+  });
+});
+
+describe('ページの地色 (要件 2.3)', () => {
+  it('body の地を白にする (フッター等が使う background トークンの値は変えない)', () => {
+    const rule = findRuleBySelector('body', true);
+    expect(rule).toBeDefined();
+    const params = applyParams(rule!);
+    expect(params).toContain('bg-white');
+    expect(params).not.toContain('bg-background');
   });
 });

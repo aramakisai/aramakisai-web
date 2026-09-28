@@ -94,7 +94,7 @@ export function AreaExhibitionList({ state, notice }: AreaExhibitionListProps) {
             <h2 className="text-2xl font-bold text-text">
               {listHeading?.heading}
             </h2>
-            <p className="text-sm text-gray-500">{listHeading?.count}</p>
+            <p className="text-sm text-gray-600">{listHeading?.count}</p>
           </div>
           {/*
            * PC はカテゴリチップ群との区切り線を MapSidePanel 側 (検索欄とリストの境界) に持つが、

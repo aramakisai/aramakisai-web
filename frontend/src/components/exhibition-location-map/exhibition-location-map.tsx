@@ -52,13 +52,13 @@ export function ExhibitionLocationMap({
       fallback={
         // dynamic の loading は読み込み失敗を捕捉しないため、失敗の検知と表示はこの境界が担う (要件 5.2)
         <div className="flex h-[240px] w-full flex-col items-center justify-center gap-2 rounded-xl border border-gray-200 bg-gray-100 p-4 text-center md:h-[360px]">
-          <p className="flex items-center gap-1 text-sm font-medium text-gray-500">
+          <p className="flex items-center gap-1 text-sm font-medium text-gray-600">
             <PlaceIcon size={20} className="text-text" />
             {areaNames.join('・')}
           </p>
           <Link
             href={mapHref}
-            className="flex items-center gap-1 rounded-full border border-gray-200 bg-background px-3 py-2 text-sm font-medium text-primary"
+            className="flex items-center gap-1 rounded-full border border-gray-200 bg-background px-3 py-2 text-sm font-medium text-text"
           >
             構内マップで見る
           </Link>
