@@ -2,13 +2,16 @@ import React from 'react';
 import { act, render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BackgroundShapes, PAGE_CONTAINER_ID } from './background-shapes';
-import { HEADER_BG_SHAPES_SLOT_ID, MAIN_CONTENT_ID } from './header';
-import type { PlacedShape } from '@/lib/background-shapes';
-import * as backgroundShapesLib from '@/lib/background-shapes';
-import { ENTRY_DURATION_MS } from '@/lib/background-shapes-motion';
+import { MAIN_CONTENT_ID } from './header';
+import type {
+  PlacedShape,
+  PlacementResult,
+} from '@/lib/background-shapes/types';
+import * as placementLib from '@/lib/background-shapes/placement';
+import { entryDurationMs } from '@/lib/background-shapes-motion';
 
-// 図形の入場・揺れ (要件 23.15〜23.25) の実行時の振る舞いを検証する。配置の
-// 決定性・除外領域は background-shapes.test.ts (lib) が別途担う
+// 図形の入場・揺れ (要件 10) の実行時の振る舞いを検証する。配置の決定性・
+// 除外領域は lib/background-shapes/placement.test.ts が別途担う
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
 }));
@@ -60,25 +63,32 @@ function stubRect(
   });
 }
 
-function shape(overrides: Partial<PlacedShape>): PlacedShape {
+function shape(overrides: Partial<PlacedShape> = {}): PlacedShape {
   return {
+    tier: 'L',
     kind: 'circle',
-    size: 40,
-    x: 200,
-    y: 300,
-    rotation: 0,
-    color: 'bansai-ochre',
-    texture: 'none',
+    size: 300,
+    cx: 200,
+    cy: 300,
+    rot: 0,
+    texture: 'L1',
+    colors: null,
     ...overrides,
+  } as PlacedShape;
+}
+
+function placementResult(shapes: readonly PlacedShape[]): PlacementResult {
+  return {
+    shapes,
+    target: { Inf: 0, L: 0, S: 0 },
+    deficit: { Inf: 0, L: 0, S: 0 },
   };
 }
 
 function Harness() {
   return (
     <div id={PAGE_CONTAINER_ID}>
-      <header>
-        <div id={HEADER_BG_SHAPES_SLOT_ID} />
-      </header>
+      <header />
       <main id={MAIN_CONTENT_ID}>
         <section />
       </main>
@@ -90,10 +100,9 @@ function Harness() {
 
 /** ヘッダー・本文・フッターの計測値を固定し、装飾レイヤーの再計測を1度走らせる。 */
 async function renderAndMeasure(shapes: PlacedShape[]) {
-  vi.spyOn(
-    backgroundShapesLib,
-    'computeBackgroundShapePlacement',
-  ).mockReturnValue(shapes);
+  vi.spyOn(placementLib, 'placeBackgroundShapes').mockReturnValue(
+    placementResult(shapes),
+  );
 
   const { container } = render(<Harness />);
   const containerEl = document.getElementById(PAGE_CONTAINER_ID)!;
@@ -171,13 +180,13 @@ const RAF_FAKE_TIMERS = [
 function completeEntry(io: MockIntersectionObserver, el: HTMLElement) {
   io.trigger(el, true);
   act(() => {
-    vi.advanceTimersByTime(ENTRY_DURATION_MS);
+    vi.advanceTimersByTime(entryDurationMs('L'));
   });
 }
 
 describe('BackgroundShapes の動き', () => {
   it('入場アニメーションは図形につき 1 回だけ発火する', async () => {
-    const els = await renderAndMeasure([shape({ y: 300 })]);
+    const els = await renderAndMeasure([shape({ cy: 300 })]);
     const el = els[0];
 
     const io = findActiveIO(el);
@@ -188,14 +197,14 @@ describe('BackgroundShapes の動き', () => {
     expect(el.style.transition).not.toBe('');
 
     act(() => {
-      vi.advanceTimersByTime(ENTRY_DURATION_MS);
+      vi.advanceTimersByTime(entryDurationMs('L'));
     });
     // 入場完了後は transition がリセットされ、以後の揺れ (transform の直接書き換え) と
     // 衝突しない
     expect(el.style.transition).toBe('');
 
     // 現実の IntersectionObserver では unobserve 後にコールバックは届かないが、
-    // 万一届いても再処理しないことを確認する (要件 23.16「1 図形につき 1 回」)。
+    // 万一届いても再処理しないことを確認する (1 図形につき 1 回のガード)。
     // ガードが無いと 2 回目の trigger で transition が再設定され '' でなくなる
     io.trigger(el, true);
     expect(el.style.transition).toBe('');
@@ -203,7 +212,7 @@ describe('BackgroundShapes の動き', () => {
 
   it('モーション停止指定の間は入場アニメーションも揺れも行わない', async () => {
     useMotionPreferenceMock.mockReturnValue({ reduced: true, toggle: vi.fn() });
-    const els = await renderAndMeasure([shape({ y: 300 })]);
+    const els = await renderAndMeasure([shape({ cy: 300 })]);
     const el = els[0];
 
     expect(MockIntersectionObserver.instances).toHaveLength(0);
@@ -216,7 +225,7 @@ describe('BackgroundShapes の動き', () => {
   });
 
   it('画面内の図形はポインター操作で transform が変化する (対照)', async () => {
-    const els = await renderAndMeasure([shape({ y: 300 })]);
+    const els = await renderAndMeasure([shape({ cy: 300 })]);
     const el = els[0];
 
     const io = findActiveIO(el);
@@ -226,7 +235,7 @@ describe('BackgroundShapes の動き', () => {
     expect(restingTransform).toBe('rotate(0deg)');
 
     // ビューポート内 (jsdom既定 innerHeight=768) に図形があることにする
-    stubRect(el, { x: 200, y: 300, width: 40, height: 40 });
+    stubRect(el, { x: 200, y: 300, width: 300, height: 300 });
 
     firePointerMove(200, 320);
     act(() => {
@@ -239,7 +248,7 @@ describe('BackgroundShapes の動き', () => {
   });
 
   it('画面外にある図形は揺れの計算を行わない', async () => {
-    const els = await renderAndMeasure([shape({ y: 300 })]);
+    const els = await renderAndMeasure([shape({ cy: 300 })]);
     const el = els[0];
 
     const io = findActiveIO(el);
@@ -250,7 +259,7 @@ describe('BackgroundShapes の動き', () => {
 
     // ビューポート (jsdom既定 innerHeight=768) の上端よりさらに上、余白 60px の
     // 外側に図形があることにする
-    stubRect(el, { x: 200, y: -500, width: 40, height: 40 });
+    stubRect(el, { x: 200, y: -500, width: 300, height: 300 });
 
     firePointerMove(200, -480);
     act(() => {
@@ -258,7 +267,45 @@ describe('BackgroundShapes の動き', () => {
     });
 
     // 反発力が働けば transform が変化するはずだが、画面外のため計算自体を
-    // 省いており変化しない (要件 23.25)
+    // 省いており変化しない (要件 10.5 と対をなす揺れの性能配慮)
     expect(el.style.transform).toBe(restingTransform);
+  });
+
+  it('∞ は輪の入場が完了した後、外側要素にだけ揺れの transform が掛かる', async () => {
+    const els = await renderAndMeasure([
+      {
+        tier: 'Inf',
+        kind: 'ring',
+        size: 140,
+        cx: 200,
+        cy: 300,
+        rot: 0,
+        texture: null,
+        colors: ['ochre', 'olive'],
+      },
+    ]);
+    const el = els[0];
+    const rings = el.querySelectorAll<HTMLElement>('[data-bg-ring]');
+    expect(rings).toHaveLength(2);
+
+    const io = findActiveIO(el);
+    vi.useFakeTimers({ toFake: [...RAF_FAKE_TIMERS] });
+    io.trigger(el, true);
+    // 2 つ目の輪は 150ms 遅延するため、入場所要時間 (1400ms) + 150ms 経過させる
+    act(() => {
+      vi.advanceTimersByTime(entryDurationMs('Inf') + 150);
+    });
+    expect(rings[0].style.transition).toBe('');
+    expect(rings[1].style.transition).toBe('');
+
+    stubRect(el, { x: 200, y: 300, width: 260, height: 140 });
+    firePointerMove(200, 320);
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+
+    // 外側要素は揺れで transform が変化するが、輪自身の transform (入場用) は
+    // 揺れの対象ではない (design.md「揺れは外側要素に 1 つの transform で掛ける」)
+    expect(el.style.transform).not.toBe('rotate(0deg)');
   });
 });
