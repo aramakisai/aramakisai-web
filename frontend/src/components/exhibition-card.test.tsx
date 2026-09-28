@@ -86,4 +86,36 @@ describe('ExhibitionCard', () => {
 
     expect(getExhibitionGradient).toHaveBeenCalledWith('出演用の企画名');
   });
+
+  it('marks the card as an opaque surface for background shapes', () => {
+    render(<ExhibitionCard exhibition={baseExhibition} />);
+    expect(screen.getByRole('link')).toHaveAttribute('data-bg-opaque');
+  });
+
+  it('overlays the texture image chosen for the display name (continuation of the color rng)', () => {
+    // '荒牧祭実行委員会' は既知の乱数列で texture='gradient' (質感画像なし) になる
+    const { container: withoutTexture } = render(
+      <ExhibitionCard
+        exhibition={{
+          ...baseExhibition,
+          displayName: '荒牧祭実行委員会',
+        }}
+      />,
+    );
+    const bgWithout = withoutTexture.querySelector('.exhibition-gradient-bg');
+    expect(
+      (bgWithout as HTMLElement).style.getPropertyValue('--exhibition-texture'),
+    ).toBe('');
+
+    // 'アラマキ祭' は既知の乱数列で texture='watercolor' になる
+    const { container: withTexture } = render(
+      <ExhibitionCard
+        exhibition={{ ...baseExhibition, displayName: 'アラマキ祭' }}
+      />,
+    );
+    const bgWith = withTexture.querySelector('.exhibition-gradient-bg');
+    expect(
+      (bgWith as HTMLElement).style.getPropertyValue('--exhibition-texture'),
+    ).toBe('url(/images/textures/card/watercolor.webp)');
+  });
 });
