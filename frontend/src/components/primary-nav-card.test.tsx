@@ -48,6 +48,53 @@ describe('PrimaryNavCard', () => {
       ).toBeInTheDocument();
     },
   );
+
+  it.each(PRIMARY_NAV_DESTINATIONS)(
+    'sizes the %s card 160x160 on PC / 171x171 on SP with a 12px radius and no border',
+    (destination) => {
+      const expected = EXPECTED[destination];
+      render(<PrimaryNavCard destination={destination} />);
+
+      const link = screen.getByRole('link', { name: expected.label });
+      expect(link).toHaveClass(
+        'w-[171px]',
+        'h-[171px]',
+        'lg:w-[160px]',
+        'lg:h-[160px]',
+        'rounded-xl',
+      );
+      expect(link.className).not.toContain('border');
+    },
+  );
+
+  it.each(PRIMARY_NAV_DESTINATIONS)(
+    'sizes the %s icon 56px on PC / 48px on SP',
+    (destination) => {
+      const expected = EXPECTED[destination];
+      render(<PrimaryNavCard destination={destination} />);
+
+      expect(
+        screen.getByTestId(`icon-${expected.icon.replace(/_/g, '-')}`),
+      ).toHaveClass('text-[48px]', 'lg:text-[56px]');
+    },
+  );
+
+  it.each(PRIMARY_NAV_DESTINATIONS)(
+    'uses the per-destination texture image as the card background (%s)',
+    (destination) => {
+      render(<PrimaryNavCard destination={destination} />);
+      const expected = EXPECTED[destination];
+      const link = screen.getByRole('link', { name: expected.label });
+      expect(link.style.backgroundImage).toBe(
+        `url("/images/textures/nav/${destination}.webp")`,
+      );
+    },
+  );
+
+  it('marks each card as an opaque surface for background shapes', () => {
+    render(<PrimaryNavCard destination="exhibitions" />);
+    expect(screen.getByRole('link')).toHaveAttribute('data-bg-opaque');
+  });
 });
 
 describe('PrimaryNavGrid', () => {
@@ -67,8 +114,9 @@ describe('PrimaryNavGrid', () => {
       'grid',
       'grid-cols-2',
       'gap-4',
-      'lg:grid-cols-4',
-      'lg:gap-6',
+      'lg:flex',
+      'lg:justify-center',
+      'lg:gap-10',
     );
   });
 });

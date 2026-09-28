@@ -4,6 +4,12 @@ export interface IconProps {
   /** 既定は 24。装飾用途では aria-hidden を付与する */
   readonly size?: number;
   readonly className?: string;
+  /**
+   * 指定時は size (px 固定の inline style) の代わりにこの Tailwind クラスで大きさを決める。
+   * inline style は常にクラスより優先されるため、ブレークポイントごとに大きさを変える
+   * (会場で使うボタンの PC 56px / SP 48px など) には size ではなくこちらを使う
+   */
+  readonly sizeClassName?: string;
 }
 
 // FILL は塗りつぶし版/線画版でアイコンごとに固定値が異なるため、共有クラス側ではなく
@@ -12,18 +18,22 @@ function renderIcon(
   ligature: string,
   fill: 0 | 1,
   testId: string,
-  { size = 24, className }: IconProps,
+  { size = 24, className, sizeClassName }: IconProps,
 ) {
   return (
     <span
       aria-hidden="true"
       data-testid={testId}
-      className={`material-symbols-sharp${className ? ` ${className}` : ''}`}
-      style={{
-        fontSize: size,
-        lineHeight: `${size}px`,
-        fontVariationSettings: `'FILL' ${fill}`,
-      }}
+      className={`material-symbols-sharp${sizeClassName ? ` ${sizeClassName} leading-none` : ''}${className ? ` ${className}` : ''}`}
+      style={
+        sizeClassName
+          ? { fontVariationSettings: `'FILL' ${fill}` }
+          : {
+              fontSize: size,
+              lineHeight: `${size}px`,
+              fontVariationSettings: `'FILL' ${fill}`,
+            }
+      }
     >
       {ligature}
     </span>
