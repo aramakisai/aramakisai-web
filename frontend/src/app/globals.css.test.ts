@@ -94,6 +94,20 @@ describe('RichText 本文中の h2 (要件 1.5)', () => {
   });
 });
 
+describe('RichText 本文段落・引用の行の高さ (要件 1.4)', () => {
+  it('.rich-text-body p を 180% にする', () => {
+    const rule = findRuleBySelector('.rich-text-body p', true);
+    expect(rule).toBeDefined();
+    expect(applyParams(rule!)).toContain('leading-[1.8]');
+  });
+
+  it('.rich-text-body blockquote を 180% にする', () => {
+    const rule = findRuleBySelector('.rich-text-body blockquote', true);
+    expect(rule).toBeDefined();
+    expect(applyParams(rule!)).toContain('leading-[1.8]');
+  });
+});
+
 describe('見出しの既定色 (要件 2.1)', () => {
   it('color/primary ではなく color/text を使う', () => {
     const rule = findRuleBySelector('h1:not(.rich-text-body *)', false);

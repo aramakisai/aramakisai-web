@@ -260,7 +260,7 @@
   }
 
   .rich-text-body p {
-    @apply text-text text-[16px] leading-[1.7] mb-4;
+    @apply text-text text-[16px] leading-[1.8] mb-4;
   }
 
   .rich-text-body a {
@@ -348,7 +348,7 @@
   }
 
   .rich-text-body blockquote {
-    @apply border-l-4 border-gray-200 pl-4 text-text text-[16px] leading-[1.7] my-6;
+    @apply border-l-4 border-gray-200 pl-4 text-text text-[16px] leading-[1.8] my-6;
   }
 
   .rich-text-body img {

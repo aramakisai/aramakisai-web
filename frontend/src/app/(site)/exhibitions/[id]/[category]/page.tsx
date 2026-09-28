@@ -149,7 +149,7 @@ export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
           <h1 className="py-0 text-[28px] leading-[130%] text-text lg:text-[32px] lg:leading-[125%]">
             {exhibition.displayName}
           </h1>
-          <p className="text-base leading-[170%] text-text">
+          <p className="text-base leading-[180%] text-text">
             {exhibition.organizationName}
           </p>
           {exhibition.location && (
@@ -170,7 +170,7 @@ export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
           <h2 className="py-0 text-[20px] leading-[140%] text-text lg:text-[24px] lg:leading-[130%]">
             紹介
           </h2>
-          <p className="text-base leading-[170%] whitespace-pre-wrap text-text">
+          <p className="text-base leading-[180%] whitespace-pre-wrap text-text">
             {exhibition.description}
           </p>
         </div>

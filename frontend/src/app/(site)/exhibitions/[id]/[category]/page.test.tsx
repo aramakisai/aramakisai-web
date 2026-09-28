@@ -129,6 +129,13 @@ describe('ExhibitionPage', () => {
     expect(screen.getByText('展示')).toBeInTheDocument();
     expect(screen.getByText('第一ステージ')).toBeInTheDocument();
     expect(screen.getByText('たのしい企画です')).toBeInTheDocument();
+    // 本文の行の高さは 180% (要件 1.4)
+    expect(screen.getByText('実行委員会').className).toContain(
+      'leading-[180%]',
+    );
+    expect(screen.getByText('たのしい企画です').className).toContain(
+      'leading-[180%]',
+    );
     expect(
       screen.getByRole('link', { name: '企画一覧へ戻る' }),
     ).toHaveAttribute('href', '/exhibitions');
