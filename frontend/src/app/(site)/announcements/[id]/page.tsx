@@ -77,7 +77,7 @@ export default async function AnnouncementPage({
       <BackLink href="/announcements" label="お知らせ一覧に戻る" />
 
       <div className="flex w-full flex-col items-center gap-2">
-        <h1 className="w-full text-balance py-0 text-center text-[24px] leading-[130%] text-primary lg:text-[32px] lg:leading-[125%]">
+        <h1 className="w-full text-balance py-0 text-center text-[28px] leading-[130%] text-primary lg:text-[32px] lg:leading-[125%]">
           {announcement.title}
         </h1>
         <time

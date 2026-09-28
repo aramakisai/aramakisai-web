@@ -53,9 +53,14 @@ describe('TopicPage', () => {
     render(jsx);
 
     expect(getTopicById).toHaveBeenCalledWith(1);
-    expect(
-      screen.getByRole('heading', { name: 'テストトピック', level: 1 }),
-    ).toBeInTheDocument();
+    const heading = screen.getByRole('heading', {
+      name: 'テストトピック',
+      level: 1,
+    });
+    expect(heading).toBeInTheDocument();
+    // 詳細タイトルは PC 32px / SP 28px (要件 1.5)
+    expect(heading.className).toContain('text-[28px]');
+    expect(heading.className).toContain('lg:text-[32px]');
 
     // 戻る導線 (要件 17.2)
     const backLink = screen.getByRole('link', { name: 'トピック一覧に戻る' });

@@ -116,12 +116,14 @@ describe('ExhibitionPage', () => {
     render(jsx);
 
     expect(getExhibitionDetail).toHaveBeenCalledWith(1, 'stage');
-    expect(
-      screen.getByRole('heading', {
-        name: 'アラマキ祭実行委員会 (出演名)',
-        level: 1,
-      }),
-    ).toBeInTheDocument();
+    const heading = screen.getByRole('heading', {
+      name: 'アラマキ祭実行委員会 (出演名)',
+      level: 1,
+    });
+    expect(heading).toBeInTheDocument();
+    // 詳細タイトルは PC 32px / SP 28px (要件 1.5)
+    expect(heading.className).toContain('text-[28px]');
+    expect(heading.className).toContain('lg:text-[32px]');
     expect(screen.getByText('実行委員会')).toBeInTheDocument();
     expect(screen.getByText('ステージ')).toBeInTheDocument();
     expect(screen.getByText('展示')).toBeInTheDocument();

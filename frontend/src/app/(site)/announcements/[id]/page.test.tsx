@@ -66,9 +66,14 @@ describe('AnnouncementPage', () => {
 
     // Assert
     expect(getAnnouncementById).toHaveBeenCalledWith(1);
-    expect(
-      screen.getByRole('heading', { name: 'テストお知らせ', level: 1 }),
-    ).toBeInTheDocument();
+    const heading = screen.getByRole('heading', {
+      name: 'テストお知らせ',
+      level: 1,
+    });
+    expect(heading).toBeInTheDocument();
+    // 詳細タイトルは PC 32px / SP 28px (要件 1.5)
+    expect(heading.className).toContain('text-[28px]');
+    expect(heading.className).toContain('lg:text-[32px]');
     // 公開日時は「2026年7月13日」表記 (要件 16.4) で、生の ISO 文字列のままにはしない
     expect(screen.getByText('2026年7月13日')).toBeInTheDocument();
 

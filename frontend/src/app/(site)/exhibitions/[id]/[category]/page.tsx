@@ -146,7 +146,7 @@ export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
               <CategoryBadge key={c} category={c} />
             ))}
           </div>
-          <h1 className="py-0 text-[24px] leading-[130%] text-primary lg:text-[32px] lg:leading-[125%]">
+          <h1 className="py-0 text-[28px] leading-[130%] text-primary lg:text-[32px] lg:leading-[125%]">
             {exhibition.displayName}
           </h1>
           <p className="text-base leading-[170%] text-text">
