@@ -187,6 +187,25 @@
   }
 }
 
+/*
+ * 本文領域 (#main-content) の黒文字・黒アイコンに付ける白い光彩 (要件 5.1〜5.3)。
+ * text-shadow は継承されるため #main-content に 1 回指定するだけで内部の
+ * 見出し・段落・アイコン (Material Symbols もフォントの文字) すべてに及ぶ。
+ * ヘッダー・フッター・下部タブナビは #main-content の外にあるため対象外
+ */
+@layer base {
+  #main-content {
+    text-shadow: 0 0 4px rgb(255 255 255 / 0.4);
+  }
+
+  /* 白地の上では見えない光彩なので、白文字とヒーローでは打ち消す */
+  .text-gray-50,
+  .text-white,
+  [data-bg-hero] {
+    text-shadow: none;
+  }
+}
+
 @layer base {
   /* RichText は h1 を h2 に読み替えて描画する (transformTags) ため実害は無いが、h2〜h4 の除外規則と揃えておく */
   h1:not(.rich-text-body *) {

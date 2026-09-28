@@ -113,3 +113,22 @@ describe('ページの地色 (要件 2.3)', () => {
     expect(params).not.toContain('bg-background');
   });
 });
+
+describe('本文領域の白い光彩 (要件 5.1, 5.2, 5.3)', () => {
+  it('#main-content に光彩を付ける', () => {
+    const rule = findRuleBySelector('#main-content', true);
+    expect(rule).toBeDefined();
+    expect(declValue(rule!, 'text-shadow')).toBe(
+      '0 0 4px rgb(255 255 255 / 0.4)',
+    );
+  });
+
+  it('白文字クラスとヒーローの部分木で打ち消す', () => {
+    const rule = findRuleBySelector('.text-gray-50', false);
+    expect(rule).toBeDefined();
+    expect(rule!.selectors).toEqual(
+      expect.arrayContaining(['.text-white', '[data-bg-hero]']),
+    );
+    expect(declValue(rule!, 'text-shadow')).toBe('none');
+  });
+});
