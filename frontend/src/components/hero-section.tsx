@@ -85,6 +85,7 @@ export function HeroSection({
   return (
     <section
       aria-label="荒牧祭の写真スライドショー"
+      data-bg-hero="true"
       className={`relative isolate w-full overflow-hidden bg-gray-200 ${
         isLive ? 'h-[50svh]' : 'h-[78svh] min-h-[28rem]'
       }`}
@@ -132,12 +133,12 @@ export function HeroSection({
           <p className="text-[16px] leading-[1.7] text-gray-50">{venueName}</p>
         )}
         {themeWord && (
-          <p className="font-mincho text-[44px] leading-[1.2] font-bold text-gray-50">
+          <p className="text-[72px] leading-[1.2] font-thin text-gray-50">
             {themeWord}
           </p>
         )}
         {countdownLabel && (
-          <p className="font-mincho text-[20px] leading-[1.4] font-bold text-gray-50">
+          <p className="text-[20px] leading-[1.4] font-bold text-gray-50">
             {countdownLabel}
           </p>
         )}
@@ -161,12 +162,12 @@ export function HeroSection({
         {(themeWord || countdownLabel) && (
           <div className="flex flex-col items-end gap-1 text-right">
             {themeWord && (
-              <p className="font-mincho text-[44px] leading-[1.2] font-bold text-gray-50">
+              <p className="text-right text-[120px] leading-[1.2] font-thin text-gray-50">
                 {themeWord}
               </p>
             )}
             {countdownLabel && (
-              <p className="font-mincho text-[20px] leading-[1.4] font-bold text-gray-50">
+              <p className="text-[20px] leading-[1.4] font-bold text-gray-50">
                 {countdownLabel}
               </p>
             )}
