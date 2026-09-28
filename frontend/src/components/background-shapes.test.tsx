@@ -108,13 +108,16 @@ describe('BackgroundShapes', () => {
     const containerEl = document.getElementById(PAGE_CONTAINER_ID)!;
     const headerEl = container.querySelector('header')!;
     const footerEl = container.querySelector('footer')!;
-    stubRect(containerEl, { x: 0, y: 0, width: 1024, height: 1200 });
-    stubRect(headerEl, { x: 0, y: 0, width: 1024, height: 80 });
-    stubRect(footerEl, { x: 0, y: 900, width: 1024, height: 200 });
-    vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(1024);
+    stubRect(containerEl, { x: 0, y: 0, width: 1440, height: 1200 });
+    stubRect(headerEl, { x: 0, y: 0, width: 1440, height: 80 });
+    stubRect(footerEl, { x: 0, y: 900, width: 1440, height: 200 });
+    // jsdom の既定 innerWidth (1024) と異なる値にする。幅が変わらないリサイズは
+    // 計算し直さない (要件 9.3 の裏返し) ため、初回計測との差を作る必要がある
+    vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(1440);
 
-    // マウント直後の計測はスタブ前 (高さ 0) に走るため、リサイズを発火して
-    // スタブ後の値で再計測させる
+    // マウント時の初回計測はマイクロタスク 1 つ分遅れて走るため、この resize は
+    // 実質 no-op (計測前で state が無い)。await でマイクロタスクを進めた時点では
+    // 上のスタブが既に効いているので、初回計測自体がスタブ後の値を読む
     act(() => {
       window.dispatchEvent(new Event('resize'));
     });
@@ -140,7 +143,7 @@ describe('BackgroundShapes', () => {
     expect(call.pathname).toBe('/topics');
     expect(call.platform).toBe('pc');
     expect(call.height).toBe(1200);
-    expect(call.width).toBe(1024);
+    expect(call.width).toBe(1440);
     expect(call.decorTop).toBe(80);
     expect(call.decorBottom).toBe(900);
   });
@@ -214,9 +217,9 @@ describe('BackgroundShapes', () => {
     const { container } = render(<Harness />);
     const containerEl = document.getElementById(PAGE_CONTAINER_ID)!;
     const headerEl = container.querySelector('header')!;
-    stubRect(containerEl, { x: 0, y: 0, width: 1024, height: 1200 });
-    stubRect(headerEl, { x: 0, y: 0, width: 1024, height: 80 });
-    vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(1024);
+    stubRect(containerEl, { x: 0, y: 0, width: 1440, height: 1200 });
+    stubRect(headerEl, { x: 0, y: 0, width: 1440, height: 80 });
+    vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(1440);
 
     act(() => {
       window.dispatchEvent(new Event('resize'));
@@ -228,5 +231,101 @@ describe('BackgroundShapes', () => {
 
     const infEl = document.querySelector('[data-bg-tier="Inf"]')!;
     expect(infEl.querySelectorAll('[data-bg-ring]')).toHaveLength(2);
+  });
+});
+
+class MockResizeObserver {
+  static instances: MockResizeObserver[] = [];
+  private readonly cb: ResizeObserverCallback;
+  observe = vi.fn();
+  disconnect = vi.fn();
+
+  constructor(cb: ResizeObserverCallback) {
+    this.cb = cb;
+    MockResizeObserver.instances.push(this);
+  }
+
+  trigger() {
+    this.cb([], this as unknown as ResizeObserver);
+  }
+}
+
+describe('計測・配置・保持・間引きの結合 (要件 9.1, 9.3)', () => {
+  afterEach(() => {
+    MockResizeObserver.instances = [];
+  });
+
+  it('同じ pathname・幅では DOM の高さが変わっても配置を計算し直さず、違反した図形だけを消す', async () => {
+    vi.stubGlobal('ResizeObserver', MockResizeObserver);
+
+    const shapeA = shape({ tier: 'S', size: 80, cx: 100, cy: 300 });
+    const shapeB = shape({ tier: 'S', size: 80, cx: 800, cy: 300 });
+    const placeSpy = vi
+      .spyOn(placementLib, 'placeBackgroundShapes')
+      .mockReturnValue(placementResult([shapeA, shapeB]));
+
+    const { container } = render(<Harness />);
+    const containerEl = document.getElementById(PAGE_CONTAINER_ID)!;
+    const headerEl = container.querySelector('header')!;
+    const footerEl = container.querySelector('footer')!;
+    stubRect(containerEl, { x: 0, y: 0, width: 1440, height: 1200 });
+    stubRect(headerEl, { x: 0, y: 0, width: 1440, height: 80 });
+    stubRect(footerEl, { x: 0, y: 900, width: 1440, height: 200 });
+    vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(1440);
+
+    act(() => {
+      window.dispatchEvent(new Event('resize'));
+    });
+    await waitFor(() => {
+      expect(document.querySelectorAll('[data-bg-shape]')).toHaveLength(2);
+    });
+    expect(placeSpy).toHaveBeenCalledTimes(1);
+
+    // 検索結果の件数変化などを模して、shapeB の位置を覆う不透明な面を本文へ足し、
+    // 幅は変えないまま ResizeObserver (高さの変化) を発火する
+    const mainEl = document.getElementById(MAIN_CONTENT_ID)!;
+    const opaqueEl = document.createElement('div');
+    opaqueEl.setAttribute('data-bg-opaque', 'true');
+    mainEl.appendChild(opaqueEl);
+    stubRect(opaqueEl, { x: 750, y: 250, width: 150, height: 150 });
+
+    act(() => {
+      MockResizeObserver.instances[0]?.trigger();
+    });
+
+    await waitFor(() => {
+      expect(document.querySelectorAll('[data-bg-shape]')).toHaveLength(1);
+    });
+    // 配置は計算し直さない (要件 9.1)。違反した図形 (shapeB) だけが消える
+    expect(placeSpy).toHaveBeenCalledTimes(1);
+    const remaining = document.querySelector('[data-bg-shape]') as HTMLElement;
+    expect(remaining.style.left).toBe(`${shapeA.cx - shapeA.size / 2}px`);
+  });
+
+  it('幅が変わると配置を計算し直す (要件 9.3)', async () => {
+    const placeSpy = vi
+      .spyOn(placementLib, 'placeBackgroundShapes')
+      .mockReturnValue(
+        placementResult([shape({ tier: 'S', cx: 100, cy: 300 })]),
+      );
+
+    const { container } = render(<Harness />);
+    const containerEl = document.getElementById(PAGE_CONTAINER_ID)!;
+    const headerEl = container.querySelector('header')!;
+    stubRect(containerEl, { x: 0, y: 0, width: 1440, height: 1200 });
+    stubRect(headerEl, { x: 0, y: 0, width: 1440, height: 80 });
+    vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(1440);
+
+    act(() => {
+      window.dispatchEvent(new Event('resize'));
+    });
+    await waitFor(() => expect(placeSpy).toHaveBeenCalledTimes(1));
+
+    vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(390);
+    act(() => {
+      window.dispatchEvent(new Event('resize'));
+    });
+    await waitFor(() => expect(placeSpy).toHaveBeenCalledTimes(2));
+    expect(placeSpy.mock.calls.at(-1)?.[0].platform).toBe('sp');
   });
 });

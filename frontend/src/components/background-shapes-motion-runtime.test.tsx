@@ -109,11 +109,13 @@ async function renderAndMeasure(shapes: PlacedShape[]) {
   const headerEl = container.querySelector('header')!;
   const sectionEl = container.querySelector('section')!;
   const footerEl = container.querySelector('footer')!;
-  stubRect(containerEl, { x: 0, y: 0, width: 1024, height: 1200 });
-  stubRect(headerEl, { x: 0, y: 0, width: 1024, height: 80 });
-  stubRect(sectionEl, { x: 0, y: 80, width: 1024, height: 1000 });
-  stubRect(footerEl, { x: 0, y: 1080, width: 1024, height: 120 });
-  vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(1024);
+  stubRect(containerEl, { x: 0, y: 0, width: 1440, height: 1200 });
+  stubRect(headerEl, { x: 0, y: 0, width: 1440, height: 80 });
+  stubRect(sectionEl, { x: 0, y: 80, width: 1440, height: 1000 });
+  stubRect(footerEl, { x: 0, y: 1080, width: 1440, height: 120 });
+  // jsdom の既定 innerWidth (1024) と異なる値にする。幅が変わらないリサイズは
+  // 計算し直さない (要件 9.3 の裏返し) ため、初回計測との差を作る必要がある
+  vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(1440);
 
   act(() => {
     window.dispatchEvent(new Event('resize'));

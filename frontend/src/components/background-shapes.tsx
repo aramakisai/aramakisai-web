@@ -10,12 +10,15 @@ import {
 } from 'react';
 import { usePathname } from 'next/navigation';
 import { placeBackgroundShapes } from '@/lib/background-shapes/placement';
+import { filterForObstacles } from '@/lib/background-shapes/reuse';
 import { collectObstacles } from '@/lib/background-shapes/obstacles';
 import type {
   Platform,
   PlacedShape,
+  PlacementInput,
   RingColor,
   ShapeKind,
+  Tier,
   TextureId,
 } from '@/lib/background-shapes/types';
 import {
@@ -530,62 +533,137 @@ function ShapeList({
   );
 }
 
-function measure(pathname: string): {
-  shapes: readonly PlacedShape[];
-  sections: SectionRect[];
-} | null {
-  const containerEl = document.getElementById(PAGE_CONTAINER_ID);
-  const mainEl = document.getElementById(MAIN_CONTENT_ID);
-  if (!containerEl || !mainEl) return null;
+const ZERO_DEFICIT: Readonly<Record<Tier, number>> = { Inf: 0, L: 0, S: 0 };
 
+interface MeasureState {
+  // pathname と幅が同じ間は base (配置結果) を再利用する (要件 9.1, 9.3)
+  key: { pathname: string; width: number };
+  base: readonly PlacedShape[];
+  visible: readonly PlacedShape[];
+  sections: SectionRect[];
+  deficit: Readonly<Record<Tier, number>>;
+}
+
+function currentInput(pathname: string): PlacementInput | null {
+  const containerEl = document.getElementById(PAGE_CONTAINER_ID);
+  if (!containerEl) return null;
   const platform: Platform =
     window.innerWidth >= LG_BREAKPOINT_PX ? 'pc' : 'sp';
-  const obstacles = collectObstacles(containerEl);
-  const { shapes } = placeBackgroundShapes({
-    pathname,
-    platform,
-    ...obstacles,
-  });
-  const sections = collectSectionRects(mainEl);
+  return { pathname, platform, ...collectObstacles(containerEl) };
+}
 
-  return { shapes, sections };
+/** 配置をやり直す (初回、または pathname・幅が変わったとき)。 */
+function measureFull(pathname: string): MeasureState | null {
+  const input = currentInput(pathname);
+  const mainEl = document.getElementById(MAIN_CONTENT_ID);
+  if (!input || !mainEl) return null;
+
+  const { shapes, deficit } = placeBackgroundShapes(input);
+  return {
+    key: { pathname, width: input.width },
+    base: shapes,
+    visible: shapes,
+    sections: collectSectionRects(mainEl),
+    deficit,
+  };
+}
+
+/**
+ * 保持した配置 (base) はそのまま、最新の障害物に反する図形だけを間引く
+ * (要件 9.1, 9.2)。∞ の下限個数・4 質感の網羅は問わないため deficit は
+ * 更新しない (design.md reuse 節)。
+ */
+function refilter(prev: MeasureState, pathname: string): MeasureState | null {
+  const input = currentInput(pathname);
+  const mainEl = document.getElementById(MAIN_CONTENT_ID);
+  if (!input || !mainEl) return null;
+
+  const { visible } = filterForObstacles(prev.base, input);
+  return {
+    ...prev,
+    visible,
+    sections: collectSectionRects(mainEl),
+  };
+}
+
+/** 開発ビルドでのみ、不足した階層を警告する (design.md Error Handling)。 */
+function warnDeficit(deficit: Readonly<Record<Tier, number>>) {
+  if (process.env.NODE_ENV === 'production') return;
+  if (deficit.Inf === 0 && deficit.L === 0 && deficit.S === 0) return;
+  console.warn(
+    `[background-shapes] 図形の配置が目標数に届きませんでした (Inf不足=${deficit.Inf}, L不足=${deficit.L}, S不足=${deficit.S})`,
+  );
 }
 
 /**
  * サイト共通の枠 (`(site)/layout.tsx`) の地に背景の図形装飾を描画する。
  * レイアウト計測が必要なためクライアントでのみ描画し、計測前 (サーバー描画・
- * hydration 直後) は何も描画しない。
+ * hydration 直後) は何も描画しない。フォント読み込み完了 (`document.fonts.ready`)
+ * を待ってから初回計測する (1.7 の書体切替で図形が動いて見えないようにするため)。
+ * `document.fonts` が無い環境 (テストの jsdom) ではマイクロタスク 1 つ分だけ遅らせて
+ * 計測する (同期実行すると、mount 直後・テストがスタブを整える前の DOM で計測してしまう)
  */
 export function BackgroundShapes() {
   const pathname = usePathname();
   const { reduced } = useMotionPreference();
-  const [state, setState] = useState<{
-    shapes: readonly PlacedShape[];
-    sections: SectionRect[];
-  } | null>(null);
+  const [state, setState] = useState<MeasureState | null>(null);
+  // resize/ResizeObserver のコールバックは effect 実行時点の state を閉じ込めた
+  // 古い closure から呼ばれうるため、常に最新の state を読めるよう ref も併せ持つ
+  const stateRef = useRef<MeasureState | null>(null);
+  stateRef.current = state;
 
   useEffect(() => {
-    const recompute = () => setState(measure(pathname));
-    recompute();
+    let cancelled = false;
+    const runFull = () => {
+      if (cancelled) return;
+      setState(measureFull(pathname));
+    };
 
-    window.addEventListener('resize', recompute);
+    if (typeof document !== 'undefined' && document.fonts) {
+      document.fonts.ready.then(runFull);
+    } else {
+      queueMicrotask(runFull);
+    }
+
+    const onResize = () => {
+      const width = window.innerWidth;
+      const current = stateRef.current;
+      // 幅が変わっていなければ計算し直さない (要件 9.3 の裏返し)。初回計測が
+      // まだ済んでいない間は fonts.ready 待ちの runFull に任せる
+      if (!current || current.key.width === width) return;
+      setState(measureFull(pathname));
+    };
+    window.addEventListener('resize', onResize);
+
+    // 検索・絞り込みによる一覧の件数変化など、幅を変えない DOM の高さ変化を拾う
     let observer: ResizeObserver | undefined;
     if (typeof ResizeObserver !== 'undefined') {
-      observer = new ResizeObserver(recompute);
+      observer = new ResizeObserver(() => {
+        const current = stateRef.current;
+        if (!current) return;
+        setState(refilter(current, pathname));
+      });
       observer.observe(document.body);
     }
+
     return () => {
-      window.removeEventListener('resize', recompute);
+      cancelled = true;
+      window.removeEventListener('resize', onResize);
       observer?.disconnect();
     };
   }, [pathname]);
 
-  // state.shapes は再計測 (measure) のときだけ差し替わるが、reduced の切替など
+  useEffect(() => {
+    if (state) warnDeficit(state.deficit);
+  }, [state]);
+
+  // state.visible は再計測・間引きのときだけ差し替わるが、reduced の切替など
   // state と無関係な再レンダーのたびにここで新しい配列を作ると、参照の変化を
   // 検知する useShapeMotion の effect が無駄に張り直される。state を基準に
   // useMemo で安定させる
-  const shapes = useMemo(() => state?.shapes ?? [], [state]);
+  const shapes = useMemo(() => state?.visible ?? [], [state]);
   const sections = useMemo(() => state?.sections ?? [], [state]);
+  const deficit = state?.deficit ?? ZERO_DEFICIT;
 
   if (!state) return null;
 
@@ -593,6 +671,7 @@ export function BackgroundShapes() {
     <div
       aria-hidden="true"
       data-bg-shapes-body=""
+      data-bg-deficit={`${deficit.Inf},${deficit.L},${deficit.S}`}
       className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
     >
       <ShapeList shapes={shapes} sections={sections} reduced={reduced} />
