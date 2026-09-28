@@ -260,9 +260,9 @@ declare function collectObstacles(root: HTMLElement): Omit<PlacementInput, 'path
 ```
 - **輝度**: 0〜1 に正規化した sRGB 値の単純な加重和 `0.2126R + 0.7152G + 0.0722B` (ガンマ補正なし)。閾値 0.5・0.85 は Figma 版の障害物抽出 (`extract_obstacles.js`) と同じ式で決めた値のため、WCAG の相対輝度は使わない。
 - **黒文字**: 直下にテキストを持つ要素のうち、文字色の輝度が 0.5 未満で、`a` の子孫でないもの。矩形は `Range.getClientRects()` の和 (グリフの範囲。要素の幅いっぱいではない)。jsdom は `Range.getClientRects` を持たないため、`vitest.setup.ts` で feature-detect 付きの polyfill を入れる。
-- **重ねない要素**: 地を持たない `a`・テキストボタン、文字色の輝度が 0.85 超の文字、`[data-bg-logo]`。
+- **重ねない要素**: 地を持たない `a`・テキストボタンは、rules.md の「文字リンク」が文字の範囲を指すため、要素自身の矩形ではなく中の文字のグリフ範囲 (`Range.getClientRects()`。黒文字と同じ取り方) と中のアイコン (Material Symbols もフォントの文字なので同じ扱い) を集める。子孫に不透明な面 (`img` 等) があれば要素自身の矩形ではなくそちらへ個別に分類する (裏に L が回り込めるようにするため)。ほかに文字色の輝度が 0.85 超の文字、`[data-bg-logo]`。
 - **不透明な面**: `[data-bg-opaque]`、`img`、`input,textarea,select`、地を持つ `button`・`a`。
-- **装飾範囲**: `decorTop` はヘッダー下端、`[data-bg-hero]` があればその下端。`decorBottom` はフッター上端、SP では下部タブナビ上端との小さい方。
+- **装飾範囲**: `decorTop` はヘッダー下端、`[data-bg-hero]` があればその下端。`decorBottom` はフッター上端と、`文書の高さ − 下部タブナビの高さ` の小さい方。下部タブナビは `position: fixed` でビューポート下端に固定され、その `getBoundingClientRect().top` はスクロール量に応じて変わるだけで文書座標として使えないため、タブナビ自身の高さを文書の高さから引いた値を使う。
 - `aria-hidden="true"`・`inert` の部分木、非表示要素は無視する (既存と同じ)。
 - 幅 2px 以下の罫線は無視する。
 

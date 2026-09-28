@@ -68,6 +68,51 @@ describe('collectObstacles', () => {
     expect(opaque).toHaveLength(0);
   });
 
+  it('地を持たないブロックリンク (行全体を包む a) は要素全体ではなく中の文字・アイコンのグリフ範囲だけを noOverlap にする', () => {
+    const { root, main } = buildPage();
+    const a = document.createElement('a');
+    a.href = '#';
+    const title = document.createElement('h3');
+    title.textContent = 'お知らせタイトル';
+    const icon = document.createElement('span');
+    icon.className = 'material-symbols-sharp';
+    icon.textContent = 'chevron_right';
+    a.append(title, icon);
+    main.appendChild(a);
+    // 行全体を包むブロックリンクなので要素自体の矩形は本文列の幅いっぱいになる
+    stubRect(a, { x: 0, y: 100, width: 1024, height: 80 });
+    stubRect(title, { x: 16, y: 120, width: 300, height: 24 });
+    stubRect(icon, { x: 980, y: 128, width: 24, height: 24 });
+
+    const { noOverlap, opaque } = collectObstacles(root);
+
+    expect(noOverlap).toContainEqual({ x: 16, y: 120, w: 300, h: 24 });
+    expect(noOverlap).toContainEqual({ x: 980, y: 128, w: 24, h: 24 });
+    expect(noOverlap).not.toContainEqual({ x: 0, y: 100, w: 1024, h: 80 });
+    expect(opaque).toHaveLength(0);
+  });
+
+  it('地を持たないブロックリンクの中の img は opaque として別に集め、noOverlap には含めない', () => {
+    const { root, main } = buildPage();
+    const a = document.createElement('a');
+    a.href = '#';
+    const thumb = document.createElement('img');
+    const title = document.createElement('h3');
+    title.textContent = 'お知らせタイトル';
+    a.append(thumb, title);
+    main.appendChild(a);
+    stubRect(a, { x: 0, y: 100, width: 1024, height: 80 });
+    stubRect(thumb, { x: 0, y: 100, width: 80, height: 80 });
+    stubRect(title, { x: 96, y: 120, width: 300, height: 24 });
+
+    const { noOverlap, opaque } = collectObstacles(root);
+
+    expect(opaque).toContainEqual({ x: 0, y: 100, w: 80, h: 80 });
+    expect(noOverlap).toContainEqual({ x: 96, y: 120, w: 300, h: 24 });
+    expect(noOverlap).not.toContainEqual({ x: 0, y: 100, w: 80, h: 80 });
+    expect(noOverlap).not.toContainEqual({ x: 0, y: 100, w: 1024, h: 80 });
+  });
+
   it('地を持つ a を opaque に分類する', () => {
     const { root, main } = buildPage();
     const a = document.createElement('a');
@@ -178,16 +223,40 @@ describe('collectObstacles', () => {
     expect(decorTop).toBe(480);
   });
 
-  it('[data-bg-bottom-nav] が可視なら decorBottom をフッター上端との小さい方にする', () => {
+  it('[data-bg-bottom-nav] が可視なら decorBottom を「文書の高さ - タブナビの高さ」とフッター上端の小さい方にする', () => {
+    // タブナビは position: fixed でビューポート下端に固定されるため、その
+    // getBoundingClientRect().top は文書座標としては意味を持たない (スクロール量に
+    // 依存して変わってしまう)。文書の高さからタブナビの高さを引いた値を使う
     const { root } = buildPage();
     const nav = document.createElement('nav');
     nav.setAttribute('data-bg-bottom-nav', 'true');
     root.appendChild(nav);
-    stubRect(nav, { x: 0, y: 1700, width: 1024, height: 64 });
+    // タブナビの getBoundingClientRect().top はビューポート内の位置 (スクロール0時点でも
+    // 文書下端よりずっと小さい値になりうる) であり、文書座標の decorBottom には使わない
+    stubRect(nav, { x: 0, y: 700, width: 1024, height: 64 });
 
     const { decorBottom } = collectObstacles(root);
 
-    expect(decorBottom).toBe(1700);
+    // buildPage(): 文書高さ 2000、フッター上端 1800。タブナビ由来の上限は 2000-64=1936 で
+    // フッターの方が小さいため、フッターが decorBottom を決める
+    expect(decorBottom).toBe(1800);
+  });
+
+  it('[data-bg-bottom-nav] のほうがフッター上端より制約が厳しいとき、decorBottom はタブナビ由来の値になる', () => {
+    const { root } = buildPage();
+    const footer = root.querySelector('footer')!;
+    // フッターが文書のごく下端にしかない (footerTop が height に近い) 一方、
+    // タブナビの高さがそれより大きい場合、タブナビ由来の上限が効く
+    stubRect(footer, { x: 0, y: 1990, width: 1024, height: 10 });
+    const nav = document.createElement('nav');
+    nav.setAttribute('data-bg-bottom-nav', 'true');
+    root.appendChild(nav);
+    stubRect(nav, { x: 0, y: 700, width: 1024, height: 200 });
+
+    const { decorBottom } = collectObstacles(root);
+
+    // height(2000) - navHeight(200) = 1800 < footerTop(1990)
+    expect(decorBottom).toBe(1800);
   });
 
   it('[data-bg-bottom-nav] が非表示 (display:none) なら decorBottom に影響しない', () => {

@@ -74,9 +74,9 @@ function isHairline(domRect: DOMRect): boolean {
 
 /**
  * main 配下を歩き、黒文字・重ねない要素・不透明な面の 3 分類へ振り分ける
- * (design.md 「obstacles」)。不透明な面・ロゴ・操作要素は自身の矩形だけを
- * 採り、内側へは潜らない。opaque な面の裏に L がまわり込むことを許すため
- * (要件 7.6)、面の中の文字を個別に障害物として扱う必要が無い
+ * (design.md 「obstacles」)。不透明な面・ロゴは自身の矩形だけを採り、内側へは
+ * 潜らない。opaque な面の裏に L がまわり込むことを許すため (要件 7.6)、面の中の
+ * 文字を個別に障害物として扱う必要が無い
  */
 function collect(root: Element, scrollY: number): Buckets {
   const text: Rect[] = [];
@@ -92,6 +92,24 @@ function collect(root: Element, scrollY: number): Buckets {
     for (const r of rects) push(bucket, r);
   };
 
+  // 地を持たない a・テキストボタンの矩形 (rules.md「文字リンク」)。ブロックリンクの
+  // ように行全体を包む a も、実際に重ねてはいけないのは中の文字・アイコンのグリフ
+  // 範囲だけなので、要素自身の矩形ではなくここで内側を辿って集める。子孫の不透明な
+  // 面 (サムネイル画像等) は文字リンクの範囲に含めず、opaque として別に扱う
+  // (裏に L が回り込めるようにするため)
+  const walkInteractive = (el: Element) => {
+    if (isSkipped(el) || !isVisible(el)) return;
+    if (el.matches('[data-bg-opaque], img, input, textarea, select')) {
+      push(opaque, el.getBoundingClientRect());
+      return;
+    }
+    if (hasOwnText(el)) {
+      // Material Symbols もフォントの文字なので、色を問わず同じ扱いにする
+      pushAll(noOverlap, glyphRects(el));
+    }
+    for (const child of Array.from(el.children)) walkInteractive(child);
+  };
+
   const walk = (el: Element) => {
     if (isSkipped(el) || !isVisible(el)) return;
 
@@ -104,7 +122,11 @@ function collect(root: Element, scrollY: number): Buckets {
       return;
     }
     if (el.matches('a, button')) {
-      push(hasBackground(el) ? opaque : noOverlap, el.getBoundingClientRect());
+      if (hasBackground(el)) {
+        push(opaque, el.getBoundingClientRect());
+      } else {
+        walkInteractive(el);
+      }
       return;
     }
 
@@ -152,11 +174,16 @@ export function collectObstacles(
   const footerTop = footerEl
     ? footerEl.getBoundingClientRect().top + scrollY
     : height;
-  const bottomNavTop =
+  // 下部タブナビは position: fixed でビューポート下端に固定されており、
+  // getBoundingClientRect().top はスクロール量に応じて変わるだけで文書座標としての
+  // 意味を持たない (そのまま + scrollY すると初回計測時のスクロール位置で装飾範囲が
+  // 決まってしまい、最初の 1 画面だけに縮む)。文書の高さからタブナビ自身の高さを
+  // 引いた値 (タブナビが文書の一番下に常駐しているとみなした場合の上端) を使う
+  const bottomNavBottom =
     bottomNavEl && isVisible(bottomNavEl)
-      ? bottomNavEl.getBoundingClientRect().top + scrollY
+      ? height - bottomNavEl.getBoundingClientRect().height
       : Infinity;
-  const decorBottom = Math.min(footerTop, bottomNavTop);
+  const decorBottom = Math.min(footerTop, bottomNavBottom);
 
   const mainEl = root.querySelector('main') ?? root;
   const { text, noOverlap, opaque } = collect(mainEl, scrollY);
