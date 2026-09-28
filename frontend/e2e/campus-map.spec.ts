@@ -99,7 +99,9 @@ test.describe('構内マップと既存ページの通し確認', () => {
     expect(response?.status()).toBe(404);
     await expect(page.getByRole('banner')).toBeVisible();
     await expect(page.getByRole('contentinfo')).toBeVisible();
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('404');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+      'ページが見つかりません',
+    );
   });
 
   test('地図上に出典表記が表示され、ライセンス情報ページへのリンクを持つ', async ({

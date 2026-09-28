@@ -31,6 +31,10 @@ const INTENTIONALLY_PRIVATE_ROUTES: readonly string[] = [
   '/map',
   '/gated',
   '/gated-fullscreen',
+  // error.tsx の E2E 検証専用ルート。DEV_OVERRIDE_ENABLED が偽の本番ビルドでは
+  // 内部の notFound() 分岐だけが残るため、非公開のままで問題ない
+  '/e2e-error-trigger',
+  '/e2e-error-trigger-fullscreen',
 ];
 
 type Classification =
