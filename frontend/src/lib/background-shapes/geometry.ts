@@ -41,7 +41,12 @@ function localGrid(s: number, n = GRID_N): { X: number[]; Y: number[] } {
   return { X, Y };
 }
 
-function kindMask(kind: ShapeKind, X: number[], Y: number[], s: number): boolean[] {
+function kindMask(
+  kind: ShapeKind,
+  X: number[],
+  Y: number[],
+  s: number,
+): boolean[] {
   const n = X.length;
   const mask = new Array<boolean>(n);
   switch (kind) {
@@ -52,7 +57,8 @@ function kindMask(kind: ShapeKind, X: number[], Y: number[], s: number): boolean
     }
     case 'square': {
       const half = s / 2;
-      for (let i = 0; i < n; i++) mask[i] = Math.abs(X[i]) <= half && Math.abs(Y[i]) <= half;
+      for (let i = 0; i < n; i++)
+        mask[i] = Math.abs(X[i]) <= half && Math.abs(Y[i]) <= half;
       break;
     }
     case 'roundedSquare': {
@@ -62,7 +68,10 @@ function kindMask(kind: ShapeKind, X: number[], Y: number[], s: number): boolean
       for (let i = 0; i < n; i++) {
         const qx = Math.abs(X[i]) - half;
         const qy = Math.abs(Y[i]) - half;
-        const d = Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - r;
+        const d =
+          Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) +
+          Math.min(Math.max(qx, qy), 0) -
+          r;
         mask[i] = d <= 0;
       }
       break;
@@ -78,14 +87,16 @@ function kindMask(kind: ShapeKind, X: number[], Y: number[], s: number): boolean
     case 'quarterCircle': {
       // 半径 s の扇、外接正方形の角を (-s/2,-s/2) に置くと弧が残り2辺の中点を通り s x s に収まる
       const r2 = s ** 2;
-      for (let i = 0; i < n; i++) mask[i] = (X[i] + s / 2) ** 2 + (Y[i] + s / 2) ** 2 <= r2;
+      for (let i = 0; i < n; i++)
+        mask[i] = (X[i] + s / 2) ** 2 + (Y[i] + s / 2) ** 2 <= r2;
       break;
     }
     case 'semicircle': {
       // 直径 = 一辺。窓の下半分だけを占める (向きは回転で乱数化されるので固定でよい)
       const r = s / 2;
       const r2 = r ** 2;
-      for (let i = 0; i < n; i++) mask[i] = X[i] ** 2 + Y[i] ** 2 <= r2 && Y[i] >= 0;
+      for (let i = 0; i < n; i++)
+        mask[i] = X[i] ** 2 + Y[i] ** 2 <= r2 && Y[i] >= 0;
       break;
     }
     default:
@@ -94,7 +105,13 @@ function kindMask(kind: ShapeKind, X: number[], Y: number[], s: number): boolean
   return mask;
 }
 
-function toPage(X: number[], Y: number[], rotationDeg: number, cx: number, cy: number): Points {
+function toPage(
+  X: number[],
+  Y: number[],
+  rotationDeg: number,
+  cx: number,
+  cy: number,
+): Points {
   const th = (rotationDeg * Math.PI) / 180;
   const ct = Math.cos(th);
   const st = Math.sin(th);
@@ -120,7 +137,13 @@ function filterByMask(px: number[], py: number[], mask: boolean[]): Points {
   return { px: outX, py: outY };
 }
 
-export function sampleShape(kind: ShapeKind, s: number, rotationDeg: number, cx: number, cy: number): Points {
+export function sampleShape(
+  kind: ShapeKind,
+  s: number,
+  rotationDeg: number,
+  cx: number,
+  cy: number,
+): Points {
   const { X, Y } = localGrid(s);
   const mask = kindMask(kind, X, Y, s);
   const { px, py } = toPage(X, Y, rotationDeg, cx, cy);
@@ -140,7 +163,13 @@ export function infRadius(D: number): number {
   return 0.5 * Math.hypot(w, h);
 }
 
-export function sampleInf(D: number, rotationDeg: number, cx: number, cy: number, n = GRID_N): Points {
+export function sampleInf(
+  D: number,
+  rotationDeg: number,
+  cx: number,
+  cy: number,
+  n = GRID_N,
+): Points {
   const [w, h] = infBbox(D);
   const linX = linspaceCenters(w, n);
   const linY = linspaceCenters(h, n);
@@ -156,7 +185,10 @@ export function sampleInf(D: number, rotationDeg: number, cx: number, cy: number
   const r2 = r ** 2;
   const cxa = -0.37 * D;
   const cxb = 0.37 * D; // 中心間距離 0.74D
-  const mask = X.map((x, i) => (x - cxa) ** 2 + Y[i] ** 2 <= r2 || (x - cxb) ** 2 + Y[i] ** 2 <= r2);
+  const mask = X.map(
+    (x, i) =>
+      (x - cxa) ** 2 + Y[i] ** 2 <= r2 || (x - cxb) ** 2 + Y[i] ** 2 <= r2,
+  );
   const { px, py } = toPage(X, Y, rotationDeg, cx, cy);
   return filterByMask(px, py, mask);
 }
@@ -165,12 +197,20 @@ function inRect(px: number[], py: number[], rect: Rect): boolean[] {
   const n = px.length;
   const out = new Array<boolean>(n);
   for (let i = 0; i < n; i++) {
-    out[i] = px[i] >= rect.x && px[i] <= rect.x + rect.w && py[i] >= rect.y && py[i] <= rect.y + rect.h;
+    out[i] =
+      px[i] >= rect.x &&
+      px[i] <= rect.x + rect.w &&
+      py[i] >= rect.y &&
+      py[i] <= rect.y + rect.h;
   }
   return out;
 }
 
-export function inAny(px: number[], py: number[], rects: readonly Rect[]): boolean[] {
+export function inAny(
+  px: number[],
+  py: number[],
+  rects: readonly Rect[],
+): boolean[] {
   const out = new Array<boolean>(px.length).fill(false);
   for (const rect of rects) {
     const m = inRect(px, py, rect);
@@ -191,11 +231,21 @@ function meanTrue(mask: boolean[]): number {
 }
 
 export function pad(rects: readonly Rect[], m: number): Rect[] {
-  return rects.map((r) => ({ x: r.x - m, y: r.y - m, w: r.w + 2 * m, h: r.h + 2 * m }));
+  return rects.map((r) => ({
+    x: r.x - m,
+    y: r.y - m,
+    w: r.w + 2 * m,
+    h: r.h + 2 * m,
+  }));
 }
 
 function rectsIntersect(a: Rect, b: Rect): boolean {
-  return !(a.x + a.w < b.x || b.x + b.w < a.x || a.y + a.h < b.y || b.y + b.h < a.y);
+  return !(
+    a.x + a.w < b.x ||
+    b.x + b.w < a.x ||
+    a.y + a.h < b.y ||
+    b.y + b.h < a.y
+  );
 }
 
 export function bboxOf(px: number[], py: number[]): Rect {
@@ -226,20 +276,33 @@ export function boundsOk(
   return leftOver <= allow + 1e-6 && rightOver <= allow + 1e-6;
 }
 
-export function collisionOk(cx: number, cy: number, r: number, placed: readonly PlacedCircle[], gap: number): boolean {
+export function collisionOk(
+  cx: number,
+  cy: number,
+  r: number,
+  placed: readonly PlacedCircle[],
+  gap: number,
+): boolean {
   for (const p of placed) {
     if (Math.hypot(cx - p.cx, cy - p.cy) < r + p.r + gap) return false;
   }
   return true;
 }
 
-export function gutterCount(shapeBbox: Rect, opaqueRects: readonly Rect[]): number {
+export function gutterCount(
+  shapeBbox: Rect,
+  opaqueRects: readonly Rect[],
+): number {
   let count = 0;
   for (const o of opaqueRects) if (rectsIntersect(shapeBbox, o)) count++;
   return count;
 }
 
-export function checkCommon(px: number[], py: number[], noOverlapPad: readonly Rect[]): boolean {
+export function checkCommon(
+  px: number[],
+  py: number[],
+  noOverlapPad: readonly Rect[],
+): boolean {
   return !anyTrue(inAny(px, py, noOverlapPad));
 }
 
@@ -256,7 +319,8 @@ export function validS(
   overflowFrac: number,
   opaqueMode: 'hard' | 'soft',
 ): boolean {
-  if (!boundsOk(px, py, width, decorTop, decorBottom, overflowFrac, s)) return false;
+  if (!boundsOk(px, py, width, decorTop, decorBottom, overflowFrac, s))
+    return false;
   if (!checkCommon(px, py, noOverlapPad)) return false;
   if (anyTrue(inAny(px, py, textPad))) return false;
   if (opaqueMode === 'hard') {

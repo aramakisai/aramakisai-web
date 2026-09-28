@@ -1,11 +1,19 @@
 export type Platform = 'pc' | 'sp';
 export type Tier = 'Inf' | 'L' | 'S';
-export type ShapeKind = 'circle' | 'triangle' | 'square' | 'roundedSquare' | 'quarterCircle' | 'semicircle';
+export type ShapeKind =
+  | 'circle'
+  | 'triangle'
+  | 'square'
+  | 'roundedSquare'
+  | 'quarterCircle'
+  | 'semicircle';
 export type TextureFamily = 'gradient' | 'watercolor' | 'grainy' | 'halftone';
-export type TextureId = `L${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8}` | `S${1 | 2 | 3 | 4 | 5 | 6}`;
+export type TextureId =
+  `L${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8}` | `S${1 | 2 | 3 | 4 | 5 | 6}`;
 // 乱数で選ぶ候補配列が place.py と同じ並び・同じ値である必要があるため、接頭辞なしの名前を使う。
 // Tailwind の bansai-* への対応は描画側で行う
-export type RingColor = 'ochre' | 'olive' | 'sage' | 'salmon' | 'rose' | 'wisteria' | 'aqua';
+export type RingColor =
+  'ochre' | 'olive' | 'sage' | 'salmon' | 'rose' | 'wisteria' | 'aqua';
 
 export interface Rect {
   x: number;

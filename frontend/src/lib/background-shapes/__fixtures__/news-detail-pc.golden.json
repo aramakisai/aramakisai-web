@@ -7,10 +7,7 @@
       "cy": 1870.29,
       "size": 160.29,
       "rotation": 9.67,
-      "colors": [
-        "wisteria",
-        "aqua"
-      ],
+      "colors": ["wisteria", "aqua"],
       "texture": null
     },
     {
@@ -20,10 +17,7 @@
       "cy": 5487.58,
       "size": 127.78,
       "rotation": 10.45,
-      "colors": [
-        "salmon",
-        "rose"
-      ],
+      "colors": ["salmon", "rose"],
       "texture": null
     },
     {

@@ -60,7 +60,12 @@ function glyphRects(el: Element): DOMRect[] {
 }
 
 function toRect(domRect: DOMRect, scrollY: number): Rect {
-  return { x: domRect.x, y: domRect.y + scrollY, w: domRect.width, h: domRect.height };
+  return {
+    x: domRect.x,
+    y: domRect.y + scrollY,
+    w: domRect.width,
+    h: domRect.height,
+  };
 }
 
 function isHairline(domRect: DOMRect): boolean {

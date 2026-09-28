@@ -6,10 +6,20 @@ import { placeBackgroundShapes } from './placement';
 import type { PlacedShape, PlacementInput, TextureFamily } from './types';
 
 const FIXTURES_DIR = join(__dirname, '__fixtures__');
-const FIXTURE_NAMES = ['top-pc', 'top-sp', 'news-list-sp', 'news-list-empty-sp', 'topics-list-sp', 'news-detail-sp', 'news-detail-pc'];
+const FIXTURE_NAMES = [
+  'top-pc',
+  'top-sp',
+  'news-list-sp',
+  'news-list-empty-sp',
+  'topics-list-sp',
+  'news-detail-sp',
+  'news-detail-pc',
+];
 
 function loadFixture(name: string): PlacementInput {
-  return JSON.parse(readFileSync(join(FIXTURES_DIR, `${name}.json`), 'utf-8')) as PlacementInput;
+  return JSON.parse(
+    readFileSync(join(FIXTURES_DIR, `${name}.json`), 'utf-8'),
+  ) as PlacementInput;
 }
 
 function radiusOf(shape: PlacedShape): number {
@@ -32,7 +42,9 @@ describe('placeBackgroundShapes: place.py の selftest と同じ性質', () => {
           const a = shapes[i];
           const b = shapes[j];
           const d = Math.hypot(a.cx - b.cx, a.cy - b.cy);
-          expect(d).toBeGreaterThanOrEqual(radiusOf(a) + radiusOf(b) + 24 - 1e-6);
+          expect(d).toBeGreaterThanOrEqual(
+            radiusOf(a) + radiusOf(b) + 24 - 1e-6,
+          );
         }
       }
     },
@@ -45,7 +57,10 @@ describe('placeBackgroundShapes: place.py の selftest と同じ性質', () => {
       // 水彩は L にしか割り当てられない (S_TEX_FILES に watercolor が無い) ため、
       // 4質感の網羅は L が最低1つ置けたときだけ保証される (place.py の meta.texture_coverage_ok と同じ条件)。
       const result = placeBackgroundShapes(loadFixture(name));
-      const lOrS = result.shapes.filter((s): s is Extract<PlacedShape, { tier: 'L' | 'S' }> => s.tier === 'L' || s.tier === 'S');
+      const lOrS = result.shapes.filter(
+        (s): s is Extract<PlacedShape, { tier: 'L' | 'S' }> =>
+          s.tier === 'L' || s.tier === 'S',
+      );
       const hasL = result.shapes.some((s) => s.tier === 'L');
       if (!hasL) return;
       const used = new Set<TextureFamily>();
@@ -61,7 +76,14 @@ describe('placeBackgroundShapes: place.py の selftest と同じ性質', () => {
           else used.add('halftone');
         }
       }
-      expect(used).toEqual(new Set<TextureFamily>(['gradient', 'watercolor', 'grainy', 'halftone']));
+      expect(used).toEqual(
+        new Set<TextureFamily>([
+          'gradient',
+          'watercolor',
+          'grainy',
+          'halftone',
+        ]),
+      );
     },
     SLOW_FIXTURE_TIMEOUT,
   );
@@ -71,7 +93,10 @@ describe('placeBackgroundShapes: place.py の selftest と同じ性質', () => {
     (name) => {
       const input = loadFixture(name);
       const result = placeBackgroundShapes(input);
-      const expected = Math.max(1, 1 + Math.floor((input.height - 2500) / 2500));
+      const expected = Math.max(
+        1,
+        1 + Math.floor((input.height - 2500) / 2500),
+      );
       expect(result.target.Inf).toBe(expected);
     },
     SLOW_FIXTURE_TIMEOUT,
@@ -83,7 +108,10 @@ describe('placeBackgroundShapes: place.py の selftest と同じ性質', () => {
       const input = loadFixture(name);
       const result = placeBackgroundShapes(input);
       const placedL = result.shapes.filter((s) => s.tier === 'L').length;
-      const expected = Math.max(Math.floor((input.decorBottom - input.decorTop) / 400), 4 - placedL);
+      const expected = Math.max(
+        Math.floor((input.decorBottom - input.decorTop) / 400),
+        4 - placedL,
+      );
       expect(result.target.S).toBe(expected);
     },
     SLOW_FIXTURE_TIMEOUT,

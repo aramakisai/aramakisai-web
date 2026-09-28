@@ -7,7 +7,9 @@ import type { PlacedShape, PlacementInput, Tier } from './types';
 const FIXTURES_DIR = join(__dirname, '__fixtures__');
 
 function loadFixture(name: string): PlacementInput {
-  return JSON.parse(readFileSync(join(FIXTURES_DIR, `${name}.json`), 'utf-8')) as PlacementInput;
+  return JSON.parse(
+    readFileSync(join(FIXTURES_DIR, `${name}.json`), 'utf-8'),
+  ) as PlacementInput;
 }
 
 interface GoldenShape {
@@ -30,12 +32,17 @@ interface Golden {
 }
 
 function loadGolden(name: string): Golden {
-  return JSON.parse(readFileSync(join(FIXTURES_DIR, `${name}.golden.json`), 'utf-8')) as Golden;
+  return JSON.parse(
+    readFileSync(join(FIXTURES_DIR, `${name}.golden.json`), 'utf-8'),
+  ) as Golden;
 }
 
 // golden は place.py が cx/cy/size/rotation を小数第 2 位に丸めて出力したもの。
 // 座標・寸法・回転は 0.01 の誤差まで許容し、個数・種類・質感・色は完全一致を求める (design.md のテスト方針)。
-function expectShapesMatchGolden(shapes: readonly PlacedShape[], golden: readonly GoldenShape[]) {
+function expectShapesMatchGolden(
+  shapes: readonly PlacedShape[],
+  golden: readonly GoldenShape[],
+) {
   expect(shapes.length).toBe(golden.length);
   shapes.forEach((shape, i) => {
     const g = golden[i];
@@ -51,7 +58,15 @@ function expectShapesMatchGolden(shapes: readonly PlacedShape[], golden: readonl
 }
 
 describe('placeBackgroundShapes: 参照実装 place.py と同じ入力で同じ配置を返す', () => {
-  const cases = ['top-pc', 'top-sp', 'news-list-sp', 'news-list-empty-sp', 'topics-list-sp', 'news-detail-sp', 'news-detail-pc'];
+  const cases = [
+    'top-pc',
+    'top-sp',
+    'news-list-sp',
+    'news-list-empty-sp',
+    'topics-list-sp',
+    'news-detail-sp',
+    'news-detail-pc',
+  ];
 
   // 文字が装飾可能帯のほぼ全域を占める画面 (news-list-sp) は ∞ の第3緩和段で最大 6000 回の
   // 候補再試行が走り、格子標本化 (40x40) の判定コストと相まって既定の 5s を超えることがある。

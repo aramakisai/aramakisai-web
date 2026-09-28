@@ -7,10 +7,7 @@
       "cy": 458.11,
       "size": 80,
       "rotation": -0.28,
-      "colors": [
-        "wisteria",
-        "sage"
-      ],
+      "colors": ["wisteria", "sage"],
       "texture": null
     },
     {

@@ -10,11 +10,41 @@ import {
   validS,
 } from './geometry';
 import { fnv1a, mulberry32 } from './rng';
-import type { Platform, PlacedShape, PlacementInput, PlacementResult, RingColor, ShapeKind, Tier, TextureFamily, TextureId } from './types';
+import type {
+  Platform,
+  PlacedShape,
+  PlacementInput,
+  PlacementResult,
+  RingColor,
+  ShapeKind,
+  Tier,
+  TextureFamily,
+  TextureId,
+} from './types';
 
-const TOKENS: readonly RingColor[] = ['ochre', 'olive', 'sage', 'salmon', 'rose', 'wisteria', 'aqua'];
-const TEX: readonly TextureFamily[] = ['gradient', 'watercolor', 'grainy', 'halftone'];
-const KINDS: readonly ShapeKind[] = ['circle', 'triangle', 'square', 'roundedSquare', 'quarterCircle', 'semicircle'];
+const TOKENS: readonly RingColor[] = [
+  'ochre',
+  'olive',
+  'sage',
+  'salmon',
+  'rose',
+  'wisteria',
+  'aqua',
+];
+const TEX: readonly TextureFamily[] = [
+  'gradient',
+  'watercolor',
+  'grainy',
+  'halftone',
+];
+const KINDS: readonly ShapeKind[] = [
+  'circle',
+  'triangle',
+  'square',
+  'roundedSquare',
+  'quarterCircle',
+  'semicircle',
+];
 
 // tex5 のファイル名接頭辞と質感名の対応 (同じ質感の2枚から乱数で選ぶ)
 const L_TEX_FILES: Record<TextureFamily, readonly TextureId[]> = {
@@ -23,7 +53,10 @@ const L_TEX_FILES: Record<TextureFamily, readonly TextureId[]> = {
   grainy: ['L3', 'L7'],
   halftone: ['L4', 'L8'],
 };
-const S_TEX_FILES: Record<Exclude<TextureFamily, 'watercolor'>, readonly TextureId[]> = {
+const S_TEX_FILES: Record<
+  Exclude<TextureFamily, 'watercolor'>,
+  readonly TextureId[]
+> = {
   gradient: ['S1', 'S4'],
   grainy: ['S2', 'S5'],
   halftone: ['S3', 'S6'],
@@ -131,10 +164,33 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
         const y = rng.uniform(decorTop, decorBottom);
         const { px, py } = sampleInf(D, rot, x, y);
         const r = infRadius(D);
-        if (!validInf(px, py, width, decorTop, decorBottom, noOverlapPad, textPad, opaque, D, 'hard')) continue;
+        if (
+          !validInf(
+            px,
+            py,
+            width,
+            decorTop,
+            decorBottom,
+            noOverlapPad,
+            textPad,
+            opaque,
+            D,
+            'hard',
+          )
+        )
+          continue;
         if (!collisionOk(x, y, r, placed, GUTTER)) continue;
         placed.push({ cx: x, cy: y, r });
-        shapes.push({ tier: 'Inf', kind: 'ring', cx: x, cy: y, size: D, rotation: rot, colors: [c1, c2], texture: null });
+        shapes.push({
+          tier: 'Inf',
+          kind: 'ring',
+          cx: x,
+          cy: y,
+          size: D,
+          rotation: rot,
+          colors: [c1, c2],
+          texture: null,
+        });
         ok = true;
         break;
       }
@@ -153,10 +209,34 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
         const y = rng.uniform(decorTop, decorBottom);
         const { px, py } = sampleInf(D, rot, x, y);
         const r = infRadius(D);
-        if (!validInf(px, py, width, decorTop, decorBottom, noOverlapPad, textPad, opaque, D, 'soft', 0.25)) continue;
+        if (
+          !validInf(
+            px,
+            py,
+            width,
+            decorTop,
+            decorBottom,
+            noOverlapPad,
+            textPad,
+            opaque,
+            D,
+            'soft',
+            0.25,
+          )
+        )
+          continue;
         if (!collisionOk(x, y, r, placed, GUTTER)) continue;
         placed.push({ cx: x, cy: y, r });
-        shapes.push({ tier: 'Inf', kind: 'ring', cx: x, cy: y, size: D, rotation: rot, colors: [c1, c2], texture: null });
+        shapes.push({
+          tier: 'Inf',
+          kind: 'ring',
+          cx: x,
+          cy: y,
+          size: D,
+          rotation: rot,
+          colors: [c1, c2],
+          texture: null,
+        });
         ok = true;
         break;
       }
@@ -174,12 +254,35 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
         const { px, py } = sampleInf(D, rot, x, y);
         const r = infRadius(D);
         if (
-          !validInf(px, py, width, decorTop, decorBottom, noOverlapPad, textPad, opaque, D, 'hard', 1.0, 'ratio25', textRaw)
+          !validInf(
+            px,
+            py,
+            width,
+            decorTop,
+            decorBottom,
+            noOverlapPad,
+            textPad,
+            opaque,
+            D,
+            'hard',
+            1.0,
+            'ratio25',
+            textRaw,
+          )
         )
           continue;
         if (!collisionOk(x, y, r, placed, GUTTER)) continue;
         placed.push({ cx: x, cy: y, r });
-        shapes.push({ tier: 'Inf', kind: 'ring', cx: x, cy: y, size: D, rotation: rot, colors: [c1, c2], texture: null });
+        shapes.push({
+          tier: 'Inf',
+          kind: 'ring',
+          cx: x,
+          cy: y,
+          size: D,
+          rotation: rot,
+          colors: [c1, c2],
+          texture: null,
+        });
         ok = true;
         break;
       }
@@ -202,14 +305,29 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
     cy: number;
   }
 
-  function drawAndTryL(y: number, sRange: readonly [number, number], minVisible: number): LDraw | null {
+  function drawAndTryL(
+    y: number,
+    sRange: readonly [number, number],
+    minVisible: number,
+  ): LDraw | null {
     const kind = rng.pick(KINDS);
     const s = rng.uniform(sRange[0], sRange[1]);
     const rot = rng.randint(360);
     const x = rng.uniform(-0.4 * s, width + 0.4 * s);
     const { px, py } = sampleShape(kind, s, rot, x, y);
     if (
-      validL(px, py, width, decorTop, decorBottom, noOverlapPad, textRaw, opaque, s, minVisible) &&
+      validL(
+        px,
+        py,
+        width,
+        decorTop,
+        decorBottom,
+        noOverlapPad,
+        textRaw,
+        opaque,
+        s,
+        minVisible,
+      ) &&
       collisionOk(x, y, bboxRadius(s), placed, GUTTER)
     ) {
       return { kind, s, rot, cx: x, cy: y };
@@ -242,7 +360,8 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
 
   while (true) {
     const gap = rng.uniform(gapLo, gapHi);
-    const y0: number = yPrev === null ? decorTop + rng.uniform(0, gap) : yPrev + gap;
+    const y0: number =
+      yPrev === null ? decorTop + rng.uniform(0, gap) : yPrev + gap;
     if (y0 > decorBottom) break;
 
     // 通常の縦位置ずらし・縮小 (可視率下限0.6) で置けない場合の最終手段として、
@@ -281,7 +400,9 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
     perm.unshift('watercolor');
   }
   if (countL > 0) {
-    const assigned = Array.from({ length: countL }, (_, i) => (i < 4 ? perm[i] : rng.pick(TEX)));
+    const assigned = Array.from({ length: countL }, (_, i) =>
+      i < 4 ? perm[i] : rng.pick(TEX),
+    );
     lSlots.forEach((shp, i) => {
       shp.texture = rng.pick(L_TEX_FILES[assigned[i]]);
     });
@@ -289,10 +410,16 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
 
   // ---- S ----
   const [sLo, sHi] = R.S;
-  const countS = Math.max(Math.floor((decorBottom - decorTop) / 400), 4 - countL);
+  const countS = Math.max(
+    Math.floor((decorBottom - decorTop) / 400),
+    4 - countL,
+  );
   const sShapes: WorkingShape[] = [];
 
-  function drawS(sRange: readonly [number, number], xOverflow: number): { kind: ShapeKind; s: number; rot: number; x: number; y: number } {
+  function drawS(
+    sRange: readonly [number, number],
+    xOverflow: number,
+  ): { kind: ShapeKind; s: number; rot: number; x: number; y: number } {
     const kind = rng.pick(KINDS);
     const s = rng.uniform(sRange[0], sRange[1]);
     const rot = rng.randint(360);
@@ -301,16 +428,46 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
     return { kind, s, rot, x, y };
   }
 
-  function attemptS(nAttempts: number, sRange: readonly [number, number], gap: number, xOverflow: number, opaqueMode: 'hard' | 'soft') {
+  function attemptS(
+    nAttempts: number,
+    sRange: readonly [number, number],
+    gap: number,
+    xOverflow: number,
+    opaqueMode: 'hard' | 'soft',
+  ) {
     for (let t = 0; t < nAttempts; t++) {
       if (sShapes.length >= countS) break;
       const { kind, s, rot, x, y } = drawS(sRange, xOverflow);
       const { px, py } = sampleShape(kind, s, rot, x, y);
-      if (!validS(px, py, width, decorTop, decorBottom, noOverlapPad, textPad, opaque, s, xOverflow, opaqueMode)) continue;
+      if (
+        !validS(
+          px,
+          py,
+          width,
+          decorTop,
+          decorBottom,
+          noOverlapPad,
+          textPad,
+          opaque,
+          s,
+          xOverflow,
+          opaqueMode,
+        )
+      )
+        continue;
       const r = bboxRadius(s);
       if (!collisionOk(x, y, r, placed, gap)) continue;
       placed.push({ cx: x, cy: y, r });
-      sShapes.push({ tier: 'S', kind, cx: x, cy: y, size: s, rotation: rot, colors: null, texture: null });
+      sShapes.push({
+        tier: 'S',
+        kind,
+        cx: x,
+        cy: y,
+        size: s,
+        rotation: rot,
+        colors: null,
+        texture: null,
+      });
     }
   }
 
@@ -332,14 +489,20 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
   if (sShapes.length > 0) {
     const lTexNames: TextureFamily[] = [];
     for (const shp of lSlots) {
-      for (const [name, files] of Object.entries(L_TEX_FILES) as [TextureFamily, readonly TextureId[]][]) {
+      for (const [name, files] of Object.entries(L_TEX_FILES) as [
+        TextureFamily,
+        readonly TextureId[],
+      ][]) {
         if (shp.texture !== null && files.includes(shp.texture)) {
           lTexNames.push(name);
           break;
         }
       }
     }
-    const unused = perm.filter((t): t is Exclude<TextureFamily, 'watercolor'> => t !== 'watercolor' && !lTexNames.includes(t));
+    const unused = perm.filter(
+      (t): t is Exclude<TextureFamily, 'watercolor'> =>
+        t !== 'watercolor' && !lTexNames.includes(t),
+    );
     const sTexOrder = Object.keys(S_TEX_FILES) as (keyof typeof S_TEX_FILES)[];
     sShapes.forEach((shp, i) => {
       const name = i < unused.length ? unused[i] : rng.pick(sTexOrder);
@@ -349,8 +512,16 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
 
   shapes.push(...sShapes);
 
-  const target: Record<Tier, number> = { Inf: countInf, L: countL + deficitL, S: countS };
-  const deficit: Record<Tier, number> = { Inf: deficitInf, L: deficitL, S: deficitS };
+  const target: Record<Tier, number> = {
+    Inf: countInf,
+    L: countL + deficitL,
+    S: countS,
+  };
+  const deficit: Record<Tier, number> = {
+    Inf: deficitInf,
+    L: deficitL,
+    S: deficitS,
+  };
 
   const resultShapes: PlacedShape[] = shapes.map((shp) => {
     const cx = round2(shp.cx);
@@ -358,9 +529,27 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
     const size = round2(shp.size);
     const rot = round2(shp.rotation);
     if (shp.tier === 'Inf') {
-      return { tier: 'Inf', kind: 'ring', size, cx, cy, rot, texture: null, colors: shp.colors! };
+      return {
+        tier: 'Inf',
+        kind: 'ring',
+        size,
+        cx,
+        cy,
+        rot,
+        texture: null,
+        colors: shp.colors!,
+      };
     }
-    return { tier: shp.tier, kind: shp.kind as ShapeKind, size, cx, cy, rot, texture: shp.texture!, colors: null };
+    return {
+      tier: shp.tier,
+      kind: shp.kind as ShapeKind,
+      size,
+      cx,
+      cy,
+      rot,
+      texture: shp.texture!,
+      colors: null,
+    };
   });
 
   return { shapes: resultShapes, target, deficit };

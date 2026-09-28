@@ -7,10 +7,7 @@
       "cy": 1044.8,
       "size": 80.31,
       "rotation": -1.01,
-      "colors": [
-        "aqua",
-        "rose"
-      ],
+      "colors": ["aqua", "rose"],
       "texture": null
     },
     {

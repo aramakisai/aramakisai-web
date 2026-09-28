@@ -1,4 +1,11 @@
-import { pad, sampleInf, sampleShape, validInf, validL, validS } from './geometry';
+import {
+  pad,
+  sampleInf,
+  sampleShape,
+  validInf,
+  validL,
+  validS,
+} from './geometry';
 import type { PlacedShape, PlacementInput } from './types';
 
 export interface ReuseResult {
@@ -13,7 +20,10 @@ export interface ReuseResult {
  * ∞ の下限1個と4質感必須はこのモードでは検査しない (ちらつき防止のため、
  * 条件ごとに配置し直さないのが前提)。
  */
-export function filterForObstacles(base: readonly PlacedShape[], input: PlacementInput): ReuseResult {
+export function filterForObstacles(
+  base: readonly PlacedShape[],
+  input: PlacementInput,
+): ReuseResult {
   const width = input.width;
   const decorTop = input.decorTop;
   const decorBottom = input.decorBottom;
@@ -29,13 +39,58 @@ export function filterForObstacles(base: readonly PlacedShape[], input: Placemen
     let ok: boolean;
     if (shape.tier === 'Inf') {
       const { px, py } = sampleInf(shape.size, shape.rot, shape.cx, shape.cy);
-      ok = validInf(px, py, width, decorTop, decorBottom, noOverlapPad, textPad, opaque, shape.size, 'hard');
+      ok = validInf(
+        px,
+        py,
+        width,
+        decorTop,
+        decorBottom,
+        noOverlapPad,
+        textPad,
+        opaque,
+        shape.size,
+        'hard',
+      );
     } else if (shape.tier === 'L') {
-      const { px, py } = sampleShape(shape.kind, shape.size, shape.rot, shape.cx, shape.cy);
-      ok = validL(px, py, width, decorTop, decorBottom, noOverlapPad, textRaw, opaque, shape.size);
+      const { px, py } = sampleShape(
+        shape.kind,
+        shape.size,
+        shape.rot,
+        shape.cx,
+        shape.cy,
+      );
+      ok = validL(
+        px,
+        py,
+        width,
+        decorTop,
+        decorBottom,
+        noOverlapPad,
+        textRaw,
+        opaque,
+        shape.size,
+      );
     } else {
-      const { px, py } = sampleShape(shape.kind, shape.size, shape.rot, shape.cx, shape.cy);
-      ok = validS(px, py, width, decorTop, decorBottom, noOverlapPad, textPad, opaque, shape.size, 0.0, 'hard');
+      const { px, py } = sampleShape(
+        shape.kind,
+        shape.size,
+        shape.rot,
+        shape.cx,
+        shape.cy,
+      );
+      ok = validS(
+        px,
+        py,
+        width,
+        decorTop,
+        decorBottom,
+        noOverlapPad,
+        textPad,
+        opaque,
+        shape.size,
+        0.0,
+        'hard',
+      );
     }
     (ok ? visible : dropped).push(shape);
   }

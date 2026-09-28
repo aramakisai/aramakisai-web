@@ -7,10 +7,7 @@
       "cy": 182.85,
       "size": 80.0,
       "rotation": 0.93,
-      "colors": [
-        "olive",
-        "salmon"
-      ],
+      "colors": ["olive", "salmon"],
       "texture": null
     },
     {

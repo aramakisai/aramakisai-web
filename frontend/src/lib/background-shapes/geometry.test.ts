@@ -18,12 +18,60 @@ import {
 // 期待値は参照実装 place.py の同名関数を直接呼んで得た実測値 (40x40 格子標本化の近似誤差込み)。
 describe('sampleShape + bboxOf: 図形の局所形状と回転を place.py と同じ格子標本化で再現する', () => {
   it.each([
-    ['circle', { x: 0.2363885844308058, y: 0.2363885844308058, w: 99.52722283113837, h: 99.52722283113837 }],
-    ['triangle', { x: -16.593738434491385, y: 9.321325074969707, w: 90.80127018922192, h: 107.27241335952168 }],
-    ['square', { x: -16.593738434491385, y: -16.593738434491385, w: 133.18747686898277, h: 133.18747686898277 }],
-    ['roundedSquare', { x: -10.678674925030293, y: -10.678674925030293, w: 121.35734985006059, h: 121.35734985006059 }],
-    ['quarterCircle', { x: -16.593738434491385, y: -16.593738434491385, w: 133.18747686898277, h: 97.69709581221619 }],
-    ['semicircle', { x: 0.2363885844308058, y: 26.707531754730546, w: 91.35734985006059, h: 73.05607966083863 }],
+    [
+      'circle',
+      {
+        x: 0.2363885844308058,
+        y: 0.2363885844308058,
+        w: 99.52722283113837,
+        h: 99.52722283113837,
+      },
+    ],
+    [
+      'triangle',
+      {
+        x: -16.593738434491385,
+        y: 9.321325074969707,
+        w: 90.80127018922192,
+        h: 107.27241335952168,
+      },
+    ],
+    [
+      'square',
+      {
+        x: -16.593738434491385,
+        y: -16.593738434491385,
+        w: 133.18747686898277,
+        h: 133.18747686898277,
+      },
+    ],
+    [
+      'roundedSquare',
+      {
+        x: -10.678674925030293,
+        y: -10.678674925030293,
+        w: 121.35734985006059,
+        h: 121.35734985006059,
+      },
+    ],
+    [
+      'quarterCircle',
+      {
+        x: -16.593738434491385,
+        y: -16.593738434491385,
+        w: 133.18747686898277,
+        h: 97.69709581221619,
+      },
+    ],
+    [
+      'semicircle',
+      {
+        x: 0.2363885844308058,
+        y: 26.707531754730546,
+        w: 91.35734985006059,
+        h: 73.05607966083863,
+      },
+    ],
   ] as const)('%s (s=100, rot=30, cx=50, cy=50)', (kind, expected) => {
     const { px, py } = sampleShape(kind, 100, 30, 50, 50);
     const bbox = bboxOf(px, py);
@@ -105,31 +153,89 @@ describe('validL / validS / validInf: 面判定の合成', () => {
 
   it('validL: 障害物と重ならなければ true', () => {
     const { px, py } = sampleShape('square', 150, 0, 200, 500);
-    expect(validL(px, py, 1000, 300, 900, noOverlapPad, textRaw, opaque, 150)).toBe(true);
+    expect(
+      validL(px, py, 1000, 300, 900, noOverlapPad, textRaw, opaque, 150),
+    ).toBe(true);
   });
 
   it('validL: 黒文字との重なりが面積比 25% を超えると false', () => {
     const { px, py } = sampleShape('square', 150, 0, 500, 500);
-    expect(validL(px, py, 1000, 300, 900, noOverlapPad, textRaw, opaque, 150)).toBe(false);
+    expect(
+      validL(px, py, 1000, 300, 900, noOverlapPad, textRaw, opaque, 150),
+    ).toBe(false);
   });
 
   it('validS: 障害物と重ならなければ true', () => {
     const { px, py } = sampleShape('circle', 80, 0, 200, 500);
-    expect(validS(px, py, 1000, 300, 900, noOverlapPad, textPad, opaque, 80, 0.0, 'hard')).toBe(true);
+    expect(
+      validS(
+        px,
+        py,
+        1000,
+        300,
+        900,
+        noOverlapPad,
+        textPad,
+        opaque,
+        80,
+        0.0,
+        'hard',
+      ),
+    ).toBe(true);
   });
 
   it("validS: opaqueMode='hard' で不透明な面に重なると false", () => {
     const { px, py } = sampleShape('circle', 80, 0, 700, 700);
-    expect(validS(px, py, 1000, 300, 900, noOverlapPad, textPad, opaque, 80, 0.0, 'hard')).toBe(false);
+    expect(
+      validS(
+        px,
+        py,
+        1000,
+        300,
+        900,
+        noOverlapPad,
+        textPad,
+        opaque,
+        80,
+        0.0,
+        'hard',
+      ),
+    ).toBe(false);
   });
 
   it('validInf: 障害物と重ならなければ true', () => {
     const { px, py } = sampleInf(120, 0, 200, 500);
-    expect(validInf(px, py, 1000, 300, 900, noOverlapPad, textPad, opaque, 120, 'hard')).toBe(true);
+    expect(
+      validInf(
+        px,
+        py,
+        1000,
+        300,
+        900,
+        noOverlapPad,
+        textPad,
+        opaque,
+        120,
+        'hard',
+      ),
+    ).toBe(true);
   });
 
   it('validInf: noOverlap (+10px) と重なると false', () => {
     const { px, py } = sampleInf(120, 0, 820, 420);
-    expect(validInf(px, py, 1000, 300, 900, noOverlapPad, textPad, opaque, 120, 'hard')).toBe(false);
+    expect(
+      validInf(
+        px,
+        py,
+        1000,
+        300,
+        900,
+        noOverlapPad,
+        textPad,
+        opaque,
+        120,
+        'hard',
+      ),
+    ).toBe(false);
   });
 });

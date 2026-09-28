@@ -8,7 +8,9 @@ import type { PlacedShape, PlacementInput, Tier } from './types';
 const FIXTURES_DIR = join(__dirname, '__fixtures__');
 
 function loadFixture(name: string): PlacementInput {
-  return JSON.parse(readFileSync(join(FIXTURES_DIR, `${name}.json`), 'utf-8')) as PlacementInput;
+  return JSON.parse(
+    readFileSync(join(FIXTURES_DIR, `${name}.json`), 'utf-8'),
+  ) as PlacementInput;
 }
 
 interface GoldenShape {
@@ -23,10 +25,15 @@ interface GoldenShape {
 }
 
 function loadGolden(name: string): { shapes: readonly GoldenShape[] } {
-  return JSON.parse(readFileSync(join(FIXTURES_DIR, `${name}.golden.json`), 'utf-8')) as { shapes: readonly GoldenShape[] };
+  return JSON.parse(
+    readFileSync(join(FIXTURES_DIR, `${name}.golden.json`), 'utf-8'),
+  ) as { shapes: readonly GoldenShape[] };
 }
 
-function expectShapesMatchGolden(shapes: readonly PlacedShape[], golden: readonly GoldenShape[]) {
+function expectShapesMatchGolden(
+  shapes: readonly PlacedShape[],
+  golden: readonly GoldenShape[],
+) {
   expect(shapes.length).toBe(golden.length);
   shapes.forEach((shape, i) => {
     const g = golden[i];
@@ -69,7 +76,9 @@ describe('filterForObstacles: 保持した配置を新しい障害物で間引�
 
       const result = filterForObstacles(orig.shapes, newObstacles);
 
-      expect(result.visible.length + result.dropped.length).toBe(orig.shapes.length);
+      expect(result.visible.length + result.dropped.length).toBe(
+        orig.shapes.length,
+      );
       for (const shape of result.visible) {
         expect(orig.shapes).toContainEqual(shape);
       }
