@@ -1,0 +1,65 @@
+{
+  "shapes": [
+    {
+      "tier": "Inf",
+      "kind": "ring",
+      "cx": 271.03,
+      "cy": 182.85,
+      "size": 80.0,
+      "rotation": 0.93,
+      "colors": [
+        "olive",
+        "salmon"
+      ],
+      "texture": null
+    },
+    {
+      "tier": "S",
+      "kind": "semicircle",
+      "cx": 59.68,
+      "cy": 220.8,
+      "size": 51.95,
+      "rotation": 181,
+      "colors": null,
+      "texture": "S6"
+    },
+    {
+      "tier": "S",
+      "kind": "semicircle",
+      "cx": 64.22,
+      "cy": 100.51,
+      "size": 71.64,
+      "rotation": 29,
+      "colors": null,
+      "texture": "S1"
+    },
+    {
+      "tier": "S",
+      "kind": "semicircle",
+      "cx": 378.45,
+      "cy": 92.76,
+      "size": 50.0,
+      "rotation": 115,
+      "colors": null,
+      "texture": "S2"
+    }
+  ],
+  "meta": {
+    "target": {
+      "Inf": 1,
+      "L": 0,
+      "S": 4
+    },
+    "placed": {
+      "Inf": 1,
+      "L": 0,
+      "S": 3
+    },
+    "deficit": {
+      "Inf": 0,
+      "L": 0,
+      "S": 1
+    },
+    "texture_coverage_ok": false
+  }
+}

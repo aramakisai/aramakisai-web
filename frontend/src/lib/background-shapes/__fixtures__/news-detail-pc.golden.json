@@ -1,0 +1,238 @@
+{
+  "shapes": [
+    {
+      "tier": "Inf",
+      "kind": "ring",
+      "cx": 1045.26,
+      "cy": 1870.29,
+      "size": 160.29,
+      "rotation": 9.67,
+      "colors": [
+        "wisteria",
+        "aqua"
+      ],
+      "texture": null
+    },
+    {
+      "tier": "Inf",
+      "kind": "ring",
+      "cx": 1301.8,
+      "cy": 5487.58,
+      "size": 127.78,
+      "rotation": 10.45,
+      "colors": [
+        "salmon",
+        "rose"
+      ],
+      "texture": null
+    },
+    {
+      "tier": "L",
+      "kind": "square",
+      "cx": 140.83,
+      "cy": 1015.02,
+      "size": 305.92,
+      "rotation": 68,
+      "colors": null,
+      "texture": "L7"
+    },
+    {
+      "tier": "L",
+      "kind": "semicircle",
+      "cx": 664.66,
+      "cy": 1786.69,
+      "size": 226.0,
+      "rotation": 80,
+      "colors": null,
+      "texture": "L1"
+    },
+    {
+      "tier": "L",
+      "kind": "square",
+      "cx": 773.33,
+      "cy": 2465.73,
+      "size": 352.24,
+      "rotation": 183,
+      "colors": null,
+      "texture": "L4"
+    },
+    {
+      "tier": "L",
+      "kind": "triangle",
+      "cx": 1432.52,
+      "cy": 3101.61,
+      "size": 232.59,
+      "rotation": 145,
+      "colors": null,
+      "texture": "L2"
+    },
+    {
+      "tier": "L",
+      "kind": "square",
+      "cx": 494.69,
+      "cy": 3862.46,
+      "size": 280.55,
+      "rotation": 208,
+      "colors": null,
+      "texture": "L3"
+    },
+    {
+      "tier": "L",
+      "kind": "quarterCircle",
+      "cx": 507.02,
+      "cy": 4490.84,
+      "size": 280.53,
+      "rotation": 62,
+      "colors": null,
+      "texture": "L3"
+    },
+    {
+      "tier": "L",
+      "kind": "triangle",
+      "cx": 299.51,
+      "cy": 5263.25,
+      "size": 331.21,
+      "rotation": 163,
+      "colors": null,
+      "texture": "L4"
+    },
+    {
+      "tier": "S",
+      "kind": "circle",
+      "cx": 1203.4,
+      "cy": 2077.68,
+      "size": 74.01,
+      "rotation": 15,
+      "colors": null,
+      "texture": "S5"
+    },
+    {
+      "tier": "S",
+      "kind": "roundedSquare",
+      "cx": 1143.76,
+      "cy": 1195.19,
+      "size": 78.79,
+      "rotation": 259,
+      "colors": null,
+      "texture": "S4"
+    },
+    {
+      "tier": "S",
+      "kind": "square",
+      "cx": 549.53,
+      "cy": 2827.53,
+      "size": 75.45,
+      "rotation": 252,
+      "colors": null,
+      "texture": "S5"
+    },
+    {
+      "tier": "S",
+      "kind": "semicircle",
+      "cx": 316.19,
+      "cy": 4713.69,
+      "size": 98.47,
+      "rotation": 49,
+      "colors": null,
+      "texture": "S3"
+    },
+    {
+      "tier": "S",
+      "kind": "quarterCircle",
+      "cx": 83.77,
+      "cy": 4263.23,
+      "size": 86.22,
+      "rotation": 116,
+      "colors": null,
+      "texture": "S4"
+    },
+    {
+      "tier": "S",
+      "kind": "roundedSquare",
+      "cx": 1271.01,
+      "cy": 1722.05,
+      "size": 76.84,
+      "rotation": 35,
+      "colors": null,
+      "texture": "S2"
+    },
+    {
+      "tier": "S",
+      "kind": "square",
+      "cx": 1191.94,
+      "cy": 2447.41,
+      "size": 105.3,
+      "rotation": 257,
+      "colors": null,
+      "texture": "S2"
+    },
+    {
+      "tier": "S",
+      "kind": "semicircle",
+      "cx": 1169.13,
+      "cy": 4928.31,
+      "size": 70.91,
+      "rotation": 219,
+      "colors": null,
+      "texture": "S6"
+    },
+    {
+      "tier": "S",
+      "kind": "semicircle",
+      "cx": 1316.88,
+      "cy": 4018.55,
+      "size": 72.56,
+      "rotation": 132,
+      "colors": null,
+      "texture": "S5"
+    },
+    {
+      "tier": "S",
+      "kind": "circle",
+      "cx": 132.53,
+      "cy": 1855.0,
+      "size": 109.99,
+      "rotation": 122,
+      "colors": null,
+      "texture": "S1"
+    },
+    {
+      "tier": "S",
+      "kind": "roundedSquare",
+      "cx": 905.37,
+      "cy": 3424.63,
+      "size": 102.4,
+      "rotation": 68,
+      "colors": null,
+      "texture": "S2"
+    },
+    {
+      "tier": "S",
+      "kind": "semicircle",
+      "cx": 780.98,
+      "cy": 5504.94,
+      "size": 83.74,
+      "rotation": 265,
+      "colors": null,
+      "texture": "S3"
+    }
+  ],
+  "meta": {
+    "target": {
+      "Inf": 2,
+      "L": 7,
+      "S": 12
+    },
+    "placed": {
+      "Inf": 2,
+      "L": 7,
+      "S": 12
+    },
+    "deficit": {
+      "Inf": 0,
+      "L": 0,
+      "S": 0
+    },
+    "texture_coverage_ok": true
+  }
+}

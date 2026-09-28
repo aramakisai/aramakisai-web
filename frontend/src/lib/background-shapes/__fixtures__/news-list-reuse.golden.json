@@ -1,0 +1,32 @@
+{
+  "shapes": [
+    {
+      "tier": "S",
+      "kind": "triangle",
+      "cx": 354.9,
+      "cy": 107.83,
+      "size": 58.75,
+      "rotation": 116,
+      "colors": null,
+      "texture": "S6"
+    }
+  ],
+  "meta": {
+    "mode": "reuse",
+    "source": {
+      "Inf": 1,
+      "L": 2,
+      "S": 2
+    },
+    "kept": {
+      "Inf": 0,
+      "L": 0,
+      "S": 1
+    },
+    "dropped": {
+      "Inf": 1,
+      "L": 2,
+      "S": 1
+    }
+  }
+}
