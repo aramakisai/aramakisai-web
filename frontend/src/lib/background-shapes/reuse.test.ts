@@ -41,28 +41,39 @@ function expectShapesMatchGolden(shapes: readonly PlacedShape[], golden: readonl
   });
 }
 
+// news-list-sp は ∞ の緩和段で最大 6000 回再試行するため既定の 5s を超えることがある。
+const SLOW_FIXTURE_TIMEOUT = 20000;
+
 describe('filterForObstacles: 保持した配置を新しい障害物で間引く (流用モード)', () => {
-  it('news-list-sp の配置を news-list-empty-sp の障害物で間引くと news-list-reuse の golden と一致する', () => {
-    const origInput = loadFixture('news-list-sp');
-    const orig = placeBackgroundShapes(origInput);
-    const newObstacles = loadFixture('news-list-empty-sp');
-    const golden = loadGolden('news-list-reuse');
+  it(
+    'news-list-sp の配置を news-list-empty-sp の障害物で間引くと news-list-reuse の golden と一致する',
+    () => {
+      const origInput = loadFixture('news-list-sp');
+      const orig = placeBackgroundShapes(origInput);
+      const newObstacles = loadFixture('news-list-empty-sp');
+      const golden = loadGolden('news-list-reuse');
 
-    const result = filterForObstacles(orig.shapes, newObstacles);
+      const result = filterForObstacles(orig.shapes, newObstacles);
 
-    expectShapesMatchGolden(result.visible, golden.shapes);
-  });
+      expectShapesMatchGolden(result.visible, golden.shapes);
+    },
+    SLOW_FIXTURE_TIMEOUT,
+  );
 
-  it('落とした図形は残した図形と合わせて元の配置全体になる (位置・寸法・質感を変えない)', () => {
-    const origInput = loadFixture('news-list-sp');
-    const orig = placeBackgroundShapes(origInput);
-    const newObstacles = loadFixture('news-list-empty-sp');
+  it(
+    '落とした図形は残した図形と合わせて元の配置全体になる (位置・寸法・質感を変えない)',
+    () => {
+      const origInput = loadFixture('news-list-sp');
+      const orig = placeBackgroundShapes(origInput);
+      const newObstacles = loadFixture('news-list-empty-sp');
 
-    const result = filterForObstacles(orig.shapes, newObstacles);
+      const result = filterForObstacles(orig.shapes, newObstacles);
 
-    expect(result.visible.length + result.dropped.length).toBe(orig.shapes.length);
-    for (const shape of result.visible) {
-      expect(orig.shapes).toContainEqual(shape);
-    }
-  });
+      expect(result.visible.length + result.dropped.length).toBe(orig.shapes.length);
+      for (const shape of result.visible) {
+        expect(orig.shapes).toContainEqual(shape);
+      }
+    },
+    SLOW_FIXTURE_TIMEOUT,
+  );
 });
