@@ -13,6 +13,7 @@ const fontSize = config.theme?.extend?.fontSize as Record<
   string,
   FontSizeValue
 >;
+const fontFamily = config.theme?.extend?.fontFamily as Record<string, string[]>;
 
 function channelLuminance(value: number): number {
   const c = value / 255;
@@ -98,6 +99,16 @@ describe('下部ナビゲーション用の文字サイズトークン (body-xs)
 
   it('Tailwind 既定の text-xs (12px) を上書きしない', () => {
     expect(fontSize.xs).toBeUndefined();
+  });
+});
+
+describe('書体トークン', () => {
+  it('font-sans が LINE Seed JP を既定書体にする', () => {
+    expect(fontFamily.sans[0]).toBe('LINE Seed JP');
+  });
+
+  it('明朝体のトークンを持たない', () => {
+    expect(fontFamily.mincho).toBeUndefined();
   });
 });
 
