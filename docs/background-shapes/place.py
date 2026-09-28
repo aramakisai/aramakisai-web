@@ -429,6 +429,48 @@ def place(inp):
             deficit_l += 1
             y_prev = y0
 
+    # L の下限は1個。装飾可能高が狭いページ (実測: エラーページ PC 454px / SP 335px)
+    # では通常の歩幅 (間隔 PC 520〜900px / SP 420〜720px) の最初の1歩でフッター上端を
+    # 超え、上の歩行では L が1個も置けないことがある。その場合に限り、歩行の縦位置
+    # 制約を外して装飾可能帯全域から縦位置を探し直す (制約・緩和順序は歩行時と同じ:
+    # 縮小 → 可視率0.6→0.25、ガター禁止・はみ出し0.4は維持)。これがないと水彩は L
+    # にしか割り当てないため4質感を満たせない画面が生まれる。
+    if not l_slots:
+        def draw_and_try_anywhere(s_range, min_visible):
+            kind = rng.pick(KINDS)
+            s = rng.uniform(*s_range)
+            rot = rng.randint(360)
+            x = rng.uniform(-0.4 * s, width + 0.4 * s)
+            y = rng.uniform(decor_top, decor_bottom)
+            px, py = sample_shape(kind, s, rot, x, y)
+            if (valid_L(px, py, width, decor_top, decor_bottom, noOverlap_pad, text_raw, opaque, s, min_visible)
+                    and collision_ok(x, y, bbox_radius(s), placed, GUTTER)):
+                return {'kind': kind, 's': s, 'rot': rot, 'cx': x, 'cy': y}
+            return None
+
+        def search_anywhere(min_visible):
+            k = 0
+            while k < MAX_SHRINK:
+                cur_hi = max(l_lo, l_hi * (0.85 ** k))
+                s_range = (l_lo, cur_hi)
+                for _try in range(200):
+                    result = draw_and_try_anywhere(s_range, min_visible)
+                    if result:
+                        return result
+                k += 1
+            return None
+
+        result = search_anywhere(0.6) or search_anywhere(0.25)
+        if result:
+            r = bbox_radius(result['s'])
+            placed.append({'cx': result['cx'], 'cy': result['cy'], 'r': r})
+            shapes.append({'tier': 'L', 'kind': result['kind'], 'cx': result['cx'], 'cy': result['cy'],
+                            'size': result['s'], 'rotation': result['rot'], 'colors': None, 'texture': None})
+            l_slots.append(shapes[-1])
+            deficit_l = 0
+        else:
+            deficit_l = 1
+
     # ---- 質感割当 (L): 配置と同じ乱数列の続き ----
     count_l = len(l_slots)
     perm = rng.shuffle(TEX)
@@ -585,6 +627,7 @@ def main():
     if '--selftest' in sys.argv:
         selftest()
         selftest_short_page()
+        selftest_l_minimum_one()
         selftest_card_column_relax()
         selftest_inf_card_column_relax()
         selftest_inf_text_overlap_relax()
@@ -676,6 +719,38 @@ def selftest_short_page():
                     rb = inf_radius(b['size']) if b['tier'] == 'Inf' else bbox_radius(b['size'])
                     d = math.hypot(a['cx'] - b['cx'], a['cy'] - b['cy'])
                     assert d >= ra + rb + GUTTER - 1e-6, (pn, pf, a['tier'], b['tier'], d)
+
+
+def selftest_l_minimum_one():
+    """装飾可能高が極端に狭いページ (実測: エラーページ PC 454px / SP 335px) では、
+    L の通常の歩行 (最初の1歩がフッター上端を超える) で L が1個も置けず、水彩を
+    L にしか割り当てないルールのため4質感を満たせなくなる回帰。L の下限1個の
+    救済 (装飾可能帯全域からの探し直し) で L=1・4質感網羅・deficit 0 になることを
+    確認する。"""
+    for platform, width, decor_top, decor_bottom in [
+        ('pc', 1440, 200, 200 + 454),
+        ('sp', 390, 150, 150 + 335),
+    ]:
+        inp = {
+            'pathname': '/error', 'platform': platform, 'width': width,
+            'height': decor_bottom + 300,
+            'decorTop': decor_top, 'decorBottom': decor_bottom,
+            'text': [
+                {'x': width / 2 - 100, 'y': decor_top + 40, 'w': 200, 'h': 40},
+                {'x': width / 2 - 60, 'y': decor_top + 100, 'w': 120, 'h': 24},
+            ],
+            'noOverlap': [], 'opaque': [],
+        }
+        shapes, meta = place(inp)
+        assert meta['placed']['L'] == 1, (platform, meta)
+        assert meta['deficit'] == {'Inf': 0, 'L': 0, 'S': 0}, (platform, meta)
+        assert meta['texture_coverage_ok'], (platform, meta)
+
+        l_shapes = [s for s in shapes if s['tier'] == 'L']
+        assert len(l_shapes) == 1, (platform, shapes)
+        s = l_shapes[0]
+        px, py = sample_shape(s['kind'], s['size'], s['rotation'], s['cx'], s['cy'])
+        assert py.min() >= decor_top - 1e-6 and py.max() <= decor_bottom + 1e-6, (platform, s)
 
 
 def selftest_card_column_relax():

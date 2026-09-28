@@ -55,14 +55,17 @@ describe('placeBackgroundShapes: place.py の selftest と同じ性質', () => {
     '%s: L が1つでも置ければ1ページで4質感すべてを使う',
     (name) => {
       // 水彩は L にしか割り当てられない (S_TEX_FILES に watercolor が無い) ため、
-      // 4質感の網羅は L が最低1つ置けたときだけ保証される (place.py の meta.texture_coverage_ok と同じ条件)。
+      // 4質感の網羅は L が最低1つ置け、かつ S が不足なく目標数どおり置けたときだけ
+      // 保証される (place.py の meta.texture_coverage_ok と同じ条件。装飾可能高が
+      // 極端に狭く S が deficit になるページでは網羅が崩れうる。これは place.py 側
+      // でも同じで、golden の texture_coverage_ok: false がそれを記録している)。
       const result = placeBackgroundShapes(loadFixture(name));
       const lOrS = result.shapes.filter(
         (s): s is Extract<PlacedShape, { tier: 'L' | 'S' }> =>
           s.tier === 'L' || s.tier === 'S',
       );
       const hasL = result.shapes.some((s) => s.tier === 'L');
-      if (!hasL) return;
+      if (!hasL || result.deficit.S > 0) return;
       const used = new Set<TextureFamily>();
       for (const shape of lOrS) {
         if (shape.texture.startsWith('L')) {
@@ -127,6 +130,42 @@ describe('placeBackgroundShapes: place.py の selftest と同じ性質', () => {
         const { px } = sampleInf(shape.size, shape.rot, shape.cx, shape.cy);
         expect(Math.min(...px)).toBeGreaterThanOrEqual(-1e-6);
         expect(Math.max(...px)).toBeLessThanOrEqual(input.width + 1e-6);
+      }
+    },
+    SLOW_FIXTURE_TIMEOUT,
+  );
+
+  // place.py の selftest_l_minimum_one と同じ回帰: 装飾可能高が極端に狭く、通常の
+  // 縦位置の歩行では最初の一歩でフッター上端を超えてしまう画面でも、L の個数は
+  // 1以上になる (装飾可能帯全域からの探し直し救済)。
+  it.each([
+    { platform: 'pc' as const, width: 1440, decorTop: 200, decorBottom: 200 + 454 },
+    { platform: 'sp' as const, width: 390, decorTop: 150, decorBottom: 150 + 335 },
+  ])(
+    '$platform: 装飾可能高が狭いページでも L は1以上置かれる',
+    ({ platform, width, decorTop, decorBottom }) => {
+      const input: PlacementInput = {
+        pathname: '/error',
+        platform,
+        width,
+        height: decorBottom + 300,
+        decorTop,
+        decorBottom,
+        text: [
+          { x: width / 2 - 100, y: decorTop + 40, w: 200, h: 40 },
+          { x: width / 2 - 60, y: decorTop + 100, w: 120, h: 24 },
+        ],
+        noOverlap: [],
+        opaque: [],
+      };
+      const result = placeBackgroundShapes(input);
+      const placedL = result.shapes.filter((s) => s.tier === 'L').length;
+      expect(placedL).toBeGreaterThanOrEqual(1);
+      expect(result.deficit).toEqual({ Inf: 0, L: 0, S: 0 });
+      for (const shape of result.shapes) {
+        if (shape.tier !== 'L') continue;
+        expect(shape.cy).toBeGreaterThanOrEqual(decorTop - 1e-6);
+        expect(shape.cy).toBeLessThanOrEqual(decorBottom + 1e-6);
       }
     },
     SLOW_FIXTURE_TIMEOUT,

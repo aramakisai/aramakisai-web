@@ -392,6 +392,78 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
     }
   }
 
+  // L の下限は1個。装飾可能高が狭いページでは通常の歩行の最初の1歩でフッター上端を
+  // 超え、L が1個も置けないことがある。その場合に限り、歩行の縦位置制約を外して
+  // 装飾可能帯全域から縦位置を探し直す (制約・緩和順序は歩行時と同じ:
+  // 縮小 → 可視率0.6→0.25、ガター禁止・はみ出し0.4は維持)。これがないと水彩は L
+  // にしか割り当てないため4質感を満たせない画面が生まれる。
+  if (lSlots.length === 0) {
+    function drawAndTryAnywhere(
+      sRange: readonly [number, number],
+      minVisible: number,
+    ): LDraw | null {
+      const kind = rng.pick(KINDS);
+      const s = rng.uniform(sRange[0], sRange[1]);
+      const rot = rng.randint(360);
+      const x = rng.uniform(-0.4 * s, width + 0.4 * s);
+      const y = rng.uniform(decorTop, decorBottom);
+      const { px, py } = sampleShape(kind, s, rot, x, y);
+      if (
+        validL(
+          px,
+          py,
+          width,
+          decorTop,
+          decorBottom,
+          noOverlapPad,
+          textRaw,
+          opaque,
+          s,
+          minVisible,
+        ) &&
+        collisionOk(x, y, bboxRadius(s), placed, GUTTER)
+      ) {
+        return { kind, s, rot, cx: x, cy: y };
+      }
+      return null;
+    }
+
+    function searchAnywhere(minVisible: number): LDraw | null {
+      let k = 0;
+      while (k < MAX_SHRINK) {
+        const curHi = Math.max(lLo, lHi * 0.85 ** k);
+        const sRange: [number, number] = [lLo, curHi];
+        for (let t = 0; t < 200; t++) {
+          const result = drawAndTryAnywhere(sRange, minVisible);
+          if (result) return result;
+        }
+        k++;
+      }
+      return null;
+    }
+
+    const result = searchAnywhere(0.6) ?? searchAnywhere(0.25);
+    if (result) {
+      const r = bboxRadius(result.s);
+      placed.push({ cx: result.cx, cy: result.cy, r });
+      const shape: WorkingShape = {
+        tier: 'L',
+        kind: result.kind,
+        cx: result.cx,
+        cy: result.cy,
+        size: result.s,
+        rotation: result.rot,
+        colors: null,
+        texture: null,
+      };
+      shapes.push(shape);
+      lSlots.push(shape);
+      deficitL = 0;
+    } else {
+      deficitL = 1;
+    }
+  }
+
   // ---- 質感割当 (L): 配置と同じ乱数列の続き ----
   const countL = lSlots.length;
   const perm = rng.shuffle(TEX);
