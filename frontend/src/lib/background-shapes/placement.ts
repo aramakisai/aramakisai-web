@@ -3,8 +3,8 @@ import {
   collisionOk,
   infRadius,
   pad,
-  sampleInf,
-  sampleShape,
+  sampleInfIfBounds,
+  sampleShapeIfBounds,
   validInf,
   validL,
   validS,
@@ -162,7 +162,17 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
         const rot = rng.uniform(-12, 12);
         const x = rng.uniform(0, width);
         const y = rng.uniform(decorTop, decorBottom);
-        const { px, py } = sampleInf(D, rot, x, y);
+        const sampled = sampleInfIfBounds(
+          D,
+          rot,
+          x,
+          y,
+          width,
+          decorTop,
+          decorBottom,
+        );
+        if (sampled === null) continue;
+        const { px, py } = sampled;
         const r = infRadius(D);
         if (
           !validInf(
@@ -207,7 +217,17 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
         const rot = rng.uniform(-12, 12);
         const x = rng.uniform(0, width);
         const y = rng.uniform(decorTop, decorBottom);
-        const { px, py } = sampleInf(D, rot, x, y);
+        const sampled = sampleInfIfBounds(
+          D,
+          rot,
+          x,
+          y,
+          width,
+          decorTop,
+          decorBottom,
+        );
+        if (sampled === null) continue;
+        const { px, py } = sampled;
         const r = infRadius(D);
         if (
           !validInf(
@@ -251,7 +271,17 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
         const rot = rng.uniform(-12, 12);
         const x = rng.uniform(0, width);
         const y = rng.uniform(decorTop, decorBottom);
-        const { px, py } = sampleInf(D, rot, x, y);
+        const sampled = sampleInfIfBounds(
+          D,
+          rot,
+          x,
+          y,
+          width,
+          decorTop,
+          decorBottom,
+        );
+        if (sampled === null) continue;
+        const { px, py } = sampled;
         const r = infRadius(D);
         if (
           !validInf(
@@ -314,7 +344,19 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
     const s = rng.uniform(sRange[0], sRange[1]);
     const rot = rng.randint(360);
     const x = rng.uniform(-0.4 * s, width + 0.4 * s);
-    const { px, py } = sampleShape(kind, s, rot, x, y);
+    const sampled = sampleShapeIfBounds(
+      kind,
+      s,
+      rot,
+      x,
+      y,
+      width,
+      decorTop,
+      decorBottom,
+      0.4,
+    );
+    if (sampled === null) return null;
+    const { px, py } = sampled;
     if (
       validL(
         px,
@@ -407,7 +449,19 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
       const rot = rng.randint(360);
       const x = rng.uniform(-0.4 * s, width + 0.4 * s);
       const y = rng.uniform(decorTop, decorBottom);
-      const { px, py } = sampleShape(kind, s, rot, x, y);
+      const sampled = sampleShapeIfBounds(
+        kind,
+        s,
+        rot,
+        x,
+        y,
+        width,
+        decorTop,
+        decorBottom,
+        0.4,
+      );
+      if (sampled === null) return null;
+      const { px, py } = sampled;
       if (
         validL(
           px,
@@ -510,7 +564,19 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
     for (let t = 0; t < nAttempts; t++) {
       if (sShapes.length >= countS) break;
       const { kind, s, rot, x, y } = drawS(sRange, xOverflow);
-      const { px, py } = sampleShape(kind, s, rot, x, y);
+      const sampled = sampleShapeIfBounds(
+        kind,
+        s,
+        rot,
+        x,
+        y,
+        width,
+        decorTop,
+        decorBottom,
+        xOverflow,
+      );
+      if (sampled === null) continue;
+      const { px, py } = sampled;
       if (
         !validS(
           px,

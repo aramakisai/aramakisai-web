@@ -69,7 +69,7 @@ function textureStyle(texture: TextureId): CSSProperties {
   };
 }
 
-// geometry.ts の kindMask と同じ形を CSS で再現する。roundedSquare の角丸は
+// geometry.ts の図形内外判定 (sampleShape) と同じ形を CSS で再現する。roundedSquare の角丸は
 // geometry.ts の SDF (半径 s*0.18 の丸め箱) と border-radius が等価なので、
 // 正方形の一辺に対する比率 (18%) をそのまま使える。quarterCircle は circle()
 // の半径 100% が箱の対角線 (幅=高さの正方形では一辺と等しい) に正規化される

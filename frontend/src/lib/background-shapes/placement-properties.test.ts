@@ -1,9 +1,14 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { bboxRadius, infRadius, sampleInf } from './geometry';
 import { placeBackgroundShapes } from './placement';
-import type { PlacedShape, PlacementInput, TextureFamily } from './types';
+import type {
+  PlacedShape,
+  PlacementInput,
+  PlacementResult,
+  TextureFamily,
+} from './types';
 
 const FIXTURES_DIR = join(__dirname, '__fixtures__');
 const FIXTURE_NAMES = [
@@ -22,6 +27,22 @@ function loadFixture(name: string): PlacementInput {
   ) as PlacementInput;
 }
 
+// 以下の性質は同じ fixture 入力に対して置換不変 (place.py の selftest 群を
+// そのまま移植したもの) なので、fixture ごとに1回だけ配置計算して使い回す。
+// news-list-sp 等は ∞ の緩和段で数千回再試行するため、性質の数だけ計算し直すと
+// テスト実行時間が線形に伸びる。
+const placed = new Map<
+  string,
+  { input: PlacementInput; result: PlacementResult }
+>();
+
+beforeAll(() => {
+  for (const name of FIXTURE_NAMES) {
+    const input = loadFixture(name);
+    placed.set(name, { input, result: placeBackgroundShapes(input) });
+  }
+});
+
 function radiusOf(shape: PlacedShape): number {
   return shape.tier === 'Inf' ? infRadius(shape.size) : bboxRadius(shape.size);
 }
@@ -35,7 +56,7 @@ describe('placeBackgroundShapes: place.py の selftest と同じ性質', () => {
   it.each(FIXTURE_NAMES)(
     '%s: 図形同士の回転外接円は 24px 以上離れる',
     (name) => {
-      const result = placeBackgroundShapes(loadFixture(name));
+      const { result } = placed.get(name)!;
       const shapes = result.shapes;
       for (let i = 0; i < shapes.length; i++) {
         for (let j = i + 1; j < shapes.length; j++) {
@@ -59,7 +80,7 @@ describe('placeBackgroundShapes: place.py の selftest と同じ性質', () => {
       // 保証される (place.py の meta.texture_coverage_ok と同じ条件。装飾可能高が
       // 極端に狭く S が deficit になるページでは網羅が崩れうる。これは place.py 側
       // でも同じで、golden の texture_coverage_ok: false がそれを記録している)。
-      const result = placeBackgroundShapes(loadFixture(name));
+      const { result } = placed.get(name)!;
       const lOrS = result.shapes.filter(
         (s): s is Extract<PlacedShape, { tier: 'L' | 'S' }> =>
           s.tier === 'L' || s.tier === 'S',
@@ -94,8 +115,7 @@ describe('placeBackgroundShapes: place.py の selftest と同じ性質', () => {
   it.each(FIXTURE_NAMES)(
     '%s: ∞ の個数は 1 + floor((height - 2500) / 2500) (下限1)',
     (name) => {
-      const input = loadFixture(name);
-      const result = placeBackgroundShapes(input);
+      const { input, result } = placed.get(name)!;
       const expected = Math.max(
         1,
         1 + Math.floor((input.height - 2500) / 2500),
@@ -108,8 +128,7 @@ describe('placeBackgroundShapes: place.py の selftest と同じ性質', () => {
   it.each(FIXTURE_NAMES)(
     '%s: S の個数は max(floor(装飾可能高/400), 4 - L の個数)',
     (name) => {
-      const input = loadFixture(name);
-      const result = placeBackgroundShapes(input);
+      const { input, result } = placed.get(name)!;
       const placedL = result.shapes.filter((s) => s.tier === 'L').length;
       const expected = Math.max(
         Math.floor((input.decorBottom - input.decorTop) / 400),
@@ -123,8 +142,7 @@ describe('placeBackgroundShapes: place.py の selftest と同じ性質', () => {
   it.each(FIXTURE_NAMES)(
     '%s: ∞ はページ端からはみ出さない (overflow 0)',
     (name) => {
-      const input = loadFixture(name);
-      const result = placeBackgroundShapes(input);
+      const { input, result } = placed.get(name)!;
       for (const shape of result.shapes) {
         if (shape.tier !== 'Inf') continue;
         const { px } = sampleInf(shape.size, shape.rot, shape.cx, shape.cy);
