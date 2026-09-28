@@ -139,8 +139,18 @@ describe('placeBackgroundShapes: place.py の selftest と同じ性質', () => {
   // 縦位置の歩行では最初の一歩でフッター上端を超えてしまう画面でも、L の個数は
   // 1以上になる (装飾可能帯全域からの探し直し救済)。
   it.each([
-    { platform: 'pc' as const, width: 1440, decorTop: 200, decorBottom: 200 + 454 },
-    { platform: 'sp' as const, width: 390, decorTop: 150, decorBottom: 150 + 335 },
+    {
+      platform: 'pc' as const,
+      width: 1440,
+      decorTop: 200,
+      decorBottom: 200 + 454,
+    },
+    {
+      platform: 'sp' as const,
+      width: 390,
+      decorTop: 150,
+      decorBottom: 150 + 335,
+    },
   ])(
     '$platform: 装飾可能高が狭いページでも L は1以上置かれる',
     ({ platform, width, decorTop, decorBottom }) => {
