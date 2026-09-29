@@ -10,11 +10,14 @@ describe.skipIf(!hasDatabase)('カテゴリと出演枠の整合 (stageAssignmen
   let stageExhibition: { id: number };
   let nonStageExhibition: { id: number };
   let stage: { id: number };
-  let timeSlotA: { id: number };
-  let timeSlotB: { id: number };
   let createdSlot: number | undefined;
 
   const suffix = String(process.pid);
+  const slotTime = {
+    event_date: '2026-09-19T12:00:00.000Z',
+    start_at: '2026-09-19T01:00:00.000Z',
+    end_at: '2026-09-19T01:30:00.000Z',
+  };
 
   beforeAll(async () => {
     const { getPayload } = await import('payload');
@@ -60,27 +63,12 @@ describe.skipIf(!hasDatabase)('カテゴリと出演枠の整合 (stageAssignmen
       data: { name: `stage-for-test-${suffix}` },
       overrideAccess: true,
     })) as { id: number };
-
-    timeSlotA = (await payload.create({
-      collection: 'time_slots',
-      data: { label: `A-${suffix}`, start_at: '2026-09-19T10:00:00.000Z', end_at: '2026-09-19T10:30:00.000Z' },
-      overrideAccess: true,
-    })) as { id: number };
-
-    timeSlotB = (await payload.create({
-      collection: 'time_slots',
-      data: { label: `B-${suffix}`, start_at: '2026-09-19T11:00:00.000Z', end_at: '2026-09-19T11:30:00.000Z' },
-      overrideAccess: true,
-    })) as { id: number };
   });
 
   afterAll(async () => {
     if (!payload) return;
     if (createdSlot) {
       await payload.delete({ collection: 'performance_slots', id: createdSlot, overrideAccess: true }).catch(() => null);
-    }
-    for (const id of [timeSlotA?.id, timeSlotB?.id]) {
-      if (id) await payload.delete({ collection: 'time_slots', id, overrideAccess: true }).catch(() => null);
     }
     if (stage?.id) {
       await payload.delete({ collection: 'stages', id: stage.id, overrideAccess: true }).catch(() => null);
@@ -99,7 +87,7 @@ describe.skipIf(!hasDatabase)('カテゴリと出演枠の整合 (stageAssignmen
     await expect(
       payload.create({
         collection: 'performance_slots',
-        data: { stage_id: stage.id, time_slot_id: timeSlotA.id, exhibition_id: nonStageExhibition.id },
+        data: { stage_id: stage.id, ...slotTime, exhibition_id: nonStageExhibition.id },
         overrideAccess: true,
       }),
     ).rejects.toThrow();
@@ -108,7 +96,7 @@ describe.skipIf(!hasDatabase)('カテゴリと出演枠の整合 (stageAssignmen
   it('ステージを選択している企画への出演枠割り当ては通す', async () => {
     const slot = (await payload.create({
       collection: 'performance_slots',
-      data: { stage_id: stage.id, time_slot_id: timeSlotA.id, exhibition_id: stageExhibition.id },
+      data: { stage_id: stage.id, ...slotTime, exhibition_id: stageExhibition.id },
       overrideAccess: true,
     })) as { id: number };
     createdSlot = slot.id;

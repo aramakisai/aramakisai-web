@@ -51,7 +51,6 @@ async function resetPreviousSeed(payload: Payload): Promise<void> {
   await payload.delete({ collection: 'performance_slots', where: all });
   await payload.delete({ collection: 'student_exhibitions', where: all });
   await payload.delete({ collection: 'stages', where: all });
-  await payload.delete({ collection: 'time_slots', where: all });
   await payload.delete({ collection: 'map_areas', where: all });
   // media は他のシードスクリプトとも共有されるコレクションのため、全削除すると
   // seed-dev-content.ts がアップロードした media を巻き込んで消してしまう。
@@ -253,16 +252,29 @@ const STAGES = [
   { name: 'サブステージ', areaIndex: 4, sort: 2 },
 ] as const;
 
-const TIME_SLOTS = [
-  { label: '10:00-10:30', start: '10:00', end: '10:30', sort: 1 },
-  { label: '11:00-11:30', start: '11:00', end: '11:30', sort: 2 },
-  { label: '13:00-13:30', start: '13:00', end: '13:30', sort: 3 },
-  { label: '14:00-14:30', start: '14:00', end: '14:30', sort: 4 },
+const PERFORMANCE_TIMES = [
+  { start: '10:00', end: '10:30' },
+  { start: '11:00', end: '11:30' },
+  { start: '13:00', end: '13:30' },
+  { start: '14:00', end: '14:30' },
 ] as const;
 
-const SEED_DAY = '2026-10-24';
-function toDate(hhmm: string): string {
-  return `${SEED_DAY}T${hhmm}:00.000+09:00`;
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+// 開催日程が無いと出演枠の開催日を決められないため、何も作る前に中断する。
+async function readEventDayKeys(payload: Payload): Promise<string[]> {
+  const meta = await payload.findGlobal({ slug: 'festival_meta' });
+  const keys = [
+    ...new Set(
+      (meta.event_days ?? []).map((d) =>
+        new Date(Date.parse(d.start_at) + JST_OFFSET_MS).toISOString().slice(0, 10),
+      ),
+    ),
+  ].sort();
+  if (keys.length === 0) {
+    throw new Error('祭基本情報の開催日程が空。管理画面で登録してから再実行する。');
+  }
+  return keys;
 }
 
 const IMAGE_FILES = [
@@ -344,6 +356,7 @@ async function main() {
   assertLocalDatabase();
 
   const payload = await getPayload({ config: configPromise });
+  const eventDayKeys = await readEventDayKeys(payload);
 
   await resetPreviousSeed(payload);
 
@@ -395,23 +408,10 @@ async function main() {
   }
   console.log(`stages: ${stageIds.length} 件作成`);
 
-  // 4. time_slots
-  const timeSlotIds: number[] = [];
-  for (const t of TIME_SLOTS) {
-    const created = await payload.create({
-      collection: 'time_slots',
-      data: { label: t.label, start_at: toDate(t.start), end_at: toDate(t.end), sort: t.sort },
-      user: FAKE_EXECUTIVE,
-    });
-    timeSlotIds.push(created.id as number);
-  }
-  console.log(`time_slots: ${timeSlotIds.length} 件作成`);
-
-  // 5. student_exhibitions (+ owner 用ダミーユーザー, + stage-only のための performance_slots)
+  // 4. student_exhibitions (+ owner 用ダミーユーザー, + stage-only のための performance_slots)
   const areaBoothCounters = areaIds.map(() => 0);
   let performanceSlotCount = 0;
-  // (stage_id, time_slot_id) に UNIQUE 制約があるため、組み合わせが尽きないよう
-  // 2 軸を独立させず通し番号から導出する
+  // 同ステージ・同開催日で時間帯が重ならないよう、通し番号からステージ→開催日→時間帯の順に導出する
   let slotCombo = 0;
 
   for (const [i, e] of EXHIBITIONS.entries()) {
@@ -453,13 +453,19 @@ async function main() {
 
     if (e.locationKind === 'stage-only' && e.categories.includes('stage')) {
       const stageIdx = slotCombo % stageIds.length;
-      const timeIdx = Math.floor(slotCombo / stageIds.length) % timeSlotIds.length;
+      const dayIdx = Math.floor(slotCombo / stageIds.length) % eventDayKeys.length;
+      const timeIdx =
+        Math.floor(slotCombo / (stageIds.length * eventDayKeys.length)) % PERFORMANCE_TIMES.length;
       slotCombo += 1;
+      const dayKey = eventDayKeys[dayIdx]!;
+      const time = PERFORMANCE_TIMES[timeIdx]!;
       await payload.create({
         collection: 'performance_slots',
         data: {
           stage_id: stageIds[stageIdx]!,
-          time_slot_id: timeSlotIds[timeIdx]!,
+          event_date: `${dayKey}T12:00:00.000Z`,
+          start_at: `${dayKey}T${time.start}:00.000+09:00`,
+          end_at: `${dayKey}T${time.end}:00.000+09:00`,
           exhibition_id: created.id as number,
         },
         user: FAKE_EXECUTIVE,
