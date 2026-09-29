@@ -532,6 +532,19 @@ export interface StudentExhibition {
    */
   categories: ('stage' | 'exhibit' | 'vendor' | 'other')[];
   /**
+   * 公式サイト・SNS 等のリンク (並べ替えた順に表示する)
+   */
+  links?:
+    | {
+        platform: 'x' | 'instagram' | 'facebook' | 'youtube' | 'tiktok' | 'line' | 'website';
+        /**
+         * https://から始まるURLを入力してください。
+         */
+        url: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
    * カテゴリで「ステージ」を選択したときだけ表示する
    */
   stage?: {
@@ -595,19 +608,6 @@ export interface StudentExhibition {
    * 割り当てられた出店エリア名
    */
   booth_label?: string | null;
-  /**
-   * 公式サイト・SNS 等のリンク (並べ替えた順に表示する)
-   */
-  links?:
-    | {
-        platform: 'x' | 'instagram' | 'facebook' | 'youtube' | 'tiktok' | 'line' | 'website';
-        /**
-         * https://から始まるURLを入力してください。
-         */
-        url: string;
-        id?: string | null;
-      }[]
-    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1030,6 +1030,13 @@ export interface StudentExhibitionsSelect<T extends boolean = true> {
   status?: T;
   organization_name?: T;
   categories?: T;
+  links?:
+    | T
+    | {
+        platform?: T;
+        url?: T;
+        id?: T;
+      };
   stage?:
     | T
     | {
@@ -1062,13 +1069,6 @@ export interface StudentExhibitionsSelect<T extends boolean = true> {
   area_id?: T;
   booth_number?: T;
   booth_label?: T;
-  links?:
-    | T
-    | {
-        platform?: T;
-        url?: T;
-        id?: T;
-      };
   updatedAt?: T;
   createdAt?: T;
 }
