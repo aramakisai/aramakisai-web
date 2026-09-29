@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
+import { performanceSlotName } from '../hooks/performance-slot-name'
 import {
   performanceSlotConstraint,
   performanceTimeConstraint,
@@ -10,7 +11,7 @@ export const PerformanceSlots: CollectionConfig = {
   slug: 'performance_slots',
   labels: { singular: 'ステージ出演枠', plural: 'ステージ出演枠' },
   admin: {
-    useAsTitle: 'title',
+    useAsTitle: 'display_name',
   },
   hooks: {
     beforeValidate: [
@@ -20,6 +21,19 @@ export const PerformanceSlots: CollectionConfig = {
     ],
   },
   fields: [
+    {
+      // useAsTitle は列を持たない仮想フィールドしか使えず、素の virtual: true は拒否されるため
+      // 団体名への関連パスで宣言する。値は DB の結合で引かれ、追加クエリは走らない
+      name: 'display_name',
+      type: 'text',
+      virtual: 'exhibition_id.organization_name',
+      admin: { hidden: true },
+      access: { create: () => false, update: () => false },
+      hooks: {
+        // 団体が無い行は結合結果が空になるため、表示名へ切り替える
+        afterRead: [({ value, data }) => performanceSlotName(value, data?.title)],
+      },
+    },
     {
       name: 'stage_id',
       type: 'relationship',

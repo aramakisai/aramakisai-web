@@ -471,6 +471,7 @@ export interface Stage {
  */
 export interface PerformanceSlot {
   id: number;
+  display_name?: string | null;
   /**
    * NOT NULL
    */
@@ -977,6 +978,7 @@ export interface StagesSelect<T extends boolean = true> {
  * via the `definition` "performance_slots_select".
  */
 export interface PerformanceSlotsSelect<T extends boolean = true> {
+  display_name?: T;
   stage_id?: T;
   event_date?: T;
   start_at?: T;
