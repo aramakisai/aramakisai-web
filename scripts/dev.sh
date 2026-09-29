@@ -99,6 +99,7 @@ cmd_dev() {
 
   cms_url="http://localhost:${CMS_PORT}"
   [[ "$cms_mode" == "worktree" ]] && cms_url="http://localhost:$((port + 1000))"
+  [[ "$cms_mode" == "prod" ]] && cms_url="https://cms.aramakisai.com"
 
   branch=$(git -C "$root" branch --show-current 2>/dev/null || true)
   [[ -z "$branch" ]] && branch=$(git -C "$root" rev-parse --short HEAD)
