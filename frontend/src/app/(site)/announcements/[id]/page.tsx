@@ -37,18 +37,22 @@ export async function generateMetadata({
     getSiteMetadata(),
   ]);
 
+  if (!announcement) {
+    notFound();
+  }
+
   return buildPageMetadata({
     site,
-    title: announcement?.title ?? site.siteTitle,
+    title: announcement.title,
     description: toMetaDescription(
-      [announcement?.metaDescription, announcement?.body],
+      [announcement.metaDescription, announcement.body],
       site.description,
     ),
     // '1.0' や '01' 等の非正規表記が別 URL として canonical 宣言されるのを防ぐため、
     // 解決できた場合は正規化済みの announcement.id を使う
-    path: `/announcements/${announcement?.id ?? id}`,
+    path: `/announcements/${announcement.id}`,
     ogType: 'article',
-    imageCandidates: [announcement?.ogImageId ?? null],
+    imageCandidates: [announcement.ogImageId ?? null],
   });
 }
 

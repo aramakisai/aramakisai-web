@@ -36,18 +36,22 @@ export async function generateMetadata({
     getSiteMetadata(),
   ]);
 
+  if (!topic) {
+    notFound();
+  }
+
   return buildPageMetadata({
     site,
-    title: topic?.title ?? site.siteTitle,
+    title: topic.title,
     description: toMetaDescription(
-      [topic?.metaDescription, topic?.body],
+      [topic.metaDescription, topic.body],
       site.description,
     ),
     // '1.0' や '01' 等の非正規表記が別 URL として canonical 宣言されるのを防ぐため、
     // 解決できた場合は正規化済みの topic.id を使う
-    path: `/topics/${topic?.id ?? id}`,
+    path: `/topics/${topic.id}`,
     ogType: 'article',
-    imageCandidates: [topic?.imageId ?? null],
+    imageCandidates: [topic.imageId ?? null],
   });
 }
 
