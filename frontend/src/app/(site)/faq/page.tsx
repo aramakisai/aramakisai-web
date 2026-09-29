@@ -57,7 +57,7 @@ export default async function FaqPage() {
           よくある質問
         </SectionHeading>
         {items.length === 0 ? (
-          <p className="text-[16px] leading-[1.7] text-gray-500">
+          <p className="text-[16px] leading-[1.7] text-gray-600">
             よくある質問はありません
           </p>
         ) : (
