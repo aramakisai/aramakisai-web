@@ -37,12 +37,12 @@ export function ExhibitionCard({ exhibition }: ExhibitionCardProps) {
       href={`/exhibitions/${exhibition.id}/${exhibition.category}`}
       className="flex flex-col overflow-clip rounded-xl transition-shadow hover:shadow-lg"
     >
-      <div className="flex aspect-[300/225] w-full shrink-0 items-center justify-center overflow-clip bg-gray-200">
+      <div className="relative flex aspect-[300/225] w-full shrink-0 items-center justify-center overflow-clip bg-gray-200">
         {thumbnailUrl ? (
           <img
             src={thumbnailUrl}
             alt={exhibition.thumbnail!.alt}
-            className="h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-contain"
           />
         ) : (
           <ImageIcon size={40} className="text-gray-400" />

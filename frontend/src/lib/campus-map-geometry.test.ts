@@ -6,6 +6,7 @@ import {
   multiPolygonGeometrySchema,
   type MultiPolygonGeometry,
   type Position,
+  type PolygonCoordinates,
 } from './campus-map-geometry';
 
 const squarePolygon = {
@@ -226,3 +227,44 @@ describe('polygonCentroid', () => {
     expect(latitude).toBeLessThanOrEqual(Math.max(...latitudes));
   });
 });
+
+describe('singlePolygonCentroid (本番 Bグループの実座標)', () => {
+  // 本番 CMS map_areas id=7 の 4 ポリゴン (細長い帯・湾曲) のうち湾曲した 13 頂点のもの
+  const CURVED: PolygonCoordinates = [
+    [
+      [139.045464, 36.4309618],
+      [139.0454962, 36.4309452],
+      [139.0455255, 36.4309216],
+      [139.0455488, 36.4308926],
+      [139.0455699, 36.4308525],
+      [139.0455823, 36.4308206],
+      [139.0456079, 36.4308281],
+      [139.0455985, 36.4308607],
+      [139.0455738, 36.4309012],
+      [139.0455474, 36.4309354],
+      [139.045512, 36.4309637],
+      [139.0454806, 36.4309796],
+      [139.045464, 36.4309618],
+    ],
+  ];
+
+  it('湾曲した帯でも重心が外環の内側に入る', () => {
+    const [latitude, longitude] = singlePolygonCentroid(CURVED);
+    expect(pointInRing([longitude, latitude], CURVED[0])).toBe(true);
+  });
+});
+
+function pointInRing(
+  [x, y]: readonly [number, number],
+  ring: readonly (readonly number[])[],
+): boolean {
+  let inside = false;
+  for (let i = 0; i < ring.length - 1; i++) {
+    const [x0, y0] = ring[i];
+    const [x1, y1] = ring[i + 1];
+    if (y0 > y !== y1 > y && x < ((x1 - x0) * (y - y0)) / (y1 - y0) + x0) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}

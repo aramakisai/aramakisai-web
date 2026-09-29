@@ -829,6 +829,43 @@ describe('getExhibitionDetail', () => {
     expect(result.kind === 'found' && 'name' in result.value).toBe(false);
   });
 
+  it('地図の対象 areaIds は表示中の category の場所と同じ出どころだけを持つ', async () => {
+    mockDetail(
+      {
+        id: 1,
+        organization_name: '団体A',
+        status: 'published',
+        area_id: 10,
+        categories: ['stage', 'vendor'],
+        stage: { name: '出演名A', images: [] },
+        vendor: { name: '出店名A', images: [] },
+      },
+      {
+        slots: [
+          {
+            id: 1,
+            stage_id: 1,
+            start_at: '2026-10-10T01:00:00.000Z',
+            end_at: '2026-10-10T02:00:00.000Z',
+            exhibition_id: 1,
+          },
+        ],
+        stages: [{ id: 1, name: '屋内ステージ', area_id: 20 }],
+        areas: [
+          { id: 10, name: 'Bグループ' },
+          { id: 20, name: '屋内ステージエリア' },
+        ],
+      },
+    );
+
+    expect(await getExhibitionDetail(1, 'stage')).toMatchObject({
+      value: { location: '屋内ステージ', areaIds: [20] },
+    });
+    expect(await getExhibitionDetail(1, 'vendor')).toMatchObject({
+      value: { location: 'Bグループ', areaIds: [10] },
+    });
+  });
+
   it('カテゴリごとにそのカテゴリの企画内容の企画名を返す (フォールバックなし)', async () => {
     mockDetail({
       id: 1,
