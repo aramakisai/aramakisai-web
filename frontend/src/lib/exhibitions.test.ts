@@ -491,8 +491,7 @@ describe('getExhibitionListData', () => {
 
     const result = await getExhibitionListData(baseQuery);
     expect(result.items[0]?.location).toBe('メインステージ、サブステージ');
-    // areaIds は場所解決の対象外でも直接エリア + ステージ由来エリアの和を保つ
-    expect(result.items[0]?.areaIds).toEqual([10, 20]);
+    expect(result.items[0]?.areaIds).toEqual([20]);
   });
 
   it('ステージ以外のカードはエリア名 (+ブース表示名) のみを場所にし、出演枠があっても無視する', async () => {
@@ -612,15 +611,16 @@ describe('getExhibitionListData', () => {
     expect(result.items[0]?.areaIds).toEqual([]);
   });
 
-  it('直接の所在エリアと出演ステージの所在エリアの双方を持つ企画では areaIds の先頭が直接の所在エリアになる', async () => {
+  it('出店とステージを兼ねる企画のステージカードは出店側エリアで絞り込むとヒットしない', async () => {
     mockCmsCollections({
       exhibitions: [
         {
           id: 1,
           organization_name: '団体A',
           area_id: 10,
-          categories: ['exhibit'],
-          exhibit: { name: '企画A', images: [] },
+          categories: ['vendor', 'stage'],
+          vendor: { name: '出店A', images: [] },
+          stage: { name: '出演A', images: [] },
         },
       ],
       slots: [
@@ -632,23 +632,17 @@ describe('getExhibitionListData', () => {
           end_at: '2026-10-10T02:00:00.000Z',
           exhibition_id: 1,
         },
-        {
-          id: 101,
-          stage_id: 2,
-          event_date: '2026-10-10T12:00:00.000Z',
-          start_at: '2026-10-10T01:00:00.000Z',
-          end_at: '2026-10-10T02:00:00.000Z',
-          exhibition_id: 1,
-        },
       ],
-      stages: [
-        { id: 1, name: 'ステージ1', area_id: 20 },
-        { id: 2, name: 'ステージ2', area_id: 30 },
-      ],
+      stages: [{ id: 1, name: '屋内ステージ', area_id: 20 }],
     });
 
-    const result = await getExhibitionListData(baseQuery);
-    expect(result.items[0]?.areaIds).toEqual([10, 20, 30]);
+    const { items } = await getExhibitionListData(baseQuery);
+    const hits = (areaId: number) =>
+      filterExhibitions(items, { ...baseQuery, areaIds: [areaId] }).map(
+        (c) => c.category,
+      );
+    expect(hits(10)).toEqual(['vendor']);
+    expect(hits(20)).toEqual(['stage']);
   });
 
   it('直接の所在エリアを持たずステージ経由でのみ解決する企画では areaIds の先頭が最初の出演ステージの所在エリアになる', async () => {
@@ -827,6 +821,102 @@ describe('getExhibitionDetail', () => {
       }),
     });
     expect(result.kind === 'found' && 'name' in result.value).toBe(false);
+  });
+
+  it('メニューは価格nullの行を除き並び順を保ち、出店日は暦日キーに変換して解釈できない値を除く', async () => {
+    const base = {
+      id: 1,
+      organization_name: '団体A',
+      status: 'published',
+      area_id: null,
+      categories: ['exhibit', 'vendor'],
+      exhibit: { name: '展示', images: [] },
+      vendor: {
+        name: '出店',
+        images: [],
+        menu: [
+          { name: 'B', price: '¥300' },
+          { name: 'A', price: null },
+          { name: 'C', price: '' },
+          { name: 'D', price: '時価' },
+        ],
+      },
+      open_days: [
+        '2026-11-15T12:00:00.000Z',
+        'not-a-date',
+        '2026-11-14T12:00:00.000Z',
+      ],
+    };
+    const expected = {
+      menu: [
+        { name: 'B', price: '¥300' },
+        { name: 'C', price: '' },
+        { name: 'D', price: '時価' },
+      ],
+      openDayKeys: ['2026-11-15', '2026-11-14'],
+    };
+    mockDetail(base);
+    expect(await getExhibitionDetail(1, 'exhibit')).toEqual({
+      kind: 'found',
+      value: expect.objectContaining(expected),
+    });
+    mockDetail(base);
+    expect(await getExhibitionDetail(1, 'vendor')).toEqual({
+      kind: 'found',
+      value: expect.objectContaining(expected),
+    });
+  });
+
+  it('メニュー・出店日が未設定なら空配列', async () => {
+    mockDetail({
+      id: 1,
+      organization_name: '団体A',
+      status: 'published',
+      area_id: null,
+      categories: ['exhibit'],
+      exhibit: { name: '展示', images: [] },
+    });
+    expect(await getExhibitionDetail(1, 'exhibit')).toEqual({
+      kind: 'found',
+      value: expect.objectContaining({ menu: [], openDayKeys: [] }),
+    });
+  });
+
+  it('地図の対象 areaIds は表示中の category の場所と同じ出どころだけを持つ', async () => {
+    mockDetail(
+      {
+        id: 1,
+        organization_name: '団体A',
+        status: 'published',
+        area_id: 10,
+        categories: ['stage', 'vendor'],
+        stage: { name: '出演名A', images: [] },
+        vendor: { name: '出店名A', images: [] },
+      },
+      {
+        slots: [
+          {
+            id: 1,
+            stage_id: 1,
+            start_at: '2026-10-10T01:00:00.000Z',
+            end_at: '2026-10-10T02:00:00.000Z',
+            exhibition_id: 1,
+          },
+        ],
+        stages: [{ id: 1, name: '屋内ステージ', area_id: 20 }],
+        areas: [
+          { id: 10, name: 'Bグループ' },
+          { id: 20, name: '屋内ステージエリア' },
+        ],
+      },
+    );
+
+    expect(await getExhibitionDetail(1, 'stage')).toMatchObject({
+      value: { location: '屋内ステージ', areaIds: [20] },
+    });
+    expect(await getExhibitionDetail(1, 'vendor')).toMatchObject({
+      value: { location: 'Bグループ', areaIds: [10] },
+    });
   });
 
   it('カテゴリごとにそのカテゴリの企画内容の企画名を返す (フォールバックなし)', async () => {

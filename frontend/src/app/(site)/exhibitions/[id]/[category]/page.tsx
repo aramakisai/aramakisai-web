@@ -11,11 +11,16 @@ import { env } from '@/env';
 import { getCampusMapAreas, type CampusMapArea } from '@/lib/campus-map';
 import { ExhibitionGallery } from '@/components/exhibition-gallery';
 import { ExhibitionPerformances } from '@/components/exhibition-performances';
-import { getExhibitionPerformances } from '@/lib/timetable';
+import {
+  formatOpenDays,
+  getEventDayList,
+  getExhibitionPerformances,
+} from '@/lib/timetable';
+import { ExhibitionMenu } from '@/components/exhibition-menu';
 import { ExhibitionLinks } from '@/components/exhibition-links';
 import { ExhibitionLocationSection } from '@/components/exhibition-location-map/exhibition-location-section';
 import { ShareButton } from '@/components/share-button';
-import { PlaceIcon } from '@/components/icons';
+import { CalendarMonthIcon, PlaceIcon } from '@/components/icons';
 import { BackLink } from '@/components/detail-column';
 import { getSiteMetadata } from '@/lib/site-metadata';
 import { buildPageMetadata } from '@/lib/page-metadata';
@@ -98,13 +103,15 @@ function CategoryBadge({
 
 export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
   const { id, category } = await params;
-  const [result, areasResult, performancesResult] = await Promise.all([
-    resolveExhibition(id, category),
-    getCampusMapAreas(),
-    category === 'stage' && Number.isInteger(Number(id))
-      ? getExhibitionPerformances(Number(id))
-      : null,
-  ]);
+  const [result, areasResult, performancesResult, eventDays] =
+    await Promise.all([
+      resolveExhibition(id, category),
+      getCampusMapAreas(),
+      category === 'stage' && Number.isInteger(Number(id))
+        ? getExhibitionPerformances(Number(id))
+        : null,
+      category === 'stage' ? null : getEventDayList(),
+    ]);
 
   if (result.kind === 'missing') {
     notFound();
@@ -122,6 +129,9 @@ export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
   }
 
   const exhibition = result.value;
+  const openDays = eventDays
+    ? formatOpenDays(exhibition.openDayKeys, eventDays)
+    : null;
   const shareUrl = `${env.NEXT_PUBLIC_SITE_URL}/exhibitions/${exhibition.id}/${exhibition.category}`;
   // 区画取得失敗をページ全体のエラーへ昇格させないため、ここで空区画へ縮退させる
   const areas: readonly CampusMapArea[] =
@@ -170,9 +180,23 @@ export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
             </p>
           )}
 
-          <ExhibitionLinks links={exhibition.links} />
+          {openDays && (
+            <p className="flex items-center gap-1 text-sm leading-[140%] font-medium text-gray-600">
+              <CalendarMonthIcon size={20} className="text-text" />
+              {openDays}
+            </p>
+          )}
+          {performancesResult?.kind === 'loaded' && (
+            <ExhibitionPerformances performances={performancesResult.value} />
+          )}
 
-          <ShareButton title={exhibition.displayName} url={shareUrl} />
+          {exhibition.category === 'vendor' && (
+            <ExhibitionMenu items={exhibition.menu} />
+          )}
+
+          <ShareButton title={exhibition.displayName} url={shareUrl}>
+            <ExhibitionLinks links={exhibition.links} />
+          </ShareButton>
         </div>
       </div>
 
@@ -185,10 +209,6 @@ export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
             {exhibition.description}
           </p>
         </div>
-      )}
-
-      {performancesResult?.kind === 'loaded' && (
-        <ExhibitionPerformances performances={performancesResult.value} />
       )}
 
       <ExhibitionLocationSection exhibition={exhibition} areas={areas} />

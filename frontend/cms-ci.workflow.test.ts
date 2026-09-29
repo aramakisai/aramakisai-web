@@ -26,6 +26,7 @@ type Job = {
   permissions?: Record<string, string>;
   services?: Record<string, unknown>;
   env?: Record<string, unknown>;
+  strategy?: { matrix?: { include?: Record<string, unknown>[] } };
   steps: Step[];
 };
 
@@ -59,9 +60,12 @@ describe('cms-ci workflow', () => {
   });
 
   it('PR では検証のみを行い、適用系ジョブを走らせない', () => {
+    const releaseImages = workflow.jobs['release-images'];
     const release = workflow.jobs.release;
+    expect(releaseImages.if).toContain("github.event_name == 'push'");
+    expect(releaseImages.needs).toBe('verify');
     expect(release.if).toContain("github.event_name == 'push'");
-    expect(release.needs).toBe('verify');
+    expect(release.needs).toBe('release-images');
   });
 
   it('検証は type-check・テスト・ビルドを含む', () => {
@@ -98,17 +102,21 @@ describe('cms-ci workflow', () => {
   });
 
   it('イメージをレジストリへ push してから infra のタグを差し替える', () => {
+    const releaseImages = workflow.jobs['release-images'];
     const release = workflow.jobs.release;
-    const steps = stepsOf(release);
-    const pushIndex = steps.findIndex((step) =>
+
+    const pushStep = findStep(releaseImages, (step) =>
       (step.uses ?? '').startsWith('docker/build-push-action'),
     );
-    const pinIndex = steps.findIndex((step) =>
+    expect(pushStep.with?.push).toBe(true);
+    expect(releaseImages.permissions?.packages).toBe('write');
+
+    // release は release-images (両イメージの並列ビルド) の完了を待ってからタグを差し替える
+    expect(release.needs).toBe('release-images');
+    const pinIndex = stepsOf(release).findIndex((step) =>
       (step.run ?? '').includes('newTag'),
     );
-    expect(pushIndex).toBeGreaterThanOrEqual(0);
-    expect(pinIndex).toBeGreaterThan(pushIndex);
-    expect(release.permissions?.packages).toBe('write');
+    expect(pinIndex).toBeGreaterThanOrEqual(0);
   });
 
   it('マイグレーションを適用してからテストを走らせる', () => {
@@ -131,13 +139,15 @@ describe('cms-ci workflow', () => {
     expect(step.run).not.toContain('staging');
   });
 
-  it('Payload CLI を含むマイグレーション用イメージも同じタグで push する', () => {
-    const builds = stepsOf(workflow.jobs.release).filter((step) =>
-      (step.uses ?? '').startsWith('docker/build-push-action'),
-    );
-    const migrator = builds.find((step) => step.with?.target === 'migrator');
-    expect(migrator, 'migrator ステージのビルドが無い').toBeDefined();
-    expect(String(migrator?.with?.tags)).toContain('-migrate:');
+  it('Payload CLI を含むマイグレーション用イメージも同じタグで push する (matrix)', () => {
+    const include = workflow.jobs['release-images'].strategy?.matrix?.include;
+    expect(include, 'release-images の matrix.include が無い').toBeDefined();
+    const migrator = include?.find((entry) => entry.target === 'migrator');
+    expect(migrator, 'migrator ステージのビルド設定が無い').toBeDefined();
+    expect(String(migrator?.tags)).toContain('-migrate:');
+    const runner = include?.find((entry) => entry.image === 'runner');
+    expect(runner, 'runner ステージのビルド設定が無い').toBeDefined();
+    expect(runner?.target).toBeUndefined();
   });
 
   it('マイグレーションがデプロイより先に適用されることを PR 本文で明示する', () => {

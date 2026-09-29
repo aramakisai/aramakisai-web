@@ -40,6 +40,14 @@ describe('ExhibitionLinks', () => {
     }
   });
 
+  it('has no visible heading and names the list リンク', () => {
+    render(
+      <ExhibitionLinks links={[{ platform: 'x', url: 'https://x.com/a' }]} />,
+    );
+    expect(screen.getByRole('list', { name: 'リンク' })).toBeInTheDocument();
+    expect(screen.queryByText('リンク')).not.toBeInTheDocument();
+  });
+
   it('renders nothing when there are no links', () => {
     const { container } = render(<ExhibitionLinks links={[]} />);
     expect(container).toBeEmptyDOMElement();

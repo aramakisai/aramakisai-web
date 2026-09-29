@@ -442,6 +442,7 @@ async function main() {
         status: e.hasImage ? 'published' : 'draft',
         organization_name: e.organizationName,
         categories: [...e.categories],
+        open_days: ['2026-11-01T12:00:00.000Z'],
         area_id: wantsArea ? areaIds[areaIndex] : undefined,
         booth_number: boothNumber,
         booth_label: e.locationKind === 'area-label' ? `${boothNumber}番ブース` : undefined,

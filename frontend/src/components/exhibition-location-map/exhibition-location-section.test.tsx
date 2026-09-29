@@ -64,6 +64,8 @@ function exhibition(
     images: [],
     links: [],
     categories: ['exhibit'],
+    menu: [],
+    openDayKeys: [],
     ...overrides,
   };
 }

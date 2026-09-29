@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildEventDayOptions, eventDayLabel, eventDayValue } from './event-day-options';
+import { buildEventDayCheckOptions, buildEventDayOptions, eventDayLabel, eventDayValue } from './event-day-options';
 
 const days = [
   { start_at: '2026-10-29T00:00:00.000Z', label: '1日目' },
@@ -48,5 +48,33 @@ describe('eventDayLabel', () => {
   });
   it('値なしは空文字', () => {
     expect(eventDayLabel(days, null)).toBe('');
+  });
+});
+
+describe('buildEventDayCheckOptions', () => {
+  it('開催日程順で、ラベルは単一選択と同じ', () => {
+    expect(buildEventDayCheckOptions([...days].reverse(), [])).toEqual([
+      { label: '1日目(10/29)', value: '2026-10-29T12:00:00.000Z', outOfRange: false },
+      { label: '10/30', value: '2026-10-30T12:00:00.000Z', outOfRange: false },
+    ]);
+  });
+  it('開催日程外の選択値は暦日順に混ぜて「(開催日程外)」で残す', () => {
+    expect(
+      buildEventDayCheckOptions(days, ['2026-10-29T12:00:00.000Z', '2026-10-28T12:00:00.000Z']).map(
+        (o) => [o.label, o.outOfRange],
+      ),
+    ).toEqual([
+      ['10/28(開催日程外)', true],
+      ['1日目(10/29)', false],
+      ['10/30', false],
+    ]);
+  });
+  it('解釈できない値と重複は含めない', () => {
+    const r = buildEventDayCheckOptions(days, ['x', null, '2026-10-31T12:00:00.000Z', '2026-10-31T01:00:00.000Z']);
+    expect(r.map((o) => o.value)).toEqual([
+      '2026-10-29T12:00:00.000Z',
+      '2026-10-30T12:00:00.000Z',
+      '2026-10-31T12:00:00.000Z',
+    ]);
   });
 });

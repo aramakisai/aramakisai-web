@@ -30,11 +30,15 @@ export function ExhibitionGallery({
 
   return (
     <div className="flex flex-col gap-3">
-      <img
-        src={toAssetUrl(selected.id, 1920) ?? undefined}
-        alt={selected.alt || fallbackAlt}
-        className="aspect-[4/3] w-full rounded-xl bg-gray-200 object-cover"
-      />
+      {/* aspect-ratio の箱は自動最小高さが中身の高さになり、縦長画像で枠が伸びる。
+          img を absolute にして中身の高さを枠の計算から外す */}
+      <div className="relative aspect-[4/3] w-full overflow-clip rounded-xl bg-gray-200">
+        <img
+          src={toAssetUrl(selected.id, 1920) ?? undefined}
+          alt={selected.alt || fallbackAlt}
+          className="absolute inset-0 h-full w-full object-contain"
+        />
+      </div>
       {images.length > 1 && (
         <div className="flex gap-2 overflow-x-auto">
           {images.map((image, index) => (

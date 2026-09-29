@@ -1,3 +1,4 @@
+import { text } from 'payload/shared';
 import { describe, expect, it } from 'vitest';
 
 import { StudentExhibitions } from './student-exhibitions';
@@ -212,5 +213,84 @@ describe('hooks の結線', () => {
   it('afterChange/afterDelete にメディア使用状況の再計算 (syncMediaPublication) を置く', () => {
     expect(StudentExhibitions.hooks?.afterChange).toHaveLength(1);
     expect(StudentExhibitions.hooks?.afterDelete).toHaveLength(1);
+  });
+});
+
+describe('menu / open_days フィールド', () => {
+  const vendorGroup = fieldOf(StudentExhibitions.fields, 'vendor');
+const vendorFields = vendorGroup.fields as readonly unknown[];
+const menu = fieldOf(vendorFields, 'menu');
+  const menuFields = menu.fields as readonly unknown[];
+  const name = fieldOf(menuFields, 'name');
+  const price = fieldOf(menuFields, 'price');
+  const openDays = fieldOf(StudentExhibitions.fields, 'open_days');
+  const normalize = (v: unknown) =>
+    (price.hooks as { beforeValidate: ((a: { value: unknown }) => unknown)[] }).beforeValidate[0]({
+      value: v,
+    });
+
+  it('menu は品名(必須)と価格を持つ array で、価格が空の行は非表示と説明する', () => {
+    expect(menu.type).toBe('array');
+    expect(menu.required).toBeUndefined();
+    expect((menu.admin as { description: string }).description).toBe(
+      '価格が空の行はサイトに表示されません。',
+    );
+    expect(name.type).toBe('text');
+    expect(name.required).toBe(true);
+    expect(price.type).toBe('text');
+    expect(price.required).toBeUndefined();
+  });
+
+  it('menu は出店グループの最後だけに置き、他カテゴリのグループとトップレベルには置かない', () => {
+    expect((vendorFields.at(-1) as NamedField).name).toBe('menu');
+    for (const key of ['stage', 'exhibit', 'other']) {
+      const fields = fieldOf(StudentExhibitions.fields, key).fields as readonly NamedField[];
+      expect(fields.some((f) => f.name === 'menu')).toBe(false);
+    }
+    expect(StudentExhibitions.fields.some((f) => (f as NamedField).name === 'menu')).toBe(false);
+  });
+
+  it('open_days は text の hasMany で EventDayCheckboxes を入力部品にする', () => {
+    expect(openDays.type).toBe('text');
+    expect(openDays.hasMany).toBe(true);
+    expect(openDays.required).toBe(true);
+    expect((openDays.admin as { components: { Field: string } }).components.Field).toBe(
+      './components/EventDayCheckboxes.tsx',
+    );
+  });
+
+  it('新フィールドにフィールド単位のアクセス制御を付けない', () => {
+    expect(menu.access).toBeUndefined();
+    expect(openDays.access).toBeUndefined();
+  });
+
+  it('価格は空・空白のみだけ null にし、それ以外はそのまま返す', () => {
+    expect(normalize('')).toBeNull();
+    expect(normalize('  ')).toBeNull();
+    expect(normalize('¥300')).toBe('¥300');
+    expect(normalize(' ¥300 ')).toBe(' ¥300 ');
+    expect(normalize(null)).toBeNull();
+    expect(normalize(undefined)).toBeUndefined();
+  });
+});
+
+describe('open_days フィールド', () => {
+  const openDays = fieldOf(StudentExhibitions.fields, 'open_days');
+  const validate = (value: unknown) =>
+    text(value as unknown as string, {
+      ...(openDays as object),
+      req: { t: (k: string) => k, payload: { config: {} } },
+    } as unknown as Parameters<typeof text>[1]);
+
+  it('必須項目として定義される', () => {
+    expect(openDays.required).toBe(true);
+  });
+
+  it.each([[[]], [undefined], [null]])('%j はバリデーションで弾かれる', (v) => {
+    expect(validate(v)).not.toBe(true);
+  });
+
+  it('1 日以上選ぶと受け入れる', () => {
+    expect(validate(['2026-11-01T12:00:00.000Z'])).toBe(true);
   });
 });

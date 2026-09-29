@@ -23,6 +23,7 @@ import { env } from '@/env';
 const MATERIAL_SYMBOLS_ICON_NAMES = [
   'arrow_back',
   'calendar_clock',
+  'calendar_month',
   'chevron_left',
   'chevron_right',
   'close',
@@ -45,6 +46,7 @@ const MATERIAL_SYMBOLS_ICON_NAMES = [
   'pause',
   'play_arrow',
   'play_circle',
+  'schedule',
   'search',
   'share',
   'wc',
@@ -89,6 +91,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const gaMeasurementId = env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+  const cmsOrigin = new URL(env.NEXT_PUBLIC_CMS_URL).origin;
 
   // DEV_OVERRIDE_ENABLED はビルド時に真偽リテラルへ畳み込まれる。この分岐に
   // 閉じ込めることで、偽のビルドでは Cookie を読む経路自体がバンドラの
@@ -111,6 +114,7 @@ export default async function RootLayout({
           href="https://fonts.gstatic.com"
           crossOrigin="anonymous"
         />
+        <link rel="preconnect" href={cmsOrigin} />
         <link rel="stylesheet" href={MATERIAL_SYMBOLS_HREF} />
         <script dangerouslySetInnerHTML={{ __html: MOTION_INIT_SCRIPT }} />
       </head>

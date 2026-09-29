@@ -58,6 +58,11 @@ export function MaterialIcon({
 }
 
 export const PlaceIcon = createIcon('icon-place', 'location_on');
+export const CalendarMonthIcon = createIcon(
+  'icon-calendar-month',
+  'calendar_month',
+);
+export const ScheduleIcon = createIcon('icon-schedule', 'schedule');
 export const ShareIcon = createIcon('icon-share', 'share');
 export const LinkIcon = createIcon('icon-link', 'link');
 export const SearchIcon = createIcon('icon-search', 'search');

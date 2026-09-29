@@ -72,4 +72,25 @@ describe('ShareButton', () => {
     expect(await screen.findByText(/コピーに失敗しました/)).toBeInTheDocument();
     expect(screen.getByDisplayValue(url)).toBeInTheDocument();
   });
+
+  it('renders children in the same row after the button, notice outside the row', async () => {
+    vi.stubGlobal('navigator', {
+      ...navigator,
+      share: undefined,
+      clipboard: { writeText: vi.fn().mockRejectedValue(new Error('denied')) },
+    });
+    render(
+      <ShareButton title={title} url={url}>
+        <a href="https://x.com">X</a>
+      </ShareButton>,
+    );
+    const button = screen.getByRole('button', { name: '共有' });
+    const link = screen.getByRole('link', { name: 'X' });
+    expect(link.parentElement).toBe(button.parentElement);
+    expect(button.nextElementSibling).toBe(link);
+
+    fireEvent.click(button);
+    const alert = await screen.findByRole('alert');
+    expect(button.parentElement?.contains(alert)).toBe(false);
+  });
 });

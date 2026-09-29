@@ -15,7 +15,28 @@ import { FestivalPhase } from './phase';
 export async function getHomePage(
   phase: FestivalPhase,
 ): Promise<HomePageContent> {
-  const metaResult = await cms.findGlobal('festival_meta', { depth: 1 });
+  // topics は引数の phase だけに依存し festival_meta の結果を使わないため、4 件とも並列に取る。
+  const [metaResult, announcementsResult, topicsResult, pageHomeResult] =
+    await Promise.all([
+      cms.findGlobal('festival_meta', { depth: 1 }),
+      cms.findMany('announcements', {
+        where: publishedFilter(),
+        sort: ['-published_at'],
+        limit: 10,
+        depth: 1,
+      }),
+      // トピックス詳細は開催前フェーズで非公開のため、節を描画しないだけでなく
+      // 毎リクエスト走る取得自体をここで止める (トップページは動的描画のため)。
+      phase === 'pre_event'
+        ? null
+        : cms.findMany('topics', {
+            where: publishedFilter(),
+            sort: ['-published_at'],
+            limit: 0,
+            depth: 1,
+          }),
+      cms.findGlobal('page_home', { depth: 1 }),
+    ]);
   const meta = metaResult.ok ? metaResult.value : null;
 
   const festival: FestivalOverview | null = meta && {
@@ -31,12 +52,6 @@ export async function getHomePage(
     descriptionHtml: meta.theme_description_html || null,
   };
 
-  const announcementsResult = await cms.findMany('announcements', {
-    where: publishedFilter(),
-    sort: ['-published_at'],
-    limit: 10,
-    depth: 1,
-  });
   const announcements: AnnouncementSummary[] = (
     announcementsResult.ok ? announcementsResult.value.docs : []
   ).map((a) => ({
@@ -47,17 +62,6 @@ export async function getHomePage(
     attachments: toAttachments(a.attachments),
   }));
 
-  // トピックス詳細は開催前フェーズで非公開のため、節を描画しないだけでなく
-  // 毎リクエスト走る取得自体をここで止める (トップページは動的描画のため)。
-  const topicsResult =
-    phase === 'pre_event'
-      ? null
-      : await cms.findMany('topics', {
-          where: publishedFilter(),
-          sort: ['-published_at'],
-          limit: 0,
-          depth: 1,
-        });
   const topics: TopicSummary[] = (
     topicsResult?.ok ? topicsResult.value.docs : []
   ).map((t) => ({
@@ -67,7 +71,6 @@ export async function getHomePage(
     imageId: toMediaId(t.image),
   }));
 
-  const pageHomeResult = await cms.findGlobal('page_home', { depth: 1 });
   const pageHome = pageHomeResult.ok ? pageHomeResult.value : null;
 
   return {

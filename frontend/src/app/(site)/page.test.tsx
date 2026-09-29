@@ -461,6 +461,17 @@ describe('Page (開催中フェーズ)', () => {
     );
   });
 
+  it('アクセスに festival_meta.campus_map_url の地図を埋め込む', async () => {
+    const ui = await Page();
+    const { container } = render(ui);
+
+    expect(
+      container.querySelector(
+        'iframe[src="https://www.google.com/maps/embed?pb=!1m2!2m1!1zsomething"]',
+      ),
+    ).not.toBeNull();
+  });
+
   it('協賛を種別をまたいで重複なく統合して表示する (要件3.3)', async () => {
     vi.mocked(sponsorsModule.getSponsors).mockResolvedValue({
       ok: true,

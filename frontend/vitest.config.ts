@@ -15,7 +15,16 @@ process.env.NODE_OPTIONS = [
 export default defineConfig({
   plugins: [react()],
   test: {
-    environment: 'jsdom',
+    // 大半のテストは DOM を使わない (lib/scripts の純粋関数)。jsdom 起動コストが
+    // 支配的なため既定は node にし、DOM が要るファイルだけ jsdom に切り替える
+    environment: 'node',
+    environmentMatchGlobs: [
+      ['**/*.test.tsx', 'jsdom'],
+      ['src/lib/use-focus-trap.test.ts', 'jsdom'],
+      ['src/lib/use-motion-preference.test.ts', 'jsdom'],
+      ['src/lib/use-now.test.ts', 'jsdom'],
+      ['src/lib/background-shapes/obstacles.test.ts', 'jsdom'],
+    ],
     globals: true,
     setupFiles: ['./vitest.setup.ts'],
     // e2e/ は Playwright (`pnpm test:e2e`) 専用。vitest (`pnpm test`) とは独立させる

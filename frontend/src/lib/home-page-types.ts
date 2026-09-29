@@ -8,6 +8,10 @@ export interface Attachment {
   filenameDownload: string;
   type: string | null;
   filesize: number | null;
+  /** REST の相対 URL (原本 / card / hero)。ID のみの参照や未生成サイズでは無い */
+  url?: string | null;
+  cardUrl?: string | null;
+  heroUrl?: string | null;
 }
 
 export interface AnnouncementSummary {

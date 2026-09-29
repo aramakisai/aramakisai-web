@@ -1,4 +1,4 @@
-import type { CollectionConfig, GroupField } from 'payload';
+import type { CollectionConfig, Field, GroupField } from 'payload';
 
 import { executiveOnlyField } from '../access/payload-access';
 import {
@@ -17,6 +17,28 @@ const CATEGORIES = [
   { name: 'vendor', label: '出店' },
   { name: 'other', label: 'その他' },
 ] as const;
+
+const MENU_FIELD: Field = {
+  name: 'menu',
+  type: 'array',
+  label: 'メニュー',
+  admin: { description: '価格が空の行はサイトに表示されません。' },
+  fields: [
+    { name: 'name', type: 'text', required: true, maxLength: 255, label: '品名' },
+    {
+      name: 'price',
+      type: 'text',
+      maxLength: 255,
+      label: '価格',
+      hooks: {
+        // Payload は text の空値を補正せず、未入力は NULL・入力後に消すと '' で保存される
+        beforeValidate: [
+          ({ value }) => (typeof value === 'string' && value.trim() === '' ? null : value),
+        ],
+      },
+    },
+  ],
+};
 
 function categoryContentGroup(name: (typeof CATEGORIES)[number]['name'], label: string): GroupField {
   return {
@@ -41,6 +63,7 @@ function categoryContentGroup(name: (typeof CATEGORIES)[number]['name'], label: 
         label: '画像',
         admin: { description: '最大5枚まで。1枚目がサムネイルとして表示されます。' },
       },
+      ...(name === 'vendor' ? [MENU_FIELD] : []),
     ],
   };
 }
@@ -114,38 +137,6 @@ export const StudentExhibitions: CollectionConfig = {
       admin: { description: '1 つ以上選択する (上限なし)' },
       access: { create: executiveOnlyField, update: executiveOnlyField },
     },
-    ...CATEGORIES.map(({ name, label }) => categoryContentGroup(name, label)),
-    {
-      name: 'performance_slots',
-      type: 'join',
-      collection: 'performance_slots',
-      on: 'exhibition_id',
-      label: 'ステージ出演枠',
-      admin: { description: 'ステージ出演枠' },
-    },
-    {
-      name: 'area_id',
-      type: 'relationship',
-      relationTo: 'map_areas',
-      label: 'マップ配置エリア',
-      admin: { description: '割り当てられた出店エリア' },
-      access: { create: executiveOnlyField, update: executiveOnlyField },
-    },
-    {
-      name: 'booth_number',
-      type: 'number',
-      label: 'ブース番号',
-      admin: { description: '割り当てられた出店グループ内の番号もしくは教室番号' },
-      access: { create: executiveOnlyField, update: executiveOnlyField },
-    },
-    {
-      name: 'booth_label',
-      type: 'text',
-      maxLength: 50,
-      label: 'マップ表示ラベル',
-      admin: { description: '割り当てられた出店エリア名' },
-      access: { create: executiveOnlyField, update: executiveOnlyField },
-    },
     {
       name: 'links',
       type: 'array',
@@ -179,6 +170,46 @@ export const StudentExhibitions: CollectionConfig = {
               : 'URL は https:// で始まる形式で入力してください',
         },
       ],
+    },
+    {
+      name: 'open_days',
+      type: 'text',
+      hasMany: true,
+      required: true,
+      label: '出店日',
+      admin: { components: { Field: './components/EventDayCheckboxes.tsx' } },
+    },
+    ...CATEGORIES.map(({ name, label }) => categoryContentGroup(name, label)),
+    {
+      name: 'performance_slots',
+      type: 'join',
+      collection: 'performance_slots',
+      on: 'exhibition_id',
+      label: 'ステージ出演枠',
+      admin: { description: 'ステージ出演枠' },
+    },
+    {
+      name: 'area_id',
+      type: 'relationship',
+      relationTo: 'map_areas',
+      label: 'マップ配置エリア',
+      admin: { description: '割り当てられた出店エリア' },
+      access: { create: executiveOnlyField, update: executiveOnlyField },
+    },
+    {
+      name: 'booth_number',
+      type: 'number',
+      label: 'ブース番号',
+      admin: { description: '割り当てられた出店グループ内の番号もしくは教室番号' },
+      access: { create: executiveOnlyField, update: executiveOnlyField },
+    },
+    {
+      name: 'booth_label',
+      type: 'text',
+      maxLength: 50,
+      label: 'マップ表示ラベル',
+      admin: { description: '割り当てられた出店エリア名' },
+      access: { create: executiveOnlyField, update: executiveOnlyField },
     },
   ],
 };

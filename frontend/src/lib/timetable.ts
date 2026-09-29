@@ -228,3 +228,21 @@ export async function getExhibitionPerformances(
     })),
   };
 }
+
+/** 開催日程を暦日順の日の一覧にする。取得失敗は例外にせず null */
+export async function getEventDayList(): Promise<
+  readonly TimetableDay[] | null
+> {
+  const meta = await cms.findGlobal('festival_meta');
+  return meta.ok ? toDays(meta.value.event_days) : null;
+}
+
+/** 開催日程の順に、選ばれた日のラベルだけを「・」でつなぐ。範囲外と重複は days を軸にするため出ない */
+export function formatOpenDays(
+  openDayKeys: readonly string[],
+  days: readonly TimetableDay[],
+): string | null {
+  const selected = new Set(openDayKeys);
+  const labels = days.filter((d) => selected.has(d.key)).map((d) => d.label);
+  return labels.length > 0 ? labels.join('・') : null;
+}

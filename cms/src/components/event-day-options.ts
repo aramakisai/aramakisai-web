@@ -40,3 +40,21 @@ export function eventDayLabel(days: readonly EventDay[], current: unknown): stri
   if (!cur) return '';
   return buildEventDayOptions(days, current).find((o) => o.value === cur)?.label ?? '';
 }
+
+export function buildEventDayCheckOptions(
+  days: readonly EventDay[],
+  selected: readonly unknown[],
+): (EventDayOption & { readonly outOfRange: boolean })[] {
+  const options = new Map<string, EventDayOption & { readonly outOfRange: boolean }>();
+  for (const d of days) {
+    const value = eventDayValue(d.start_at);
+    if (value) options.set(value, { label: optionLabel(value, d.label), value, outOfRange: false });
+  }
+  for (const s of selected) {
+    const value = eventDayValue(s);
+    if (value && !options.has(value)) {
+      options.set(value, { label: `${md(value)}(開催日程外)`, value, outOfRange: true });
+    }
+  }
+  return [...options.values()].sort((a, b) => a.value.localeCompare(b.value));
+}

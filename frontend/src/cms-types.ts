@@ -532,6 +532,20 @@ export interface StudentExhibition {
    */
   categories: ('stage' | 'exhibit' | 'vendor' | 'other')[];
   /**
+   * 公式サイト・SNS 等のリンク (並べ替えた順に表示する)
+   */
+  links?:
+    | {
+        platform: 'x' | 'instagram' | 'facebook' | 'youtube' | 'tiktok' | 'line' | 'website';
+        /**
+         * https://から始まるURLを入力してください。
+         */
+        url: string;
+        id?: string | null;
+      }[]
+    | null;
+  open_days: string[];
+  /**
    * カテゴリで「ステージ」を選択したときだけ表示する
    */
   stage?: {
@@ -563,6 +577,16 @@ export interface StudentExhibition {
      * 最大5枚まで。1枚目がサムネイルとして表示されます。
      */
     images?: (number | Media)[] | null;
+    /**
+     * 価格が空の行はサイトに表示されません。
+     */
+    menu?:
+      | {
+          name: string;
+          price?: string | null;
+          id?: string | null;
+        }[]
+      | null;
   };
   /**
    * カテゴリで「その他」を選択したときだけ表示する
@@ -595,19 +619,6 @@ export interface StudentExhibition {
    * 割り当てられた出店エリア名
    */
   booth_label?: string | null;
-  /**
-   * 公式サイト・SNS 等のリンク (並べ替えた順に表示する)
-   */
-  links?:
-    | {
-        platform: 'x' | 'instagram' | 'facebook' | 'youtube' | 'tiktok' | 'line' | 'website';
-        /**
-         * https://から始まるURLを入力してください。
-         */
-        url: string;
-        id?: string | null;
-      }[]
-    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1030,6 +1041,14 @@ export interface StudentExhibitionsSelect<T extends boolean = true> {
   status?: T;
   organization_name?: T;
   categories?: T;
+  links?:
+    | T
+    | {
+        platform?: T;
+        url?: T;
+        id?: T;
+      };
+  open_days?: T;
   stage?:
     | T
     | {
@@ -1050,6 +1069,13 @@ export interface StudentExhibitionsSelect<T extends boolean = true> {
         name?: T;
         description?: T;
         images?: T;
+        menu?:
+          | T
+          | {
+              name?: T;
+              price?: T;
+              id?: T;
+            };
       };
   other?:
     | T
@@ -1062,13 +1088,6 @@ export interface StudentExhibitionsSelect<T extends boolean = true> {
   area_id?: T;
   booth_number?: T;
   booth_label?: T;
-  links?:
-    | T
-    | {
-        platform?: T;
-        url?: T;
-        id?: T;
-      };
   updatedAt?: T;
   createdAt?: T;
 }

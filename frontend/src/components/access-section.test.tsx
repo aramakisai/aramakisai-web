@@ -4,7 +4,13 @@ import { AccessSection } from './access-section';
 
 describe('AccessSection', () => {
   test('見出しと導線を常に表示する', () => {
-    render(<AccessSection venueName={null} accessSummary={null} />);
+    render(
+      <AccessSection
+        venueName={null}
+        accessSummary={null}
+        campusMapUrl={null}
+      />,
+    );
 
     expect(
       screen.getByRole('heading', { level: 2, name: 'アクセス' }),
@@ -15,20 +21,38 @@ describe('AccessSection', () => {
   });
 
   test('会場名・文言がともに未設定のときはどちらも出さず導線のみ表示する', () => {
-    render(<AccessSection venueName={null} accessSummary={null} />);
+    render(
+      <AccessSection
+        venueName={null}
+        accessSummary={null}
+        campusMapUrl={null}
+      />,
+    );
 
     expect(screen.queryByTestId('access-venue-name')).not.toBeInTheDocument();
     expect(screen.queryByTestId('access-summary')).not.toBeInTheDocument();
   });
 
   test('文言が空白のみのときも未設定として扱う', () => {
-    render(<AccessSection venueName={null} accessSummary="   " />);
+    render(
+      <AccessSection
+        venueName={null}
+        accessSummary="   "
+        campusMapUrl={null}
+      />,
+    );
 
     expect(screen.queryByTestId('access-summary')).not.toBeInTheDocument();
   });
 
   test('文言があるときは改行を保って表示する', () => {
-    render(<AccessSection venueName={null} accessSummary={'1行目\n2行目'} />);
+    render(
+      <AccessSection
+        venueName={null}
+        accessSummary={'1行目\n2行目'}
+        campusMapUrl={null}
+      />,
+    );
 
     const summary = screen.getByTestId('access-summary');
     expect(summary).toHaveClass('whitespace-pre-wrap');
@@ -40,6 +64,7 @@ describe('AccessSection', () => {
       <AccessSection
         venueName="群馬大学 荒牧キャンパス"
         accessSummary="最寄駅から徒歩10分"
+        campusMapUrl={null}
       />,
     );
 
@@ -53,6 +78,7 @@ describe('AccessSection', () => {
       <AccessSection
         venueName="群馬大学 荒牧キャンパス"
         accessSummary={null}
+        campusMapUrl={null}
       />,
     );
 
@@ -62,9 +88,27 @@ describe('AccessSection', () => {
     expect(screen.queryByTestId('access-summary')).not.toBeInTheDocument();
   });
 
+  test('campusMapUrl があれば地図をiframeで埋め込む', () => {
+    const url = 'https://www.google.com/maps/embed?pb=abc';
+    const { container } = render(
+      <AccessSection
+        venueName={null}
+        accessSummary={null}
+        campusMapUrl={url}
+      />,
+    );
+
+    expect(container.querySelector('iframe')).toHaveAttribute('src', url);
+    expect(screen.queryByText('地図 (placeholder)')).not.toBeInTheDocument();
+  });
+
   test('会場名が空白のみのときも未設定として扱う', () => {
     render(
-      <AccessSection venueName="   " accessSummary="最寄駅から徒歩10分" />,
+      <AccessSection
+        venueName="   "
+        accessSummary="最寄駅から徒歩10分"
+        campusMapUrl={null}
+      />,
     );
 
     expect(screen.queryByTestId('access-venue-name')).not.toBeInTheDocument();

@@ -1,0 +1,46 @@
+name: Setup Infisical CLI
+description: >
+  apt (curl setup script + apt-get update + apt-get install、6〜18s) を経由せず、
+  Cloudsmith が配布する .deb パッケージから ar/tar でバイナリだけを取り出してインストールする。
+  sudo を使わずユーザー権限で完結し、バージョンを固定してバイナリ自体も actions/cache でキャッシュする。
+
+inputs:
+  version:
+    description: インストールする Infisical CLI のバージョン (apt で入っていた安定版に固定)
+    default: '0.43.137'
+  sha256:
+    description: .deb の SHA256 (version を変えたら Cloudsmith の Packages 索引の値に更新する)
+    default: '08a4fea0f184afb67869188a1342d1e9596ff2a40f64b717a91424fd9f8034b6'
+
+runs:
+  using: composite
+  steps:
+    - name: Cache Infisical CLI binary
+      id: cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ runner.temp }}/infisical-bin
+        key: infisical-cli-${{ inputs.version }}-${{ runner.os }}-${{ runner.arch }}
+
+    - name: Download and extract Infisical CLI
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        WORKDIR=$(mktemp -d)
+        cd "$WORKDIR"
+        curl -sSLf -o infisical.deb \
+          "https://artifacts-cli.infisical.com/deb/pool/stable/i/in/infisical_${{ inputs.version }}_linux_amd64.deb"
+        # apt が行っていた署名検証の代わり。本番シークレットを扱うバイナリなので改ざんを弾く
+        echo "${{ inputs.sha256 }}  infisical.deb" | sha256sum -c -
+        # .deb は ar アーカイブ (debian-binary / control.tar.gz / data.tar.gz)。
+        # dpkg 自体を使わず ar+tar だけで中身を取り出す
+        ar x infisical.deb data.tar.gz
+        tar xzf data.tar.gz ./usr/bin/infisical
+        mkdir -p "${{ runner.temp }}/infisical-bin"
+        mv ./usr/bin/infisical "${{ runner.temp }}/infisical-bin/infisical"
+        chmod +x "${{ runner.temp }}/infisical-bin/infisical"
+
+    - name: Add Infisical CLI to PATH
+      shell: bash
+      run: echo "${{ runner.temp }}/infisical-bin" >> "$GITHUB_PATH"
