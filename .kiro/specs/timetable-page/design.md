@@ -133,6 +133,7 @@ frontend/src/
 ### Modified Files
 - `cms/src/collections/time-slots.ts` — 削除
 - `cms/src/collections/index.ts` — `TimeSlots`を除去
+- `cms/src/components/EventDaySelect.tsx`、`cms/src/components/EventDayCell.tsx` — 出演枠の開催日を開催日程の「1日目(10/29)」形式で選ぶ・表示する管理画面部品(新規)
 - `cms/src/collections/performance-slots.ts` — フィールドを`stage_id`、`event_date`、`start_at`、`end_at`、`exhibition_id`、`title`の順にし、`time_slot_id`を除去。`hooks.beforeValidate`に`performanceTimeConstraint`を追加
 - `cms/src/hooks/constraints.ts` — `toJstMinuteOfDay`/`toSlotWindow`/`validateSlotRange`/`validateSlotEventDate`/`validatePerformanceOverlap`を追加
 - `cms/src/hooks/payload-constraints.ts` — `performanceTimeConstraint`を追加
@@ -253,7 +254,9 @@ sequenceDiagram
 
 **Responsibilities & Constraints**
 - フィールド順: `stage_id`、`event_date`、`start_at`、`end_at`、`exhibition_id`、`title`。`time_slot_id`は持たない
-- `event_date`: `type: 'date'`、`required: true`、ラベル「開催日」、`admin.date.pickerAppearance: 'dayOnly'`、`displayFormat: 'yyyy/MM/dd'`
+- `event_date`: `type: 'date'`、`required: true`、ラベル「開催日」。日付ピッカーは使わず、`admin.components.Field`に`EventDaySelect`、`admin.components.Cell`に`EventDayCell`を指定する
+  - `EventDaySelect`: 祭基本情報の`event_days`を読み、各開催日を「`label`(`M/D`)」(例:「1日目(10/29)」、`label`が空なら「`M/D`」)の選択肢として開催日順に並べる。選ぶと、その開催日のJST暦日のUTC正午を`event_date`に書く。現在値が開催日程のどれとも一致しない場合は「`M/D`(開催日程外)」として選択肢に残す(保存時は1.4の検証で拒否される)。開催日程が空なら選択肢を出さず「祭基本情報で開催日程を登録してください」と表示する
+  - `EventDayCell`: 一覧の開催日列を`EventDaySelect`と同じ文言で表示する
 - `start_at`/`end_at`: `type: 'date'`、`required: true`、ラベル「開始時刻」「終了時刻」、`pickerAppearance: 'timeOnly'`、`displayFormat: 'HH:mm'`、説明文に「日本時間で入力」
 - `hooks.beforeValidate`: `performanceSlotConstraint`、`stageAssignmentConstraint`、`performanceTimeConstraint`
 
