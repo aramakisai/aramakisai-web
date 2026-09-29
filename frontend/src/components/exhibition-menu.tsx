@@ -12,7 +12,7 @@ export function ExhibitionMenu({ items }: ExhibitionMenuProps) {
   return (
     <div className="flex flex-col gap-2">
       <p className="text-xs leading-[140%] text-gray-600">メニュー</p>
-      <table className="w-[280px] max-w-full border-separate border-spacing-y-1 text-sm leading-[140%] text-gray-600">
+      <table className="w-[280px] max-w-full [&_tr+tr>td]:pt-1 text-sm leading-[140%] text-gray-600">
         <tbody>
           {items.map((item, index) => (
             <tr key={index}>

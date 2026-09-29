@@ -30,4 +30,11 @@ describe('ExhibitionMenu', () => {
     ]);
     expect(screen.queryByRole('columnheader')).toBeNull();
   });
+
+  it('行間だけを空け、表の上下には余白を付けない', () => {
+    render(<ExhibitionMenu items={[{ name: 'a', price: '1' }]} />);
+    const table = screen.getByRole('table');
+    expect(table).not.toHaveClass('border-separate');
+    expect(table.className).toContain('[&_tr+tr>td]:pt-1');
+  });
 });
