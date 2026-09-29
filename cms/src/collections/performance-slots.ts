@@ -19,12 +19,31 @@ export const PerformanceSlots: CollectionConfig = {
       admin: { description: 'NOT NULL' },
     },
     {
-      name: 'time_slot_id',
-      type: 'relationship',
-      relationTo: 'time_slots',
+      name: 'event_date',
+      type: 'date',
       required: true,
-      label: 'タイムスロット',
-      admin: { description: 'NOT NULL' },
+      label: '開催日',
+      admin: { date: { pickerAppearance: 'dayOnly', displayFormat: 'yyyy/MM/dd' } },
+    },
+    {
+      name: 'start_at',
+      type: 'date',
+      required: true,
+      label: '開始時刻',
+      admin: {
+        description: '日本時間で入力',
+        date: { pickerAppearance: 'timeOnly', displayFormat: 'HH:mm' },
+      },
+    },
+    {
+      name: 'end_at',
+      type: 'date',
+      required: true,
+      label: '終了時刻',
+      admin: {
+        description: '日本時間で入力',
+        date: { pickerAppearance: 'timeOnly', displayFormat: 'HH:mm' },
+      },
     },
     {
       name: 'exhibition_id',

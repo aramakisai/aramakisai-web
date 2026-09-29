@@ -76,7 +76,6 @@ export interface Config {
     faq_items: FaqItem;
     map_areas: MapArea;
     stages: Stage;
-    time_slots: TimeSlot;
     performance_slots: PerformanceSlot;
     student_exhibitions: StudentExhibition;
     'payload-kv': PayloadKv;
@@ -100,7 +99,6 @@ export interface Config {
     faq_items: FaqItemsSelect<false> | FaqItemsSelect<true>;
     map_areas: MapAreasSelect<false> | MapAreasSelect<true>;
     stages: StagesSelect<false> | StagesSelect<true>;
-    time_slots: TimeSlotsSelect<false> | TimeSlotsSelect<true>;
     performance_slots: PerformanceSlotsSelect<false> | PerformanceSlotsSelect<true>;
     student_exhibitions: StudentExhibitionsSelect<false> | StudentExhibitionsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
@@ -469,19 +467,6 @@ export interface Stage {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "time_slots".
- */
-export interface TimeSlot {
-  id: number;
-  label: string;
-  start_at: string;
-  end_at: string;
-  sort?: number | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "performance_slots".
  */
 export interface PerformanceSlot {
@@ -490,10 +475,15 @@ export interface PerformanceSlot {
    * NOT NULL
    */
   stage_id: number | Stage;
+  event_date: string;
   /**
-   * NOT NULL
+   * 日本時間で入力
    */
-  time_slot_id: number | TimeSlot;
+  start_at: string;
+  /**
+   * 日本時間で入力
+   */
+  end_at: string;
   /**
    * NULL可。団体なし出演はtitleを使用
    */
@@ -757,10 +747,6 @@ export interface PayloadLockedDocument {
         value: number | Stage;
       } | null)
     | ({
-        relationTo: 'time_slots';
-        value: number | TimeSlot;
-      } | null)
-    | ({
         relationTo: 'performance_slots';
         value: number | PerformanceSlot;
       } | null)
@@ -988,23 +974,13 @@ export interface StagesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "time_slots_select".
- */
-export interface TimeSlotsSelect<T extends boolean = true> {
-  label?: T;
-  start_at?: T;
-  end_at?: T;
-  sort?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "performance_slots_select".
  */
 export interface PerformanceSlotsSelect<T extends boolean = true> {
   stage_id?: T;
-  time_slot_id?: T;
+  event_date?: T;
+  start_at?: T;
+  end_at?: T;
   exhibition_id?: T;
   title?: T;
   updatedAt?: T;
