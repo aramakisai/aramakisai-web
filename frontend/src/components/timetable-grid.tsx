@@ -1,8 +1,12 @@
 import Link from 'next/link';
 import { useId } from 'react';
-import { ChevronRightIcon } from './icons';
-import { formatEventDayTime, toJstParts } from '@/lib/event-day';
-import type { TimetablePerformance, TimetableStage } from '@/lib/timetable';
+import { ChevronRightIcon, PlayCircleIcon } from './icons';
+import { formatEventDayTime, toJstDateKey, toJstParts } from '@/lib/event-day';
+import {
+  isPerformanceActive,
+  type TimetablePerformance,
+  type TimetableStage,
+} from '@/lib/timetable';
 import { STAGE_BAND_CLASSES } from './timetable-stage-colors';
 
 const PX_PER_MINUTE = 4;
@@ -26,9 +30,14 @@ export interface TimetableGridProps {
   readonly stages: readonly TimetableStage[];
   /** 選択日の出演枠 (開始時刻順) */
   readonly performances: readonly TimetablePerformance[];
+  readonly now: Date;
 }
 
-export function TimetableGrid({ stages, performances }: TimetableGridProps) {
+export function TimetableGrid({
+  stages,
+  performances,
+  now,
+}: TimetableGridProps) {
   const rangeStart =
     Math.floor(
       Math.min(...performances.map((p) => minuteOfDay(p.slot.startAt))) / 60,
@@ -41,10 +50,17 @@ export function TimetableGrid({ stages, performances }: TimetableGridProps) {
   const ticks: number[] = [];
   for (let m = rangeStart; m <= rangeEnd; m += 30) ticks.push(m);
 
+  const nowIso = now.toISOString();
+  const nowMinute = minuteOfDay(nowIso);
+  const showNow =
+    toJstDateKey(nowIso) === performances[0].slot.dateKey &&
+    nowMinute >= rangeStart &&
+    nowMinute <= rangeEnd;
+
   return (
     <div data-testid="timetable-grid" className="overflow-x-auto pb-5">
       <div
-        className="flex"
+        className="relative flex"
         style={{ minWidth: TIME_COL_PX + stages.length * MIN_COL_PX }}
       >
         <div
@@ -83,9 +99,29 @@ export function TimetableGrid({ stages, performances }: TimetableGridProps) {
               rangeStart={rangeStart}
               bodyHeight={bodyHeight}
               performances={performances.filter((p) => p.stageId === stage.id)}
+              now={now}
             />
           ))}
         </div>
+        {showNow && (
+          <div
+            aria-hidden="true"
+            data-testid="timetable-now"
+            className="pointer-events-none absolute inset-x-0 z-10 h-[21px] tabular-nums"
+            // 線 (2px) の中心を時刻の位置に合わせる
+            style={{
+              top: 48 + (nowMinute - rangeStart) * PX_PER_MINUTE - 10.5,
+            }}
+          >
+            <span className="absolute top-0 left-[23px] rounded-full bg-text px-2 py-0.5 text-xs leading-[1.4] text-background">
+              {hhmm(nowMinute)}
+            </span>
+            <span
+              className="absolute top-[9.5px] right-0 h-0.5 bg-text"
+              style={{ left: TIME_COL_PX }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -97,7 +133,9 @@ function StageColumn({
   rangeStart,
   bodyHeight,
   performances,
+  now,
 }: {
+  readonly now: Date;
   readonly stage: TimetableStage;
   readonly bandClass: string;
   readonly rangeStart: number;
@@ -121,7 +159,12 @@ function StageColumn({
       </div>
       <ul className="relative" style={{ height: bodyHeight }}>
         {performances.map((p) => (
-          <SlotItem key={p.id} performance={p} rangeStart={rangeStart} />
+          <SlotItem
+            key={p.id}
+            performance={p}
+            rangeStart={rangeStart}
+            active={isPerformanceActive(p.slot, now)}
+          />
         ))}
       </ul>
     </section>
@@ -131,31 +174,51 @@ function StageColumn({
 function SlotItem({
   performance: p,
   rangeStart,
+  active,
 }: {
   readonly performance: TimetablePerformance;
   readonly rangeStart: number;
+  readonly active: boolean;
 }) {
   const start = minuteOfDay(p.slot.startAt);
   const duration = minuteOfDay(p.slot.endAt) - start;
   const compact = duration < COMPACT_UNDER_MINUTES;
   const time = `${formatEventDayTime(p.slot.startAt)}〜${formatEventDayTime(p.slot.endAt)}`;
-  const card =
-    'relative block h-full overflow-hidden rounded-sm border border-gray-200 bg-gray-100 p-[6px] text-text';
+  const card = `relative block h-full overflow-hidden rounded-sm text-text ${
+    active ? 'bg-info p-2' : 'border border-gray-200 bg-gray-100 p-[6px]'
+  }`;
+  const live = active && (
+    <>
+      <PlayCircleIcon size={14} className="mr-0.5 shrink-0" />
+      <span className="shrink-0 text-xs font-bold">出演中</span>
+    </>
+  );
+  const timeClass = `text-xs ${active ? '' : 'text-gray-600'}`;
   const body = compact ? (
     <span className="flex items-center gap-1 leading-[1.4] tabular-nums">
-      <span className="shrink-0 text-xs text-gray-600">{time}</span>
+      {live}
+      <span className={`shrink-0 ${timeClass}`}>{time}</span>
       <span className="truncate text-sm font-bold">{p.name}</span>
     </span>
   ) : (
     <>
-      <span className="block text-xs leading-[1.4] text-gray-600 tabular-nums">
-        {time}
+      <span className="flex items-center gap-1 text-xs leading-[1.4] tabular-nums">
+        {live}
+        <span className={timeClass}>{time}</span>
       </span>
       <span className="mt-0.5 block text-sm font-bold leading-[1.4]">
         {p.name}
       </span>
     </>
   );
+  const current = active ? { 'aria-current': 'true' as const } : {};
+  const chevronTop = compact
+    ? active
+      ? 'top-2'
+      : 'top-[5px]'
+    : active
+      ? 'top-[26.8px]'
+      : 'top-[24px]';
   return (
     // 上下左右の余白は li の padding で取り、top/height は時間軸の目盛りそのものにする
     <li
@@ -166,15 +229,17 @@ function SlotItem({
       }}
     >
       {p.href ? (
-        <Link href={p.href} className={`${card} pr-9`}>
+        <Link href={p.href} className={`${card} pr-9`} {...current}>
           {body}
           <ChevronRightIcon
             size={20}
-            className={`absolute right-2 ${compact ? 'top-[5px]' : 'top-[24px]'}`}
+            className={`absolute right-2 ${chevronTop}`}
           />
         </Link>
       ) : (
-        <div className={card}>{body}</div>
+        <div className={card} {...current}>
+          {body}
+        </div>
       )}
     </li>
   );

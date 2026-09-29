@@ -75,6 +75,7 @@ export const MailIcon = createIcon('icon-mail', 'mail');
 export const OpenInNewIcon = createIcon('icon-open-in-new', 'open_in_new');
 export const PauseIcon = createIcon('icon-pause', 'pause');
 export const PlayArrowIcon = createIcon('icon-play-arrow', 'play_arrow');
+export const PlayCircleIcon = createIcon('icon-play-circle', 'play_circle');
 export const CloseIcon = createIcon('icon-close', 'close');
 export const DraftIcon = createIcon('icon-draft', 'draft');
 

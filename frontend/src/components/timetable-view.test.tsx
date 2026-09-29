@@ -1,7 +1,11 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { describe, expect, test } from 'vitest';
+import { act } from 'react';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import { TimetableView } from './timetable-view';
 import type { Timetable, TimetablePerformance } from '@/lib/timetable';
+
+// isPerformanceActive を持つ lib/timetable が cms クライアント経由で env を読み込むため
+vi.mock('@/lib/cms', () => ({ cms: {} }));
 
 function perf(
   id: number,
@@ -170,5 +174,69 @@ describe('TimetableGrid (PC)', () => {
     expect(link).toHaveAttribute('href', '/exhibitions/5/stage');
     expect(link).toHaveTextContent('10:30〜11:00');
     expect(within(link).getByTestId('icon-chevron-right')).toBeInTheDocument();
+  });
+});
+
+describe('現在出演中の強調と現在時刻の線', () => {
+  afterEach(() => vi.useRealTimers());
+
+  function renderAt(hhmm: string, dayKey = '2026-11-14') {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(jst('2026-11-14', hhmm)));
+    return render(
+      <TimetableView
+        timetable={timetable}
+        initialDayKey={dayKey}
+        renderedAt={jst('2026-11-14', hhmm)}
+      />,
+    );
+  }
+
+  test('出演中の枠に「出演中」と現在位置の属性が付き、他は付かない', () => {
+    renderAt('10:05');
+    const current = within(pc()).getByText('開会式').closest('li')!;
+    expect(current).toHaveTextContent('出演中');
+    expect(current.querySelector('[aria-current="true"]')).not.toBeNull();
+    expect(
+      within(pc()).getByText('軽音楽部').closest('li'),
+    ).not.toHaveTextContent('出演中');
+    const row = within(sp()).getByText('開会式').closest('li')!;
+    expect(row).toHaveTextContent('出演中');
+    expect(row.querySelector('[aria-current="true"]')).not.toBeNull();
+  });
+
+  test('現在時刻の線は選択日が今日で範囲内のときだけ出る', () => {
+    const { unmount } = renderAt('10:05');
+    const line = screen.getByTestId('timetable-now');
+    expect(line).toHaveAttribute('aria-hidden', 'true');
+    expect(line).toHaveTextContent('10:05');
+    // 範囲 10:00 開始、48px の見出し + 5分×4px - 線の中心 10.5px
+    expect(line.style.top).toBe('57.5px');
+    unmount();
+    renderAt('10:05', '2026-11-15');
+    expect(screen.queryByTestId('timetable-now')).toBeNull();
+    expect(screen.queryByText('出演中')).toBeNull();
+  });
+
+  test('範囲外の時刻では線を出さない', () => {
+    renderAt('09:00');
+    expect(screen.queryByTestId('timetable-now')).toBeNull();
+  });
+
+  test('時刻を進めると強調が次の枠へ移る', () => {
+    renderAt('10:05');
+    expect(within(sp()).getByText('開会式').closest('li')).toHaveTextContent(
+      '出演中',
+    );
+    act(() => {
+      vi.setSystemTime(new Date(jst('2026-11-14', '10:35')));
+      vi.advanceTimersByTime(30_000);
+    });
+    expect(
+      within(sp()).getByText('開会式').closest('li'),
+    ).not.toHaveTextContent('出演中');
+    expect(within(sp()).getByText('軽音楽部').closest('li')).toHaveTextContent(
+      '出演中',
+    );
   });
 });

@@ -41,6 +41,7 @@ const MATERIAL_SYMBOLS_ICON_NAMES = [
   'parking_sign',
   'pause',
   'play_arrow',
+  'play_circle',
   'search',
   'share',
 ].join(',');

@@ -2,11 +2,16 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { ChevronRightIcon } from './icons';
+import { ChevronRightIcon, PlayCircleIcon } from './icons';
 import { TimetableGrid } from './timetable-grid';
 import { STAGE_BAND_CLASSES } from './timetable-stage-colors';
 import { formatEventDayTime } from '@/lib/event-day';
-import type { Timetable, TimetablePerformance } from '@/lib/timetable';
+import { useNow } from '@/lib/use-now';
+import {
+  isPerformanceActive,
+  type Timetable,
+  type TimetablePerformance,
+} from '@/lib/timetable';
 
 export interface TimetableViewProps {
   readonly timetable: Timetable;
@@ -19,7 +24,9 @@ const EMPTY_TEXT = '出演予定はありません';
 export function TimetableView({
   timetable,
   initialDayKey,
+  renderedAt,
 }: TimetableViewProps) {
+  const now = useNow(renderedAt);
   const { days, stages, performances } = timetable;
   const [dayKey, setDayKey] = useState(initialDayKey);
   const [stageId, setStageId] = useState(stages[0]?.id ?? null);
@@ -58,7 +65,11 @@ export function TimetableView({
 
       <div className="hidden lg:block">
         {dayPerformances.length > 0 ? (
-          <TimetableGrid stages={stages} performances={dayPerformances} />
+          <TimetableGrid
+            stages={stages}
+            performances={dayPerformances}
+            now={now}
+          />
         ) : (
           <p className="text-gray-600">{EMPTY_TEXT}</p>
         )}
@@ -98,7 +109,11 @@ export function TimetableView({
           {stagePerformances.length > 0 ? (
             <ul>
               {stagePerformances.map((p) => (
-                <ListRow key={p.id} performance={p} />
+                <ListRow
+                  key={p.id}
+                  performance={p}
+                  active={isPerformanceActive(p.slot, now)}
+                />
               ))}
             </ul>
           ) : (
@@ -112,8 +127,10 @@ export function TimetableView({
 
 function ListRow({
   performance: p,
+  active,
 }: {
   readonly performance: TimetablePerformance;
+  readonly active: boolean;
 }) {
   const content = (
     <>
@@ -125,19 +142,31 @@ function ListRow({
           〜{formatEventDayTime(p.slot.endAt)}
         </span>
       </span>
-      <span className="min-w-0 flex-1 text-base leading-[1.6]">{p.name}</span>
+      <span className="flex min-w-0 flex-1 flex-col gap-1">
+        {active && (
+          <span className="flex items-center gap-0.5 text-xs leading-[1.4]">
+            <PlayCircleIcon size={14} />
+            出演中
+          </span>
+        )}
+        <span className="text-base leading-[1.6]">{p.name}</span>
+      </span>
       {p.href && <ChevronRightIcon size={20} />}
     </>
   );
-  const row = 'flex items-center gap-3 p-4 text-text';
+  // 強調は塗りを画面幅まで広げ、その分 px を足して文字位置を他の行と揃える
+  const row = `flex items-center gap-3 p-4 text-text ${active ? 'px-8' : ''}`;
+  const current = active ? { 'aria-current': 'true' as const } : {};
   return (
-    <li className="border-b border-gray-200">
+    <li className={`border-b border-gray-200 ${active ? '-mx-4 bg-info' : ''}`}>
       {p.href ? (
-        <Link href={p.href} className={row}>
+        <Link href={p.href} className={row} {...current}>
           {content}
         </Link>
       ) : (
-        <div className={row}>{content}</div>
+        <div className={row} {...current}>
+          {content}
+        </div>
       )}
     </li>
   );
