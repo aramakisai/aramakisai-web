@@ -10,6 +10,7 @@ aramakisai-web の `frontend/` (Next.js / OpenNext / Cloudflare Workers) を実�
 
 - 作業ディレクトリは `frontend/`。コマンドは `frontend/` で実行する。
 - Edge Runtime 制約のため Node.js 専用 API は使用不可。
+- 開発サーバーはリポジトリルートの `make dev` (CMS は `make cms`) 経由で起動する。`pnpm dev` / `next dev` の直接実行は禁止 (hook でブロックされる)。ポートは worktree ごとに自動決定されるため指定しない。他 worktree・他人のサーバーは止めない。Bash では `run_in_background` で `make dev` を実行する。
 - コードコメントには非自明な WHY だけを書く。WHAT・変更履歴・タスク ID 参照は書かない。
 - 日本語で報告する。
 

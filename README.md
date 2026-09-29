@@ -20,7 +20,8 @@ cms/        Payload CMS アプリケーション
 ```bash
 cd frontend
 pnpm install
-pnpm dev   # http://localhost:3000
+cd ..
+make dev   # worktree ごとに決まるポートで起動
 ```
 
 ## ライセンス
