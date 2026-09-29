@@ -95,8 +95,12 @@ describe('HeroSection', () => {
     Array.from(images)
       .slice(1)
       .forEach((image) =>
-        expect(image).toHaveAttribute('fetchpriority', 'auto'),
+        expect(image).toHaveAttribute('fetchpriority', 'low'),
       );
+    expect(images[0]).not.toHaveAttribute('loading');
+    images.forEach((image, i) => {
+      if (i > 0) expect(image).toHaveAttribute('loading', 'lazy');
+    });
   });
 
   test('renders nothing when there are no images', () => {

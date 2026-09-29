@@ -49,6 +49,19 @@ export function HeroSection({
   const [activeIndex, setActiveIndex] = useState(0);
   const [timerResetKey, setTimerResetKey] = useState(0);
   const { reduced } = useMotionPreference();
+  const [warm, setWarm] = useState(false);
+
+  // 2 枚目以降は非表示でも viewport 内なので loading=lazy だけでは初回に取得されてしまう。
+  // 1 枚目 (LCP) を含む初回ロードの完了後に src を与える
+  useEffect(() => {
+    if (document.readyState === 'complete') {
+      setWarm(true);
+      return;
+    }
+    const onLoad = () => setWarm(true);
+    window.addEventListener('load', onLoad);
+    return () => window.removeEventListener('load', onLoad);
+  }, []);
 
   useEffect(() => {
     if (imageCount <= 1 || reduced) return;
@@ -103,10 +116,11 @@ export function HeroSection({
             }`}
           >
             <img
-              src={src}
+              src={index === 0 || warm || isActive ? src : undefined}
               alt=""
               draggable={false}
-              fetchPriority={index === 0 ? 'high' : 'auto'}
+              loading={index === 0 ? undefined : 'lazy'}
+              fetchPriority={index === 0 ? 'high' : 'low'}
               className="h-full w-full object-cover object-center"
             />
           </div>
