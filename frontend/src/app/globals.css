@@ -395,5 +395,7 @@
     inset: 0;
     background-image: var(--exhibition-texture, none);
     background-size: cover;
+    /* 質感画像は中間グレー中心の無彩色なので、overlay で重ねて地のグラデーションの色を残す */
+    mix-blend-mode: overlay;
   }
 }
