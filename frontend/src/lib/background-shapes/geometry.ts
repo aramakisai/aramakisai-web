@@ -19,15 +19,6 @@ export function infRadius(D: number): number {
   return 0.5 * Math.hypot(w, h);
 }
 
-export function pad(rects: readonly Rect[], m: number): Rect[] {
-  return rects.map((r) => ({
-    x: r.x - m,
-    y: r.y - m,
-    w: r.w + 2 * m,
-    h: r.h + 2 * m,
-  }));
-}
-
 export function circleIntersectsRect(
   cx: number,
   cy: number,
@@ -73,9 +64,9 @@ export function collisionOk(
 }
 
 /**
- * 装飾範囲の外に出ていないか・横のはみ出しが許容量以内か・文字/重ねない要素
- * (呼び出し側で +10px 済み) や不透明な面と重ならないかをまとめて判定する。
- * 図形同士の間隔 (collisionOk) は配置順に依存するためここには含めない。
+ * 装飾範囲の外に出ていないか・横のはみ出しが許容量以内か・不透明な面と
+ * 重ならないかをまとめて判定する。図形同士の間隔 (collisionOk) は配置順に
+ * 依存するためここには含めない。
  */
 export function shapeFits(
   cx: number,
@@ -85,13 +76,11 @@ export function shapeFits(
   decorTop: number,
   decorBottom: number,
   xOverflow: number,
-  obstaclePad: readonly Rect[],
   opaque: readonly Rect[],
 ): boolean {
   if (cy - r < decorTop - 1e-6 || cy + r > decorBottom + 1e-6) return false;
   if (cx - r < -xOverflow - 1e-6 || cx + r > width + xOverflow + 1e-6)
     return false;
-  if (circleIntersectsAny(cx, cy, r, obstaclePad)) return false;
   if (circleIntersectsAny(cx, cy, r, opaque)) return false;
   return true;
 }

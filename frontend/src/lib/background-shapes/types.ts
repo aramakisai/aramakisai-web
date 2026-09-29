@@ -30,8 +30,6 @@ export interface PlacementInput {
   height: number;
   decorTop: number; // ヘッダー (ヒーローがあればその) 下端
   decorBottom: number; // フッター (SP は下部タブナビ) 上端
-  text: readonly Rect[]; // 黒文字の外接矩形
-  noOverlap: readonly Rect[]; // 文字リンク・白文字・ロゴ
   opaque: readonly Rect[]; // 不透明な面
 }
 

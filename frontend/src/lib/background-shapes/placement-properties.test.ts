@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { bboxRadius, circleIntersectsRect, infRadius, pad } from './geometry';
+import { bboxRadius, circleIntersectsRect, infRadius } from './geometry';
 import { placeBackgroundShapes } from './placement';
 import type { PlacedShape, PlacementInput, PlacementResult } from './types';
 
@@ -41,13 +41,12 @@ function radiusOf(shape: PlacedShape): number {
 
 describe('placeBackgroundShapes: 簡易ルール (rules.md) の性質', () => {
   it.each(FIXTURE_NAMES)(
-    '%s: 図形は文字・重ねない要素 (+10px)・不透明な面の矩形と外接円で重ならない',
+    '%s: 図形は不透明な面の矩形と外接円で重ならない',
     (name) => {
       const { input, result } = placed.get(name)!;
-      const obstaclePad = pad([...input.text, ...input.noOverlap], 10);
       for (const shape of result.shapes) {
         const r = radiusOf(shape);
-        for (const rect of [...obstaclePad, ...input.opaque]) {
+        for (const rect of input.opaque) {
           expect(circleIntersectsRect(shape.cx, shape.cy, r, rect)).toBe(false);
         }
       }
@@ -77,14 +76,14 @@ describe('placeBackgroundShapes: 簡易ルール (rules.md) の性質', () => {
   });
 
   it.each(FIXTURE_NAMES)(
-    '%s: ∞ と S はページ左右端からはみ出さない',
+    '%s: 全階層とも外接円のはみ出しは一辺 (∞ は直径) の 0.4 倍以内',
     (name) => {
       const { input, result } = placed.get(name)!;
       for (const shape of result.shapes) {
-        if (shape.tier === 'L') continue;
         const r = radiusOf(shape);
-        expect(shape.cx - r).toBeGreaterThanOrEqual(-1e-6);
-        expect(shape.cx + r).toBeLessThanOrEqual(input.width + 1e-6);
+        const overflow = 0.4 * shape.size;
+        expect(shape.cx - r).toBeGreaterThanOrEqual(-overflow - 1e-6);
+        expect(shape.cx + r).toBeLessThanOrEqual(input.width + overflow + 1e-6);
       }
     },
   );

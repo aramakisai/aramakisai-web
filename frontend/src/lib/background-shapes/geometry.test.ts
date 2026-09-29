@@ -5,7 +5,6 @@ import {
   collisionOk,
   infBbox,
   infRadius,
-  pad,
   shapeFits,
 } from './geometry';
 
@@ -21,14 +20,6 @@ describe('infBbox / infRadius: ∞ の外接矩形と外接円半径', () => {
     expect(w).toBeCloseTo(0.74 * 140 + 140, 10);
     expect(h).toBe(140);
     expect(infRadius(140)).toBeCloseTo(0.5 * Math.hypot(w, h), 10);
-  });
-});
-
-describe('pad: 矩形を四辺方向に広げる', () => {
-  it('中心を保ったまま幅・高さを 2m 広げる', () => {
-    expect(pad([{ x: 10, y: 10, w: 20, h: 30 }], 5)).toEqual([
-      { x: 5, y: 5, w: 30, h: 40 },
-    ]);
   });
 });
 
@@ -63,42 +54,25 @@ describe('collisionOk: 外接円どうしのガター (既定 24px) 判定', () 
 });
 
 describe('shapeFits: 装飾範囲・横のはみ出し・障害物の合成判定', () => {
-  const obstaclePad = pad([{ x: 400, y: 400, w: 200, h: 200 }], 10);
   const opaque = [{ x: 600, y: 600, w: 200, h: 200 }];
 
   it('装飾範囲内・障害物と重ならなければ true', () => {
-    expect(
-      shapeFits(200, 500, 50, 1000, 300, 900, 0, obstaclePad, opaque),
-    ).toBe(true);
+    expect(shapeFits(200, 500, 50, 1000, 300, 900, 0, opaque)).toBe(true);
   });
 
   it('装飾範囲の上端をはみ出すと false', () => {
-    expect(
-      shapeFits(200, 310, 50, 1000, 300, 900, 0, obstaclePad, opaque),
-    ).toBe(false);
+    expect(shapeFits(200, 310, 50, 1000, 300, 900, 0, opaque)).toBe(false);
   });
 
   it('横のはみ出しが許容量 (xOverflow) を超えると false', () => {
-    expect(
-      shapeFits(-25, 500, 20, 1000, 300, 900, 40, obstaclePad, opaque),
-    ).toBe(false);
+    expect(shapeFits(-25, 500, 20, 1000, 300, 900, 40, opaque)).toBe(false);
   });
 
   it('横のはみ出しが許容量以内なら true', () => {
-    expect(
-      shapeFits(-15, 500, 20, 1000, 300, 900, 40, obstaclePad, opaque),
-    ).toBe(true);
-  });
-
-  it('文字/重ねない要素 (+10px 済み) と重なると false', () => {
-    expect(
-      shapeFits(420, 420, 30, 1000, 300, 900, 0, obstaclePad, opaque),
-    ).toBe(false);
+    expect(shapeFits(-15, 500, 20, 1000, 300, 900, 40, opaque)).toBe(true);
   });
 
   it('不透明な面と重なると false', () => {
-    expect(
-      shapeFits(650, 650, 30, 1000, 300, 900, 0, obstaclePad, opaque),
-    ).toBe(false);
+    expect(shapeFits(650, 650, 30, 1000, 300, 900, 0, opaque)).toBe(false);
   });
 });

@@ -1,4 +1,4 @@
-import { bboxRadius, collisionOk, infRadius, pad, shapeFits } from './geometry';
+import { bboxRadius, collisionOk, infRadius, shapeFits } from './geometry';
 import { fnv1a, mulberry32 } from './rng';
 import type {
   Platform,
@@ -151,7 +151,6 @@ function placeWithShrink(
 
 export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
   const { pathname, platform, width, height, decorTop, decorBottom } = input;
-  const obstaclePad = pad([...input.text, ...input.noOverlap], 10);
   const opaque = input.opaque;
   const decorHeight = decorBottom - decorTop;
 
@@ -170,21 +169,10 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
     const rot = rng.uniform(-12, 12);
     const initialD = rng.uniform(dLo, dHi);
     const found = placeWithShrink(initialD, dLo, infRadius, (size, r) => {
-      const cx = rng.uniform(0, width);
+      const overflow = 0.4 * size;
+      const cx = rng.uniform(-overflow, width + overflow);
       const cy = rng.uniform(decorTop, decorBottom);
-      if (
-        !shapeFits(
-          cx,
-          cy,
-          r,
-          width,
-          decorTop,
-          decorBottom,
-          0,
-          obstaclePad,
-          opaque,
-        )
-      )
+      if (!shapeFits(cx, cy, r, width, decorTop, decorBottom, overflow, opaque))
         return null;
       if (!collisionOk(cx, cy, r, placed, GUTTER)) return null;
       return { cx, cy, r };
@@ -222,19 +210,7 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
       const overflow = 0.4 * size;
       const cx = rng.uniform(-overflow, width + overflow);
       const cy = rng.uniform(segTop, segBottom);
-      if (
-        !shapeFits(
-          cx,
-          cy,
-          r,
-          width,
-          decorTop,
-          decorBottom,
-          overflow,
-          obstaclePad,
-          opaque,
-        )
-      )
+      if (!shapeFits(cx, cy, r, width, decorTop, decorBottom, overflow, opaque))
         return null;
       if (!collisionOk(cx, cy, r, placed, GUTTER)) return null;
       return { cx, cy, r };
@@ -285,21 +261,10 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
     const rot = rng.randint(360);
     const initialS = rng.uniform(sLo, sHi);
     const found = placeWithShrink(initialS, sLo, bboxRadius, (size, r) => {
-      const cx = rng.uniform(0, width);
+      const overflow = 0.4 * size;
+      const cx = rng.uniform(-overflow, width + overflow);
       const cy = rng.uniform(decorTop, decorBottom);
-      if (
-        !shapeFits(
-          cx,
-          cy,
-          r,
-          width,
-          decorTop,
-          decorBottom,
-          0,
-          obstaclePad,
-          opaque,
-        )
-      )
+      if (!shapeFits(cx, cy, r, width, decorTop, decorBottom, overflow, opaque))
         return null;
       if (!collisionOk(cx, cy, r, placed, GUTTER)) return null;
       return { cx, cy, r };

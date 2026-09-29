@@ -41,20 +41,7 @@ afterEach(() => {
 });
 
 describe('collectObstacles', () => {
-  it('文字色の輝度が 0.5 未満の直下テキストを text に分類する', () => {
-    const { root, main } = buildPage();
-    const p = document.createElement('p');
-    p.textContent = '本文';
-    p.style.color = 'rgb(20, 20, 20)';
-    main.appendChild(p);
-    stubRect(p, { x: 10, y: 20, width: 100, height: 24 });
-
-    const { text } = collectObstacles(root);
-
-    expect(text).toContainEqual({ x: 10, y: 20, w: 100, h: 24 });
-  });
-
-  it('地を持たない a (文字リンク) を noOverlap に分類する', () => {
+  it('地を持たない a (文字リンク) は opaque に分類しない', () => {
     const { root, main } = buildPage();
     const a = document.createElement('a');
     a.href = '#';
@@ -62,37 +49,12 @@ describe('collectObstacles', () => {
     main.appendChild(a);
     stubRect(a, { x: 10, y: 20, width: 80, height: 24 });
 
-    const { noOverlap, opaque } = collectObstacles(root);
+    const { opaque } = collectObstacles(root);
 
-    expect(noOverlap).toContainEqual({ x: 10, y: 20, w: 80, h: 24 });
     expect(opaque).toHaveLength(0);
   });
 
-  it('地を持たないブロックリンク (行全体を包む a) は要素全体ではなく中の文字・アイコンのグリフ範囲だけを noOverlap にする', () => {
-    const { root, main } = buildPage();
-    const a = document.createElement('a');
-    a.href = '#';
-    const title = document.createElement('h3');
-    title.textContent = 'お知らせタイトル';
-    const icon = document.createElement('span');
-    icon.className = 'material-symbols-sharp';
-    icon.textContent = 'chevron_right';
-    a.append(title, icon);
-    main.appendChild(a);
-    // 行全体を包むブロックリンクなので要素自体の矩形は本文列の幅いっぱいになる
-    stubRect(a, { x: 0, y: 100, width: 1024, height: 80 });
-    stubRect(title, { x: 16, y: 120, width: 300, height: 24 });
-    stubRect(icon, { x: 980, y: 128, width: 24, height: 24 });
-
-    const { noOverlap, opaque } = collectObstacles(root);
-
-    expect(noOverlap).toContainEqual({ x: 16, y: 120, w: 300, h: 24 });
-    expect(noOverlap).toContainEqual({ x: 980, y: 128, w: 24, h: 24 });
-    expect(noOverlap).not.toContainEqual({ x: 0, y: 100, w: 1024, h: 80 });
-    expect(opaque).toHaveLength(0);
-  });
-
-  it('地を持たないブロックリンクの中の img は opaque として別に集め、noOverlap には含めない', () => {
+  it('地を持たないブロックリンク (行全体を包む a) の中の img は opaque に分類し、a 自身の矩形は含めない', () => {
     const { root, main } = buildPage();
     const a = document.createElement('a');
     a.href = '#';
@@ -105,39 +67,10 @@ describe('collectObstacles', () => {
     stubRect(thumb, { x: 0, y: 100, width: 80, height: 80 });
     stubRect(title, { x: 96, y: 120, width: 300, height: 24 });
 
-    const { noOverlap, opaque } = collectObstacles(root);
+    const { opaque } = collectObstacles(root);
 
     expect(opaque).toContainEqual({ x: 0, y: 100, w: 80, h: 80 });
-    expect(noOverlap).toContainEqual({ x: 96, y: 120, w: 300, h: 24 });
-    expect(noOverlap).not.toContainEqual({ x: 0, y: 100, w: 80, h: 80 });
-    expect(noOverlap).not.toContainEqual({ x: 0, y: 100, w: 1024, h: 80 });
-  });
-
-  it('summary は行全体の矩形を noOverlap に分類し、中の質問文・アイコンは個別に集めない', () => {
-    const { root, main } = buildPage();
-    const details = document.createElement('details');
-    const summary = document.createElement('summary');
-    const question = document.createElement('span');
-    question.textContent = '質問文';
-    question.style.color = 'rgb(0, 0, 0)';
-    const icon = document.createElement('span');
-    icon.setAttribute('aria-hidden', 'true');
-    icon.className = 'material-symbols-sharp';
-    icon.textContent = 'add';
-    summary.append(question, icon);
-    details.appendChild(summary);
-    main.appendChild(details);
-    stubRect(summary, { x: 0, y: 100, width: 1024, height: 56 });
-    stubRect(question, { x: 16, y: 116, width: 300, height: 24 });
-    stubRect(icon, { x: 980, y: 116, width: 24, height: 24 });
-
-    const { noOverlap, text, opaque } = collectObstacles(root);
-
-    expect(noOverlap).toContainEqual({ x: 0, y: 100, w: 1024, h: 56 });
-    expect(noOverlap).not.toContainEqual({ x: 16, y: 116, w: 300, h: 24 });
-    expect(noOverlap).not.toContainEqual({ x: 980, y: 116, w: 24, h: 24 });
-    expect(text).toHaveLength(0);
-    expect(opaque).toHaveLength(0);
+    expect(opaque).not.toContainEqual({ x: 0, y: 100, w: 1024, h: 80 });
   });
 
   it('地を持つ a を opaque に分類する', () => {
@@ -149,24 +82,9 @@ describe('collectObstacles', () => {
     main.appendChild(a);
     stubRect(a, { x: 10, y: 20, width: 120, height: 40 });
 
-    const { opaque, noOverlap } = collectObstacles(root);
+    const { opaque } = collectObstacles(root);
 
     expect(opaque).toContainEqual({ x: 10, y: 20, w: 120, h: 40 });
-    expect(noOverlap).toHaveLength(0);
-  });
-
-  it('文字色の輝度が 0.85 超の白文字を noOverlap に分類する', () => {
-    const { root, main } = buildPage();
-    const p = document.createElement('p');
-    p.textContent = '白文字';
-    p.style.color = 'rgb(250, 250, 250)';
-    main.appendChild(p);
-    stubRect(p, { x: 10, y: 20, width: 100, height: 24 });
-
-    const { noOverlap, text } = collectObstacles(root);
-
-    expect(noOverlap).toContainEqual({ x: 10, y: 20, w: 100, h: 24 });
-    expect(text).toHaveLength(0);
   });
 
   it('[data-bg-opaque] の面を opaque に分類し、内側の文字は個別に集めない', () => {
@@ -175,16 +93,14 @@ describe('collectObstacles', () => {
     card.setAttribute('data-bg-opaque', 'true');
     const title = document.createElement('h3');
     title.textContent = 'カード見出し';
-    title.style.color = 'rgb(10, 10, 10)';
     card.appendChild(title);
     main.appendChild(card);
     stubRect(card, { x: 0, y: 100, width: 300, height: 200 });
     stubRect(title, { x: 10, y: 110, width: 200, height: 24 });
 
-    const { opaque, text } = collectObstacles(root);
+    const { opaque } = collectObstacles(root);
 
-    expect(opaque).toContainEqual({ x: 0, y: 100, w: 300, h: 200 });
-    expect(text).toHaveLength(0);
+    expect(opaque).toEqual([{ x: 0, y: 100, w: 300, h: 200 }]);
   });
 
   it('img 要素を opaque に分類する', () => {
@@ -214,17 +130,15 @@ describe('collectObstacles', () => {
     const { root, main } = buildPage();
     const hidden = document.createElement('div');
     hidden.setAttribute('aria-hidden', 'true');
-    const p = document.createElement('p');
-    p.textContent = '隠れた本文';
-    p.style.color = 'rgb(0, 0, 0)';
-    hidden.appendChild(p);
+    const img = document.createElement('img');
+    hidden.appendChild(img);
     main.appendChild(hidden);
     stubRect(hidden, { x: 0, y: 0, width: 400, height: 800 });
-    stubRect(p, { x: 10, y: 10, width: 100, height: 20 });
+    stubRect(img, { x: 10, y: 10, width: 100, height: 20 });
 
-    const { text } = collectObstacles(root);
+    const { opaque } = collectObstacles(root);
 
-    expect(text).toHaveLength(0);
+    expect(opaque).toHaveLength(0);
   });
 
   it('decorTop はヘッダー下端、decorBottom はフッター上端になる', () => {
