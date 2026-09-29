@@ -6,6 +6,7 @@ import {
   formatEventDaysSummary,
   formatEventDayTime,
   getDaysUntilEventDay,
+  toJstDateKey,
   toEventDays,
 } from './event-day';
 
@@ -140,5 +141,12 @@ describe('formatCountdownLabel', () => {
 
   it('開催日を過ぎた負の日数は 0 に丸める', () => {
     expect(formatCountdownLabel(-3)).toBe('開催まであと 0 日');
+  });
+});
+
+describe('toJstDateKey', () => {
+  it('JSTの暦日をYYYY-MM-DDにする', () => {
+    expect(toJstDateKey('2026-11-14T14:59:59.000Z')).toBe('2026-11-14');
+    expect(toJstDateKey('2026-11-14T15:00:00.000Z')).toBe('2026-11-15');
   });
 });

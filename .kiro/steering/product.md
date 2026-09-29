@@ -5,8 +5,8 @@
 ## ドメインモデル (Payload collections / globals)
 
 - `student_exhibitions` (学生模擬店), `sponsors` (協賛企業) — `map_areas` の区画に紐づく出展枠
-- `stages` / `performance_slots` — ステージとタイムスロットの組(`time_slots`)によるパフォーマンス予定
-- `map_areas` / `time_slots` — 会場マップ区画・時間割のマスタ
+- `stages` / `performance_slots` — ステージ・開催日・開始/終了時刻を持つパフォーマンス予定
+- `map_areas` — 会場マップ区画のマスタ
 - `announcements` / `faq_items` / `topics` — 告知・FAQ・トピック
 - `pages` — 固定ページ (アクセス・お問い合わせ・プライバシー・協賛案内等) を `slug` で束ねる単一コレクション
 - `festival_meta` / `page_home` — 祭全体メタ情報・トップページ用の単一レコード global

@@ -27,7 +27,6 @@ describe.skipIf(!hasDatabase)('手書きマイグレーションの制約', () =
     const names = await catalogNames();
     for (const expected of [
       'performance_slots_exhibition_or_title_required',
-      'performance_slots_stage_time_slot_unique',
       'student_exhibitions_area_booth_unique',
       'sponsors_area_booth_unique',
       // Authentik の sub による突合が一意であることに依存している

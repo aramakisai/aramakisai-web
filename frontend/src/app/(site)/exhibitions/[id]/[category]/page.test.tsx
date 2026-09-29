@@ -9,6 +9,7 @@ import type {
 } from '@/lib/exhibitions';
 import { getCampusMapAreas } from '@/lib/campus-map';
 import type { CampusMapArea, CampusMapDataResult } from '@/lib/campus-map';
+import { getExhibitionPerformances } from '@/lib/timetable';
 
 vi.mock('next/navigation', () => ({
   notFound: vi.fn(() => {
@@ -31,6 +32,8 @@ vi.mock('@/lib/campus-map', async () => {
     );
   return { ...actual, getCampusMapAreas: vi.fn() };
 });
+
+vi.mock('@/lib/timetable', () => ({ getExhibitionPerformances: vi.fn() }));
 
 vi.mock('@/lib/cms-asset-url', () => ({
   toAssetUrl: (id: string | null, width?: number) =>
@@ -107,6 +110,77 @@ describe('ExhibitionPage', () => {
     vi.clearAllMocks();
     // 企画位置セクションに無関係なテストでは対象なし扱いとし、他セクションへの影響のみを見る
     mockAreas({ kind: 'loaded', value: [] });
+    vi.mocked(getExhibitionPerformances).mockResolvedValue({
+      kind: 'loaded',
+      value: [],
+    });
+  });
+
+  describe('出演時間欄', () => {
+    const performance = {
+      stageName: 'メインステージ',
+      dayLabel: '1日目',
+      startAt: '2026-10-24T02:00:00.000Z',
+      endAt: '2026-10-24T03:00:00.000Z',
+    };
+
+    it('ステージのページでだけ出演時間を取得して表示する', async () => {
+      mockResult({ kind: 'found', value: baseExhibition });
+      vi.mocked(getExhibitionPerformances).mockResolvedValue({
+        kind: 'loaded',
+        value: [performance],
+      });
+
+      render(
+        await ExhibitionPage({
+          params: Promise.resolve({ id: '1', category: 'stage' }),
+        }),
+      );
+
+      expect(getExhibitionPerformances).toHaveBeenCalledWith(1);
+      expect(
+        screen.getByRole('heading', { name: '出演時間' }),
+      ).toBeInTheDocument();
+    });
+
+    it('ステージ以外のページでは取得も表示もしない', async () => {
+      mockResult({
+        kind: 'found',
+        value: { ...baseExhibition, category: 'exhibit' },
+      });
+
+      render(
+        await ExhibitionPage({
+          params: Promise.resolve({ id: '1', category: 'exhibit' }),
+        }),
+      );
+
+      expect(getExhibitionPerformances).not.toHaveBeenCalled();
+      expect(
+        screen.queryByRole('heading', { name: '出演時間' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('取得に失敗しても欄だけ出さずページは表示される', async () => {
+      mockResult({ kind: 'found', value: baseExhibition });
+      vi.mocked(getExhibitionPerformances).mockResolvedValue({
+        kind: 'error',
+        error: { kind: 'network', message: 'x' } as never,
+      });
+
+      render(
+        await ExhibitionPage({
+          params: Promise.resolve({ id: '1', category: 'stage' }),
+        }),
+      );
+
+      expect(
+        screen.getByRole('heading', { level: 1, name: /アラマキ祭/ }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('heading', { name: '出演時間' }),
+      ).not.toBeInTheDocument();
+    });
   });
 
   it('URL の category に応じた企画名・場所・全カテゴリを表示する', async () => {

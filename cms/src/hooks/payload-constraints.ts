@@ -1,33 +1,39 @@
-import type { CollectionBeforeOperationHook, CollectionBeforeValidateHook } from 'payload';
-import { APIError, ValidationError } from 'payload';
+import type { CollectionBeforeOperationHook, CollectionBeforeValidateHook } from 'payload'
+import { APIError, ValidationError } from 'payload'
 
-import { isStudentExhibitor, toCmsUser } from '../access/roles';
+import { isStudentExhibitor, toCmsUser } from '../access/roles'
 import {
   newImageIds,
+  toJstDateKey,
+  toSlotWindow,
   validateBoothPlacement,
   validateCategoryContents,
   validateImageCount,
   validateImageOwnership,
   validateOwnerRole,
   validateOwnerUniqueness,
+  validatePerformanceOverlap,
   validatePerformanceSlot,
+  validateSlotEventDate,
+  validateSlotRange,
+  type PerformanceWindow,
   validateStageAssignment,
   validateStageCategoryRemoval,
   type ConstraintViolation,
-} from './constraints';
+} from './constraints'
 
 function raise(collection: string, violations: readonly ConstraintViolation[]): void {
-  if (violations.length === 0) return;
+  if (violations.length === 0) return
   throw new ValidationError({
     collection,
     errors: violations.map(({ field, message }) => ({ path: field, message })),
-  });
+  })
 }
 
 export const performanceSlotConstraint: CollectionBeforeValidateHook = ({ data }) => {
-  raise('performance_slots', validatePerformanceSlot(data ?? {}));
-  return data;
-};
+  raise('performance_slots', validatePerformanceSlot(data ?? {}))
+  return data
+}
 
 export const categoryContentsConstraint: CollectionBeforeValidateHook = ({ data, req }) => {
   raise(
@@ -35,13 +41,13 @@ export const categoryContentsConstraint: CollectionBeforeValidateHook = ({ data,
     validateCategoryContents(data ?? {}, {
       isStudentExhibitor: isStudentExhibitor(toCmsUser(req.user)),
     }),
-  );
-  return data;
-};
+  )
+  return data
+}
 
 /** 出演枠が参照する企画のカテゴリを引いて、ステージ未選択の企画への割り当てを拒否する。 */
 export const stageAssignmentConstraint: CollectionBeforeValidateHook = async ({ data, req }) => {
-  const exhibitionId = data?.exhibition_id;
+  const exhibitionId = data?.exhibition_id
   const exhibitionCategories =
     exhibitionId == null || exhibitionId === ''
       ? null
@@ -52,11 +58,11 @@ export const stageAssignmentConstraint: CollectionBeforeValidateHook = async ({ 
             depth: 0,
             req,
           })
-        )?.categories ?? []);
+        )?.categories ?? [])
 
-  raise('performance_slots', validateStageAssignment(data ?? {}, { exhibitionCategories }));
-  return data;
-};
+  raise('performance_slots', validateStageAssignment(data ?? {}, { exhibitionCategories }))
+  return data
+}
 
 /** 更新対象の企画に割り当て済みの出演枠があるかを引いて、ステージ選択の解除を拒否する。 */
 export const stageCategoryConstraint: CollectionBeforeValidateHook = async ({
@@ -64,7 +70,7 @@ export const stageCategoryConstraint: CollectionBeforeValidateHook = async ({
   originalDoc,
   req,
 }) => {
-  const exhibitionId = originalDoc?.id;
+  const exhibitionId = originalDoc?.id
   const hasPerformanceSlots = exhibitionId
     ? (
         await req.payload.find({
@@ -76,11 +82,11 @@ export const stageCategoryConstraint: CollectionBeforeValidateHook = async ({
           where: { exhibition_id: { equals: exhibitionId } },
         })
       ).docs.length > 0
-    : false;
+    : false
 
-  raise('student_exhibitions', validateStageCategoryRemoval(data ?? {}, { hasPerformanceSlots }));
-  return data;
-};
+  raise('student_exhibitions', validateStageCategoryRemoval(data ?? {}, { hasPerformanceSlots }))
+  return data
+}
 
 /**
  * Payload には部分 UNIQUE INDEX に対応する宣言がないため、書き込み前に重複を引いて判定する。
@@ -90,9 +96,9 @@ export function boothPlacementConstraint(
   collection: 'student_exhibitions' | 'sponsors',
 ): CollectionBeforeValidateHook {
   return async ({ data, originalDoc, req }) => {
-    const areaId = data?.area_id;
-    const boothNumber = data?.booth_number;
-    if (areaId == null || boothNumber == null) return data;
+    const areaId = data?.area_id
+    const boothNumber = data?.booth_number
+    if (areaId == null || boothNumber == null) return data
 
     const duplicates = await req.payload.find({
       collection,
@@ -107,14 +113,14 @@ export function boothPlacementConstraint(
           ...(originalDoc?.id ? [{ id: { not_equals: originalDoc.id } }] : []),
         ],
       },
-    });
+    })
 
     raise(
       collection,
       validateBoothPlacement(data ?? {}, { duplicateExists: duplicates.docs.length > 0 }),
-    );
-    return data;
-  };
+    )
+    return data
+  }
 }
 
 /**
@@ -122,8 +128,8 @@ export function boothPlacementConstraint(
  * (overrideAccess) 経由の書き込みも同じ経路を通す必要があるため beforeValidate に置く。
  */
 export const ownerConstraint: CollectionBeforeValidateHook = async ({ data, originalDoc, req }) => {
-  const ownerId = data?.owner;
-  if (ownerId == null || ownerId === '') return data;
+  const ownerId = data?.owner
+  if (ownerId == null || ownerId === '') return data
 
   const ownerUser = await req.payload
     .findByID({
@@ -133,14 +139,14 @@ export const ownerConstraint: CollectionBeforeValidateHook = async ({ data, orig
       disableErrors: true,
       req,
     })
-    .catch(() => null);
+    .catch(() => null)
 
   const roleViolations = validateOwnerRole(data ?? {}, {
     ownerIsStudentExhibitor: ownerUser?.role === 'student_exhibitor',
-  });
+  })
   if (roleViolations.length > 0) {
-    raise('student_exhibitions', roleViolations);
-    return data;
+    raise('student_exhibitions', roleViolations)
+    return data
   }
 
   const duplicates = await req.payload.find({
@@ -155,8 +161,8 @@ export const ownerConstraint: CollectionBeforeValidateHook = async ({ data, orig
         ...(originalDoc?.id ? [{ id: { not_equals: originalDoc.id } }] : []),
       ],
     },
-  });
-  const duplicate = duplicates.docs[0] as { organization_name?: string } | undefined;
+  })
+  const duplicate = duplicates.docs[0] as { organization_name?: string } | undefined
 
   raise(
     'student_exhibitions',
@@ -165,20 +171,20 @@ export const ownerConstraint: CollectionBeforeValidateHook = async ({ data, orig
         ? { email: ownerUser?.email ?? '', organizationName: duplicate.organization_name ?? '' }
         : null,
     }),
-  );
-  return data;
-};
+  )
+  return data
+}
 
 /**
  * 画像枚数の上限 (M-E07) は全員対象。所有者チェック (M-E17) は学生団体のリクエストだけが対象
  * (実行委員・Local API は他団体の画像も差し替えられる必要があるため)。
  */
 export const imageConstraint: CollectionBeforeValidateHook = async ({ data, originalDoc, req }) => {
-  const doc = (data ?? {}) as Parameters<typeof validateImageCount>[0];
-  const violations: ConstraintViolation[] = [...validateImageCount(doc)];
+  const doc = (data ?? {}) as Parameters<typeof validateImageCount>[0]
+  const violations: ConstraintViolation[] = [...validateImageCount(doc)]
 
   if (isStudentExhibitor(toCmsUser(req.user))) {
-    const candidateIds = newImageIds(doc, (originalDoc ?? {}) as typeof doc);
+    const candidateIds = newImageIds(doc, (originalDoc ?? {}) as typeof doc)
     if (candidateIds.length > 0) {
       const owned = await req.payload.find({
         collection: 'media',
@@ -187,22 +193,22 @@ export const imageConstraint: CollectionBeforeValidateHook = async ({ data, orig
         overrideAccess: true,
         req,
         where: { id: { in: candidateIds as (string | number)[] } },
-      });
+      })
       const authorizedIds = new Set(
         owned.docs
           .filter((m) => String(m.owner ?? '') === String(req.user?.id ?? ''))
           .map((m) => String(m.id)),
-      );
+      )
       const unauthorizedImageIds = new Set(
         candidateIds.map(String).filter((id) => !authorizedIds.has(id)),
-      );
-      violations.push(...validateImageOwnership(doc, { unauthorizedImageIds }));
+      )
+      violations.push(...validateImageOwnership(doc, { unauthorizedImageIds }))
     }
   }
 
-  raise('student_exhibitions', violations);
-  return data;
-};
+  raise('student_exhibitions', violations)
+  return data
+}
 
 /**
  * access 評価 (Where で published を除外) より前に案内付きで拒否するため beforeOperation に置く。
@@ -214,22 +220,82 @@ export const guardPublishedExhibition: CollectionBeforeOperationHook = async ({
   overrideAccess,
   req,
 }) => {
-  if (operation !== 'update' || overrideAccess === true) return;
-  if (!isStudentExhibitor(toCmsUser(req.user))) return;
+  if (operation !== 'update' || overrideAccess === true) return
+  if (!isStudentExhibitor(toCmsUser(req.user))) return
 
-  const id = (args as { id?: string | number }).id;
-  if (id == null) return;
+  const id = (args as { id?: string | number }).id
+  if (id == null) return
 
   const doc = await req.payload
     .findByID({ collection: 'student_exhibitions', id, depth: 0, overrideAccess: true, req })
-    .catch(() => null);
-  if (!doc) return;
+    .catch(() => null)
+  if (!doc) return
 
   const ownerId =
     doc.owner !== null && typeof doc.owner === 'object'
       ? (doc.owner as { id?: unknown }).id
-      : doc.owner;
-  if (String(ownerId) !== String(req.user?.id) || doc.status !== 'published') return;
+      : doc.owner
+  if (String(ownerId) !== String(req.user?.id) || doc.status !== 'published') return
 
-  throw new APIError('公開中の企画のため、修正は実行委員に依頼してください。', 403, undefined, true);
-};
+  throw new APIError('公開中の企画のため、修正は実行委員に依頼してください。', 403, undefined, true)
+}
+
+function idOf(value: unknown): string | number | undefined {
+  const v = value !== null && typeof value === 'object' ? (value as { id?: unknown }).id : value
+  return typeof v === 'string' || typeof v === 'number' ? v : undefined
+}
+
+/**
+ * 部分更新でも判定できるよう既存値と送信値を合成して検証する。範囲 → 開催日程 → 重なりの順で、
+ * 前段に違反があれば DB を引かずに返す。
+ */
+export const performanceTimeConstraint: CollectionBeforeValidateHook = async ({
+  data,
+  originalDoc,
+  req,
+}) => {
+  const merged = { ...originalDoc, ...data } as Record<string, unknown>
+
+  const rangeViolations = validateSlotRange(merged)
+  if (rangeViolations.length > 0) {
+    raise('performance_slots', rangeViolations)
+    return data
+  }
+
+  const meta = await req.payload.findGlobal({ slug: 'festival_meta', depth: 0, req })
+  const eventDayKeys = (meta.event_days ?? []).flatMap((d) => toJstDateKey(d.start_at) ?? [])
+  const dateViolations = validateSlotEventDate(merged, { eventDayKeys })
+  if (dateViolations.length > 0) {
+    raise('performance_slots', dateViolations)
+    return data
+  }
+
+  const target = toSlotWindow(merged)
+  const stageId = idOf(merged.stage_id)
+  if (target === null || stageId === undefined) return data
+
+  const selfId = idOf(originalDoc)
+  const found = await req.payload.find({
+    collection: 'performance_slots',
+    depth: 1,
+    pagination: false,
+    req,
+    where: {
+      and: [
+        { stage_id: { equals: stageId } },
+        ...(selfId !== undefined ? [{ id: { not_equals: selfId } }] : []),
+      ],
+    },
+  })
+  const others = found.docs.flatMap((doc): PerformanceWindow[] => {
+    const window = toSlotWindow(doc)
+    if (window === null) return []
+    const exhibition = doc.exhibition_id
+    const organizationName =
+      exhibition !== null && typeof exhibition === 'object' ? exhibition.organization_name : null
+    return [{ ...window, performanceId: doc.id, name: organizationName || doc.title || '' }]
+  })
+
+  raise('performance_slots', validatePerformanceOverlap(target, { others }))
+  return data
+}

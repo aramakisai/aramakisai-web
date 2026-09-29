@@ -15,6 +15,7 @@ import {
   PauseIcon,
   PlaceIcon,
   PlayArrowIcon,
+  PlayCircleIcon,
   SearchIcon,
   ShareIcon,
 } from './icons';
@@ -36,6 +37,7 @@ const icons = [
   ['icon-open-in-new', OpenInNewIcon, 'open_in_new'],
   ['icon-pause', PauseIcon, 'pause'],
   ['icon-play-arrow', PlayArrowIcon, 'play_arrow'],
+  ['icon-play-circle', PlayCircleIcon, 'play_circle'],
 ] as const;
 
 describe('icons', () => {

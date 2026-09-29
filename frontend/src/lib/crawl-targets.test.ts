@@ -60,7 +60,7 @@ describe('SITEMAP_CODE_ROUTES', () => {
 
   it('開催中のみ公開される一覧ルートを含む', () => {
     expect(SITEMAP_CODE_ROUTES).toEqual(
-      expect.arrayContaining(['/exhibitions', '/topics', '/map']),
+      expect.arrayContaining(['/exhibitions', '/topics', '/map', '/timetable']),
     );
   });
 
