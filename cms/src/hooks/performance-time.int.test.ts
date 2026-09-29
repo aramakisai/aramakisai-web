@@ -42,11 +42,12 @@ describe.skipIf(!hasDatabase)('出演枠の時刻検証 (performanceTimeConstrai
     const config = (await import('../payload.config')).default
     payload = await getPayload({ config })
 
-    originalEventDays = (await payload.findGlobal({ slug: 'festival_meta', depth: 0 })).event_days
+    const meta = await payload.findGlobal({ slug: 'festival_meta', depth: 0 })
+    originalEventDays = meta.event_days
     await payload.updateGlobal({
       slug: 'festival_meta',
       data: {
-        name: 'test',
+        name: meta.name || 'test',
         event_days: [
           { start_at: jst('2026-09-19', '09:00'), end_at: jst('2026-09-19', '18:00') },
           { start_at: jst('2026-09-20', '09:00'), end_at: jst('2026-09-20', '18:00') },

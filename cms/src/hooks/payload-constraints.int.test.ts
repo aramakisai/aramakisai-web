@@ -28,11 +28,12 @@ describe.skipIf(!hasDatabase)(
       payload = await getPayload({ config })
 
       // 出演枠の開催日は祭基本情報の開催日程に含まれている必要がある
-      originalEventDays = (await payload.findGlobal({ slug: 'festival_meta', depth: 0 })).event_days
+      const meta = await payload.findGlobal({ slug: 'festival_meta', depth: 0 })
+    originalEventDays = meta.event_days
       await payload.updateGlobal({
         slug: 'festival_meta',
         data: {
-          name: 'test',
+          name: meta.name || 'test',
           event_days: [
             { start_at: '2026-09-19T09:00:00+09:00', end_at: '2026-09-19T18:00:00+09:00' },
           ],
