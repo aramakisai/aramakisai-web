@@ -73,9 +73,9 @@ describe('AnnouncementsList', () => {
 
     const moreLink = screen.getByRole('link', { name: /お知らせ一覧へ/ });
     expect(moreLink).toHaveAttribute('href', '/announcements');
-    // ラベルは color/primary, アイコンは color/text (Figma 156:779/156:781 で別色)
+    // ラベル・アイコンともに color/text (要件 2.1: 文字色として color/primary は使わない)
     expect(within(moreLink).getByText('お知らせ一覧へ')).toHaveClass(
-      'text-primary',
+      'text-text',
     );
     const icon = within(moreLink).getByTestId('icon-chevron-right');
     expect(icon).toHaveClass('text-text');

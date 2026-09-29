@@ -147,13 +147,15 @@
   h4,
   h5,
   h6 {
-    font-family: var(--font-zen-old-mincho), serif;
-    font-weight: 700;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-wrap: balance;
+    word-break: auto-phrase;
   }
 
   /*
-   * RichText (.rich-text-body) は本文の一部として color/text で描画する (要件 15 参照)。
-   * ページ自身の見出しだけが color/primary を持つ
+   * ページ自身の見出しの既定色 (要件 2.1)。RichText (.rich-text-body) の見出しは
+   * 別ルールで同じ color/text を個別に指定しているため、二重適用を避けてここでは除く
    */
   h1:not(.rich-text-body *),
   h2:not(.rich-text-body *),
@@ -161,7 +163,7 @@
   h4:not(.rich-text-body *),
   h5:not(.rich-text-body *),
   h6:not(.rich-text-body *) {
-    @apply text-primary;
+    @apply text-text;
   }
 }
 
@@ -174,7 +176,33 @@
 
 @layer base {
   body {
-    @apply text-text bg-background;
+    /*
+     * ページの地は白 (要件 2.3)。background トークン (#fbf8f3) はフッター等
+     * 自身の面色として使い続けるため、ここでは Tailwind 既定の white を使い
+     * トークンの値自体は変えない
+     */
+    @apply text-text bg-white;
+    line-height: 1.8;
+    letter-spacing: 0.02em;
+  }
+}
+
+/*
+ * 本文領域 (#main-content) の黒文字・黒アイコンに付ける白い光彩 (要件 5.1〜5.3)。
+ * text-shadow は継承されるため #main-content に 1 回指定するだけで内部の
+ * 見出し・段落・アイコン (Material Symbols もフォントの文字) すべてに及ぶ。
+ * ヘッダー・フッター・下部タブナビは #main-content の外にあるため対象外
+ */
+@layer base {
+  #main-content {
+    text-shadow: 0 0 4px rgb(255 255 255 / 0.4);
+  }
+
+  /* 白地の上では見えない光彩なので、白文字とヒーローでは打ち消す */
+  .text-gray-50,
+  .text-white,
+  [data-bg-hero] {
+    text-shadow: none;
   }
 }
 
@@ -220,7 +248,7 @@
   }
 
   .rich-text-body h2 {
-    @apply text-text text-[32px] leading-[1.25] mt-12 mb-4;
+    @apply text-text text-[25px] leading-[1.25] mt-12 mb-4;
   }
 
   .rich-text-body h3 {
@@ -232,7 +260,7 @@
   }
 
   .rich-text-body p {
-    @apply text-text text-[16px] leading-[1.7] mb-4;
+    @apply text-text text-[16px] leading-[1.8] mb-4;
   }
 
   .rich-text-body a {
@@ -259,7 +287,7 @@
   .rich-text-body ul > li::before {
     content: '・';
     margin-right: 8px;
-    @apply text-gray-500;
+    @apply text-gray-600;
   }
 
   /* 番号リスト: マーカー「N.」幅14px + 間隔8px = 22px (label は基準+22px = 46px) */
@@ -276,7 +304,7 @@
     counter-increment: rich-text-ol;
     content: counter(rich-text-ol) '.';
     margin-right: 8px;
-    @apply text-gray-500;
+    @apply text-gray-600;
   }
 
   .rich-text-body li {
@@ -320,7 +348,7 @@
   }
 
   .rich-text-body blockquote {
-    @apply border-l-4 border-gray-200 pl-4 text-text text-[16px] leading-[1.7] my-6;
+    @apply border-l-4 border-gray-200 pl-4 text-text text-[16px] leading-[1.8] my-6;
   }
 
   .rich-text-body img {
@@ -356,12 +384,18 @@
     }
   }
 
-  /* 白 30% レイヤー + SVG ノイズ。彩度の高いパレット原色のまま文字を乗せるとコントラストが不足するため重ねる。 */
+  /*
+   * 企画カードに重ねる無彩色の質感 (design.md ExhibitionCard 節)。--exhibition-texture は
+   * exhibition-card.tsx が質感ごとの画像 URL を設定する (texture='gradient' のときは未設定 =
+   * 'none' で質感画像を重ねない)
+   */
   .exhibition-gradient-bg::before {
     content: '';
     position: absolute;
     inset: 0;
-    background-color: rgb(255 255 255 / 30%);
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.55' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+    background-image: var(--exhibition-texture, none);
+    background-size: cover;
+    /* 質感画像は中間グレー中心の無彩色なので、overlay で重ねて地のグラデーションの色を残す */
+    mix-blend-mode: overlay;
   }
 }

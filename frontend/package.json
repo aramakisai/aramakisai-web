@@ -19,6 +19,7 @@
     "check:build-artifacts": "opennextjs-cloudflare build && tsx scripts/verify-build-artifacts.ts"
   },
   "dependencies": {
+    "@fontsource/line-seed-jp": "^5.3.1",
     "@next/third-parties": "^16.2.10",
     "@opennextjs/cloudflare": "^1.0.0",
     "leaflet": "1.9.4",

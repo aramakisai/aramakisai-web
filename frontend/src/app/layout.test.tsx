@@ -10,10 +10,6 @@ vi.mock('@/env', () => ({
   },
 }));
 
-vi.mock('next/font/google', () => ({
-  Zen_Old_Mincho: () => ({ variable: 'font-zen-old-mincho' }),
-}));
-
 vi.mock('@/lib/site-metadata', () => ({
   getSiteMetadata: vi.fn(async () => ({
     siteTitle: '荒牧祭',

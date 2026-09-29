@@ -68,7 +68,7 @@ export default async function ExhibitionsPage({
             </p>
           ) : (
             <>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-600">
                 全 {result.total} 件中 {result.rangeStart}–{result.rangeEnd}{' '}
                 件を表示
               </p>

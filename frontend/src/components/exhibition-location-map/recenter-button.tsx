@@ -43,7 +43,7 @@ export function RecenterButton({ bounds }: RecenterButtonProps) {
       ref={buttonRef}
       type="button"
       onClick={recenter}
-      className="absolute bottom-2 left-2 z-[1000] rounded-full border border-gray-200 bg-background px-3 py-2 text-sm font-medium text-gray-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600 md:bottom-4 md:left-4"
+      className="absolute bottom-2 left-2 z-[1000] rounded-full border border-gray-200 bg-background px-3 py-2 text-sm font-medium text-gray-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600 md:bottom-4 md:left-4"
     >
       企画位置に戻す
     </button>

@@ -51,7 +51,7 @@ const config: Config = {
       },
       spacing: {},
       fontFamily: {
-        mincho: ['var(--font-zen-old-mincho)', 'serif'],
+        sans: ['LINE Seed JP', 'sans-serif'],
       },
       // 既定の `text-xs` (12px) を上書きせず、下部ナビゲーション専用の 10px を別名で追加する (要件 21.11)
       fontSize: {

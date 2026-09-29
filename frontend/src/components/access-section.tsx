@@ -20,8 +20,11 @@ export function AccessSection({
       <SectionHeading level="h2">アクセス</SectionHeading>
       <div className="flex flex-col gap-4 lg:gap-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:gap-6">
-          <div className="flex h-[200px] w-full shrink-0 items-center justify-center bg-gray-200 lg:h-[320px] lg:w-[720px]">
-            <span className="text-sm text-gray-500">地図 (placeholder)</span>
+          <div
+            data-bg-opaque="true"
+            className="flex h-[200px] w-full shrink-0 items-center justify-center bg-gray-200 lg:h-[320px] lg:w-[720px]"
+          >
+            <span className="text-sm text-gray-600">地図 (placeholder)</span>
           </div>
           {(venue || summary) && (
             <div className="flex min-w-0 flex-1 flex-col gap-2">
@@ -47,7 +50,7 @@ export function AccessSection({
         <div className="flex justify-end">
           <Link
             href="/access"
-            className="flex items-center gap-2 text-sm font-bold text-primary"
+            className="flex items-center gap-2 text-sm font-bold text-text"
           >
             アクセス詳細へ
             <ChevronRightIcon size={20} className="text-text" />

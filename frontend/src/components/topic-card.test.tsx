@@ -57,4 +57,17 @@ describe('TopicCard', () => {
     expect(title.className).toMatch(/line-clamp-2/);
     expect(title.className).not.toMatch(/\bp-4\b/);
   });
+
+  test('タイトルは LINE Seed JP Bold 20px (見出し既定の ExtraBold を上書き)', () => {
+    render(<TopicCard id={5} title="模擬店マップ" imageId={null} />);
+
+    const title = screen.getByText('模擬店マップ');
+    expect(title).toHaveClass('font-bold');
+    expect(title.tagName).toBe('H4'); // h4 の既定サイズ 20px をそのまま使う
+  });
+
+  test('不透明な面として印を付ける', () => {
+    render(<TopicCard id={6} title="模擬店マップ" imageId={null} />);
+    expect(screen.getByRole('link')).toHaveAttribute('data-bg-opaque');
+  });
 });

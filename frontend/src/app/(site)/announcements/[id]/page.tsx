@@ -77,12 +77,12 @@ export default async function AnnouncementPage({
       <BackLink href="/announcements" label="お知らせ一覧に戻る" />
 
       <div className="flex w-full flex-col items-center gap-2">
-        <h1 className="w-full text-balance py-0 text-center text-[24px] leading-[130%] text-primary lg:text-[32px] lg:leading-[125%]">
+        <h1 className="w-full text-balance py-0 text-center text-[28px] leading-[130%] text-text lg:text-[32px] lg:leading-[125%]">
           {announcement.title}
         </h1>
         <time
           dateTime={announcement.publishedAt}
-          className="w-full text-center text-sm leading-[1.6] text-gray-500"
+          className="w-full text-center text-sm leading-[1.6] text-gray-600"
         >
           {formatFullDate(announcement.publishedAt)}
         </time>
