@@ -47,11 +47,11 @@ function needsArray(job: Job): string[] {
 }
 
 describe('.github/workflows/frontend-ci.yml — deploy-preview job', () => {
-  it('depends on validate so it never runs when type-check/build fails', () => {
+  it('runs in parallel with validate (no needs) to shorten the critical path', () => {
     const workflow = loadWorkflow();
     const job = workflow.jobs['deploy-preview'];
     expect(job).toBeDefined();
-    expect(needsArray(job)).toContain('validate');
+    expect(needsArray(job)).not.toContain('validate');
   });
 
   it('only runs for non-fork pull requests', () => {
