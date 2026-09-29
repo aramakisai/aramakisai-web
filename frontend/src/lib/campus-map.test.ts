@@ -366,7 +366,7 @@ describe('getCampusMapData', () => {
     }
   });
 
-  it('エリアに属する出展物として、直接指す企画と出演ステージ経由で属する企画の双方を areaIds に含める', async () => {
+  it('ステージカードは出演ステージのエリアを areaIds に持つ', async () => {
     mockCmsCollections({
       exhibitions: [
         {

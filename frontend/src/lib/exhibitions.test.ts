@@ -491,8 +491,7 @@ describe('getExhibitionListData', () => {
 
     const result = await getExhibitionListData(baseQuery);
     expect(result.items[0]?.location).toBe('メインステージ、サブステージ');
-    // areaIds は場所解決の対象外でも直接エリア + ステージ由来エリアの和を保つ
-    expect(result.items[0]?.areaIds).toEqual([10, 20]);
+    expect(result.items[0]?.areaIds).toEqual([20]);
   });
 
   it('ステージ以外のカードはエリア名 (+ブース表示名) のみを場所にし、出演枠があっても無視する', async () => {
@@ -612,15 +611,16 @@ describe('getExhibitionListData', () => {
     expect(result.items[0]?.areaIds).toEqual([]);
   });
 
-  it('直接の所在エリアと出演ステージの所在エリアの双方を持つ企画では areaIds の先頭が直接の所在エリアになる', async () => {
+  it('出店とステージを兼ねる企画のステージカードは出店側エリアで絞り込むとヒットしない', async () => {
     mockCmsCollections({
       exhibitions: [
         {
           id: 1,
           organization_name: '団体A',
           area_id: 10,
-          categories: ['exhibit'],
-          exhibit: { name: '企画A', images: [] },
+          categories: ['vendor', 'stage'],
+          vendor: { name: '出店A', images: [] },
+          stage: { name: '出演A', images: [] },
         },
       ],
       slots: [
@@ -632,23 +632,17 @@ describe('getExhibitionListData', () => {
           end_at: '2026-10-10T02:00:00.000Z',
           exhibition_id: 1,
         },
-        {
-          id: 101,
-          stage_id: 2,
-          event_date: '2026-10-10T12:00:00.000Z',
-          start_at: '2026-10-10T01:00:00.000Z',
-          end_at: '2026-10-10T02:00:00.000Z',
-          exhibition_id: 1,
-        },
       ],
-      stages: [
-        { id: 1, name: 'ステージ1', area_id: 20 },
-        { id: 2, name: 'ステージ2', area_id: 30 },
-      ],
+      stages: [{ id: 1, name: '屋内ステージ', area_id: 20 }],
     });
 
-    const result = await getExhibitionListData(baseQuery);
-    expect(result.items[0]?.areaIds).toEqual([10, 20, 30]);
+    const { items } = await getExhibitionListData(baseQuery);
+    const hits = (areaId: number) =>
+      filterExhibitions(items, { ...baseQuery, areaIds: [areaId] }).map(
+        (c) => c.category,
+      );
+    expect(hits(10)).toEqual(['vendor']);
+    expect(hits(20)).toEqual(['stage']);
   });
 
   it('直接の所在エリアを持たずステージ経由でのみ解決する企画では areaIds の先頭が最初の出演ステージの所在エリアになる', async () => {
