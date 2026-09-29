@@ -5,6 +5,7 @@ import {
   singlePolygonCentroid,
   multiPolygonGeometrySchema,
   type MultiPolygonGeometry,
+  type Position,
 } from './campus-map-geometry';
 
 const squarePolygon = {
@@ -190,5 +191,38 @@ describe('polygonCentroid', () => {
     const [latitude, longitude] = polygonCentroid(geometry);
     expect(longitude).toBeCloseTo(10.5, 5);
     expect(latitude).toBeCloseTo(10.5, 5);
+  });
+
+  it('原点から遠い (経度139/緯度36) 座標系の小さく複雑な形状でも重心が外環の bbox 内に収まる', () => {
+    // 本番の「Bグループ」エリアの 1 ポリゴン目 (実測)。原点補正がないと桁落ちで
+    // bbox から大きく外れた点 (キャンパス外) を返していた
+    const ring: Position[] = [
+      [139.045543, 36.4307083],
+      [139.045575, 36.4307011],
+      [139.0455622, 36.4306603],
+      [139.0455514, 36.4306368],
+      [139.0455384, 36.4306058],
+      [139.0455207, 36.4305744],
+      [139.0454978, 36.4305437],
+      [139.0454606, 36.4305181],
+      [139.045431, 36.4305045],
+      [139.0454133, 36.4305241],
+      [139.0454422, 36.4305387],
+      [139.0454694, 36.4305593],
+      [139.0454929, 36.4305889],
+      [139.0455064, 36.4306117],
+      [139.0455215, 36.4306433],
+      [139.0455302, 36.4306666],
+      [139.0455391, 36.4306922],
+      [139.045543, 36.4307083],
+    ];
+    const [latitude, longitude] = singlePolygonCentroid([ring]);
+
+    const longitudes = ring.map(([x]) => x);
+    const latitudes = ring.map(([, y]) => y);
+    expect(longitude).toBeGreaterThanOrEqual(Math.min(...longitudes));
+    expect(longitude).toBeLessThanOrEqual(Math.max(...longitudes));
+    expect(latitude).toBeGreaterThanOrEqual(Math.min(...latitudes));
+    expect(latitude).toBeLessThanOrEqual(Math.max(...latitudes));
   });
 });

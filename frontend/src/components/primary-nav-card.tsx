@@ -59,7 +59,12 @@ export function PrimaryNavCard({ destination }: PrimaryNavCardProps) {
         sizeClassName="text-[48px] lg:text-[56px]"
         className="text-text"
       />
-      <span className="text-[16px] leading-[1.5] font-bold text-text lg:text-[18px]">
+      {/*
+        「タイムテーブル」「駐車場空き情報」(7 文字) は lg (160px 幅、余白 20px) では
+        18px はおろか 17px でも実測の自然幅が実効幅 120px を超え折り返す。
+        16px (SP と同じ) まで下げてはじめて両ラベルとも 1 行に収まる (実測マージン 5.75px 以上)
+      */}
+      <span className="text-[16px] leading-[1.5] font-bold text-text">
         {label}
       </span>
     </Link>

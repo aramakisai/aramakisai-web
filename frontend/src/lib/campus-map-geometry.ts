@@ -98,27 +98,37 @@ export function parseAreaGeometry(value: unknown): GeometryParseResult {
   };
 }
 
-/** 符号付き面積 (2 倍) と重心の重み付き合計。リング 1 本分 */
+/**
+ * 符号付き面積 (2 倍) と重心の重み付き合計。リング 1 本分。
+ * 経度・緯度は絶対値が ~139, ~36 と大きいため、そのまま shoelace 公式にかけると
+ * 頂点間の微小な差分 (キャンパス内の建物 1 棟分、10^-4 度未満) が桁落ちで失われ、
+ * 重心がポリゴンの外側に大きくずれる (実測: Bグループ/キッチンカーの複数ポリゴンで発生)。
+ * リングの始点を原点に平行移動してから計算し (面積・重心は平行移動で不変)、最後に戻す。
+ */
 function ringMoments(ring: Position[]) {
+  const [originX, originY] = ring[0];
   let area = 0;
   let weightedX = 0;
   let weightedY = 0;
   for (let i = 0; i < ring.length - 1; i++) {
-    const [x0, y0] = ring[i];
-    const [x1, y1] = ring[i + 1];
+    const x0 = ring[i][0] - originX;
+    const y0 = ring[i][1] - originY;
+    const x1 = ring[i + 1][0] - originX;
+    const y1 = ring[i + 1][1] - originY;
     const cross = x0 * y1 - x1 * y0;
     area += cross;
     weightedX += (x0 + x1) * cross;
     weightedY += (y0 + y1) * cross;
   }
-  return { area: area / 2, weightedX, weightedY };
+  return { area: area / 2, weightedX, weightedY, originX, originY };
 }
 
 /** 外環から重心を算出する。[緯度, 経度] を返す (Leaflet の順) */
 function outerRingCentroid(
   outerRing: Position[],
 ): readonly [latitude: number, longitude: number] {
-  const { area, weightedX, weightedY } = ringMoments(outerRing);
+  const { area, weightedX, weightedY, originX, originY } =
+    ringMoments(outerRing);
 
   if (area === 0) {
     // ponytail: 面積 0 の退化リングは頂点平均にフォールバック。矩形中心の運用形状では起きない
@@ -130,7 +140,7 @@ function outerRingCentroid(
     return [sumY / vertices.length, sumX / vertices.length];
   }
 
-  return [weightedY / (6 * area), weightedX / (6 * area)];
+  return [weightedY / (6 * area) + originY, weightedX / (6 * area) + originX];
 }
 
 /** 1 ポリゴン単位の重心。外環のみで算出する (内環は無視、既存仕様のまま) */
