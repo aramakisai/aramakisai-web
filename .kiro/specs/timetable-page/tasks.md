@@ -49,6 +49,7 @@
   - 開催日程外の現在値の表示、開催日程が空のときの案内はdesignのPerformanceSlotsCollectionに従う
   - 選択肢の文言生成と、選んだ開催日からUTC正午の値を作る処理のユニットテストが通り、ローカルの管理画面で「1日目」「2日目」を選んで保存でき一覧に同じ文言が出る
   - 運用手順書の出演枠の登録手順を、開催日程から選ぶ形に合わせる
+  - 管理画面の出演枠の名前を、団体があれば団体名、無ければ表示名にする(一覧の先頭列・編集画面の見出し)
   - _Requirements: 1.1, 1.2_
   - _Boundary: PerformanceSlotsCollection, docs/cms-operations.md_
 

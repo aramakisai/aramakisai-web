@@ -259,6 +259,7 @@ sequenceDiagram
   - `EventDayCell`: 一覧の開催日列を`EventDaySelect`と同じ文言で表示する
 - `start_at`/`end_at`: `type: 'date'`、`required: true`、ラベル「開始時刻」「終了時刻」、`pickerAppearance: 'timeOnly'`、`displayFormat: 'HH:mm'`、説明文に「日本時間で入力」
 - `hooks.beforeValidate`: `performanceSlotConstraint`、`stageAssignmentConstraint`、`performanceTimeConstraint`
+- 管理画面での出演枠の名前(一覧の先頭列・編集画面の見出し・関連の選択肢): 団体があれば団体名、無ければ`title`。`admin.useAsTitle`にこの名前を持つ読み取り専用の仮想フィールド(編集フォームには出さない)を指定する。フロントエンドの名前の優先順位(公開団体の団体名→`title`)と同じ
 
 **Contracts**: State [x]
 
