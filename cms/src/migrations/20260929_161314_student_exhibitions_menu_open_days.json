@@ -2249,8 +2249,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.student_exhibitions_menu": {
-      "name": "student_exhibitions_menu",
+    "public.student_exhibitions_vendor_menu": {
+      "name": "student_exhibitions_vendor_menu",
       "schema": "",
       "columns": {
         "_order": {
@@ -2275,7 +2275,7 @@
           "name": "name",
           "type": "varchar",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "price": {
           "name": "price",
@@ -2285,8 +2285,8 @@
         }
       },
       "indexes": {
-        "student_exhibitions_menu_order_idx": {
-          "name": "student_exhibitions_menu_order_idx",
+        "student_exhibitions_vendor_menu_order_idx": {
+          "name": "student_exhibitions_vendor_menu_order_idx",
           "columns": [
             {
               "expression": "_order",
@@ -2300,8 +2300,8 @@
           "method": "btree",
           "with": {}
         },
-        "student_exhibitions_menu_parent_id_idx": {
-          "name": "student_exhibitions_menu_parent_id_idx",
+        "student_exhibitions_vendor_menu_parent_id_idx": {
+          "name": "student_exhibitions_vendor_menu_parent_id_idx",
           "columns": [
             {
               "expression": "_parent_id",
@@ -2317,9 +2317,9 @@
         }
       },
       "foreignKeys": {
-        "student_exhibitions_menu_parent_id_fk": {
-          "name": "student_exhibitions_menu_parent_id_fk",
-          "tableFrom": "student_exhibitions_menu",
+        "student_exhibitions_vendor_menu_parent_id_fk": {
+          "name": "student_exhibitions_vendor_menu_parent_id_fk",
+          "tableFrom": "student_exhibitions_vendor_menu",
           "tableTo": "student_exhibitions",
           "columnsFrom": [
             "_parent_id"
@@ -4682,6 +4682,6 @@
     "tables": {},
     "columns": {}
   },
-  "id": "6f29ddc1-d33e-4a01-95dd-8bc9526c74a7",
+  "id": "262922f0-eeac-44d9-8887-1f5b5b7ec51b",
   "prevId": "00000000-0000-0000-0000-000000000000"
 }

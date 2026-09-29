@@ -583,7 +583,7 @@ export async function getExhibitionDetail(
       categories: CATEGORY_VALUES.filter((c) =>
         exhibition.categories.includes(c),
       ),
-      menu: (exhibition.menu ?? []).flatMap((row) =>
+      menu: (exhibition.vendor?.menu ?? []).flatMap((row) =>
         row.price == null ? [] : [{ name: row.name, price: row.price }],
       ),
       openDayKeys: (exhibition.open_days ?? [])

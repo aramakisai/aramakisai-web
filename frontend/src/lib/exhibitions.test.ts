@@ -831,13 +831,16 @@ describe('getExhibitionDetail', () => {
       area_id: null,
       categories: ['exhibit', 'vendor'],
       exhibit: { name: '展示', images: [] },
-      vendor: { name: '出店', images: [] },
-      menu: [
-        { name: 'B', price: '¥300' },
-        { name: 'A', price: null },
-        { name: 'C', price: '' },
-        { name: 'D', price: '時価' },
-      ],
+      vendor: {
+        name: '出店',
+        images: [],
+        menu: [
+          { name: 'B', price: '¥300' },
+          { name: 'A', price: null },
+          { name: 'C', price: '' },
+          { name: 'D', price: '時価' },
+        ],
+      },
       open_days: [
         '2026-11-15T12:00:00.000Z',
         'not-a-date',

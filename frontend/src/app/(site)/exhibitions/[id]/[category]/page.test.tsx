@@ -162,7 +162,7 @@ describe('ExhibitionPage', () => {
       expect(before(menu, share)).toBeTruthy();
     });
 
-    it('ステージでは場所→出演枠→メニュー→共有の順に並ぶ', async () => {
+    it('ステージでは場所→出演枠→共有の順に並びメニューは出ない', async () => {
       vi.mocked(getExhibitionPerformances).mockResolvedValue({
         kind: 'loaded',
         value: [
@@ -185,13 +185,12 @@ describe('ExhibitionPage', () => {
       );
       const loc = screen.getByText('第一ステージ');
       const perf = screen.getByText(/メインステージ/);
-      const menu = screen.getByText('メニュー');
       const share = screen.getByRole('button', { name: /共有/ });
       const before = (a: Node, b: Node) =>
         a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING;
       expect(before(loc, perf)).toBeTruthy();
-      expect(before(perf, menu)).toBeTruthy();
-      expect(before(menu, share)).toBeTruthy();
+      expect(before(perf, share)).toBeTruthy();
+      expect(screen.queryByText('メニュー')).toBeNull();
     });
 
     it('ステージ以外では出演時間を取得しない', async () => {

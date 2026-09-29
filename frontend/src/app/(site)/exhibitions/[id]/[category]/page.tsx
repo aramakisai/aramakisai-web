@@ -190,7 +190,9 @@ export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
             <ExhibitionPerformances performances={performancesResult.value} />
           )}
 
-          <ExhibitionMenu items={exhibition.menu} />
+          {exhibition.category === 'vendor' && (
+            <ExhibitionMenu items={exhibition.menu} />
+          )}
 
           <ShareButton title={exhibition.displayName} url={shareUrl}>
             <ExhibitionLinks links={exhibition.links} />

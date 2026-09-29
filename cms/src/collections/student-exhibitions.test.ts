@@ -217,7 +217,9 @@ describe('hooks の結線', () => {
 });
 
 describe('menu / open_days フィールド', () => {
-  const menu = fieldOf(StudentExhibitions.fields, 'menu');
+  const vendorGroup = fieldOf(StudentExhibitions.fields, 'vendor');
+const vendorFields = vendorGroup.fields as readonly unknown[];
+const menu = fieldOf(vendorFields, 'menu');
   const menuFields = menu.fields as readonly unknown[];
   const name = fieldOf(menuFields, 'name');
   const price = fieldOf(menuFields, 'price');
@@ -237,6 +239,15 @@ describe('menu / open_days フィールド', () => {
     expect(name.required).toBe(true);
     expect(price.type).toBe('text');
     expect(price.required).toBeUndefined();
+  });
+
+  it('menu は出店グループの最後だけに置き、他カテゴリのグループとトップレベルには置かない', () => {
+    expect((vendorFields.at(-1) as NamedField).name).toBe('menu');
+    for (const key of ['stage', 'exhibit', 'other']) {
+      const fields = fieldOf(StudentExhibitions.fields, key).fields as readonly NamedField[];
+      expect(fields.some((f) => f.name === 'menu')).toBe(false);
+    }
+    expect(StudentExhibitions.fields.some((f) => (f as NamedField).name === 'menu')).toBe(false);
   });
 
   it('open_days は text の hasMany で EventDayCheckboxes を入力部品にする', () => {
