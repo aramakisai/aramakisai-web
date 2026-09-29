@@ -21,6 +21,9 @@ export function toAttachment(media: MediaRef): Attachment | null {
     filenameDownload: media.filename ?? '',
     type: media.mimeType ?? null,
     filesize: media.filesize ?? null,
+    url: media.url ?? undefined,
+    cardUrl: media.sizes?.card?.url ?? undefined,
+    heroUrl: media.sizes?.hero?.url ?? undefined,
   };
 }
 

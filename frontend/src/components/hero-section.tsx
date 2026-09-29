@@ -11,6 +11,8 @@ const SLIDE_INTERVAL_MS = 6_000;
 
 export interface HeroSectionProps {
   imageUrls: string[];
+  /** imageUrls と同じ添字。無い要素は src のみ */
+  imageSrcSets?: (string | undefined)[];
   /** 「11月14日 10:00〜17:30／11月15日 10:00〜16:30」形式。取得失敗時は null */
   eventDaysSummary: string | null;
   venueName: string | null;
@@ -38,6 +40,7 @@ function HeroTitle() {
 
 export function HeroSection({
   imageUrls,
+  imageSrcSets,
   eventDaysSummary,
   venueName,
   themeWord,
@@ -117,6 +120,12 @@ export function HeroSection({
           >
             <img
               src={index === 0 || warm || isActive ? src : undefined}
+              srcSet={
+                index === 0 || warm || isActive
+                  ? imageSrcSets?.[index]
+                  : undefined
+              }
+              sizes={imageSrcSets?.[index] ? '100vw' : undefined}
               alt=""
               draggable={false}
               loading={index === 0 ? undefined : 'lazy'}

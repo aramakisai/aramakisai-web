@@ -453,3 +453,33 @@ describe('HeroSection', () => {
     });
   });
 });
+
+describe('HeroSection srcSet', () => {
+  const imageSrcSets = imageUrls.map((u) => `${u}-960 960w, ${u} 1920w`);
+
+  afterEach(() => {
+    Reflect.deleteProperty(document, 'readyState');
+  });
+
+  test('2 枚目以降は load 後まで src と srcSet の両方を付けない', () => {
+    Object.defineProperty(document, 'readyState', {
+      configurable: true,
+      value: 'loading',
+    });
+    const { container } = render(
+      <HeroSection {...fullProps} imageSrcSets={imageSrcSets} />,
+    );
+    const images = container.querySelectorAll('img');
+
+    expect(images[0]).toHaveAttribute('srcset', imageSrcSets[0]);
+    expect(images[0]).toHaveAttribute('sizes', '100vw');
+    expect(images[1]).not.toHaveAttribute('src');
+    expect(images[1]).not.toHaveAttribute('srcset');
+
+    act(() => {
+      window.dispatchEvent(new Event('load'));
+    });
+    expect(images[1]).toHaveAttribute('src', imageUrls[1]);
+    expect(images[1]).toHaveAttribute('srcset', imageSrcSets[1]);
+  });
+});

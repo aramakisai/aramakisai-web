@@ -11,7 +11,7 @@ import { ExhibitionSearchForm } from '@/components/exhibition-search-form';
 import { FeaturedExhibitions } from '@/components/featured-exhibitions';
 import { SponsorsList } from '@/components/sponsors-list';
 import { AccessSection } from '@/components/access-section';
-import { toAssetUrl } from '@/lib/cms-asset-url';
+import { toHeroImage } from '@/lib/cms-asset-url';
 import { HomePageContent } from '@/lib/home-page-types';
 import { PHASE_OVERRIDE_COOKIE, resolvePhase } from '@/lib/phase';
 import { formatEventDaysSummary, getDaysUntilEventDay } from '@/lib/event-day';
@@ -110,9 +110,11 @@ export default async function Page() {
 
   const festivalName = content.festival?.name || '荒牧祭';
   const eventDays = content.festival?.eventDays ?? [];
-  const heroImageUrls = content.heroImages
-    .map((image) => toAssetUrl(image.id, 1920))
-    .filter((url): url is string => url !== null);
+  const heroImages = content.heroImages
+    .map(toHeroImage)
+    .filter((image) => image !== null);
+  const heroImageUrls = heroImages.map((image) => image.src);
+  const heroImageSrcSets = heroImages.map((image) => image.srcSet);
   const eventDaysSummary = formatEventDaysSummary(eventDays);
   const countdownDays =
     eventDays.length > 0 ? getDaysUntilEventDay(eventDays[0].startAt) : null;
@@ -133,6 +135,7 @@ export default async function Page() {
         {heroImageUrls.length > 0 && (
           <HeroSection
             imageUrls={heroImageUrls}
+            imageSrcSets={heroImageSrcSets}
             eventDaysSummary={eventDaysSummary}
             venueName={content.venueName}
             themeWord={content.theme?.word ?? null}
@@ -192,6 +195,7 @@ export default async function Page() {
       {heroImageUrls.length > 0 && (
         <HeroSection
           imageUrls={heroImageUrls}
+          imageSrcSets={heroImageSrcSets}
           eventDaysSummary={eventDaysSummary}
           venueName={content.venueName}
           themeWord={content.theme?.word ?? null}
