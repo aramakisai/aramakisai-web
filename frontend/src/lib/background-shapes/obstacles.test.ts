@@ -113,6 +113,33 @@ describe('collectObstacles', () => {
     expect(noOverlap).not.toContainEqual({ x: 0, y: 100, w: 1024, h: 80 });
   });
 
+  it('summary は行全体の矩形を noOverlap に分類し、中の質問文・アイコンは個別に集めない', () => {
+    const { root, main } = buildPage();
+    const details = document.createElement('details');
+    const summary = document.createElement('summary');
+    const question = document.createElement('span');
+    question.textContent = '質問文';
+    question.style.color = 'rgb(0, 0, 0)';
+    const icon = document.createElement('span');
+    icon.setAttribute('aria-hidden', 'true');
+    icon.className = 'material-symbols-sharp';
+    icon.textContent = 'add';
+    summary.append(question, icon);
+    details.appendChild(summary);
+    main.appendChild(details);
+    stubRect(summary, { x: 0, y: 100, width: 1024, height: 56 });
+    stubRect(question, { x: 16, y: 116, width: 300, height: 24 });
+    stubRect(icon, { x: 980, y: 116, width: 24, height: 24 });
+
+    const { noOverlap, text, opaque } = collectObstacles(root);
+
+    expect(noOverlap).toContainEqual({ x: 0, y: 100, w: 1024, h: 56 });
+    expect(noOverlap).not.toContainEqual({ x: 16, y: 116, w: 300, h: 24 });
+    expect(noOverlap).not.toContainEqual({ x: 980, y: 116, w: 24, h: 24 });
+    expect(text).toHaveLength(0);
+    expect(opaque).toHaveLength(0);
+  });
+
   it('地を持つ a を opaque に分類する', () => {
     const { root, main } = buildPage();
     const a = document.createElement('a');

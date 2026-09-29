@@ -121,6 +121,12 @@ function collect(root: Element, scrollY: number): Buckets {
       push(opaque, el.getBoundingClientRect());
       return;
     }
+    // summary の開閉アイコンは装飾用に aria-hidden を付けるため、個別に辿ると
+    // 素通りしてしまう。質問文とアイコンを両方まとめて避けるため行全体を採る
+    if (el.matches('summary')) {
+      push(noOverlap, el.getBoundingClientRect());
+      return;
+    }
     if (el.matches('a, button')) {
       if (hasBackground(el)) {
         push(opaque, el.getBoundingClientRect());
