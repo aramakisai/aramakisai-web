@@ -10,6 +10,8 @@ import {
 import { env } from '@/env';
 import { getCampusMapAreas, type CampusMapArea } from '@/lib/campus-map';
 import { ExhibitionGallery } from '@/components/exhibition-gallery';
+import { ExhibitionPerformances } from '@/components/exhibition-performances';
+import { getExhibitionPerformances } from '@/lib/timetable';
 import { ExhibitionLinks } from '@/components/exhibition-links';
 import { ExhibitionLocationSection } from '@/components/exhibition-location-map/exhibition-location-section';
 import { ShareButton } from '@/components/share-button';
@@ -96,9 +98,12 @@ function CategoryBadge({
 
 export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
   const { id, category } = await params;
-  const [result, areasResult] = await Promise.all([
+  const [result, areasResult, performancesResult] = await Promise.all([
     resolveExhibition(id, category),
     getCampusMapAreas(),
+    category === 'stage' && Number.isInteger(Number(id))
+      ? getExhibitionPerformances(Number(id))
+      : null,
   ]);
 
   if (result.kind === 'missing') {
@@ -180,6 +185,10 @@ export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
             {exhibition.description}
           </p>
         </div>
+      )}
+
+      {performancesResult?.kind === 'loaded' && (
+        <ExhibitionPerformances performances={performancesResult.value} />
       )}
 
       <ExhibitionLocationSection exhibition={exhibition} areas={areas} />
