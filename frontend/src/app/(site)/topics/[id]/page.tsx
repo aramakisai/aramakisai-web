@@ -36,18 +36,22 @@ export async function generateMetadata({
     getSiteMetadata(),
   ]);
 
+  if (!topic) {
+    notFound();
+  }
+
   return buildPageMetadata({
     site,
-    title: topic?.title ?? site.siteTitle,
+    title: topic.title,
     description: toMetaDescription(
-      [topic?.metaDescription, topic?.body],
+      [topic.metaDescription, topic.body],
       site.description,
     ),
     // '1.0' や '01' 等の非正規表記が別 URL として canonical 宣言されるのを防ぐため、
     // 解決できた場合は正規化済みの topic.id を使う
-    path: `/topics/${topic?.id ?? id}`,
+    path: `/topics/${topic.id}`,
     ogType: 'article',
-    imageCandidates: [topic?.imageId ?? null],
+    imageCandidates: [topic.imageId ?? null],
   });
 }
 
@@ -74,7 +78,7 @@ export default async function TopicPage({ params }: TopicPageProps) {
       <JsonLd data={breadcrumb} />
       <BackLink href="/topics" label="トピック一覧に戻る" />
 
-      <h1 className="w-full text-balance py-0 text-center text-[24px] leading-[130%] text-primary lg:text-[32px] lg:leading-[125%]">
+      <h1 className="w-full text-balance py-0 text-center text-[28px] leading-[130%] text-text lg:text-[32px] lg:leading-[125%]">
         {topic.title}
       </h1>
 

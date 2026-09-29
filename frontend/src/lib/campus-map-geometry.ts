@@ -7,15 +7,24 @@ import { z } from 'zod';
  */
 export type Position = number[];
 
-/** 外環と 0 個以上の内環からなる Polygon */
-export interface PolygonGeometry {
-  readonly type: 'Polygon';
-  readonly coordinates: Position[][];
+/** 1 本のリング (外環または内環) */
+export type LinearRing = Position[];
+
+/** 1 つのポリゴンの外環と 0 個以上の内環 */
+export type PolygonCoordinates = LinearRing[];
+
+/**
+ * CMS (map-areas.ts の normalizeToMultiPolygon) が保存時に常に MultiPolygon へ正規化するため、
+ * フロントの内部表現もこれに合わせる。react-leaflet の `<GeoJSON data>` にそのまま渡せる形。
+ */
+export interface MultiPolygonGeometry {
+  readonly type: 'MultiPolygon';
+  readonly coordinates: readonly PolygonCoordinates[];
 }
 
 /** 検証結果。失敗理由は呼び出し側のログに使う */
 export type GeometryParseResult =
-  | { readonly kind: 'valid'; readonly value: PolygonGeometry }
+  | { readonly kind: 'valid'; readonly value: MultiPolygonGeometry }
   | { readonly kind: 'invalid'; readonly reason: string };
 
 const isValidLongitude = (longitude: number) =>
@@ -46,43 +55,70 @@ const linearRingSchema = z
   .min(4, 'リングの点数が不足しています')
   .refine(isClosedRing, { message: 'リングの始点と終点が一致していません' });
 
-/** CMS 側の保存時検証 (`map-areas.ts` の `validate`) と共有するスキーマ */
-export const polygonGeometrySchema = z.object({
+const polygonCoordinatesSchema = z
+  .array(linearRingSchema)
+  .min(1, '外環がありません');
+
+// 本番デプロイ前のフロントは CMS 側の正規化 (4e831ba) より先に配信されうるため、
+// 旧形式の Polygon も受理し valid 時に MultiPolygon へ正規化する
+const legacyPolygonSchema = z.object({
   type: z.literal('Polygon'),
-  coordinates: z.array(linearRingSchema).min(1, '外環がありません'),
+  coordinates: polygonCoordinatesSchema,
 });
 
-/** Payload の json 値を Polygon として解釈する */
-export function parsePolygonGeometry(value: unknown): GeometryParseResult {
-  const result = polygonGeometrySchema.safeParse(value);
+/** CMS 側の保存時検証 (`map-areas.ts` の `validateMultiPolygonGeometry`) と一致するスキーマ */
+export const multiPolygonGeometrySchema = z.object({
+  type: z.literal('MultiPolygon'),
+  coordinates: z.array(polygonCoordinatesSchema).min(1, 'ポリゴンがありません'),
+});
+
+const areaGeometrySchema = z.union([
+  legacyPolygonSchema,
+  multiPolygonGeometrySchema,
+]);
+
+/** Payload の json 値をエリアの図形として解釈し、MultiPolygon へ正規化する */
+export function parseAreaGeometry(value: unknown): GeometryParseResult {
+  const result = areaGeometrySchema.safeParse(value);
   if (!result.success) {
     return {
       kind: 'invalid',
-      reason: result.error.issues[0]?.message ?? '不正な GeoJSON Polygon です',
+      reason:
+        result.error.issues[0]?.message ??
+        '不正な GeoJSON Polygon/MultiPolygon です',
     };
   }
-  return { kind: 'valid', value: result.data };
+  const parsed = result.data;
+  return {
+    kind: 'valid',
+    value:
+      parsed.type === 'Polygon'
+        ? { type: 'MultiPolygon', coordinates: [parsed.coordinates] }
+        : parsed,
+  };
 }
 
-/** ラベル配置用の重心。外環から算出する。[緯度, 経度] を返す (Leaflet の順) */
-export function polygonCentroid(
-  geometry: PolygonGeometry,
-): readonly [latitude: number, longitude: number] {
-  const [outerRing] = geometry.coordinates;
-
-  // 符号付き面積による標準的なポリゴン重心。凹形状では重心が外に出ることがある (design.md 参照)
+/** 符号付き面積 (2 倍) と重心の重み付き合計。リング 1 本分 */
+function ringMoments(ring: Position[]) {
   let area = 0;
   let weightedX = 0;
   let weightedY = 0;
-  for (let i = 0; i < outerRing.length - 1; i++) {
-    const [x0, y0] = outerRing[i];
-    const [x1, y1] = outerRing[i + 1];
+  for (let i = 0; i < ring.length - 1; i++) {
+    const [x0, y0] = ring[i];
+    const [x1, y1] = ring[i + 1];
     const cross = x0 * y1 - x1 * y0;
     area += cross;
     weightedX += (x0 + x1) * cross;
     weightedY += (y0 + y1) * cross;
   }
-  area /= 2;
+  return { area: area / 2, weightedX, weightedY };
+}
+
+/** 外環から重心を算出する。[緯度, 経度] を返す (Leaflet の順) */
+function outerRingCentroid(
+  outerRing: Position[],
+): readonly [latitude: number, longitude: number] {
+  const { area, weightedX, weightedY } = ringMoments(outerRing);
 
   if (area === 0) {
     // ponytail: 面積 0 の退化リングは頂点平均にフォールバック。矩形中心の運用形状では起きない
@@ -95,4 +131,33 @@ export function polygonCentroid(
   }
 
   return [weightedY / (6 * area), weightedX / (6 * area)];
+}
+
+/** 1 ポリゴン単位の重心。外環のみで算出する (内環は無視、既存仕様のまま) */
+export function singlePolygonCentroid(
+  polygon: PolygonCoordinates,
+): readonly [latitude: number, longitude: number] {
+  const [outerRing] = polygon;
+  return outerRingCentroid(outerRing);
+}
+
+function polygonAbsArea(polygon: PolygonCoordinates): number {
+  return Math.abs(ringMoments(polygon[0]).area);
+}
+
+/**
+ * ラベル配置用の重心。MultiPolygon 中で面積が最大のポリゴンを選び、その重心を返す
+ * (1 エリア = 1 ラベルにするため、複数ポリゴンから代表点を 1 つ決める必要がある)。
+ * 凹形状では重心が外に出ることがある (design.md 参照)
+ */
+export function polygonCentroid(
+  geometry: MultiPolygonGeometry,
+): readonly [latitude: number, longitude: number] {
+  const [first, ...rest] = geometry.coordinates;
+  const largest = rest.reduce(
+    (best, candidate) =>
+      polygonAbsArea(candidate) > polygonAbsArea(best) ? candidate : best,
+    first,
+  );
+  return singlePolygonCentroid(largest);
 }

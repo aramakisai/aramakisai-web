@@ -421,7 +421,7 @@ export interface MapArea {
    */
   name: string;
   /**
-   * GeoJSON Polygon
+   * GeoJSON (Polygon / MultiPolygon / geojson.io の出力)
    */
   geometry:
     | {
@@ -433,9 +433,9 @@ export interface MapArea {
     | boolean
     | null;
   /**
-   * 未設定の場合は既定色で描画する
+   * 例: #7fc8ad。未設定の場合は既定色
    */
-  color?: ('primary' | 'secondary' | 'accent' | 'accent-alt' | 'info' | 'success' | 'warning') | null;
+  color?: string | null;
   sort?: number | null;
   updatedAt: string;
   createdAt: string;

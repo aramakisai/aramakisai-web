@@ -1,7 +1,7 @@
 import { render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { DivIcon } from 'leaflet';
-import type { PolygonGeometry } from '@/lib/campus-map-geometry';
+import type { MultiPolygonGeometry } from '@/lib/campus-map-geometry';
 import { polygonCentroid } from '@/lib/campus-map-geometry';
 
 const markerProps: Record<string, unknown>[] = [];
@@ -15,15 +15,17 @@ vi.mock('react-leaflet', () => ({
 
 import { AreaLabelMarker } from './area-label-marker';
 
-const GEOMETRY: PolygonGeometry = {
-  type: 'Polygon',
+const GEOMETRY: MultiPolygonGeometry = {
+  type: 'MultiPolygon',
   coordinates: [
     [
-      [139.0, 36.43],
-      [139.001, 36.43],
-      [139.001, 36.431],
-      [139.0, 36.431],
-      [139.0, 36.43],
+      [
+        [139.0, 36.43],
+        [139.001, 36.43],
+        [139.001, 36.431],
+        [139.0, 36.431],
+        [139.0, 36.43],
+      ],
     ],
   ],
 };
@@ -81,5 +83,49 @@ describe('AreaLabelMarker', () => {
       <AreaLabelMarker name="Aゾーン" geometry={GEOMETRY} selected={false} />,
     );
     expect(markerProps.at(-1)!.interactive).toBe(false);
+  });
+
+  it('複数ポリゴンを持つエリアでは、面積が最大のポリゴンの重心にラベルを 1 個だけ配置する', () => {
+    const multiPolygon: MultiPolygonGeometry = {
+      type: 'MultiPolygon',
+      coordinates: [
+        // 小さいポリゴン
+        [
+          [
+            [139.0, 36.43],
+            [139.001, 36.43],
+            [139.001, 36.431],
+            [139.0, 36.431],
+            [139.0, 36.43],
+          ],
+        ],
+        // 大きいポリゴン
+        [
+          [
+            [140.0, 37.0],
+            [140.0, 37.1],
+            [140.1, 37.1],
+            [140.1, 37.0],
+            [140.0, 37.0],
+          ],
+        ],
+      ],
+    };
+
+    markerProps.length = 0;
+    render(
+      <AreaLabelMarker
+        name="Aゾーン"
+        geometry={multiPolygon}
+        selected={false}
+      />,
+    );
+
+    // 1 エリア = 1 ラベル (Marker は 1 回だけ描画される)
+    expect(markerProps).toHaveLength(1);
+    const [latitude, longitude] = polygonCentroid(multiPolygon);
+    expect(markerProps.at(-1)!.position).toEqual([latitude, longitude]);
+    expect(longitude).toBeCloseTo(140.05, 5);
+    expect(latitude).toBeCloseTo(37.05, 5);
   });
 });

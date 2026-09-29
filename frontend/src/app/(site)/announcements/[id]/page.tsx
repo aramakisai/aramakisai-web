@@ -37,18 +37,22 @@ export async function generateMetadata({
     getSiteMetadata(),
   ]);
 
+  if (!announcement) {
+    notFound();
+  }
+
   return buildPageMetadata({
     site,
-    title: announcement?.title ?? site.siteTitle,
+    title: announcement.title,
     description: toMetaDescription(
-      [announcement?.metaDescription, announcement?.body],
+      [announcement.metaDescription, announcement.body],
       site.description,
     ),
     // '1.0' や '01' 等の非正規表記が別 URL として canonical 宣言されるのを防ぐため、
     // 解決できた場合は正規化済みの announcement.id を使う
-    path: `/announcements/${announcement?.id ?? id}`,
+    path: `/announcements/${announcement.id}`,
     ogType: 'article',
-    imageCandidates: [announcement?.ogImageId ?? null],
+    imageCandidates: [announcement.ogImageId ?? null],
   });
 }
 
@@ -77,12 +81,12 @@ export default async function AnnouncementPage({
       <BackLink href="/announcements" label="お知らせ一覧に戻る" />
 
       <div className="flex w-full flex-col items-center gap-2">
-        <h1 className="w-full text-balance py-0 text-center text-[24px] leading-[130%] text-primary lg:text-[32px] lg:leading-[125%]">
+        <h1 className="w-full text-balance py-0 text-center text-[28px] leading-[130%] text-text lg:text-[32px] lg:leading-[125%]">
           {announcement.title}
         </h1>
         <time
           dateTime={announcement.publishedAt}
-          className="w-full text-center text-sm leading-[1.6] text-gray-500"
+          className="w-full text-center text-sm leading-[1.6] text-gray-600"
         >
           {formatFullDate(announcement.publishedAt)}
         </time>

@@ -15,7 +15,7 @@ export function AnnouncementsList({
 }: AnnouncementsListProps) {
   if (announcements.length === 0) {
     return (
-      <p className="text-base leading-[1.7] text-gray-500">
+      <p className="text-base leading-[1.7] text-gray-600">
         お知らせはありません
       </p>
     );
@@ -36,7 +36,7 @@ export function AnnouncementsList({
             >
               <time
                 dateTime={announcement.publishedAt}
-                className="w-[120px] shrink-0 text-sm leading-[1.6] text-gray-500"
+                className="w-[120px] shrink-0 text-sm leading-[1.6] text-gray-600"
               >
                 {formatFullDate(announcement.publishedAt)}
               </time>
@@ -52,7 +52,7 @@ export function AnnouncementsList({
           href="/announcements"
           className="flex items-center justify-end gap-2 pt-6 text-sm leading-[1.4] font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
-          <span className="text-primary">お知らせ一覧へ</span>
+          <span className="text-text">お知らせ一覧へ</span>
           <ChevronRightIcon size={20} className="text-text" />
         </Link>
       )}

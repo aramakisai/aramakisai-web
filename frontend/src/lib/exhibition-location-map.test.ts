@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { CampusMapArea } from './campus-map';
-import type { PolygonGeometry } from './campus-map-geometry';
+import type { MultiPolygonGeometry } from './campus-map-geometry';
 import {
   buildAreaMapHref,
   resolveTargetAreas,
@@ -13,21 +13,35 @@ vi.mock('./cms', () => ({
   cms: { findMany: vi.fn(), findById: vi.fn(), findGlobal: vi.fn() },
 }));
 
+function squareRing(centerLongitude: number, centerLatitude: number) {
+  return [
+    [centerLongitude - 0.01, centerLatitude - 0.01],
+    [centerLongitude - 0.01, centerLatitude + 0.01],
+    [centerLongitude + 0.01, centerLatitude + 0.01],
+    [centerLongitude + 0.01, centerLatitude - 0.01],
+    [centerLongitude - 0.01, centerLatitude - 0.01],
+  ];
+}
+
 function squareGeometry(
   centerLongitude: number,
   centerLatitude: number,
-): PolygonGeometry {
+): MultiPolygonGeometry {
   return {
-    type: 'Polygon',
-    coordinates: [
-      [
-        [centerLongitude - 0.01, centerLatitude - 0.01],
-        [centerLongitude - 0.01, centerLatitude + 0.01],
-        [centerLongitude + 0.01, centerLatitude + 0.01],
-        [centerLongitude + 0.01, centerLatitude - 0.01],
-        [centerLongitude - 0.01, centerLatitude - 0.01],
-      ],
-    ],
+    type: 'MultiPolygon',
+    coordinates: [[squareRing(centerLongitude, centerLatitude)]],
+  };
+}
+
+// 1 エリアが複数ポリゴンを持つケースの bbox 検証用
+function multiSquareGeometry(
+  centers: readonly (readonly [longitude: number, latitude: number])[],
+): MultiPolygonGeometry {
+  return {
+    type: 'MultiPolygon',
+    coordinates: centers.map(([longitude, latitude]) => [
+      squareRing(longitude, latitude),
+    ]),
   };
 }
 
@@ -100,6 +114,22 @@ describe('toAreaBounds', () => {
     expect(bounds).toEqual({
       southWest: [34.99, 138.99],
       northEast: [36.01, 140.01],
+    });
+  });
+
+  it('1 エリアが複数ポリゴンを持つ場合、そのすべてのポリゴンを含む範囲を返す', () => {
+    const area = makeArea(1, {
+      geometry: multiSquareGeometry([
+        [139.0, 35.0],
+        [141.0, 37.0],
+      ]),
+    });
+
+    const bounds = toAreaBounds([area]);
+
+    expect(bounds).toEqual({
+      southWest: [34.99, 138.99],
+      northEast: [37.01, 141.01],
     });
   });
 });

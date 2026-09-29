@@ -36,7 +36,7 @@ export function ExhibitionLocationSection({
 
   return (
     <section className="flex flex-col gap-2 border-t border-gray-200 pt-6 lg:pt-8">
-      <h2 className="py-0 text-[20px] leading-[140%] text-primary lg:text-[24px] lg:leading-[130%]">
+      <h2 className="py-0 text-[20px] leading-[140%] text-text lg:text-[24px] lg:leading-[130%]">
         場所
       </h2>
       <div className="relative">
@@ -51,12 +51,12 @@ export function ExhibitionLocationSection({
             常に到達できる遷移リンクとして、地図領域の右下へ重ねて配置する */}
         <Link
           href={mapHref}
-          className="absolute right-2 bottom-2 z-[1000] rounded-full border border-gray-200 bg-background px-3 py-2 text-sm font-medium text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600 md:right-4 md:bottom-4"
+          className="absolute right-2 bottom-2 z-[1000] rounded-full border border-gray-200 bg-background px-3 py-2 text-sm font-medium text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600 md:right-4 md:bottom-4"
         >
           構内マップで見る
         </Link>
       </div>
-      <p className="flex items-center gap-1 text-sm leading-[140%] font-medium text-gray-500">
+      <p className="flex items-center gap-1 text-sm leading-[140%] font-medium text-gray-600">
         <PlaceIcon size={20} className="text-text" />
         {caption}
       </p>

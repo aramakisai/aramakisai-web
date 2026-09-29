@@ -142,7 +142,7 @@ export async function Footer({ phase }: FooterProps) {
                     className="group relative flex h-8 w-full items-center gap-1 text-sm leading-[1.6] whitespace-nowrap text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     お問い合わせ
-                    <OpenInNewIcon size={16} className="text-gray-500" />
+                    <OpenInNewIcon size={16} className="text-gray-600" />
                     <HoverLine />
                   </a>
                 </li>
@@ -166,7 +166,7 @@ export async function Footer({ phase }: FooterProps) {
               <div className="relative pl-5">
                 <PlaceIcon
                   size={16}
-                  className="absolute top-1 left-0 text-gray-500"
+                  className="absolute top-1 left-0 text-gray-600"
                 />
                 〒371-8510
                 <br />
@@ -177,7 +177,7 @@ export async function Footer({ phase }: FooterProps) {
               <p className="relative pl-5">
                 <MailIcon
                   size={16}
-                  className="absolute top-1 left-0 text-gray-500"
+                  className="absolute top-1 left-0 text-gray-600"
                 />
                 mail_at_example.invalid
                 <br />

@@ -65,7 +65,8 @@ cd cms
 pnpm install
 pnpm db:up                      # ローカル Postgres (localhost:5433)
 pnpm migrate                    # スキーマを適用する。起動前に必ず実行する
-infisical run --env=prod -- pnpm dev
+cd ..
+make cms                        # 3100 番固定で起動 (共有 CMS は1つだけ)
 ```
 
 自動スキーマ同期 (dev push) は無効にしてある。コレクション定義に存在しない

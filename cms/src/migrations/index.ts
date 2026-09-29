@@ -15,6 +15,7 @@ import * as migration_20260923_164954_seo_fields from './20260923_164954_seo_fie
 import * as migration_20260924_130150_exhibitor_admin_ui from './20260924_130150_exhibitor_admin_ui';
 import * as migration_20260924_142843_exhibitor_contact_url from './20260924_142843_exhibitor_contact_url';
 import * as migration_20260927_074248_student_exhibitions_organization_name_optional from './20260927_074248_student_exhibitions_organization_name_optional';
+import * as migration_20260929_054933_map_areas_multi_polygon_hex from './20260929_054933_map_areas_multi_polygon_hex';
 
 export const migrations = [
   {
@@ -100,6 +101,11 @@ export const migrations = [
   {
     up: migration_20260927_074248_student_exhibitions_organization_name_optional.up,
     down: migration_20260927_074248_student_exhibitions_organization_name_optional.down,
-    name: '20260927_074248_student_exhibitions_organization_name_optional'
+    name: '20260927_074248_student_exhibitions_organization_name_optional',
+  },
+  {
+    up: migration_20260929_054933_map_areas_multi_polygon_hex.up,
+    down: migration_20260929_054933_map_areas_multi_polygon_hex.down,
+    name: '20260929_054933_map_areas_multi_polygon_hex'
   },
 ];

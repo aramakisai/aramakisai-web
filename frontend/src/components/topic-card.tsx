@@ -33,7 +33,7 @@ export function TopicCard({ id, title, imageId }: TopicCardProps) {
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-gray-800/55 to-transparent" />
       {/* line-clamp と padding を同じ要素に置くと overflow:hidden がパディングボックスで切り、
           はみ出た行がカード下端の余白に描画される。padding は親 (Link) 側に持たせる */}
-      <h4 className="relative line-clamp-2 text-gray-50">{title}</h4>
+      <h4 className="relative line-clamp-2 font-bold text-gray-50">{title}</h4>
     </Link>
   );
 }

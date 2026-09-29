@@ -17,7 +17,7 @@ export function FestivalOverview({ festival }: FestivalOverviewProps) {
     <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {eventDays.length > 0 && (
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h3 className="text-sm font-semibold text-gray-500 mb-2">開催日程</h3>
+          <h3 className="text-sm font-semibold text-gray-600 mb-2">開催日程</h3>
           <ul className="space-y-1">
             {eventDays.map((day, index) => (
               <li key={`${day.startAt}-${index}`} className="text-lg font-bold">

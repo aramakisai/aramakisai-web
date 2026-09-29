@@ -30,6 +30,9 @@ export function BottomNavigation({ phase }: BottomNavigationProps) {
   return (
     <nav
       aria-label="下部ナビゲーション"
+      // 背景図形の装飾範囲の下端を求める obstacles.ts が、日本語の aria-label 文言に
+      // 依存せず要素を見つけられるようにするための目印
+      data-bg-bottom-nav="true"
       // border-t は 64px の外側に 1px 加算されてしまいセーフエリア抜きの高さが 65px になる
       // (layout.tsx の下端余白のスペーサー・phase-toggle のずらし量は 64px 前提)。
       // box-shadow は要素サイズに寄与しないため、ここでは境界線を inset shadow で描く

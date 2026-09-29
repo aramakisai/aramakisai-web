@@ -76,7 +76,7 @@ export function PhaseToggle({ resolved }: PhaseToggleProps) {
         className="rounded-full border border-gray-200 bg-background px-4 py-2 font-medium text-text shadow-card"
       >
         {PHASE_LABELS[resolved.phase]}
-        <span className="ml-1 text-gray-500">
+        <span className="ml-1 text-gray-600">
           ({resolved.source === 'override' ? 'オーバーライド' : '定数'})
         </span>
       </button>

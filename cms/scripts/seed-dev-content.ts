@@ -1,5 +1,5 @@
 /**
- * ローカル開発用シード: announcements / topics / sponsors / festival_meta / page_home / pages に
+ * ローカル開発用シード: announcements / topics / sponsors / festival_meta / page_home / pages / faq_items に
  * フロントエンドのデザイン確認に足る件数・バリエーションを投入する。
  *
  * 実行例:
@@ -58,6 +58,7 @@ async function resetPreviousSeed(payload: Payload): Promise<void> {
   await payload.delete({ collection: 'announcements', where: all });
   await payload.delete({ collection: 'topics', where: all });
   await payload.delete({ collection: 'sponsors', where: all });
+  await payload.delete({ collection: 'faq_items', where: all });
   await payload.delete({ collection: 'media', where: { alt: { like: MEDIA_ALT_PREFIX } } });
 }
 
@@ -334,6 +335,33 @@ async function main() {
     });
     console.log(`pages: ${p.slug} 作成`);
   }
+
+  // 8. faq_items (sort の並び順検証用に、未設定1件・重複値2件を混ぜる)
+  const FAQ_ITEMS = [
+    { question: '駐車場はありますか？', answer: '一般来場者用の駐車場はご用意しておりません。公共交通機関でのご来場にご協力ください。', sort: 1 },
+    { question: '入場料はかかりますか？', answer: '入場は無料です。どなたでも自由にご来場いただけます。', sort: 2 },
+    {
+      question: '雨天の場合、開催されますか？',
+      answer:
+        '小雨決行です。荒天が予想される場合は、屋外企画の中止や時間変更を行うことがあります。\n最新情報は公式サイトおよびSNSでお知らせしますので、ご来場前にご確認ください。',
+      sort: 3,
+    },
+    { question: '会場内で飲食物を購入できますか？', answer: '模擬店やキッチンカーで軽食・飲み物を販売しています。指定の飲食スペースでお召し上がりください。', sort: 3 },
+    { question: 'ゴミはどこに捨てればよいですか？', answer: '会場内に分別用のゴミステーションを設置しています。缶・ペットボトル・燃えるゴミ・燃えないゴミに分別してご協力ください。', sort: undefined },
+    {
+      question: '一度退場しても再入場できますか？',
+      answer: '当日中であれば再入場が可能です。\n退場の際は受付スタッフに再入場希望の旨をお伝えください。',
+      sort: 4,
+    },
+    { question: 'お問い合わせ方法を教えてください。', answer: 'ご不明な点は実行委員会までお問い合わせフォームよりご連絡ください。当日はインフォメーションブースでも対応しております。', sort: 5 },
+  ] as const;
+  for (const f of FAQ_ITEMS) {
+    await payload.create({
+      collection: 'faq_items',
+      data: { question: f.question, answer: f.answer, sort: f.sort },
+    });
+  }
+  console.log(`faq_items: ${FAQ_ITEMS.length} 件作成`);
 
   process.exit(0);
 }

@@ -85,14 +85,16 @@ function area(overrides: Partial<CampusMapArea> = {}): CampusMapArea {
     color: 'primary',
     sort: 0,
     geometry: {
-      type: 'Polygon',
+      type: 'MultiPolygon',
       coordinates: [
         [
-          [139.0, 36.43],
-          [139.001, 36.43],
-          [139.001, 36.431],
-          [139.0, 36.431],
-          [139.0, 36.43],
+          [
+            [139.0, 36.43],
+            [139.001, 36.43],
+            [139.001, 36.431],
+            [139.0, 36.431],
+            [139.0, 36.43],
+          ],
         ],
       ],
     },
@@ -116,17 +118,26 @@ describe('ExhibitionPage', () => {
     render(jsx);
 
     expect(getExhibitionDetail).toHaveBeenCalledWith(1, 'stage');
-    expect(
-      screen.getByRole('heading', {
-        name: 'アラマキ祭実行委員会 (出演名)',
-        level: 1,
-      }),
-    ).toBeInTheDocument();
+    const heading = screen.getByRole('heading', {
+      name: 'アラマキ祭実行委員会 (出演名)',
+      level: 1,
+    });
+    expect(heading).toBeInTheDocument();
+    // 詳細タイトルは PC 32px / SP 28px (要件 1.5)
+    expect(heading.className).toContain('text-[28px]');
+    expect(heading.className).toContain('lg:text-[32px]');
     expect(screen.getByText('実行委員会')).toBeInTheDocument();
     expect(screen.getByText('ステージ')).toBeInTheDocument();
     expect(screen.getByText('展示')).toBeInTheDocument();
     expect(screen.getByText('第一ステージ')).toBeInTheDocument();
     expect(screen.getByText('たのしい企画です')).toBeInTheDocument();
+    // 本文の行の高さは 180% (要件 1.4)
+    expect(screen.getByText('実行委員会').className).toContain(
+      'leading-[180%]',
+    );
+    expect(screen.getByText('たのしい企画です').className).toContain(
+      'leading-[180%]',
+    );
     expect(
       screen.getByRole('link', { name: '企画一覧へ戻る' }),
     ).toHaveAttribute('href', '/exhibitions');
@@ -427,15 +438,15 @@ describe('ExhibitionPage', () => {
       expect(metadata.description).toBe('荒牧祭公式サイト');
     });
 
-    it('見つからない場合はサイト既定のメタデータへ退避する (要件 2.10 / 8.1)', async () => {
+    it('見つからない場合は notFound を呼ぶ (要件 2.5)', async () => {
       mockResult({ kind: 'missing' });
 
-      const metadata = await generateMetadata({
-        params: Promise.resolve({ id: '999', category: 'stage' }),
-      });
-
-      expect(metadata.title).toEqual({ absolute: '荒牧祭' });
-      expect(metadata.description).toBe('荒牧祭公式サイト');
+      await expect(
+        generateMetadata({
+          params: Promise.resolve({ id: '999', category: 'stage' }),
+        }),
+      ).rejects.toThrow('NEXT_NOT_FOUND');
+      expect(notFound).toHaveBeenCalled();
     });
 
     it('取得に失敗した場合もサイト既定のメタデータへ退避する', async () => {
