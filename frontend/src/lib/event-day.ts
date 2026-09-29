@@ -19,6 +19,12 @@ export function toJstParts(iso: string) {
   };
 }
 
+/** JSTの暦日。例: "2026-11-14" */
+export function toJstDateKey(iso: string): string {
+  const { year, month, date } = toJstParts(iso);
+  return `${year}-${pad2(month)}-${pad2(date)}`;
+}
+
 function pad2(n: number): string {
   return String(n).padStart(2, '0');
 }

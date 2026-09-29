@@ -23,6 +23,7 @@ const OWN_HANDLING_ROUTES: readonly string[] = [
   '/topics',
   '/map',
   '/faq',
+  '/timetable',
 ];
 
 function toUrl(path: string): string {
@@ -114,6 +115,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: toUrl('/map'),
       lastModified: (await getCampusMapLastModified()) ?? undefined,
     });
+  }
+
+  if (isPublicPath('/timetable', phase)) {
+    entries.push({ url: toUrl('/timetable') });
   }
 
   if (isPublicPath('/faq', phase)) {

@@ -24,6 +24,25 @@ cd ..
 make dev   # worktree ごとに決まるポートで起動
 ```
 
+### CMS (ローカル)
+
+```bash
+cd cms
+pnpm install
+pnpm db:up      # ローカル Postgres (localhost:5433)
+pnpm migrate
+pnpm seed:dev   # 開発用データを投入する
+cd ..
+make cms        # http://localhost:3100/admin
+```
+
+`pnpm seed:dev` で作られる実行委員アカウントで管理画面にログインできる。
+
+- メールアドレス: `seed-exhibitor-executive@example.invalid`
+- パスワード: `seed-dev-password-1234`
+
+シードの学生団体アカウントは、初期パスワードが推測できない乱数になるためログインできない。
+
 ## ライセンス
 
 [MIT](./LICENSE)

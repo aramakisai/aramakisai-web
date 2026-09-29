@@ -46,11 +46,12 @@ function hasRouteEntity(path: string): boolean {
   return path.split('/').length <= 2;
 }
 
-/** /exhibitions /topics /map はフェーズによっては公開されないため PRE_EVENT_PUBLIC_PATHS に無い */
+/** /exhibitions /topics /map /timetable はフェーズによっては公開されないため PRE_EVENT_PUBLIC_PATHS に無い */
 const LIVE_ONLY_CODE_ROUTES: readonly string[] = [
   '/exhibitions',
   '/topics',
   '/map',
+  '/timetable',
 ];
 
 /**

@@ -13,7 +13,6 @@ import { PerformanceSlots } from './performance-slots';
 import { Sponsors } from './sponsors';
 import { Stages } from './stages';
 import { StudentExhibitions } from './student-exhibitions';
-import { TimeSlots } from './time-slots';
 import { Topics } from './topics';
 import { Users } from './users';
 
@@ -41,7 +40,6 @@ export const collections: CollectionConfig[] = [
   FaqItems,
   MapAreas,
   Stages,
-  TimeSlots,
   PerformanceSlots,
   StudentExhibitions,
 ].map(withAccess);

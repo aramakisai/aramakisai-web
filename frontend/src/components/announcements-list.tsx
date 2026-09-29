@@ -32,7 +32,7 @@ export function AnnouncementsList({
           <li key={announcement.id} className="border-b border-gray-200">
             <Link
               href={`/announcements/${announcement.id}`}
-              className="flex items-center gap-4 py-3 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="flex items-center gap-4 py-3 hover:bg-gray-100/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               <time
                 dateTime={announcement.publishedAt}

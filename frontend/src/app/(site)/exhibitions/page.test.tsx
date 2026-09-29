@@ -116,6 +116,9 @@ describe('ExhibitionsPage', () => {
     expect(
       screen.getByRole('searchbox', { name: '企画を検索' }),
     ).toBeInTheDocument();
+    expect(
+      document.querySelector('a[href="/timetable"]'),
+    ).not.toBeInTheDocument();
   });
 
   it('0 件: 公開済み企画が無い旨を表示し、条件不一致メッセージは出さない', async () => {

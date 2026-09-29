@@ -1,5 +1,11 @@
 export type CodeRoutePath =
-  '/' | '/announcements' | '/exhibitions' | '/topics' | '/map' | '/faq';
+  | '/'
+  | '/announcements'
+  | '/exhibitions'
+  | '/topics'
+  | '/map'
+  | '/faq'
+  | '/timetable';
 
 export interface RouteMetadataEntry {
   /** null はサイトタイトルそのものを使うページ ('/') */
@@ -39,5 +45,10 @@ export const ROUTE_METADATA: Readonly<
   '/faq': {
     title: 'よくある質問',
     description: '荒牧祭についてよくある質問と回答をまとめています。',
+  },
+  '/timetable': {
+    title: 'タイムテーブル',
+    description:
+      '荒牧祭のステージ出演スケジュールです。開催日とステージごとの出演時間を確認できます。',
   },
 };

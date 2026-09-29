@@ -19,6 +19,7 @@ cd cms
 pnpm install
 pnpm db:up                      # ローカル Postgres (localhost:5433)
 pnpm migrate                    # スキーマを適用する。起動前に必ず実行する
+pnpm seed:dev                   # 開発用データを投入する (ログインは README 参照)
 cd ..
 make cms                        # 3100 番固定で起動 (共有 CMS は1つだけ)
 

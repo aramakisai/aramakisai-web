@@ -97,6 +97,7 @@ describe('sitemap (pre_event)', () => {
     expect(urls).not.toContain(`${SITE_URL}/exhibitions`);
     expect(urls).not.toContain(`${SITE_URL}/topics`);
     expect(urls).not.toContain(`${SITE_URL}/map`);
+    expect(urls).not.toContain(`${SITE_URL}/timetable`);
     expect(
       exhibitionsModule.getExhibitionSitemapEntries,
     ).not.toHaveBeenCalled();
@@ -238,6 +239,7 @@ describe('sitemap (live)', () => {
     expect(urls).toContain(`${SITE_URL}/topics/1`);
     const map = result.find((e) => e.url === `${SITE_URL}/map`);
     expect(map?.lastModified).toBe('2026-08-03T00:00:00.000Z');
+    expect(urls).toContain(`${SITE_URL}/timetable`);
   });
 
   it('構内マップの構成コレクションが全滅した場合も lastModified を省いてエントリは残す', async () => {
