@@ -1,129 +1,164 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 // 実 DB を要求するため、DATABASE_URL が無い環境ではスキップする
-const hasDatabase = Boolean(process.env.DATABASE_URL && process.env.PAYLOAD_SECRET);
+const hasDatabase = Boolean(process.env.DATABASE_URL && process.env.PAYLOAD_SECRET)
 
-describe.skipIf(!hasDatabase)('カテゴリと出演枠の整合 (stageAssignmentConstraint / stageCategoryConstraint)', () => {
-  let payload: Awaited<ReturnType<typeof import('payload').getPayload>>;
-  let stageOwner: { id: number };
-  let otherOwner: { id: number };
-  let stageExhibition: { id: number };
-  let nonStageExhibition: { id: number };
-  let stage: { id: number };
-  let createdSlot: number | undefined;
+describe.skipIf(!hasDatabase)(
+  'カテゴリと出演枠の整合 (stageAssignmentConstraint / stageCategoryConstraint)',
+  () => {
+    let payload: Awaited<ReturnType<typeof import('payload').getPayload>>
+    let stageOwner: { id: number }
+    let otherOwner: { id: number }
+    let stageExhibition: { id: number }
+    let nonStageExhibition: { id: number }
+    let stage: { id: number }
+    let createdSlot: number | undefined
+    let originalEventDays: unknown
 
-  const suffix = String(process.pid);
-  const slotTime = {
-    event_date: '2026-09-19T12:00:00.000Z',
-    start_at: '2026-09-19T01:00:00.000Z',
-    end_at: '2026-09-19T01:30:00.000Z',
-  };
+    const suffix = String(process.pid)
+    const slotTime = {
+      event_date: '2026-09-19T12:00:00.000Z',
+      start_at: '2026-09-19T01:00:00.000Z',
+      end_at: '2026-09-19T01:30:00.000Z',
+    }
 
-  beforeAll(async () => {
-    const { getPayload } = await import('payload');
-    const config = (await import('../payload.config')).default;
-    payload = await getPayload({ config });
+    beforeAll(async () => {
+      const { getPayload } = await import('payload')
+      const config = (await import('../payload.config')).default
+      payload = await getPayload({ config })
 
-    const createExhibitor = async (email: string) =>
-      (await payload.create({
-        collection: 'users',
-        data: { email, password: 'test-password', role: 'student_exhibitor' },
+      // 出演枠の開催日は祭基本情報の開催日程に含まれている必要がある
+      originalEventDays = (await payload.findGlobal({ slug: 'festival_meta', depth: 0 })).event_days
+      await payload.updateGlobal({
+        slug: 'festival_meta',
+        data: {
+          name: 'test',
+          event_days: [
+            { start_at: '2026-09-19T09:00:00+09:00', end_at: '2026-09-19T18:00:00+09:00' },
+          ],
+        },
         overrideAccess: true,
-      })) as { id: number };
+      })
 
-    stageOwner = await createExhibitor(`stage-owner-${suffix}@test.local`);
-    otherOwner = await createExhibitor(`nonstage-owner-${suffix}@test.local`);
+      const createExhibitor = async (email: string) =>
+        (await payload.create({
+          collection: 'users',
+          data: { email, password: 'test-password', role: 'student_exhibitor' },
+          overrideAccess: true,
+        })) as { id: number }
 
-    stageExhibition = (await payload.create({
-      collection: 'student_exhibitions',
-      data: {
-        owner: stageOwner.id,
-        organization_name: `stage-${suffix}`,
-        status: 'draft',
-        categories: ['stage'],
-        stage: { name: `stage-${suffix}` },
-      },
-      overrideAccess: true,
-    })) as { id: number };
+      stageOwner = await createExhibitor(`stage-owner-${suffix}@test.local`)
+      otherOwner = await createExhibitor(`nonstage-owner-${suffix}@test.local`)
 
-    nonStageExhibition = (await payload.create({
-      collection: 'student_exhibitions',
-      data: {
-        owner: otherOwner.id,
-        organization_name: `nonstage-${suffix}`,
-        status: 'draft',
-        categories: ['exhibit'],
-        exhibit: { name: `nonstage-${suffix}` },
-      },
-      overrideAccess: true,
-    })) as { id: number };
+      stageExhibition = (await payload.create({
+        collection: 'student_exhibitions',
+        data: {
+          owner: stageOwner.id,
+          organization_name: `stage-${suffix}`,
+          status: 'draft',
+          categories: ['stage'],
+          stage: { name: `stage-${suffix}` },
+        },
+        overrideAccess: true,
+      })) as { id: number }
 
-    stage = (await payload.create({
-      collection: 'stages',
-      data: { name: `stage-for-test-${suffix}` },
-      overrideAccess: true,
-    })) as { id: number };
-  });
+      nonStageExhibition = (await payload.create({
+        collection: 'student_exhibitions',
+        data: {
+          owner: otherOwner.id,
+          organization_name: `nonstage-${suffix}`,
+          status: 'draft',
+          categories: ['exhibit'],
+          exhibit: { name: `nonstage-${suffix}` },
+        },
+        overrideAccess: true,
+      })) as { id: number }
 
-  afterAll(async () => {
-    if (!payload) return;
-    if (createdSlot) {
-      await payload.delete({ collection: 'performance_slots', id: createdSlot, overrideAccess: true }).catch(() => null);
-    }
-    if (stage?.id) {
-      await payload.delete({ collection: 'stages', id: stage.id, overrideAccess: true }).catch(() => null);
-    }
-    for (const id of [stageExhibition?.id, nonStageExhibition?.id]) {
-      if (id) {
-        await payload.delete({ collection: 'student_exhibitions', id, overrideAccess: true }).catch(() => null);
+      stage = (await payload.create({
+        collection: 'stages',
+        data: { name: `stage-for-test-${suffix}` },
+        overrideAccess: true,
+      })) as { id: number }
+    })
+
+    afterAll(async () => {
+      if (!payload) return
+      await payload
+        .updateGlobal({
+          slug: 'festival_meta',
+          data: { event_days: originalEventDays as never },
+          overrideAccess: true,
+        })
+        .catch(() => null)
+      if (createdSlot) {
+        await payload
+          .delete({ collection: 'performance_slots', id: createdSlot, overrideAccess: true })
+          .catch(() => null)
       }
-    }
-    for (const id of [stageOwner?.id, otherOwner?.id]) {
-      if (id) await payload.delete({ collection: 'users', id, overrideAccess: true }).catch(() => null);
-    }
-  });
+      if (stage?.id) {
+        await payload
+          .delete({ collection: 'stages', id: stage.id, overrideAccess: true })
+          .catch(() => null)
+      }
+      for (const id of [stageExhibition?.id, nonStageExhibition?.id]) {
+        if (id) {
+          await payload
+            .delete({ collection: 'student_exhibitions', id, overrideAccess: true })
+            .catch(() => null)
+        }
+      }
+      for (const id of [stageOwner?.id, otherOwner?.id]) {
+        if (id)
+          await payload.delete({ collection: 'users', id, overrideAccess: true }).catch(() => null)
+      }
+    })
 
-  it('ステージを選択していない企画への出演枠割り当てを拒否する', async () => {
-    await expect(
-      payload.create({
+    it('ステージを選択していない企画への出演枠割り当てを拒否する', async () => {
+      await expect(
+        payload.create({
+          collection: 'performance_slots',
+          data: { stage_id: stage.id, ...slotTime, exhibition_id: nonStageExhibition.id },
+          overrideAccess: true,
+        }),
+      ).rejects.toThrow()
+    })
+
+    it('ステージを選択している企画への出演枠割り当ては通す', async () => {
+      const slot = (await payload.create({
         collection: 'performance_slots',
-        data: { stage_id: stage.id, ...slotTime, exhibition_id: nonStageExhibition.id },
+        data: { stage_id: stage.id, ...slotTime, exhibition_id: stageExhibition.id },
         overrideAccess: true,
-      }),
-    ).rejects.toThrow();
-  });
+      })) as { id: number }
+      createdSlot = slot.id
+      expect(slot.id).toBeDefined()
+    })
 
-  it('ステージを選択している企画への出演枠割り当ては通す', async () => {
-    const slot = (await payload.create({
-      collection: 'performance_slots',
-      data: { stage_id: stage.id, ...slotTime, exhibition_id: stageExhibition.id },
-      overrideAccess: true,
-    })) as { id: number };
-    createdSlot = slot.id;
-    expect(slot.id).toBeDefined();
-  });
+    it('出演枠が割り当てられている企画のステージ選択解除を拒否する', async () => {
+      await expect(
+        payload.update({
+          collection: 'student_exhibitions',
+          id: stageExhibition.id,
+          data: { categories: ['exhibit'], exhibit: { name: `switched-${suffix}` } },
+          overrideAccess: true,
+        }),
+      ).rejects.toThrow()
+    })
 
-  it('出演枠が割り当てられている企画のステージ選択解除を拒否する', async () => {
-    await expect(
-      payload.update({
+    it('出演枠を外せばステージ選択の解除が通る', async () => {
+      await payload.delete({
+        collection: 'performance_slots',
+        id: createdSlot as number,
+        overrideAccess: true,
+      })
+      createdSlot = undefined
+
+      const updated = await payload.update({
         collection: 'student_exhibitions',
         id: stageExhibition.id,
         data: { categories: ['exhibit'], exhibit: { name: `switched-${suffix}` } },
         overrideAccess: true,
-      }),
-    ).rejects.toThrow();
-  });
-
-  it('出演枠を外せばステージ選択の解除が通る', async () => {
-    await payload.delete({ collection: 'performance_slots', id: createdSlot as number, overrideAccess: true });
-    createdSlot = undefined;
-
-    const updated = await payload.update({
-      collection: 'student_exhibitions',
-      id: stageExhibition.id,
-      data: { categories: ['exhibit'], exhibit: { name: `switched-${suffix}` } },
-      overrideAccess: true,
-    });
-    expect(updated.categories).toEqual(['exhibit']);
-  });
-});
+      })
+      expect(updated.categories).toEqual(['exhibit'])
+    })
+  },
+)

@@ -1,6 +1,10 @@
-import type { CollectionConfig } from 'payload';
+import type { CollectionConfig } from 'payload'
 
-import { performanceSlotConstraint, stageAssignmentConstraint } from '../hooks/payload-constraints';
+import {
+  performanceSlotConstraint,
+  performanceTimeConstraint,
+  stageAssignmentConstraint,
+} from '../hooks/payload-constraints'
 
 export const PerformanceSlots: CollectionConfig = {
   slug: 'performance_slots',
@@ -8,7 +12,13 @@ export const PerformanceSlots: CollectionConfig = {
   admin: {
     useAsTitle: 'title',
   },
-  hooks: { beforeValidate: [performanceSlotConstraint, stageAssignmentConstraint] },
+  hooks: {
+    beforeValidate: [
+      performanceSlotConstraint,
+      stageAssignmentConstraint,
+      performanceTimeConstraint,
+    ],
+  },
   fields: [
     {
       name: 'stage_id',
@@ -60,4 +70,4 @@ export const PerformanceSlots: CollectionConfig = {
       admin: { description: 'exhibition_idがNULLの場合必須' },
     },
   ],
-};
+}
