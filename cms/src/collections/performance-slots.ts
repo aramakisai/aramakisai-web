@@ -12,6 +12,7 @@ export const PerformanceSlots: CollectionConfig = {
   labels: { singular: 'ステージ出演枠', plural: 'ステージ出演枠' },
   admin: {
     useAsTitle: 'display_name',
+    listSearchableFields: ['display_name', 'title'],
   },
   hooks: {
     beforeValidate: [
@@ -26,6 +27,7 @@ export const PerformanceSlots: CollectionConfig = {
       // 団体名への関連パスで宣言する。値は DB の結合で引かれ、追加クエリは走らない
       name: 'display_name',
       type: 'text',
+      label: '表示名',
       virtual: 'exhibition_id.organization_name',
       admin: { hidden: true },
       access: { create: () => false, update: () => false },
