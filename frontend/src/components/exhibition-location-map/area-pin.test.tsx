@@ -54,6 +54,11 @@ describe('AreaPin', () => {
     expect(lastIconHtml()).toContain('icon-location-pin');
   });
 
+  it('幅 0 のコンテナ内でも水平中央合わせが効くよう w-max を持つ', () => {
+    render(<AreaPin polygon={POLYGON} />);
+    expect(lastIconHtml()).toContain('w-max');
+  });
+
   it('accent のカラートークンで着色する', () => {
     render(<AreaPin polygon={POLYGON} />);
     expect(lastIconHtml()).toContain('text-accent');
