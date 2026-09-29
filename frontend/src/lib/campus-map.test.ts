@@ -370,7 +370,16 @@ describe('getCampusMapData', () => {
           stage: { name: '企画A-出演', images: [] },
         },
       ],
-      slots: [{ id: 100, stage_id: 1, event_date: '2026-10-10T12:00:00.000Z', start_at: '2026-10-10T01:00:00.000Z', end_at: '2026-10-10T02:00:00.000Z', exhibition_id: 1 }],
+      slots: [
+        {
+          id: 100,
+          stage_id: 1,
+          event_date: '2026-10-10T12:00:00.000Z',
+          start_at: '2026-10-10T01:00:00.000Z',
+          end_at: '2026-10-10T02:00:00.000Z',
+          exhibition_id: 1,
+        },
+      ],
       stages: [{ id: 1, name: 'メインステージ', area_id: 20 }],
     });
 

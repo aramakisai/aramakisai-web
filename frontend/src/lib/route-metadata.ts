@@ -1,5 +1,11 @@
 export type CodeRoutePath =
-  '/' | '/announcements' | '/exhibitions' | '/topics' | '/map' | '/faq' | '/timetable';
+  | '/'
+  | '/announcements'
+  | '/exhibitions'
+  | '/topics'
+  | '/map'
+  | '/faq'
+  | '/timetable';
 
 export interface RouteMetadataEntry {
   /** null はサイトタイトルそのものを使うページ ('/') */
