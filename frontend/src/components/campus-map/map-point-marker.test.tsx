@@ -9,12 +9,13 @@ vi.mock('react-leaflet', () => ({
     markerProps.push(props);
     return <div>{props.children as never}</div>;
   },
+  useMapEvents: () => null,
   Tooltip: ({ children }: { children: React.ReactNode }) => (
     <span data-testid="tooltip">{children}</span>
   ),
 }));
 
-import { MapPointMarker } from './map-point-marker';
+import { MapPointMarker, keepTooltipOnTouch } from './map-point-marker';
 
 function iconHtml(): string {
   return ((markerProps.at(-1)!.icon as DivIcon).options as { html: string })
@@ -44,5 +45,32 @@ describe('MapPointMarker', () => {
     expect(iconHtml()).toContain('>info_i<');
     expect(iconHtml()).toContain('bg-info');
     expect(screen.getByTestId('tooltip')).toHaveTextContent('受付');
+  });
+
+  it('タッチ由来の mouseout は親へ伝えず、マウス由来は伝える', () => {
+    const icon = document.createElement('div');
+    const inner = document.createElement('span');
+    icon.appendChild(inner);
+    keepTooltipOnTouch(icon);
+    const bubbled = vi.fn();
+    document.body.appendChild(icon);
+    // Leaflet はマーカー要素の bubble フェーズで購読する
+    icon.addEventListener('mouseout', bubbled);
+    const out = (type: string) =>
+      inner.dispatchEvent(new MouseEvent(type, { bubbles: true }));
+    const pointerOut = (pointerType: string) =>
+      inner.dispatchEvent(
+        Object.assign(new Event('pointerout', { bubbles: true }), {
+          pointerType,
+        }),
+      );
+
+    pointerOut('touch');
+    out('mouseout');
+    expect(bubbled).not.toHaveBeenCalled();
+
+    pointerOut('mouse');
+    out('mouseout');
+    expect(bubbled).toHaveBeenCalledTimes(1);
   });
 });

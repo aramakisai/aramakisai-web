@@ -2,7 +2,9 @@
 
 import { renderToStaticMarkup } from 'react-dom/server';
 import { divIcon, type DivIcon } from 'leaflet';
-import { Marker, Tooltip } from 'react-leaflet';
+import { useMemo, useRef } from 'react';
+import type { Marker as LeafletMarker } from 'leaflet';
+import { Marker, Tooltip, useMapEvents } from 'react-leaflet';
 import { MaterialIcon } from '@/components/icons';
 import type { CampusMapPoint, CampusMapPointKind } from '@/lib/campus-map';
 
@@ -46,11 +48,46 @@ export function buildPointIcon(kind: CampusMapPointKind): DivIcon {
   });
 }
 
+// タッチでは pointerup の後に pointerout が来て、Leaflet が mouseout として
+// 吹き出しを閉じてしまう。pointerout は mouseout より先に発火するので、
+// 種別を控えて touch の mouseout だけ Leaflet の既定ハンドラへ届く前に止める
+export function keepTooltipOnTouch(icon: HTMLElement) {
+  let touch = false;
+  icon.addEventListener(
+    'pointerout',
+    (e) => {
+      touch = e.pointerType === 'touch';
+    },
+    true,
+  );
+  icon.addEventListener(
+    'mouseout',
+    (e) => {
+      if (touch) e.stopPropagation();
+    },
+    true,
+  );
+}
+
 export function MapPointMarker({ point }: MapPointMarkerProps) {
+  const ref = useRef<LeafletMarker>(null);
+  const icon = useMemo(() => buildPointIcon(point.kind), [point.kind]);
+  // タッチで開いた吹き出しは、地図タップか他マーカーの吹き出しが開くまで残す
+  useMapEvents({
+    click: () => ref.current?.closeTooltip(),
+    tooltipopen: (e) => {
+      if (e.tooltip !== ref.current?.getTooltip()) ref.current?.closeTooltip();
+    },
+  });
   return (
     <Marker
+      ref={ref}
+      eventHandlers={{
+        add: (e) =>
+          keepTooltipOnTouch((e.target as LeafletMarker).getElement()!),
+      }}
       position={[point.latitude, point.longitude]}
-      icon={buildPointIcon(point.kind)}
+      icon={icon}
     >
       <Tooltip
         direction="top"
