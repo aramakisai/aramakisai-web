@@ -297,7 +297,9 @@ describe('計測・配置・保持・間引きの結合 (要件 9.1, 9.3)', () =
       Array.from(document.querySelectorAll('[data-bg-shape]')) as HTMLElement[];
 
     await waitFor(() => {
-      expect(shapeEls().filter((el) => el.style.visibility === 'hidden')).toHaveLength(1);
+      expect(
+        shapeEls().filter((el) => el.style.visibility === 'hidden'),
+      ).toHaveLength(1);
     });
     // 配置は計算し直さない (要件 9.1)。違反した図形 (shapeB) は DOM から消さず
     // visibility:hidden にするだけ (shapes 配列の参照を変えないため)
