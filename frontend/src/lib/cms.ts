@@ -77,9 +77,38 @@ export function buildQueryString(query: {
   return parts.join('&');
 }
 
+// Workers から CMS オリジンへの往復が TTFB の主因のため、公開 GET を Cache API に短期間保持する。
+// request() は認証ヘッダも cookie も付けない公開リクエストだけを扱うので全呼び出しが対象になる。
+const CACHE_TTL_SECONDS = 60;
+
+function getEdgeCache(): Cache | undefined {
+  if (typeof caches === 'undefined') return undefined;
+  return (caches as unknown as { default?: Cache }).default;
+}
+
+async function cachedFetch(url: string): Promise<Response> {
+  const cache = getEdgeCache();
+  if (!cache) return fetch(url);
+  const key = new Request(url);
+  const hit = await cache.match(key);
+  if (hit) return hit;
+  const response = await fetch(url);
+  if (response.ok) {
+    try {
+      const { getCloudflareContext } = await import('@opennextjs/cloudflare');
+      const stored = new Response(response.clone().body, response);
+      stored.headers.set('Cache-Control', `s-maxage=${CACHE_TTL_SECONDS}`);
+      getCloudflareContext().ctx.waitUntil(cache.put(key, stored));
+    } catch {
+      // waitUntil を取れない環境では保存を諦める (応答自体は返す)
+    }
+  }
+  return response;
+}
+
 async function request<T>(path: string): Promise<CmsResult<T>> {
   try {
-    const response = await fetch(`${env.NEXT_PUBLIC_CMS_URL}${path}`);
+    const response = await cachedFetch(`${env.NEXT_PUBLIC_CMS_URL}${path}`);
     if (!response.ok) {
       if (response.status === 404)
         return { ok: false, error: { kind: 'not_found' } };

@@ -16,9 +16,12 @@ function mapAnnouncement(a: Announcement): AnnouncementSummary {
   };
 }
 
+// 秒・ミリ秒を切り捨てて URL を 1 分間固定し、CMS 応答のキャッシュに当てる。
+// 切り捨ては過去方向の誤差なので、未公開記事が早く見えることはない。
 export function publishedFilter() {
+  const now = new Date().toISOString().slice(0, 16) + ':00.000Z';
   return {
-    published_at: { less_than_equal: new Date().toISOString(), exists: true },
+    published_at: { less_than_equal: now, exists: true },
   } as const;
 }
 
