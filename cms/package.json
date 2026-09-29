@@ -23,7 +23,7 @@
     "db:down": "docker compose down",
     "seed:dev:exhibitions": "cross-env NODE_OPTIONS=--import=tsx/esm node scripts/seed-dev-exhibitions.ts",
     "seed:dev:content": "cross-env NODE_OPTIONS=--import=tsx/esm node scripts/seed-dev-content.ts",
-    "seed:dev": "pnpm run seed:dev:exhibitions && pnpm run seed:dev:content"
+    "seed:dev": "pnpm run seed:dev:content && pnpm run seed:dev:exhibitions"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "3.88.0",
