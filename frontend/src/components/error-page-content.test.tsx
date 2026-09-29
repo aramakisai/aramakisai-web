@@ -49,22 +49,4 @@ describe('ErrorPageContent', () => {
     fireEvent.click(screen.getByRole('button', { name: '再読み込み' }));
     expect(onReset).toHaveBeenCalledOnce();
   });
-
-  it('pageTitle の値がレンダー後に他コードで書き換えられても、元の値へ補正される', async () => {
-    render(
-      <ErrorPageContent
-        variant="error"
-        pageTitle="エラーが発生しました | 荒牧祭"
-        onReset={vi.fn()}
-      />,
-    );
-
-    // root layout の非同期 generateMetadata が後から <title> を上書きする
-    // (research.md の既知リスク) 状況を模擬する
-    document.title = '第73回 荒牧祭公式ホームページ';
-
-    await vi.waitFor(() => {
-      expect(document.title).toBe('エラーが発生しました | 荒牧祭');
-    });
-  });
 });

@@ -49,6 +49,12 @@ test.describe('エラー表示画面', () => {
     // ルート layout のみを経由するため、Site 共通のヘッダー・フッターは持たない
     await expect(page.getByRole('banner')).toHaveCount(0);
     await expect(page.getByRole('contentinfo')).toHaveCount(0);
+
+    // streaming metadata が無効化されず root layout の非同期 generateMetadata が
+    // 後からマウントされると、この待機の間にタイトルが既定値へ巻き戻る
+    await page.waitForTimeout(1500);
+    await expect(page).toHaveTitle(/ページが見つかりません/);
+    await expectSomeRobotsMetaNoindex(page);
   });
 
   test('存在しない1セグメントのスラッグは(site)/not-found.tsxがヘッダー・フッター込みで固有タイトルで表示される', async ({
@@ -63,6 +69,9 @@ test.describe('エラー表示画面', () => {
     await expect(page).toHaveTitle(/ページが見つかりません/);
     await expect(page.getByRole('banner')).toBeVisible();
     await expect(page.getByRole('contentinfo')).toBeVisible();
+
+    await page.waitForTimeout(1500);
+    await expect(page).toHaveTitle(/ページが見つかりません/);
   });
 
   test('詳細ページで存在しないIDにアクセスすると、Site not-found.tsx側の固有タイトルが優先される', async ({
@@ -80,6 +89,11 @@ test.describe('エラー表示画面', () => {
     // トピックス詳細の generateMetadata が返すサイト既定タイトルではなく、
     // not-found.tsx 固有のタイトルが最終的にブラウザへ反映されることを確認する (要件 2.5)
     await expect(page).toHaveTitle(/ページが見つかりません/);
+    await expectSomeRobotsMetaNoindex(page);
+
+    await page.waitForTimeout(1500);
+    await expect(page).toHaveTitle(/ページが見つかりません/);
+    await expectSomeRobotsMetaNoindex(page);
   });
 
   test('Site配下で意図的に例外を発生させるとエラー画面が表示され、再読み込みボタンが機能する', async ({
@@ -94,6 +108,9 @@ test.describe('エラー表示画面', () => {
     await expectSomeRobotsMetaNoindex(page);
     await expect(page.getByRole('banner')).toBeVisible();
     await expect(page.getByRole('contentinfo')).toBeVisible();
+
+    await page.waitForTimeout(1500);
+    await expect(page).toHaveTitle(/エラーが発生しました/);
 
     await page.getByRole('button', { name: '再読み込み' }).click();
     // トリガーページは常に再度例外を投げるため、reset() 実行後も同じエラー画面が
@@ -115,6 +132,9 @@ test.describe('エラー表示画面', () => {
     await expectSomeRobotsMetaNoindex(page);
     await expect(page.getByRole('banner')).toHaveCount(0);
     await expect(page.getByRole('contentinfo')).toHaveCount(0);
+
+    await page.waitForTimeout(1500);
+    await expect(page).toHaveTitle(/エラーが発生しました/);
 
     await page.getByRole('button', { name: '再読み込み' }).click();
     await expect(
