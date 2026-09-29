@@ -823,6 +823,62 @@ describe('getExhibitionDetail', () => {
     expect(result.kind === 'found' && 'name' in result.value).toBe(false);
   });
 
+  it('メニューは価格nullの行を除き並び順を保ち、出店日は暦日キーに変換して解釈できない値を除く', async () => {
+    const base = {
+      id: 1,
+      organization_name: '団体A',
+      status: 'published',
+      area_id: null,
+      categories: ['exhibit', 'vendor'],
+      exhibit: { name: '展示', images: [] },
+      vendor: { name: '出店', images: [] },
+      menu: [
+        { name: 'B', price: '¥300' },
+        { name: 'A', price: null },
+        { name: 'C', price: '' },
+        { name: 'D', price: '時価' },
+      ],
+      open_days: [
+        '2026-11-15T12:00:00.000Z',
+        'not-a-date',
+        '2026-11-14T12:00:00.000Z',
+      ],
+    };
+    const expected = {
+      menu: [
+        { name: 'B', price: '¥300' },
+        { name: 'C', price: '' },
+        { name: 'D', price: '時価' },
+      ],
+      openDayKeys: ['2026-11-15', '2026-11-14'],
+    };
+    mockDetail(base);
+    expect(await getExhibitionDetail(1, 'exhibit')).toEqual({
+      kind: 'found',
+      value: expect.objectContaining(expected),
+    });
+    mockDetail(base);
+    expect(await getExhibitionDetail(1, 'vendor')).toEqual({
+      kind: 'found',
+      value: expect.objectContaining(expected),
+    });
+  });
+
+  it('メニュー・出店日が未設定なら空配列', async () => {
+    mockDetail({
+      id: 1,
+      organization_name: '団体A',
+      status: 'published',
+      area_id: null,
+      categories: ['exhibit'],
+      exhibit: { name: '展示', images: [] },
+    });
+    expect(await getExhibitionDetail(1, 'exhibit')).toEqual({
+      kind: 'found',
+      value: expect.objectContaining({ menu: [], openDayKeys: [] }),
+    });
+  });
+
   it('地図の対象 areaIds は表示中の category の場所と同じ出どころだけを持つ', async () => {
     mockDetail(
       {
