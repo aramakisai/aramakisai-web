@@ -22,6 +22,11 @@ defaults:
 permissions:
   contents: read
 
+# push (デプロイ) は中断しない。中断してよいのは PR 実行のみ
+concurrency:
+  group: frontend-ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   validate:
     name: type-check / lint / test / build
@@ -96,6 +101,14 @@ jobs:
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
 
+      - name: Cache Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: frontend/.next/cache
+          key: ${{ runner.os }}-nextjs-verify-build-artifacts-${{ hashFiles('frontend/pnpm-lock.yaml') }}-${{ hashFiles('frontend/src/**', 'frontend/public/**') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-verify-build-artifacts-${{ hashFiles('frontend/pnpm-lock.yaml') }}-
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -108,7 +121,7 @@ jobs:
 
   deploy-preview:
     name: deploy preview (Workers)
-    needs: validate
+    # validate と並列実行する (クリティカルパス短縮)。validate 失敗時も PR はマージ不可のため安全性は保たれる
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false
     runs-on: ubuntu-latest
     permissions:
@@ -135,13 +148,19 @@ jobs:
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
 
+      - name: Cache Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: frontend/.next/cache
+          key: ${{ runner.os }}-nextjs-deploy-preview-${{ hashFiles('frontend/pnpm-lock.yaml') }}-${{ hashFiles('frontend/src/**', 'frontend/public/**') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-deploy-preview-${{ hashFiles('frontend/pnpm-lock.yaml') }}-
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Install Infisical CLI
-        run: |
-          curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | sudo -E bash
-          sudo apt-get update && sudo apt-get install -y infisical
+        uses: ./.github/actions/setup-infisical
 
       - name: Infisical login
         run: |
@@ -220,13 +239,29 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Get installed Playwright version
+        id: playwright_version
+        run: |
+          echo "version=$(node -e "console.log(require('./node_modules/@playwright/test/package.json').version)")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: playwright_cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.playwright_version.outputs.version }}
+
       - name: Install Playwright browsers
+        if: steps.playwright_cache.outputs.cache-hit != 'true'
         run: pnpm exec playwright install --with-deps chromium
 
+      # ブラウザ本体はキャッシュ済みだが OS の共有ライブラリはランナーイメージに依存するため毎回確認する
+      - name: Install Playwright OS dependencies
+        if: steps.playwright_cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
+
       - name: Install Infisical CLI
-        run: |
-          curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | sudo -E bash
-          sudo apt-get update && sudo apt-get install -y infisical
+        uses: ./.github/actions/setup-infisical
 
       - name: Infisical login
         run: |
@@ -285,13 +320,19 @@ jobs:
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
 
+      - name: Cache Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: frontend/.next/cache
+          key: ${{ runner.os }}-nextjs-deploy-dev-${{ hashFiles('frontend/pnpm-lock.yaml') }}-${{ hashFiles('frontend/src/**', 'frontend/public/**') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-deploy-dev-${{ hashFiles('frontend/pnpm-lock.yaml') }}-
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Install Infisical CLI
-        run: |
-          curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | sudo -E bash
-          sudo apt-get update && sudo apt-get install -y infisical
+        uses: ./.github/actions/setup-infisical
 
       - name: Infisical login
         run: |
@@ -338,13 +379,19 @@ jobs:
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
 
+      - name: Cache Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: frontend/.next/cache
+          key: ${{ runner.os }}-nextjs-deploy-prod-${{ hashFiles('frontend/pnpm-lock.yaml') }}-${{ hashFiles('frontend/src/**', 'frontend/public/**') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-deploy-prod-${{ hashFiles('frontend/pnpm-lock.yaml') }}-
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Install Infisical CLI
-        run: |
-          curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | sudo -E bash
-          sudo apt-get update && sudo apt-get install -y infisical
+        uses: ./.github/actions/setup-infisical
 
       - name: Infisical login
         run: |

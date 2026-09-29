@@ -54,6 +54,14 @@ jobs:
           cache: pnpm
           cache-dependency-path: cms/pnpm-lock.yaml
 
+      - name: Cache Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: cms/.next/cache
+          key: ${{ runner.os }}-cms-nextjs-${{ hashFiles('cms/pnpm-lock.yaml') }}-${{ hashFiles('cms/src/**') }}
+          restore-keys: |
+            ${{ runner.os }}-cms-nextjs-${{ hashFiles('cms/pnpm-lock.yaml') }}-
+
       - name: Install dependencies
         working-directory: cms
         run: pnpm install --frozen-lockfile
@@ -106,18 +114,24 @@ jobs:
         working-directory: cms
         run: pnpm build
 
-  release:
-    name: Build image and open infra PR
+  release-images:
+    name: Build and push image (${{ matrix.image }})
     needs: verify
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-    env:
-      INFISICAL_UNIVERSAL_AUTH_CLIENT_ID: ${{ secrets.INFISICAL_CLIENT_ID }}
-      INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET: ${{ secrets.INFISICAL_CLIENT_SECRET }}
-      IMAGE: ghcr.io/aramakisai/aramakisai-cms
+    strategy:
+      matrix:
+        # runner (target 未指定 = 最終ステージ) と migrator を並列ビルドする。
+        # 後続の infra PR 作成は release ジョブが両方の完了を待って行う
+        include:
+          - image: runner
+            tags: ghcr.io/aramakisai/aramakisai-cms:${{ github.sha }}
+          - image: migrator
+            target: migrator
+            tags: ghcr.io/aramakisai/aramakisai-cms-migrate:${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
 
@@ -128,27 +142,34 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push image
-        id: image
-        uses: docker/build-push-action@v6
-        with:
-          context: cms
-          push: true
-          tags: ${{ env.IMAGE }}:${{ github.sha }}
+      - uses: docker/setup-buildx-action@v3
 
-      # マイグレーション適用 Job 用。Payload CLI と src/migrations を含む段階を押し出す
-      - name: Build and push migration image
+      - name: Build and push image
         uses: docker/build-push-action@v6
         with:
           context: cms
-          target: migrator
+          target: ${{ matrix.target }}
           push: true
-          tags: ${{ env.IMAGE }}-migrate:${{ github.sha }}
+          tags: ${{ matrix.tags }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+  release:
+    name: Open infra PR
+    needs: release-images
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      INFISICAL_UNIVERSAL_AUTH_CLIENT_ID: ${{ secrets.INFISICAL_CLIENT_ID }}
+      INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+      IMAGE: ghcr.io/aramakisai/aramakisai-cms
+    steps:
+      - uses: actions/checkout@v4
 
       - name: Install Infisical CLI
-        run: |
-          curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | sudo -E bash
-          sudo apt-get update && sudo apt-get install -y infisical
+        uses: ./.github/actions/setup-infisical
 
       - name: Fetch GitHub App credentials from Infisical
         id: app_creds
