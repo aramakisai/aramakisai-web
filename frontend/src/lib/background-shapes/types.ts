@@ -15,13 +15,6 @@ export type TextureId =
 export type RingColor =
   'ochre' | 'olive' | 'sage' | 'salmon' | 'rose' | 'wisteria' | 'aqua';
 
-export interface Rect {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
-
 // fixture の JSON と同じ平坦な形。fixture をそのまま読み込めるようにする
 export interface PlacementInput {
   pathname: string;
@@ -30,9 +23,6 @@ export interface PlacementInput {
   height: number;
   decorTop: number; // ヘッダー (ヒーローがあればその) 下端
   decorBottom: number; // フッター (SP は下部タブナビ) 上端
-  text: readonly Rect[]; // 黒文字の外接矩形
-  noOverlap: readonly Rect[]; // 文字リンク・白文字・ロゴ
-  opaque: readonly Rect[]; // 不透明な面
 }
 
 // Inf の size は直径 D、rot は度。座標は小数第 2 位に丸める

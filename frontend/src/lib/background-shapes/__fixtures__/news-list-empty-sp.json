@@ -4,21 +4,5 @@
   "width": 390,
   "height": 1336,
   "decorTop": 64,
-  "decorBottom": 224,
-  "text": [
-    {
-      "x": 106,
-      "y": 80,
-      "w": 178,
-      "h": 53
-    },
-    {
-      "x": 16,
-      "y": 149,
-      "w": 159,
-      "h": 27
-    }
-  ],
-  "noOverlap": [],
-  "opaque": []
+  "decorBottom": 224
 }

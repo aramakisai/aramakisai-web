@@ -1,11 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   bboxRadius,
-  circleIntersectsRect,
   collisionOk,
   infBbox,
   infRadius,
-  pad,
   shapeFits,
 } from './geometry';
 
@@ -24,35 +22,6 @@ describe('infBbox / infRadius: ∞ の外接矩形と外接円半径', () => {
   });
 });
 
-describe('pad: 矩形を四辺方向に広げる', () => {
-  it('中心を保ったまま幅・高さを 2m 広げる', () => {
-    expect(pad([{ x: 10, y: 10, w: 20, h: 30 }], 5)).toEqual([
-      { x: 5, y: 5, w: 30, h: 40 },
-    ]);
-  });
-});
-
-describe('circleIntersectsRect: 円と矩形の最短距離による交差判定', () => {
-  const rect = { x: 100, y: 100, w: 50, h: 50 };
-
-  it('矩形の内部に中心があれば true', () => {
-    expect(circleIntersectsRect(120, 120, 5, rect)).toBe(true);
-  });
-
-  it('矩形の角からの最短距離が半径以内なら true', () => {
-    // 角 (100,100) からの距離 = sqrt(2)*10 ≈ 14.14
-    expect(circleIntersectsRect(90, 90, 15, rect)).toBe(true);
-  });
-
-  it('矩形の角からの最短距離が半径を超えると false', () => {
-    expect(circleIntersectsRect(90, 90, 10, rect)).toBe(false);
-  });
-
-  it('辺からの最短距離が半径ちょうどなら true (境界含む)', () => {
-    expect(circleIntersectsRect(125, 80, 20, rect)).toBe(true);
-  });
-});
-
 describe('collisionOk: 外接円どうしのガター (既定 24px) 判定', () => {
   it('十分離れていれば true', () => {
     expect(collisionOk(0, 0, 50, [{ cx: 200, cy: 0, r: 50 }], 24)).toBe(true);
@@ -62,43 +31,20 @@ describe('collisionOk: 外接円どうしのガター (既定 24px) 判定', () 
   });
 });
 
-describe('shapeFits: 装飾範囲・横のはみ出し・障害物の合成判定', () => {
-  const obstaclePad = pad([{ x: 400, y: 400, w: 200, h: 200 }], 10);
-  const opaque = [{ x: 600, y: 600, w: 200, h: 200 }];
-
-  it('装飾範囲内・障害物と重ならなければ true', () => {
-    expect(
-      shapeFits(200, 500, 50, 1000, 300, 900, 0, obstaclePad, opaque),
-    ).toBe(true);
+describe('shapeFits: 装飾範囲・横のはみ出しの合成判定', () => {
+  it('装飾範囲内なら true', () => {
+    expect(shapeFits(200, 500, 50, 1000, 300, 900, 0)).toBe(true);
   });
 
   it('装飾範囲の上端をはみ出すと false', () => {
-    expect(
-      shapeFits(200, 310, 50, 1000, 300, 900, 0, obstaclePad, opaque),
-    ).toBe(false);
+    expect(shapeFits(200, 310, 50, 1000, 300, 900, 0)).toBe(false);
   });
 
   it('横のはみ出しが許容量 (xOverflow) を超えると false', () => {
-    expect(
-      shapeFits(-25, 500, 20, 1000, 300, 900, 40, obstaclePad, opaque),
-    ).toBe(false);
+    expect(shapeFits(-25, 500, 20, 1000, 300, 900, 40)).toBe(false);
   });
 
   it('横のはみ出しが許容量以内なら true', () => {
-    expect(
-      shapeFits(-15, 500, 20, 1000, 300, 900, 40, obstaclePad, opaque),
-    ).toBe(true);
-  });
-
-  it('文字/重ねない要素 (+10px 済み) と重なると false', () => {
-    expect(
-      shapeFits(420, 420, 30, 1000, 300, 900, 0, obstaclePad, opaque),
-    ).toBe(false);
-  });
-
-  it('不透明な面と重なると false', () => {
-    expect(
-      shapeFits(650, 650, 30, 1000, 300, 900, 0, obstaclePad, opaque),
-    ).toBe(false);
+    expect(shapeFits(-15, 500, 20, 1000, 300, 900, 40)).toBe(true);
   });
 });

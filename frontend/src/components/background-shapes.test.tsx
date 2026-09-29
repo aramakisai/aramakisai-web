@@ -259,7 +259,7 @@ describe('計測・配置・保持・間引きの結合 (要件 9.1, 9.3)', () =
     vi.stubGlobal('ResizeObserver', MockResizeObserver);
 
     const shapeA = shape({ tier: 'S', size: 80, cx: 100, cy: 300 });
-    const shapeB = shape({ tier: 'S', size: 80, cx: 800, cy: 300 });
+    const shapeB = shape({ tier: 'S', size: 80, cx: 800, cy: 700 });
     const placeSpy = vi
       .spyOn(placementLib, 'placeBackgroundShapes')
       .mockReturnValue(placementResult([shapeA, shapeB]));
@@ -281,13 +281,9 @@ describe('計測・配置・保持・間引きの結合 (要件 9.1, 9.3)', () =
     });
     expect(placeSpy).toHaveBeenCalledTimes(1);
 
-    // 検索結果の件数変化などを模して、shapeB の位置を覆う不透明な面を本文へ足し、
+    // 検索結果の件数変化などを模して、footer を shapeB の位置より上へ押し上げ、
     // 幅は変えないまま ResizeObserver (高さの変化) を発火する
-    const mainEl = document.getElementById(MAIN_CONTENT_ID)!;
-    const opaqueEl = document.createElement('div');
-    opaqueEl.setAttribute('data-bg-opaque', 'true');
-    mainEl.appendChild(opaqueEl);
-    stubRect(opaqueEl, { x: 750, y: 250, width: 150, height: 150 });
+    stubRect(footerEl, { x: 0, y: 600, width: 1440, height: 200 });
 
     act(() => {
       MockResizeObserver.instances[0]?.trigger();
@@ -381,7 +377,7 @@ describe('計測・配置・保持・間引きの結合 (要件 9.1, 9.3)', () =
     vi.stubGlobal('ResizeObserver', MockResizeObserver);
 
     const shapeA = shape({ tier: 'S', size: 80, cx: 100, cy: 300 });
-    const shapeB = shape({ tier: 'S', size: 80, cx: 800, cy: 300 });
+    const shapeB = shape({ tier: 'S', size: 80, cx: 800, cy: 700 });
     vi.spyOn(placementLib, 'placeBackgroundShapes').mockReturnValue(
       placementResult([shapeA, shapeB]),
     );
@@ -410,12 +406,8 @@ describe('計測・配置・保持・間引きの結合 (要件 9.1, 9.3)', () =
     // 保たれていれば、shapeB だけが隠れる/戻る更新が起きてもこの値は無事
     elA.style.transform = 'translate(42px, 7px) rotate(0deg)';
 
-    // FAQ の回答を開いたときのように、shapeB の位置だけを覆う不透明な面が現れる
-    const mainEl = document.getElementById(MAIN_CONTENT_ID)!;
-    const opaqueEl = document.createElement('div');
-    opaqueEl.setAttribute('data-bg-opaque', 'true');
-    mainEl.appendChild(opaqueEl);
-    stubRect(opaqueEl, { x: 750, y: 250, width: 150, height: 150 });
+    // FAQ の回答を開いたときのように、footer が shapeB の位置より上へ押し上げられる
+    stubRect(footerEl, { x: 0, y: 600, width: 1440, height: 200 });
 
     act(() => {
       MockResizeObserver.instances[0]?.trigger();
@@ -427,7 +419,7 @@ describe('計測・配置・保持・間引きの結合 (要件 9.1, 9.3)', () =
     expect(elA.style.transform).toBe('translate(42px, 7px) rotate(0deg)');
 
     // 回答を閉じて shapeB の位置が空くケース (要素は再利用され、隠れていたものが戻る)
-    mainEl.removeChild(opaqueEl);
+    stubRect(footerEl, { x: 0, y: 900, width: 1440, height: 200 });
     act(() => {
       MockResizeObserver.instances[0]?.trigger();
     });

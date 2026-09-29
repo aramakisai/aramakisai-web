@@ -35,7 +35,6 @@ export function ExhibitionCard({ exhibition }: ExhibitionCardProps) {
   return (
     <Link
       href={`/exhibitions/${exhibition.id}/${exhibition.category}`}
-      data-bg-opaque="true"
       className="flex flex-col overflow-clip rounded-xl transition-shadow hover:shadow-lg"
     >
       <div className="flex aspect-[300/225] w-full shrink-0 items-center justify-center overflow-clip bg-gray-200">

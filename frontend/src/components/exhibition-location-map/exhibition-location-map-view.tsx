@@ -47,10 +47,7 @@ export function ExhibitionLocationMapView({
 
   return (
     // Figma 実測: MapPreview の高さは SP (95:12 内 95:46) が 240px、PC (95:2 内 95:4) が 360px
-    <div
-      data-bg-opaque="true"
-      className="relative h-[240px] w-full overflow-clip rounded-xl border border-gray-200 bg-gray-100 md:h-[360px]"
-    >
+    <div className="relative h-[240px] w-full overflow-clip rounded-xl border border-gray-200 bg-gray-100 md:h-[360px]">
       <MapContainer
         bounds={initialBounds}
         minZoom={minZoom}

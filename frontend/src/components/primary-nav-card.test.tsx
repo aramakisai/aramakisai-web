@@ -90,11 +90,6 @@ describe('PrimaryNavCard', () => {
       );
     },
   );
-
-  it('marks each card as an opaque surface for background shapes', () => {
-    render(<PrimaryNavCard destination="exhibitions" />);
-    expect(screen.getByRole('link')).toHaveAttribute('data-bg-opaque');
-  });
 });
 
 describe('PrimaryNavGrid', () => {
