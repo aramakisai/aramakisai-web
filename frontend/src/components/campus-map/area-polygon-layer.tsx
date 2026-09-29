@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { GeoJSON } from 'react-leaflet';
 import type { GeoJSON as LeafletGeoJSON, Path, PathOptions } from 'leaflet';
-import { resolveAreaColor, type CampusMapArea } from '@/lib/campus-map';
+import type { CampusMapArea } from '@/lib/campus-map';
 import { AreaLabelMarker } from './area-label-marker';
 
 const FILL_OPACITY = 0.55;
@@ -18,7 +18,8 @@ export interface AreaPolygonLayerProps {
 }
 
 function buildAreaStyle(area: CampusMapArea, selected: boolean): PathOptions {
-  const color = resolveAreaColor(area.color);
+  // area.color は toCampusMapArea (campus-map.ts) で resolveAreaColor 済みの Hex 値
+  const color = area.color;
   return {
     color,
     fillColor: color,

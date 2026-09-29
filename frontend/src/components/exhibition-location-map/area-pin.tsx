@@ -4,13 +4,14 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { divIcon, type DivIcon } from 'leaflet';
 import { Marker } from 'react-leaflet';
 import {
-  polygonCentroid,
-  type PolygonGeometry,
+  singlePolygonCentroid,
+  type PolygonCoordinates,
 } from '@/lib/campus-map-geometry';
 import { LocationPinIcon } from '@/components/icons';
 
 export interface AreaPinProps {
-  readonly geometry: PolygonGeometry;
+  /** 1 ポリゴン分の座標。ピンはポリゴン単位で 1 本立てる (呼び出し側で area.geometry.coordinates を展開する) */
+  readonly polygon: PolygonCoordinates;
   /** 地図上で判別できる寸法。既定値はコンポーネント内で定める */
   readonly size?: number;
 }
@@ -46,8 +47,8 @@ function buildPinIcon(size?: number): DivIcon {
   });
 }
 
-export function AreaPin({ geometry, size }: AreaPinProps) {
-  const [latitude, longitude] = polygonCentroid(geometry);
+export function AreaPin({ polygon, size }: AreaPinProps) {
+  const [latitude, longitude] = singlePolygonCentroid(polygon);
 
   return (
     <Marker

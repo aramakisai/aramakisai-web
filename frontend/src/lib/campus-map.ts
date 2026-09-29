@@ -10,8 +10,8 @@ import {
   type ExhibitionCategory,
 } from './exhibitions';
 import {
-  parsePolygonGeometry,
-  type PolygonGeometry,
+  parseAreaGeometry,
+  type MultiPolygonGeometry,
 } from './campus-map-geometry';
 
 /** 構内マップの絞り込み条件。エリアは単一選択 */
@@ -44,17 +44,9 @@ export function buildCampusMapHref(filters: CampusMapFilters): string {
 
 // --- エリアの表示色 -----------------------------------------------------
 
-/** マップ表示色。tailwind.config.ts のカラートークン名と一致し、DB の enum 値とも一致する */
-export type MapAreaColor =
-  | 'primary'
-  | 'secondary'
-  | 'accent'
-  | 'accent-alt'
-  | 'info'
-  | 'success'
-  | 'warning';
-
-const MAP_AREA_COLORS: readonly MapAreaColor[] = [
+// CMS (4e831ba) は色を Hex で保存するが、本番デプロイ前のフロントは旧仕様の
+// トークン名 (tailwind.config.ts のカラートークンと同名) も読める必要がある
+const LEGACY_COLOR_TOKENS = [
   'primary',
   'secondary',
   'accent',
@@ -62,30 +54,32 @@ const MAP_AREA_COLORS: readonly MapAreaColor[] = [
   'info',
   'success',
   'warning',
-];
+] as const;
+type LegacyColorToken = (typeof LEGACY_COLOR_TOKENS)[number];
 
-const DEFAULT_MAP_AREA_COLOR: MapAreaColor = 'secondary';
+const DEFAULT_COLOR_TOKEN: LegacyColorToken = 'secondary';
 
 // Tailwind v4 を JS config 経由で使う本リポジトリでは `--color-*` の CSS カスタムプロパティが
 // 生成されないため、色値の取得元は tailwind.config.ts のオブジェクトそのものにする (hex を二重に持たない)。
 const THEME_COLORS = tailwindConfig.theme?.extend?.colors as Record<
-  MapAreaColor,
+  LegacyColorToken,
   string
 >;
 
-function isMapAreaColor(value: string): value is MapAreaColor {
-  return (MAP_AREA_COLORS as readonly string[]).includes(value);
+const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
+
+function isLegacyColorToken(value: string): value is LegacyColorToken {
+  return (LEGACY_COLOR_TOKENS as readonly string[]).includes(value);
 }
 
-function resolveMapAreaColorToken(
-  color: string | null | undefined,
-): MapAreaColor {
-  return color && isMapAreaColor(color) ? color : DEFAULT_MAP_AREA_COLOR;
-}
-
-/** トークン名を CSS 色値に解決する。未設定・未知の値は既定色を返す */
+/**
+ * 表示色を CSS 色値 (Hex) に解決する。Hex はそのまま使い、旧トークン名は
+ * tailwind テーマ値へ変換する。それ以外・未設定は既定色 (secondary) にする。
+ */
 export function resolveAreaColor(color: string | null | undefined): string {
-  return THEME_COLORS[resolveMapAreaColorToken(color)];
+  if (color && HEX_COLOR_PATTERN.test(color)) return color;
+  if (color && isLegacyColorToken(color)) return THEME_COLORS[color];
+  return THEME_COLORS[DEFAULT_COLOR_TOKEN];
 }
 
 // --- データ取得 ---------------------------------------------------------
@@ -94,8 +88,9 @@ export function resolveAreaColor(color: string | null | undefined): string {
 export interface CampusMapArea {
   readonly id: number;
   readonly name: string;
-  readonly geometry: PolygonGeometry;
-  readonly color: MapAreaColor;
+  readonly geometry: MultiPolygonGeometry;
+  /** 解決済みの CSS 色値 (Hex)。resolveAreaColor 済みでそのまま描画に使える */
+  readonly color: string;
   /** CMS 側が nullable。未設定のエリアは描画順の末尾に置く */
   readonly sort: number | null;
 }
@@ -115,13 +110,13 @@ export interface CampusMapDataResult {
 
 /** geometry の検証に失敗したエリアは描画対象から除く */
 export function toCampusMapArea(area: MapArea): CampusMapArea | null {
-  const parsed = parsePolygonGeometry(area.geometry);
+  const parsed = parseAreaGeometry(area.geometry);
   if (parsed.kind === 'invalid') return null;
   return {
     id: area.id,
     name: area.name,
     geometry: parsed.value,
-    color: resolveMapAreaColorToken(area.color),
+    color: resolveAreaColor(area.color),
     sort: area.sort ?? null,
   };
 }

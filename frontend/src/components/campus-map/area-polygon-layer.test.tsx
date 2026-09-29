@@ -1,7 +1,6 @@
 import { render } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { CampusMapArea } from '@/lib/campus-map';
-import { resolveAreaColor } from '@/lib/campus-map';
 
 // campus-map.ts は cms.ts (env.ts の起動時検証を含む) に依存するため、
 // campus-map.test.ts と同様にモックしてユニットテストの対象外にする。
@@ -54,21 +53,27 @@ vi.mock('./area-label-marker', () => ({
 
 import { AreaPolygonLayer } from './area-polygon-layer';
 
+// CampusMapArea.color は toCampusMapArea が resolveAreaColor 済みの Hex 値。
+// このコンポーネントはそれをそのまま使うため、フィクスチャも Hex で用意する
+const DEFAULT_COLOR = '#ebb03c';
+
 function area(overrides: Partial<CampusMapArea>): CampusMapArea {
   return {
     id: 1,
     name: 'Aゾーン',
-    color: 'primary',
+    color: DEFAULT_COLOR,
     sort: 0,
     geometry: {
-      type: 'Polygon',
+      type: 'MultiPolygon',
       coordinates: [
         [
-          [139.0, 36.43],
-          [139.001, 36.43],
-          [139.001, 36.431],
-          [139.0, 36.431],
-          [139.0, 36.43],
+          [
+            [139.0, 36.43],
+            [139.001, 36.43],
+            [139.001, 36.431],
+            [139.0, 36.431],
+            [139.0, 36.43],
+          ],
         ],
       ],
     },
@@ -91,8 +96,8 @@ describe('AreaPolygonLayer', () => {
     );
   });
 
-  it('エリアの表示色を塗りと枠線に反映する', () => {
-    const a = area({ color: 'accent' });
+  it('エリアの表示色 (解決済み Hex) を塗りと枠線にそのまま反映する', () => {
+    const a = area({ color: '#ee7e84' });
     render(
       <AreaPolygonLayer
         areas={[a]}
@@ -101,8 +106,8 @@ describe('AreaPolygonLayer', () => {
       />,
     );
     const style = geoJsonProps.at(-1)!.style as Record<string, unknown>;
-    expect(style.fillColor).toBe(resolveAreaColor('accent'));
-    expect(style.color).toBe(resolveAreaColor('accent'));
+    expect(style.fillColor).toBe('#ee7e84');
+    expect(style.color).toBe('#ee7e84');
   });
 
   it('通常時は塗りの不透明度 55% で描画する', () => {
@@ -193,6 +198,49 @@ describe('AreaPolygonLayer', () => {
     expect(element).not.toBeNull();
     expect(element!.getAttribute('tabindex')).toBe('0');
     expect(element!.getAttribute('role')).toBe('button');
+  });
+
+  it('MultiPolygon (複数ポリゴン) のエリアでも、react-leaflet の GeoJSON は 1 レイヤーにまとまるため、フォーカス可能な要素は 1 つになる', () => {
+    // leaflet-src.js の geometryToLayer は Polygon/MultiPolygon いずれも
+    // 単一の Polygon レイヤーを生成する (SVG では複数リングでも <path> は 1 個)。
+    // このモックは実 DOM 挿入先を 1 要素に固定して、その前提を回帰させる。
+    const a = area({
+      id: 8,
+      geometry: {
+        type: 'MultiPolygon',
+        coordinates: [
+          [
+            [
+              [139.0, 36.43],
+              [139.001, 36.43],
+              [139.001, 36.431],
+              [139.0, 36.431],
+              [139.0, 36.43],
+            ],
+          ],
+          [
+            [
+              [139.01, 36.44],
+              [139.011, 36.44],
+              [139.011, 36.441],
+              [139.01, 36.441],
+              [139.01, 36.44],
+            ],
+          ],
+        ],
+      },
+    });
+    render(
+      <AreaPolygonLayer
+        areas={[a]}
+        selectedAreaId={null}
+        onAreaClick={() => {}}
+      />,
+    );
+    const focusable = polygonElements.filter(
+      (el) => el.getAttribute('tabindex') === '0',
+    );
+    expect(focusable).toHaveLength(1);
   });
 
   it('Enter または Space でエリアを選択できる', () => {

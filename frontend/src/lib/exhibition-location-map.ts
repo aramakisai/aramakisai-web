@@ -48,14 +48,16 @@ export function toAreaBounds(
   let maxLatitude = -Infinity;
   let maxLongitude = -Infinity;
 
-  // PolygonGeometry の座標は [経度, 緯度] (GeoJSON の順)。AreaBounds は緯度・経度の順で返す
+  // MultiPolygonGeometry の座標は [経度, 緯度] (GeoJSON の順)。AreaBounds は緯度・経度の順で返す
   for (const area of areas) {
-    for (const ring of area.geometry.coordinates) {
-      for (const [longitude, latitude] of ring) {
-        minLatitude = Math.min(minLatitude, latitude);
-        maxLatitude = Math.max(maxLatitude, latitude);
-        minLongitude = Math.min(minLongitude, longitude);
-        maxLongitude = Math.max(maxLongitude, longitude);
+    for (const polygon of area.geometry.coordinates) {
+      for (const ring of polygon) {
+        for (const [longitude, latitude] of ring) {
+          minLatitude = Math.min(minLatitude, latitude);
+          maxLatitude = Math.max(maxLatitude, latitude);
+          minLongitude = Math.min(minLongitude, longitude);
+          maxLongitude = Math.max(maxLongitude, longitude);
+        }
       }
     }
   }
