@@ -177,6 +177,7 @@ export default async function Page() {
         <AccessSection
           venueName={content.venueName}
           accessSummary={content.accessSummary}
+          campusMapUrl={content.campusMapUrl}
         />
 
         <SponsorsList sponsors={sponsors} />
