@@ -35,6 +35,9 @@ run_case "next start (bare)" "next start" block
 run_case "node_modules/.bin/next with port" "node_modules/.bin/next dev -p 3200" block
 run_case "chained via &&" "true && pnpm dev" block
 run_case "chained via ;" "echo hi; pnpm dev" block
+run_case "env assignment prefix" "PORT=3200 pnpm dev" block
+run_case "timeout prefix" "timeout 60 pnpm run dev" block
+run_case "rtk prefix" "rtk pnpm dev" block
 
 # ブロックすべきでない例
 run_case "make dev" "make dev" allow

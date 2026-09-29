@@ -50,19 +50,21 @@ for seg in "${segments[@]}"; do
     block
   fi
 
-  # pnpm/npm/yarn/bun/npx/pnpx 経由の dev / devsafe スクリプト実行
+  # pnpm/npm/yarn/bun/npx/pnpx 経由の dev / devsafe スクリプト実行。
+  # PORT=3200 / env / timeout / rtk 等の前置きがあっても検出するため、先頭に限らずパッケージマネージャを探す
   read -ra tokens <<<"$seg"
-  [[ ${#tokens[@]} -eq 0 ]] && continue
-  first_base=$(basename "${tokens[0]}")
-  case "$first_base" in
-    pnpm | npm | yarn | bun | npx | pnpx)
-      for ((j = 1; j < ${#tokens[@]}; j++)); do
-        if [[ "${tokens[j]}" == "dev" || "${tokens[j]}" == "devsafe" ]]; then
-          block
-        fi
-      done
-      ;;
-  esac
+  pm_found=0
+  for tok in "${tokens[@]}"; do
+    if ((pm_found)); then
+      if [[ "$tok" == "dev" || "$tok" == "devsafe" ]]; then
+        block
+      fi
+      continue
+    fi
+    case "$(basename -- "$tok")" in
+      pnpm | npm | yarn | bun | npx | pnpx) pm_found=1 ;;
+    esac
+  done
 done
 
 exit 0

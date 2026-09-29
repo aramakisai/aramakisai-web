@@ -48,7 +48,7 @@ make kubectl ARGS="get pods -A"
 
 NEXT_PUBLIC_CMS_URL         CMS (Payload) の API エンドポイント
                             prod:  https://cms.aramakisai.com
-                            local: http://localhost:3000 (cms/ を別ポートで動かす場合は読み替え)
+                            local: http://localhost:3100 (make dev が注入する)
 
 NEXT_PUBLIC_SITE_URL        サイト URL
 
