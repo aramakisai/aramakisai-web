@@ -7,6 +7,8 @@ export interface ShareButtonProps {
   readonly title: string;
   /** 絶対 URL。サーバー側で組み立てて渡す */
   readonly url: string;
+  /** ボタンの右に同じ行で並べる要素 */
+  readonly children?: React.ReactNode;
 }
 
 type Notice =
@@ -16,7 +18,7 @@ type Notice =
 
 const NOTICE_DURATION_MS = 3000;
 
-export function ShareButton({ title, url }: ShareButtonProps) {
+export function ShareButton({ title, url, children }: ShareButtonProps) {
   const [notice, setNotice] = useState<Notice>({ kind: 'idle' });
 
   const copyToClipboard = async () => {
@@ -53,14 +55,17 @@ export function ShareButton({ title, url }: ShareButtonProps) {
 
   return (
     <div>
-      <button
-        type="button"
-        onClick={handleClick}
-        className="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-background px-4 py-2 text-sm leading-[140%] font-medium text-text hover:text-text"
-      >
-        <ShareIcon size={20} />
-        共有
-      </button>
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={handleClick}
+          className="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-background px-4 py-2 text-sm leading-[140%] font-medium text-text hover:text-text"
+        >
+          <ShareIcon size={20} />
+          共有
+        </button>
+        {children}
+      </div>
       {notice.kind === 'copied' && (
         <p role="status" className="mt-2 text-sm text-gray-600">
           URLをコピーしました

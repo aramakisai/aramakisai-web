@@ -6,6 +6,7 @@ import type {
   MapArea,
 } from '@/cms-types';
 import { cms, type CmsFetchError } from './cms';
+import { toJstDateKey } from './event-day';
 
 export type ExhibitionCategory = 'stage' | 'exhibit' | 'vendor' | 'other';
 
@@ -53,12 +54,21 @@ export interface ExhibitionCardSummary {
   readonly thumbnail: ExhibitionImage | null;
 }
 
+export interface ExhibitionMenuItem {
+  readonly name: string;
+  readonly price: string;
+}
+
 export interface ExhibitionDetail extends ExhibitionCardSummary {
   readonly description: string | null;
   readonly images: readonly ExhibitionImage[];
   readonly links: readonly ExhibitionLink[];
   /** この企画が選択している全カテゴリ (カテゴリ定義順)。詳細ページのカテゴリ一覧表示に使う (要件 5.2) */
   readonly categories: readonly ExhibitionCategory[];
+  /** CMS の並び順。価格が null の行は含まない */
+  readonly menu: readonly ExhibitionMenuItem[];
+  /** 出店日の JST 暦日キー ('YYYY-MM-DD')。開催日程外・重複を含み得る */
+  readonly openDayKeys: readonly string[];
 }
 
 export interface AreaOption {
@@ -573,6 +583,12 @@ export async function getExhibitionDetail(
       categories: CATEGORY_VALUES.filter((c) =>
         exhibition.categories.includes(c),
       ),
+      menu: (exhibition.vendor?.menu ?? []).flatMap((row) =>
+        row.price == null ? [] : [{ name: row.name, price: row.price }],
+      ),
+      openDayKeys: (exhibition.open_days ?? [])
+        .filter((v) => !Number.isNaN(Date.parse(v)))
+        .map(toJstDateKey),
     },
   };
 }

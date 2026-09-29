@@ -23,6 +23,7 @@ import { env } from '@/env';
 const MATERIAL_SYMBOLS_ICON_NAMES = [
   'arrow_back',
   'calendar_clock',
+  'calendar_month',
   'chevron_left',
   'chevron_right',
   'close',
@@ -45,6 +46,7 @@ const MATERIAL_SYMBOLS_ICON_NAMES = [
   'pause',
   'play_arrow',
   'play_circle',
+  'schedule',
   'search',
   'share',
   'wc',

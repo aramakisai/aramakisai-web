@@ -73,6 +73,7 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
           owner: ownerId,
           organization_name: name,
           categories: ['other'],
+          open_days: ['2026-11-01T12:00:00.000Z'],
           other: { name, description: `${name}の紹介文`, images: [image.id] },
           status,
         },
@@ -245,6 +246,7 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
           owner: assignee1.id,
           organization_name: `assign1-${suffix}`,
           categories: ['other'],
+          open_days: ['2026-11-01T12:00:00.000Z'],
           other: { name: `assign1-${suffix}` },
           status: 'draft',
           booth_number: 101,
@@ -260,6 +262,7 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
           owner: assignee2.id,
           organization_name: `assign2-${suffix}`,
           categories: ['other'],
+          open_days: ['2026-11-01T12:00:00.000Z'],
           other: { name: `assign2-${suffix}` },
           status: 'draft',
           booth_number: 101,
@@ -284,6 +287,7 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
             owner: assignee1.id,
             organization_name: `assign1-dup-${suffix}`,
             categories: ['other'],
+            open_days: ['2026-11-01T12:00:00.000Z'],
             other: { name: `assign1-dup-${suffix}` },
             status: 'draft',
           },
@@ -314,7 +318,7 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
       }
     });
 
-    it('実行委員は owner と categories だけで作成できる (団体名・企画内容は必須にしない)', async () => {
+    it('実行委員は owner・categories・出店日だけで作成できる (団体名・企画内容は必須にしない)', async () => {
       const minimalOwner = (await payload.create({
         collection: 'users',
         data: { email: `minimal-${suffix}@test.local`, password: 'test-password', role: 'student_exhibitor' },
@@ -322,7 +326,7 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
       })) as { id: number };
       const created = (await payload.create({
         collection: 'student_exhibitions',
-        data: { owner: minimalOwner.id, categories: ['other'] } as never,
+        data: { owner: minimalOwner.id, categories: ['other'], open_days: ['2026-11-01T12:00:00.000Z'] } as never,
         overrideAccess: false,
         user: await asUser(executive.id),
       })) as { id: number; owner: unknown };

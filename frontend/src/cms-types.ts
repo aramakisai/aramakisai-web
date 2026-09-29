@@ -544,6 +544,7 @@ export interface StudentExhibition {
         id?: string | null;
       }[]
     | null;
+  open_days: string[];
   /**
    * カテゴリで「ステージ」を選択したときだけ表示する
    */
@@ -576,6 +577,16 @@ export interface StudentExhibition {
      * 最大5枚まで。1枚目がサムネイルとして表示されます。
      */
     images?: (number | Media)[] | null;
+    /**
+     * 価格が空の行はサイトに表示されません。
+     */
+    menu?:
+      | {
+          name: string;
+          price?: string | null;
+          id?: string | null;
+        }[]
+      | null;
   };
   /**
    * カテゴリで「その他」を選択したときだけ表示する
@@ -1037,6 +1048,7 @@ export interface StudentExhibitionsSelect<T extends boolean = true> {
         url?: T;
         id?: T;
       };
+  open_days?: T;
   stage?:
     | T
     | {
@@ -1057,6 +1069,13 @@ export interface StudentExhibitionsSelect<T extends boolean = true> {
         name?: T;
         description?: T;
         images?: T;
+        menu?:
+          | T
+          | {
+              name?: T;
+              price?: T;
+              id?: T;
+            };
       };
   other?:
     | T

@@ -4,6 +4,8 @@ import { cms } from './cms';
 import {
   combineJstDateTime,
   findActivePerformances,
+  formatOpenDays,
+  getEventDayList,
   getExhibitionPerformances,
   getTimetable,
   toTimetable,
@@ -318,5 +320,51 @@ describe('isPerformanceActive', () => {
     expect(isPerformanceActive(slot, new Date('2026-11-15T01:30:00Z'))).toBe(
       false,
     );
+  });
+});
+
+describe('getEventDayList', () => {
+  it('開催日程を暦日順の日の一覧にし、ラベル未設定は開催日表記で補う', async () => {
+    vi.mocked(cms.findGlobal).mockResolvedValue({
+      ok: true,
+      value: { event_days: eventDays } as never,
+    });
+    expect(await getEventDayList()).toEqual([
+      { key: '2026-11-14', label: '1日目' },
+      { key: '2026-11-15', label: '11月15日(日)' },
+    ]);
+  });
+
+  it('取得失敗は例外にせず null を返す', async () => {
+    vi.mocked(cms.findGlobal).mockResolvedValue({
+      ok: false,
+      error: { kind: 'network', status: 500 },
+    });
+    expect(await getEventDayList()).toBeNull();
+  });
+});
+
+describe('formatOpenDays', () => {
+  const days: TimetableDay[] = [
+    { key: '2026-11-14', label: '1日目' },
+    { key: '2026-11-15', label: '2日目' },
+  ];
+
+  it('保存順に関係なく開催日程の順に「・」でつなぐ', () => {
+    expect(formatOpenDays(['2026-11-15', '2026-11-14'], days)).toBe(
+      '1日目・2日目',
+    );
+  });
+
+  it('範囲外の日と重複は出さない', () => {
+    expect(
+      formatOpenDays(['2026-11-20', '2026-11-15', '2026-11-15'], days),
+    ).toBe('2日目');
+  });
+
+  it('表示対象が0件なら null', () => {
+    expect(formatOpenDays([], days)).toBeNull();
+    expect(formatOpenDays(['2026-11-20'], days)).toBeNull();
+    expect(formatOpenDays(['2026-11-14'], [])).toBeNull();
   });
 });

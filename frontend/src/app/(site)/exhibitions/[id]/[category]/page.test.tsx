@@ -9,7 +9,7 @@ import type {
 } from '@/lib/exhibitions';
 import { getCampusMapAreas } from '@/lib/campus-map';
 import type { CampusMapArea, CampusMapDataResult } from '@/lib/campus-map';
-import { getExhibitionPerformances } from '@/lib/timetable';
+import { getEventDayList, getExhibitionPerformances } from '@/lib/timetable';
 
 vi.mock('next/navigation', () => ({
   notFound: vi.fn(() => {
@@ -33,7 +33,15 @@ vi.mock('@/lib/campus-map', async () => {
   return { ...actual, getCampusMapAreas: vi.fn() };
 });
 
-vi.mock('@/lib/timetable', () => ({ getExhibitionPerformances: vi.fn() }));
+vi.mock('@/lib/timetable', async () => {
+  const actual =
+    await vi.importActual<typeof import('@/lib/timetable')>('@/lib/timetable');
+  return {
+    ...actual,
+    getExhibitionPerformances: vi.fn(),
+    getEventDayList: vi.fn(),
+  };
+});
 
 vi.mock('@/lib/cms-asset-url', () => ({
   toAssetUrl: (id: string | null, width?: number) =>
@@ -71,6 +79,8 @@ const baseExhibition: ExhibitionDetail = {
     { id: '43', alt: '写真2' },
   ],
   links: [{ platform: 'x', url: 'https://x.com/aramaki' }],
+  menu: [],
+  openDayKeys: [],
 };
 
 function mockResult(result: ExhibitionDetailResult) {
@@ -116,6 +126,107 @@ describe('ExhibitionPage', () => {
       kind: 'loaded',
       value: [],
     });
+    vi.mocked(getEventDayList).mockResolvedValue([
+      { key: '2026-10-24', label: '1日目' },
+      { key: '2026-10-25', label: '2日目' },
+    ] as never);
+  });
+
+  describe('出店日・メニュー・情報列の並び', () => {
+    const vendor = {
+      ...baseExhibition,
+      category: 'vendor' as const,
+      categories: ['vendor' as const],
+      openDayKeys: ['2026-10-25', '2026-10-24'],
+      menu: [{ name: '焼きそば', price: '¥400' }],
+    };
+    const renderVendor = async (value = vendor) => {
+      mockResult({ kind: 'found', value });
+      render(
+        await ExhibitionPage({
+          params: Promise.resolve({ id: '1', category: 'vendor' }),
+        }),
+      );
+    };
+
+    it('場所→出店日→メニュー→共有の順に並ぶ', async () => {
+      await renderVendor();
+      const loc = screen.getByText('第一ステージ');
+      const days = screen.getByText('1日目・2日目');
+      const menu = screen.getByText('メニュー');
+      const share = screen.getByRole('button', { name: /共有/ });
+      const before = (a: Node, b: Node) =>
+        a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING;
+      expect(before(loc, days)).toBeTruthy();
+      expect(before(days, menu)).toBeTruthy();
+      expect(before(menu, share)).toBeTruthy();
+    });
+
+    it('ステージでは場所→出演枠→共有の順に並びメニューは出ない', async () => {
+      vi.mocked(getExhibitionPerformances).mockResolvedValue({
+        kind: 'loaded',
+        value: [
+          {
+            stageName: 'メインステージ',
+            dayLabel: '1日目',
+            startAt: '2026-10-24T02:00:00.000Z',
+            endAt: '2026-10-24T03:00:00.000Z',
+          },
+        ],
+      } as never);
+      mockResult({
+        kind: 'found',
+        value: { ...vendor, category: 'stage', openDayKeys: [] },
+      });
+      render(
+        await ExhibitionPage({
+          params: Promise.resolve({ id: '1', category: 'stage' }),
+        }),
+      );
+      const loc = screen.getByText('第一ステージ');
+      const perf = screen.getByText(/メインステージ/);
+      const share = screen.getByRole('button', { name: /共有/ });
+      const before = (a: Node, b: Node) =>
+        a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING;
+      expect(before(loc, perf)).toBeTruthy();
+      expect(before(perf, share)).toBeTruthy();
+      expect(screen.queryByText('メニュー')).toBeNull();
+    });
+
+    it('ステージ以外では出演時間を取得しない', async () => {
+      await renderVendor();
+      expect(getExhibitionPerformances).not.toHaveBeenCalled();
+      expect(screen.queryByText('タイムテーブルを見る')).toBeNull();
+    });
+
+    it('ステージでは開催日程を取得せず出店日を出さない', async () => {
+      mockResult({
+        kind: 'found',
+        value: { ...vendor, category: 'stage' },
+      });
+      render(
+        await ExhibitionPage({
+          params: Promise.resolve({ id: '1', category: 'stage' }),
+        }),
+      );
+      expect(getEventDayList).not.toHaveBeenCalled();
+      expect(screen.queryByText('1日目・2日目')).toBeNull();
+    });
+
+    it('開催日程の取得に失敗したら出店日の行だけ出さない', async () => {
+      vi.mocked(getEventDayList).mockResolvedValue(null);
+      await renderVendor();
+      expect(screen.queryByText('1日目・2日目')).toBeNull();
+      expect(screen.getByText('メニュー')).toBeInTheDocument();
+      expect(screen.getByText('第一ステージ')).toBeInTheDocument();
+    });
+
+    it('新フィールドが空ならメニュー欄も出店日の行も出ない', async () => {
+      await renderVendor({ ...vendor, openDayKeys: [], menu: [] });
+      expect(screen.queryByText('メニュー')).toBeNull();
+      expect(screen.queryByText('1日目・2日目')).toBeNull();
+      expect(screen.queryByText('calendar_month')).toBeNull();
+    });
   });
 
   describe('出演時間欄', () => {
@@ -140,9 +251,10 @@ describe('ExhibitionPage', () => {
       );
 
       expect(getExhibitionPerformances).toHaveBeenCalledWith(1);
+      expect(screen.getByText('タイムテーブルを見る')).toBeInTheDocument();
       expect(
-        screen.getByRole('heading', { name: '出演時間' }),
-      ).toBeInTheDocument();
+        screen.queryByRole('heading', { name: '出演時間' }),
+      ).not.toBeInTheDocument();
     });
 
     it('ステージ以外のページでは取得も表示もしない', async () => {
