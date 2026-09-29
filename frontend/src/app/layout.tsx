@@ -26,12 +26,15 @@ const MATERIAL_SYMBOLS_ICON_NAMES = [
   'chevron_left',
   'chevron_right',
   'close',
+  'delete',
   'draft',
+  'ecg_heart',
   'expand_more',
   'festival',
   'hide_image',
   'home',
   'image',
+  'info_i',
   'link',
   'location_on',
   'mail',
@@ -44,6 +47,7 @@ const MATERIAL_SYMBOLS_ICON_NAMES = [
   'play_circle',
   'search',
   'share',
+  'wc',
 ].join(',');
 const MATERIAL_SYMBOLS_HREF = `https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp:opsz,wght,FILL,GRAD@24,300,0..1,0&icon_names=${MATERIAL_SYMBOLS_ICON_NAMES}&display=block`;
 

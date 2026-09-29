@@ -52,6 +52,8 @@ function area(overrides: Partial<CampusMapArea> = {}): CampusMapArea {
       ],
     },
     ...overrides,
+    hasAed: false,
+    hasToilet: false,
   };
 }
 

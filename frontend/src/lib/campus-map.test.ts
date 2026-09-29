@@ -8,6 +8,8 @@ import {
   getCampusMapLastModified,
   parseCampusMapQuery,
   resolveAreaColor,
+  toCampusMapArea,
+  toCampusMapPoint,
 } from './campus-map';
 
 // campus-map.ts は exhibitions.ts 経由で cms.ts (env.ts の起動時検証を含む) に依存するため、
@@ -130,6 +132,7 @@ type MockDocs = {
   exhibitions?: unknown[];
   stages?: unknown[];
   slots?: unknown[];
+  points?: unknown[];
 };
 
 function mockCmsCollections({
@@ -137,6 +140,7 @@ function mockCmsCollections({
   exhibitions = [],
   stages = [],
   slots = [],
+  points = [],
 }: MockDocs) {
   vi.mocked(cms.findMany).mockImplementation((async (collection: string) => {
     const table: Record<string, unknown[]> = {
@@ -144,6 +148,7 @@ function mockCmsCollections({
       student_exhibitions: exhibitions,
       stages,
       performance_slots: slots,
+      map_points: points,
     };
     const docs = table[collection];
     if (docs === undefined) {
@@ -300,6 +305,8 @@ describe('getCampusMapData', () => {
           name: '不正',
           geometry: { type: 'Polygon', coordinates: [] },
           sort: 1,
+          hasAed: false,
+          hasToilet: false,
         },
         { id: 2, name: '正常', geometry: VALID_POLYGON, sort: 2 },
       ],
@@ -423,6 +430,8 @@ describe('getCampusMapAreas', () => {
           geometry: NORMALIZED_POLYGON,
           color: THEME_COLORS.secondary,
           sort: 1,
+          hasAed: false,
+          hasToilet: false,
         },
         {
           id: 1,
@@ -430,6 +439,8 @@ describe('getCampusMapAreas', () => {
           geometry: NORMALIZED_POLYGON,
           color: THEME_COLORS.secondary,
           sort: null,
+          hasAed: false,
+          hasToilet: false,
         },
       ],
     });
@@ -511,5 +522,42 @@ describe('getCampusMapLastModified', () => {
     } as never);
 
     expect(await getCampusMapLastModified()).toBeNull();
+  });
+});
+
+describe('設備・地点', () => {
+  it('hasAed / hasToilet は null・未設定を false にする', () => {
+    const base = { id: 1, name: 'A', geometry: VALID_POLYGON } as never;
+    expect(toCampusMapArea(base)).toMatchObject({
+      hasAed: false,
+      hasToilet: false,
+    });
+    expect(
+      toCampusMapArea({
+        ...(base as object),
+        hasAed: true,
+        hasToilet: null,
+      } as never),
+    ).toMatchObject({ hasAed: true, hasToilet: false });
+  });
+
+  it('不正な緯度経度・種別の地点は除く', () => {
+    const ok = { id: 1, kind: 'reception', latitude: 36.4, longitude: 139 };
+    expect(toCampusMapPoint(ok as never)).toEqual(ok);
+    expect(toCampusMapPoint({ ...ok, latitude: 91 } as never)).toBeNull();
+    expect(toCampusMapPoint({ ...ok, longitude: -181 } as never)).toBeNull();
+    expect(toCampusMapPoint({ ...ok, latitude: NaN } as never)).toBeNull();
+    expect(toCampusMapPoint({ ...ok, longitude: '139' } as never)).toBeNull();
+    expect(toCampusMapPoint({ ...ok, kind: 'other' } as never)).toBeNull();
+  });
+
+  it('map_points の取得失敗は空配列にし、他の結果には影響しない', async () => {
+    vi.mocked(cms.findMany).mockImplementation((async (collection: string) =>
+      collection === 'map_points'
+        ? { ok: false, error: { kind: 'network', status: 500 } }
+        : { ok: true, value: { docs: [], totalDocs: 0 } }) as never);
+    const data = await getCampusMapData();
+    expect(data.points).toEqual([]);
+    expect(data.areas.kind).toBe('loaded');
   });
 });

@@ -17,6 +17,7 @@ import * as migration_20260924_142843_exhibitor_contact_url from './20260924_142
 import * as migration_20260927_074248_student_exhibitions_organization_name_optional from './20260927_074248_student_exhibitions_organization_name_optional';
 import * as migration_20260929_054933_map_areas_multi_polygon_hex from './20260929_054933_map_areas_multi_polygon_hex';
 import * as migration_20260929_093220_performance_slots_inline_time from './20260929_093220_performance_slots_inline_time';
+import * as migration_20260929_111510_map_facilities from './20260929_111510_map_facilities';
 
 export const migrations = [
   {
@@ -113,5 +114,10 @@ export const migrations = [
     up: migration_20260929_093220_performance_slots_inline_time.up,
     down: migration_20260929_093220_performance_slots_inline_time.down,
     name: '20260929_093220_performance_slots_inline_time',
+  },
+  {
+    up: migration_20260929_111510_map_facilities.up,
+    down: migration_20260929_111510_map_facilities.down,
+    name: '20260929_111510_map_facilities'
   },
 ];

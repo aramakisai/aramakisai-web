@@ -115,6 +115,8 @@ export function AreaPolygonLayer({
           name={area.name}
           geometry={area.geometry}
           selected={area.id === selectedAreaId}
+          hasAed={area.hasAed}
+          hasToilet={area.hasToilet}
         />
       ))}
     </>
