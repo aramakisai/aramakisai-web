@@ -17,10 +17,7 @@ export interface TargetAreas {
 /**
  * 企画の areaIds と取得済みのエリア一覧から対象エリアを解決する。
  *
- * areaIds の順序をそのまま保つ。これは exhibitions.ts の resolveAreaIds が
- * 直接の area_id を先に Set へ追加することに依存しており、先頭要素が
- * 「直接の所在エリア、それがなければ最初の出演ステージの所在エリア」と
- * 一致する (要件 3.3)。この順序は回帰テストで固定する。
+ * areaIds の順序をそのまま保つ。areaIds は詳細ページ用に category 単位で解決済みのものを渡す。
  */
 export function resolveTargetAreas(
   areaIds: readonly number[],
