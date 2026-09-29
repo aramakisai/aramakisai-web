@@ -62,14 +62,16 @@ function area(overrides: Partial<CampusMapArea>): CampusMapArea {
     color: 'primary',
     sort: 0,
     geometry: {
-      type: 'Polygon',
+      type: 'MultiPolygon',
       coordinates: [
         [
-          [139.0, 36.43],
-          [139.001, 36.43],
-          [139.001, 36.431],
-          [139.0, 36.431],
-          [139.0, 36.43],
+          [
+            [139.0, 36.43],
+            [139.001, 36.43],
+            [139.001, 36.431],
+            [139.0, 36.431],
+            [139.0, 36.43],
+          ],
         ],
       ],
     },

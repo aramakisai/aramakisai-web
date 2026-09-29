@@ -48,14 +48,16 @@ function area(overrides: Partial<CampusMapArea>): CampusMapArea {
     id: 1,
     name: 'エリア',
     geometry: {
-      type: 'Polygon',
+      type: 'MultiPolygon',
       coordinates: [
         [
-          [0, 0],
-          [0, 1],
-          [1, 1],
-          [1, 0],
-          [0, 0],
+          [
+            [0, 0],
+            [0, 1],
+            [1, 1],
+            [1, 0],
+            [0, 0],
+          ],
         ],
       ],
     },

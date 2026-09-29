@@ -5,12 +5,12 @@ import { divIcon, type DivIcon } from 'leaflet';
 import { Marker } from 'react-leaflet';
 import {
   polygonCentroid,
-  type PolygonGeometry,
+  type MultiPolygonGeometry,
 } from '@/lib/campus-map-geometry';
 
 export interface AreaLabelMarkerProps {
   readonly name: string;
-  readonly geometry: PolygonGeometry;
+  readonly geometry: MultiPolygonGeometry;
   readonly selected: boolean;
 }
 

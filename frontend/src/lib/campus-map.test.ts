@@ -88,17 +88,24 @@ const THEME_COLORS = tailwindConfig.theme?.extend?.colors as Record<
 >;
 
 describe('resolveAreaColor', () => {
-  it('既知のトークンは対応する CSS 色値に解決する', () => {
+  it('Hex カラーコードはそのまま使う', () => {
+    expect(resolveAreaColor('#1a2b3c')).toBe('#1a2b3c');
+    expect(resolveAreaColor('#1A2B3C')).toBe('#1A2B3C');
+  });
+
+  it('旧仕様のトークン名は対応する CSS 色値に解決する (互換)', () => {
     expect(resolveAreaColor('accent')).toBe(THEME_COLORS.accent);
   });
 
-  it('未設定・未知の値は既定色 (secondary) に解決する', () => {
+  it('未設定・Hex でもトークン名でもない値は既定色 (secondary) に解決する', () => {
     expect(resolveAreaColor(undefined)).toBe(THEME_COLORS.secondary);
     expect(resolveAreaColor(null)).toBe(THEME_COLORS.secondary);
     expect(resolveAreaColor('not-a-token')).toBe(THEME_COLORS.secondary);
+    expect(resolveAreaColor('#fff')).toBe(THEME_COLORS.secondary);
   });
 });
 
+// 旧形式 (Polygon)。CMS (4e831ba) より前のデータ、または本番反映前のフロントが読む形
 const VALID_POLYGON = {
   type: 'Polygon',
   coordinates: [
@@ -110,6 +117,12 @@ const VALID_POLYGON = {
       [139.0, 36.4],
     ],
   ],
+};
+
+// toCampusMapArea が VALID_POLYGON を正規化した後の形
+const NORMALIZED_POLYGON = {
+  type: 'MultiPolygon',
+  coordinates: [VALID_POLYGON.coordinates],
 };
 
 type MockDocs = {
@@ -318,9 +331,9 @@ describe('getCampusMapData', () => {
     expect(result.areas.kind).toBe('loaded');
     if (result.areas.kind === 'loaded') {
       expect(result.areas.value.map((a) => a.color)).toEqual([
-        'secondary',
-        'secondary',
-        'accent',
+        THEME_COLORS.secondary,
+        THEME_COLORS.secondary,
+        THEME_COLORS.accent,
       ]);
     }
   });
@@ -398,15 +411,15 @@ describe('getCampusMapAreas', () => {
         {
           id: 2,
           name: 'Aゾーン',
-          geometry: VALID_POLYGON,
-          color: 'secondary',
+          geometry: NORMALIZED_POLYGON,
+          color: THEME_COLORS.secondary,
           sort: 1,
         },
         {
           id: 1,
           name: 'Bゾーン',
-          geometry: VALID_POLYGON,
-          color: 'secondary',
+          geometry: NORMALIZED_POLYGON,
+          color: THEME_COLORS.secondary,
           sort: null,
         },
       ],

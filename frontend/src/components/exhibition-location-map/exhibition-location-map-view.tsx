@@ -74,9 +74,12 @@ export function ExhibitionLocationMapView({
           selectedAreaId={null}
           onAreaClick={handleAreaClick}
         />
-        {targetAreas.map((area) => (
-          <AreaPin key={area.id} geometry={area.geometry} />
-        ))}
+        {targetAreas.flatMap((area) =>
+          // 1 エリアが複数ポリゴンを持つ場合、ピンはポリゴンごとに 1 本立てる (要件 3)
+          area.geometry.coordinates.map((polygon, index) => (
+            <AreaPin key={`${area.id}-${index}`} polygon={polygon} />
+          )),
+        )}
         <RecenterButton bounds={bounds} />
         <GestureHandling />
       </MapContainer>

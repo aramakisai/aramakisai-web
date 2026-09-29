@@ -56,14 +56,16 @@ function area(overrides: Partial<CampusMapArea>): CampusMapArea {
     color: 'primary',
     sort: 0,
     geometry: {
-      type: 'Polygon',
+      type: 'MultiPolygon',
       coordinates: [
         [
-          [139.0, 36.43],
-          [139.001, 36.43],
-          [139.001, 36.431],
-          [139.0, 36.431],
-          [139.0, 36.43],
+          [
+            [139.0, 36.43],
+            [139.001, 36.43],
+            [139.001, 36.431],
+            [139.0, 36.431],
+            [139.0, 36.43],
+          ],
         ],
       ],
     },
@@ -184,7 +186,52 @@ describe('ExhibitionLocationMapView', () => {
     );
 
     expect(areaPinProps).toHaveLength(1);
-    expect(areaPinProps[0]!.geometry).toEqual(targetAreas[0].geometry);
+    expect(areaPinProps[0]!.polygon).toEqual(
+      targetAreas[0].geometry.coordinates[0],
+    );
+  });
+
+  it('対象エリアがポリゴンを複数持つとき、ポリゴンごとにピンを描画する', () => {
+    mockMatchMedia(false);
+    const multiPolygonArea = area({
+      id: 4,
+      geometry: {
+        type: 'MultiPolygon',
+        coordinates: [
+          [
+            [
+              [139.0, 36.43],
+              [139.001, 36.43],
+              [139.001, 36.431],
+              [139.0, 36.431],
+              [139.0, 36.43],
+            ],
+          ],
+          [
+            [
+              [139.01, 36.44],
+              [139.011, 36.44],
+              [139.011, 36.441],
+              [139.01, 36.441],
+              [139.01, 36.44],
+            ],
+          ],
+        ],
+      },
+    });
+    areaPinProps.length = 0;
+    render(
+      <ExhibitionLocationMapView
+        areas={[multiPolygonArea]}
+        targetAreas={[multiPolygonArea]}
+        bounds={BOUNDS}
+      />,
+    );
+
+    expect(areaPinProps).toHaveLength(2);
+    expect(areaPinProps.map((p) => p.polygon)).toEqual(
+      multiPolygonArea.geometry.coordinates,
+    );
   });
 
   it('非タッチ端末では地図のドラッグ移動を許可する', () => {
