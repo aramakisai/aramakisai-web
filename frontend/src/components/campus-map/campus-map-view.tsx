@@ -4,8 +4,9 @@ import 'leaflet/dist/leaflet.css';
 import { AttributionControl, MapContainer, TileLayer } from 'react-leaflet';
 import type { LatLngBoundsExpression, LatLngExpression } from 'leaflet';
 import { CAMPUS_MAP_CONFIG, MAP_ATTRIBUTION } from '@/lib/campus-map-config';
-import type { CampusMapArea } from '@/lib/campus-map';
+import type { CampusMapArea, CampusMapPoint } from '@/lib/campus-map';
 import { AreaPolygonLayer } from './area-polygon-layer';
+import { MapPointMarker } from './map-point-marker';
 import { MapZoomControl } from './map-zoom-control';
 import { useIsAboveMapBreakpoint } from './use-is-above-map-breakpoint';
 
@@ -19,12 +20,14 @@ const TRANSPARENT_TILE_URL =
 
 export interface CampusMapViewProps {
   readonly areas: readonly CampusMapArea[];
+  readonly points?: readonly CampusMapPoint[];
   readonly selectedAreaId: number | null;
   readonly onSelectArea: (areaId: number | null) => void;
 }
 
 export function CampusMapView({
   areas,
+  points = [],
   selectedAreaId,
   onSelectArea,
 }: CampusMapViewProps) {
@@ -63,6 +66,9 @@ export function CampusMapView({
         selectedAreaId={selectedAreaId}
         onAreaClick={handleAreaClick}
       />
+      {points.map((point) => (
+        <MapPointMarker key={point.id} point={point} />
+      ))}
       {/*
        * Leaflet は同じ角 (position) に複数のコントロールがあるとき、後から addTo された
        * ものほど角の内側 (画面端から遠い側) に挿入する (Control.prototype.addTo の

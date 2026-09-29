@@ -1,4 +1,4 @@
-import type { MapArea } from '@/cms-types';
+import type { MapArea, MapPoint } from '@/cms-types';
 import tailwindConfig from '../../tailwind.config';
 import { cms, type CmsFetchError, type CmsResult } from './cms';
 import {
@@ -93,6 +93,18 @@ export interface CampusMapArea {
   readonly color: string;
   /** CMS 側が nullable。未設定のエリアは描画順の末尾に置く */
   readonly sort: number | null;
+  readonly hasAed: boolean;
+  readonly hasToilet: boolean;
+}
+
+export type CampusMapPointKind = MapPoint['kind'];
+
+/** 検証済みの点マーカー。緯度経度は範囲内の有限数であることが保証される */
+export interface CampusMapPoint {
+  readonly id: number;
+  readonly kind: CampusMapPointKind;
+  readonly latitude: number;
+  readonly longitude: number;
 }
 
 /** エリア取得と出展物取得の成否を独立して表現する */
@@ -106,6 +118,8 @@ export interface CampusMapDataResult {
         readonly value: readonly ExhibitionCardSummary[];
       }
     | { readonly kind: 'error'; readonly error: CmsFetchError };
+  /** 点マーカーは補助情報のため、取得失敗時は空配列とし地図全体の表示を妨げない */
+  readonly points: readonly CampusMapPoint[];
 }
 
 /** geometry の検証に失敗したエリアは描画対象から除く */
@@ -118,7 +132,31 @@ export function toCampusMapArea(area: MapArea): CampusMapArea | null {
     geometry: parsed.value,
     color: resolveAreaColor(area.color),
     sort: area.sort ?? null,
+    hasAed: area.hasAed === true,
+    hasToilet: area.hasToilet === true,
   };
+}
+
+const POINT_KINDS: readonly CampusMapPointKind[] = [
+  'garbage_station',
+  'reception',
+];
+
+/** 種別・緯度経度が不正な地点は描画対象から除く */
+export function toCampusMapPoint(point: MapPoint): CampusMapPoint | null {
+  const { kind, latitude, longitude } = point;
+  if (!POINT_KINDS.includes(kind)) return null;
+  if (
+    typeof latitude !== 'number' ||
+    typeof longitude !== 'number' ||
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude) ||
+    Math.abs(latitude) > 90 ||
+    Math.abs(longitude) > 180
+  ) {
+    return null;
+  }
+  return { id: point.id, kind, latitude, longitude };
 }
 
 /** sort 昇順。未設定 (null) は末尾に置く */
@@ -162,18 +200,24 @@ export async function getCampusMapAreas(): Promise<
  * (`fetchJoinSources` はエリア取得を内包しており、独立した結果表現と両立しないため使わない)。
  */
 export async function getCampusMapData(): Promise<CampusMapDataResult> {
-  const [areasResult, exhibitionsResult, stagesResult, slotsResult] =
-    await Promise.all([
-      fetchMapAreasDocs(),
-      cms.findMany('student_exhibitions', {
-        where: { status: { equals: 'published' } },
-        sort: ['id'],
-        limit: 0,
-        depth: 0,
-      }),
-      cms.findMany('stages', { limit: 0, depth: 0 }),
-      cms.findMany('performance_slots', { limit: 0, depth: 0 }),
-    ]);
+  const [
+    areasResult,
+    exhibitionsResult,
+    stagesResult,
+    slotsResult,
+    pointsResult,
+  ] = await Promise.all([
+    fetchMapAreasDocs(),
+    cms.findMany('student_exhibitions', {
+      where: { status: { equals: 'published' } },
+      sort: ['id'],
+      limit: 0,
+      depth: 0,
+    }),
+    cms.findMany('stages', { limit: 0, depth: 0 }),
+    cms.findMany('performance_slots', { limit: 0, depth: 0 }),
+    cms.findMany('map_points', { sort: ['id'], limit: 0, depth: 0 }),
+  ]);
 
   const areas: CampusMapDataResult['areas'] = areasResult.ok
     ? { kind: 'loaded', value: convertMapAreas(areasResult.value.docs) }
@@ -203,7 +247,13 @@ export async function getCampusMapData(): Promise<CampusMapDataResult> {
           error: firstError([exhibitionsResult, stagesResult, slotsResult]),
         };
 
-  return { areas, exhibitions };
+  const points = pointsResult.ok
+    ? pointsResult.value.docs
+        .map(toCampusMapPoint)
+        .filter((p): p is CampusMapPoint => p !== null)
+    : [];
+
+  return { areas, exhibitions, points };
 }
 
 /**
