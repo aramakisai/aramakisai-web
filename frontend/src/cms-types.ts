@@ -554,7 +554,7 @@ export interface StudentExhibition {
         id?: string | null;
       }[]
     | null;
-  open_days?: string[] | null;
+  open_days: string[];
   /**
    * カテゴリで「ステージ」を選択したときだけ表示する
    */

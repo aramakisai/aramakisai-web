@@ -173,6 +173,7 @@ export const StudentExhibitions: CollectionConfig = {
       name: 'open_days',
       type: 'text',
       hasMany: true,
+      required: true,
       label: '出店日',
       admin: { components: { Field: './components/EventDayCheckboxes.tsx' } },
     },

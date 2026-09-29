@@ -1,3 +1,4 @@
+import { text } from 'payload/shared';
 import { describe, expect, it } from 'vitest';
 
 import { StudentExhibitions } from './student-exhibitions';
@@ -241,7 +242,7 @@ describe('menu / open_days フィールド', () => {
   it('open_days は text の hasMany で EventDayCheckboxes を入力部品にする', () => {
     expect(openDays.type).toBe('text');
     expect(openDays.hasMany).toBe(true);
-    expect(openDays.required).toBeUndefined();
+    expect(openDays.required).toBe(true);
     expect((openDays.admin as { components: { Field: string } }).components.Field).toBe(
       './components/EventDayCheckboxes.tsx',
     );
@@ -259,5 +260,26 @@ describe('menu / open_days フィールド', () => {
     expect(normalize(' ¥300 ')).toBe(' ¥300 ');
     expect(normalize(null)).toBeNull();
     expect(normalize(undefined)).toBeUndefined();
+  });
+});
+
+describe('open_days フィールド', () => {
+  const openDays = fieldOf(StudentExhibitions.fields, 'open_days');
+  const validate = (value: unknown) =>
+    text(value as unknown as string, {
+      ...(openDays as object),
+      req: { t: (k: string) => k, payload: { config: {} } },
+    } as unknown as Parameters<typeof text>[1]);
+
+  it('必須項目として定義される', () => {
+    expect(openDays.required).toBe(true);
+  });
+
+  it.each([[[]], [undefined], [null]])('%j はバリデーションで弾かれる', (v) => {
+    expect(validate(v)).not.toBe(true);
+  });
+
+  it('1 日以上選ぶと受け入れる', () => {
+    expect(validate(['2026-11-01T12:00:00.000Z'])).toBe(true);
   });
 });

@@ -1,13 +1,13 @@
 'use client';
 
-import { FieldLabel, useField } from '@payloadcms/ui';
+import { FieldError, FieldLabel, useField } from '@payloadcms/ui';
 import type { TextFieldClientComponent } from 'payload';
 
 import { buildEventDayCheckOptions, eventDayValue } from './event-day-options';
 import { useEventDays } from './useEventDays';
 
 const EventDayCheckboxes: TextFieldClientComponent = ({ path, field }) => {
-  const { value, setValue } = useField<string[]>({ path });
+  const { value, setValue, showError, errorMessage } = useField<string[]>({ path });
   const days = useEventDays();
 
   if (!days) return null;
@@ -18,7 +18,7 @@ const EventDayCheckboxes: TextFieldClientComponent = ({ path, field }) => {
 
   return (
     <div className="field-type">
-      <FieldLabel label={field.label} path={path} />
+      <FieldLabel label={field.label} path={path} required={field.required} />
       {options.map((o) => (
         <label key={o.value} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <input
@@ -34,6 +34,7 @@ const EventDayCheckboxes: TextFieldClientComponent = ({ path, field }) => {
           {o.label}
         </label>
       ))}
+      <FieldError path={path} showError={showError} message={errorMessage} />
     </div>
   );
 };
