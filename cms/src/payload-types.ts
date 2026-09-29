@@ -545,6 +545,17 @@ export interface StudentExhibition {
       }[]
     | null;
   /**
+   * 価格が空の行はサイトに表示されません。
+   */
+  menu?:
+    | {
+        name: string;
+        price?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  open_days?: string[] | null;
+  /**
    * カテゴリで「ステージ」を選択したときだけ表示する
    */
   stage?: {
@@ -1037,6 +1048,14 @@ export interface StudentExhibitionsSelect<T extends boolean = true> {
         url?: T;
         id?: T;
       };
+  menu?:
+    | T
+    | {
+        name?: T;
+        price?: T;
+        id?: T;
+      };
+  open_days?: T;
   stage?:
     | T
     | {

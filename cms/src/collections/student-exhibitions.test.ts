@@ -214,3 +214,50 @@ describe('hooks の結線', () => {
     expect(StudentExhibitions.hooks?.afterDelete).toHaveLength(1);
   });
 });
+
+describe('menu / open_days フィールド', () => {
+  const menu = fieldOf(StudentExhibitions.fields, 'menu');
+  const menuFields = menu.fields as readonly unknown[];
+  const name = fieldOf(menuFields, 'name');
+  const price = fieldOf(menuFields, 'price');
+  const openDays = fieldOf(StudentExhibitions.fields, 'open_days');
+  const normalize = (v: unknown) =>
+    (price.hooks as { beforeValidate: ((a: { value: unknown }) => unknown)[] }).beforeValidate[0]({
+      value: v,
+    });
+
+  it('menu は品名(必須)と価格を持つ array で、価格が空の行は非表示と説明する', () => {
+    expect(menu.type).toBe('array');
+    expect(menu.required).toBeUndefined();
+    expect((menu.admin as { description: string }).description).toBe(
+      '価格が空の行はサイトに表示されません。',
+    );
+    expect(name.type).toBe('text');
+    expect(name.required).toBe(true);
+    expect(price.type).toBe('text');
+    expect(price.required).toBeUndefined();
+  });
+
+  it('open_days は text の hasMany で EventDayCheckboxes を入力部品にする', () => {
+    expect(openDays.type).toBe('text');
+    expect(openDays.hasMany).toBe(true);
+    expect(openDays.required).toBeUndefined();
+    expect((openDays.admin as { components: { Field: string } }).components.Field).toBe(
+      './components/EventDayCheckboxes.tsx',
+    );
+  });
+
+  it('新フィールドにフィールド単位のアクセス制御を付けない', () => {
+    expect(menu.access).toBeUndefined();
+    expect(openDays.access).toBeUndefined();
+  });
+
+  it('価格は空・空白のみだけ null にし、それ以外はそのまま返す', () => {
+    expect(normalize('')).toBeNull();
+    expect(normalize('  ')).toBeNull();
+    expect(normalize('¥300')).toBe('¥300');
+    expect(normalize(' ¥300 ')).toBe(' ¥300 ');
+    expect(normalize(null)).toBeNull();
+    expect(normalize(undefined)).toBeUndefined();
+  });
+});

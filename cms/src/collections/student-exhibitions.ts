@@ -148,6 +148,34 @@ export const StudentExhibitions: CollectionConfig = {
         },
       ],
     },
+    {
+      name: 'menu',
+      type: 'array',
+      label: 'メニュー',
+      admin: { description: '価格が空の行はサイトに表示されません。' },
+      fields: [
+        { name: 'name', type: 'text', required: true, maxLength: 255, label: '品名' },
+        {
+          name: 'price',
+          type: 'text',
+          maxLength: 255,
+          label: '価格',
+          hooks: {
+            // Payload は text の空値を補正せず、未入力は NULL・入力後に消すと '' で保存される
+            beforeValidate: [
+              ({ value }) => (typeof value === 'string' && value.trim() === '' ? null : value),
+            ],
+          },
+        },
+      ],
+    },
+    {
+      name: 'open_days',
+      type: 'text',
+      hasMany: true,
+      label: '出店日',
+      admin: { components: { Field: './components/EventDayCheckboxes.tsx' } },
+    },
     ...CATEGORIES.map(({ name, label }) => categoryContentGroup(name, label)),
     {
       name: 'performance_slots',
