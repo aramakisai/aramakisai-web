@@ -4,6 +4,7 @@ import * as announcementsModule from '@/lib/announcements';
 import * as campusMapModule from '@/lib/campus-map';
 import * as cmsModule from '@/lib/cms';
 import * as exhibitionsModule from '@/lib/exhibitions';
+import * as faqModule from '@/lib/faq';
 import * as staticPageModule from '@/lib/static-page';
 import * as topicsModule from '@/lib/topics';
 import { isPublicPath } from '@/lib/phase';
@@ -27,6 +28,7 @@ vi.mock('@/lib/cms', () => ({ cms: { findGlobal: vi.fn() } }));
 vi.mock('@/lib/announcements', () => ({ getAnnouncements: vi.fn() }));
 vi.mock('@/lib/topics', () => ({ getTopics: vi.fn() }));
 vi.mock('@/lib/exhibitions', () => ({ getExhibitionSitemapEntries: vi.fn() }));
+vi.mock('@/lib/faq', () => ({ getFaqItems: vi.fn() }));
 vi.mock('@/lib/campus-map', () => ({ getCampusMapLastModified: vi.fn() }));
 vi.mock('@/lib/static-page', () => ({ getPageSlugsUpdatedAt: vi.fn() }));
 
@@ -50,6 +52,7 @@ beforeEach(() => {
   vi.mocked(exhibitionsModule.getExhibitionSitemapEntries).mockResolvedValue(
     [],
   );
+  vi.mocked(faqModule.getFaqItems).mockResolvedValue([]);
   vi.mocked(campusMapModule.getCampusMapLastModified).mockResolvedValue(null);
   vi.mocked(staticPageModule.getPageSlugsUpdatedAt).mockResolvedValue([]);
 });
@@ -111,14 +114,61 @@ describe('sitemap (pre_event)', () => {
 
   it('固定ページは実在する slug のみ収録する', async () => {
     vi.mocked(staticPageModule.getPageSlugsUpdatedAt).mockResolvedValue([
-      { slug: 'faq', updatedAt: '2026-06-01T00:00:00.000Z' },
+      { slug: 'access', updatedAt: '2026-06-01T00:00:00.000Z' },
     ]);
 
     const result = await sitemap();
     const urls = urlsOf(result);
 
-    expect(urls).toContain(`${SITE_URL}/faq`);
-    expect(urls).not.toContain(`${SITE_URL}/access`);
+    expect(urls).toContain(`${SITE_URL}/access`);
+    expect(urls).not.toContain(`${SITE_URL}/privacy`);
+  });
+
+  it('/faq を faq_items の最新 updatedAt で収録する (pages に faq が無くても載る)', async () => {
+    vi.mocked(faqModule.getFaqItems).mockResolvedValue([
+      {
+        id: 1,
+        question: 'Q1',
+        answer: 'A1',
+        updatedAt: '2026-06-01T00:00:00.000Z',
+      },
+      {
+        id: 2,
+        question: 'Q2',
+        answer: 'A2',
+        updatedAt: '2026-06-03T00:00:00.000Z',
+      },
+    ]);
+    vi.mocked(staticPageModule.getPageSlugsUpdatedAt).mockResolvedValue([]);
+
+    const result = await sitemap();
+    const faq = result.find((e) => e.url === `${SITE_URL}/faq`);
+
+    expect(faq?.lastModified).toBe('2026-06-03T00:00:00.000Z');
+
+    const [slugCandidates] = vi.mocked(staticPageModule.getPageSlugsUpdatedAt)
+      .mock.calls[0];
+    expect(slugCandidates).not.toContain('faq');
+  });
+
+  it('faq_items が 0 件のとき /faq を最終更新日時なしで収録する', async () => {
+    vi.mocked(faqModule.getFaqItems).mockResolvedValue([]);
+
+    const result = await sitemap();
+    const faq = result.find((e) => e.url === `${SITE_URL}/faq`);
+
+    expect(faq).toBeDefined();
+    expect(faq?.lastModified).toBeUndefined();
+  });
+
+  it('faq_items の取得に失敗しても /faq だけを欠落させ他のエントリは応答する', async () => {
+    vi.mocked(faqModule.getFaqItems).mockRejectedValue(new Error('CMS Error'));
+
+    const result = await sitemap();
+    const urls = urlsOf(result);
+
+    expect(urls).not.toContain(`${SITE_URL}/faq`);
+    expect(urls).toContain(`${SITE_URL}/`);
   });
 
   it('お知らせ取得に失敗しても 500 にならず他のエントリで応答する', async () => {
@@ -145,7 +195,7 @@ describe('sitemap (pre_event)', () => {
       },
     ]);
     vi.mocked(staticPageModule.getPageSlugsUpdatedAt).mockResolvedValue([
-      { slug: 'faq', updatedAt: '2026-06-01T00:00:00.000Z' },
+      { slug: 'access', updatedAt: '2026-06-01T00:00:00.000Z' },
     ]);
 
     const result = await sitemap();

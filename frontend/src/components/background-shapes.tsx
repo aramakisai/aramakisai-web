@@ -114,6 +114,7 @@ function outerStyle(
   height: number,
   rotationDeg: number,
   entryOffset: EntryOffset | undefined,
+  hidden: boolean,
 ): CSSProperties {
   const translate = entryOffset
     ? `translate(${entryOffset.dx}px, ${entryOffset.dy}px) `
@@ -125,6 +126,7 @@ function outerStyle(
     width,
     height,
     transform: `${translate}rotate(${rotationDeg}deg)`,
+    visibility: hidden ? 'hidden' : 'visible',
   };
 }
 
@@ -136,10 +138,12 @@ function outerStyle(
 function SolidShapeView({
   shape,
   entryOffset,
+  hidden,
   elRef,
 }: {
   shape: Extract<PlacedShape, { tier: 'L' | 'S' }>;
   entryOffset: EntryOffset | undefined;
+  hidden: boolean;
   elRef: (el: HTMLDivElement | null) => void;
 }) {
   return (
@@ -155,6 +159,7 @@ function SolidShapeView({
         shape.size,
         shape.rot,
         entryOffset,
+        hidden,
       )}
     >
       <ShapeFill kind={shape.kind} texture={shape.texture} />
@@ -172,11 +177,13 @@ function SolidShapeView({
 function InfShapeView({
   shape,
   ringEntryOffsets,
+  hidden,
   elRef,
   ringRefs,
 }: {
   shape: Extract<PlacedShape, { tier: 'Inf' }>;
   ringEntryOffsets: readonly [EntryOffset, EntryOffset] | undefined;
+  hidden: boolean;
   elRef: (el: HTMLDivElement | null) => void;
   ringRefs: readonly [
     (el: HTMLDivElement | null) => void,
@@ -200,6 +207,7 @@ function InfShapeView({
         D,
         shape.rot,
         undefined,
+        hidden,
       )}
     >
       {([0, 1] as const).map((i) => {
@@ -484,16 +492,19 @@ function useShapeMotion(
 
 function ShapeList({
   shapes,
+  hidden,
   sections,
   reduced,
 }: {
   shapes: readonly PlacedShape[];
+  hidden: ReadonlySet<number>;
   sections: readonly SectionRect[];
   reduced: boolean;
 }) {
-  // shapes 自体が毎レンダー新しい配列だと参照の変化を検知する useShapeMotion の
-  // effect が無駄に張り直され、入場のタイマーもやり直しになる。呼び出し元
-  // (BackgroundShapes) の useMemo による安定化がそのままここまで効く
+  // shapes・sections 自体が毎レンダー新しい参照だと、それを検知する useShapeMotion の
+  // effect が無駄に張り直され、入場アニメーションがやり直しになる (ちらつき)。
+  // 呼び出し元 (BackgroundShapes) は同じ pathname・幅の間 base/sections の参照を
+  // 変えないため、間引き (hidden の更新) だけでは effect は再発火しない
   const entryOffsets = useMemo(
     () => computeEntryOffsets(shapes, sections),
     [shapes, sections],
@@ -516,6 +527,7 @@ function ShapeList({
           <InfShapeView
             key={index}
             shape={shape}
+            hidden={hidden.has(index)}
             ringEntryOffsets={reduced ? undefined : infRingEntryOffsets(index)}
             elRef={registerEl(index)}
             ringRefs={[registerRingEl(index, 0), registerRingEl(index, 1)]}
@@ -524,6 +536,7 @@ function ShapeList({
           <SolidShapeView
             key={index}
             shape={shape}
+            hidden={hidden.has(index)}
             entryOffset={reduced ? undefined : entryOffsets[index]}
             elRef={registerEl(index)}
           />
@@ -534,12 +547,15 @@ function ShapeList({
 }
 
 const ZERO_DEFICIT: Readonly<Record<Tier, number>> = { Inf: 0, L: 0, S: 0 };
+const EMPTY_HIDDEN: ReadonlySet<number> = new Set();
 
 interface MeasureState {
-  // pathname と幅が同じ間は base (配置結果) を再利用する (要件 9.1, 9.3)
+  // pathname と幅が同じ間は base (配置結果) の参照を変えない (要件 9.1, 9.3)。
+  // useShapeMotion の effect が base の参照に張り付いているため、間引きは
+  // base を作り直さず hidden (base 内の非表示インデックス集合) だけで表す
   key: { pathname: string; width: number };
   base: readonly PlacedShape[];
-  visible: readonly PlacedShape[];
+  hidden: ReadonlySet<number>;
   sections: SectionRect[];
   deficit: Readonly<Record<Tier, number>>;
 }
@@ -562,28 +578,56 @@ function measureFull(pathname: string): MeasureState | null {
   return {
     key: { pathname, width: input.width },
     base: shapes,
-    visible: shapes,
+    hidden: EMPTY_HIDDEN,
     sections: collectSectionRects(mainEl),
     deficit,
   };
 }
 
+/** filterForObstacles が間引いた図形を、base に対するインデックス集合へ変換する。 */
+function hiddenIndices(
+  base: readonly PlacedShape[],
+  input: PlacementInput,
+): ReadonlySet<number> {
+  const { dropped } = filterForObstacles(base, input);
+  if (dropped.length === 0) return EMPTY_HIDDEN;
+  // filterForObstacles は base の要素をそのまま (複製せず) 詰め直すだけなので、
+  // 参照の一致で「どの要素が落ちたか」を判定できる
+  const droppedSet = new Set(dropped);
+  const hidden = new Set<number>();
+  base.forEach((shape, i) => {
+    if (droppedSet.has(shape)) hidden.add(i);
+  });
+  return hidden;
+}
+
+function sameHidden(a: ReadonlySet<number>, b: ReadonlySet<number>): boolean {
+  if (a.size !== b.size) return false;
+  for (const i of a) if (!b.has(i)) return false;
+  return true;
+}
+
 /**
- * 保持した配置 (base) はそのまま、最新の障害物に反する図形だけを間引く
- * (要件 9.1, 9.2)。∞ の下限個数・4 質感の網羅は問わないため deficit は
- * 更新しない (design.md reuse 節)。
+ * base (配置・DOM 要素とも) はそのまま、最新の障害物と重なる図形だけを
+ * visibility:hidden にする (要件 9.1, 9.2)。∞ の下限個数・4 質感の網羅は
+ * 問わないため deficit は更新しない (design.md reuse 節)。
+ *
+ * details-content の開閉アニメーションのように 1 回のトランジションで
+ * ResizeObserver が何十回も発火する状況でも、shapes (base) の配列参照を
+ * 変えなければ useShapeMotion の effect は張り直されない。逆に base を作り
+ * 直したり sections をここで更新したりすると、それを検知して effect が
+ * 再発火し、非表示にしたい図形だけでなく画面上の全図形の入場アニメーションが
+ * 再生されてしまう (ちらつき)。そのため sections も更新しない
+ * (一度入場済みの図形に新しい section 座標は不要)
  */
 function refilter(prev: MeasureState, pathname: string): MeasureState | null {
   const input = currentInput(pathname);
-  const mainEl = document.getElementById(MAIN_CONTENT_ID);
-  if (!input || !mainEl) return null;
+  if (!input) return null;
 
-  const { visible } = filterForObstacles(prev.base, input);
-  return {
-    ...prev,
-    visible,
-    sections: collectSectionRects(mainEl),
-  };
+  const hidden = hiddenIndices(prev.base, input);
+  if (sameHidden(hidden, prev.hidden)) return prev;
+
+  return { ...prev, hidden };
 }
 
 /**
@@ -644,11 +688,12 @@ export function BackgroundShapes() {
     };
   }, [pathname]);
 
-  // state.visible は再計測・間引きのときだけ差し替わるが、reduced の切替など
-  // state と無関係な再レンダーのたびにここで新しい配列を作ると、参照の変化を
-  // 検知する useShapeMotion の effect が無駄に張り直される。state を基準に
-  // useMemo で安定させる
-  const shapes = useMemo(() => state?.visible ?? [], [state]);
+  // state.base/sections は同じ pathname・幅の間ずっと同じ参照 (refilter は
+  // hidden しか更新しない)。state 自体が refilter のたびに新しい object に
+  // なっても、ここで読み出す base/sections の参照は変わらないので、それを
+  // deps に持つ useShapeMotion の effect は張り直されない
+  const shapes = useMemo(() => state?.base ?? [], [state]);
+  const hidden = useMemo(() => state?.hidden ?? EMPTY_HIDDEN, [state]);
   const sections = useMemo(() => state?.sections ?? [], [state]);
   const deficit = state?.deficit ?? ZERO_DEFICIT;
 
@@ -661,7 +706,12 @@ export function BackgroundShapes() {
       data-bg-deficit={`${deficit.Inf},${deficit.L},${deficit.S}`}
       className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
     >
-      <ShapeList shapes={shapes} sections={sections} reduced={reduced} />
+      <ShapeList
+        shapes={shapes}
+        hidden={hidden}
+        sections={sections}
+        reduced={reduced}
+      />
     </div>
   );
 }

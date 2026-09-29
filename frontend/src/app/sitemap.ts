@@ -5,6 +5,7 @@ import { getAnnouncements } from '@/lib/announcements';
 import { getCampusMapLastModified } from '@/lib/campus-map';
 import { crawlPhase, SITEMAP_CODE_ROUTES } from '@/lib/crawl-targets';
 import { getExhibitionSitemapEntries } from '@/lib/exhibitions';
+import { getFaqItems } from '@/lib/faq';
 import { isPublicPath } from '@/lib/phase';
 import { getPageSlugsUpdatedAt } from '@/lib/static-page';
 import { getTopics } from '@/lib/topics';
@@ -21,6 +22,7 @@ const OWN_HANDLING_ROUTES: readonly string[] = [
   '/exhibitions',
   '/topics',
   '/map',
+  '/faq',
 ];
 
 function toUrl(path: string): string {
@@ -112,6 +114,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: toUrl('/map'),
       lastModified: (await getCampusMapLastModified()) ?? undefined,
     });
+  }
+
+  if (isPublicPath('/faq', phase)) {
+    try {
+      const faqItems = await getFaqItems();
+      entries.push({
+        url: toUrl('/faq'),
+        lastModified: maxUpdatedAt(faqItems.map((item) => item.updatedAt)),
+      });
+    } catch {
+      // 同上
+    }
   }
 
   const slugCandidates = SITEMAP_CODE_ROUTES.filter(

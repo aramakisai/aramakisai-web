@@ -1,5 +1,5 @@
 export type CodeRoutePath =
-  '/' | '/announcements' | '/exhibitions' | '/topics' | '/map';
+  '/' | '/announcements' | '/exhibitions' | '/topics' | '/map' | '/faq';
 
 export interface RouteMetadataEntry {
   /** null はサイトタイトルそのものを使うページ ('/') */
@@ -35,5 +35,9 @@ export const ROUTE_METADATA: Readonly<
     title: '構内マップ',
     description:
       '荒牧祭の会場となる構内マップです。企画やステージの場所を検索できます。',
+  },
+  '/faq': {
+    title: 'よくある質問',
+    description: '荒牧祭についてよくある質問と回答をまとめています。',
   },
 };

@@ -255,7 +255,7 @@ describe('計測・配置・保持・間引きの結合 (要件 9.1, 9.3)', () =
     MockResizeObserver.instances = [];
   });
 
-  it('同じ pathname・幅では DOM の高さが変わっても配置を計算し直さず、違反した図形だけを消す', async () => {
+  it('同じ pathname・幅では DOM の高さが変わっても配置を計算し直さず、違反した図形だけを隠す', async () => {
     vi.stubGlobal('ResizeObserver', MockResizeObserver);
 
     const shapeA = shape({ tier: 'S', size: 80, cx: 100, cy: 300 });
@@ -293,13 +293,20 @@ describe('計測・配置・保持・間引きの結合 (要件 9.1, 9.3)', () =
       MockResizeObserver.instances[0]?.trigger();
     });
 
+    const shapeEls = () =>
+      Array.from(document.querySelectorAll('[data-bg-shape]')) as HTMLElement[];
+
     await waitFor(() => {
-      expect(document.querySelectorAll('[data-bg-shape]')).toHaveLength(1);
+      expect(
+        shapeEls().filter((el) => el.style.visibility === 'hidden'),
+      ).toHaveLength(1);
     });
-    // 配置は計算し直さない (要件 9.1)。違反した図形 (shapeB) だけが消える
+    // 配置は計算し直さない (要件 9.1)。違反した図形 (shapeB) は DOM から消さず
+    // visibility:hidden にするだけ (shapes 配列の参照を変えないため)
     expect(placeSpy).toHaveBeenCalledTimes(1);
-    const remaining = document.querySelector('[data-bg-shape]') as HTMLElement;
-    expect(remaining.style.left).toBe(`${shapeA.cx - shapeA.size / 2}px`);
+    expect(shapeEls()).toHaveLength(2);
+    const visible = shapeEls().find((el) => el.style.visibility !== 'hidden')!;
+    expect(visible.style.left).toBe(`${shapeA.cx - shapeA.size / 2}px`);
   });
 
   it('幅が変わると配置を計算し直す (要件 9.3)', async () => {
@@ -327,5 +334,106 @@ describe('計測・配置・保持・間引きの結合 (要件 9.1, 9.3)', () =
     });
     await waitFor(() => expect(placeSpy).toHaveBeenCalledTimes(2));
     expect(placeSpy.mock.calls.at(-1)?.[0].platform).toBe('sp');
+  });
+
+  it('間引き結果が変わらない ResizeObserver 発火では再描画しない (アコーディオン開閉時のちらつき防止)', async () => {
+    vi.stubGlobal('ResizeObserver', MockResizeObserver);
+
+    const shapeA = shape({ tier: 'S', size: 80, cx: 100, cy: 300 });
+    vi.spyOn(placementLib, 'placeBackgroundShapes').mockReturnValue(
+      placementResult([shapeA]),
+    );
+
+    const { container } = render(<Harness />);
+    const containerEl = document.getElementById(PAGE_CONTAINER_ID)!;
+    const headerEl = container.querySelector('header')!;
+    const footerEl = container.querySelector('footer')!;
+    stubRect(containerEl, { x: 0, y: 0, width: 1440, height: 1200 });
+    stubRect(headerEl, { x: 0, y: 0, width: 1440, height: 80 });
+    stubRect(footerEl, { x: 0, y: 900, width: 1440, height: 200 });
+    vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(1440);
+
+    act(() => {
+      window.dispatchEvent(new Event('resize'));
+    });
+    await waitFor(() => {
+      expect(document.querySelectorAll('[data-bg-shape]')).toHaveLength(1);
+    });
+
+    // details-content の開閉アニメーション中に useShapeMotion が図形へ直接書き込む
+    // transform を模す。間引き結果が変わらない再描画が起きればこの値は
+    // outerStyle の rotate(0deg) だけの値に上書きされて消える
+    const shapeEl = document.querySelector('[data-bg-shape]') as HTMLElement;
+    shapeEl.style.transform = 'translate(42px, 7px) rotate(0deg)';
+
+    // 高さだけが何度も変わる ResizeObserver の発火 (アコーディオンの 1 トランジション
+    // 中に何十回も起こりうる) を模す。障害物・間引き対象は何も変えていない
+    act(() => {
+      MockResizeObserver.instances[0]?.trigger();
+      MockResizeObserver.instances[0]?.trigger();
+      MockResizeObserver.instances[0]?.trigger();
+    });
+
+    expect(shapeEl.style.transform).toBe('translate(42px, 7px) rotate(0deg)');
+  });
+
+  it('間引きで別の図形が隠れる/戻るときも、揺れの途中だった図形の transform は保持される (アコーディオン開閉時のちらつき防止)', async () => {
+    vi.stubGlobal('ResizeObserver', MockResizeObserver);
+
+    const shapeA = shape({ tier: 'S', size: 80, cx: 100, cy: 300 });
+    const shapeB = shape({ tier: 'S', size: 80, cx: 800, cy: 300 });
+    vi.spyOn(placementLib, 'placeBackgroundShapes').mockReturnValue(
+      placementResult([shapeA, shapeB]),
+    );
+
+    const { container } = render(<Harness />);
+    const containerEl = document.getElementById(PAGE_CONTAINER_ID)!;
+    const headerEl = container.querySelector('header')!;
+    const footerEl = container.querySelector('footer')!;
+    stubRect(containerEl, { x: 0, y: 0, width: 1440, height: 1200 });
+    stubRect(headerEl, { x: 0, y: 0, width: 1440, height: 80 });
+    stubRect(footerEl, { x: 0, y: 900, width: 1440, height: 200 });
+    vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(1440);
+
+    act(() => {
+      window.dispatchEvent(new Event('resize'));
+    });
+    await waitFor(() => {
+      expect(document.querySelectorAll('[data-bg-shape]')).toHaveLength(2);
+    });
+
+    const [elA, elB] = Array.from(
+      document.querySelectorAll('[data-bg-shape]'),
+    ) as HTMLElement[];
+    // details-content の開閉アニメーション中に useShapeMotion が shapeA へ直接
+    // 書き込む transform (揺れの途中位置) を模す。shapes (base) 配列の参照が
+    // 保たれていれば、shapeB だけが隠れる/戻る更新が起きてもこの値は無事
+    elA.style.transform = 'translate(42px, 7px) rotate(0deg)';
+
+    // FAQ の回答を開いたときのように、shapeB の位置だけを覆う不透明な面が現れる
+    const mainEl = document.getElementById(MAIN_CONTENT_ID)!;
+    const opaqueEl = document.createElement('div');
+    opaqueEl.setAttribute('data-bg-opaque', 'true');
+    mainEl.appendChild(opaqueEl);
+    stubRect(opaqueEl, { x: 750, y: 250, width: 150, height: 150 });
+
+    act(() => {
+      MockResizeObserver.instances[0]?.trigger();
+    });
+    await waitFor(() => {
+      expect(elB.style.visibility).toBe('hidden');
+    });
+    expect(elA.style.visibility).not.toBe('hidden');
+    expect(elA.style.transform).toBe('translate(42px, 7px) rotate(0deg)');
+
+    // 回答を閉じて shapeB の位置が空くケース (要素は再利用され、隠れていたものが戻る)
+    mainEl.removeChild(opaqueEl);
+    act(() => {
+      MockResizeObserver.instances[0]?.trigger();
+    });
+    await waitFor(() => {
+      expect(elB.style.visibility).not.toBe('hidden');
+    });
+    expect(elA.style.transform).toBe('translate(42px, 7px) rotate(0deg)');
   });
 });
