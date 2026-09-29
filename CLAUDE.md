@@ -6,14 +6,12 @@ FE は OpenNext (@opennextjs/cloudflare) 経由で Cloudflare Workers にデプ�
 コマンド
 
 bash# フロントエンド ローカル開発
-cd frontend
-pnpm install
-pnpm dev           # http://localhost:3000
+make dev           # worktree ごとに決まるポートで起動 (node_modules が無ければ自動で pnpm install)
 
-# 型チェック
+# 型チェック (frontend/ で実行)
 pnpm type-check
 
-# ビルド確認
+# ビルド確認 (frontend/ で実行)
 pnpm build
 
 bash# CMS ローカル開発
@@ -21,7 +19,8 @@ cd cms
 pnpm install
 pnpm db:up                      # ローカル Postgres (localhost:5433)
 pnpm migrate                    # スキーマを適用する。起動前に必ず実行する
-infisical run --env=prod -- pnpm dev
+cd ..
+make cms                        # 3100 番固定で起動 (共有 CMS は1つだけ)
 
 # コレクション/グローバル定義 (src/collections, src/globals) を変更した場合
 pnpm migrate:create <name>      # 差分マイグレーションを生成し src/migrations/index.ts に登録
@@ -31,6 +30,19 @@ bash# K8s クラスタ状態確認
 # kubectl を直接実行してはならない (kubeconfig 未設定でネットワーク到達不可)。
 # 必ず make kubectl 経由で実行すること (Infisical から KUBECONFIG を注入)
 make kubectl ARGS="get pods -A"
+
+開発サーバー
+
+開発サーバーは必ず `make dev` / `make cms` / `make cms-worktree` / `make preview` 経由で起動する。
+`pnpm dev`・`next dev`・`-p`/`--port` の直接使用は禁止 (`.claude/hooks/block-direct-dev.sh` の PreToolUse hook でブロックされる)。
+
+- ポート番号は worktree 名から決定的に算出される (3200-3999)。自分で選ばない
+- 他のセッションや人間が立てたサーバーを止めない。`make dev-stop` は自分の worktree のサーバーのみ停止する
+- ポート 3000 (プレビュー枠) にはユーザーの明示的な指示なしで触らない。`make preview` はユーザーが指示したときだけ実行する
+- CMS はポート 3100 の共有インスタンス1つだけ (`make cms`)。マイグレーションを伴うブランチの検証時のみ `make cms-worktree` と `make dev CMS=worktree` を使う
+- 起動中のサーバー一覧は `make dev-ps` で確認する
+- Claude の Bash で起動する際は `run_in_background` で `make dev` を実行する
+- subagent へ委譲する際も同じルールを指示に含める
 
 環境変数
 
