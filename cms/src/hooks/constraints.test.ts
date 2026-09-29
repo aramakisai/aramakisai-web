@@ -8,7 +8,13 @@ import {
   validateImageOwnership,
   validateOwnerRole,
   validateOwnerUniqueness,
+  toJstDateKey,
+  toJstMinuteOfDay,
+  toSlotWindow,
+  validatePerformanceOverlap,
   validatePerformanceSlot,
+  validateSlotEventDate,
+  validateSlotRange,
   validateStageAssignment,
   validateStageCategoryRemoval,
 } from './constraints';
@@ -315,5 +321,140 @@ describe('validateImageOwnership', () => {
         { unauthorizedImageIds: new Set(['2']) },
       ),
     ).toEqual([{ field: 'vendor.images', message: '【仮】自分がアップロードした画像だけを選べます。' }]);
+  });
+});
+
+describe('toJstDateKey / toJstMinuteOfDay', () => {
+  it('UTC の 15:00 は JST の翌日 0:00', () => {
+    expect(toJstDateKey('2026-09-19T15:00:00.000Z')).toBe('2026-09-20');
+    expect(toJstMinuteOfDay('2026-09-19T15:00:00.000Z')).toBe(0);
+  });
+
+  it('JST の 0 時直前は前日の 1439 分', () => {
+    expect(toJstDateKey('2026-09-19T14:59:00.000Z')).toBe('2026-09-19');
+    expect(toJstMinuteOfDay('2026-09-19T14:59:00.000Z')).toBe(1439);
+  });
+
+  it('UTC 正午は JST の同じ暦日', () => {
+    expect(toJstDateKey('2026-09-19T12:00:00.000Z')).toBe('2026-09-19');
+  });
+
+  it('解釈できない値は null', () => {
+    for (const v of [undefined, null, '', 'abc', 123]) {
+      expect(toJstDateKey(v)).toBeNull();
+      expect(toJstMinuteOfDay(v)).toBeNull();
+    }
+  });
+});
+
+describe('toSlotWindow', () => {
+  it('3項目がそろえば枠になる', () => {
+    expect(
+      toSlotWindow({
+        event_date: '2026-09-19T12:00:00.000Z',
+        start_at: '1970-01-01T01:00:00.000Z',
+        end_at: '1970-01-01T02:30:00.000Z',
+      }),
+    ).toEqual({ dateKey: '2026-09-19', startMinute: 600, endMinute: 690 });
+  });
+
+  it('欠損があれば null', () => {
+    const base = {
+      event_date: '2026-09-19T12:00:00.000Z',
+      start_at: '2026-09-19T01:00:00.000Z',
+      end_at: '2026-09-19T02:00:00.000Z',
+    };
+    expect(toSlotWindow({ ...base, event_date: null })).toBeNull();
+    expect(toSlotWindow({ ...base, start_at: undefined })).toBeNull();
+    expect(toSlotWindow({ ...base, end_at: 'x' })).toBeNull();
+  });
+});
+
+describe('validateSlotRange', () => {
+  const doc = (start: string, end: string) => ({
+    event_date: '2026-09-19T12:00:00.000Z',
+    start_at: start,
+    end_at: end,
+  });
+
+  it('日付部分が異なっても JST の分で比較する', () => {
+    expect(validateSlotRange(doc('2026-01-01T01:00:00.000Z', '2030-05-05T02:00:00.000Z'))).toEqual([]);
+  });
+
+  it('等値を拒否する', () => {
+    expect(validateSlotRange(doc('2026-09-19T01:00:00.000Z', '2026-09-20T01:00:00.000Z'))).toEqual([
+      { field: 'end_at', message: '終了時刻は開始時刻より後にしてください' },
+    ]);
+  });
+
+  it('逆転を拒否する', () => {
+    expect(validateSlotRange(doc('2026-09-19T02:00:00.000Z', '2026-09-19T01:00:00.000Z'))).toHaveLength(1);
+  });
+
+  it('未そろいは判定しない', () => {
+    expect(validateSlotRange({ start_at: '2026-09-19T02:00:00.000Z' })).toEqual([]);
+  });
+});
+
+describe('validateSlotEventDate', () => {
+  const doc = { event_date: '2026-09-19T12:00:00.000Z' };
+
+  it('開催日程に含まれる暦日は通す', () => {
+    expect(validateSlotEventDate(doc, { eventDayKeys: ['2026-09-19', '2026-09-20'] })).toEqual([]);
+  });
+
+  it('含まれない暦日を拒否する', () => {
+    expect(validateSlotEventDate(doc, { eventDayKeys: ['2026-09-20'] })).toEqual([
+      { field: 'event_date', message: '開催日は祭基本情報の開催日程から選んでください' },
+    ]);
+  });
+
+  it('開催日程が空なら常に拒否する', () => {
+    expect(validateSlotEventDate(doc, { eventDayKeys: [] })).toHaveLength(1);
+  });
+
+  it('開催日が未入力なら判定しない', () => {
+    expect(validateSlotEventDate({}, { eventDayKeys: [] })).toEqual([]);
+  });
+});
+
+describe('validatePerformanceOverlap', () => {
+  const win = (startMinute: number, endMinute: number, dateKey = '2026-09-19') => ({
+    dateKey,
+    startMinute,
+    endMinute,
+  });
+  const other = (name: string, startMinute: number, endMinute: number, dateKey = '2026-09-19') => ({
+    performanceId: name,
+    name,
+    ...win(startMinute, endMinute, dateKey),
+  });
+
+  it('交差する枠を名前と時刻付きで列挙する', () => {
+    const result = validatePerformanceOverlap(win(600, 660), {
+      others: [other('軽音部', 630, 700), other('演劇部', 540, 601)],
+    });
+    expect(result).toEqual([
+      {
+        field: 'start_at',
+        message: '同じステージの出演枠と重なっています: 軽音部 10:30〜11:40、演劇部 09:00〜10:01',
+      },
+    ]);
+  });
+
+  it('接する枠は通す', () => {
+    expect(
+      validatePerformanceOverlap(win(600, 660), { others: [other('a', 540, 600), other('b', 660, 720)] }),
+    ).toEqual([]);
+  });
+
+  it('別日の同時刻は通す', () => {
+    expect(
+      validatePerformanceOverlap(win(600, 660), { others: [other('a', 600, 660, '2026-09-20')] }),
+    ).toEqual([]);
+  });
+
+  it('対象が枠でなければ判定しない', () => {
+    expect(validatePerformanceOverlap(null, { others: [other('a', 0, 1439)] })).toEqual([]);
   });
 });

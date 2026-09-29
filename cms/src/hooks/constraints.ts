@@ -226,3 +226,90 @@ export function validateImageOwnership(
     ];
   });
 }
+
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+/** JST に 9 時間ずらした Date の UTC 取得関数が、そのまま JST の暦日・時刻になる。 */
+function toJstShifted(value: unknown): Date | null {
+  if (typeof value !== 'string' || value === '') return null;
+  const ms = Date.parse(value);
+  return Number.isNaN(ms) ? null : new Date(ms + JST_OFFSET_MS);
+}
+
+/** ISO 文字列を JST の暦日 'YYYY-MM-DD' にする。解釈できなければ null。 */
+export function toJstDateKey(value: unknown): string | null {
+  return toJstShifted(value)?.toISOString().slice(0, 10) ?? null;
+}
+
+/** ISO 文字列を JST の 0 時からの分にする。解釈できなければ null。 */
+export function toJstMinuteOfDay(value: unknown): number | null {
+  const d = toJstShifted(value);
+  return d ? d.getUTCHours() * 60 + d.getUTCMinutes() : null;
+}
+
+export type SlotWindow = {
+  readonly dateKey: string;
+  readonly startMinute: number;
+  readonly endMinute: number;
+};
+
+export type PerformanceWindow = SlotWindow & {
+  readonly performanceId: string | number;
+  readonly name: string;
+};
+
+type PerformanceTimeDoc = {
+  readonly event_date?: unknown;
+  readonly start_at?: unknown;
+  readonly end_at?: unknown;
+};
+
+export function toSlotWindow(doc: PerformanceTimeDoc): SlotWindow | null {
+  const dateKey = toJstDateKey(doc.event_date);
+  const startMinute = toJstMinuteOfDay(doc.start_at);
+  const endMinute = toJstMinuteOfDay(doc.end_at);
+  if (dateKey === null || startMinute === null || endMinute === null) return null;
+  return { dateKey, startMinute, endMinute };
+}
+
+/** start_at / end_at の日付部分は意味を持たないため、JST の分だけで比べる。 */
+export function validateSlotRange(doc: PerformanceTimeDoc): readonly ConstraintViolation[] {
+  const start = toJstMinuteOfDay(doc.start_at);
+  const end = toJstMinuteOfDay(doc.end_at);
+  if (start === null || end === null || end > start) return [];
+  return [{ field: 'end_at', message: '終了時刻は開始時刻より後にしてください' }];
+}
+
+export function validateSlotEventDate(
+  doc: PerformanceTimeDoc,
+  { eventDayKeys }: { eventDayKeys: readonly string[] },
+): readonly ConstraintViolation[] {
+  const dateKey = toJstDateKey(doc.event_date);
+  if (dateKey === null || eventDayKeys.includes(dateKey)) return [];
+  return [{ field: 'event_date', message: '開催日は祭基本情報の開催日程から選んでください' }];
+}
+
+function formatMinute(minute: number): string {
+  const hh = String(Math.floor(minute / 60)).padStart(2, '0');
+  const mm = String(minute % 60).padStart(2, '0');
+  return `${hh}:${mm}`;
+}
+
+/** 区間は半開区間 [start, end)。終了と次の開始が同じ枠は重ならない。 */
+export function validatePerformanceOverlap(
+  target: SlotWindow | null,
+  { others }: { others: readonly PerformanceWindow[] },
+): readonly ConstraintViolation[] {
+  if (target === null) return [];
+  const overlaps = others.filter(
+    (o) =>
+      o.dateKey === target.dateKey &&
+      o.startMinute < target.endMinute &&
+      target.startMinute < o.endMinute,
+  );
+  if (overlaps.length === 0) return [];
+  const list = overlaps
+    .map((o) => `${o.name} ${formatMinute(o.startMinute)}〜${formatMinute(o.endMinute)}`)
+    .join('、');
+  return [{ field: 'start_at', message: `同じステージの出演枠と重なっています: ${list}` }];
+}
