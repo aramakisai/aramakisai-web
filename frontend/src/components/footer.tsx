@@ -155,8 +155,10 @@ export async function Footer({ phase }: FooterProps) {
         <div className="mt-[38px] flex flex-col gap-[43px] lg:flex-row lg:items-start lg:justify-between lg:gap-0">
           <div className="flex flex-col gap-[27px]">
             <img
-              src="/images/logo-2026.png"
+              src="/images/logo-2026.webp"
               alt="荒牧祭2026"
+              width={122}
+              height={22}
               className="h-[22px] w-[122px] object-contain"
             />
             <address className="flex flex-col gap-3 text-sm leading-[1.6] text-text not-italic">

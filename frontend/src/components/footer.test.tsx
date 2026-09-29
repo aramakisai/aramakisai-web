@@ -161,7 +161,7 @@ describe('Footer', () => {
     const logo = screen.getByAltText('荒牧祭2026');
     expect(logo).toHaveAttribute(
       'src',
-      expect.stringContaining('logo-2026.png'),
+      expect.stringContaining('logo-2026.webp'),
     );
 
     expect(screen.getByText('群馬大学荒牧祭実行委員会')).toBeInTheDocument();

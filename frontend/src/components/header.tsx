@@ -179,8 +179,10 @@ export function Header({ phase }: HeaderProps) {
             className="flex shrink-0 items-center rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
           >
             <img
-              src="/images/logo-2026.png"
+              src="/images/logo-2026.webp"
               alt="荒牧祭2026"
+              width={178}
+              height={32}
               className="h-8 w-auto lg:h-10"
             />
           </Link>
