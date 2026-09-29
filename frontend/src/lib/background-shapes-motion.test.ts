@@ -5,26 +5,63 @@ import {
   computeEntryOffsets,
   computeRepulsionAccel,
   deriveShapeMotionParams,
-  ENTRY_MAX_OFFSET,
-  ENTRY_MIN_OFFSET,
+  entryDurationMs,
   findSectionCenter,
+  infRingEntryOffsets,
   isOffscreenVertically,
   isSettled,
+  RING_SECOND_ENTRY_DELAY_MS,
   scrollVelocityImpulse,
   stepSpring,
   type SectionRect,
 } from './background-shapes-motion';
-import type { PlacedShape } from './background-shapes';
+import type { PlacedShape } from './background-shapes/types';
 
-function shape(overrides: Partial<PlacedShape>): PlacedShape {
+interface SolidOverrides {
+  cx?: number;
+  cy?: number;
+  rot?: number;
+  size?: number;
+}
+
+function lShape(overrides: SolidOverrides = {}): PlacedShape {
   return {
+    tier: 'L',
     kind: 'circle',
-    size: 40,
-    x: 100,
-    y: 100,
-    rotation: 0,
-    color: 'bansai-ochre',
-    texture: 'none',
+    size: 300,
+    cx: 100,
+    cy: 100,
+    rot: 0,
+    texture: 'L1',
+    colors: null,
+    ...overrides,
+  };
+}
+
+function sShape(overrides: SolidOverrides = {}): PlacedShape {
+  return {
+    tier: 'S',
+    kind: 'circle',
+    size: 90,
+    cx: 100,
+    cy: 100,
+    rot: 0,
+    texture: 'S1',
+    colors: null,
+    ...overrides,
+  };
+}
+
+function infShape(overrides: SolidOverrides = {}): PlacedShape {
+  return {
+    tier: 'Inf',
+    kind: 'ring',
+    size: 140,
+    cx: 100,
+    cy: 100,
+    rot: 0,
+    texture: null,
+    colors: ['ochre', 'olive'],
     ...overrides,
   };
 }
@@ -50,7 +87,6 @@ describe('findSectionCenter', () => {
       { top: 0, bottom: 100, centerX: 10, centerY: 50 },
       { top: 200, bottom: 300, centerX: 20, centerY: 250 },
     ];
-    // 100〜200 のすき間: 120 は 1 つ目 (bottom=100 との距離 20) に近い
     expect(findSectionCenter(120, sections)).toEqual({ x: 10, y: 50 });
   });
 
@@ -59,81 +95,107 @@ describe('findSectionCenter', () => {
   });
 });
 
+describe('entryDurationMs', () => {
+  it('S は 1000ms、L と Inf は 1400ms (要件 10.1)', () => {
+    expect(entryDurationMs('S')).toBe(1000);
+    expect(entryDurationMs('L')).toBe(1400);
+    expect(entryDurationMs('Inf')).toBe(1400);
+  });
+});
+
 describe('computeEntryOffsets', () => {
   it('同じ入力に対して常に同じ結果を返す (決定性)', () => {
-    const shapes = [shape({ x: 300, y: 300 }), shape({ x: 50, y: 50 })];
+    const shapes = [lShape({ cx: 300, cy: 300 }), sShape({ cx: 50, cy: 50 })];
     expect(computeEntryOffsets(shapes, [section])).toEqual(
       computeEntryOffsets(shapes, [section]),
     );
   });
 
-  it('起点はセクション中心と反対方向へ 40〜120px ずれた位置になる', () => {
-    // 図形はセクション中心 (200,200) から見て右下 (300,300) にある。
-    // 「反対方向」= 中心から図形への向きにさらに離れる方向なので dx,dy は正になる
+  it('S はセクション中心と反対方向へ 120〜280px ずれた位置になる', () => {
     const [offset] = computeEntryOffsets(
-      [shape({ x: 300, y: 300 })],
+      [sShape({ cx: 300, cy: 300 })],
       [section],
     );
     const distance = Math.hypot(offset.dx, offset.dy);
-    expect(distance).toBeGreaterThanOrEqual(ENTRY_MIN_OFFSET);
-    expect(distance).toBeLessThanOrEqual(ENTRY_MAX_OFFSET);
+    expect(distance).toBeGreaterThanOrEqual(120);
+    expect(distance).toBeLessThanOrEqual(280);
     expect(offset.dx).toBeGreaterThan(0);
     expect(offset.dy).toBeGreaterThan(0);
     expect(offset.delayMs).toBe(0);
   });
 
-  it('リングの組は互いに異なる、ほぼ反対の方向から寄せ、2つ目は遅延を持つ', () => {
-    const primary = shape({
-      kind: 'ring',
-      ringVariant: 'primary',
-      x: 300,
-      y: 300,
-    });
-    const secondary = shape({
-      kind: 'ring',
-      ringVariant: 'secondary',
-      x: 321.76,
-      y: 321.76,
-      size: 27.2,
-    });
-    const [a, b] = computeEntryOffsets([primary, secondary], [section]);
+  it('L はセクション中心と反対方向へ 80〜160px ずれた位置になる', () => {
+    const [offset] = computeEntryOffsets(
+      [lShape({ cx: 300, cy: 300 })],
+      [section],
+    );
+    const distance = Math.hypot(offset.dx, offset.dy);
+    expect(distance).toBeGreaterThanOrEqual(80);
+    expect(distance).toBeLessThanOrEqual(160);
+  });
 
+  it('∞ の外側要素は入場の移動を持たない (輪だけが動く)', () => {
+    const [offset] = computeEntryOffsets([infShape()], [section]);
+    expect(offset).toEqual({ dx: 0, dy: 0, delayMs: 0 });
+  });
+});
+
+describe('infRingEntryOffsets', () => {
+  it('1 つ目は局所 -x 側、2 つ目は局所 +x 側から寄せ、2 つ目は 150ms 遅延する', () => {
+    const [a, b] = infRingEntryOffsets(0);
+
+    expect(a.dx).toBeLessThan(0);
+    expect(a.dy).toBe(0);
     expect(a.delayMs).toBe(0);
-    expect(b.delayMs).toBe(100);
 
-    const angleA = Math.atan2(a.dy, a.dx);
-    const angleB = Math.atan2(b.dy, b.dx);
-    let diff = Math.abs(angleA - angleB);
-    if (diff > Math.PI) diff = 2 * Math.PI - diff;
-    // 基準角度から独立に ±0.7rad ばらけるため、完全な反対 (π) からは
-    // 最大で 2×0.7rad ずれうるが、それでも「ほぼ反対」の範囲に収まる
-    expect(diff).toBeGreaterThan(Math.PI - 2 * 0.7);
+    expect(b.dx).toBeGreaterThan(0);
+    expect(b.dy).toBe(0);
+    expect(b.delayMs).toBe(RING_SECOND_ENTRY_DELAY_MS);
+  });
+
+  it('距離は L と同じ 80〜160px の範囲に収まり、決定的である', () => {
+    const [a, b] = infRingEntryOffsets(3);
+    expect(Math.abs(a.dx)).toBeGreaterThanOrEqual(80);
+    expect(Math.abs(a.dx)).toBeLessThanOrEqual(160);
+    expect(Math.abs(b.dx)).toBeGreaterThanOrEqual(80);
+    expect(Math.abs(b.dx)).toBeLessThanOrEqual(160);
+    expect(infRingEntryOffsets(3)).toEqual([a, b]);
   });
 });
 
 describe('deriveShapeMotionParams', () => {
-  it('各値が想定レンジに収まり、決定的である', () => {
-    const s = shape({});
-    const a = deriveShapeMotionParams(s, 0);
-    const b = deriveShapeMotionParams(s, 0);
-    expect(a).toEqual(b);
-    expect(a.stiffness).toBeGreaterThanOrEqual(70);
-    expect(a.stiffness).toBeLessThanOrEqual(130);
-    expect(a.damping).toBeGreaterThanOrEqual(10);
-    expect(a.damping).toBeLessThanOrEqual(16);
-    expect(a.scrollCoeff).toBeGreaterThanOrEqual(0.5);
-    expect(a.scrollCoeff).toBeLessThanOrEqual(1.3);
-    expect(a.repulseRadius).toBeGreaterThanOrEqual(120);
-    expect(a.repulseRadius).toBeLessThanOrEqual(180);
-    expect(a.displacementClamp).toBeGreaterThanOrEqual(8);
-    expect(a.displacementClamp).toBeLessThanOrEqual(16);
+  it('S の変位上限は 24〜40px、反発半径は 160〜240px (要件 10.3)', () => {
+    const p = deriveShapeMotionParams(sShape(), 0);
+    expect(p.displacementClamp).toBeGreaterThanOrEqual(24);
+    expect(p.displacementClamp).toBeLessThanOrEqual(40);
+    expect(p.repulseRadius).toBeGreaterThanOrEqual(160);
+    expect(p.repulseRadius).toBeLessThanOrEqual(240);
+  });
+
+  it('L の変位上限は 8〜16px', () => {
+    const p = deriveShapeMotionParams(lShape(), 0);
+    expect(p.displacementClamp).toBeGreaterThanOrEqual(8);
+    expect(p.displacementClamp).toBeLessThanOrEqual(16);
+  });
+
+  it('∞ は L と同じ変位上限 (8〜16px) を使う', () => {
+    const p = deriveShapeMotionParams(infShape(), 0);
+    expect(p.displacementClamp).toBeGreaterThanOrEqual(8);
+    expect(p.displacementClamp).toBeLessThanOrEqual(16);
+  });
+
+  it('決定的である', () => {
+    const s = sShape();
+    expect(deriveShapeMotionParams(s, 0)).toEqual(
+      deriveShapeMotionParams(s, 0),
+    );
   });
 
   it('index が異なれば値も変わりうる', () => {
-    const s = shape({});
-    const a = deriveShapeMotionParams(s, 0);
-    const b = deriveShapeMotionParams(s, 1);
-    expect(a).not.toEqual(b);
+    const s = sShape();
+    expect(deriveShapeMotionParams(s, 0)).not.toEqual(
+      deriveShapeMotionParams(s, 1),
+    );
   });
 });
 
@@ -192,7 +254,7 @@ describe('clampDisplacement', () => {
   });
 
   it('上限を超えたら向きを保ったまま縮める', () => {
-    const { x, y } = clampDisplacement(6, 8, 5); // 距離 10 → 上限 5 に縮める
+    const { x, y } = clampDisplacement(6, 8, 5);
     expect(Math.hypot(x, y)).toBeCloseTo(5);
     expect(x / y).toBeCloseTo(6 / 8);
   });

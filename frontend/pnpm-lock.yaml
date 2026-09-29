@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@fontsource/line-seed-jp':
+        specifier: ^5.3.1
+        version: 5.3.1
       '@next/third-parties':
         specifier: ^16.2.10
         version: 16.2.10(next@15.5.19(@babel/core@7.29.7)(@playwright/test@1.61.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
@@ -899,6 +902,9 @@ packages:
   '@eslint/plugin-kit@0.4.1':
     resolution: {integrity: sha512-43/qtrDUokr7LJqoF2c3+RInu/t4zfrpYdoSDfYyhg52rwLV6TnOvdG4fXm7IkSB3wErkcmJS9iEhjVtOSEjjA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@fontsource/line-seed-jp@5.3.1':
+    resolution: {integrity: sha512-RMlfYZaXyB0WCMruwGtHAexGncfC0lZ9JLdh3nYz2QA1vrCZlIkTa1KSg1jxqNRSBxnVQveT6/7c/C5v/SlgKQ==}
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -5245,6 +5251,8 @@ snapshots:
     dependencies:
       '@eslint/core': 0.17.0
       levn: 0.4.1
+
+  '@fontsource/line-seed-jp@5.3.1': {}
 
   '@humanfs/core@0.19.2':
     dependencies:

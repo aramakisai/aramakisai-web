@@ -1,7 +1,10 @@
 /* eslint-disable @next/next/no-img-element */
 import type { CSSProperties } from 'react';
 import Link from 'next/link';
-import { getExhibitionGradient } from '@/lib/exhibition-color';
+import {
+  getExhibitionGradient,
+  getExhibitionAppearance,
+} from '@/lib/exhibition-color';
 import { toAssetUrl } from '@/lib/cms-asset-url';
 import type { ExhibitionCardSummary } from '@/lib/exhibitions';
 import { ImageIcon, PlaceIcon } from './icons';
@@ -12,12 +15,17 @@ export interface ExhibitionCardProps {
 
 export function ExhibitionCard({ exhibition }: ExhibitionCardProps) {
   const gradient = getExhibitionGradient(exhibition.displayName);
+  const { texture } = getExhibitionAppearance(exhibition.displayName);
   // globals.css の .exhibition-gradient-bg が参照する。角度は単位付きでないと
   // linear-gradient() に渡した際に無効な値としてカスケード全体が無視される。
+  // texture='gradient' は質感画像を重ねないので --exhibition-texture を設定しない (CSS 側の既定値 none を使う)。
   const gradientStyle = {
     '--exhibition-gradient-from': gradient.fromColor,
     '--exhibition-gradient-to': gradient.toColor,
     '--exhibition-gradient-angle': `${gradient.angle}deg`,
+    ...(texture !== 'gradient' && {
+      '--exhibition-texture': `url(/images/textures/card/${texture}.webp)`,
+    }),
   } as CSSProperties;
 
   const thumbnailUrl = exhibition.thumbnail
@@ -27,6 +35,7 @@ export function ExhibitionCard({ exhibition }: ExhibitionCardProps) {
   return (
     <Link
       href={`/exhibitions/${exhibition.id}/${exhibition.category}`}
+      data-bg-opaque="true"
       className="flex flex-col overflow-clip rounded-xl transition-shadow hover:shadow-lg"
     >
       <div className="flex aspect-[300/225] w-full shrink-0 items-center justify-center overflow-clip bg-gray-200">

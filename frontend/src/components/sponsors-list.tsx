@@ -31,6 +31,7 @@ export function SponsorsList({ sponsors }: SponsorsListProps) {
               return (
                 <li
                   key={sponsor.id}
+                  data-bg-opaque="true"
                   className="flex h-[72px] items-center justify-center bg-gray-200 lg:h-[100px]"
                 >
                   {logoUrl ? (
@@ -40,7 +41,7 @@ export function SponsorsList({ sponsors }: SponsorsListProps) {
                       className="max-h-full max-w-full object-contain"
                     />
                   ) : (
-                    <span className="px-2 text-center text-sm text-gray-500">
+                    <span className="px-2 text-center text-sm text-gray-600">
                       {sponsor.name}
                     </span>
                   )}
@@ -52,14 +53,14 @@ export function SponsorsList({ sponsors }: SponsorsListProps) {
         <div className="flex justify-end gap-4 lg:gap-6">
           <Link
             href="/sponsors/ad"
-            className="flex items-center gap-2 text-sm font-bold text-primary"
+            className="flex items-center gap-2 text-sm font-bold text-text"
           >
             広告協賛へ
             <ChevronRightIcon size={20} className="text-text" />
           </Link>
           <Link
             href="/sponsors/local"
-            className="flex items-center gap-2 text-sm font-bold text-primary"
+            className="flex items-center gap-2 text-sm font-bold text-text"
           >
             地域協賛へ
             <ChevronRightIcon size={20} className="text-text" />

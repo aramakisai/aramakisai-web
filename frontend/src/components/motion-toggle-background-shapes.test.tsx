@@ -9,9 +9,12 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BackgroundShapes, PAGE_CONTAINER_ID } from './background-shapes';
 import { MotionToggle } from './motion-toggle';
-import { HEADER_BG_SHAPES_SLOT_ID, MAIN_CONTENT_ID } from './header';
-import type { PlacedShape } from '@/lib/background-shapes';
-import * as backgroundShapesLib from '@/lib/background-shapes';
+import { MAIN_CONTENT_ID } from './header';
+import type {
+  PlacedShape,
+  PlacementResult,
+} from '@/lib/background-shapes/types';
+import * as placementLib from '@/lib/background-shapes/placement';
 
 // use-motion-preference は mock せず実フックで結線を確認する
 // (個々の停止時挙動は background-shapes-motion-runtime.test.tsx 側が担う)
@@ -56,25 +59,32 @@ function stubRect(
   });
 }
 
-function shape(overrides: Partial<PlacedShape>): PlacedShape {
+function shape(overrides: Partial<PlacedShape> = {}): PlacedShape {
   return {
+    tier: 'L',
     kind: 'circle',
-    size: 40,
-    x: 200,
-    y: 300,
-    rotation: 0,
-    color: 'bansai-ochre',
-    texture: 'none',
+    size: 300,
+    cx: 200,
+    cy: 300,
+    rot: 0,
+    texture: 'L1',
+    colors: null,
     ...overrides,
+  } as PlacedShape;
+}
+
+function placementResult(shapes: readonly PlacedShape[]): PlacementResult {
+  return {
+    shapes,
+    target: { Inf: 0, L: 0, S: 0 },
+    deficit: { Inf: 0, L: 0, S: 0 },
   };
 }
 
 function Harness() {
   return (
     <div id={PAGE_CONTAINER_ID}>
-      <header>
-        <div id={HEADER_BG_SHAPES_SLOT_ID} />
-      </header>
+      <header />
       <main id={MAIN_CONTENT_ID}>
         <section />
       </main>
@@ -99,23 +109,24 @@ afterEach(() => {
   document.body.innerHTML = '';
 });
 
-describe('MotionToggle と BackgroundShapes の結線 (要件 23.26)', () => {
+describe('MotionToggle と BackgroundShapes の結線', () => {
   it('フッターの MotionToggle で停止に切り替えると、本文の揺れの入力受付も止まる', async () => {
-    vi.spyOn(
-      backgroundShapesLib,
-      'computeBackgroundShapePlacement',
-    ).mockReturnValue([shape({ y: 300 })]);
+    vi.spyOn(placementLib, 'placeBackgroundShapes').mockReturnValue(
+      placementResult([shape({ cy: 300 })]),
+    );
 
     const { container } = render(<Harness />);
     const containerEl = document.getElementById(PAGE_CONTAINER_ID)!;
     const headerEl = container.querySelector('header')!;
     const sectionEl = container.querySelector('section')!;
     const footerEl = container.querySelector('footer')!;
-    stubRect(containerEl, { x: 0, y: 0, width: 1024, height: 1200 });
-    stubRect(headerEl, { x: 0, y: 0, width: 1024, height: 80 });
-    stubRect(sectionEl, { x: 0, y: 80, width: 1024, height: 1000 });
-    stubRect(footerEl, { x: 0, y: 1080, width: 1024, height: 120 });
-    vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(1024);
+    stubRect(containerEl, { x: 0, y: 0, width: 1440, height: 1200 });
+    stubRect(headerEl, { x: 0, y: 0, width: 1440, height: 80 });
+    stubRect(sectionEl, { x: 0, y: 80, width: 1440, height: 1000 });
+    stubRect(footerEl, { x: 0, y: 1080, width: 1440, height: 120 });
+    // jsdom の既定 innerWidth (1024) と異なる値にする。幅が変わらないリサイズは
+    // 計算し直さない (要件 9.3 の裏返し) ため、初回計測との差を作る必要がある
+    vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(1440);
 
     act(() => {
       window.dispatchEvent(new Event('resize'));

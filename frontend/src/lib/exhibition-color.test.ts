@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import tailwindConfig from '../../tailwind.config';
-import { GRADIENT_PALETTE, getExhibitionGradient } from './exhibition-color';
+import {
+  GRADIENT_PALETTE,
+  getExhibitionGradient,
+  getExhibitionAppearance,
+} from './exhibition-color';
 
 describe('GRADIENT_PALETTE', () => {
   it('tailwind.config.ts の同名トークンと色値が一致する', () => {
@@ -74,5 +78,34 @@ describe('getExhibitionGradient', () => {
       toColor: GRADIENT_PALETTE[to],
       angle,
     });
+  });
+});
+
+describe('getExhibitionAppearance', () => {
+  it('同じ企画名からは常に同じ色・質感を返す', () => {
+    const a = getExhibitionAppearance('アラマキ祭');
+    const b = getExhibitionAppearance('アラマキ祭');
+    expect(a).toEqual(b);
+  });
+
+  it('色・角度は getExhibitionGradient と同じ乱数列から得られる (質感はその続き)', () => {
+    for (const name of ['', 'アラマキ祭', 'Test Project', 'あ']) {
+      const gradient = getExhibitionGradient(name);
+      const appearance = getExhibitionAppearance(name);
+      expect(appearance.from).toBe(gradient.from);
+      expect(appearance.to).toBe(gradient.to);
+      expect(appearance.angle).toBe(gradient.angle);
+    }
+  });
+
+  // rng.ts の乱数列の続きから引いた値を固定する (design.md のアルゴリズムどおりの参照実装で算出)
+  it.each([
+    ['', 'watercolor'],
+    ['アラマキ祭', 'watercolor'],
+    ['Test Project', 'halftone'],
+    ['荒牧祭実行委員会', 'gradient'],
+    ['あ', 'halftone'],
+  ] as const)('%s の既知の質感を返す', (name, texture) => {
+    expect(getExhibitionAppearance(name).texture).toBe(texture);
   });
 });

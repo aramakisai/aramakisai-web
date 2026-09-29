@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import { MaterialIcon } from './icons';
 
@@ -8,37 +9,23 @@ interface DestinationConfig {
   readonly href: string;
   readonly icon: string;
   readonly label: string;
-  readonly bgClass: string;
 }
 
 // href は lib/navigation.ts の bottomNavigationItems と同じパス (/timetable, /parking は
-// 別 spec が実装するまで 404)。背景色は各バリアントのトークン色を color/background に 18% で
-// 重ねた濃度で、bg-*/[0.18] は body の bg-background 地の上でのみこの濃度になる。
+// 別 spec が実装するまで 404)。地の画像ファイル名は destination のキーと同じ (public/images/textures/nav/)
 const DESTINATIONS: Readonly<Record<PrimaryNavDestination, DestinationConfig>> =
   {
-    exhibitions: {
-      href: '/exhibitions',
-      icon: 'festival',
-      label: '企画一覧',
-      bgClass: 'bg-primary/[0.18]',
-    },
-    map: {
-      href: '/map',
-      icon: 'map',
-      label: '構内マップ',
-      bgClass: 'bg-secondary/[0.18]',
-    },
+    exhibitions: { href: '/exhibitions', icon: 'festival', label: '企画一覧' },
+    map: { href: '/map', icon: 'map', label: '構内マップ' },
     timetable: {
       href: '/timetable',
       icon: 'calendar_clock',
       label: 'タイムテーブル',
-      bgClass: 'bg-info/[0.18]',
     },
     parking: {
       href: '/parking',
       icon: 'parking_sign',
       label: '駐車場空き情報',
-      bgClass: 'bg-accent/[0.18]',
     },
   };
 
@@ -54,23 +41,36 @@ export interface PrimaryNavCardProps {
 }
 
 export function PrimaryNavCard({ destination }: PrimaryNavCardProps) {
-  const { href, icon, label, bgClass } = DESTINATIONS[destination];
+  const { href, icon, label } = DESTINATIONS[destination];
+  const bgStyle: CSSProperties = {
+    backgroundImage: `url(/images/textures/nav/${destination}.webp)`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+  };
 
   return (
     <Link
       href={href}
-      className={`flex flex-col items-center justify-center gap-2 rounded-md border border-gray-200 py-6 text-text ${bgClass}`}
+      data-bg-opaque="true"
+      style={bgStyle}
+      className="flex h-[171px] w-[171px] flex-col items-center justify-center gap-2 rounded-xl p-4 text-text lg:h-[160px] lg:w-[160px] lg:p-5"
     >
-      <MaterialIcon name={icon} size={32} />
-      <span className="text-base leading-[1.7] text-text">{label}</span>
+      <MaterialIcon
+        name={icon}
+        sizeClassName="text-[48px] lg:text-[56px]"
+        className="text-text"
+      />
+      <span className="text-[16px] leading-[1.5] font-bold text-text lg:text-[18px]">
+        {label}
+      </span>
     </Link>
   );
 }
 
-/** SP は 2 列 × 2 行、PC は 1 行 4 列 (Figma `160:108` / `155:734` 実測) */
+/** PC は 40px 間隔で中央揃え、SP は 2 列 × 2 行 (design.md PrimaryNavCard 節) */
 export function PrimaryNavGrid() {
   return (
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-6">
+    <div className="grid grid-cols-2 gap-4 lg:flex lg:justify-center lg:gap-10">
       {PRIMARY_NAV_DESTINATIONS.map((destination) => (
         <PrimaryNavCard key={destination} destination={destination} />
       ))}

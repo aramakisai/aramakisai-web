@@ -220,6 +220,13 @@ describe('HeroSection', () => {
     expect(screen.queryByText('SCROLL')).not.toBeInTheDocument();
   });
 
+  test('marks its root as the decoration-range boundary for background shapes', () => {
+    render(<HeroSection {...fullProps} />);
+    expect(
+      screen.getByRole('region', { name: '荒牧祭の写真スライドショー' }),
+    ).toHaveAttribute('data-bg-hero');
+  });
+
   test('darkens the bottom of the hero with a text-token gradient scrim', () => {
     const { container } = render(<HeroSection {...fullProps} />);
     const scrim = container.querySelector(
@@ -301,20 +308,36 @@ describe('HeroSection', () => {
       }
     });
 
-    test('renders theme and countdown in the serif heading font, bold', () => {
+    test('renders the theme word in LINE Seed JP Thin at the Figma-measured sizes (SP 72px, PC 120px)', () => {
+      const { container } = render(<HeroSection {...fullProps} />);
+
+      const mobile = screen.getByTestId('hero-content-mobile');
+      const desktop = screen.getByTestId('hero-content-desktop');
+
+      expect(within(mobile).getByText('万彩')).toHaveClass(
+        'font-thin',
+        'text-[72px]',
+      );
+      expect(within(desktop).getByText('万彩')).toHaveClass(
+        'font-thin',
+        'text-[120px]',
+      );
+      // ヒーローに明朝体の参照が一切残っていないことを確かめる (要件 3.1, 3.2)
+      expect(container.innerHTML).not.toContain('font-mincho');
+    });
+
+    test('renders the countdown in LINE Seed JP bold (no serif reference)', () => {
       render(<HeroSection {...fullProps} />);
 
       const mobile = screen.getByTestId('hero-content-mobile');
       const desktop = screen.getByTestId('hero-content-desktop');
 
       for (const region of [mobile, desktop]) {
-        expect(within(region).getByText('万彩')).toHaveClass(
-          'font-mincho',
+        expect(within(region).getByText('開催まであと 54 日')).toHaveClass(
           'font-bold',
         );
-        expect(within(region).getByText('開催まであと 54 日')).toHaveClass(
+        expect(within(region).getByText('開催まであと 54 日')).not.toHaveClass(
           'font-mincho',
-          'font-bold',
         );
       }
     });
@@ -395,8 +418,9 @@ describe('HeroSection', () => {
       for (const region of [mobile, desktop]) {
         expect(within(region).getByText('群馬大学')).toBeInTheDocument();
         expect(within(region).getByText('荒牧祭')).toBeInTheDocument();
-        expect(within(region).getByText('万彩')).toHaveClass('text-[44px]');
       }
+      expect(within(mobile).getByText('万彩')).toHaveClass('text-[72px]');
+      expect(within(desktop).getByText('万彩')).toHaveClass('text-[120px]');
       expect(within(desktop).getByText('｜')).toBeInTheDocument();
 
       const scrim = container.querySelector(

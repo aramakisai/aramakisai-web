@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
-import { Zen_Old_Mincho } from 'next/font/google';
 import { GoogleAnalytics } from '@next/third-parties/google';
 import { cookies } from 'next/headers';
+import '@fontsource/line-seed-jp/100.css';
+import '@fontsource/line-seed-jp/400.css';
+import '@fontsource/line-seed-jp/700.css';
+import '@fontsource/line-seed-jp/800.css';
 import './globals.css';
 import { getSiteMetadata } from '@/lib/site-metadata';
 import { buildPageMetadata } from '@/lib/page-metadata';
@@ -12,13 +15,6 @@ import {
 } from '@/lib/phase';
 import { PhaseToggle } from '@/components/phase-toggle';
 import { env } from '@/env';
-
-const zenOldMincho = Zen_Old_Mincho({
-  weight: '700',
-  subsets: ['latin'],
-  variable: '--font-zen-old-mincho',
-  display: 'swap',
-});
 
 // Material Symbols は next/font/google の対象フォント一覧に無く (アイコン名によるサブセット
 // 指定 (icon_names) を next/font がサポートしないため)、通常の <link> で読み込む。
@@ -102,7 +98,7 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang="ja" className={zenOldMincho.variable} suppressHydrationWarning>
+    <html lang="ja" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link

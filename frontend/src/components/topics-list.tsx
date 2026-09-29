@@ -34,7 +34,7 @@ export function TopicsList({ topics, variant = 'grid' }: TopicsListProps) {
           href="/topics"
           className="flex items-center justify-end gap-2 self-end text-sm font-bold"
         >
-          <span className="text-primary">トピック一覧へ</span>
+          <span className="text-text">トピック一覧へ</span>
           <ChevronRightIcon size={20} className="text-text" />
         </Link>
       </div>

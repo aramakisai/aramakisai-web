@@ -152,14 +152,14 @@ export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
               <CategoryBadge key={c} category={c} />
             ))}
           </div>
-          <h1 className="py-0 text-[24px] leading-[130%] text-primary lg:text-[32px] lg:leading-[125%]">
+          <h1 className="py-0 text-[28px] leading-[130%] text-text lg:text-[32px] lg:leading-[125%]">
             {exhibition.displayName}
           </h1>
-          <p className="text-base leading-[170%] text-text">
+          <p className="text-base leading-[180%] text-text">
             {exhibition.organizationName}
           </p>
           {exhibition.location && (
-            <p className="flex items-center gap-1 text-sm leading-[140%] font-medium text-gray-500">
+            <p className="flex items-center gap-1 text-sm leading-[140%] font-medium text-gray-600">
               <PlaceIcon size={20} className="text-text" />
               {exhibition.location}
             </p>
@@ -173,10 +173,10 @@ export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
 
       {exhibition.description && (
         <div className="flex flex-col gap-2 border-t border-gray-200 pt-6 lg:pt-8">
-          <h2 className="py-0 text-[20px] leading-[140%] text-primary lg:text-[24px] lg:leading-[130%]">
+          <h2 className="py-0 text-[20px] leading-[140%] text-text lg:text-[24px] lg:leading-[130%]">
             紹介
           </h2>
-          <p className="text-base leading-[170%] whitespace-pre-wrap text-text">
+          <p className="text-base leading-[180%] whitespace-pre-wrap text-text">
             {exhibition.description}
           </p>
         </div>

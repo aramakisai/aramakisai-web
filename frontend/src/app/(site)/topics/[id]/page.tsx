@@ -78,7 +78,7 @@ export default async function TopicPage({ params }: TopicPageProps) {
       <JsonLd data={breadcrumb} />
       <BackLink href="/topics" label="トピック一覧に戻る" />
 
-      <h1 className="w-full text-balance py-0 text-center text-[24px] leading-[130%] text-primary lg:text-[32px] lg:leading-[125%]">
+      <h1 className="w-full text-balance py-0 text-center text-[28px] leading-[130%] text-text lg:text-[32px] lg:leading-[125%]">
         {topic.title}
       </h1>
 
