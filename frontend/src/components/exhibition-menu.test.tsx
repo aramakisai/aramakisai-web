@@ -20,14 +20,16 @@ describe('ExhibitionMenu', () => {
     expect(screen.getByText('メニュー')).toBeInTheDocument();
     const rows = screen.getAllByRole('row');
     expect(rows).toHaveLength(2);
-    expect(within(rows[0]).getAllByRole('cell').map((c) => c.textContent)).toEqual([
-      '焼きそば',
-      '¥400',
-    ]);
-    expect(within(rows[1]).getAllByRole('cell').map((c) => c.textContent)).toEqual([
-      'ラムネ',
-      '150円',
-    ]);
+    expect(
+      within(rows[0])
+        .getAllByRole('cell')
+        .map((c) => c.textContent),
+    ).toEqual(['焼きそば', '¥400']);
+    expect(
+      within(rows[1])
+        .getAllByRole('cell')
+        .map((c) => c.textContent),
+    ).toEqual(['ラムネ', '150円']);
     expect(screen.queryByRole('columnheader')).toBeNull();
   });
 
