@@ -7,6 +7,7 @@ import { toCmsUser } from '../access/roles';
 import { Announcements } from './announcements';
 import { FaqItems } from './faq-items';
 import { MapAreas } from './map-areas';
+import { MapPoints } from './map-points';
 import { Media } from './media';
 import { Pages } from './pages';
 import { PerformanceSlots } from './performance-slots';
@@ -39,6 +40,7 @@ export const collections: CollectionConfig[] = [
   Sponsors,
   FaqItems,
   MapAreas,
+  MapPoints,
   Stages,
   PerformanceSlots,
   StudentExhibitions,

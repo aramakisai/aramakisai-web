@@ -55,6 +55,7 @@ describe('canRead', () => {
 
   it('学生団体以外に変わらず必要な公開 read はそのまま (マップエリア等)', () => {
     expect(canRead(exhibitor, 'map_areas', NOW)).toBe(true);
+    expect(canRead(exhibitor, 'map_points', NOW)).toBe(true);
   });
 
   it('学生団体は自分が所有者のメディアだけ読める', () => {
