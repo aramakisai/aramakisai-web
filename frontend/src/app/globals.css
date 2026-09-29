@@ -399,3 +399,43 @@
     mix-blend-mode: overlay;
   }
 }
+
+/*
+ * 点マーカーの吹き出し (Figma MapTooltip)。Leaflet 既定は角丸 3px・影付き・
+ * ::before の単色矢印のため、白地 + gray-200 の 1px 枠 + 枠線付きしっぽへ差し替える。
+ * しっぽの枠は ::before (gray-200) の上に一回り小さい ::after (白) を重ねて作る
+ */
+.leaflet-tooltip.map-point-tooltip {
+  margin-top: 0;
+  padding: 4px 8px;
+  border: 1px solid #e7e5e4;
+  border-radius: 4px;
+  background: #fff;
+  color: #231815;
+  font-size: 12px;
+  line-height: 1.4;
+  box-shadow:
+    0px 8px 10px -6px rgba(156, 163, 176, 0.2),
+    0px 20px 25px -5px rgba(156, 163, 176, 0.2);
+}
+
+.leaflet-tooltip.map-point-tooltip.leaflet-tooltip-top::before,
+.leaflet-tooltip.map-point-tooltip.leaflet-tooltip-top::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  margin: 0 0 0 -5px;
+  border: solid transparent;
+  border-width: 6px 5px 0;
+  pointer-events: none;
+}
+
+.leaflet-tooltip.map-point-tooltip.leaflet-tooltip-top::before {
+  bottom: -7px;
+  border-top-color: #e7e5e4;
+}
+
+.leaflet-tooltip.map-point-tooltip.leaflet-tooltip-top::after {
+  bottom: -6px;
+  border-top-color: #fff;
+}

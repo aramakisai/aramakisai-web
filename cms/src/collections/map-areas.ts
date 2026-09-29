@@ -122,6 +122,8 @@ export const MapAreas: CollectionConfig = {
       },
       validate: validateHexColor,
     },
+    { name: 'hasAed', type: 'checkbox', label: 'AED', defaultValue: false },
+    { name: 'hasToilet', type: 'checkbox', label: 'トイレ', defaultValue: false },
     {
       name: 'sort',
       type: 'number',

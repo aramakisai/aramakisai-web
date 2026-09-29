@@ -1,4 +1,5 @@
 import { ExhibitionCard } from '@/components/exhibition-card';
+import { MaterialIcon } from '@/components/icons';
 import {
   CATEGORY_LABELS,
   type ExhibitionCardSummary,
@@ -17,6 +18,11 @@ export type AreaExhibitionListState =
       readonly kind: 'filtered';
       /** 選択中のエリア名。エリアが選ばれていなければ null */
       readonly areaName: string | null;
+      /** 選択中エリアの設備。エリア単独選択時のみ見出しに出す */
+      readonly facilities?: {
+        readonly hasAed: boolean;
+        readonly hasToilet: boolean;
+      };
       readonly keyword: string;
       readonly categories: readonly ExhibitionCategory[];
       readonly items: readonly ExhibitionCardSummary[];
@@ -70,6 +76,15 @@ export function buildListHeading(state: FilteredState): ListHeading {
   };
 }
 
+function FacilityItem({ icon, label }: { icon: string; label: string }) {
+  return (
+    <span className="flex items-center gap-0.5">
+      <MaterialIcon name={icon} size={14} />
+      {label}
+    </span>
+  );
+}
+
 export function AreaExhibitionList({ state, notice }: AreaExhibitionListProps) {
   const listHeading =
     state.kind === 'filtered' ? buildListHeading(state) : null;
@@ -95,6 +110,17 @@ export function AreaExhibitionList({ state, notice }: AreaExhibitionListProps) {
               {listHeading?.heading}
             </h2>
             <p className="text-sm text-gray-600">{listHeading?.count}</p>
+            {isAreaOnly(state) &&
+              (state.facilities?.hasAed || state.facilities?.hasToilet) && (
+                <div className="flex items-center gap-3 text-xs text-gray-600">
+                  {state.facilities.hasAed && (
+                    <FacilityItem icon="ecg_heart" label="AED" />
+                  )}
+                  {state.facilities.hasToilet && (
+                    <FacilityItem icon="wc" label="トイレ" />
+                  )}
+                </div>
+              )}
           </div>
           {/*
            * PC はカテゴリチップ群との区切り線を MapSidePanel 側 (検索欄とリストの境界) に持つが、

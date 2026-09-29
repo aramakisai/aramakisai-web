@@ -128,4 +128,27 @@ describe('AreaLabelMarker', () => {
     expect(longitude).toBeCloseTo(140.05, 5);
     expect(latitude).toBeCloseTo(37.05, 5);
   });
+
+  it('設備アイコンを名前の後に AED、トイレの順で出す', () => {
+    render(
+      <AreaLabelMarker
+        name="Aゾーン"
+        geometry={GEOMETRY}
+        selected={false}
+        hasAed
+        hasToilet
+      />,
+    );
+    const html = lastIconHtml();
+    expect(html.indexOf('Aゾーン')).toBeLessThan(html.indexOf('ecg_heart'));
+    expect(html.indexOf('ecg_heart')).toBeLessThan(html.indexOf('>wc<'));
+  });
+
+  it('設備がなければアイコンを出さない', () => {
+    render(
+      <AreaLabelMarker name="Aゾーン" geometry={GEOMETRY} selected={false} />,
+    );
+    expect(lastIconHtml()).not.toContain('ecg_heart');
+    expect(lastIconHtml()).not.toContain('>wc<');
+  });
 });

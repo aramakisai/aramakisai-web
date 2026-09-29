@@ -74,6 +74,8 @@ function area(overrides: Partial<CampusMapArea> = {}): CampusMapArea {
       ],
     },
     ...overrides,
+    hasAed: false,
+    hasToilet: false,
   };
 }
 
@@ -104,6 +106,7 @@ function dataResult(
   return {
     areas: { kind: 'loaded', value: [] },
     exhibitions: { kind: 'loaded', value: [] },
+    points: [],
     ...overrides,
   };
 }

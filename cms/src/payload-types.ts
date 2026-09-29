@@ -75,6 +75,7 @@ export interface Config {
     sponsors: Sponsor;
     faq_items: FaqItem;
     map_areas: MapArea;
+    map_points: MapPoint;
     stages: Stage;
     performance_slots: PerformanceSlot;
     student_exhibitions: StudentExhibition;
@@ -98,6 +99,7 @@ export interface Config {
     sponsors: SponsorsSelect<false> | SponsorsSelect<true>;
     faq_items: FaqItemsSelect<false> | FaqItemsSelect<true>;
     map_areas: MapAreasSelect<false> | MapAreasSelect<true>;
+    map_points: MapPointsSelect<false> | MapPointsSelect<true>;
     stages: StagesSelect<false> | StagesSelect<true>;
     performance_slots: PerformanceSlotsSelect<false> | PerformanceSlotsSelect<true>;
     student_exhibitions: StudentExhibitionsSelect<false> | StudentExhibitionsSelect<true>;
@@ -434,6 +436,8 @@ export interface MapArea {
    * 例: #7fc8ad。未設定の場合は既定色
    */
   color?: string | null;
+  hasAed?: boolean | null;
+  hasToilet?: boolean | null;
   sort?: number | null;
   updatedAt: string;
   createdAt: string;
@@ -447,6 +451,18 @@ export interface FaqItem {
   question: string;
   answer: string;
   sort?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "map_points".
+ */
+export interface MapPoint {
+  id: number;
+  kind: 'garbage_station' | 'reception';
+  latitude: number;
+  longitude: number;
   updatedAt: string;
   createdAt: string;
 }
@@ -744,6 +760,10 @@ export interface PayloadLockedDocument {
         value: number | MapArea;
       } | null)
     | ({
+        relationTo: 'map_points';
+        value: number | MapPoint;
+      } | null)
+    | ({
         relationTo: 'stages';
         value: number | Stage;
       } | null)
@@ -958,7 +978,20 @@ export interface MapAreasSelect<T extends boolean = true> {
   name?: T;
   geometry?: T;
   color?: T;
+  hasAed?: T;
+  hasToilet?: T;
   sort?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "map_points_select".
+ */
+export interface MapPointsSelect<T extends boolean = true> {
+  kind?: T;
+  latitude?: T;
+  longitude?: T;
   updatedAt?: T;
   createdAt?: T;
 }

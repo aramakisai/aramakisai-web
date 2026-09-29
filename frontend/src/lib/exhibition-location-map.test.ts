@@ -56,6 +56,8 @@ function makeArea(
     color: 'accent',
     sort: id,
     ...overrides,
+    hasAed: false,
+    hasToilet: false,
   };
 }
 

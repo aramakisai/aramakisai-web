@@ -208,3 +208,44 @@ describe('AreaExhibitionList', () => {
     expect(screen.getByText(/エリアを選/)).toBeInTheDocument();
   });
 });
+
+describe('AreaExhibitionList facilities', () => {
+  const filtered = (
+    over: Partial<Extract<AreaExhibitionListState, { kind: 'filtered' }>>,
+  ): AreaExhibitionListState => ({
+    kind: 'filtered',
+    areaName: '中央エリア',
+    keyword: '',
+    categories: [],
+    items: [],
+    ...over,
+  });
+
+  it('該当設備だけを見出し下に出す', () => {
+    render(
+      <AreaExhibitionList
+        state={filtered({ facilities: { hasAed: true, hasToilet: false } })}
+      />,
+    );
+    expect(screen.getByText('AED')).toBeInTheDocument();
+    expect(screen.queryByText('トイレ')).not.toBeInTheDocument();
+  });
+
+  it('設備がない・検索条件付きのときは出さない', () => {
+    const { rerender } = render(
+      <AreaExhibitionList
+        state={filtered({ facilities: { hasAed: false, hasToilet: false } })}
+      />,
+    );
+    expect(screen.queryByText('AED')).not.toBeInTheDocument();
+    rerender(
+      <AreaExhibitionList
+        state={filtered({
+          keyword: 'a',
+          facilities: { hasAed: true, hasToilet: true },
+        })}
+      />,
+    );
+    expect(screen.queryByText('AED')).not.toBeInTheDocument();
+  });
+});

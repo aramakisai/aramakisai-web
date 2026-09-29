@@ -87,14 +87,18 @@ export function CampusMapScreen({
       areaIds: filters.selectedAreaId === null ? [] : [filters.selectedAreaId],
       page: 1,
     });
-    const areaName =
+    const selectedArea =
       filters.selectedAreaId === null
-        ? null
-        : (areas.find((a) => a.id === filters.selectedAreaId)?.name ?? null);
+        ? undefined
+        : areas.find((a) => a.id === filters.selectedAreaId);
 
     return {
       kind: 'filtered',
-      areaName,
+      areaName: selectedArea?.name ?? null,
+      facilities: selectedArea && {
+        hasAed: selectedArea.hasAed,
+        hasToilet: selectedArea.hasToilet,
+      },
       keyword: filters.q,
       categories: filters.categories,
       items,
@@ -141,6 +145,7 @@ export function CampusMapScreen({
       >
         <CampusMapView
           areas={areas}
+          points={data.points}
           selectedAreaId={filters.selectedAreaId}
           onSelectArea={selectArea}
         />
