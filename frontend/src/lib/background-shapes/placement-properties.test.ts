@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { bboxRadius, circleIntersectsRect, infRadius } from './geometry';
+import { bboxRadius, infRadius } from './geometry';
 import { placeBackgroundShapes } from './placement';
 import type { PlacedShape, PlacementInput, PlacementResult } from './types';
 
@@ -40,19 +40,6 @@ function radiusOf(shape: PlacedShape): number {
 }
 
 describe('placeBackgroundShapes: 簡易ルール (rules.md) の性質', () => {
-  it.each(FIXTURE_NAMES)(
-    '%s: 図形は不透明な面の矩形と外接円で重ならない',
-    (name) => {
-      const { input, result } = placed.get(name)!;
-      for (const shape of result.shapes) {
-        const r = radiusOf(shape);
-        for (const rect of input.opaque) {
-          expect(circleIntersectsRect(shape.cx, shape.cy, r, rect)).toBe(false);
-        }
-      }
-    },
-  );
-
   it.each(FIXTURE_NAMES)('%s: 図形同士の外接円は 24px 以上離れる', (name) => {
     const { result } = placed.get(name)!;
     const shapes = result.shapes;

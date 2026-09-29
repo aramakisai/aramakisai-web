@@ -65,9 +65,4 @@ describe('TopicCard', () => {
     expect(title).toHaveClass('font-bold');
     expect(title.tagName).toBe('H4'); // h4 の既定サイズ 20px をそのまま使う
   });
-
-  test('不透明な面として印を付ける', () => {
-    render(<TopicCard id={6} title="模擬店マップ" imageId={null} />);
-    expect(screen.getByRole('link')).toHaveAttribute('data-bg-opaque');
-  });
 });

@@ -151,7 +151,6 @@ function placeWithShrink(
 
 export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
   const { pathname, platform, width, height, decorTop, decorBottom } = input;
-  const opaque = input.opaque;
   const decorHeight = decorBottom - decorTop;
 
   const R = RANGES[platform];
@@ -172,7 +171,7 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
       const overflow = 0.4 * size;
       const cx = rng.uniform(-overflow, width + overflow);
       const cy = rng.uniform(decorTop, decorBottom);
-      if (!shapeFits(cx, cy, r, width, decorTop, decorBottom, overflow, opaque))
+      if (!shapeFits(cx, cy, r, width, decorTop, decorBottom, overflow))
         return null;
       if (!collisionOk(cx, cy, r, placed, GUTTER)) return null;
       return { cx, cy, r };
@@ -210,7 +209,7 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
       const overflow = 0.4 * size;
       const cx = rng.uniform(-overflow, width + overflow);
       const cy = rng.uniform(segTop, segBottom);
-      if (!shapeFits(cx, cy, r, width, decorTop, decorBottom, overflow, opaque))
+      if (!shapeFits(cx, cy, r, width, decorTop, decorBottom, overflow))
         return null;
       if (!collisionOk(cx, cy, r, placed, GUTTER)) return null;
       return { cx, cy, r };
@@ -264,7 +263,7 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
       const overflow = 0.4 * size;
       const cx = rng.uniform(-overflow, width + overflow);
       const cy = rng.uniform(decorTop, decorBottom);
-      if (!shapeFits(cx, cy, r, width, decorTop, decorBottom, overflow, opaque))
+      if (!shapeFits(cx, cy, r, width, decorTop, decorBottom, overflow))
         return null;
       if (!collisionOk(cx, cy, r, placed, GUTTER)) return null;
       return { cx, cy, r };

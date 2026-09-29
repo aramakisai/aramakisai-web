@@ -31,7 +31,6 @@ export function SponsorsList({ sponsors }: SponsorsListProps) {
               return (
                 <li
                   key={sponsor.id}
-                  data-bg-opaque="true"
                   className="flex h-[72px] items-center justify-center bg-gray-200 lg:h-[100px]"
                 >
                   {logoUrl ? (

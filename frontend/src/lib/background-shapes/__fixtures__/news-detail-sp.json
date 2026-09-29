@@ -4,13 +4,5 @@
   "width": 390,
   "height": 3147,
   "decorTop": 64,
-  "decorBottom": 2035,
-  "opaque": [
-    {
-      "x": 16,
-      "y": 1369,
-      "w": 358,
-      "h": 201
-    }
-  ]
+  "decorBottom": 2035
 }

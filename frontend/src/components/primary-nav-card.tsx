@@ -51,7 +51,6 @@ export function PrimaryNavCard({ destination }: PrimaryNavCardProps) {
   return (
     <Link
       href={href}
-      data-bg-opaque="true"
       style={bgStyle}
       className="flex h-[171px] w-[171px] flex-col items-center justify-center gap-2 rounded-xl p-4 text-text lg:h-[160px] lg:w-[160px] lg:p-5"
     >

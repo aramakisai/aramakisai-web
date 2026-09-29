@@ -16,8 +16,6 @@ export function filterForObstacles(
   base: readonly PlacedShape[],
   input: PlacementInput,
 ): ReuseResult {
-  const opaque = input.opaque;
-
   const visible: PlacedShape[] = [];
   const dropped: PlacedShape[] = [];
 
@@ -33,7 +31,6 @@ export function filterForObstacles(
       input.decorTop,
       input.decorBottom,
       xOverflow,
-      opaque,
     );
     (ok ? visible : dropped).push(shape);
   }

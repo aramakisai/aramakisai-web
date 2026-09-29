@@ -1,11 +1,4 @@
-import type { PlacementInput, Rect } from './types';
-
-// 幅または高さがこれ以下の矩形は罫線とみなし、障害物として扱わない
-const HAIRLINE_MAX = 2;
-
-function isSkipped(el: Element): boolean {
-  return el.getAttribute('aria-hidden') === 'true' || el.hasAttribute('inert');
-}
+import type { PlacementInput } from './types';
 
 function isVisible(el: Element): boolean {
   const style = window.getComputedStyle(el);
@@ -16,69 +9,9 @@ function isVisible(el: Element): boolean {
   );
 }
 
-function hasBackground(el: Element): boolean {
-  const style = window.getComputedStyle(el);
-  const m = style.backgroundColor.match(
-    /rgba?\(\s*[\d.]+[,\s]+[\d.]+[,\s]+[\d.]+(?:[,\s]+([\d.]+))?\s*\)/,
-  );
-  if (!m) return false;
-  const alpha = m[1] === undefined ? 1 : Number(m[1]);
-  return alpha > 0;
-}
-
-function toRect(domRect: DOMRect, scrollY: number): Rect {
-  return {
-    x: domRect.x,
-    y: domRect.y + scrollY,
-    w: domRect.width,
-    h: domRect.height,
-  };
-}
-
-function isHairline(domRect: DOMRect): boolean {
-  return domRect.width <= HAIRLINE_MAX || domRect.height <= HAIRLINE_MAX;
-}
-
-/**
- * main 配下を歩き、不透明な面だけを集める (design.md「obstacles」)。自身が
- * 不透明な面に一致した要素は矩形だけを採り内側へは潜らない。opaque な面の裏に
- * L がまわり込むことを許すため (要件 7.6)、面の中の子孫を個別に扱う必要が無い。
- * 地を持たない a/button はここでは何も採らず子を辿るだけなので、中の img 等の
- * opaque な子孫はそのまま拾える
- */
-function collectOpaque(root: Element, scrollY: number): Rect[] {
-  const opaque: Rect[] = [];
-
-  const push = (domRect: DOMRect) => {
-    if (domRect.width <= 0 || domRect.height <= 0) return;
-    if (isHairline(domRect)) return;
-    opaque.push(toRect(domRect, scrollY));
-  };
-
-  const walk = (el: Element) => {
-    if (isSkipped(el) || !isVisible(el)) return;
-
-    if (el.matches('[data-bg-opaque], img, input, textarea, select')) {
-      push(el.getBoundingClientRect());
-      return;
-    }
-    if (el.matches('a, button') && hasBackground(el)) {
-      push(el.getBoundingClientRect());
-      return;
-    }
-
-    for (const child of Array.from(el.children)) walk(child);
-  };
-
-  walk(root);
-  return opaque;
-}
-
 /**
  * root (`#page-container` 相当) から、pathname・platform を除く配置の入力一式を
- * DOM 計測で求める (design.md 「obstacles」)。不透明な面の収集は `<main>` の
- * 中だけを対象にする。ヘッダー・フッター・下部タブナビの中身は decorTop/decorBottom
- * の外なので個別に分類する必要が無い
+ * DOM 計測で求める (design.md 「obstacles」)。
  */
 export function collectObstacles(
   root: HTMLElement,
@@ -114,8 +47,5 @@ export function collectObstacles(
       : Infinity;
   const decorBottom = Math.min(footerTop, bottomNavBottom);
 
-  const mainEl = root.querySelector('main') ?? root;
-  const opaque = collectOpaque(mainEl, scrollY);
-
-  return { width, height, decorTop, decorBottom, opaque };
+  return { width, height, decorTop, decorBottom };
 }

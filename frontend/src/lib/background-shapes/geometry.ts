@@ -1,9 +1,7 @@
-import type { Rect } from './types';
-
 /**
  * 図形は回転後の外接円 (中心と半径) 1 つで表す。回転しても外接円自体は中心まわりの
- * 回転で不変なので、判定はすべて円と矩形・円と円の閉形式の最短距離だけで済む
- * (格子標本化・面積比・可視率・ガター判定は行わない)。
+ * 回転で不変なので、判定はすべて円と円の閉形式の最短距離・単純な範囲比較だけで済む
+ * (格子標本化・面積比・可視率判定は行わない)。
  */
 
 export function bboxRadius(s: number): number {
@@ -17,31 +15,6 @@ export function infBbox(D: number): [w: number, h: number] {
 export function infRadius(D: number): number {
   const [w, h] = infBbox(D);
   return 0.5 * Math.hypot(w, h);
-}
-
-export function circleIntersectsRect(
-  cx: number,
-  cy: number,
-  r: number,
-  rect: Rect,
-): boolean {
-  const nearestX = Math.min(Math.max(cx, rect.x), rect.x + rect.w);
-  const nearestY = Math.min(Math.max(cy, rect.y), rect.y + rect.h);
-  const dx = cx - nearestX;
-  const dy = cy - nearestY;
-  return dx * dx + dy * dy <= r * r;
-}
-
-function circleIntersectsAny(
-  cx: number,
-  cy: number,
-  r: number,
-  rects: readonly Rect[],
-): boolean {
-  for (const rect of rects) {
-    if (circleIntersectsRect(cx, cy, r, rect)) return true;
-  }
-  return false;
 }
 
 interface PlacedCircle {
@@ -64,9 +37,8 @@ export function collisionOk(
 }
 
 /**
- * 装飾範囲の外に出ていないか・横のはみ出しが許容量以内か・不透明な面と
- * 重ならないかをまとめて判定する。図形同士の間隔 (collisionOk) は配置順に
- * 依存するためここには含めない。
+ * 装飾範囲の外に出ていないか・横のはみ出しが許容量以内かを判定する。
+ * 図形同士の間隔 (collisionOk) は配置順に依存するためここには含めない。
  */
 export function shapeFits(
   cx: number,
@@ -76,11 +48,9 @@ export function shapeFits(
   decorTop: number,
   decorBottom: number,
   xOverflow: number,
-  opaque: readonly Rect[],
 ): boolean {
   if (cy - r < decorTop - 1e-6 || cy + r > decorBottom + 1e-6) return false;
   if (cx - r < -xOverflow - 1e-6 || cx + r > width + xOverflow + 1e-6)
     return false;
-  if (circleIntersectsAny(cx, cy, r, opaque)) return false;
   return true;
 }
