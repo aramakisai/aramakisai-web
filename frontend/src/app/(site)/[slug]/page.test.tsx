@@ -143,13 +143,13 @@ describe('StaticPage', () => {
     expect(metadata.description).toBe('編集者が設定した説明文');
   });
 
-  it('generateMetadata returns site defaults when slug not found (要件 2.10 / 8.1)', async () => {
+  it('slug が見つからない場合は notFound を呼ぶ (要件 2.5)', async () => {
     vi.mocked(getPageBySlug).mockResolvedValue(null);
 
     const params = Promise.resolve({ slug: 'unknown' });
-    const metadata = await generateMetadata({ params });
-
-    expect(metadata.title).toEqual({ absolute: '荒牧祭' });
-    expect(metadata.description).toBe('荒牧祭公式サイト');
+    await expect(generateMetadata({ params })).rejects.toThrow(
+      'NEXT_NOT_FOUND',
+    );
+    expect(notFound).toHaveBeenCalled();
   });
 });

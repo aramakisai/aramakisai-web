@@ -38,3 +38,24 @@ describe('E2EErrorTriggerFullscreenPage', () => {
     expect(notFound).not.toHaveBeenCalled();
   });
 });
+
+describe('generateMetadata', () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.unstubAllEnvs();
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('DEV_OVERRIDE_ENABLED が偽 (本番相当) のとき notFound を呼ぶ', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('NEXT_PUBLIC_ENABLE_PHASE_OVERRIDE', '');
+    const { generateMetadata } = await import('./page');
+
+    expect(() => generateMetadata()).toThrow('NEXT_NOT_FOUND');
+    expect(notFound).toHaveBeenCalledOnce();
+  });
+});

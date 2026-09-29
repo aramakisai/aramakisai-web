@@ -210,24 +210,20 @@ describe('generateMetadata', () => {
     ]);
   });
 
-  it('サイト既定値へ退避する (取得結果なし、要件 2.10 / 8.1)', async () => {
+  it('お知らせが見つからない場合は notFound を呼ぶ (要件 2.5)', async () => {
     vi.mocked(getAnnouncementById).mockResolvedValue(null);
 
-    const metadata = await generateMetadata({
-      params: Promise.resolve({ id: '999' }),
-    });
-
-    expect(metadata.title).toEqual({ absolute: '荒牧祭' });
-    expect(metadata.description).toBe('荒牧祭公式サイト');
-    expect(metadata.openGraph).toBeDefined();
+    await expect(
+      generateMetadata({ params: Promise.resolve({ id: '999' }) }),
+    ).rejects.toThrow('NEXT_NOT_FOUND');
+    expect(notFound).toHaveBeenCalled();
   });
 
-  it('サイト既定値へ退避する (id 不正、取得しない)', async () => {
-    const metadata = await generateMetadata({
-      params: Promise.resolve({ id: 'invalid' }),
-    });
-
-    expect(metadata.title).toEqual({ absolute: '荒牧祭' });
+  it('id が不正な場合は取得せず notFound を呼ぶ', async () => {
+    await expect(
+      generateMetadata({ params: Promise.resolve({ id: 'invalid' }) }),
+    ).rejects.toThrow('NEXT_NOT_FOUND');
+    expect(notFound).toHaveBeenCalled();
     expect(getAnnouncementById).not.toHaveBeenCalled();
   });
 });

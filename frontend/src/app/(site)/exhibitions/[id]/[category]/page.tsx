@@ -49,6 +49,12 @@ export async function generateMetadata({
     resolveExhibition(id, category),
     getSiteMetadata(),
   ]);
+
+  // ページ本体は result.kind === 'error' のとき notFound() を呼ばず専用のエラー表示に
+  // するため、ここも 'missing' だけを notFound() の対象にする
+  if (result.kind === 'missing') {
+    notFound();
+  }
   const exhibition = result.kind === 'found' ? result.value : null;
 
   // student_exhibitions に専用の meta description フィールドは無いため、本文 (description) →

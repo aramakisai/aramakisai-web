@@ -24,16 +24,20 @@ export async function generateMetadata({
     getSiteMetadata(),
   ]);
 
+  if (!page) {
+    notFound();
+  }
+
   return buildPageMetadata({
     site,
-    title: page?.title ?? site.siteTitle,
+    title: page.title,
     description: toMetaDescription(
-      [page?.metaDescription, page?.contentHtml],
+      [page.metaDescription, page.contentHtml],
       site.description,
     ),
     path: `/${slug}`,
     ogType: 'article',
-    imageCandidates: [page?.ogImageId ?? null],
+    imageCandidates: [page.ogImageId ?? null],
   });
 }
 

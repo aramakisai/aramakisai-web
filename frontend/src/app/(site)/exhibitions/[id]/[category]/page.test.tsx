@@ -427,15 +427,15 @@ describe('ExhibitionPage', () => {
       expect(metadata.description).toBe('荒牧祭公式サイト');
     });
 
-    it('見つからない場合はサイト既定のメタデータへ退避する (要件 2.10 / 8.1)', async () => {
+    it('見つからない場合は notFound を呼ぶ (要件 2.5)', async () => {
       mockResult({ kind: 'missing' });
 
-      const metadata = await generateMetadata({
-        params: Promise.resolve({ id: '999', category: 'stage' }),
-      });
-
-      expect(metadata.title).toEqual({ absolute: '荒牧祭' });
-      expect(metadata.description).toBe('荒牧祭公式サイト');
+      await expect(
+        generateMetadata({
+          params: Promise.resolve({ id: '999', category: 'stage' }),
+        }),
+      ).rejects.toThrow('NEXT_NOT_FOUND');
+      expect(notFound).toHaveBeenCalled();
     });
 
     it('取得に失敗した場合もサイト既定のメタデータへ退避する', async () => {
