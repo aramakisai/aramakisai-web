@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getAnnouncements, getAnnouncementById } from './announcements';
+import {
+  getAnnouncements,
+  getAnnouncementById,
+  publishedFilter,
+} from './announcements';
 import { cms } from './cms';
 
 vi.mock('./cms', () => ({
@@ -160,5 +164,16 @@ describe('getAnnouncementById', () => {
       error: { kind: 'network', status: 500 },
     } as never);
     expect(await getAnnouncementById(10)).toBeNull();
+  });
+});
+
+describe('publishedFilter', () => {
+  it('現在時刻を分単位に切り捨てる (過去方向のみ)', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-30T12:34:56.789Z'));
+    expect(publishedFilter().published_at.less_than_equal).toBe(
+      '2026-09-30T12:34:00.000Z',
+    );
+    vi.useRealTimers();
   });
 });

@@ -95,8 +95,12 @@ describe('HeroSection', () => {
     Array.from(images)
       .slice(1)
       .forEach((image) =>
-        expect(image).toHaveAttribute('fetchpriority', 'auto'),
+        expect(image).toHaveAttribute('fetchpriority', 'low'),
       );
+    expect(images[0]).not.toHaveAttribute('loading');
+    images.forEach((image, i) => {
+      if (i > 0) expect(image).toHaveAttribute('loading', 'lazy');
+    });
   });
 
   test('renders nothing when there are no images', () => {
@@ -447,5 +451,35 @@ describe('HeroSection', () => {
       expect(screen.queryByText('万彩')).not.toBeInTheDocument();
       expect(screen.getAllByText('群馬大学').length).toBeGreaterThan(0);
     });
+  });
+});
+
+describe('HeroSection srcSet', () => {
+  const imageSrcSets = imageUrls.map((u) => `${u}-960 960w, ${u} 1920w`);
+
+  afterEach(() => {
+    Reflect.deleteProperty(document, 'readyState');
+  });
+
+  test('2 枚目以降は load 後まで src と srcSet の両方を付けない', () => {
+    Object.defineProperty(document, 'readyState', {
+      configurable: true,
+      value: 'loading',
+    });
+    const { container } = render(
+      <HeroSection {...fullProps} imageSrcSets={imageSrcSets} />,
+    );
+    const images = container.querySelectorAll('img');
+
+    expect(images[0]).toHaveAttribute('srcset', imageSrcSets[0]);
+    expect(images[0]).toHaveAttribute('sizes', '100vw');
+    expect(images[1]).not.toHaveAttribute('src');
+    expect(images[1]).not.toHaveAttribute('srcset');
+
+    act(() => {
+      window.dispatchEvent(new Event('load'));
+    });
+    expect(images[1]).toHaveAttribute('src', imageUrls[1]);
+    expect(images[1]).toHaveAttribute('srcset', imageSrcSets[1]);
   });
 });

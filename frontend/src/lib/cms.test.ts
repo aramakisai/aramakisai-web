@@ -103,3 +103,77 @@ describe('cms.findGlobal', () => {
     );
   });
 });
+
+describe('cms キャッシュ', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    delete (globalThis as Record<symbol, unknown>)[
+      Symbol.for('__cloudflare-context__')
+    ];
+  });
+
+  const okResponse = () =>
+    new Response(JSON.stringify({ docs: [], totalDocs: 0 }), { status: 200 });
+
+  it('caches 未定義ならそのまま fetch する', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(okResponse());
+    vi.stubGlobal('caches', undefined);
+    vi.stubGlobal('fetch', fetchMock);
+    expect((await cms.findMany('announcements', {})).ok).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('caches.default が無ければそのまま fetch する', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(okResponse());
+    vi.stubGlobal('caches', {});
+    vi.stubGlobal('fetch', fetchMock);
+    expect((await cms.findMany('announcements', {})).ok).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('ヒット時は fetch せずキャッシュを返す', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('caches', {
+      default: { match: vi.fn().mockResolvedValue(okResponse()), put: vi.fn() },
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    expect((await cms.findMany('announcements', {})).ok).toBe(true);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('ミスの 2xx は s-maxage=60 付きで put する', async () => {
+    const put = vi.fn().mockResolvedValue(undefined);
+    const waitUntil = vi.fn();
+    vi.stubGlobal('caches', {
+      default: { match: vi.fn().mockResolvedValue(undefined), put },
+    });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(okResponse()));
+    (globalThis as Record<symbol, unknown>)[
+      Symbol.for('__cloudflare-context__')
+    ] = { ctx: { waitUntil } };
+    const result = await cms.findMany('announcements', {});
+    expect(result.ok).toBe(true);
+    expect(put).toHaveBeenCalledTimes(1);
+    expect(put.mock.calls[0][1].headers.get('Cache-Control')).toBe(
+      's-maxage=60',
+    );
+    expect(waitUntil).toHaveBeenCalledTimes(1);
+  });
+
+  it('非 2xx は put しない', async () => {
+    const put = vi.fn();
+    vi.stubGlobal('caches', {
+      default: { match: vi.fn().mockResolvedValue(undefined), put },
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(new Response('x', { status: 500 })),
+    );
+    const result = await cms.findMany('announcements', {});
+    expect(result).toEqual({
+      ok: false,
+      error: { kind: 'network', status: 500 },
+    });
+    expect(put).not.toHaveBeenCalled();
+  });
+});
