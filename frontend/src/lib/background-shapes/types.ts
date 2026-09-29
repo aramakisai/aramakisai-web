@@ -10,7 +10,7 @@ export type ShapeKind =
 export type TextureFamily = 'gradient' | 'watercolor' | 'grainy' | 'halftone';
 export type TextureId =
   `L${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8}` | `S${1 | 2 | 3 | 4 | 5 | 6}`;
-// 乱数で選ぶ候補配列が place.py と同じ並び・同じ値である必要があるため、接頭辞なしの名前を使う。
+// 乱数で選ぶ候補配列の並びを変えると配置の乱数消費がずれるため、接頭辞なしの名前を使う。
 // Tailwind の bansai-* への対応は描画側で行う
 export type RingColor =
   'ochre' | 'olive' | 'sage' | 'salmon' | 'rose' | 'wisteria' | 'aqua';
@@ -22,7 +22,7 @@ export interface Rect {
   h: number;
 }
 
-// place.py の入力 JSON (fixture) と同じ平坦な形。fixture をそのまま読み込めるようにする
+// fixture の JSON と同じ平坦な形。fixture をそのまま読み込めるようにする
 export interface PlacementInput {
   pathname: string;
   platform: Platform;
@@ -35,7 +35,6 @@ export interface PlacementInput {
   opaque: readonly Rect[]; // 不透明な面
 }
 
-// place.py の出力 (shapes.json の shapes) と同じ形。golden と直接比較する。
 // Inf の size は直径 D、rot は度。座標は小数第 2 位に丸める
 export type PlacedShape =
   | {

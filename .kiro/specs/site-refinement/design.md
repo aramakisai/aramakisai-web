@@ -10,7 +10,7 @@
 
 ### Goals
 - 要件 1〜11 を満たす。
-- 背景図形の配置が参照実装 `place.py` と同じ入力で同じ結果になることをテストで保証する。
+- 背景図形の配置が `docs/background-shapes/rules.md` の生成ルールを満たすことを性質テストで保証する。
 
 ### Non-Goals
 - Figma の画面ごとの配置の再現 (Figma は叩き台)。
@@ -37,7 +37,7 @@
 
 ### Revalidation Triggers
 - `data-bg-opaque` の規約や障害物の分類を変えたとき → `faq-page` など共通部品を使う画面。
-- 生成ルール文書または `place.py` を変えたとき → golden を再生成し TS 実装を追随させる。
+- 生成ルール文書 (`docs/background-shapes/rules.md`) を変えたとき → 性質テストと実装を追随させる。
 
 ## Architecture
 
@@ -64,8 +64,7 @@ graph TB
         ShapeView
         ShapeMotion
     end
-    Rules[生成ルール文書と place.py]
-    Golden[golden fixtures]
+    Rules[生成ルール文書]
     BackgroundShapes --> ObstacleCollector
     BackgroundShapes --> Placement
     BackgroundShapes --> ReuseFilter
@@ -73,8 +72,7 @@ graph TB
     Placement --> TextureAssign
     BackgroundShapes --> ShapeView
     ShapeView --> ShapeMotion
-    Rules --> Golden
-    Golden --> Placement
+    Rules --> Placement
 ```
 
 - **Dependency direction**: `types` → `rng` → `geometry` → `placement` / `reuse` → `obstacles` (DOM) → `components`。Core は DOM に依存しない。
@@ -88,16 +86,13 @@ graph TB
 | Frontend | Next.js 15 / React 19 / Tailwind (既存) | スタイル・描画 | 変更なし |
 | Font | `@fontsource/line-seed-jp` (新規) | LINE Seed JP 100/400/700/800 を unicode-range 分割で自己ホスト | 導入済み Next の `next/font/google` に未収録 |
 | Assets | WebP (`public/images/textures/`) | 質感画像 | 網目は可逆。背景図形の質感は表示最大寸法の 2 倍 (L 800px・S 240px) で `gentex3.py` から作り直す (既存の PNG は L 640px・S 192px で不足) |
-| Reference | Python 3 (`docs/background-shapes/place.py`) | golden 生成用の参照実装 | CI では実行しない |
 
 ## File Structure Plan
 
 ### Directory Structure
 ```
 docs/background-shapes/
-├── rules.md                 # 生成ルール (bgshape-rules.md を移す。正)
-├── place.py                 # 参照実装。golden の再生成に使う
-└── README.md                # golden の再生成手順
+└── rules.md                 # 生成ルール (正)
 frontend/public/images/textures/
 ├── bg/L1〜L8, S1〜S6.webp   # 背景図形の質感
 ├── card/{gradient,watercolor,grainy,halftone}.webp  # 企画カードに重ねる質感 (無彩色)
@@ -105,12 +100,12 @@ frontend/public/images/textures/
 frontend/src/lib/background-shapes/
 ├── types.ts                 # Obstacles, PlacedShape 等
 ├── rng.ts                   # FNV-1a / mulberry32 (exhibition-color.ts と共用)
-├── geometry.ts              # 回転外接円・図形マスク・可視率・ガター判定
-├── placement.ts             # ∞ → L → S の配置と緩和段、質感割当
+├── geometry.ts              # 回転外接円・円と矩形の閉形式判定
+├── placement.ts             # ∞ → L → S の配置とサイズ縮小の緩和、質感割当
 ├── reuse.ts                 # 流用モード (制約違反の図形を落とす)
 ├── obstacles.ts             # DOM から 4 分類の障害物を集める (exclude-rects.ts を置換)
 ├── motion-params.ts         # 階層別の動きの定数 (background-shapes-motion.ts の定数を置換)
-└── __fixtures__/            # place.py の入力と golden 出力
+└── __fixtures__/            # 実測の障害物入力 (性質テストで使用)
 ```
 
 ### Modified Files
@@ -142,7 +137,7 @@ stateDiagram-v2
 ```
 
 - **幅**: ビューポート幅が 1px でも変わったら計算し直す (要件 9.3)。検索・絞り込みでは幅は変わらないため、Filter だけが走る。
-- **Filter**: 保持した配置を、最新の障害物に対して参照実装の流用モードと同じ判定にかけ、違反する図形を非表示にする (要件 9.1、9.2)。
+- **Filter**: 保持した配置を、最新の障害物に対して `filterForObstacles` で判定し直し、違反する図形を非表示にする (要件 9.1、9.2)。
 - **Place の入力の高さ**: ページ高・装飾範囲は計測時点の値。
 
 ## Requirements Traceability
@@ -157,12 +152,12 @@ stateDiagram-v2
 | 4.3–4.5 | 会場で使うボタン | PrimaryNavCard | — | — |
 | 4.6 | トピックカード | TopicsList | — | — |
 | 5.1–5.3 | 光彩 | Typography (globals.css) | — | — |
-| 6.1–6.8 | 図形の構成 | placement, TextureAssign, ShapeView | `placeBackgroundShapes` | Place |
-| 7.1–7.11 | 配置の制約 | placement, geometry, obstacles | `placeBackgroundShapes`, `collectObstacles` | Measure, Place |
-| 8.1–8.5 | 個数の保証 | placement | `placeBackgroundShapes` | Place |
+| 6.1–6.9 | 図形の構成 | placement, TextureAssign, ShapeView | `placeBackgroundShapes` | Place |
+| 7.1–7.10 | 配置の制約 | placement, geometry, obstacles | `placeBackgroundShapes`, `collectObstacles` | Measure, Place |
+| 8.1–8.3 | 個数の保証 | placement | `placeBackgroundShapes` | Place |
 | 9.1–9.3 | 状態違いでの維持 | reuse, BackgroundShapes | `filterForObstacles` | Filter |
 | 10.1–10.5 | 動き | motion-params, ShapeMotion | `motionParamsFor` | — |
-| 11.1, 11.2 | ルールとの一致 | golden テスト, docs/background-shapes | — | — |
+| 11.1, 11.2 | ルールとの一致 | 性質テスト, docs/background-shapes | — | — |
 
 ## Components and Interfaces
 
@@ -170,7 +165,7 @@ stateDiagram-v2
 |-----------|-------|--------|--------------|------------------|-----------|
 | placement | Core | ルールどおりの配置 | 6, 7, 8 | rng, geometry (P0) | Service |
 | reuse | Core | 保持した配置の間引き | 9.1, 9.2 | geometry (P0) | Service |
-| obstacles | Measure | DOM から障害物を 4 分類で集める | 7.3–7.8 | DOM (P0) | Service |
+| obstacles | Measure | DOM から障害物を 4 分類で集める | 7.4–7.7 | DOM (P0) | Service |
 | BackgroundShapes | Render | 計測タイミングと配置の保持 | 7.1, 9, 10.5 | placement, reuse, obstacles (P0) | State |
 | ShapeView / ShapeMotion | Render | 図形の描画・入場・揺れ | 6.2, 6.3, 10 | motion-params (P1) | — |
 | Typography | Style | 書体・文字色・光彩 | 1, 2, 5 | @fontsource (P0) | — |
@@ -183,10 +178,10 @@ stateDiagram-v2
 | Field | Detail |
 |-------|--------|
 | Intent | pathname と障害物から、∞ → L → S の配置と質感を決定的に返す |
-| Requirements | 6.1–6.8, 7.1–7.11, 8.1–8.5 |
+| Requirements | 6.1–6.9, 7.1–7.10, 8.1–8.3 |
 
 **Responsibilities & Constraints**
-- `docs/background-shapes/rules.md` と `place.py` を正とし、乱数の引く順序まで一致させる。
+- `docs/background-shapes/rules.md` を正とする。
 - 純関数。DOM・時刻・`Math.random` に依存しない。
 - 目標数に届かなかった階層は `deficit` に記録する (例外にしない)。
 
@@ -199,13 +194,13 @@ type Tier = 'Inf' | 'L' | 'S';
 type ShapeKind = 'circle' | 'triangle' | 'square' | 'roundedSquare' | 'quarterCircle' | 'semicircle';
 type TextureFamily = 'gradient' | 'watercolor' | 'grainy' | 'halftone';
 type TextureId = `L${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8}` | `S${1 | 2 | 3 | 4 | 5 | 6}`;
-// 乱数で選ぶ候補配列が place.py と同じ並び・同じ値である必要があるため、接頭辞なしの名前を使う。
+// 乱数で選ぶ候補配列の並びを変えると配置の乱数消費がずれるため、接頭辞なしの名前を使う。
 // Tailwind の bansai-* への対応は描画側で行う
 type RingColor = 'ochre' | 'olive' | 'sage' | 'salmon' | 'rose' | 'wisteria' | 'aqua';
 
 interface Rect { x: number; y: number; w: number; h: number }
 
-// place.py の入力 JSON (fixture) と同じ平坦な形。fixture をそのまま読み込めるようにする
+// fixture の JSON と同じ平坦な形。fixture をそのまま読み込めるようにする
 interface PlacementInput {
   pathname: string;
   platform: Platform;
@@ -218,7 +213,6 @@ interface PlacementInput {
   opaque: readonly Rect[];     // 不透明な面
 }
 
-// place.py の出力 (shapes.json の shapes) と同じ形。golden と直接比較する。
 // Inf の size は直径 D、rot は度。座標は小数第 2 位に丸める
 type PlacedShape =
   | { tier: 'Inf'; kind: 'ring'; size: number; cx: number; cy: number; rot: number; texture: null; colors: readonly [RingColor, RingColor] }
@@ -233,10 +227,10 @@ interface PlacementResult {
 declare function placeBackgroundShapes(input: PlacementInput): PlacementResult;
 ```
 - Preconditions: `width > 0`, `decorTop <= decorBottom <= height`。矩形はページ座標 (左上原点)。
-- Postconditions: 同じ入力に同じ結果 (8.5)。`deficit` がすべて 0 なら要件 6.4・6.5・6.7 を満たす。
-- Invariants: 図形同士の回転外接円は 24px 以上離れる (S の緩和段では 12px)。
-- 幾何判定 (形の内外・文字との重なり面積比・可視率・ガター) は、place.py と同じく図形の局所座標を 40×40 の格子で標本化する近似 (`GRID_N = 40`) をそのまま移植する。閉形式の幾何計算に置き換えない。配置は乱数で候補を引いては棄却する逐次試行なので、1 つの候補で判定が食い違うとそれ以降の乱数の消費がずれ、結果全体が変わるため。
-- place.py にだけある定数・分岐 (試行回数、縮小率、緩和段の順序、`bbox_radius`、`inf_radius` など) は design に書き写さず、place.py を仕様として読む。
+- Postconditions: 同じ入力に同じ結果 (8.3)。
+- Invariants: 図形同士の回転外接円は常に 24px 以上離れる。
+- 幾何判定 (装飾範囲・横のはみ出し・障害物との重なり) は、各図形を「回転後の外接円」(中心と半径) 1 つで表し、円と矩形の最短距離による閉形式だけで行う。回転しても外接円自体は不変なので、判定にサイズ以外の形状 (kind) を使わない。
+- 試行回数・縮小率などの定数は `docs/background-shapes/rules.md`「配置」を仕様として読む。
 
 #### reuse
 
@@ -245,10 +239,9 @@ interface ReuseResult { visible: readonly PlacedShape[]; dropped: readonly Place
 declare function filterForObstacles(base: readonly PlacedShape[], input: PlacementInput): ReuseResult;
 ```
 - 位置・サイズ・質感を変えず、最新の障害物・装飾範囲に反する図形だけを `dropped` に移す。∞ の下限と 4 質感は検査しない (9.2)。
-- L の可視率は、配置時にどの緩和段で置かれたかに関わらず 0.6 で判定する (place.py の `reuse_place` と同じ)。
 
 #### rng
-- `fnv1a(s: string): number` と `mulberry32(seed: number): () => number` を export する。`exhibition-color.ts` と背景図形で共用する (現在は複製)。文字列は UTF-16 コード単位で処理し、`place.py` と同じ値を返す。
+- `fnv1a(s: string): number` と `mulberry32(seed: number): () => number` を export する。`exhibition-color.ts` と背景図形で共用する (現在は複製)。文字列は UTF-16 コード単位で処理する。
 
 ### Measure
 
@@ -276,12 +269,12 @@ declare function collectObstacles(root: HTMLElement): Omit<PlacementInput, 'path
 - 保持する状態: `{ key: { pathname, width }, base: PlacedShape[], visible: PlacedShape[], deficit }`。`width` はビューポート幅。
 - 初回計測は `document.fonts.ready` の後 (1.7 の切替後に配置が動かないようにする)。
 - `key` が変わったら (pathname の変化、またはリサイズによる幅の変化) `placeBackgroundShapes` で計算し直す (9.3)。同じ `key` の間の DOM 変化 (ResizeObserver による高さの変化。検索・絞り込みで件数が変わった場合など) では `filterForObstacles` だけを行う (9.1)。モバイルのスクロールで変わるのは高さだけなので、幅は変わらない。
-- 装飾レイヤーのルート要素に、配置結果の不足数を `data-bg-deficit="Inf,L,S"` として常に出す (本番ビルドを含む)。e2e がこれを読んで検証する。
+- 装飾レイヤーのルート要素に、配置結果の不足数を `data-bg-deficit="Inf,L,S"` として常に出す (本番ビルドを含む)。失敗としては扱わない (Error Handling)。
 - レイヤーは本文コンテナ内の 1 枚だけ。ヘッダーには描かない。
 
 **Implementation Notes**
-- 描画 (L・S): `clip-path` で形を切り抜いた要素に質感画像を `background-size: cover` で敷く。回転は要素中心まわり (7.11)。
-- 描画 (∞): 外側の要素は 1.74D × D の矩形で、中心 (cx, cy) まわりに `rot` 度回転する。その中に直径 D・線幅 0.1D の輪を 2 つ置き、中心は矩形中心から局所 x 軸方向に −0.37D と +0.37D (place.py の `inf_bbox` と同じ)。色はそれぞれ `colors[0]`・`colors[1]`。
+- 描画 (L・S): `clip-path` で形を切り抜いた要素に質感画像を `background-size: cover` で敷く。回転は要素中心まわり (7.10)。
+- 描画 (∞): 外側の要素は 1.74D × D の矩形で、中心 (cx, cy) まわりに `rot` 度回転する。その中に直径 D・線幅 0.1D の輪を 2 つ置き、中心は矩形中心から局所 x 軸方向に −0.37D と +0.37D (`infBbox` と同じ)。色はそれぞれ `colors[0]`・`colors[1]`。
 - 動きの単位: 揺れは図形の外側要素に 1 つの transform で掛ける (∞ も外側要素に掛ける)。入場は L・S は外側要素、∞ は 2 つの輪の要素それぞれに掛け、輪ごとに方向と遅延を持つ。
 - 画像は描画する図形の分だけ読み込み、`loading` に相当する遅延のため CSS 背景として付与する。
 - Risks: 初回はフォント読み込み完了まで図形が出ない。入場アニメーションの起点から描き始めるため、表示の遅れは入場の一部として見える。
@@ -326,25 +319,23 @@ declare function getExhibitionAppearance(name: string): ExhibitionAppearance;
 - タイトルのみ 20px Bold。そのほかは現行どおり (4.6)。
 
 ## Error Handling
-- 配置の `deficit` が 0 でない場合も描画は続ける。不足数は `data-bg-deficit` に出し、開発ビルドでは `console.warn` も出す。
+- 配置の `deficit` が 0 でない場合も描画は続ける。失敗として扱わず、不足数は `data-bg-deficit` に出すだけにとどめる。
 - `document.fonts` が無い環境 (テストの jsdom) では即時に計測する。
 - 質感画像の読み込みに失敗した図形は描かない (地が透けるだけで本文に影響しない)。
 
 ## Testing Strategy
 
 ### Unit
-- `placement`: `__fixtures__/*.json` (place.py の入力) に対する出力を golden (place.py の出力) と比較する。個数・種類・質感・色は完全一致、座標・回転・寸法は 0.01 の誤差 (golden は小数第 2 位に丸め済み)。fixture は Figma から抽出済みの実測入力 (`aramakisai-refine-assets/work/*/obstacles.json`) から選ぶ: トップ PC `107:3`・SP `141:23`、カード列の SP 一覧 `382:834`、文字が画面を埋める SP 一覧 `400-954`、短いページ `401-1056`、お知らせ詳細 SP `439-5379`。お知らせ詳細 PC は place.py の selftest の合成入力を使う (11.1)。
-- `reuse`: `400-954` の配置を `401-1056` の障害物で間引いた結果を golden と比較する (同じ pathname・platform の実測の組)。
-- `placement`: place.py の selftest と同じ性質 (図形間隔、4 質感、∞ 個数式、S 個数式、∞ のはみ出し 0) を性質テストとして複数の pathname で検査する。
-- `reuse`: 元配置の図形を落とすだけで、位置・質感を変えないこと。
-- `rng`: 日本語を含む文字列で place.py と同じ値。
+- `placement`: `__fixtures__/*.json` (実測の障害物入力) を使い、性質テストとして検査する: 図形が文字・重ねない要素 (+10px)・不透明な面の矩形と外接円で重ならない、図形同士の外接円が 24px 以上離れる、装飾範囲の外に出ない、∞・S がページ端からはみ出さない、同じ入力には常に同じ結果を返す (決定性) (11.1)。fixture はトップ PC/SP・カード列の SP 一覧・文字が画面を埋める SP 一覧・お知らせ詳細 SP/PC など。全 fixture について 1 回の配置計算が高速 (目安 10ms 未満) であることも計測して報告する (assert にはしない)。
+- `reuse`: 元配置を新しい障害物で間引いた結果が、元の配置全体 (`visible` + `dropped`) と一致し、残った図形の位置・寸法・質感を変えないことを検査する。
+- `rng`: 日本語を含む文字列で既知の乱数列を返す (決定性)。
 - `obstacles`: 黒文字・リンク・白文字・`data-bg-opaque`・`img`・罫線・aria-hidden の分類。
 
 ### Integration (Testing Library)
 - `BackgroundShapes`: 同じ pathname・同じ幅で DOM の高さが変わっても `placeBackgroundShapes` を再度呼ばず、違反する図形だけが消える。幅が変わると計算し直す。ヘッダー内に図形を描かない。
 
 ### E2E (Playwright、既存の `e2e/` とプレビュー URL)
-- トップ・お知らせ一覧/詳細・トピック一覧/詳細・企画一覧/詳細を、PC (1440px) と SP (390px、`page.setViewportSize`) で開き、`data-bg-deficit` が `0,0,0` であることを確かめる (6.4、6.5、6.7、8)。
+- トップ・お知らせ一覧/詳細・トピック一覧/詳細・企画一覧/詳細を、PC (1440px) と SP (390px、`page.setViewportSize`) で開き、背景図形のレイヤーが描画され図形が 1 個以上あることを確かめる。
 - 企画一覧で検索語を入れる前後で、表示中の図形の位置が変わらないことを確かめる (9.1)。
 - モーション無効時は入場・揺れを行わない (既存テストを階層別の値へ更新)。
 

@@ -1,10 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { fnv1a, mulberry32 } from './rng';
 
-// 期待値は aramakisai-refine-assets/place.py の Rng クラス (fnv1a→mulberry32) を
-// Python で直接呼び出して取得した実測値。日本語 (サロゲート対象外の BMP 文字) を含む
-// 文字列で参照実装と数列が一致することを固定する。
-describe('fnv1a + mulberry32 (place.py 互換)', () => {
+// 日本語 (サロゲート対象外の BMP 文字) を含む文字列で既知の乱数列を固定する (決定性)。
+describe('fnv1a + mulberry32: 既知の乱数列を返す', () => {
   it.each([
     [
       'アラマキ祭',
@@ -41,7 +39,7 @@ describe('fnv1a + mulberry32 (place.py 互換)', () => {
         0.4122861116193235, 0.8122657814528793,
       ],
     ],
-  ] as const)('%s から place.py と同じ乱数列を返す', (seedStr, expected) => {
+  ] as const)('%s から常に同じ乱数列を返す', (seedStr, expected) => {
     const rng = mulberry32(fnv1a(seedStr));
     const actual = [rng(), rng(), rng(), rng(), rng()];
     expect(actual).toEqual(expected);

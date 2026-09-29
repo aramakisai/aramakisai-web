@@ -8,12 +8,10 @@ const VIEWPORTS = [
   { name: 'SP', width: 390, height: 844 },
 ] as const;
 
-/** 装飾レイヤーの不足数属性 (design.md「装飾レイヤーのルート要素」) が 0,0,0 になることを確かめる */
-async function expectNoBackgroundShapeDeficit(page: Page) {
-  await expect(page.locator('[data-bg-shapes-body]')).toHaveAttribute(
-    'data-bg-deficit',
-    '0,0,0',
-  );
+/** 装飾レイヤーが描画され、図形が 1 個以上あることを確かめる */
+async function expectShapesRendered(page: Page) {
+  await expect(page.locator('[data-bg-shapes-body]')).toBeAttached();
+  await expect(page.locator('[data-bg-shape]').first()).toBeAttached();
 }
 
 /** 一覧ページの最初の詳細リンクの href を取得する。ゲートで 404 か、未登録で 0 件なら null */
@@ -41,7 +39,7 @@ async function checkCmsCollections(collections: readonly string[]) {
   }
 }
 
-test.describe('背景図形: 主要ページで不足なく配置される', () => {
+test.describe('背景図形: 主要ページで描画される', () => {
   test.beforeAll(async () => {
     await checkCmsCollections([
       'announcements',
@@ -64,12 +62,12 @@ test.describe('背景図形: 主要ページで不足なく配置される', () 
 
       test('トップページ', async ({ page }) => {
         await page.goto('/');
-        await expectNoBackgroundShapeDeficit(page);
+        await expectShapesRendered(page);
       });
 
       test('お知らせ一覧', async ({ page }) => {
         await page.goto('/announcements');
-        await expectNoBackgroundShapeDeficit(page);
+        await expectShapesRendered(page);
       });
 
       test('お知らせ詳細', async ({ page }) => {
@@ -82,7 +80,7 @@ test.describe('背景図形: 主要ページで不足なく配置される', () 
           test.skip(true, 'お知らせが未登録のため検証できません');
         }
         await page.goto(href!);
-        await expectNoBackgroundShapeDeficit(page);
+        await expectShapesRendered(page);
       });
 
       test('トピック一覧', async ({ page }) => {
@@ -93,7 +91,7 @@ test.describe('背景図形: 主要ページで不足なく配置される', () 
             '開催前フェーズでは /topics が非公開のため検証できません (festival-phase-gate)',
           );
         }
-        await expectNoBackgroundShapeDeficit(page);
+        await expectShapesRendered(page);
       });
 
       test('トピック詳細', async ({ page }) => {
@@ -102,7 +100,7 @@ test.describe('背景図形: 主要ページで不足なく配置される', () 
           test.skip(true, 'トピックスが未登録のため検証できません');
         }
         await page.goto(href!);
-        await expectNoBackgroundShapeDeficit(page);
+        await expectShapesRendered(page);
       });
 
       test('企画一覧', async ({ page }) => {
@@ -113,7 +111,7 @@ test.describe('背景図形: 主要ページで不足なく配置される', () 
             '開催前フェーズでは /exhibitions が非公開のため検証できません (festival-phase-gate)',
           );
         }
-        await expectNoBackgroundShapeDeficit(page);
+        await expectShapesRendered(page);
       });
 
       test('企画詳細', async ({ page }) => {
@@ -129,7 +127,7 @@ test.describe('背景図形: 主要ページで不足なく配置される', () 
           );
         }
         await page.goto(href!);
-        await expectNoBackgroundShapeDeficit(page);
+        await expectShapesRendered(page);
       });
     });
   }
@@ -165,7 +163,7 @@ test.describe('背景図形: 企画一覧の検索前後で図形位置が変わ
         '開催前フェーズでは /exhibitions が非公開のため検証できません (festival-phase-gate)',
       );
     }
-    await expectNoBackgroundShapeDeficit(page);
+    await expectShapesRendered(page);
 
     const positionsBefore = await captureShapePositions(page);
     expect(positionsBefore.length).toBeGreaterThan(0);

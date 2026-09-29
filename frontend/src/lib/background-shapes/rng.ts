@@ -1,8 +1,6 @@
 /**
  * FNV-1a(32bit) → mulberry32 の決定的乱数。企画カードの配色 (exhibition-color.ts) と
- * 背景図形配置の参照実装 (aramakisai-refine-assets/place.py) で同じ数列を返す必要があるため、
- * 文字列は (サロゲートペアも含め) UTF-16 コード単位ごとに XOR する。JS の `charCodeAt` は
- * すでにコード単位を返すため、Python 側で 1 文字ずつ `utf-16-le` エンコードする処理と等価になる。
+ * 背景図形配置で共用する。文字列は (サロゲートペアも含め) UTF-16 コード単位ごとに XOR する。
  */
 export function fnv1a(value: string): number {
   let hash = 2166136261;

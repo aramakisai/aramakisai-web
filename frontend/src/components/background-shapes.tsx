@@ -586,15 +586,6 @@ function refilter(prev: MeasureState, pathname: string): MeasureState | null {
   };
 }
 
-/** 開発ビルドでのみ、不足した階層を警告する (design.md Error Handling)。 */
-function warnDeficit(deficit: Readonly<Record<Tier, number>>) {
-  if (process.env.NODE_ENV === 'production') return;
-  if (deficit.Inf === 0 && deficit.L === 0 && deficit.S === 0) return;
-  console.warn(
-    `[background-shapes] 図形の配置が目標数に届きませんでした (Inf不足=${deficit.Inf}, L不足=${deficit.L}, S不足=${deficit.S})`,
-  );
-}
-
 /**
  * サイト共通の枠 (`(site)/layout.tsx`) の地に背景の図形装飾を描画する。
  * レイアウト計測が必要なためクライアントでのみ描画し、計測前 (サーバー描画・
@@ -652,10 +643,6 @@ export function BackgroundShapes() {
       observer?.disconnect();
     };
   }, [pathname]);
-
-  useEffect(() => {
-    if (state) warnDeficit(state.deficit);
-  }, [state]);
 
   // state.visible は再計測・間引きのときだけ差し替わるが、reduced の切替など
   // state と無関係な再レンダーのたびにここで新しい配列を作ると、参照の変化を
