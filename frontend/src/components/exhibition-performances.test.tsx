@@ -23,13 +23,13 @@ const performances: ExhibitionPerformance[] = [
 ];
 
 describe('ExhibitionPerformances', () => {
-  test('見出しと、開催日・時間・ステージ名の行を並び順どおりに出す', () => {
+  test('見出し無しで、開催日・時間・ステージ名の行を並び順どおりに出す', () => {
     render(<ExhibitionPerformances performances={performances} />);
-    expect(
-      screen.getByRole('heading', { level: 2, name: '出演時間' }),
-    ).toBeInTheDocument();
-    const rows = screen.getAllByRole('listitem');
-    expect(rows).toHaveLength(2);
+    expect(screen.queryByRole('heading')).toBeNull();
+    const rows = [
+      screen.getByText(/11\/14 土/),
+      screen.getByText(/11\/15 日/),
+    ];
     expect(rows[0]).toHaveTextContent('11/14 土');
     expect(rows[0]).toHaveTextContent('10:30〜11:00');
     expect(rows[0]).toHaveTextContent('メインステージ');

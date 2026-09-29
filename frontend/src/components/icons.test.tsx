@@ -1,7 +1,10 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import {
   ArrowBackIcon,
+  CalendarMonthIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   ExpandMoreIcon,
@@ -16,6 +19,7 @@ import {
   PlaceIcon,
   PlayArrowIcon,
   PlayCircleIcon,
+  ScheduleIcon,
   SearchIcon,
   ShareIcon,
 } from './icons';
@@ -38,6 +42,8 @@ const icons = [
   ['icon-pause', PauseIcon, 'pause'],
   ['icon-play-arrow', PlayArrowIcon, 'play_arrow'],
   ['icon-play-circle', PlayCircleIcon, 'play_circle'],
+  ['icon-calendar-month', CalendarMonthIcon, 'calendar_month'],
+  ['icon-schedule', ScheduleIcon, 'schedule'],
 ] as const;
 
 describe('icons', () => {
@@ -51,6 +57,15 @@ describe('icons', () => {
       expect(icon).toHaveTextContent(ligature);
     },
   );
+
+  it('フォントのサブセット一覧に出店日と出演時間のアイコンが含まれる', () => {
+    const layout = readFileSync(
+      resolve(__dirname, '../app/layout.tsx'),
+      'utf8',
+    );
+    expect(layout).toContain("'calendar_month'");
+    expect(layout).toContain("'schedule'");
+  });
 
   it('既定サイズは 24 で、size と className を上書きできる', () => {
     const { rerender } = render(<PlaceIcon />);
