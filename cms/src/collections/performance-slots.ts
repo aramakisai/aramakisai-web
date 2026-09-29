@@ -33,7 +33,12 @@ export const PerformanceSlots: CollectionConfig = {
       type: 'date',
       required: true,
       label: '開催日',
-      admin: { date: { pickerAppearance: 'dayOnly', displayFormat: 'yyyy/MM/dd' } },
+      admin: {
+        components: {
+          Field: './components/EventDaySelect.tsx',
+          Cell: './components/EventDayCell.tsx',
+        },
+      },
     },
     {
       name: 'start_at',
