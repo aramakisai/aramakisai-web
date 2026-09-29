@@ -17,7 +17,7 @@ export interface TargetAreas {
 /**
  * 企画の areaIds と取得済みのエリア一覧から対象エリアを解決する。
  *
- * areaIds の順序をそのまま保つ。areaIds は詳細ページ用に category 単位で解決済みのものを渡す。
+ * areaIds の順序をそのまま保つ。areaIds はカードの category 単位で解決済みのものを渡す。
  */
 export function resolveTargetAreas(
   areaIds: readonly number[],

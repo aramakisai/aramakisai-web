@@ -48,7 +48,7 @@ export interface ExhibitionCardSummary {
   readonly organizationName: string;
   /** カードの文脈 (category) に応じた場所文字列。未設定なら null (要件 4.5) */
   readonly location: string | null;
-  /** 絞り込み用。直接設定されたエリアと出演ステージ由来のエリアの和 (要件 2.5)。カテゴリに関わらず企画単位で同じ値 */
+  /** 絞り込み・詳細ページの地図の対象。場所文字列と同じカテゴリ判定 (stage は出演ステージのエリア、それ以外は直接エリア) で決める (要件 2.5) */
   readonly areaIds: readonly number[];
   readonly thumbnail: ExhibitionImage | null;
 }
@@ -59,8 +59,6 @@ export interface ExhibitionDetail extends ExhibitionCardSummary {
   readonly links: readonly ExhibitionLink[];
   /** この企画が選択している全カテゴリ (カテゴリ定義順)。詳細ページのカテゴリ一覧表示に使う (要件 5.2) */
   readonly categories: readonly ExhibitionCategory[];
-  /** 詳細ページの地図の対象。カードの絞り込み用 areaIds と異なり、表示中の category の場所と同じ出どころだけを持つ */
-  readonly areaIds: readonly number[];
 }
 
 export interface AreaOption {
@@ -323,21 +321,6 @@ function stagesOf(
     .filter((s): s is Stage => s !== undefined);
 }
 
-/** 絞り込み用エリア ID。カードのカテゴリに関わらず、直接エリアと出演ステージ由来エリアの和を返す (要件 2.5) */
-function resolveAreaIds(
-  exhibition: Pick<StudentExhibition, 'id' | 'area_id'>,
-  context: JoinContext,
-): readonly number[] {
-  const areaIds = new Set<number>();
-  const directAreaId = toRefId(exhibition.area_id);
-  if (directAreaId !== null) areaIds.add(directAreaId);
-  for (const stage of stagesOf(exhibition, context)) {
-    const stageAreaId = toRefId(stage.area_id);
-    if (stageAreaId !== null) areaIds.add(stageAreaId);
-  }
-  return Array.from(areaIds);
-}
-
 /**
  * カテゴリごとの所在の出どころ。`stage` は出演ステージだけ、それ以外は直接エリアだけを見る。
  * 場所文字列と詳細ページの地図対象がこの判定を共有し、表示と地図が食い違わないようにする。
@@ -352,7 +335,7 @@ function resolveLocationSource(
     : { stages: [], directAreaId: toRefId(exhibition.area_id) };
 }
 
-/** 詳細ページの地図の対象エリア ID。場所文字列と同じカテゴリ判定で決める */
+/** カードの絞り込み・詳細ページの地図の対象エリア ID。場所文字列と同じカテゴリ判定で決める */
 function resolveLocationAreaIds(
   exhibition: Pick<StudentExhibition, 'id' | 'area_id'>,
   category: ExhibitionCategory,
@@ -424,7 +407,7 @@ function toCard(
     displayName,
     organizationName: exhibition.organization_name ?? '',
     location: resolveLocationForCategory(exhibition, category, context),
-    areaIds: resolveAreaIds(exhibition, context),
+    areaIds: resolveLocationAreaIds(exhibition, category, context),
     thumbnail:
       images.length > 0 ? toExhibitionImage(images[0]!, displayName) : null,
   };
@@ -581,7 +564,6 @@ export async function getExhibitionDetail(
     kind: 'found',
     value: {
       ...card,
-      areaIds: resolveLocationAreaIds(exhibition, category, context),
       description: content?.description ?? null,
       images: images.map((image) => toExhibitionImage(image, card.displayName)),
       links: (exhibition.links ?? []).map((link) => ({
