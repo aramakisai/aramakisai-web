@@ -1,11 +1,13 @@
 import { randomBytes } from 'crypto';
 import type {
   CollectionAfterChangeHook,
+  CollectionAfterLoginHook,
+  CollectionAfterOperationHook,
   CollectionBeforeChangeHook,
   CollectionBeforeOperationHook,
   CollectionConfig,
 } from 'payload';
-import { APIError } from 'payload';
+import { APIError, type PayloadRequest } from 'payload';
 
 import { denyField, executiveOnlyField } from '../access/payload-access';
 import { CMS_ROLES, isExecutive, toCmsUser, type CmsRole } from '../access/roles';
@@ -61,20 +63,49 @@ const guardResetToken: CollectionBeforeOperationHook = async (arg) => {
  * 実行委員が resend_invite にチェックして保存した対象を req.context に退避する。
  * afterChange で消費してからキューに入れることで、forgotPassword / 記録更新が
  * 起こす再度の afterChange でジョブが二重に積まれないようにする。
+ * 作成時は id が未確定なので、id ではなく作成フラグで afterChange に伝える。
  */
 const captureResendInvite: CollectionBeforeChangeHook = ({ data, operation, originalDoc, req }) => {
-  if (operation === 'update' && data?.resend_invite === true && isExecutive(toCmsUser(req.user))) {
-    req.context.resendInviteFor = originalDoc?.id;
+  if (data?.resend_invite === true && isExecutive(toCmsUser(req.user))) {
+    if (operation === 'create') req.context.sendInviteOnCreate = true;
+    else req.context.resendInviteFor = originalDoc?.id;
     delete data.resend_invite;
   }
   return data;
 };
 
+/** 未設定の場合だけ activated_at を現在時刻にする。resetPassword / ログインのどちらから来ても一度きり。 */
+async function markActivated(req: PayloadRequest, id: number | string) {
+  const user = await req.payload.findByID({ collection: 'users', id, overrideAccess: true, req });
+  if (user.role !== 'student_exhibitor' || user.activated_at) return;
+  await req.payload.update({
+    collection: 'users',
+    id,
+    data: { activated_at: new Date().toISOString() },
+    overrideAccess: true,
+    req,
+  });
+}
+
+const markActivatedOnReset: CollectionAfterOperationHook = async ({ operation, result, req }) => {
+  if (operation === 'resetPassword') await markActivated(req, (result as { user: { id: number } }).user.id);
+  return result;
+};
+
+const markActivatedOnLogin: CollectionAfterLoginHook = async ({ user, req }) => {
+  await markActivated(req, user.id);
+  return user;
+};
+
 const queueInvitationEmail: CollectionAfterChangeHook = async ({ doc, operation, req }) => {
-  const isResendTarget = req.context.resendInviteFor === doc.id;
+  const isResendTarget =
+    operation === 'create' ? req.context.sendInviteOnCreate === true : req.context.resendInviteFor === doc.id;
+  delete req.context.sendInviteOnCreate;
   if (isResendTarget) delete req.context.resendInviteFor;
 
-  const shouldQueue = (operation === 'create' || isResendTarget) && doc.role === 'student_exhibitor';
+  // 設定済みの人へ送るとパスワード設定リンクの再発行になるため、ここでも積まない。
+  // 最終判定は sendInvitation 側にもある。
+  const shouldQueue = isResendTarget && doc.role === 'student_exhibitor' && !doc.activated_at;
   if (!shouldQueue) return doc;
 
   await req.payload.jobs.queue({ task: 'sendInvitation', input: { userId: doc.id }, req });
@@ -108,6 +139,8 @@ export const Users: CollectionConfig = {
   auth: true,
   hooks: {
     beforeOperation: [replaceInitialPassword, guardResetToken],
+    afterOperation: [markActivatedOnReset],
+    afterLogin: [markActivatedOnLogin],
     beforeChange: [captureResendInvite],
     afterChange: [queueInvitationEmail, detachMediaOnRoleChange],
   },
@@ -165,11 +198,24 @@ export const Users: CollectionConfig = {
       access: { read: executiveOnlyField, create: denyField, update: denyField },
     },
     {
+      name: 'activated_at',
+      type: 'date',
+      label: 'アカウント設定日時',
+      admin: {
+        position: 'sidebar',
+        readOnly: true,
+        description: 'パスワード設定またはログインを初めて確認した日時。入ると招待メールは送信されない',
+        date: { pickerAppearance: 'dayAndTime' },
+      },
+      access: { read: executiveOnlyField, create: denyField, update: denyField },
+    },
+    {
       name: 'resend_invite',
       type: 'checkbox',
-      label: '招待メールを再送',
+      label: '招待メールを送信',
       // 列を持たない指示フラグ。beforeChange が req.context に移してから消す
       virtual: true,
+      admin: { condition: (data) => !data?.activated_at },
       access: { create: executiveOnlyField, update: executiveOnlyField },
     },
     {
