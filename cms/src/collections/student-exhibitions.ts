@@ -2,7 +2,7 @@ import type { CollectionConfig, Field, GroupField } from 'payload';
 
 import { executiveOnlyField } from '../access/payload-access';
 import {
-  boothPlacementConstraint,
+  exhibitionBoothPlacementConstraint,
   categoryContentsConstraint,
   guardPublishedExhibition,
   imageConstraint,
@@ -40,6 +40,49 @@ const MENU_FIELD: Field = {
   ],
 };
 
+const PERFORMANCE_SLOTS_FIELD: Field = {
+  name: 'performance_slots',
+  type: 'join',
+  collection: 'performance_slots',
+  on: 'exhibition_id',
+  label: 'ステージ出演枠',
+  admin: { description: 'ステージ出演枠' },
+};
+
+const PLACEMENT_FIELDS: Field[] = [
+  {
+    name: 'open_days',
+    type: 'text',
+    hasMany: true,
+    // 必須チェックは学生団体ロールだけに課すため validateCategoryContents で行う
+    label: '出店日',
+    admin: { components: { Field: './components/EventDayCheckboxes.tsx' } },
+  },
+  {
+    name: 'area_id',
+    type: 'relationship',
+    relationTo: 'map_areas',
+    label: 'マップ配置エリア',
+    admin: { description: '割り当てられた出店エリア' },
+    access: { create: executiveOnlyField, update: executiveOnlyField },
+  },
+  {
+    name: 'booth_number',
+    type: 'number',
+    label: 'ブース番号',
+    admin: { description: '割り当てられた出店グループ内の番号もしくは教室番号' },
+    access: { create: executiveOnlyField, update: executiveOnlyField },
+  },
+  {
+    name: 'booth_label',
+    type: 'text',
+    maxLength: 50,
+    label: 'マップ表示ラベル',
+    admin: { description: '割り当てられた出店エリア名' },
+    access: { create: executiveOnlyField, update: executiveOnlyField },
+  },
+];
+
 function categoryContentGroup(name: (typeof CATEGORIES)[number]['name'], label: string): GroupField {
   return {
     name,
@@ -63,6 +106,7 @@ function categoryContentGroup(name: (typeof CATEGORIES)[number]['name'], label: 
         label: '画像',
         admin: { description: '最大5枚まで。1枚目がサムネイルとして表示されます。' },
       },
+      ...(name === 'stage' ? [PERFORMANCE_SLOTS_FIELD] : PLACEMENT_FIELDS),
       ...(name === 'vendor' ? [MENU_FIELD] : []),
     ],
   };
@@ -79,7 +123,7 @@ export const StudentExhibitions: CollectionConfig = {
     beforeOperation: [guardPublishedExhibition],
     beforeValidate: [
       ownerConstraint,
-      boothPlacementConstraint('student_exhibitions'),
+      exhibitionBoothPlacementConstraint,
       categoryContentsConstraint,
       stageCategoryConstraint,
       imageConstraint,
@@ -171,45 +215,6 @@ export const StudentExhibitions: CollectionConfig = {
         },
       ],
     },
-    {
-      name: 'open_days',
-      type: 'text',
-      hasMany: true,
-      required: true,
-      label: '出店日',
-      admin: { components: { Field: './components/EventDayCheckboxes.tsx' } },
-    },
     ...CATEGORIES.map(({ name, label }) => categoryContentGroup(name, label)),
-    {
-      name: 'performance_slots',
-      type: 'join',
-      collection: 'performance_slots',
-      on: 'exhibition_id',
-      label: 'ステージ出演枠',
-      admin: { description: 'ステージ出演枠' },
-    },
-    {
-      name: 'area_id',
-      type: 'relationship',
-      relationTo: 'map_areas',
-      label: 'マップ配置エリア',
-      admin: { description: '割り当てられた出店エリア' },
-      access: { create: executiveOnlyField, update: executiveOnlyField },
-    },
-    {
-      name: 'booth_number',
-      type: 'number',
-      label: 'ブース番号',
-      admin: { description: '割り当てられた出店グループ内の番号もしくは教室番号' },
-      access: { create: executiveOnlyField, update: executiveOnlyField },
-    },
-    {
-      name: 'booth_label',
-      type: 'text',
-      maxLength: 50,
-      label: 'マップ表示ラベル',
-      admin: { description: '割り当てられた出店エリア名' },
-      access: { create: executiveOnlyField, update: executiveOnlyField },
-    },
   ],
 };

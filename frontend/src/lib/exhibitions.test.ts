@@ -382,7 +382,6 @@ describe('getExhibitionListData', () => {
         {
           id: 1,
           organization_name: '団体1',
-          area_id: null,
           categories: ['vendor', 'stage'],
           vendor: { name: '企画1-出店', images: [] },
           stage: { name: '企画1-出演', images: [] },
@@ -390,7 +389,6 @@ describe('getExhibitionListData', () => {
         {
           id: 2,
           organization_name: '団体2',
-          area_id: null,
           categories: ['other'],
           other: { name: '企画2', images: [] },
         },
@@ -413,7 +411,6 @@ describe('getExhibitionListData', () => {
         {
           id: 1,
           organization_name: '団体A',
-          area_id: null,
           categories: ['exhibit'],
           exhibit: { name: '展示名A', images: [] },
           // categories に含まれないため無視される (管理画面では通常入力されない想定)
@@ -432,7 +429,6 @@ describe('getExhibitionListData', () => {
         {
           id: 1,
           organization_name: '団体A',
-          area_id: null,
           categories: ['stage', 'exhibit'],
           stage: { images: [] },
           exhibit: { name: '展示名A', images: [] },
@@ -450,8 +446,6 @@ describe('getExhibitionListData', () => {
         {
           id: 1,
           organization_name: '団体A',
-          area_id: 10,
-          booth_label: 'A-1',
           categories: ['stage'],
           stage: { name: '企画A-出演', images: [] },
         },
@@ -500,11 +494,9 @@ describe('getExhibitionListData', () => {
         {
           id: 1,
           organization_name: '団体A',
-          area_id: 10,
-          booth_label: 'A-1',
           categories: ['stage', 'exhibit'],
           stage: { name: '企画A-出演', images: [] },
-          exhibit: { name: '企画A-展示', images: [] },
+          exhibit: { name: '企画A-展示', images: [], area_id: 10, booth_label: 'A-1' },
         },
       ],
       slots: [
@@ -532,10 +524,8 @@ describe('getExhibitionListData', () => {
         {
           id: 1,
           organization_name: '団体A',
-          area_id: 10,
-          booth_label: null,
           categories: ['exhibit'],
-          exhibit: { name: '企画A', images: [] },
+          exhibit: { name: '企画A', images: [], area_id: 10, booth_label: null },
         },
       ],
       areas: [{ id: 10, name: 'Aゾーン' }],
@@ -551,7 +541,6 @@ describe('getExhibitionListData', () => {
         {
           id: 1,
           organization_name: '団体A',
-          area_id: null,
           categories: ['stage'],
           stage: { name: '企画A-出演', images: [] },
         },
@@ -599,7 +588,6 @@ describe('getExhibitionListData', () => {
         {
           id: 1,
           organization_name: '団体A',
-          area_id: null,
           categories: ['exhibit'],
           exhibit: { name: '企画A', images: [] },
         },
@@ -617,9 +605,8 @@ describe('getExhibitionListData', () => {
         {
           id: 1,
           organization_name: '団体A',
-          area_id: 10,
           categories: ['vendor', 'stage'],
-          vendor: { name: '出店A', images: [] },
+          vendor: { name: '出店A', images: [], area_id: 10 },
           stage: { name: '出演A', images: [] },
         },
       ],
@@ -651,7 +638,6 @@ describe('getExhibitionListData', () => {
         {
           id: 1,
           organization_name: '団体A',
-          area_id: null,
           categories: ['stage'],
           stage: { name: '出演A', images: [] },
         },
@@ -690,7 +676,6 @@ describe('getExhibitionListData', () => {
         {
           id: 1,
           organization_name: '団体A',
-          area_id: null,
           categories: ['stage', 'exhibit'],
           stage: { name: '出演名A', images: [] },
           exhibit: { name: '展示名A', images: [] },
@@ -711,7 +696,6 @@ describe('getExhibitionListData', () => {
         {
           id: 1,
           organization_name: '団体A',
-          area_id: null,
           categories: ['exhibit'],
           exhibit: { name: '企画A', images: [5, 6] },
         },
@@ -728,7 +712,6 @@ describe('getExhibitionListData', () => {
         {
           id: 1,
           organization_name: '団体A',
-          area_id: null,
           categories: ['exhibit'],
           exhibit: { name: '企画A', images: [] },
         },
@@ -744,7 +727,6 @@ describe('getExhibitionListData', () => {
       exhibitions: Array.from({ length: 30 }, (_, i) => ({
         id: i + 1,
         organization_name: '団体',
-        area_id: null,
         categories: ['exhibit'],
         exhibit: { name: `企画${i + 1}`, images: [] },
       })),
@@ -796,7 +778,6 @@ describe('getExhibitionDetail', () => {
       id: 1,
       organization_name: '団体A',
       status: 'published',
-      area_id: null,
       categories: ['exhibit', 'vendor'],
       exhibit: {
         name: '企画A',
@@ -828,12 +809,24 @@ describe('getExhibitionDetail', () => {
       id: 1,
       organization_name: '団体A',
       status: 'published',
-      area_id: null,
       categories: ['exhibit', 'vendor'],
-      exhibit: { name: '展示', images: [] },
+      exhibit: {
+        name: '展示',
+        images: [],
+        open_days: [
+          '2026-11-15T12:00:00.000Z',
+          'not-a-date',
+          '2026-11-14T12:00:00.000Z',
+        ],
+      },
       vendor: {
         name: '出店',
         images: [],
+        open_days: [
+          '2026-11-15T12:00:00.000Z',
+          'not-a-date',
+          '2026-11-14T12:00:00.000Z',
+        ],
         menu: [
           { name: 'B', price: '¥300' },
           { name: 'A', price: null },
@@ -841,11 +834,6 @@ describe('getExhibitionDetail', () => {
           { name: 'D', price: '時価' },
         ],
       },
-      open_days: [
-        '2026-11-15T12:00:00.000Z',
-        'not-a-date',
-        '2026-11-14T12:00:00.000Z',
-      ],
     };
     const expected = {
       menu: [
@@ -872,7 +860,6 @@ describe('getExhibitionDetail', () => {
       id: 1,
       organization_name: '団体A',
       status: 'published',
-      area_id: null,
       categories: ['exhibit'],
       exhibit: { name: '展示', images: [] },
     });
@@ -888,10 +875,9 @@ describe('getExhibitionDetail', () => {
         id: 1,
         organization_name: '団体A',
         status: 'published',
-        area_id: 10,
         categories: ['stage', 'vendor'],
         stage: { name: '出演名A', images: [] },
-        vendor: { name: '出店名A', images: [] },
+        vendor: { name: '出店名A', images: [], area_id: 10 },
       },
       {
         slots: [
@@ -924,7 +910,6 @@ describe('getExhibitionDetail', () => {
       id: 1,
       organization_name: '団体A',
       status: 'published',
-      area_id: null,
       categories: ['stage', 'exhibit'],
       stage: { name: '出演名A', images: [] },
       exhibit: { name: '展示名A', images: [] },
@@ -945,7 +930,6 @@ describe('getExhibitionDetail', () => {
       id: 1,
       organization_name: '団体A',
       status: 'published',
-      area_id: null,
       categories: ['exhibit'],
       exhibit: { name: '企画A', images: [] },
     });
@@ -958,7 +942,6 @@ describe('getExhibitionDetail', () => {
       id: 1,
       organization_name: '団体A',
       status: 'published',
-      area_id: null,
       categories: ['stage'],
       stage: { images: [] },
     });
@@ -993,7 +976,6 @@ describe('getExhibitionDetail', () => {
       id: 1,
       organization_name: '団体A',
       status: 'draft',
-      area_id: null,
       categories: ['exhibit'],
       exhibit: { name: '企画A', images: [] },
     });
@@ -1022,7 +1004,6 @@ describe('getExhibitionDetail', () => {
         id: 1,
         organization_name: '団体A',
         status: 'published',
-        area_id: null,
         categories: ['exhibit'],
         exhibit: { name: '企画A', images: [] },
       },
@@ -1046,7 +1027,6 @@ describe('getExhibitionSitemapEntries', () => {
         {
           id: 1,
           organization_name: '団体A',
-          area_id: null,
           categories: ['stage', 'exhibit'],
           stage: { name: '企画A-出演', images: [] },
           exhibit: { name: '企画A-展示', images: [] },
@@ -1073,7 +1053,6 @@ describe('getExhibitionSitemapEntries', () => {
         {
           id: 1,
           organization_name: '団体A',
-          area_id: null,
           categories: ['stage', 'exhibit'],
           stage: { images: [] },
           exhibit: { name: '企画A-展示', images: [] },

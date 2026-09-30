@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   newImageIds,
   validateBoothPlacement,
+  validateCategoryBoothPlacements,
   validateCategoryContents,
   validateImageCount,
   validateImageOwnership,
@@ -77,6 +78,52 @@ describe('validateBoothPlacement', () => {
   });
 });
 
+describe('validateCategoryBoothPlacements', () => {
+  const none = new Set<string>();
+
+  it('配置が未設定なら通す', () => {
+    expect(
+      validateCategoryBoothPlacements(
+        [{ key: 'exhibit', value: { area_id: null, booth_number: 1 } }, { key: 'vendor', value: undefined }],
+        { duplicateKeys: none },
+      ),
+    ).toEqual([]);
+  });
+
+  it('他企画と重複したカテゴリのブース番号を違反にする', () => {
+    expect(
+      validateCategoryBoothPlacements(
+        [{ key: 'vendor', value: { area_id: 1, booth_number: 2 } }],
+        { duplicateKeys: new Set(['vendor']) },
+      ),
+    ).toEqual([{ field: 'vendor.booth_number', message: '同じエリア内で既に使われているブース番号' }]);
+  });
+
+  it('同一企画内の別カテゴリが同じエリア・番号なら違反にする', () => {
+    expect(
+      validateCategoryBoothPlacements(
+        [
+          { key: 'exhibit', value: { area_id: 1, booth_number: 2 } },
+          { key: 'vendor', value: { area_id: 1, booth_number: 2 } },
+        ],
+        { duplicateKeys: none },
+      ),
+    ).toEqual([{ field: 'vendor.booth_number', message: '同じエリア内で既に使われているブース番号' }]);
+  });
+
+  it('同一企画内でもエリアか番号が違えば通す', () => {
+    expect(
+      validateCategoryBoothPlacements(
+        [
+          { key: 'exhibit', value: { area_id: 1, booth_number: 2 } },
+          { key: 'vendor', value: { area_id: 2, booth_number: 2 } },
+        ],
+        { duplicateKeys: none },
+      ),
+    ).toEqual([]);
+  });
+});
+
 describe('validateCategoryContents', () => {
   const fullContent = { name: '特設ステージ団', description: '紹介文', images: [1] };
 
@@ -142,7 +189,41 @@ describe('validateCategoryContents', () => {
       { field: 'vendor.name', message: '出店を選択した場合は企画名の入力が必要' },
       { field: 'vendor.description', message: '出店を選択した場合は紹介文の入力が必要' },
       { field: 'vendor.images', message: '出店を選択した場合は画像が1枚以上必要' },
+      { field: 'vendor.open_days', message: '出店を選択した場合は出店日の選択が必要' },
     ]);
+  });
+
+  it('学生団体は stage 以外のカテゴリで出店日が空なら違反とする', () => {
+    const open = { ...fullContent, open_days: [] };
+    expect(
+      validateCategoryContents(
+        { organization_name: '団体', categories: ['exhibit'], exhibit: open },
+        { isStudentExhibitor: true },
+      ),
+    ).toEqual([{ field: 'exhibit.open_days', message: '展示を選択した場合は出店日の選択が必要' }]);
+  });
+
+  it('学生団体は出店日を選んでいれば通し、stage には出店日を求めない', () => {
+    expect(
+      validateCategoryContents(
+        {
+          organization_name: '団体',
+          categories: ['stage', 'other'],
+          stage: fullContent,
+          other: { ...fullContent, open_days: ['2026-11-01T12:00:00.000Z'] },
+        },
+        { isStudentExhibitor: true },
+      ),
+    ).toEqual([]);
+  });
+
+  it('実行委員は draft なら出店日が空でも通す', () => {
+    expect(
+      validateCategoryContents(
+        { categories: ['vendor'], vendor: {}, status: 'draft' },
+        { isStudentExhibitor: false },
+      ),
+    ).toEqual([]);
   });
 
   it('実行委員でも status が published なら欠落を違反とする', () => {

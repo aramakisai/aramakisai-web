@@ -58,7 +58,6 @@ describe.skipIf(!hasDatabase)(
           organization_name: `stage-${suffix}`,
           status: 'draft',
           categories: ['stage'],
-          open_days: ['2026-11-01T12:00:00.000Z'],
           stage: { name: `stage-${suffix}` },
         },
         overrideAccess: true,
@@ -71,8 +70,7 @@ describe.skipIf(!hasDatabase)(
           organization_name: `nonstage-${suffix}`,
           status: 'draft',
           categories: ['exhibit'],
-          open_days: ['2026-11-01T12:00:00.000Z'],
-          exhibit: { name: `nonstage-${suffix}` },
+          exhibit: { name: `nonstage-${suffix}`, open_days: ['2026-11-01T12:00:00.000Z'] },
         },
         overrideAccess: true,
       })) as { id: number }

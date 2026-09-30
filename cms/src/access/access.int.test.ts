@@ -73,8 +73,7 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
           owner: ownerId,
           organization_name: name,
           categories: ['other'],
-          open_days: ['2026-11-01T12:00:00.000Z'],
-          other: { name, description: `${name}の紹介文`, images: [image.id] },
+          other: { name, description: `${name}の紹介文`, images: [image.id], open_days: ['2026-11-01T12:00:00.000Z'] },
           status,
         },
         overrideAccess: true,
@@ -197,16 +196,15 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
         collection: 'student_exhibitions',
         id: ownRecord.id,
         data: {
-          booth_number: 999,
-          booth_label: '書き換え後',
+          other: { booth_number: 999, booth_label: '書き換え後' },
           status: 'published',
-        },
+        } as never,
         overrideAccess: false,
         user: await asOwner(),
       });
 
-      expect(updated.booth_number).toBe(before.booth_number);
-      expect(updated.booth_label).toBe(before.booth_label);
+      expect(updated.other?.booth_number).toBe(before.other?.booth_number);
+      expect(updated.other?.booth_label).toBe(before.other?.booth_label);
       expect(updated.status).toBe('draft');
     });
 
@@ -246,14 +244,16 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
           owner: assignee1.id,
           organization_name: `assign1-${suffix}`,
           categories: ['other'],
-          open_days: ['2026-11-01T12:00:00.000Z'],
-          other: { name: `assign1-${suffix}` },
+          other: {
+            name: `assign1-${suffix}`,
+            open_days: ['2026-11-01T12:00:00.000Z'],
+            booth_number: 101,
+            booth_label: `label1-${suffix}`,
+          },
           status: 'draft',
-          booth_number: 101,
-          booth_label: `label1-${suffix}`,
         },
         overrideAccess: true,
-      })) as { id: number; owner: unknown; booth_number: number; booth_label: string };
+      })) as { id: number; owner: unknown; other: { booth_number: number; booth_label: string } };
       assign1Record = created1.id;
 
       const created2 = (await payload.create({
@@ -262,22 +262,24 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
           owner: assignee2.id,
           organization_name: `assign2-${suffix}`,
           categories: ['other'],
-          open_days: ['2026-11-01T12:00:00.000Z'],
-          other: { name: `assign2-${suffix}` },
+          other: {
+            name: `assign2-${suffix}`,
+            open_days: ['2026-11-01T12:00:00.000Z'],
+            booth_number: 101,
+            booth_label: `label1-${suffix}`,
+          },
           status: 'draft',
-          booth_number: 101,
-          booth_label: `label1-${suffix}`,
         } as never,
         overrideAccess: false,
         user: executiveUser,
-      })) as { id: number; owner: unknown; booth_number: number; booth_label: string };
+      })) as { id: number; owner: unknown; other: { booth_number: number; booth_label: string } };
       assign2Record = created2.id;
 
       // 同じ値で保存される (owner はそれぞれの指定どおり、他の指定値は経路によらず同じ)
       expect(ownerIdOf(created1.owner)).toBe(assignee1.id);
       expect(ownerIdOf(created2.owner)).toBe(assignee2.id);
-      expect(created1.booth_number).toBe(created2.booth_number);
-      expect(created1.booth_label).toBe(created2.booth_label);
+      expect(created1.other.booth_number).toBe(created2.other.booth_number);
+      expect(created1.other.booth_label).toBe(created2.other.booth_label);
 
       // 重複 owner はどちらの経路でも同じ M-E02 エラーになる
       const localDuplicate = await payload
@@ -287,8 +289,7 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
             owner: assignee1.id,
             organization_name: `assign1-dup-${suffix}`,
             categories: ['other'],
-            open_days: ['2026-11-01T12:00:00.000Z'],
-            other: { name: `assign1-dup-${suffix}` },
+            other: { name: `assign1-dup-${suffix}`, open_days: ['2026-11-01T12:00:00.000Z'] },
             status: 'draft',
           },
           overrideAccess: true,
@@ -326,7 +327,7 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
       })) as { id: number };
       const created = (await payload.create({
         collection: 'student_exhibitions',
-        data: { owner: minimalOwner.id, categories: ['other'], open_days: ['2026-11-01T12:00:00.000Z'] } as never,
+        data: { owner: minimalOwner.id, categories: ['other'], other: { open_days: ['2026-11-01T12:00:00.000Z'] } } as never,
         overrideAccess: false,
         user: await asUser(executive.id),
       })) as { id: number; owner: unknown };
