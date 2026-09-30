@@ -172,6 +172,10 @@ export interface User {
   invite_status?: ('sent' | 'failed') | null;
   invite_sent_at?: string | null;
   invite_error?: string | null;
+  /**
+   * パスワード設定またはログインを初めて確認した日時。入ると招待メールは送信されない
+   */
+  activated_at?: string | null;
   resend_invite?: boolean | null;
   updatedAt: string;
   createdAt: string;
@@ -838,6 +842,7 @@ export interface UsersSelect<T extends boolean = true> {
   invite_status?: T;
   invite_sent_at?: T;
   invite_error?: T;
+  activated_at?: T;
   resend_invite?: T;
   updatedAt?: T;
   createdAt?: T;
