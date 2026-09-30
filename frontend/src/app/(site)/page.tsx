@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { getHomePage } from '@/lib/home-page';
 import { HeroSection } from '@/components/hero-section';
 import { AboutSection } from '@/components/about-section';
+import { ThemeSection } from '@/components/theme-section';
 import { NoticesSection } from '@/components/notices-section';
 import { TopicsList } from '@/components/topics-list';
 import { SectionHeading } from '@/components/section-heading';
@@ -175,6 +176,11 @@ export default async function Page() {
           <AboutSection overviewHtml={content.festival.overviewHtml} />
         )}
 
+        <ThemeSection
+          themeWord={content.theme?.word ?? null}
+          descriptionHtml={content.theme?.descriptionHtml ?? null}
+        />
+
         <AccessSection
           venueName={content.venueName}
           accessSummary={content.accessSummary}
@@ -205,6 +211,11 @@ export default async function Page() {
       {content.festival && (
         <AboutSection overviewHtml={content.festival.overviewHtml} />
       )}
+
+      <ThemeSection
+        themeWord={content.theme?.word ?? null}
+        descriptionHtml={content.theme?.descriptionHtml ?? null}
+      />
 
       <NoticesSection announcements={content.announcements} />
     </div>
