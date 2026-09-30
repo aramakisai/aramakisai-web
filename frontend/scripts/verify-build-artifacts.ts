@@ -51,6 +51,21 @@ export async function scanForForbiddenStrings(
   return matches;
 }
 
+// 本番で cookies() を呼ばず静的化 (ISR) されているべきルート。
+export const REQUIRED_PRERENDERED_ROUTES: readonly string[] = [
+  '/',
+  '/faq',
+  '/topics',
+];
+
+export function findMissingPrerenderedRoutes(
+  manifest: { routes?: Record<string, unknown> },
+  required: readonly string[] = REQUIRED_PRERENDERED_ROUTES,
+): readonly string[] {
+  const routes = manifest.routes ?? {};
+  return required.filter((route) => !(route in routes));
+}
+
 async function main(): Promise<void> {
   // wrangler.toml の main = ".open-next/worker.js" と [assets] directory が
   // 示すとおり、実行基盤へ実際に配信されるのはこの出力全体である。.next/ のみを
@@ -67,6 +82,24 @@ async function main(): Promise<void> {
     }
     process.exitCode = 1;
     return;
+  }
+
+  // フェーズ切替を有効にしたビルドは cookies() を読むため静的化しない
+  if (process.env.NEXT_PUBLIC_ENABLE_PHASE_OVERRIDE !== 'true') {
+    const manifest = JSON.parse(
+      await readFile(
+        path.join(__dirname, '..', '.next', 'prerender-manifest.json'),
+        'utf-8',
+      ),
+    ) as { routes?: Record<string, unknown> };
+    const missing = findMissingPrerenderedRoutes(manifest);
+    if (missing.length > 0) {
+      console.error(
+        `本番相当ビルドで静的化されていないルート: ${missing.join(', ')}`,
+      );
+      process.exitCode = 1;
+      return;
+    }
   }
 
   console.log(

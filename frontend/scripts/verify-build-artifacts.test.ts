@@ -5,6 +5,7 @@ import path from 'node:path';
 import {
   FORBIDDEN_STRINGS,
   findForbiddenStringsInContent,
+  findMissingPrerenderedRoutes,
   scanForForbiddenStrings,
 } from './verify-build-artifacts';
 
@@ -65,5 +66,21 @@ describe('scanForForbiddenStrings', () => {
     ]);
 
     expect(matches).toEqual([]);
+  });
+});
+
+describe('findMissingPrerenderedRoutes', () => {
+  it('reports required routes absent from the manifest', () => {
+    expect(
+      findMissingPrerenderedRoutes({ routes: { '/': {}, '/faq': {} } }),
+    ).toEqual(['/topics']);
+  });
+
+  it('returns empty when all required routes are present', () => {
+    expect(
+      findMissingPrerenderedRoutes({
+        routes: { '/': {}, '/faq': {}, '/topics': {} },
+      }),
+    ).toEqual([]);
   });
 });
