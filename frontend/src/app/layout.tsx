@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Script from 'next/script';
 import { cookies } from 'next/headers';
 import '@fontsource/line-seed-jp/100.css';
+import '@fontsource/line-seed-jp/400.css';
 import '@fontsource/line-seed-jp/700.css';
 import '@fontsource/line-seed-jp/800.css';
 import './globals.css';
