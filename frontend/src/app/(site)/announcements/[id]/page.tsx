@@ -28,6 +28,11 @@ async function resolveAnnouncement(id: string) {
   return getAnnouncementById(announcementId);
 }
 
+// 空を返すことで動的セグメントをビルド時には生成せず、初回アクセス時に生成して ISR に載せる
+export function generateStaticParams() {
+  return [];
+}
+
 export async function generateMetadata({
   params,
 }: AnnouncementPageProps): Promise<Metadata> {

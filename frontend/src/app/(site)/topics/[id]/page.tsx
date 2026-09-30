@@ -27,6 +27,11 @@ async function resolveTopic(id: string) {
   return getTopicById(topicId);
 }
 
+// 空を返すことで動的セグメントをビルド時には生成せず、初回アクセス時に生成して ISR に載せる
+export function generateStaticParams() {
+  return [];
+}
+
 export async function generateMetadata({
   params,
 }: TopicPageProps): Promise<Metadata> {
