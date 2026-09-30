@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
-import { cookies } from 'next/headers';
 import { CampusMapScreen } from '@/components/campus-map/campus-map-screen';
 import { getCampusMapData, parseCampusMapQuery } from '@/lib/campus-map';
-import { PHASE_OVERRIDE_COOKIE, resolvePhase } from '@/lib/phase';
+import { getRequestPhase } from '@/lib/request-phase';
 import { getSiteMetadata } from '@/lib/site-metadata';
 import { buildPageMetadata } from '@/lib/page-metadata';
 import { ROUTE_METADATA } from '@/lib/route-metadata';
@@ -29,8 +28,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function MapPage({ searchParams }: MapPageProps) {
   const initialFilters = parseCampusMapQuery(await searchParams);
   const data = await getCampusMapData();
-  const cookieStore = await cookies();
-  const { phase } = resolvePhase(cookieStore.get(PHASE_OVERRIDE_COOKIE)?.value);
+  const { phase } = await getRequestPhase();
 
   return (
     <CampusMapScreen

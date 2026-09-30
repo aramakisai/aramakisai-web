@@ -29,8 +29,11 @@ vi.mock('@/env', () => ({
   },
 }));
 
-vi.mock('next/headers', () => ({
-  cookies: vi.fn(async () => ({ get: vi.fn() })),
+vi.mock('@/lib/request-phase', () => ({
+  getRequestPhase: vi.fn(async () => ({
+    phase: 'pre_event',
+    source: 'constant',
+  })),
 }));
 
 // CampusMapScreen 自体の振る舞い (絞り込み・地図描画等) は campus-map-screen.test.tsx が

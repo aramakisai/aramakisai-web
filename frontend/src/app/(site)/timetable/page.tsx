@@ -9,6 +9,9 @@ import { buildBreadcrumbJsonLd } from '@/lib/structured-data';
 import { getTimetable, resolveInitialDayKey } from '@/lib/timetable';
 import { env } from '@/env';
 
+// CMS 取得失敗で例外を投げるため、ダミー CMS のビルドで事前描画が落ちる
+export const dynamic = 'force-dynamic';
+
 export async function generateMetadata(): Promise<Metadata> {
   const site = await getSiteMetadata();
   const route = ROUTE_METADATA['/timetable'];

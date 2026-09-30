@@ -6,7 +6,7 @@ import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { BottomNavigation } from '@/components/bottom-navigation';
 import * as snsLinksModule from '@/lib/sns-links';
-import * as phaseModule from '@/lib/phase';
+import * as phaseModule from '@/lib/request-phase';
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
@@ -26,16 +26,11 @@ vi.mock('@/components/motion-toggle', () => ({
   MotionToggle: () => <button type="button">モーション</button>,
 }));
 
-vi.mock('next/headers', () => ({
-  cookies: vi.fn(async () => ({ get: vi.fn() })),
-}));
-
 // フェーズの解決自体は phase.test.ts の対象。ここでの関心事は解決結果を
 // Header・Footer・BottomNavigation・下端余白へどう配線するかであるため、
 // Cookie 値の実際の解釈は経由せずフェーズを直接差し替える
-vi.mock('@/lib/phase', () => ({
-  PHASE_OVERRIDE_COOKIE: 'aramakisai_phase_override',
-  resolvePhase: vi.fn(),
+vi.mock('@/lib/request-phase', () => ({
+  getRequestPhase: vi.fn(),
 }));
 
 // SiteLayout はサーバーコンポーネントの子として Header/Footer を返す都合上、
@@ -58,7 +53,7 @@ function findElement(
 
 describe('SiteLayout', () => {
   beforeEach(() => {
-    vi.mocked(phaseModule.resolvePhase).mockReturnValue({
+    vi.mocked(phaseModule.getRequestPhase).mockResolvedValue({
       phase: 'pre_event',
       source: 'constant',
     });
@@ -86,7 +81,7 @@ describe('SiteLayout', () => {
   });
 
   it('解決したフェーズを Header・Footer・BottomNavigation の全てへ揃えて渡す', async () => {
-    vi.mocked(phaseModule.resolvePhase).mockReturnValue({
+    vi.mocked(phaseModule.getRequestPhase).mockResolvedValue({
       phase: 'live',
       source: 'constant',
     });
@@ -105,7 +100,7 @@ describe('SiteLayout', () => {
   });
 
   it('開催中フェーズのとき Footer より後ろ (枠の末尾) に下部ナビゲーション分の下端余白のスペーサーを与える (要件 8.6, 4.3)', async () => {
-    vi.mocked(phaseModule.resolvePhase).mockReturnValue({
+    vi.mocked(phaseModule.getRequestPhase).mockResolvedValue({
       phase: 'live',
       source: 'constant',
     });
