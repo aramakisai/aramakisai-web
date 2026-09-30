@@ -8,9 +8,10 @@ export const INVITATION_EXPIRATION_MS = 72 * 60 * 60 * 1000;
 
 export type InvitationResult =
   | { readonly kind: 'sent'; readonly expiresAt: Date }
-  | { readonly kind: 'failed'; readonly reason: string };
+  | { readonly kind: 'failed'; readonly reason: string }
+  | { readonly kind: 'skipped' };
 
-async function attemptSend(req: PayloadRequest, userId: number): Promise<InvitationResult> {
+async function attemptSend(req: PayloadRequest, userId: number): Promise<Exclude<InvitationResult, { kind: 'skipped' }>> {
   try {
     // 本番で SMTP_HOST 未設定はコンソール出力アダプタへの静かなフォールバックを意味し、
     // 送信済みと誤記録されるため、送信前に検出して失敗として扱う。
@@ -70,6 +71,16 @@ export async function sendInvitation({
   readonly req: PayloadRequest;
   readonly userId: number;
 }): Promise<InvitationResult> {
+  const user = await req.payload.findByID({
+    collection: 'users',
+    id: userId,
+    overrideAccess: true,
+    req,
+  });
+  // 設定済みの人にトークンを再発行すると、本人のパスワードとは無関係に設定リンクが出回るため
+  // 何も変更せず終える (invite_* も触らない)。
+  if (user.activated_at) return { kind: 'skipped' };
+
   const result = await attemptSend(req, userId);
 
   await req.payload.update({

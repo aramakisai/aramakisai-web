@@ -55,10 +55,12 @@ describe.skipIf(!hasDatabase)('招待メールの送信', () => {
     }
   });
 
-  async function createExhibitor(email: string) {
+  /** send を付けると実行委員が「招待メールを送信」にチェックして作成した状態になる */
+  async function createExhibitor(email: string, send = true) {
     const user = (await payload.create({
       collection: 'users',
-      data: { email, role: 'student_exhibitor' },
+      data: { email, role: 'student_exhibitor', ...(send && { resend_invite: true }) },
+      user: executive,
       overrideAccess: true,
     })) as { id: number };
     createdUserIds.push(user.id);
@@ -69,7 +71,7 @@ describe.skipIf(!hasDatabase)('招待メールの送信', () => {
   async function createExhibitorViaRest(email: string) {
     const user = (await payload.create({
       collection: 'users',
-      data: { email, role: 'student_exhibitor' },
+      data: { email, role: 'student_exhibitor', resend_invite: true },
       user: executive,
       overrideAccess: false,
     })) as { id: number };
@@ -106,7 +108,7 @@ describe.skipIf(!hasDatabase)('招待メールの送信', () => {
     await payload.jobs.runByID({ id: job.id, overrideAccess: true });
   }
 
-  it('作成すると招待メールが 1 通送られ、送信済みと記録される', async () => {
+  it('送信を指定して作成すると招待メールが 1 通送られ、送信済みと記録される', async () => {
     const email = nextEmail();
     const sendEmail = vi.spyOn(payload, 'sendEmail');
     const user = await createExhibitor(email);
@@ -125,6 +127,33 @@ describe.skipIf(!hasDatabase)('招待メールの送信', () => {
     expect(updated.invite_status).toBe('sent');
     expect(updated.invite_sent_at).toBeTruthy();
     expect(updated.invite_error).toBeFalsy();
+  });
+
+  async function queuedInvitationJobs(userId: number) {
+    const { docs } = await payload.find({
+      collection: 'payload-jobs',
+      where: {
+        and: [{ taskSlug: { equals: 'sendInvitation' } }, { 'input.userId': { equals: userId } }],
+      },
+      overrideAccess: true,
+    });
+    return docs;
+  }
+
+  it('送信を指定せず作成しただけでは招待ジョブが積まれず、編集画面のチェックで初めて積まれる', async () => {
+    const user = await createExhibitor(nextEmail(), false);
+    expect(await queuedInvitationJobs(user.id)).toHaveLength(0);
+    const created = await payload.findByID({ collection: 'users', id: user.id, overrideAccess: true });
+    expect(created.invite_status).toBeFalsy();
+
+    await payload.update({
+      collection: 'users',
+      id: user.id,
+      data: { resend_invite: true },
+      user: executive,
+      overrideAccess: true,
+    });
+    expect(await queuedInvitationJobs(user.id)).toHaveLength(1);
   });
 
   it('問い合わせ先URLが未設定でも送信され、本文に問い合わせ先が含まれず送信済みと記録される', async () => {
@@ -207,7 +236,14 @@ describe.skipIf(!hasDatabase)('招待メールの送信', () => {
 
   it('再送すると以前のリンクが無効になり、新しいリンクでパスワードを設定してログインできる', async () => {
     const email = nextEmail();
-    const user = await createExhibitor(email);
+    const user = await createExhibitor(email, false);
+    await payload.update({
+      collection: 'users',
+      id: user.id,
+      data: { resend_invite: true },
+      user: executive,
+      overrideAccess: true,
+    });
     await runInvitationJob(user.id);
     const first = await resetPasswordToken(user.id);
     expect(first.token).toBeTruthy();
@@ -270,5 +306,103 @@ describe.skipIf(!hasDatabase)('招待メールの送信', () => {
     ).rejects.toThrow();
 
     expect(sendEmail).not.toHaveBeenCalled();
+  });
+
+  describe('設定済みアカウント', () => {
+    async function activatedExhibitor() {
+      const user = await createExhibitor(nextEmail(), false);
+      await payload.update({
+        collection: 'users',
+        id: user.id,
+        data: { activated_at: new Date().toISOString() },
+        overrideAccess: true,
+      });
+      return user;
+    }
+
+    it('resend_invite を付けて更新してもジョブが積まれない', async () => {
+      const user = await activatedExhibitor();
+      await payload.update({
+        collection: 'users',
+        id: user.id,
+        data: { resend_invite: true },
+        user: executive,
+        overrideAccess: true,
+      });
+      expect(await queuedInvitationJobs(user.id)).toHaveLength(0);
+    });
+
+    it('sendInvitation を直接呼んでも送信もトークン発行もされず invite_* も変わらない', async () => {
+      const user = await activatedExhibitor();
+      const sendEmail = vi.spyOn(payload, 'sendEmail');
+      const { sendInvitation } = await import('./invitation');
+
+      const result = await sendInvitation({ req: { payload } as never, userId: user.id });
+
+      expect(result.kind).toBe('skipped');
+      expect(sendEmail).not.toHaveBeenCalled();
+      expect((await resetPasswordToken(user.id)).token).toBeNull();
+      const after = await payload.findByID({ collection: 'users', id: user.id, overrideAccess: true });
+      expect(after.invite_status).toBeFalsy();
+    });
+
+    it('resetPassword に成功すると activated_at が入る', async () => {
+      const user = await createExhibitor(nextEmail());
+      await runInvitationJob(user.id);
+      const { token } = await resetPasswordToken(user.id);
+      const before = await payload.findByID({ collection: 'users', id: user.id, overrideAccess: true });
+      expect(before.activated_at).toBeFalsy();
+
+      await payload.resetPassword({
+        collection: 'users',
+        data: { token: token as string, password: 'set-Passw0rd!' },
+        overrideAccess: true,
+      });
+
+      const after = await payload.findByID({ collection: 'users', id: user.id, overrideAccess: true });
+      expect(after.activated_at).toBeTruthy();
+    });
+
+    it('学生団体のログイン成功で activated_at が入る', async () => {
+      const email = nextEmail();
+      const user = (await payload.create({
+        collection: 'users',
+        data: { email, role: 'student_exhibitor' },
+        overrideAccess: true,
+      })) as { id: number };
+      createdUserIds.push(user.id);
+      await payload.update({
+        collection: 'users',
+        id: user.id,
+        data: { password: 'login-Passw0rd!' },
+        overrideAccess: true,
+      });
+      await payload.login({ collection: 'users', data: { email, password: 'login-Passw0rd!' } });
+
+      const after = await payload.findByID({ collection: 'users', id: user.id, overrideAccess: true });
+      expect(after.activated_at).toBeTruthy();
+    });
+
+    it('バックフィル: 期限が発行値のままなら未済、現在時刻へ更新されていれば済み', async () => {
+      const { backfillActivatedAt } = await import('../migrations/20260930_145729_users_activated_at');
+      const { sql } = await import('@payloadcms/db-postgres');
+      const sentAt = new Date(Date.now() - 24 * 3600 * 1000);
+      const seed = async (expiration: Date) => {
+        const user = await createExhibitor(nextEmail(), false);
+        await payload.db.drizzle.execute(sql`
+          UPDATE "users" SET "invite_status" = 'sent', "invite_sent_at" = ${sentAt.toISOString()},
+            "reset_password_expiration" = ${expiration.toISOString()}, "activated_at" = NULL
+          WHERE "id" = ${user.id}`);
+        return user;
+      };
+      const untouched = await seed(new Date(sentAt.getTime() + 72 * 3600 * 1000 + 30 * 1000));
+      const reset = await seed(new Date(sentAt.getTime() + 3600 * 1000));
+
+      await payload.db.drizzle.execute(backfillActivatedAt);
+
+      const get = (id: number) => payload.findByID({ collection: 'users', id, overrideAccess: true });
+      expect((await get(untouched.id)).activated_at).toBeFalsy();
+      expect((await get(reset.id)).activated_at).toBeTruthy();
+    });
   });
 });

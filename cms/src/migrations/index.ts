@@ -19,6 +19,7 @@ import * as migration_20260929_054933_map_areas_multi_polygon_hex from './202609
 import * as migration_20260929_093220_performance_slots_inline_time from './20260929_093220_performance_slots_inline_time';
 import * as migration_20260929_111510_map_facilities from './20260929_111510_map_facilities';
 import * as migration_20260929_161314_student_exhibitions_menu_open_days from './20260929_161314_student_exhibitions_menu_open_days';
+import * as migration_20260930_145729_users_activated_at from './20260930_145729_users_activated_at';
 
 export const migrations = [
   {
@@ -124,6 +125,11 @@ export const migrations = [
   {
     up: migration_20260929_161314_student_exhibitions_menu_open_days.up,
     down: migration_20260929_161314_student_exhibitions_menu_open_days.down,
-    name: '20260929_161314_student_exhibitions_menu_open_days'
+    name: '20260929_161314_student_exhibitions_menu_open_days',
+  },
+  {
+    up: migration_20260930_145729_users_activated_at.up,
+    down: migration_20260930_145729_users_activated_at.down,
+    name: '20260930_145729_users_activated_at'
   },
 ];
