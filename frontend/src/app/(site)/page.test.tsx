@@ -128,6 +128,30 @@ describe('Page (開催前フェーズ)', () => {
     });
   });
 
+  it('テーマ趣旨文を荒牧祭とはの直後に表示する', async () => {
+    vi.mocked(homePageModule.getHomePage).mockResolvedValue(content);
+
+    const ui = await Page();
+    const { container } = render(ui);
+
+    const about = container.querySelector('#about');
+    expect(about?.nextElementSibling).toBe(container.querySelector('#theme'));
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'テーマ「万彩」' }),
+    ).toBeInTheDocument();
+  });
+
+  it('テーマ情報が無いときは趣旨文セクションを出さない', async () => {
+    vi.mocked(homePageModule.getHomePage).mockResolvedValue({
+      ...content,
+      theme: null,
+    });
+    const ui = await Page();
+    const { container } = render(ui);
+
+    expect(container.querySelector('#theme')).toBeNull();
+  });
+
   it('ヒーロー・荒牧祭とは・お知らせの3セクションのみで構成する (要件1.6)', async () => {
     vi.mocked(homePageModule.getHomePage).mockResolvedValue(content);
 
@@ -322,6 +346,28 @@ describe('Page (開催中フェーズ)', () => {
       ok: true,
       value: { ad: [], local: [], vendor: [], other: [] },
     });
+  });
+
+  it('テーマ趣旨文を荒牧祭とはの直後に表示する', async () => {
+    const ui = await Page();
+    const { container } = render(ui);
+
+    const about = container.querySelector('#about');
+    expect(about?.nextElementSibling).toBe(container.querySelector('#theme'));
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'テーマ「万彩」' }),
+    ).toBeInTheDocument();
+  });
+
+  it('テーマ情報が無いときは趣旨文セクションを出さない', async () => {
+    vi.mocked(homePageModule.getHomePage).mockResolvedValue({
+      ...content,
+      theme: null,
+    });
+    const ui = await Page();
+    const { container } = render(ui);
+
+    expect(container.querySelector('#theme')).toBeNull();
   });
 
   it('8セクションをヒーロー→トピック→主要導線→企画→お知らせ→荒牧祭とは→アクセス→協賛の順で表示する (要件3.4-3.10)', async () => {
