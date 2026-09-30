@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
-import { GoogleAnalytics } from '@next/third-parties/google';
+import Script from 'next/script';
 import { cookies } from 'next/headers';
 import '@fontsource/line-seed-jp/100.css';
-import '@fontsource/line-seed-jp/400.css';
 import '@fontsource/line-seed-jp/700.css';
 import '@fontsource/line-seed-jp/800.css';
 import './globals.css';
@@ -63,6 +62,10 @@ try {
   var reduced = m === 'reduce' || matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (reduced) document.documentElement.setAttribute('data-motion', 'reduce');
 } catch (e) {}
+// 質感画像 (背景図形・ナビカード・企画カード) を load まで止め、LCP 画像と帯域を奪い合わないようにする。
+// JS が無い環境では属性が付かず、画像は通常どおり表示される
+document.documentElement.setAttribute('data-pl', '');
+addEventListener('load', function () { document.documentElement.removeAttribute('data-pl'); });
 `;
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -125,7 +128,15 @@ export default async function RootLayout({
         {phaseToggle}
       </body>
       {process.env.NODE_ENV === 'production' && gaMeasurementId && (
-        <GoogleAnalytics gaId={gaMeasurementId} />
+        <>
+          <Script
+            src={`https://www.googletagmanager.com/gtag/js?id=${gaMeasurementId}`}
+            strategy="lazyOnload"
+          />
+          <Script id="gtag-init" strategy="lazyOnload">
+            {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config',${JSON.stringify(gaMeasurementId)});`}
+          </Script>
+        </>
       )}
     </html>
   );

@@ -20,7 +20,6 @@
   },
   "dependencies": {
     "@fontsource/line-seed-jp": "^5.3.1",
-    "@next/third-parties": "^16.2.10",
     "@opennextjs/cloudflare": "^1.0.0",
     "leaflet": "1.9.4",
     "next": "^15.0.0",
