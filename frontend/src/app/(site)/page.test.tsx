@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Page, { generateMetadata } from './page';
 import * as homePageModule from '@/lib/home-page';
-import * as phaseModule from '@/lib/phase';
+import * as phaseModule from '@/lib/request-phase';
 import * as exhibitionsModule from '@/lib/exhibitions';
 import * as sponsorsModule from '@/lib/sponsors';
 import * as siteMetadataModule from '@/lib/site-metadata';
@@ -25,9 +25,8 @@ vi.mock('@/lib/site-metadata', () => ({
   getSiteMetadata: vi.fn(),
 }));
 
-vi.mock('@/lib/phase', () => ({
-  resolvePhase: vi.fn(),
-  PHASE_OVERRIDE_COOKIE: 'aramakisai_phase_override',
+vi.mock('@/lib/request-phase', () => ({
+  getRequestPhase: vi.fn(),
 }));
 
 vi.mock('@/lib/exhibitions', async () => {
@@ -40,10 +39,6 @@ vi.mock('@/lib/sponsors', async () => {
   const actual = await vi.importActual<typeof sponsorsModule>('@/lib/sponsors');
   return { ...actual, getSponsors: vi.fn() };
 });
-
-vi.mock('next/headers', () => ({
-  cookies: vi.fn(async () => ({ get: vi.fn() })),
-}));
 
 // 実際の matchMedia/localStorage は use-motion-preference.test.ts が担う。
 vi.mock('@/lib/use-motion-preference', () => ({
@@ -122,7 +117,7 @@ beforeEach(() => {
 
 describe('Page (開催前フェーズ)', () => {
   beforeEach(() => {
-    vi.mocked(phaseModule.resolvePhase).mockReturnValue({
+    vi.mocked(phaseModule.getRequestPhase).mockResolvedValue({
       phase: 'pre_event',
       source: 'constant',
     });
@@ -304,7 +299,7 @@ function makeExhibition(id: number): ExhibitionCardSummary {
 
 describe('Page (開催中フェーズ)', () => {
   beforeEach(() => {
-    vi.mocked(phaseModule.resolvePhase).mockReturnValue({
+    vi.mocked(phaseModule.getRequestPhase).mockResolvedValue({
       phase: 'live',
       source: 'constant',
     });
@@ -525,7 +520,7 @@ describe('generateMetadata (要件2.1)', () => {
 
 describe('トップページの JSON-LD (要件5.1, 5.5)', () => {
   beforeEach(() => {
-    vi.mocked(phaseModule.resolvePhase).mockReturnValue({
+    vi.mocked(phaseModule.getRequestPhase).mockResolvedValue({
       phase: 'pre_event',
       source: 'constant',
     });

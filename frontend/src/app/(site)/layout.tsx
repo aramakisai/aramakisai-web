@@ -1,4 +1,3 @@
-import { cookies } from 'next/headers';
 import { Header, MAIN_CONTENT_ID } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { BottomNavigation } from '@/components/bottom-navigation';
@@ -6,15 +5,14 @@ import {
   BackgroundShapes,
   PAGE_CONTAINER_ID,
 } from '@/components/background-shapes';
-import { PHASE_OVERRIDE_COOKIE, resolvePhase } from '@/lib/phase';
+import { getRequestPhase } from '@/lib/request-phase';
 
 export default async function SiteLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const cookieStore = await cookies();
-  const { phase } = resolvePhase(cookieStore.get(PHASE_OVERRIDE_COOKIE)?.value);
+  const { phase } = await getRequestPhase();
 
   return (
     // 背景の図形装飾 (BackgroundShapes) を敷くための外側のコンテナ。

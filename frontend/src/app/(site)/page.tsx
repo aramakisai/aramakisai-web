@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { cookies } from 'next/headers';
 import { getHomePage } from '@/lib/home-page';
 import { HeroSection } from '@/components/hero-section';
 import { AboutSection } from '@/components/about-section';
@@ -13,7 +12,7 @@ import { SponsorsList } from '@/components/sponsors-list';
 import { AccessSection } from '@/components/access-section';
 import { toHeroImage } from '@/lib/cms-asset-url';
 import { HomePageContent } from '@/lib/home-page-types';
-import { PHASE_OVERRIDE_COOKIE, resolvePhase } from '@/lib/phase';
+import { getRequestPhase } from '@/lib/request-phase';
 import { formatEventDaysSummary, getDaysUntilEventDay } from '@/lib/event-day';
 import {
   getExhibitionListData,
@@ -81,8 +80,7 @@ async function getSponsorLogos() {
 }
 
 export default async function Page() {
-  const cookieStore = await cookies();
-  const { phase } = resolvePhase(cookieStore.get(PHASE_OVERRIDE_COOKIE)?.value);
+  const { phase } = await getRequestPhase();
   const site = await getSiteMetadata();
 
   // Event は開催日程が無ければ null (Organization は必ず出す、要件5.8)
