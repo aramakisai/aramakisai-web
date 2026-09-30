@@ -51,7 +51,28 @@ const config: Config = {
       },
       spacing: {},
       fontFamily: {
-        sans: ['LINE Seed JP', 'sans-serif'],
+        // 本文は端末のフォントを使い、LINE Seed JP (Webフォント) は見出しとヒーローだけに使う
+        sans: [
+          'system-ui',
+          '-apple-system',
+          'Hiragino Sans',
+          'Hiragino Kaku Gothic ProN',
+          'Noto Sans JP',
+          'Yu Gothic UI',
+          'Meiryo',
+          'sans-serif',
+        ],
+        display: [
+          'LINE Seed JP',
+          'system-ui',
+          '-apple-system',
+          'Hiragino Sans',
+          'Hiragino Kaku Gothic ProN',
+          'Noto Sans JP',
+          'Yu Gothic UI',
+          'Meiryo',
+          'sans-serif',
+        ],
       },
       // 既定の `text-xs` (12px) を上書きせず、下部ナビゲーション専用の 10px を別名で追加する (要件 21.11)
       fontSize: {

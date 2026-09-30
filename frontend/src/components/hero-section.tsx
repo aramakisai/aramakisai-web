@@ -102,7 +102,7 @@ export function HeroSection({
     <section
       aria-label="荒牧祭の写真スライドショー"
       data-bg-hero="true"
-      className={`relative isolate w-full overflow-hidden bg-gray-200 ${
+      className={`font-display relative isolate w-full overflow-hidden bg-gray-200 ${
         isLive ? 'h-[50svh]' : 'h-[78svh] min-h-[28rem]'
       }`}
     >
