@@ -16,6 +16,17 @@ preview_urls = true
 [assets]
 directory = ".open-next/assets"
 
+# OpenNext の ISR incremental cache (R2)。prod と PR プレビューが共有する。
+# キーには OPEN_NEXT_BUILD_ID が含まれるため、ビルド間でエントリは混ざらない。
+[[r2_buckets]]
+binding = "NEXT_INC_CACHE_R2_BUCKET"
+bucket_name = "aramakisai-web-cache"
+
+# revalidate 時に自身を呼び出すための self service binding
+[[services]]
+binding = "WORKER_SELF_REFERENCE"
+service = "aramakisai-web"
+
 # dev ブランチ向け永続レビュー環境 (dev.aramakisai.com, CF Access保護)。
 # 本番用 worker とは別名にし、`opennextjs-cloudflare deploy --env=dev` /
 # `wrangler deploy --env=dev` で本番設定と衝突せずデプロイできるようにする。
@@ -27,3 +38,16 @@ name = "aramakisai-web-dev"
 
 [env.dev.assets]
 directory = ".open-next/assets"
+
+# r2_buckets / services / vars は env に継承されないため再掲する。
+# 同じ bucket を使うので、prefix で本番のキャッシュと分離する。
+[env.dev.vars]
+NEXT_INC_CACHE_R2_PREFIX = "dev"
+
+[[env.dev.r2_buckets]]
+binding = "NEXT_INC_CACHE_R2_BUCKET"
+bucket_name = "aramakisai-web-cache"
+
+[[env.dev.services]]
+binding = "WORKER_SELF_REFERENCE"
+service = "aramakisai-web-dev"
