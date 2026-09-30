@@ -10,8 +10,8 @@ import { isPublicPath } from '@/lib/phase';
 import { getPageSlugsUpdatedAt } from '@/lib/static-page';
 import { getTopics } from '@/lib/topics';
 
-// OpenNext に incremental cache 設定が無く revalidate が効かないため、CMS 更新を
-// 再デプロイなしで反映するにはリクエスト時生成 (force-dynamic) が必要
+// CMS 更新を再デプロイなしで即時に反映するため、ISR (revalidate) ではなく
+// リクエスト時生成にする
 export const dynamic = 'force-dynamic';
 
 // 一覧・詳細を専用の取得処理で列挙するルート。SITEMAP_CODE_ROUTES から
