@@ -355,7 +355,10 @@ function resolveLocationSource(
 ): { stages: readonly Stage[]; directAreaId: number | null } {
   return category === 'stage'
     ? { stages: stagesOf(exhibition, context), directAreaId: null }
-    : { stages: [], directAreaId: toRefId(placementOf(exhibition, category)?.area_id) };
+    : {
+        stages: [],
+        directAreaId: toRefId(placementOf(exhibition, category)?.area_id),
+      };
 }
 
 /** カードの絞り込み・詳細ページの地図の対象エリア ID。場所文字列と同じカテゴリ判定で決める */
@@ -402,9 +405,7 @@ function resolveLocationForCategory(
     directAreaId !== null ? context.areasById.get(directAreaId) : undefined;
   if (!directArea) return null;
   const boothLabel = placementOf(exhibition, category)?.booth_label;
-  return boothLabel
-    ? `${directArea.name} ${boothLabel}`
-    : directArea.name;
+  return boothLabel ? `${directArea.name} ${boothLabel}` : directArea.name;
 }
 
 /** カテゴリ別企画内容欄 (`stage` / `exhibit` / `vendor` / `other`) 1 件分 */

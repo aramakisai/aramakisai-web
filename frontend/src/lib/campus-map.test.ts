@@ -234,7 +234,12 @@ describe('getCampusMapData', () => {
             id: 1,
             organization_name: '団体A',
             categories: ['exhibit'],
-            exhibit: { name: '企画A', images: [], area_id: 10, booth_label: 'A-1' },
+            exhibit: {
+              name: '企画A',
+              images: [],
+              area_id: 10,
+              booth_label: 'A-1',
+            },
           },
         ],
         stages: [],

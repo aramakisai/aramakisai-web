@@ -496,7 +496,12 @@ describe('getExhibitionListData', () => {
           organization_name: '団体A',
           categories: ['stage', 'exhibit'],
           stage: { name: '企画A-出演', images: [] },
-          exhibit: { name: '企画A-展示', images: [], area_id: 10, booth_label: 'A-1' },
+          exhibit: {
+            name: '企画A-展示',
+            images: [],
+            area_id: 10,
+            booth_label: 'A-1',
+          },
         },
       ],
       slots: [
@@ -525,7 +530,12 @@ describe('getExhibitionListData', () => {
           id: 1,
           organization_name: '団体A',
           categories: ['exhibit'],
-          exhibit: { name: '企画A', images: [], area_id: 10, booth_label: null },
+          exhibit: {
+            name: '企画A',
+            images: [],
+            area_id: 10,
+            booth_label: null,
+          },
         },
       ],
       areas: [{ id: 10, name: 'Aゾーン' }],
