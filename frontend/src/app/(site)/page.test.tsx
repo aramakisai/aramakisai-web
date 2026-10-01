@@ -147,7 +147,7 @@ describe('Page (開催前フェーズ)', () => {
     expect(container.querySelector('#theme')).toBeNull();
   });
 
-  it('ヒーロー・荒牧祭とは・お知らせの3セクションのみで構成する (要件1.6)', async () => {
+  it('ヒーロー・トピック・荒牧祭とは・お知らせのみで構成する (要件1.6)', async () => {
     vi.mocked(homePageModule.getHomePage).mockResolvedValue(content);
 
     const ui = await Page();
@@ -164,9 +164,10 @@ describe('Page (開催前フェーズ)', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('お知らせ1')).toBeInTheDocument();
 
-    // トピックスは開催前フェーズでは非公開のためセクションごと出さない (要件1.9)
-    expect(screen.queryByText('トピック1')).not.toBeInTheDocument();
-    expect(homePageModule.getHomePage).toHaveBeenCalledWith('pre_event');
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'トピック' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('トピック1')).toBeInTheDocument();
   });
 
   it('page_home.hero_message_html と festival_meta.name を本文に表示しない (要件1.7, 1.8)', async () => {
@@ -218,9 +219,7 @@ describe('Page (開催前フェーズ)', () => {
       .map((link) => link.getAttribute('href'));
 
     for (const href of hrefs) {
-      expect(href).not.toMatch(
-        /^\/(exhibitions|map|topics|timetable|parking)(\/|$)/,
-      );
+      expect(href).not.toMatch(/^\/(exhibitions|map|timetable|parking)(\/|$)/);
     }
   });
 
@@ -369,7 +368,7 @@ describe('Page (開催中フェーズ)', () => {
     const ui = await Page();
     const { container } = render(ui);
 
-    expect(homePageModule.getHomePage).toHaveBeenCalledWith('live');
+    expect(homePageModule.getHomePage).toHaveBeenCalledWith();
     expect(
       screen.getByRole('region', { name: '荒牧祭の写真スライドショー' }),
     ).toBeInTheDocument();

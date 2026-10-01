@@ -102,7 +102,7 @@ export default async function Page() {
 
   let content = EMPTY_CONTENT;
   try {
-    content = await getHomePage(phase);
+    content = await getHomePage();
   } catch {
     // getHomePage は領域ごとに欠落を表現して返すため、ここに来るのは想定外の例外のみ
   }
@@ -117,6 +117,20 @@ export default async function Page() {
   const eventDaysSummary = formatEventDaysSummary(eventDays);
   const countdownDays =
     eventDays.length > 0 ? getDaysUntilEventDay(eventDays[0].startAt) : null;
+
+  const topicsSection = content.topics.length > 0 && (
+    <section className={SECTION_CLASS}>
+      <SectionHeading level="h2">トピック</SectionHeading>
+      <TopicsList
+        topics={content.topics.map((t) => ({
+          id: t.id,
+          title: t.title,
+          imageId: t.imageId,
+        }))}
+        variant="scroll"
+      />
+    </section>
+  );
 
   if (phase === 'live') {
     // 企画一覧・協賛はトップページ以外でも使う汎用の取得層のため、開催中フェーズでのみ
@@ -143,19 +157,7 @@ export default async function Page() {
           />
         )}
 
-        {content.topics.length > 0 && (
-          <section className={SECTION_CLASS}>
-            <SectionHeading level="h2">トピック</SectionHeading>
-            <TopicsList
-              topics={content.topics.map((t) => ({
-                id: t.id,
-                title: t.title,
-                imageId: t.imageId,
-              }))}
-              variant="scroll"
-            />
-          </section>
-        )}
+        {topicsSection}
 
         <section className={SECTION_CLASS}>
           <SectionHeading level="h2">会場で使う</SectionHeading>
@@ -216,6 +218,8 @@ export default async function Page() {
         themeWord={content.theme?.word ?? null}
         descriptionHtml={content.theme?.descriptionHtml ?? null}
       />
+
+      {topicsSection}
 
       <NoticesSection announcements={content.announcements} />
     </div>

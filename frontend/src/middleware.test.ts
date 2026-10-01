@@ -30,7 +30,7 @@ describe('middleware (開発用フラグが偽のビルド)', () => {
 
   it('公開対象一覧に無いパスは gated ルートへ書き換える', async () => {
     const { middleware } = await import('./middleware');
-    const response = middleware(makeRequest('/topics'));
+    const response = middleware(makeRequest('/exhibitions'));
     expect(response.headers.get('x-middleware-rewrite')).toBe(
       'https://example.com/gated',
     );
@@ -46,7 +46,7 @@ describe('middleware (開発用フラグが偽のビルド)', () => {
 
   it('書き換え先にクエリ文字列を引き継がない', async () => {
     const { middleware } = await import('./middleware');
-    const response = middleware(makeRequest('/topics?foo=bar'));
+    const response = middleware(makeRequest('/exhibitions?foo=bar'));
     expect(response.headers.get('x-middleware-rewrite')).toBe(
       'https://example.com/gated',
     );
@@ -54,7 +54,7 @@ describe('middleware (開発用フラグが偽のビルド)', () => {
 
   it('オーバーライド Cookie を与えても無視して非公開パスを書き換える', async () => {
     const { middleware } = await import('./middleware');
-    const response = middleware(makeRequest('/topics', 'live'));
+    const response = middleware(makeRequest('/exhibitions', 'live'));
     expect(response.headers.get('x-middleware-rewrite')).toBe(
       'https://example.com/gated',
     );
@@ -72,13 +72,13 @@ describe('middleware (開発用フラグが真のビルド)', () => {
 
   it('開催中へのオーバーライド Cookie があれば非公開パスも通す', async () => {
     const { middleware } = await import('./middleware');
-    const response = middleware(makeRequest('/topics', 'live'));
+    const response = middleware(makeRequest('/exhibitions', 'live'));
     expect(response.headers.get('x-middleware-rewrite')).toBeNull();
   });
 
   it('オーバーライド Cookie が無ければ BUILD_PHASE (開催前) で判定する', async () => {
     const { middleware } = await import('./middleware');
-    const response = middleware(makeRequest('/topics'));
+    const response = middleware(makeRequest('/exhibitions'));
     expect(response.headers.get('x-middleware-rewrite')).toBe(
       'https://example.com/gated',
     );
