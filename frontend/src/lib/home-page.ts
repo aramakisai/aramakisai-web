@@ -10,12 +10,8 @@ import {
   FestivalTheme,
   SnsLink,
 } from './home-page-types';
-import { FestivalPhase } from './phase';
 
-export async function getHomePage(
-  phase: FestivalPhase,
-): Promise<HomePageContent> {
-  // topics は引数の phase だけに依存し festival_meta の結果を使わないため、4 件とも並列に取る。
+export async function getHomePage(): Promise<HomePageContent> {
   const [metaResult, announcementsResult, topicsResult, pageHomeResult] =
     await Promise.all([
       cms.findGlobal('festival_meta', { depth: 1 }),
@@ -25,16 +21,12 @@ export async function getHomePage(
         limit: 10,
         depth: 1,
       }),
-      // トピックス詳細は開催前フェーズで非公開のため、節を描画しないだけでなく
-      // 毎リクエスト走る取得自体をここで止める (トップページは動的描画のため)。
-      phase === 'pre_event'
-        ? null
-        : cms.findMany('topics', {
-            where: publishedFilter(),
-            sort: ['-published_at'],
-            limit: 0,
-            depth: 1,
-          }),
+      cms.findMany('topics', {
+        where: publishedFilter(),
+        sort: ['-published_at'],
+        limit: 0,
+        depth: 1,
+      }),
       cms.findGlobal('page_home', { depth: 1 }),
     ]);
   const meta = metaResult.ok ? metaResult.value : null;
@@ -63,7 +55,7 @@ export async function getHomePage(
   }));
 
   const topics: TopicSummary[] = (
-    topicsResult?.ok ? topicsResult.value.docs : []
+    topicsResult.ok ? topicsResult.value.docs : []
   ).map((t) => ({
     id: t.id,
     title: t.title,

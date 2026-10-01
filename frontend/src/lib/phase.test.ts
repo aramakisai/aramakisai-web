@@ -59,7 +59,6 @@ describe('isPublicPath', () => {
   );
 
   it('開催前フェーズで公開対象一覧に無いパスは非公開と判定する', () => {
-    expect(isPublicPath('/topics', 'pre_event')).toBe(false);
     expect(isPublicPath('/exhibitions', 'pre_event')).toBe(false);
     expect(isPublicPath('/map', 'pre_event')).toBe(false);
   });
@@ -183,6 +182,7 @@ describe('visibleNavItems', () => {
       '/',
       '/#about',
       '/announcements',
+      '/topics',
     ]);
   });
 
