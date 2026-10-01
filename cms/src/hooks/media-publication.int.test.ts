@@ -78,8 +78,7 @@ describe.skipIf(!hasDatabase)('syncMediaPublication', () => {
         organization_name: `sync-${suffix}`,
         status: 'published',
         categories: ['exhibit'],
-        open_days: ['2026-11-01T12:00:00.000Z'],
-        exhibit: { name: `sync-${suffix}`, description: `sync-${suffix}`, images: [mediaA.id] },
+        exhibit: { name: `sync-${suffix}`, description: `sync-${suffix}`, images: [mediaA.id], open_days: ['2026-11-01T12:00:00.000Z'] },
       },
       overrideAccess: true,
     })) as { id: number };
@@ -200,8 +199,7 @@ describe.skipIf(!hasDatabase)('student_exhibitions の afterChange/afterDelete �
         organization_name: suffix,
         status: 'draft',
         categories: ['exhibit'],
-        open_days: ['2026-11-01T12:00:00.000Z'],
-        exhibit: { name: suffix, description: suffix, images: [media.id] },
+        exhibit: { name: suffix, description: suffix, images: [media.id], open_days: ['2026-11-01T12:00:00.000Z'] },
       },
       overrideAccess: true,
     })) as { id: number };
@@ -241,8 +239,7 @@ describe.skipIf(!hasDatabase)('student_exhibitions の afterChange/afterDelete �
         organization_name: suffix,
         status: 'published',
         categories: ['exhibit'],
-        open_days: ['2026-11-01T12:00:00.000Z'],
-        exhibit: { name: suffix, description: suffix, images: [media.id] },
+        exhibit: { name: suffix, description: suffix, images: [media.id], open_days: ['2026-11-01T12:00:00.000Z'] },
       },
       overrideAccess: true,
     })) as { id: number };
@@ -334,8 +331,7 @@ describe.skipIf(!hasDatabase)('公開状態と未認証の read access の連動
         organization_name: suffix,
         status: 'draft',
         categories: ['exhibit'],
-        open_days: ['2026-11-01T12:00:00.000Z'],
-        exhibit: { name: suffix, description: suffix, images: [mediaA.id] },
+        exhibit: { name: suffix, description: suffix, images: [mediaA.id], open_days: ['2026-11-01T12:00:00.000Z'] },
       },
       overrideAccess: true,
     })) as { id: number };
@@ -447,8 +443,7 @@ describe.skipIf(!hasDatabase)('他人の画像を企画に指定すると拒否�
         organization_name: suffix,
         status: 'draft',
         categories: ['exhibit'],
-        open_days: ['2026-11-01T12:00:00.000Z'],
-        exhibit: { name: suffix, description: suffix, images: [mediaOfA.id] },
+        exhibit: { name: suffix, description: suffix, images: [mediaOfA.id], open_days: ['2026-11-01T12:00:00.000Z'] },
       },
       overrideAccess: true,
     })) as { id: number };

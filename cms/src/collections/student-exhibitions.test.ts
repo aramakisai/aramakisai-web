@@ -1,4 +1,3 @@
-import { text } from 'payload/shared';
 import { describe, expect, it } from 'vitest';
 
 import { StudentExhibitions } from './student-exhibitions';
@@ -17,10 +16,13 @@ const organizationName = fieldOf(StudentExhibitions.fields, 'organization_name')
 const stageGroup = fieldOf(StudentExhibitions.fields, 'stage');
 const owner = fieldOf(StudentExhibitions.fields, 'owner');
 const status = fieldOf(StudentExhibitions.fields, 'status');
-const performanceSlots = fieldOf(StudentExhibitions.fields, 'performance_slots');
-const areaId = fieldOf(StudentExhibitions.fields, 'area_id');
-const boothNumber = fieldOf(StudentExhibitions.fields, 'booth_number');
-const boothLabel = fieldOf(StudentExhibitions.fields, 'booth_label');
+const groupFields = (key: string) => fieldOf(StudentExhibitions.fields, key).fields as readonly unknown[];
+const exhibitFields = groupFields('exhibit');
+const performanceSlots = fieldOf(groupFields('stage'), 'performance_slots');
+const areaId = fieldOf(exhibitFields, 'area_id');
+const boothNumber = fieldOf(exhibitFields, 'booth_number');
+const boothLabel = fieldOf(exhibitFields, 'booth_label');
+const PLACEMENT_NAMES = ['open_days', 'area_id', 'booth_number', 'booth_label'];
 
 type FieldAccessFn = (args: { req: { user: unknown } }) => boolean;
 
@@ -223,7 +225,7 @@ const menu = fieldOf(vendorFields, 'menu');
   const menuFields = menu.fields as readonly unknown[];
   const name = fieldOf(menuFields, 'name');
   const price = fieldOf(menuFields, 'price');
-  const openDays = fieldOf(StudentExhibitions.fields, 'open_days');
+  const openDays = fieldOf(exhibitFields, 'open_days');
   const normalize = (v: unknown) =>
     (price.hooks as { beforeValidate: ((a: { value: unknown }) => unknown)[] }).beforeValidate[0]({
       value: v,
@@ -253,7 +255,6 @@ const menu = fieldOf(vendorFields, 'menu');
   it('open_days は text の hasMany で EventDayCheckboxes を入力部品にする', () => {
     expect(openDays.type).toBe('text');
     expect(openDays.hasMany).toBe(true);
-    expect(openDays.required).toBe(true);
     expect((openDays.admin as { components: { Field: string } }).components.Field).toBe(
       './components/EventDayCheckboxes.tsx',
     );
@@ -274,23 +275,26 @@ const menu = fieldOf(vendorFields, 'menu');
   });
 });
 
-describe('open_days フィールド', () => {
-  const openDays = fieldOf(StudentExhibitions.fields, 'open_days');
-  const validate = (value: unknown) =>
-    text(value as unknown as string, {
-      ...(openDays as object),
-      req: { t: (k: string) => k, payload: { config: {} } },
-    } as unknown as Parameters<typeof text>[1]);
-
-  it('必須項目として定義される', () => {
-    expect(openDays.required).toBe(true);
+describe('カテゴリ別の配置フィールド', () => {
+  it.each(['exhibit', 'vendor', 'other'])('%s グループは出店日・エリア・ブースを持つ', (key) => {
+    const names = (groupFields(key) as readonly NamedField[]).map((f) => f.name);
+    for (const n of PLACEMENT_NAMES) expect(names).toContain(n);
+    expect(names).not.toContain('performance_slots');
   });
 
-  it.each([[[]], [undefined], [null]])('%j はバリデーションで弾かれる', (v) => {
-    expect(validate(v)).not.toBe(true);
+  it('stage グループは出演枠の join だけを持ち、配置フィールドは持たない', () => {
+    const names = (groupFields('stage') as readonly NamedField[]).map((f) => f.name);
+    expect(names).toContain('performance_slots');
+    for (const n of PLACEMENT_NAMES) expect(names).not.toContain(n);
+    expect(performanceSlots.type).toBe('join');
   });
 
-  it('1 日以上選ぶと受け入れる', () => {
-    expect(validate(['2026-11-01T12:00:00.000Z'])).toBe(true);
+  it('トップレベルには置かない', () => {
+    const names = StudentExhibitions.fields.map((f) => (f as NamedField).name);
+    for (const n of [...PLACEMENT_NAMES, 'performance_slots']) expect(names).not.toContain(n);
+  });
+
+  it('出店日の必須判定は validateCategoryContents に任せ、フィールド自体は必須にしない', () => {
+    expect(fieldOf(exhibitFields, 'open_days').required).toBeUndefined();
   });
 });

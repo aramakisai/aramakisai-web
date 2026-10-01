@@ -13,6 +13,11 @@ type BoothDoc = {
   readonly booth_number?: unknown;
 };
 
+type BoothPlacementValue = {
+  readonly area_id?: unknown;
+  readonly booth_number?: unknown;
+};
+
 const CATEGORY_LABELS = {
   stage: 'ステージ',
   exhibit: '展示',
@@ -26,6 +31,7 @@ type CategoryContentValue = {
   readonly name?: unknown;
   readonly description?: unknown;
   readonly images?: unknown;
+  readonly open_days?: unknown;
 };
 
 type CategoryContentsDoc = {
@@ -62,6 +68,30 @@ export function validateBoothPlacement(
 }
 
 /**
+ * 学生企画はカテゴリごとに配置を持つため、同一企画内の別カテゴリ同士も衝突として扱う。
+ * `placements` は (カテゴリのキー, 配置) の列で、重複判定は DB を引く呼び出し側が渡す。
+ */
+export function validateCategoryBoothPlacements(
+  placements: readonly { readonly key: string; readonly value: BoothPlacementValue | null | undefined }[],
+  { duplicateKeys }: { duplicateKeys: ReadonlySet<string> },
+): readonly ConstraintViolation[] {
+  const violations: ConstraintViolation[] = [];
+  const seen = new Map<string, string>();
+  for (const { key, value } of placements) {
+    if (!value || !hasValue(value.area_id) || !hasValue(value.booth_number)) continue;
+    const slot = `${String(value.area_id)}:${String(value.booth_number)}`;
+    if (duplicateKeys.has(key) || seen.has(slot)) {
+      violations.push({
+        field: `${key}.booth_number`,
+        message: '同じエリア内で既に使われているブース番号',
+      });
+    }
+    seen.set(slot, key);
+  }
+  return violations;
+}
+
+/**
  * 実行委員は owner・categories だけ入力すれば保存できる (団体名・企画内容は代理入力の対象外) ため、
  * 通常の保存では学生団体本人にだけこの必須項目チェックを課す。ただし公開後は実行委員代理入力でも
  * 内容が揃っている必要があるため、status が published のときはロール不問で課す。非表示 (未選択
@@ -91,6 +121,10 @@ export function validateCategoryContents(
     }
     if (imageIdsOf(doc[key]?.images).length === 0) {
       violations.push({ field: `${key}.images`, message: `${label}を選択した場合は画像が1枚以上必要` });
+    }
+    // ステージの開催日は出演枠側で決まるため出店日を持たない
+    if (key !== 'stage' && !(Array.isArray(doc[key]?.open_days) && doc[key]!.open_days!.length > 0)) {
+      violations.push({ field: `${key}.open_days`, message: `${label}を選択した場合は出店日の選択が必要` });
     }
   }
   return violations;

@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload';
 
-import { boothPlacementConstraint } from '../hooks/payload-constraints';
+import { sponsorBoothPlacementConstraint } from '../hooks/payload-constraints';
 
 export const Sponsors: CollectionConfig = {
   slug: 'sponsors',
@@ -9,7 +9,7 @@ export const Sponsors: CollectionConfig = {
     useAsTitle: 'name',
   },
   defaultSort: 'sort',
-  hooks: { beforeValidate: [boothPlacementConstraint('sponsors')] },
+  hooks: { beforeValidate: [sponsorBoothPlacementConstraint] },
   fields: [
     {
       name: 'type',
