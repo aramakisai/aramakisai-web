@@ -155,7 +155,7 @@ describe('Footer', () => {
     ).not.toBeInTheDocument();
   });
 
-  test('主催者情報: ロゴ・名称・所在地・メールアドレスをアイコン付きで表示する', async () => {
+  test('主催者情報: ロゴ・名称・所在地をアイコン付きで表示する', async () => {
     await renderFooter();
 
     const logo = screen.getByAltText('荒牧祭2026');
@@ -167,9 +167,7 @@ describe('Footer', () => {
     expect(screen.getByText('群馬大学荒牧祭実行委員会')).toBeInTheDocument();
     expect(screen.getByText(/〒371-8510/)).toBeInTheDocument();
     expect(screen.getByText(/群馬県前橋市荒牧町4-2/)).toBeInTheDocument();
-    expect(screen.getByText(/mail_at_example\.invalid/)).toBeInTheDocument();
     expect(screen.getByTestId('icon-place')).toBeInTheDocument();
-    expect(screen.getByTestId('icon-mail')).toBeInTheDocument();
   });
 
   test('公式SNS: getSnsLinks() の結果をアクセシブルな名前付きで表示する', async () => {
