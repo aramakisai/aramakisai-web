@@ -81,6 +81,7 @@ export const PerformanceSlots: CollectionConfig = {
       type: 'relationship',
       relationTo: 'student_exhibitions',
       label: '団体',
+      filterOptions: { categories: { in: ['stage'] } },
       admin: { description: 'NULL可。団体なし出演はtitleを使用' },
     },
     {
