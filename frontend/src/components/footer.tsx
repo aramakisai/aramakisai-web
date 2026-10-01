@@ -9,7 +9,7 @@ import {
   type NavigationItem,
 } from '@/lib/navigation';
 import type { FestivalPhase } from '@/lib/phase';
-import { MailIcon, OpenInNewIcon, PlaceIcon } from './icons';
+import { OpenInNewIcon, PlaceIcon } from './icons';
 import { SnsIcon } from './sns-icon';
 import { MotionToggle } from './motion-toggle';
 
@@ -176,15 +176,6 @@ export async function Footer({ phase }: FooterProps) {
                 <br />
                 群馬大学荒牧キャンパス内
               </div>
-              <p className="relative pl-5">
-                <MailIcon
-                  size={16}
-                  className="absolute top-1 left-0 text-gray-600"
-                />
-                mail_at_example.invalid
-                <br />
-                (_at_を@に置き換えてください)
-              </p>
             </address>
           </div>
 
