@@ -20,6 +20,7 @@ import * as migration_20260929_093220_performance_slots_inline_time from './2026
 import * as migration_20260929_111510_map_facilities from './20260929_111510_map_facilities';
 import * as migration_20260929_161314_student_exhibitions_menu_open_days from './20260929_161314_student_exhibitions_menu_open_days';
 import * as migration_20260930_145729_users_activated_at from './20260930_145729_users_activated_at';
+import * as migration_20260930_185535_student_exhibitions_category_placement from './20260930_185535_student_exhibitions_category_placement';
 
 export const migrations = [
   {
@@ -130,6 +131,11 @@ export const migrations = [
   {
     up: migration_20260930_145729_users_activated_at.up,
     down: migration_20260930_145729_users_activated_at.down,
-    name: '20260930_145729_users_activated_at'
+    name: '20260930_145729_users_activated_at',
+  },
+  {
+    up: migration_20260930_185535_student_exhibitions_category_placement.up,
+    down: migration_20260930_185535_student_exhibitions_category_placement.down,
+    name: '20260930_185535_student_exhibitions_category_placement'
   },
 ];

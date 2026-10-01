@@ -13,7 +13,7 @@ const VIEWPORTS = [
 const BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:3000';
 
 /**
- * /topics・/exhibitions は開催前フェーズで非公開 (festival-phase-gate)。
+ * /exhibitions は開催前フェーズで非公開 (festival-phase-gate)。
  * 開発者向けオーバーライド Cookie (要件 5.5: アクセス制御されたプレビュー環境でも有効) を
  * 使い、開催中フェーズとして開けるようにする
  */
@@ -98,26 +98,15 @@ test.describe('背景図形: 主要ページで描画される', () => {
         await expectShapesRendered(page);
       });
 
-      test('トピック一覧', async ({ page, context }) => {
-        await applyLivePhaseOverride(context);
-        const response = await page.goto('/topics');
-        if (response?.status() === 404) {
-          test.skip(
-            true,
-            'このビルドではフェーズオーバーライドが無効なため /topics を検証できません (festival-phase-gate)',
-          );
-        }
+      test('トピック一覧', async ({ page }) => {
+        await page.goto('/topics');
         await expectShapesRendered(page);
       });
 
-      test('トピック詳細', async ({ page, context }) => {
-        await applyLivePhaseOverride(context);
+      test('トピック詳細', async ({ page }) => {
         const href = await firstDetailHref(page, '/topics', '/topics/');
         if (!href) {
-          test.skip(
-            true,
-            'トピックスが未登録、またはこのビルドでは検証できません',
-          );
+          test.skip(true, 'トピックスが未登録のため検証できません');
         }
         await page.goto(href!);
         await expectShapesRendered(page);

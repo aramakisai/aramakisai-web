@@ -87,7 +87,7 @@ export interface Config {
   };
   collectionsJoins: {
     student_exhibitions: {
-      performance_slots: 'performance_slots';
+      'stage.performance_slots': 'performance_slots';
     };
   };
   collectionsSelect: {
@@ -548,7 +548,6 @@ export interface StudentExhibition {
         id?: string | null;
       }[]
     | null;
-  open_days: string[];
   /**
    * カテゴリで「ステージ」を選択したときだけ表示する
    */
@@ -559,6 +558,14 @@ export interface StudentExhibition {
      * 最大5枚まで。1枚目がサムネイルとして表示されます。
      */
     images?: (number | Media)[] | null;
+    /**
+     * ステージ出演枠
+     */
+    performance_slots?: {
+      docs?: (number | PerformanceSlot)[];
+      hasNextPage?: boolean;
+      totalDocs?: number;
+    };
   };
   /**
    * カテゴリで「展示」を選択したときだけ表示する
@@ -570,6 +577,19 @@ export interface StudentExhibition {
      * 最大5枚まで。1枚目がサムネイルとして表示されます。
      */
     images?: (number | Media)[] | null;
+    open_days?: string[] | null;
+    /**
+     * 割り当てられた出店エリア
+     */
+    area_id?: (number | null) | MapArea;
+    /**
+     * 割り当てられた出店グループ内の番号もしくは教室番号
+     */
+    booth_number?: number | null;
+    /**
+     * 割り当てられた出店エリア名
+     */
+    booth_label?: string | null;
   };
   /**
    * カテゴリで「出店」を選択したときだけ表示する
@@ -581,6 +601,19 @@ export interface StudentExhibition {
      * 最大5枚まで。1枚目がサムネイルとして表示されます。
      */
     images?: (number | Media)[] | null;
+    open_days?: string[] | null;
+    /**
+     * 割り当てられた出店エリア
+     */
+    area_id?: (number | null) | MapArea;
+    /**
+     * 割り当てられた出店グループ内の番号もしくは教室番号
+     */
+    booth_number?: number | null;
+    /**
+     * 割り当てられた出店エリア名
+     */
+    booth_label?: string | null;
     /**
      * 価格が空の行はサイトに表示されません。
      */
@@ -602,27 +635,20 @@ export interface StudentExhibition {
      * 最大5枚まで。1枚目がサムネイルとして表示されます。
      */
     images?: (number | Media)[] | null;
+    open_days?: string[] | null;
+    /**
+     * 割り当てられた出店エリア
+     */
+    area_id?: (number | null) | MapArea;
+    /**
+     * 割り当てられた出店グループ内の番号もしくは教室番号
+     */
+    booth_number?: number | null;
+    /**
+     * 割り当てられた出店エリア名
+     */
+    booth_label?: string | null;
   };
-  /**
-   * ステージ出演枠
-   */
-  performance_slots?: {
-    docs?: (number | PerformanceSlot)[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
-  /**
-   * 割り当てられた出店エリア
-   */
-  area_id?: (number | null) | MapArea;
-  /**
-   * 割り当てられた出店グループ内の番号もしくは教室番号
-   */
-  booth_number?: number | null;
-  /**
-   * 割り当てられた出店エリア名
-   */
-  booth_label?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1053,13 +1079,13 @@ export interface StudentExhibitionsSelect<T extends boolean = true> {
         url?: T;
         id?: T;
       };
-  open_days?: T;
   stage?:
     | T
     | {
         name?: T;
         description?: T;
         images?: T;
+        performance_slots?: T;
       };
   exhibit?:
     | T
@@ -1067,6 +1093,10 @@ export interface StudentExhibitionsSelect<T extends boolean = true> {
         name?: T;
         description?: T;
         images?: T;
+        open_days?: T;
+        area_id?: T;
+        booth_number?: T;
+        booth_label?: T;
       };
   vendor?:
     | T
@@ -1074,6 +1104,10 @@ export interface StudentExhibitionsSelect<T extends boolean = true> {
         name?: T;
         description?: T;
         images?: T;
+        open_days?: T;
+        area_id?: T;
+        booth_number?: T;
+        booth_label?: T;
         menu?:
           | T
           | {
@@ -1088,11 +1122,11 @@ export interface StudentExhibitionsSelect<T extends boolean = true> {
         name?: T;
         description?: T;
         images?: T;
+        open_days?: T;
+        area_id?: T;
+        booth_number?: T;
+        booth_label?: T;
       };
-  performance_slots?: T;
-  area_id?: T;
-  booth_number?: T;
-  booth_label?: T;
   updatedAt?: T;
   createdAt?: T;
 }

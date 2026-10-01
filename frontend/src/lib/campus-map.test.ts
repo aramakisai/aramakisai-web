@@ -183,7 +183,6 @@ describe('getCampusMapData', () => {
       {
         id: 1,
         organization_name: '公開団体',
-        area_id: null,
         categories: ['exhibit'],
         status: 'published',
         exhibit: { name: '公開企画', images: [] },
@@ -191,7 +190,6 @@ describe('getCampusMapData', () => {
       {
         id: 2,
         organization_name: '非公開団体',
-        area_id: null,
         categories: ['exhibit'],
         status: 'draft',
         exhibit: { name: '非公開企画', images: [] },
@@ -235,10 +233,13 @@ describe('getCampusMapData', () => {
           {
             id: 1,
             organization_name: '団体A',
-            area_id: 10,
-            booth_label: 'A-1',
             categories: ['exhibit'],
-            exhibit: { name: '企画A', images: [] },
+            exhibit: {
+              name: '企画A',
+              images: [],
+              area_id: 10,
+              booth_label: 'A-1',
+            },
           },
         ],
         stages: [],
@@ -351,7 +352,6 @@ describe('getCampusMapData', () => {
         {
           id: 1,
           organization_name: '団体A',
-          area_id: null,
           categories: ['stage', 'exhibit'],
           stage: { name: '企画A-出演', images: [] },
           exhibit: { name: '企画A-展示', images: [] },
@@ -372,7 +372,6 @@ describe('getCampusMapData', () => {
         {
           id: 1,
           organization_name: '団体A',
-          area_id: null,
           categories: ['stage'],
           stage: { name: '企画A-出演', images: [] },
         },

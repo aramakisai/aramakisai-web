@@ -3,11 +3,11 @@ import { checkCmsReachable } from '../scripts/cms-check';
 
 // Depends on CMS collections: map_areas, student_exhibitions, performance_slots, stages, topics, announcements
 
-const EXISTING_LIST_PAGES = ['/', '/announcements'] as const;
+const EXISTING_LIST_PAGES = ['/', '/announcements', '/topics'] as const;
 
 // festival-phase-gate により開催前フェーズでは非公開。(site)/gated 経由の 404 になる
 // (design.md: gated ルートは (site) 配下に置きヘッダー・フッター付きの通常の 404 に揃える)
-const GATED_LIST_PAGES = ['/exhibitions', '/topics'] as const;
+const GATED_LIST_PAGES = ['/exhibitions'] as const;
 
 /** 地図の動的読み込みが終わるまで待つ (読み込み中は role="status" のプレースホルダーが出る) */
 async function waitForMapReady(page: Page): Promise<void> {

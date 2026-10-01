@@ -331,23 +331,39 @@ function stagesOf(
     .filter((s): s is Stage => s !== undefined);
 }
 
+type ExhibitionPlacementSource = Pick<
+  StudentExhibition,
+  'id' | 'exhibit' | 'vendor' | 'other'
+>;
+
+/** 出店日・エリア・ブースはステージ以外のカテゴリ別グループが持つ */
+function placementOf(
+  exhibition: Pick<StudentExhibition, 'exhibit' | 'vendor' | 'other'>,
+  category: ExhibitionCategory,
+) {
+  return category === 'stage' ? undefined : exhibition[category];
+}
+
 /**
  * カテゴリごとの所在の出どころ。`stage` は出演ステージだけ、それ以外は直接エリアだけを見る。
  * 場所文字列と詳細ページの地図対象がこの判定を共有し、表示と地図が食い違わないようにする。
  */
 function resolveLocationSource(
-  exhibition: Pick<StudentExhibition, 'id' | 'area_id'>,
+  exhibition: ExhibitionPlacementSource,
   category: ExhibitionCategory,
   context: JoinContext,
 ): { stages: readonly Stage[]; directAreaId: number | null } {
   return category === 'stage'
     ? { stages: stagesOf(exhibition, context), directAreaId: null }
-    : { stages: [], directAreaId: toRefId(exhibition.area_id) };
+    : {
+        stages: [],
+        directAreaId: toRefId(placementOf(exhibition, category)?.area_id),
+      };
 }
 
 /** カードの絞り込み・詳細ページの地図の対象エリア ID。場所文字列と同じカテゴリ判定で決める */
 function resolveLocationAreaIds(
-  exhibition: Pick<StudentExhibition, 'id' | 'area_id'>,
+  exhibition: ExhibitionPlacementSource,
   category: ExhibitionCategory,
   context: JoinContext,
 ): readonly number[] {
@@ -370,7 +386,7 @@ function resolveLocationAreaIds(
  * それ以外はエリア名のみを見る一系統の解決で、優先順位の分岐は持たない (要件 4.1〜4.5)。
  */
 function resolveLocationForCategory(
-  exhibition: Pick<StudentExhibition, 'id' | 'area_id' | 'booth_label'>,
+  exhibition: ExhibitionPlacementSource,
   category: ExhibitionCategory,
   context: JoinContext,
 ): string | null {
@@ -388,9 +404,8 @@ function resolveLocationForCategory(
   const directArea =
     directAreaId !== null ? context.areasById.get(directAreaId) : undefined;
   if (!directArea) return null;
-  return exhibition.booth_label
-    ? `${directArea.name} ${exhibition.booth_label}`
-    : directArea.name;
+  const boothLabel = placementOf(exhibition, category)?.booth_label;
+  return boothLabel ? `${directArea.name} ${boothLabel}` : directArea.name;
 }
 
 /** カテゴリ別企画内容欄 (`stage` / `exhibit` / `vendor` / `other`) 1 件分 */
@@ -586,7 +601,7 @@ export async function getExhibitionDetail(
       menu: (exhibition.vendor?.menu ?? []).flatMap((row) =>
         row.price == null ? [] : [{ name: row.name, price: row.price }],
       ),
-      openDayKeys: (exhibition.open_days ?? [])
+      openDayKeys: (placementOf(exhibition, category)?.open_days ?? [])
         .filter((v) => !Number.isNaN(Date.parse(v)))
         .map(toJstDateKey),
     },

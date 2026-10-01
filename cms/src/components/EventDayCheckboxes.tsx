@@ -1,6 +1,6 @@
 'use client';
 
-import { FieldError, FieldLabel, useField } from '@payloadcms/ui';
+import { FieldError, FieldLabel, useAuth, useField } from '@payloadcms/ui';
 import type { TextFieldClientComponent } from 'payload';
 
 import { buildEventDayCheckOptions, eventDayValue } from './event-day-options';
@@ -9,6 +9,9 @@ import { useEventDays } from './useEventDays';
 const EventDayCheckboxes: TextFieldClientComponent = ({ path, field }) => {
   const { value, setValue, showError, errorMessage } = useField<string[]>({ path });
   const days = useEventDays();
+  const { user } = useAuth();
+  // 必須チェックは学生団体ロールにだけ課すため、field.required ではなくロールで決める
+  const required = (user as { role?: string } | null)?.role === 'student_exhibitor';
 
   if (!days) return null;
   if (days.length === 0) return <p>祭基本情報で開催日程を登録してください</p>;
@@ -18,7 +21,7 @@ const EventDayCheckboxes: TextFieldClientComponent = ({ path, field }) => {
 
   return (
     <div className="field-type">
-      <FieldLabel label={field.label} path={path} required={field.required} />
+      <FieldLabel label={field.label} path={path} required={required} />
       {options.map((o) => (
         <label key={o.value} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <input

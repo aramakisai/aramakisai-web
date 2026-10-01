@@ -90,19 +90,24 @@ describe('sitemap (pre_event)', () => {
     expect(list?.lastModified).toBe('2026-07-02T00:00:00.000Z');
   });
 
-  it('開催前は企画・トピック・構内マップを収録しない', async () => {
+  it('開催前は企画・構内マップを収録しない', async () => {
     const result = await sitemap();
     const urls = urlsOf(result);
 
     expect(urls).not.toContain(`${SITE_URL}/exhibitions`);
-    expect(urls).not.toContain(`${SITE_URL}/topics`);
     expect(urls).not.toContain(`${SITE_URL}/map`);
     expect(urls).not.toContain(`${SITE_URL}/timetable`);
     expect(
       exhibitionsModule.getExhibitionSitemapEntries,
     ).not.toHaveBeenCalled();
-    expect(topicsModule.getTopics).not.toHaveBeenCalled();
     expect(campusMapModule.getCampusMapLastModified).not.toHaveBeenCalled();
+  });
+
+  it('開催前もトピック一覧を収録する', async () => {
+    const urls = urlsOf(await sitemap());
+
+    expect(urls).toContain(`${SITE_URL}/topics`);
+    expect(topicsModule.getTopics).toHaveBeenCalled();
   });
 
   it('ルート実体の無い /sponsors/* を収録しない', async () => {

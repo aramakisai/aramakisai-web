@@ -7,6 +7,7 @@ import {
   toJstDateKey,
   toSlotWindow,
   validateBoothPlacement,
+  validateCategoryBoothPlacements,
   validateCategoryContents,
   validateImageCount,
   validateImageOwnership,
@@ -92,35 +93,72 @@ export const stageCategoryConstraint: CollectionBeforeValidateHook = async ({
  * Payload には部分 UNIQUE INDEX に対応する宣言がないため、書き込み前に重複を引いて判定する。
  * DB 側の索引はマイグレーションで別途張るが、違反フィールドを特定したメッセージはここでしか返せない。
  */
-export function boothPlacementConstraint(
-  collection: 'student_exhibitions' | 'sponsors',
-): CollectionBeforeValidateHook {
-  return async ({ data, originalDoc, req }) => {
-    const areaId = data?.area_id
-    const boothNumber = data?.booth_number
-    if (areaId == null || boothNumber == null) return data
+export const sponsorBoothPlacementConstraint: CollectionBeforeValidateHook = async ({
+  data,
+  originalDoc,
+  req,
+}) => {
+  const areaId = data?.area_id
+  const boothNumber = data?.booth_number
+  if (areaId == null || boothNumber == null) return data
 
+  const duplicates = await req.payload.find({
+    collection: 'sponsors',
+    depth: 0,
+    limit: 1,
+    pagination: false,
+    req,
+    where: {
+      and: [
+        { area_id: { equals: areaId } },
+        { booth_number: { equals: boothNumber } },
+        ...(originalDoc?.id ? [{ id: { not_equals: originalDoc.id } }] : []),
+      ],
+    },
+  })
+
+  raise(
+    'sponsors',
+    validateBoothPlacement(data ?? {}, { duplicateExists: duplicates.docs.length > 0 }),
+  )
+  return data
+}
+
+const BOOTH_CATEGORIES = ['exhibit', 'vendor', 'other'] as const
+
+/** 学生企画の配置はカテゴリのグループごとに持つ。別企画との重複は DB を、同一企画内は値同士を比べる。 */
+export const exhibitionBoothPlacementConstraint: CollectionBeforeValidateHook = async ({
+  data,
+  originalDoc,
+  req,
+}) => {
+  const placements = BOOTH_CATEGORIES.map((key) => ({
+    key,
+    value: data?.[key] as { area_id?: unknown; booth_number?: unknown } | null | undefined,
+  }))
+
+  const duplicateKeys = new Set<string>()
+  for (const { key, value } of placements) {
+    if (value?.area_id == null || value?.booth_number == null) continue
     const duplicates = await req.payload.find({
-      collection,
+      collection: 'student_exhibitions',
       depth: 0,
       limit: 1,
       pagination: false,
       req,
       where: {
         and: [
-          { area_id: { equals: areaId } },
-          { booth_number: { equals: boothNumber } },
+          { [`${key}.area_id`]: { equals: value.area_id } },
+          { [`${key}.booth_number`]: { equals: value.booth_number } },
           ...(originalDoc?.id ? [{ id: { not_equals: originalDoc.id } }] : []),
         ],
       },
     })
-
-    raise(
-      collection,
-      validateBoothPlacement(data ?? {}, { duplicateExists: duplicates.docs.length > 0 }),
-    )
-    return data
+    if (duplicates.docs.length > 0) duplicateKeys.add(key)
   }
+
+  raise('student_exhibitions', validateCategoryBoothPlacements(placements, { duplicateKeys }))
+  return data
 }
 
 /**

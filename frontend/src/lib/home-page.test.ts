@@ -77,7 +77,7 @@ beforeEach(() => {
 
 describe('getHomePage', () => {
   it('トップページのコンテンツを組み立てる', async () => {
-    const result = await getHomePage('live');
+    const result = await getHomePage();
 
     expect(result.heroMessageHtml).toBe('<p>Hello</p>');
     expect(result.heroImages).toEqual([
@@ -178,7 +178,7 @@ describe('getHomePage', () => {
       value: { docs: [], totalDocs: 0 },
     } as never);
 
-    const result = await getHomePage('live');
+    const result = await getHomePage();
 
     expect(result.heroMessageHtml).toBeNull();
     expect(result.heroImages).toEqual([]);
@@ -197,7 +197,7 @@ describe('getHomePage', () => {
   });
 
   it('announcements は公開済みを新着順に 10 件まで引く', async () => {
-    await getHomePage('live');
+    await getHomePage();
     const call = vi
       .mocked(cms.findMany)
       .mock.calls.find(([collection]) => collection === 'announcements');
@@ -213,7 +213,7 @@ describe('getHomePage', () => {
       error: { kind: 'network', status: 500 },
     } as never);
 
-    const result = await getHomePage('live');
+    const result = await getHomePage();
 
     expect(result.announcements).toEqual([]);
     expect(result.topics).toEqual([]);
@@ -228,7 +228,7 @@ describe('getHomePage', () => {
         : { value: PAGE_HOME }),
     })) as never);
 
-    const result = await getHomePage('live');
+    const result = await getHomePage();
 
     expect(result.festival).toBeNull();
     expect(result.theme).toBeNull();
@@ -250,7 +250,7 @@ describe('getHomePage', () => {
         : { value: META }),
     })) as never);
 
-    const result = await getHomePage('live');
+    const result = await getHomePage();
 
     expect(result.heroImages).toEqual([]);
     expect(result.heroMessageHtml).toBeNull();
@@ -265,7 +265,7 @@ describe('getHomePage', () => {
       error: { kind: 'network', status: 500 },
     } as never);
 
-    await expect(getHomePage('live')).resolves.toMatchObject({
+    await expect(getHomePage()).resolves.toMatchObject({
       festival: null,
       theme: null,
       heroImages: [],
@@ -274,33 +274,13 @@ describe('getHomePage', () => {
   });
 });
 
-describe('getHomePage の phase 引数によるトピックス取得の抑止', () => {
-  it('開催前フェーズでは topics を取得せず空配列を返す', async () => {
-    const result = await getHomePage('pre_event');
-
-    expect(result.topics).toEqual([]);
-    expect(cms.findMany).not.toHaveBeenCalledWith('topics', expect.anything());
-  });
-
+describe('getHomePage のトピックス取得', () => {
   it('topics は公開済みを公開日時の新しい順に取得する', async () => {
-    await getHomePage('live');
+    await getHomePage();
     const call = vi
       .mocked(cms.findMany)
       .mock.calls.find(([collection]) => collection === 'topics');
     expect(call?.[1].sort).toEqual(['-published_at']);
     expect((call?.[1].where as PublishedWhere).published_at?.exists).toBe(true);
-  });
-
-  it('開催中フェーズでは従来どおり topics を取得する', async () => {
-    const result = await getHomePage('live');
-
-    expect(result.topics).toEqual([
-      {
-        id: 2,
-        title: 'T1',
-        body: 'B2',
-        imageId: '21',
-      },
-    ]);
   });
 });
