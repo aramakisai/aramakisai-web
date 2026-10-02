@@ -153,5 +153,11 @@ export const FestivalMeta: GlobalConfig = {
           ? true
           : 'URL は https:// で始まる形式で入力してください',
     },
+    {
+      name: 'parking_enabled',
+      type: 'checkbox',
+      defaultValue: false,
+      label: '駐車場空き情報を公開する',
+    },
   ],
 };

@@ -59,3 +59,13 @@ describe('exhibitor_contact_url フィールド', () => {
     expect(validate('http://aramakisai.com/contact')).not.toBe(true);
   });
 });
+
+describe('parking_enabled フィールド', () => {
+  const parkingEnabled = fieldOf(FestivalMeta.fields, 'parking_enabled');
+
+  it('既定 false のチェックボックスである', () => {
+    expect(parkingEnabled.type).toBe('checkbox');
+    expect(parkingEnabled.defaultValue).toBe(false);
+    expect(parkingEnabled.label).toBe('駐車場空き情報を公開する');
+  });
+});

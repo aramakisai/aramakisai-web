@@ -4,6 +4,7 @@ import * as announcementsModule from '@/lib/announcements';
 import * as campusMapModule from '@/lib/campus-map';
 import * as cmsModule from '@/lib/cms';
 import * as exhibitionsModule from '@/lib/exhibitions';
+import * as festivalMetaModule from '@/lib/festival-meta';
 import * as faqModule from '@/lib/faq';
 import * as staticPageModule from '@/lib/static-page';
 import * as topicsModule from '@/lib/topics';
@@ -25,6 +26,7 @@ vi.mock('@/lib/crawl-targets', async () => {
 });
 
 vi.mock('@/lib/cms', () => ({ cms: { findGlobal: vi.fn() } }));
+vi.mock('@/lib/festival-meta', () => ({ getParkingEnabled: vi.fn() }));
 vi.mock('@/lib/announcements', () => ({ getAnnouncements: vi.fn() }));
 vi.mock('@/lib/topics', () => ({ getTopics: vi.fn() }));
 vi.mock('@/lib/exhibitions', () => ({ getExhibitionSitemapEntries: vi.fn() }));
@@ -46,6 +48,10 @@ beforeEach(() => {
     ok: true,
     // @ts-expect-error テスト用の最小限のフィールドのみ
     value: { updatedAt: '2026-01-01T00:00:00.000Z' },
+  });
+  vi.mocked(festivalMetaModule.getParkingEnabled).mockResolvedValue({
+    ok: true,
+    value: false,
   });
   vi.mocked(announcementsModule.getAnnouncements).mockResolvedValue([]);
   vi.mocked(topicsModule.getTopics).mockResolvedValue([]);
@@ -97,6 +103,7 @@ describe('sitemap (pre_event)', () => {
     expect(urls).not.toContain(`${SITE_URL}/exhibitions`);
     expect(urls).not.toContain(`${SITE_URL}/map`);
     expect(urls).not.toContain(`${SITE_URL}/timetable`);
+    expect(urls).not.toContain(`${SITE_URL}/parking`);
     expect(
       exhibitionsModule.getExhibitionSitemapEntries,
     ).not.toHaveBeenCalled();
@@ -255,5 +262,25 @@ describe('sitemap (live)', () => {
 
     expect(map).toBeDefined();
     expect(map?.lastModified).toBeUndefined();
+  });
+
+  it('parking_enabled が真のとき /parking を収録する', async () => {
+    vi.mocked(festivalMetaModule.getParkingEnabled).mockResolvedValue({
+      ok: true,
+      value: true,
+    });
+
+    expect(urlsOf(await sitemap())).toContain(`${SITE_URL}/parking`);
+  });
+
+  it('parking_enabled が偽または取得失敗のとき /parking を収録しない', async () => {
+    expect(urlsOf(await sitemap())).not.toContain(`${SITE_URL}/parking`);
+
+    vi.mocked(festivalMetaModule.getParkingEnabled).mockResolvedValue({
+      ok: false,
+      error: { kind: 'network' },
+    } as never);
+
+    expect(urlsOf(await sitemap())).not.toContain(`${SITE_URL}/parking`);
   });
 });

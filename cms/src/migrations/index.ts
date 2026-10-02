@@ -21,6 +21,7 @@ import * as migration_20260929_111510_map_facilities from './20260929_111510_map
 import * as migration_20260929_161314_student_exhibitions_menu_open_days from './20260929_161314_student_exhibitions_menu_open_days';
 import * as migration_20260930_145729_users_activated_at from './20260930_145729_users_activated_at';
 import * as migration_20260930_185535_student_exhibitions_category_placement from './20260930_185535_student_exhibitions_category_placement';
+import * as migration_20261002_095717_parking_lots from './20261002_095717_parking_lots';
 
 export const migrations = [
   {
@@ -136,6 +137,11 @@ export const migrations = [
   {
     up: migration_20260930_185535_student_exhibitions_category_placement.up,
     down: migration_20260930_185535_student_exhibitions_category_placement.down,
-    name: '20260930_185535_student_exhibitions_category_placement'
+    name: '20260930_185535_student_exhibitions_category_placement',
+  },
+  {
+    up: migration_20261002_095717_parking_lots.up,
+    down: migration_20261002_095717_parking_lots.down,
+    name: '20261002_095717_parking_lots'
   },
 ];

@@ -10,6 +10,7 @@ import { MapAreas } from './map-areas';
 import { MapPoints } from './map-points';
 import { Media } from './media';
 import { Pages } from './pages';
+import { ParkingLots } from './parking-lots';
 import { PerformanceSlots } from './performance-slots';
 import { Sponsors } from './sponsors';
 import { Stages } from './stages';
@@ -44,4 +45,5 @@ export const collections: CollectionConfig[] = [
   Stages,
   PerformanceSlots,
   StudentExhibitions,
+  ParkingLots,
 ].map(withAccess);

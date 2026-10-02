@@ -6,6 +6,7 @@ import { getCampusMapLastModified } from '@/lib/campus-map';
 import { crawlPhase, SITEMAP_CODE_ROUTES } from '@/lib/crawl-targets';
 import { getExhibitionSitemapEntries } from '@/lib/exhibitions';
 import { getFaqItems } from '@/lib/faq';
+import { getParkingEnabled } from '@/lib/festival-meta';
 import { isPublicPath } from '@/lib/phase';
 import { getPageSlugsUpdatedAt } from '@/lib/static-page';
 import { getTopics } from '@/lib/topics';
@@ -119,6 +120,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   if (isPublicPath('/timetable', phase)) {
     entries.push({ url: toUrl('/timetable') });
+  }
+
+  if (isPublicPath('/parking', phase)) {
+    const parking = await getParkingEnabled();
+    if (parking.ok && parking.value) {
+      entries.push({ url: toUrl('/parking') });
+    }
   }
 
   if (isPublicPath('/faq', phase)) {

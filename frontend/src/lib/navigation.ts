@@ -54,9 +54,6 @@ export interface BottomNavigationItem {
   readonly icon: string;
 }
 
-// タイムテーブル・駐車場空き情報は別 spec (timetable-page / parking-availability) が
-// 実装するまで未実装で、本 spec の時点では 404 でよい。パス自体は他の一覧ページ
-// (/exhibitions 等) と同じ命名規則に揃えて先に確定しておく。
 const GUIDANCE_CHILDREN: readonly NavigationItem[] = [
   { label: 'アクセス', href: '/access' },
   { label: 'ご来場の際の注意点', href: '/guidelines' },

@@ -22,6 +22,7 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
   let assign1Record: number | undefined;
   let assign2Record: number | undefined;
   let image: { id: number };
+  let parkingLot: { id: number };
   let workdir: string;
 
   const ownerIdOf = (value: unknown) =>
@@ -82,6 +83,11 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
     ownRecord = await createExhibition(owner.id, `own-${suffix}`, 'draft');
     otherRecord = await createExhibition(other.id, `other-${suffix}`, 'draft');
     publishedRecord = await createExhibition(publishedOwner.id, `published-${suffix}`, 'published');
+    parkingLot = (await payload.create({
+      collection: 'parking_lots',
+      data: { name: `parking-${suffix}`, status: 'available' },
+      overrideAccess: true,
+    })) as { id: number };
   });
 
   afterAll(async () => {
@@ -98,6 +104,11 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
       if (id) {
         await payload.delete({ collection: 'users', id, overrideAccess: true }).catch(() => null);
       }
+    }
+    if (parkingLot?.id) {
+      await payload
+        .delete({ collection: 'parking_lots', id: parkingLot.id, overrideAccess: true })
+        .catch(() => null);
     }
     if (image?.id) {
       await payload.delete({ collection: 'media', id: image.id, overrideAccess: true }).catch(() => null);
@@ -448,6 +459,58 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
           overrideAccess: false,
           user: await asOwner(),
         }),
+      ).rejects.toThrow();
+    });
+  });
+
+  describe('駐車場', () => {
+    it('未認証でも読み取れる', async () => {
+      const result = await payload.find({ collection: 'parking_lots', overrideAccess: false, pagination: false });
+      expect(result.docs.map((doc) => doc.id)).toContain(parkingLot.id);
+    });
+
+    it('未認証は作成・更新・削除できない', async () => {
+      await expect(
+        payload.create({
+          collection: 'parking_lots',
+          data: { name: `anon-${suffix}`, status: 'full' },
+          overrideAccess: false,
+        }),
+      ).rejects.toThrow();
+      await expect(
+        payload.update({
+          collection: 'parking_lots',
+          id: parkingLot.id,
+          data: { status: 'full' },
+          overrideAccess: false,
+        }),
+      ).rejects.toThrow();
+      await expect(
+        payload.delete({ collection: 'parking_lots', id: parkingLot.id, overrideAccess: false }),
+      ).rejects.toThrow();
+    });
+
+    it('学生団体は作成・更新・削除できない', async () => {
+      const user = await asOwner();
+      await expect(
+        payload.create({
+          collection: 'parking_lots',
+          data: { name: `student-${suffix}`, status: 'full' },
+          overrideAccess: false,
+          user,
+        }),
+      ).rejects.toThrow();
+      await expect(
+        payload.update({
+          collection: 'parking_lots',
+          id: parkingLot.id,
+          data: { status: 'full' },
+          overrideAccess: false,
+          user,
+        }),
+      ).rejects.toThrow();
+      await expect(
+        payload.delete({ collection: 'parking_lots', id: parkingLot.id, overrideAccess: false, user }),
       ).rejects.toThrow();
     });
   });

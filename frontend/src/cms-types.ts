@@ -79,6 +79,7 @@ export interface Config {
     stages: Stage;
     performance_slots: PerformanceSlot;
     student_exhibitions: StudentExhibition;
+    parking_lots: ParkingLot;
     'payload-kv': PayloadKv;
     'payload-jobs': PayloadJob;
     'payload-locked-documents': PayloadLockedDocument;
@@ -103,6 +104,7 @@ export interface Config {
     stages: StagesSelect<false> | StagesSelect<true>;
     performance_slots: PerformanceSlotsSelect<false> | PerformanceSlotsSelect<true>;
     student_exhibitions: StudentExhibitionsSelect<false> | StudentExhibitionsSelect<true>;
+    parking_lots: ParkingLotsSelect<false> | ParkingLotsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -654,6 +656,18 @@ export interface StudentExhibition {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "parking_lots".
+ */
+export interface ParkingLot {
+  id: number;
+  name: string;
+  status: 'available' | 'crowded' | 'full';
+  sort?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -815,6 +829,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'student_exhibitions';
         value: number | StudentExhibition;
+      } | null)
+    | ({
+        relationTo: 'parking_lots';
+        value: number | ParkingLot;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -1132,6 +1150,17 @@ export interface StudentExhibitionsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "parking_lots_select".
+ */
+export interface ParkingLotsSelect<T extends boolean = true> {
+  name?: T;
+  status?: T;
+  sort?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv_select".
  */
 export interface PayloadKvSelect<T extends boolean = true> {
@@ -1297,6 +1326,7 @@ export interface FestivalMeta {
    * 学生団体への招待メールに記載されます。
    */
   exhibitor_contact_url?: string | null;
+  parking_enabled?: boolean | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1364,6 +1394,7 @@ export interface FestivalMetaSelect<T extends boolean = true> {
   og_image?: T;
   venue_address?: T;
   exhibitor_contact_url?: T;
+  parking_enabled?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
