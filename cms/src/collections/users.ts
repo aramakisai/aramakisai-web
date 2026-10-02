@@ -215,7 +215,10 @@ export const Users: CollectionConfig = {
       label: '招待メールを送信',
       // 列を持たない指示フラグ。beforeChange が req.context に移してから消す
       virtual: true,
-      admin: { condition: (data) => !data?.activated_at },
+      admin: {
+        condition: (data) => !data?.activated_at,
+        components: { Field: './components/SendInviteButton.tsx' },
+      },
       access: { create: executiveOnlyField, update: executiveOnlyField },
     },
     {
