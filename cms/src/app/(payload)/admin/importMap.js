@@ -1,3 +1,4 @@
+import { default as default_1395ea9e6579b08d173eddfd848fa67e } from '../../../components/SendInviteButton.tsx'
 import { default as default_64a5e66d81c8e955e0d0d415055ad2fd } from '../../../components/AutoFillInitialPassword.tsx'
 import { RscEntryLexicalCell as RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
 import { RscEntryLexicalField as RscEntryLexicalField_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
@@ -24,6 +25,7 @@ import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } f
 
 /** @type import('payload').ImportMap */
 export const importMap = {
+  "./components/SendInviteButton.tsx#default": default_1395ea9e6579b08d173eddfd848fa67e,
   "./components/AutoFillInitialPassword.tsx#default": default_64a5e66d81c8e955e0d0d415055ad2fd,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalCell": RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalField": RscEntryLexicalField_44fe37237e0ebf4470c9990d8cb7b07e,
