@@ -133,7 +133,7 @@
   - _Boundary: sitemap, navigation_
   - _Depends: 2.3_
 
-- [ ] 6. 実環境での検証
+- [x] 6. 実環境での検証
   - マイグレーションを伴うため`make cms-worktree`と`make dev CMS=worktree`で起動する。サーバーの直接起動やポート3000には触れない
   - `BUILD_PHASE`がpre_eventなので、フェーズトグル(`phase-toggle.tsx`、Cookie`aramakisai_phase_override=live`)で開催中に切り替えてから`/parking`を開く
   - データはworktreeのCMS管理画面で手動登録する。古い情報は、worktree DBの対象行の`updated_at`を30分以上前に書き換えて作る。取得失敗は`make dev-stop CMS=worktree`でworktree CMSを止めて作る
