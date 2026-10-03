@@ -9,6 +9,18 @@ export const ParkingLots: CollectionConfig = {
   },
   defaultSort: 'sort',
   hooks: {
+    afterChange: [
+      async ({ req, doc, operation }) => {
+        // 空き状況は駐車場ごとに 1 件だけ持つ。画面からは作れないので作成に連動させる
+        if (operation !== 'create') return;
+        await req.payload.create({
+          collection: 'parking_statuses',
+          data: { lot: doc.id },
+          overrideAccess: true,
+          req,
+        });
+      },
+    ],
     beforeDelete: [
       async ({ req, id }) => {
         // 参照先を失った空き状況が公開 API に残らないようにする

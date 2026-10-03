@@ -2949,7 +2949,7 @@
           "type": "enum_parking_statuses_status",
           "typeSchema": "public",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "updated_at": {
           "name": "updated_at",
@@ -5046,6 +5046,6 @@
     "tables": {},
     "columns": {}
   },
-  "id": "f6e4a9ba-d516-41dd-9a13-593df6681f02",
+  "id": "c350c549-e123-42be-b201-3b1f2ce0cbea",
   "prevId": "00000000-0000-0000-0000-000000000000"
 }

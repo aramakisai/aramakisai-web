@@ -32,31 +32,38 @@ describe('ParkingLots', () => {
 describe('ParkingStatuses', () => {
   it('slug・タイトル・一覧列を持つ', () => {
     expect(ParkingStatuses.slug).toBe('parking_statuses');
-    expect(ParkingStatuses.admin?.useAsTitle).toBe('lot');
     expect(ParkingStatuses.admin?.defaultColumns).toEqual(['lot', 'status', 'updatedAt']);
     expect(ParkingStatuses.access).toBeUndefined();
   });
 
-  it('lot は parking_lots への必須・unique で、作成後は更新できない', () => {
+  it('lot は管理画面で読み取り専用、作成後も更新できない', () => {
     const lot = fieldOf(ParkingStatuses, 'lot') as NamedField & {
-      access: { update: () => boolean };
+      admin: { readOnly: boolean };
+      access: { create: () => boolean; update: () => boolean };
     };
     expect(lot.type).toBe('relationship');
     expect(lot.relationTo).toBe('parking_lots');
     expect(lot.required).toBe(true);
     expect(lot.unique).toBe(true);
+    expect(lot.admin.readOnly).toBe(true);
+    expect(lot.access.create()).toBe(false);
     expect(lot.access.update()).toBe(false);
   });
 
-  it('status は必須の 3 択で既定値を持たない', () => {
-    const status = fieldOf(ParkingStatuses, 'status');
+  it('status は 3 択で既定値を持たず、更新時だけ必須', async () => {
+    const status = fieldOf(ParkingStatuses, 'status') as NamedField & {
+      validate: (v: unknown, o: { operation: string }) => unknown;
+    };
     expect(status.type).toBe('select');
-    expect(status.required).toBe(true);
+    expect(status.required).toBeFalsy();
     expect(status.defaultValue).toBeUndefined();
     expect((status.options as { value: string }[]).map((o) => o.value)).toEqual([
       'available',
       'crowded',
       'full',
     ]);
+    expect(await status.validate(null, { operation: 'create' })).toBe(true);
+    expect(await status.validate(null, { operation: 'update' })).not.toBe(true);
+    expect(await status.validate('full', { operation: 'update' })).toBe(true);
   });
 });

@@ -17,10 +17,11 @@ const loadWith = async (override: boolean) => {
 const statusDoc = (
   id: number,
   lot: { id: number; name: string; sort?: number | null } | number | null,
+  status: string | null = 'available',
 ) => ({
   id,
   lot,
-  status: 'available',
+  status: status as string | null,
   updatedAt: '2026-10-02T00:00:00.000Z',
   createdAt: '2026-10-02T00:00:00.000Z',
 });
@@ -123,5 +124,22 @@ describe('getParkingResponse', () => {
     getParkingEnabled.mockResolvedValue({ ok: true, value: true });
     findMany.mockResolvedValue(networkError);
     expect(await (await loadWith(false))()).toEqual(networkError);
+  });
+});
+
+describe('getParkingResponse の未設定除外', () => {
+  it('status が null の空き状況は出さない', async () => {
+    getParkingEnabled.mockResolvedValue({ ok: true, value: true });
+    findMany.mockResolvedValue({
+      ok: true,
+      value: {
+        docs: [lot, statusDoc(2, { id: 11, name: '第2駐車場', sort: 1 }, null)],
+        totalDocs: 2,
+      },
+    });
+    const result = await (await loadWith(false))();
+    expect(result.ok && result.value.enabled && result.value.lots.map((l) => l.name)).toEqual([
+      '第1駐車場',
+    ]);
   });
 });

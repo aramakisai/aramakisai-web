@@ -674,7 +674,7 @@ export interface ParkingLot {
 export interface ParkingStatus {
   id: number;
   lot: number | ParkingLot;
-  status: 'available' | 'crowded' | 'full';
+  status?: ('available' | 'crowded' | 'full') | null;
   updatedAt: string;
   createdAt: string;
 }

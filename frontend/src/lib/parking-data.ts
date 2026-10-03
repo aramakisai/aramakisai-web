@@ -24,8 +24,11 @@ export async function getParkingResponse(): Promise<
   );
   if (!statuses.ok) return statuses;
 
+  // 作成直後で未設定の空き状況は公開しない
   const rows = statuses.value.docs.flatMap((doc) =>
-    typeof doc.lot === 'object' && doc.lot !== null ? [{ doc, lot: doc.lot }] : [],
+    typeof doc.lot === 'object' && doc.lot !== null && doc.status
+      ? [{ doc, lot: doc.lot, status: doc.status }]
+      : [],
   );
   // sort は関連先のフィールドなので REST の sort では並べられない
   rows.sort(
@@ -33,10 +36,10 @@ export async function getParkingResponse(): Promise<
       (a.lot.sort ?? Number.POSITIVE_INFINITY) -
         (b.lot.sort ?? Number.POSITIVE_INFINITY) || 0,
   );
-  const lots: ParkingLot[] = rows.map(({ doc, lot }) => ({
+  const lots: ParkingLot[] = rows.map(({ doc, lot, status }) => ({
     id: doc.id,
     name: lot.name,
-    status: doc.status,
+    status,
     updatedAt: doc.updatedAt,
   }));
   return {

@@ -1,6 +1,6 @@
 import type { ParkingStatus as CmsParkingStatus } from '@/cms-types';
 
-export type ParkingStatus = CmsParkingStatus['status'];
+export type ParkingStatus = NonNullable<CmsParkingStatus['status']>;
 
 export interface ParkingLot {
   readonly id: number;

@@ -14,7 +14,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   CREATE TABLE "parking_statuses" (
   	"id" serial PRIMARY KEY NOT NULL,
   	"lot_id" integer NOT NULL,
-  	"status" "enum_parking_statuses_status" NOT NULL,
+  	"status" "enum_parking_statuses_status",
   	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
   	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
   );

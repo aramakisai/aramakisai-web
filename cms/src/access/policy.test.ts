@@ -180,3 +180,12 @@ describe('isHiddenInAdmin', () => {
     expect(isHiddenInAdmin(null, 'student_exhibitions')).toBe(false);
   });
 });
+
+describe('parking_statuses', () => {
+  it('実行委員でも作成・削除できず、更新は実行委員のみ', () => {
+    expect(canCreate(executive, 'parking_statuses')).toBe(false);
+    expect(canDelete(executive, 'parking_statuses')).toBe(false);
+    expect(canUpdate(executive, 'parking_statuses')).toBe(true);
+    expect(canUpdate(null, 'parking_statuses')).toBe(false);
+  });
+});
