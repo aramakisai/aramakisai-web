@@ -1,0 +1,4 @@
+// iOS Safari の 100vh はツールバーを隠した状態の高さになり、BulkUpload drawer 最下部の保存ボタンがツールバーの下に隠れる
+.drawer {
+  height: 100dvh;
+}
