@@ -256,4 +256,8 @@ describe('sitemap (live)', () => {
     expect(map).toBeDefined();
     expect(map?.lastModified).toBeUndefined();
   });
+
+  it('開催前も /parking を収録する', async () => {
+    expect(urlsOf(await sitemap())).toContain(`${SITE_URL}/parking`);
+  });
 });

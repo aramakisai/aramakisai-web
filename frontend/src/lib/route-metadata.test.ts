@@ -9,10 +9,11 @@ const ROUTES = [
   '/map',
   '/faq',
   '/timetable',
+  '/parking',
 ] as const;
 
 describe('ROUTE_METADATA', () => {
-  it('7 ルート分すべての定数を持つ', () => {
+  it('8 ルート分すべての定数を持つ', () => {
     expect(Object.keys(ROUTE_METADATA).sort()).toEqual([...ROUTES].sort());
   });
 

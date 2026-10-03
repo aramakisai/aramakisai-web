@@ -5,7 +5,8 @@ export type CodeRoutePath =
   | '/topics'
   | '/map'
   | '/faq'
-  | '/timetable';
+  | '/timetable'
+  | '/parking';
 
 export interface RouteMetadataEntry {
   /** null はサイトタイトルそのものを使うページ ('/') */
@@ -50,5 +51,10 @@ export const ROUTE_METADATA: Readonly<
     title: 'タイムテーブル',
     description:
       '荒牧祭のステージ出演スケジュールです。開催日とステージごとの出演時間を確認できます。',
+  },
+  '/parking': {
+    title: '駐車場空き情報',
+    description:
+      '荒牧祭の駐車場の空き状況を確認できます。混雑状況を見てご来場の際の参考にしてください。',
   },
 };

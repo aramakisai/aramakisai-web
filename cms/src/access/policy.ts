@@ -81,7 +81,11 @@ export function canRead(
   return publicRead(collection, now);
 }
 
+/** 駐車場の作成・削除に連動するフックだけが作る・消す (overrideAccess)。人は更新のみ。 */
+const HOOK_MANAGED = ['parking_statuses'] as const;
+
 export function canCreate(user: CmsUser | null, collection: string): boolean {
+  if ((HOOK_MANAGED as readonly string[]).includes(collection)) return false;
   if (isExecutive(user)) return true;
   if (isStudentExhibitor(user)) {
     return (EXHIBITOR_CREATABLE as readonly string[]).includes(collection);
@@ -104,6 +108,7 @@ export function canUpdate(user: CmsUser | null, collection: string): AccessResul
 }
 
 export function canDelete(user: CmsUser | null, collection: string): AccessResult {
+  if ((HOOK_MANAGED as readonly string[]).includes(collection)) return false;
   if (isExecutive(user)) return true;
   if (isStudentExhibitor(user) && collection === 'media') {
     return { and: [ownerFilter(user!), { used_in_published: { equals: false } }] };

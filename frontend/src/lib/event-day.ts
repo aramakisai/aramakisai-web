@@ -58,6 +58,14 @@ export function getDaysUntilEventDay(
   return Math.round((targetUtc - currentUtc) / DAY_MS);
 }
 
+/** 日本時間の暦日で、now がいずれかの開催日と一致するか (開場前の来場も含めるため時刻帯は見ない) */
+export function isEventDay(
+  eventDays: readonly EventDay[],
+  now: Date = new Date(),
+): boolean {
+  return eventDays.some((day) => getDaysUntilEventDay(day.startAt, now) === 0);
+}
+
 /** 例: "11月14日 10:00〜17:30" (ヒーローのメタ情報表記。曜日・呼び名は含めない) */
 export function formatEventDaySchedule(day: EventDay): string {
   return `${formatEventDayDate(day.startAt)} ${formatEventDayTime(day.startAt)}〜${formatEventDayTime(day.endAt)}`;

@@ -160,6 +160,28 @@ describe('cms キャッシュ', () => {
     expect(waitUntil).toHaveBeenCalledTimes(1);
   });
 
+  it('ttlSeconds 指定時はその TTL で put し、既定 TTL とキーを共有しない', async () => {
+    const put = vi.fn().mockResolvedValue(undefined);
+    const match = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('caches', { default: { match, put } });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async () => okResponse()),
+    );
+    (globalThis as Record<symbol, unknown>)[
+      Symbol.for('__cloudflare-context__')
+    ] = { ctx: { waitUntil: vi.fn() } };
+    await cms.findMany('announcements', {}, { ttlSeconds: 20 });
+    await cms.findMany('announcements', {});
+    expect(put.mock.calls[0][1].headers.get('Cache-Control')).toBe(
+      's-maxage=20',
+    );
+    expect(put.mock.calls[1][1].headers.get('Cache-Control')).toBe(
+      's-maxage=60',
+    );
+    expect(match.mock.calls[0][0].url).not.toBe(match.mock.calls[1][0].url);
+  });
+
   it('非 2xx は put しない', async () => {
     const put = vi.fn();
     vi.stubGlobal('caches', {
