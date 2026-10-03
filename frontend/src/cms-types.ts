@@ -1351,7 +1351,6 @@ export interface FestivalMeta {
    * 学生団体への招待メールに記載されます。
    */
   exhibitor_contact_url?: string | null;
-  parking_enabled?: boolean | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1419,7 +1418,6 @@ export interface FestivalMetaSelect<T extends boolean = true> {
   og_image?: T;
   venue_address?: T;
   exhibitor_contact_url?: T;
-  parking_enabled?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

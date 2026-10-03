@@ -30,7 +30,6 @@ const INTENTIONALLY_PRIVATE_ROUTES: readonly string[] = [
   '/exhibitions/[id]/[category]',
   '/map',
   '/timetable',
-  '/parking',
   '/gated',
   '/gated-fullscreen',
   // error.tsx の E2E 検証専用ルート。DEV_OVERRIDE_ENABLED が偽の本番ビルドでは

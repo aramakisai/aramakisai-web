@@ -6,12 +6,18 @@ import type { ParkingResponse } from '@/lib/parking';
 const RENDERED_AT = '2026-11-14T04:00:00Z'; // JST 13:00
 
 const enabled = (
-  lots: { id: number; name: string; status: 'available'; updatedAt: string }[],
+  lots: ParkingResponse['lots'],
   fetchedAt = '2026-11-14T03:59:00Z', // JST 12:59
 ): ParkingResponse => ({
-  enabled: true,
+  isEventDay: true,
   lots,
   fetchedAt,
+});
+
+const closed = (lots: ParkingResponse['lots']): ParkingResponse => ({
+  isEventDay: false,
+  lots: lots.map((l) => ({ ...l, status: null, updatedAt: null })),
+  fetchedAt: '2026-11-14T03:59:00Z',
 });
 
 const LOT = {
@@ -98,26 +104,34 @@ describe('ParkingList', () => {
     expect(screen.getByText('12:59時点')).toBeInTheDocument();
   });
 
-  test('非公開は文言だけを出し、状態行・一覧・再取得はしない', async () => {
+  test('未設定の行はグレーの「未設定」バッジで更新時刻を出さない', () => {
     render(
-      <ParkingList initial={{ enabled: false }} renderedAt={RENDERED_AT} />,
+      <ParkingList
+        initial={enabled([{ ...LOT, status: null, updatedAt: null }])}
+        renderedAt={RENDERED_AT}
+      />,
     );
-    expect(
-      screen.getByText('現在、駐車場空き情報は公開していません'),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('list')).not.toBeInTheDocument();
+    expect(screen.getByText('未設定')).toBeInTheDocument();
+    expect(screen.queryByText(/更新/)).not.toBeInTheDocument();
+  });
+
+  test('当日でないときは名称とグレーの「非公開」だけで、状態行も再取得も無い', async () => {
+    render(<ParkingList initial={closed([LOT])} renderedAt={RENDERED_AT} />);
+    expect(screen.getByText('正門前駐車場')).toBeInTheDocument();
+    expect(screen.getByText('非公開')).toHaveClass('bg-gray-200');
+    expect(screen.queryByText(/時点/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/更新/)).not.toBeInTheDocument();
     await tick();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  test('再取得で非公開になったら表示を切り替えてポーリングを止める', async () => {
-    fetchMock.mockResolvedValue(ok({ enabled: false }));
+  test('再取得で当日でなくなったら非公開表示に切り替えてポーリングを止める', async () => {
+    fetchMock.mockResolvedValue(ok(closed([LOT])));
     render(<ParkingList initial={enabled([LOT])} renderedAt={RENDERED_AT} />);
     await tick();
-    expect(
-      screen.getByText('現在、駐車場空き情報は公開していません'),
-    ).toBeInTheDocument();
-    expect(screen.queryByText('正門前駐車場')).not.toBeInTheDocument();
+    expect(screen.getByText('非公開')).toBeInTheDocument();
+    expect(screen.queryByText('空き')).not.toBeInTheDocument();
+    expect(screen.queryByText(/時点/)).not.toBeInTheDocument();
     await tick();
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });

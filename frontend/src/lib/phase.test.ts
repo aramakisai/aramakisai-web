@@ -79,6 +79,7 @@ describe('isPublicPath', () => {
     '/guidelines',
     '/info-desk',
     '/waste',
+    '/parking',
     '/faq',
     '/sponsors/ad',
     '/sponsors/local',

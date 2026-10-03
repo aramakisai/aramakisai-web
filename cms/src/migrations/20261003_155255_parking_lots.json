@@ -4609,13 +4609,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "parking_enabled": {
-          "name": "parking_enabled",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": false,
-          "default": false
-        },
         "updated_at": {
           "name": "updated_at",
           "type": "timestamp(3) with time zone",
@@ -5046,6 +5039,6 @@
     "tables": {},
     "columns": {}
   },
-  "id": "c350c549-e123-42be-b201-3b1f2ce0cbea",
+  "id": "7f3c38c2-7efe-4ad9-bf72-e1aa2b055f2e",
   "prevId": "00000000-0000-0000-0000-000000000000"
 }

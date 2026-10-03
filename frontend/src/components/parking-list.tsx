@@ -15,7 +15,7 @@ async function fetchParking(): Promise<ParkingResponse> {
   return res.json();
 }
 
-const continuePolling = (r: ParkingResponse) => r.enabled;
+const continuePolling = (r: ParkingResponse) => r.isEventDay;
 
 export interface ParkingListProps {
   readonly initial: ParkingResponse | null;
@@ -39,7 +39,7 @@ export function ParkingList({ initial, renderedAt }: ParkingListProps) {
         </SectionHeading>
         <div className="lg:pl-4">{statusLine(data, error)}</div>
       </div>
-      {data?.enabled &&
+      {data &&
         (data.lots.length === 0 ? (
           <p className="p-4 text-sm leading-[1.4] text-gray-600">
             駐車場の情報はありません
@@ -48,7 +48,12 @@ export function ParkingList({ initial, renderedAt }: ParkingListProps) {
           // SP はページの px-4 を打ち消し、行の罫線を画面幅いっぱいにする
           <ul className="-mx-4 lg:mx-0">
             {data.lots.map((lot) => (
-              <ParkingRow key={lot.id} lot={lot} now={now} />
+              <ParkingRow
+                key={lot.id}
+                lot={lot}
+                eventDay={data.isEventDay}
+                now={now}
+              />
             ))}
           </ul>
         ))}
@@ -57,13 +62,6 @@ export function ParkingList({ initial, renderedAt }: ParkingListProps) {
 }
 
 function statusLine(data: ParkingResponse | null, error: boolean) {
-  if (data && !data.enabled) {
-    return (
-      <p className="text-sm leading-[1.4] text-gray-600">
-        現在、駐車場空き情報は公開していません
-      </p>
-    );
-  }
   if (!data || error) {
     const text = data
       ? `最新の情報を取得できません(${formatEventDayTime(data.fetchedAt)}時点)`
@@ -80,6 +78,7 @@ function statusLine(data: ParkingResponse | null, error: boolean) {
       </p>
     );
   }
+  if (!data.isEventDay) return null;
   return (
     <p className="text-sm leading-[1.4] text-gray-600 tabular-nums">
       {formatEventDayTime(data.fetchedAt)}時点

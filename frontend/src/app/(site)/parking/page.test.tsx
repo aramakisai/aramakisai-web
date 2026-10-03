@@ -29,7 +29,7 @@ describe('ParkingPage', () => {
     vi.mocked(getParkingResponse).mockResolvedValue({
       ok: true,
       value: {
-        enabled: true,
+        isEventDay: true,
         fetchedAt: FETCHED_AT,
         lots: [
           {
@@ -50,18 +50,20 @@ describe('ParkingPage', () => {
     expect(screen.getByText('正門前駐車場')).toBeInTheDocument();
   });
 
-  it('非公開時は非公開の文言だけを表示する', async () => {
+  it('当日でないときは名称と「非公開」を表示する', async () => {
     vi.mocked(getParkingResponse).mockResolvedValue({
       ok: true,
-      value: { enabled: false },
+      value: {
+        isEventDay: false,
+        fetchedAt: FETCHED_AT,
+        lots: [{ id: 1, name: '正門前駐車場', status: null, updatedAt: null }],
+      },
     });
 
     render(await ParkingPage());
 
-    expect(
-      screen.getByText('現在、駐車場空き情報は公開していません'),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('list')).toBeNull();
+    expect(screen.getByText('正門前駐車場')).toBeInTheDocument();
+    expect(screen.getByText('非公開')).toBeInTheDocument();
   });
 
   it('取得失敗時はエラー表示で描画する', async () => {

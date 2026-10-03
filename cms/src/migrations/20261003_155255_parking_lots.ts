@@ -21,7 +21,6 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   
   ALTER TABLE "payload_locked_documents_rels" ADD COLUMN "parking_lots_id" integer;
   ALTER TABLE "payload_locked_documents_rels" ADD COLUMN "parking_statuses_id" integer;
-  ALTER TABLE "festival_meta" ADD COLUMN "parking_enabled" boolean DEFAULT false;
   ALTER TABLE "parking_statuses" ADD CONSTRAINT "parking_statuses_lot_id_parking_lots_id_fk" FOREIGN KEY ("lot_id") REFERENCES "public"."parking_lots"("id") ON DELETE set null ON UPDATE no action;
   CREATE INDEX "parking_lots_updated_at_idx" ON "parking_lots" USING btree ("updated_at");
   CREATE INDEX "parking_lots_created_at_idx" ON "parking_lots" USING btree ("created_at");
@@ -36,18 +35,15 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
 
 export async function down({ db, payload, req }: MigrateDownArgs): Promise<void> {
   await db.execute(sql`
-   ALTER TABLE "parking_lots" DISABLE ROW LEVEL SECURITY;
-  ALTER TABLE "parking_statuses" DISABLE ROW LEVEL SECURITY;
-  ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT "payload_locked_documents_rels_parking_lots_fk";
-  
+   ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT "payload_locked_documents_rels_parking_lots_fk";
   ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT "payload_locked_documents_rels_parking_statuses_fk";
-  
   DROP INDEX "payload_locked_documents_rels_parking_lots_id_idx";
   DROP INDEX "payload_locked_documents_rels_parking_statuses_id_idx";
   ALTER TABLE "payload_locked_documents_rels" DROP COLUMN "parking_lots_id";
   ALTER TABLE "payload_locked_documents_rels" DROP COLUMN "parking_statuses_id";
-  DROP TABLE "parking_statuses" CASCADE;
+  ALTER TABLE "parking_lots" DISABLE ROW LEVEL SECURITY;
+  ALTER TABLE "parking_statuses" DISABLE ROW LEVEL SECURITY;
   DROP TABLE "parking_lots" CASCADE;
-  ALTER TABLE "festival_meta" DROP COLUMN "parking_enabled";
+  DROP TABLE "parking_statuses" CASCADE;
   DROP TYPE "public"."enum_parking_statuses_status";`)
 }

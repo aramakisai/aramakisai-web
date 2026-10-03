@@ -1,7 +1,7 @@
 import { cms, type CmsResult } from './cms';
-import { getParkingEnabled } from './festival-meta';
-import { DEV_OVERRIDE_ENABLED } from './phase';
+import { isEventDay, toEventDays } from './event-day';
 import type { ParkingLot, ParkingResponse } from './parking';
+import { getRequestPhase } from './request-phase';
 
 const PARKING_TTL_SECONDS = 20;
 // limit を省くと Payload 既定の 10 件で切れる
@@ -10,12 +10,13 @@ const PARKING_LIMIT = 100;
 export async function getParkingResponse(): Promise<
   CmsResult<ParkingResponse>
 > {
-  // 上書き有効時も festival_meta の失敗は握りつぶさず失敗として返す
-  const enabled = await getParkingEnabled();
-  if (!enabled.ok) return enabled;
-  if (!DEV_OVERRIDE_ENABLED && !enabled.value) {
-    return { ok: true, value: { enabled: false } };
-  }
+  // 上書きで当日扱いにする場合も festival_meta の失敗は握りつぶさず失敗として返す
+  const meta = await cms.findGlobal('festival_meta');
+  if (!meta.ok) return meta;
+  const phase = await getRequestPhase();
+  const eventDay =
+    (phase.source === 'override' && phase.phase === 'live') ||
+    isEventDay(toEventDays(meta.value.event_days));
 
   const statuses = await cms.findMany(
     'parking_statuses',
@@ -24,10 +25,9 @@ export async function getParkingResponse(): Promise<
   );
   if (!statuses.ok) return statuses;
 
-  // 作成直後で未設定の空き状況は公開しない
   const rows = statuses.value.docs.flatMap((doc) =>
-    typeof doc.lot === 'object' && doc.lot !== null && doc.status
-      ? [{ doc, lot: doc.lot, status: doc.status }]
+    typeof doc.lot === 'object' && doc.lot !== null
+      ? [{ doc, lot: doc.lot }]
       : [],
   );
   // sort は関連先のフィールドなので REST の sort では並べられない
@@ -36,14 +36,15 @@ export async function getParkingResponse(): Promise<
       (a.lot.sort ?? Number.POSITIVE_INFINITY) -
         (b.lot.sort ?? Number.POSITIVE_INFINITY) || 0,
   );
-  const lots: ParkingLot[] = rows.map(({ doc, lot, status }) => ({
+  // 当日以外は古いテストデータ等を外へ出さないため、サーバー側で落とす
+  const lots: ParkingLot[] = rows.map(({ doc, lot }) => ({
     id: doc.id,
     name: lot.name,
-    status,
-    updatedAt: doc.updatedAt,
+    status: eventDay ? (doc.status ?? null) : null,
+    updatedAt: eventDay && doc.status ? doc.updatedAt : null,
   }));
   return {
     ok: true,
-    value: { enabled: true, lots, fetchedAt: new Date().toISOString() },
+    value: { isEventDay: eventDay, lots, fetchedAt: new Date().toISOString() },
   };
 }

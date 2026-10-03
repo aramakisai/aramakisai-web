@@ -1,9 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  getFestivalMeta,
-  getContactFormUrl,
-  getParkingEnabled,
-} from './festival-meta';
+import { getFestivalMeta, getContactFormUrl } from './festival-meta';
 import { cms } from './cms';
 
 vi.mock('./cms', () => ({
@@ -126,29 +122,5 @@ describe('getContactFormUrl', () => {
     } as never);
 
     expect(await getContactFormUrl()).toBeNull();
-  });
-});
-
-describe('getParkingEnabled', () => {
-  it.each([
-    [true, true],
-    [false, false],
-    [null, false],
-    [undefined, false],
-  ])('parking_enabled=%s なら成功値 %s を返す', async (flag, expected) => {
-    vi.mocked(cms.findGlobal).mockResolvedValue({
-      ok: true,
-      value: { parking_enabled: flag },
-    } as never);
-
-    expect(await getParkingEnabled()).toEqual({ ok: true, value: expected });
-    expect(cms.findGlobal).toHaveBeenCalledWith('festival_meta');
-  });
-
-  it('取得失敗は非公開と区別して失敗で返す', async () => {
-    const failure = { ok: false, error: { kind: 'network', status: 0 } };
-    vi.mocked(cms.findGlobal).mockResolvedValue(failure as never);
-
-    expect(await getParkingEnabled()).toEqual(failure);
   });
 });
