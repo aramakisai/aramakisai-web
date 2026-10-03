@@ -1,11 +1,14 @@
-import type { ParkingLot as CmsParkingLot } from '@/cms-types';
+import type { ParkingStatus as CmsParkingStatus } from '@/cms-types';
 
-export type ParkingStatus = CmsParkingLot['status'];
+export type ParkingStatus = CmsParkingStatus['status'];
 
-export type ParkingLot = Pick<
-  CmsParkingLot,
-  'id' | 'name' | 'status' | 'updatedAt'
->;
+export interface ParkingLot {
+  readonly id: number;
+  readonly name: string;
+  readonly status: ParkingStatus;
+  /** 空き状況ドキュメントの更新時刻。駐車場名の編集では変わらない */
+  readonly updatedAt: string;
+}
 
 export interface ParkingSnapshot {
   readonly lots: readonly ParkingLot[];

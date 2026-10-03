@@ -2868,13 +2868,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "status": {
-          "name": "status",
-          "type": "enum_parking_lots_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
         "sort": {
           "name": "sort",
           "type": "numeric",
@@ -2929,6 +2922,112 @@
         }
       },
       "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.parking_statuses": {
+      "name": "parking_statuses",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "lot_id": {
+          "name": "lot_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "enum_parking_statuses_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "parking_statuses_lot_idx": {
+          "name": "parking_statuses_lot_idx",
+          "columns": [
+            {
+              "expression": "lot_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "parking_statuses_updated_at_idx": {
+          "name": "parking_statuses_updated_at_idx",
+          "columns": [
+            {
+              "expression": "updated_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "parking_statuses_created_at_idx": {
+          "name": "parking_statuses_created_at_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "parking_statuses_lot_id_parking_lots_id_fk": {
+          "name": "parking_statuses_lot_id_parking_lots_id_fk",
+          "tableFrom": "parking_statuses",
+          "tableTo": "parking_lots",
+          "columnsFrom": [
+            "lot_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -3526,6 +3625,12 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": false
+        },
+        "parking_statuses_id": {
+          "name": "parking_statuses_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -3768,6 +3873,21 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "payload_locked_documents_rels_parking_statuses_id_idx": {
+          "name": "payload_locked_documents_rels_parking_statuses_id_idx",
+          "columns": [
+            {
+              "expression": "parking_statuses_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -3946,6 +4066,19 @@
           "tableTo": "parking_lots",
           "columnsFrom": [
             "parking_lots_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "payload_locked_documents_rels_parking_statuses_fk": {
+          "name": "payload_locked_documents_rels_parking_statuses_fk",
+          "tableFrom": "payload_locked_documents_rels",
+          "tableTo": "parking_statuses",
+          "columnsFrom": [
+            "parking_statuses_id"
           ],
           "columnsTo": [
             "id"
@@ -4869,8 +5002,8 @@
         "draft"
       ]
     },
-    "public.enum_parking_lots_status": {
-      "name": "enum_parking_lots_status",
+    "public.enum_parking_statuses_status": {
+      "name": "enum_parking_statuses_status",
       "schema": "public",
       "values": [
         "available",
@@ -4913,6 +5046,6 @@
     "tables": {},
     "columns": {}
   },
-  "id": "9d790849-75e3-45f0-a0d6-ad546246ab5b",
+  "id": "f6e4a9ba-d516-41dd-9a13-593df6681f02",
   "prevId": "00000000-0000-0000-0000-000000000000"
 }

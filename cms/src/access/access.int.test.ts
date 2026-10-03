@@ -23,6 +23,7 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
   let assign2Record: number | undefined;
   let image: { id: number };
   let parkingLot: { id: number };
+  let parkingStatus: { id: number };
   let workdir: string;
 
   const ownerIdOf = (value: unknown) =>
@@ -85,7 +86,12 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
     publishedRecord = await createExhibition(publishedOwner.id, `published-${suffix}`, 'published');
     parkingLot = (await payload.create({
       collection: 'parking_lots',
-      data: { name: `parking-${suffix}`, status: 'available' },
+      data: { name: `parking-${suffix}` },
+      overrideAccess: true,
+    })) as { id: number };
+    parkingStatus = (await payload.create({
+      collection: 'parking_statuses',
+      data: { lot: parkingLot.id, status: 'available' },
       overrideAccess: true,
     })) as { id: number };
   });
@@ -465,52 +471,122 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
 
   describe('駐車場', () => {
     it('未認証でも読み取れる', async () => {
-      const result = await payload.find({ collection: 'parking_lots', overrideAccess: false, pagination: false });
-      expect(result.docs.map((doc) => doc.id)).toContain(parkingLot.id);
+      const lots = await payload.find({ collection: 'parking_lots', overrideAccess: false, pagination: false });
+      expect(lots.docs.map((doc) => doc.id)).toContain(parkingLot.id);
+      const statuses = await payload.find({
+        collection: 'parking_statuses',
+        overrideAccess: false,
+        pagination: false,
+      });
+      expect(statuses.docs.map((doc) => doc.id)).toContain(parkingStatus.id);
     });
 
     it('未認証は作成・更新・削除できない', async () => {
       await expect(
+        payload.create({ collection: 'parking_lots', data: { name: `anon-${suffix}` }, overrideAccess: false }),
+      ).rejects.toThrow();
+      await expect(
+        payload.update({ collection: 'parking_lots', id: parkingLot.id, data: { name: 'x' }, overrideAccess: false }),
+      ).rejects.toThrow();
+      await expect(
+        payload.delete({ collection: 'parking_lots', id: parkingLot.id, overrideAccess: false }),
+      ).rejects.toThrow();
+      await expect(
         payload.create({
-          collection: 'parking_lots',
-          data: { name: `anon-${suffix}`, status: 'full' },
+          collection: 'parking_statuses',
+          data: { lot: parkingLot.id, status: 'full' },
           overrideAccess: false,
         }),
       ).rejects.toThrow();
       await expect(
         payload.update({
-          collection: 'parking_lots',
-          id: parkingLot.id,
+          collection: 'parking_statuses',
+          id: parkingStatus.id,
           data: { status: 'full' },
           overrideAccess: false,
         }),
       ).rejects.toThrow();
       await expect(
-        payload.delete({ collection: 'parking_lots', id: parkingLot.id, overrideAccess: false }),
+        payload.delete({ collection: 'parking_statuses', id: parkingStatus.id, overrideAccess: false }),
       ).rejects.toThrow();
     });
 
     it('学生団体は作成・更新・削除できない', async () => {
       const user = await asOwner();
       await expect(
-        payload.create({
-          collection: 'parking_lots',
-          data: { name: `student-${suffix}`, status: 'full' },
-          overrideAccess: false,
-          user,
-        }),
+        payload.create({ collection: 'parking_lots', data: { name: `student-${suffix}` }, overrideAccess: false, user }),
       ).rejects.toThrow();
       await expect(
         payload.update({
           collection: 'parking_lots',
           id: parkingLot.id,
-          data: { status: 'full' },
+          data: { name: 'x' },
           overrideAccess: false,
           user,
         }),
       ).rejects.toThrow();
       await expect(
         payload.delete({ collection: 'parking_lots', id: parkingLot.id, overrideAccess: false, user }),
+      ).rejects.toThrow();
+      await expect(
+        payload.create({
+          collection: 'parking_statuses',
+          data: { lot: parkingLot.id, status: 'full' },
+          overrideAccess: false,
+          user,
+        }),
+      ).rejects.toThrow();
+      await expect(
+        payload.update({
+          collection: 'parking_statuses',
+          id: parkingStatus.id,
+          data: { status: 'full' },
+          overrideAccess: false,
+          user,
+        }),
+      ).rejects.toThrow();
+      await expect(
+        payload.delete({ collection: 'parking_statuses', id: parkingStatus.id, overrideAccess: false, user }),
+      ).rejects.toThrow();
+    });
+
+    it('実行委員が空き状況を更新しても lot は変わらない', async () => {
+      const user = await asUser(executive.id);
+      const another = (await payload.create({
+        collection: 'parking_lots',
+        data: { name: `another-${suffix}` },
+        overrideAccess: true,
+      })) as { id: number };
+      try {
+        const updated = await payload.update({
+          collection: 'parking_statuses',
+          id: parkingStatus.id,
+          data: { lot: another.id, status: 'crowded' },
+          overrideAccess: false,
+          user,
+          depth: 0,
+        });
+        expect(updated.status).toBe('crowded');
+        expect(updated.lot).toBe(parkingLot.id);
+      } finally {
+        await payload.delete({ collection: 'parking_lots', id: another.id, overrideAccess: true });
+      }
+    });
+
+    it('駐車場を削除すると空き状況も削除される', async () => {
+      const lot = (await payload.create({
+        collection: 'parking_lots',
+        data: { name: `cascade-${suffix}` },
+        overrideAccess: true,
+      })) as { id: number };
+      const status = (await payload.create({
+        collection: 'parking_statuses',
+        data: { lot: lot.id, status: 'full' },
+        overrideAccess: true,
+      })) as { id: number };
+      await payload.delete({ collection: 'parking_lots', id: lot.id, overrideAccess: true });
+      await expect(
+        payload.findByID({ collection: 'parking_statuses', id: status.id, overrideAccess: true }),
       ).rejects.toThrow();
     });
   });

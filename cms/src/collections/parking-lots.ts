@@ -5,9 +5,22 @@ export const ParkingLots: CollectionConfig = {
   labels: { singular: '駐車場', plural: '駐車場' },
   admin: {
     useAsTitle: 'name',
-    defaultColumns: ['name', 'status', 'updatedAt'],
+    defaultColumns: ['name', 'sort'],
   },
   defaultSort: 'sort',
+  hooks: {
+    beforeDelete: [
+      async ({ req, id }) => {
+        // 参照先を失った空き状況が公開 API に残らないようにする
+        await req.payload.delete({
+          collection: 'parking_statuses',
+          where: { lot: { equals: id } },
+          overrideAccess: true,
+          req,
+        });
+      },
+    ],
+  },
   fields: [
     {
       name: 'name',
@@ -15,18 +28,6 @@ export const ParkingLots: CollectionConfig = {
       required: true,
       maxLength: 255,
       label: '名称',
-    },
-    {
-      // 既定値を持たせると、登録直後に未確認の「空き」が公開されてしまう
-      name: 'status',
-      type: 'select',
-      required: true,
-      label: '空き状況',
-      options: [
-        { label: '空き', value: 'available' },
-        { label: '混雑', value: 'crowded' },
-        { label: '満車', value: 'full' },
-      ],
     },
     {
       name: 'sort',

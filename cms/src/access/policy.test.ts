@@ -169,8 +169,10 @@ describe('isHiddenInAdmin', () => {
   });
 
   it('駐車場は学生団体には隠し、実行委員には表示する', () => {
-    expect(isHiddenInAdmin(exhibitor, 'parking_lots')).toBe(true);
-    expect(isHiddenInAdmin(executive, 'parking_lots')).toBe(false);
+    for (const slug of ['parking_lots', 'parking_statuses']) {
+      expect(isHiddenInAdmin(exhibitor, slug)).toBe(true);
+      expect(isHiddenInAdmin(executive, slug)).toBe(false);
+    }
   });
 
   it('未認証にも学生企画とメディア以外を隠す (管理画面には来ないが安全側に倒す)', () => {
