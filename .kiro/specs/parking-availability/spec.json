@@ -1,9 +1,9 @@
 {
-  "feature_name": "campus-map",
+  "feature_name": "parking-availability",
   "created_at": "2026-09-01T12:57:22Z",
-  "updated_at": "2026-10-04T12:00:00+09:00",
+  "updated_at": "2026-10-02T00:00:00Z",
   "language": "ja",
-  "phase": "completed",
+  "phase": "implementation",
   "approvals": {
     "requirements": {
       "generated": true,

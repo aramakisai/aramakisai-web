@@ -79,6 +79,8 @@ export interface Config {
     stages: Stage;
     performance_slots: PerformanceSlot;
     student_exhibitions: StudentExhibition;
+    parking_lots: ParkingLot;
+    parking_statuses: ParkingStatus;
     'payload-kv': PayloadKv;
     'payload-jobs': PayloadJob;
     'payload-locked-documents': PayloadLockedDocument;
@@ -103,6 +105,8 @@ export interface Config {
     stages: StagesSelect<false> | StagesSelect<true>;
     performance_slots: PerformanceSlotsSelect<false> | PerformanceSlotsSelect<true>;
     student_exhibitions: StudentExhibitionsSelect<false> | StudentExhibitionsSelect<true>;
+    parking_lots: ParkingLotsSelect<false> | ParkingLotsSelect<true>;
+    parking_statuses: ParkingStatusesSelect<false> | ParkingStatusesSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -654,6 +658,28 @@ export interface StudentExhibition {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "parking_lots".
+ */
+export interface ParkingLot {
+  id: number;
+  name: string;
+  sort?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "parking_statuses".
+ */
+export interface ParkingStatus {
+  id: number;
+  lot: number | ParkingLot;
+  status?: ('available' | 'crowded' | 'full') | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -815,6 +841,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'student_exhibitions';
         value: number | StudentExhibition;
+      } | null)
+    | ({
+        relationTo: 'parking_lots';
+        value: number | ParkingLot;
+      } | null)
+    | ({
+        relationTo: 'parking_statuses';
+        value: number | ParkingStatus;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -1127,6 +1161,26 @@ export interface StudentExhibitionsSelect<T extends boolean = true> {
         booth_number?: T;
         booth_label?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "parking_lots_select".
+ */
+export interface ParkingLotsSelect<T extends boolean = true> {
+  name?: T;
+  sort?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "parking_statuses_select".
+ */
+export interface ParkingStatusesSelect<T extends boolean = true> {
+  lot?: T;
+  status?: T;
   updatedAt?: T;
   createdAt?: T;
 }

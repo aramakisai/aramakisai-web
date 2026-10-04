@@ -79,17 +79,24 @@ export function buildQueryString(query: {
 
 // Workers から CMS オリジンへの往復が TTFB の主因のため、公開 GET を Cache API に短期間保持する。
 // request() は認証ヘッダも cookie も付けない公開リクエストだけを扱うので全呼び出しが対象になる。
-const CACHE_TTL_SECONDS = 60;
+const DEFAULT_CACHE_TTL_SECONDS = 60;
+
+export type CmsFetchOptions = { readonly ttlSeconds?: number };
 
 function getEdgeCache(): Cache | undefined {
   if (typeof caches === 'undefined') return undefined;
   return (caches as unknown as { default?: Cache }).default;
 }
 
-async function cachedFetch(url: string): Promise<Response> {
+async function cachedFetch(url: string, ttlSeconds: number): Promise<Response> {
   const cache = getEdgeCache();
   if (!cache) return fetch(url);
-  const key = new Request(url);
+  // キャッシュキーは URL のみなので、既定外の TTL は別キーにして同じクエリを別 TTL と共有しない
+  const key = new Request(
+    ttlSeconds === DEFAULT_CACHE_TTL_SECONDS
+      ? url
+      : `${url}${url.includes('?') ? '&' : '?'}__cache_ttl=${ttlSeconds}`,
+  );
   const hit = await cache.match(key);
   if (hit) return hit;
   const response = await fetch(url);
@@ -97,7 +104,7 @@ async function cachedFetch(url: string): Promise<Response> {
     try {
       const { getCloudflareContext } = await import('@opennextjs/cloudflare');
       const stored = new Response(response.clone().body, response);
-      stored.headers.set('Cache-Control', `s-maxage=${CACHE_TTL_SECONDS}`);
+      stored.headers.set('Cache-Control', `s-maxage=${ttlSeconds}`);
       getCloudflareContext().ctx.waitUntil(cache.put(key, stored));
     } catch {
       // waitUntil を取れない環境では保存を諦める (応答自体は返す)
@@ -106,9 +113,15 @@ async function cachedFetch(url: string): Promise<Response> {
   return response;
 }
 
-async function request<T>(path: string): Promise<CmsResult<T>> {
+async function request<T>(
+  path: string,
+  ttlSeconds = DEFAULT_CACHE_TTL_SECONDS,
+): Promise<CmsResult<T>> {
   try {
-    const response = await cachedFetch(`${env.NEXT_PUBLIC_CMS_URL}${path}`);
+    const response = await cachedFetch(
+      `${env.NEXT_PUBLIC_CMS_URL}${path}`,
+      ttlSeconds,
+    );
     if (!response.ok) {
       if (response.status === 404)
         return { ok: false, error: { kind: 'not_found' } };
@@ -131,9 +144,11 @@ export const cms = {
   findMany<K extends CmsCollectionSlug>(
     collection: K,
     query: CmsQuery<CmsCollections[K]>,
+    options: CmsFetchOptions = {},
   ): Promise<CmsResult<CmsListResponse<CmsCollections[K]>>> {
     return request(
       withQuery(`/api/${String(collection)}`, buildQueryString(query)),
+      options.ttlSeconds,
     );
   },
 

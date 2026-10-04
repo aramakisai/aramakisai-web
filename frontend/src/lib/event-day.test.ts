@@ -6,6 +6,7 @@ import {
   formatEventDaysSummary,
   formatEventDayTime,
   getDaysUntilEventDay,
+  isEventDay,
   toJstDateKey,
   toEventDays,
 } from './event-day';
@@ -148,5 +149,40 @@ describe('toJstDateKey', () => {
   it('JSTの暦日をYYYY-MM-DDにする', () => {
     expect(toJstDateKey('2026-11-14T14:59:59.000Z')).toBe('2026-11-14');
     expect(toJstDateKey('2026-11-14T15:00:00.000Z')).toBe('2026-11-15');
+  });
+});
+
+describe('isEventDay', () => {
+  const days = [
+    {
+      label: null,
+      startAt: '2026-11-14T10:00:00+09:00',
+      endAt: '2026-11-14T17:30:00+09:00',
+    },
+  ];
+
+  it.each([
+    ['前日 23:59 (JST)', '2026-11-13T23:59:00+09:00', false],
+    ['当日 00:00 (JST)', '2026-11-14T00:00:00+09:00', true],
+    ['当日 23:59 (JST)', '2026-11-14T23:59:00+09:00', true],
+    ['翌日 00:00 (JST)', '2026-11-15T00:00:00+09:00', false],
+  ])('%s は %s', (_, now, expected) => {
+    expect(isEventDay(days, new Date(now))).toBe(expected);
+  });
+
+  it('開催日が空なら偽', () => {
+    expect(isEventDay([], new Date('2026-11-14T12:00:00+09:00'))).toBe(false);
+  });
+
+  it('複数日のいずれかに一致すれば真', () => {
+    const two = [
+      ...days,
+      {
+        label: null,
+        startAt: '2026-11-15T10:00:00+09:00',
+        endAt: '2026-11-15T16:30:00+09:00',
+      },
+    ];
+    expect(isEventDay(two, new Date('2026-11-15T09:00:00+09:00'))).toBe(true);
   });
 });

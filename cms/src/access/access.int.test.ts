@@ -22,6 +22,8 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
   let assign1Record: number | undefined;
   let assign2Record: number | undefined;
   let image: { id: number };
+  let parkingLot: { id: number };
+  let parkingStatus: { id: number };
   let workdir: string;
 
   const ownerIdOf = (value: unknown) =>
@@ -82,6 +84,24 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
     ownRecord = await createExhibition(owner.id, `own-${suffix}`, 'draft');
     otherRecord = await createExhibition(other.id, `other-${suffix}`, 'draft');
     publishedRecord = await createExhibition(publishedOwner.id, `published-${suffix}`, 'published');
+    parkingLot = (await payload.create({
+      collection: 'parking_lots',
+      data: { name: `parking-${suffix}` },
+      overrideAccess: true,
+    })) as { id: number };
+    parkingStatus = (
+      await payload.find({
+        collection: 'parking_statuses',
+        where: { lot: { equals: parkingLot.id } },
+        overrideAccess: true,
+      })
+    ).docs[0] as { id: number };
+    await payload.update({
+      collection: 'parking_statuses',
+      id: parkingStatus.id,
+      data: { status: 'available' },
+      overrideAccess: true,
+    });
   });
 
   afterAll(async () => {
@@ -98,6 +118,11 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
       if (id) {
         await payload.delete({ collection: 'users', id, overrideAccess: true }).catch(() => null);
       }
+    }
+    if (parkingLot?.id) {
+      await payload
+        .delete({ collection: 'parking_lots', id: parkingLot.id, overrideAccess: true })
+        .catch(() => null);
     }
     if (image?.id) {
       await payload.delete({ collection: 'media', id: image.id, overrideAccess: true }).catch(() => null);
@@ -448,6 +473,178 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
           overrideAccess: false,
           user: await asOwner(),
         }),
+      ).rejects.toThrow();
+    });
+  });
+
+  describe('駐車場', () => {
+    it('未認証でも読み取れる', async () => {
+      const lots = await payload.find({ collection: 'parking_lots', overrideAccess: false, pagination: false });
+      expect(lots.docs.map((doc) => doc.id)).toContain(parkingLot.id);
+      const statuses = await payload.find({
+        collection: 'parking_statuses',
+        overrideAccess: false,
+        pagination: false,
+      });
+      expect(statuses.docs.map((doc) => doc.id)).toContain(parkingStatus.id);
+    });
+
+    it('未認証は作成・更新・削除できない', async () => {
+      await expect(
+        payload.create({ collection: 'parking_lots', data: { name: `anon-${suffix}` }, overrideAccess: false }),
+      ).rejects.toThrow();
+      await expect(
+        payload.update({ collection: 'parking_lots', id: parkingLot.id, data: { name: 'x' }, overrideAccess: false }),
+      ).rejects.toThrow();
+      await expect(
+        payload.delete({ collection: 'parking_lots', id: parkingLot.id, overrideAccess: false }),
+      ).rejects.toThrow();
+      await expect(
+        payload.create({
+          collection: 'parking_statuses',
+          data: { lot: parkingLot.id, status: 'full' },
+          overrideAccess: false,
+        }),
+      ).rejects.toThrow();
+      await expect(
+        payload.update({
+          collection: 'parking_statuses',
+          id: parkingStatus.id,
+          data: { status: 'full' },
+          overrideAccess: false,
+        }),
+      ).rejects.toThrow();
+      await expect(
+        payload.delete({ collection: 'parking_statuses', id: parkingStatus.id, overrideAccess: false }),
+      ).rejects.toThrow();
+    });
+
+    it('学生団体は作成・更新・削除できない', async () => {
+      const user = await asOwner();
+      await expect(
+        payload.create({ collection: 'parking_lots', data: { name: `student-${suffix}` }, overrideAccess: false, user }),
+      ).rejects.toThrow();
+      await expect(
+        payload.update({
+          collection: 'parking_lots',
+          id: parkingLot.id,
+          data: { name: 'x' },
+          overrideAccess: false,
+          user,
+        }),
+      ).rejects.toThrow();
+      await expect(
+        payload.delete({ collection: 'parking_lots', id: parkingLot.id, overrideAccess: false, user }),
+      ).rejects.toThrow();
+      await expect(
+        payload.create({
+          collection: 'parking_statuses',
+          data: { lot: parkingLot.id, status: 'full' },
+          overrideAccess: false,
+          user,
+        }),
+      ).rejects.toThrow();
+      await expect(
+        payload.update({
+          collection: 'parking_statuses',
+          id: parkingStatus.id,
+          data: { status: 'full' },
+          overrideAccess: false,
+          user,
+        }),
+      ).rejects.toThrow();
+      await expect(
+        payload.delete({ collection: 'parking_statuses', id: parkingStatus.id, overrideAccess: false, user }),
+      ).rejects.toThrow();
+    });
+
+    it('実行委員が空き状況を更新しても lot は変わらない', async () => {
+      const user = await asUser(executive.id);
+      const another = (await payload.create({
+        collection: 'parking_lots',
+        data: { name: `another-${suffix}` },
+        overrideAccess: true,
+      })) as { id: number };
+      try {
+        const updated = await payload.update({
+          collection: 'parking_statuses',
+          id: parkingStatus.id,
+          data: { lot: another.id, status: 'crowded' },
+          overrideAccess: false,
+          user,
+          depth: 0,
+        });
+        expect(updated.status).toBe('crowded');
+        expect(updated.lot).toBe(parkingLot.id);
+      } finally {
+        await payload.delete({ collection: 'parking_lots', id: another.id, overrideAccess: true });
+      }
+    });
+
+    it('駐車場を作ると空き状況が 1 件自動作成される', async () => {
+      const lot = (await payload.create({
+        collection: 'parking_lots',
+        data: { name: `auto-${suffix}` },
+        overrideAccess: false,
+        user: await asUser(executive.id),
+      })) as { id: number };
+      try {
+        const found = await payload.find({
+          collection: 'parking_statuses',
+          where: { lot: { equals: lot.id } },
+          overrideAccess: true,
+          depth: 0,
+        });
+        expect(found.totalDocs).toBe(1);
+        expect(found.docs[0].status).toBeNull();
+      } finally {
+        await payload.delete({ collection: 'parking_lots', id: lot.id, overrideAccess: true });
+      }
+    });
+
+    it('実行委員でも空き状況を直接作成・削除できない', async () => {
+      const user = await asUser(executive.id);
+      await expect(
+        payload.create({
+          collection: 'parking_statuses',
+          data: { lot: parkingLot.id, status: 'full' },
+          overrideAccess: false,
+          user,
+        }),
+      ).rejects.toThrow();
+      await expect(
+        payload.delete({ collection: 'parking_statuses', id: parkingStatus.id, overrideAccess: false, user }),
+      ).rejects.toThrow();
+    });
+
+    it('実行委員は status を null に戻せない', async () => {
+      await expect(
+        payload.update({
+          collection: 'parking_statuses',
+          id: parkingStatus.id,
+          data: { status: null },
+          overrideAccess: false,
+          user: await asUser(executive.id),
+        }),
+      ).rejects.toThrow();
+    });
+
+    it('駐車場を削除すると空き状況も削除される', async () => {
+      const lot = (await payload.create({
+        collection: 'parking_lots',
+        data: { name: `cascade-${suffix}` },
+        overrideAccess: true,
+      })) as { id: number };
+      const status = (
+        await payload.find({
+          collection: 'parking_statuses',
+          where: { lot: { equals: lot.id } },
+          overrideAccess: true,
+        })
+      ).docs[0] as { id: number };
+      await payload.delete({ collection: 'parking_lots', id: lot.id, overrideAccess: true });
+      await expect(
+        payload.findByID({ collection: 'parking_statuses', id: status.id, overrideAccess: true }),
       ).rejects.toThrow();
     });
   });

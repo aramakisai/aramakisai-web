@@ -36,6 +36,7 @@ export const PRE_EVENT_PUBLIC_PATHS: readonly string[] = [
   '/guidelines',
   '/info-desk',
   '/waste',
+  '/parking',
   '/faq',
   '/sponsors/ad',
   '/sponsors/local',

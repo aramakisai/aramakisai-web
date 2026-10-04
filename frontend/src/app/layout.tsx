@@ -43,12 +43,14 @@ const MATERIAL_SYMBOLS_ICON_NAMES = [
   'menu',
   'open_in_new',
   'parking_sign',
+  'history',
   'pause',
   'play_arrow',
   'play_circle',
   'schedule',
   'search',
   'share',
+  'sync_problem',
   'wc',
 ].join(',');
 const MATERIAL_SYMBOLS_HREF = `https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp:opsz,wght,FILL,GRAD@24,300,0..1,0&icon_names=${MATERIAL_SYMBOLS_ICON_NAMES}&display=block`;

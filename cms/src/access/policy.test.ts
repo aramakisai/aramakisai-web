@@ -168,8 +168,24 @@ describe('isHiddenInAdmin', () => {
     expect(isHiddenInAdmin(exhibitor, 'festival_meta')).toBe(true);
   });
 
+  it('駐車場は学生団体には隠し、実行委員には表示する', () => {
+    for (const slug of ['parking_lots', 'parking_statuses']) {
+      expect(isHiddenInAdmin(exhibitor, slug)).toBe(true);
+      expect(isHiddenInAdmin(executive, slug)).toBe(false);
+    }
+  });
+
   it('未認証にも学生企画とメディア以外を隠す (管理画面には来ないが安全側に倒す)', () => {
     expect(isHiddenInAdmin(null, 'users')).toBe(true);
     expect(isHiddenInAdmin(null, 'student_exhibitions')).toBe(false);
+  });
+});
+
+describe('parking_statuses', () => {
+  it('実行委員でも作成・削除できず、更新は実行委員のみ', () => {
+    expect(canCreate(executive, 'parking_statuses')).toBe(false);
+    expect(canDelete(executive, 'parking_statuses')).toBe(false);
+    expect(canUpdate(executive, 'parking_statuses')).toBe(true);
+    expect(canUpdate(null, 'parking_statuses')).toBe(false);
   });
 });
