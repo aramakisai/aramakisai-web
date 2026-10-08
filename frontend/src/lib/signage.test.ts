@@ -151,6 +151,18 @@ describe('buildPlaylist', () => {
     expect(list.map((e) => e.key)).toEqual(['1:0', '2:0']);
   });
 
+  it('固定スライドが表示できる内容を持たない(0ページ)なら通常の巡回に戻る', () => {
+    const list = buildPlaylist(
+      snapshot({
+        pinnedSlideId: 3,
+        slides: [slide(1, 'parking'), slide(3, 'lost_items')],
+        lostItems: [],
+      }),
+      NOW,
+    );
+    expect(list.map((e) => e.key)).toEqual(['1:0']);
+  });
+
   it('固定スライドが複数ページなら全ページを巡回する', () => {
     const list = buildPlaylist(
       snapshot({
@@ -205,19 +217,6 @@ describe('buildPlaylist', () => {
     expect(
       buildPlaylist(
         snapshot({ slides: [slide(1, 'timetable')], timetable: t }),
-        NOW,
-      ),
-    ).toEqual([]);
-  });
-
-  it('固定スライドが空なら何も出さない', () => {
-    expect(
-      buildPlaylist(
-        snapshot({
-          pinnedSlideId: 1,
-          slides: [slide(1, 'sponsors'), slide(2, 'parking')],
-          sponsors: [],
-        }),
         NOW,
       ),
     ).toEqual([]);

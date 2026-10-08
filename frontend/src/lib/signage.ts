@@ -226,20 +226,22 @@ function pageCount(
   }
 }
 
-/** pinnedSlideIdが有効スライドを指せばその1枚のページだけ、無ければ有効スライドを順に。空の自動スライドは除く */
+/** pinnedSlideIdが有効スライドを指し、かつ表示できるページがあればその1枚のページだけ、無ければ有効スライドを順に。空の自動スライドは除く */
 export function buildPlaylist(
   snapshot: SignageSnapshot,
   now: Date,
 ): readonly PlaylistEntry[] {
+  const entriesOf = (slides: readonly SignageSlide[]) =>
+    slides.flatMap((slide) =>
+      Array.from({ length: pageCount(slide, snapshot, now) }, (_, page) => ({
+        key: `${slide.id}:${page}`,
+        slide,
+        page,
+      })),
+    );
   const pinned = snapshot.slides.find((s) => s.id === snapshot.pinnedSlideId);
-  const slides = pinned ? [pinned] : snapshot.slides;
-  return slides.flatMap((slide) =>
-    Array.from({ length: pageCount(slide, snapshot, now) }, (_, page) => ({
-      key: `${slide.id}:${page}`,
-      slide,
-      page,
-    })),
-  );
+  const pinnedEntries = pinned ? entriesOf([pinned]) : [];
+  return pinnedEntries.length > 0 ? pinnedEntries : entriesOf(snapshot.slides);
 }
 
 /** 表示秒数の合計を周期として、nowMs mod 周期から現在の項目と項目内の経過を返す。周期が0ならnull */
