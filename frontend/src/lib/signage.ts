@@ -1,7 +1,12 @@
 import type { Attachment, EventDay } from '@/lib/home-page-types';
 import type { ParkingResponse } from '@/lib/parking';
-import type { Timetable } from '@/lib/timetable';
-import { getDaysUntilEventDay, toJstDateKey } from './event-day';
+import type {
+  Timetable,
+  TimetablePerformance,
+  TimetableStage,
+} from '@/lib/timetable';
+import { isPerformanceActive } from '@/lib/timetable';
+import { getDaysUntilEventDay, toJstDateKey, toJstParts } from './event-day';
 
 /** 向きで変わるのはキャンバス寸法だけで、ページ分割・時間窓の定数は向きに依らない */
 export type SignageOrientation = 'landscape' | 'portrait';
@@ -224,4 +229,79 @@ export function buildPlaylist(
       page,
     })),
   );
+}
+
+export interface StageNowRow {
+  readonly stage: TimetableStage;
+  readonly colorIndex: number;
+  /** 出演中の公演。無ければnull (「公演なし」) */
+  readonly performance: TimetablePerformance | null;
+}
+
+/** 重なる出演中枠は開始の遅い方(後から始まった公演)を出す */
+export function stageNow(
+  timetable: Timetable,
+  now: Date,
+): readonly StageNowRow[] {
+  return timetable.stages.map((stage, colorIndex) => {
+    const active = timetable.performances.filter(
+      (p) => p.stageId === stage.id && isPerformanceActive(p.slot, now),
+    );
+    const performance = active.reduce<TimetablePerformance | null>(
+      (latest, p) =>
+        latest === null || p.slot.startAt >= latest.slot.startAt ? p : latest,
+      null,
+    );
+    return { stage, colorIndex, performance };
+  });
+}
+
+export interface TimetableWindow {
+  /** JSTの分(0〜1439) */
+  readonly startMinute: number;
+  readonly endMinute: number;
+}
+
+const WINDOW_MINUTES = 240;
+const WINDOW_STEP = 30;
+
+function jstMinutes(iso: string): number {
+  const { hours, minutes } = toJstParts(iso);
+  return hours * 60 + minutes;
+}
+
+/** 幅は4時間(240分)。開始 = floor30(now − 幅/2) を当日の公演範囲 (時単位に丸め) 内へ寄せる */
+export function timetableWindow(
+  dayPerformances: readonly TimetablePerformance[],
+  now: Date,
+): TimetableWindow {
+  let rangeStart = 0;
+  let rangeEnd = 24 * 60;
+  if (dayPerformances.length > 0) {
+    rangeStart =
+      Math.floor(
+        Math.min(...dayPerformances.map((p) => jstMinutes(p.slot.startAt))) /
+          60,
+      ) * 60;
+    rangeEnd =
+      Math.ceil(
+        Math.max(
+          ...dayPerformances.map((p) => {
+            const start = jstMinutes(p.slot.startAt);
+            const end = jstMinutes(p.slot.endAt);
+            return end > start ? end : end + 24 * 60;
+          }),
+        ) / 60,
+      ) * 60;
+  }
+  const raw =
+    Math.floor(
+      (jstMinutes(now.toISOString()) - WINDOW_MINUTES / 2) / WINDOW_STEP,
+    ) * WINDOW_STEP;
+  // 範囲が幅より短いときは範囲の先頭に合わせる
+  const startMinute = Math.max(
+    rangeStart,
+    Math.min(raw, rangeEnd - WINDOW_MINUTES),
+  );
+  return { startMinute, endMinute: startMinute + WINDOW_MINUTES };
 }

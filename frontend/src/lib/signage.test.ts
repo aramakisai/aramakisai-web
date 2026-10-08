@@ -4,6 +4,8 @@ import {
   eventDayIndex,
   paginateLostItems,
   paginateSponsors,
+  stageNow,
+  timetableWindow,
   type SignageSlide,
   type SignageSnapshot,
   type SignageSponsor,
@@ -262,5 +264,69 @@ describe('paginateSponsors', () => {
 
   it('0件は0ページ', () => {
     expect(paginateSponsors([])).toEqual([]);
+  });
+});
+
+describe('stageNow', () => {
+  const tt: Timetable = {
+    days: [],
+    stages: [
+      { id: 1, name: 'A' },
+      { id: 2, name: 'B' },
+    ],
+    performances: [
+      perf(1, 1, '10:00', '11:00'),
+      perf(2, 1, '10:30', '11:30'),
+      perf(3, 2, '12:00', '13:00'),
+    ],
+  };
+  const at = (t: string) => stageNow(tt, new Date(`2026-11-14T${t}:00+09:00`));
+
+  it('全ステージをタイムテーブル順に返し、公演が無ければ null', () => {
+    const rows = at('09:00');
+    expect(rows.map((r) => [r.stage.id, r.colorIndex, r.performance])).toEqual([
+      [1, 0, null],
+      [2, 1, null],
+    ]);
+  });
+
+  it('開始ちょうどは出演中、終了ちょうどは対象外', () => {
+    expect(at('12:00')[1].performance?.id).toBe(3);
+    expect(at('13:00')[1].performance).toBeNull();
+    expect(at('11:30')[0].performance).toBeNull();
+  });
+
+  it('重なる出演中枠は開始の遅い方', () => {
+    expect(at('10:45')[0].performance?.id).toBe(2);
+    expect(at('10:15')[0].performance?.id).toBe(1);
+  });
+});
+
+describe('timetableWindow', () => {
+  const day = [perf(1, 1, '10:00', '16:20'), perf(2, 1, '12:00', '13:00')];
+  const w = (t: string, ps = day) =>
+    timetableWindow(ps, new Date(`2026-11-14T${t}:00+09:00`));
+
+  it('現在時刻を中心に30分単位へ切り下げる', () => {
+    expect(w('13:10')).toEqual({ startMinute: 11 * 60, endMinute: 15 * 60 });
+  });
+
+  it('朝は範囲の先頭へ寄せる', () => {
+    expect(w('09:00')).toEqual({ startMinute: 10 * 60, endMinute: 14 * 60 });
+  });
+
+  it('夕方は範囲の末尾(時単位に切り上げ)へ寄せる', () => {
+    expect(w('20:00')).toEqual({ startMinute: 13 * 60, endMinute: 17 * 60 });
+  });
+
+  it('公演が無ければ丸一日を範囲にする', () => {
+    expect(w('00:10', [])).toEqual({ startMinute: 0, endMinute: 240 });
+  });
+
+  it('範囲が幅より短ければ先頭に合わせる', () => {
+    expect(w('12:00', [perf(1, 1, '11:00', '12:00')])).toEqual({
+      startMinute: 11 * 60,
+      endMinute: 15 * 60,
+    });
   });
 });
