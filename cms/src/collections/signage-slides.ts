@@ -28,7 +28,12 @@ export const SignageSlides: CollectionConfig = {
   slug: 'signage_slides',
   labels: { singular: 'サイネージ スライド', plural: 'サイネージ スライド' },
   orderable: true,
-  admin: { useAsTitle: 'title', defaultColumns: ['title', 'kind', 'enabled', 'pinned'] },
+  admin: {
+    useAsTitle: 'title',
+    defaultColumns: ['title', 'kind', 'enabled', 'pinned'],
+    // ドラッグ並べ替えはページをまたげないため、全件を1ページに収める
+    pagination: { defaultLimit: 100 },
+  },
   fields: [
     {
       name: 'kind',

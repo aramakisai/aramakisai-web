@@ -4,7 +4,12 @@ export const Telops: CollectionConfig = {
   slug: 'telops',
   labels: { singular: 'サイネージ テロップ', plural: 'サイネージ テロップ' },
   orderable: true,
-  admin: { useAsTitle: 'body', defaultColumns: ['body', 'audience', 'enabled'] },
+  admin: {
+    useAsTitle: 'body',
+    defaultColumns: ['body', 'audience', 'enabled'],
+    // ドラッグ並べ替えはページをまたげないため、全件を1ページに収める
+    pagination: { defaultLimit: 100 },
+  },
   fields: [
     {
       name: 'audience',
