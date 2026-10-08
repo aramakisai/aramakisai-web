@@ -37,13 +37,13 @@ export function ParkingSlide({
             </p>
             <div className="flex flex-col items-end gap-2">
               <div
-                className={`flex h-[72px] w-[160px] items-center justify-center rounded-[8px] text-[36px] leading-none font-bold ${BADGE[lot.status].style}`}
+                className={`flex h-[72px] w-[160px] items-center justify-center rounded-[8px] font-noto text-[36px] leading-none font-bold ${BADGE[lot.status].style}`}
               >
                 {BADGE[lot.status].label}
               </div>
               {lot.updatedAt && (
-                <p className="text-[24px] leading-none text-gray-600">
-                  {formatEventDayTime(lot.updatedAt)}更新
+                <p className="font-noto text-[24px] leading-none text-gray-600">
+                  {formatEventDayTime(lot.updatedAt)} 更新
                 </p>
               )}
             </div>

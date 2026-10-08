@@ -89,7 +89,7 @@ export function LayoutSlide({
 
   return (
     <div
-      className={`flex h-[864px] w-[1536px] flex-col overflow-hidden rounded-2xl p-16 ${bg}`}
+      className={`flex h-[864px] w-[1536px] flex-col overflow-hidden rounded-2xl p-16 font-display ${bg}`}
     >
       {body}
     </div>

@@ -7,7 +7,11 @@ import { STAGE_BAND_CLASSES } from '../timetable-stage-colors';
 
 export function SignageIcon({ name }: { readonly name: string }) {
   return (
-    <span aria-hidden="true" className="material-symbols-sharp font-light">
+    <span
+      aria-hidden="true"
+      className="material-symbols-sharp font-light"
+      style={{ fontSize: 'inherit' }}
+    >
       {name}
     </span>
   );
@@ -43,7 +47,7 @@ export function SignageStageChip({
 }) {
   return (
     <span
-      className={`inline-block whitespace-nowrap rounded-[4px] px-3 py-1 text-[24px] leading-none font-bold text-text ${STAGE_BAND_CLASSES[colorIndex % STAGE_BAND_CLASSES.length]}`}
+      className={`inline-block whitespace-nowrap rounded-[4px] px-3 py-1 font-noto text-[24px] leading-none font-bold text-text ${STAGE_BAND_CLASSES[colorIndex % STAGE_BAND_CLASSES.length]}`}
     >
       {name}
     </span>
@@ -62,7 +66,7 @@ export function SignageOfficialSite({
   readonly qrClass: string;
 }) {
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="flex w-full flex-col items-center gap-2">
       <p
         className={`font-display leading-none font-bold whitespace-nowrap text-text ${labelClass}`}
       >

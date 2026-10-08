@@ -140,7 +140,8 @@ function Slot({
         <>
           <span
             aria-hidden="true"
-            className="material-symbols-sharp text-[16px] leading-4 font-light"
+            className="material-symbols-sharp mt-px self-start leading-4 font-light"
+            style={{ fontSize: 16 }}
           >
             play_circle
           </span>
@@ -163,9 +164,10 @@ function Slot({
     </span>
   );
   return (
-    // 上下4px・左右8pxの余白は li の padding で取り、top/height は時間軸の目盛りそのものにする
+    // 上下4px・左右8pxの余白は li の padding で取り、top/height は時間軸の目盛りそのものにする。
+    // 左端を列の区切り線(border-l)に重ねて、枠の位置を区切り線から4pxにする
     <li
-      className="absolute inset-x-0 px-1 py-0.5"
+      className="absolute -left-px right-0 px-1 py-0.5"
       style={{
         top: (start - startMinute) * PX_PER_MINUTE,
         height: duration * PX_PER_MINUTE,

@@ -27,15 +27,15 @@ export function SignagePortraitInfo({ rows }: SignagePortraitInfoProps) {
               <div className="flex min-w-px flex-1 flex-col gap-1">
                 {performance ? (
                   <>
-                    <p className="line-clamp-2 text-[36px] leading-[48px] font-bold text-text">
+                    <p className="line-clamp-2 font-noto text-[36px] leading-[48px] font-bold text-text">
                       {performance.name}
                     </p>
-                    <p className="text-[28px] leading-[1.25] whitespace-nowrap text-gray-600">
+                    <p className="font-noto text-[28px] leading-[1.25] whitespace-nowrap text-gray-600">
                       {formatPerformanceRange(performance)}
                     </p>
                   </>
                 ) : (
-                  <p className="text-[36px] leading-[48px] font-bold text-gray-600">
+                  <p className="font-noto text-[36px] leading-[48px] font-bold text-gray-600">
                     公演なし
                   </p>
                 )}

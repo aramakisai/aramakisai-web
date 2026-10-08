@@ -17,14 +17,14 @@ export function SignageBusInfo({ boards }: SignageBusInfoProps) {
       <div className="flex items-center gap-2 text-[24px] leading-none whitespace-nowrap text-text portrait:text-[32px]">
         <SignageIcon name="directions_bus" />
         <span className="font-display font-bold">バス発車案内</span>
-        <span className="text-gray-600">荒牧キャンパスエリア</span>
+        <span className="font-noto text-gray-600">荒牧キャンパスエリア</span>
       </div>
       {boards.flatMap((board) =>
         board.departures.length === 0
           ? [
               <div
                 key={board.direction}
-                className="flex w-full items-center gap-3 text-[28px] leading-none font-bold text-gray-600 portrait:h-[64px]"
+                className="flex w-full items-center gap-3 font-noto text-[28px] leading-none font-bold text-gray-600 portrait:h-[64px]"
               >
                 {DIRECTION_LABEL[board.direction]}
                 <span>本日の運行は終了しました</span>
@@ -33,7 +33,7 @@ export function SignageBusInfo({ boards }: SignageBusInfoProps) {
           : board.departures.map((d) => (
               <div
                 key={`${board.direction}-${d.route}-${d.departAt}`}
-                className="flex w-full items-center gap-3 overflow-hidden portrait:h-[64px]"
+                className="flex h-9 w-full items-center gap-3 overflow-hidden font-noto portrait:h-[64px]"
               >
                 <span className="flex shrink-0 items-start justify-center rounded-[4px] bg-primary px-3 py-1 text-[24px] leading-none font-bold text-text portrait:w-[80px] portrait:text-[28px]">
                   {d.route}

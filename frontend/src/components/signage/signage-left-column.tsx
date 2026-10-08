@@ -45,15 +45,15 @@ export function SignageLeftColumn({
               <SignageStageChip colorIndex={colorIndex} name={stage.name} />
               {performance ? (
                 <>
-                  <p className="line-clamp-2 w-full text-[30px] leading-[1.25] font-bold text-text">
+                  <p className="line-clamp-2 w-full font-noto text-[30px] leading-[1.25] font-bold text-text">
                     {performance.name}
                   </p>
-                  <p className="text-[24px] leading-[1.25] whitespace-nowrap text-gray-600">
+                  <p className="font-noto text-[24px] leading-[1.25] whitespace-nowrap text-gray-600">
                     {formatPerformanceRange(performance)}
                   </p>
                 </>
               ) : (
-                <p className="text-[30px] leading-[1.25] font-bold text-gray-600">
+                <p className="font-noto text-[30px] leading-[1.25] font-bold text-gray-600">
                   公演なし
                 </p>
               )}

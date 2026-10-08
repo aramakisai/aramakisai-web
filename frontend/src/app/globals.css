@@ -471,6 +471,11 @@
     @apply bg-gray-100 font-bold;
   }
 
+  /* セル内の段落は本文の段落間余白を持たない (セルの padding だけで高さを決める) */
+  .rich-text-body .rt-table p {
+    @apply m-0;
+  }
+
   /*
    * サイネージ用 (Figma 905:773〜905:777)。遠目表示向けに文字を大きくする。
    * 公式サイト用と同じ特異度で後ろに置き上書きする。幅区分は画像枠の寸法だけを変える
@@ -542,17 +547,18 @@
   }
 
   .rich-text-body--signage .rt-callout::before {
-    font-size: 48px;
+    font-size: 32px;
     line-height: 48px;
   }
 
   .rich-text-body.rich-text-body--signage .rt-callout > p {
-    @apply text-[36px] leading-[1.5];
+    @apply text-[32px] leading-[1.5];
   }
 
   .rich-text-body--signage .rt-table > table {
     @apply border-l-2 border-t-2;
     min-width: 0;
+    table-layout: fixed;
   }
 
   .rich-text-body--signage .rt-table th,
@@ -562,6 +568,12 @@
 
   .rich-text-body--signage .rt-table td {
     @apply bg-background;
+  }
+
+  /* セル内の段落に本文の 36px が掛からないよう、セルの指定を継がせる */
+  .rich-text-body.rich-text-body--signage .rt-table p {
+    font-size: inherit;
+    line-height: inherit;
   }
 }
 
@@ -684,6 +696,7 @@ html[data-pl] .exhibition-gradient-bg::before {
     top: 224px;
     width: 1032px;
     height: 580.5px;
+    border-radius: 10.75px;
   }
 
   .signage-main {

@@ -32,5 +32,5 @@ test('状態が未設定の駐車場は出さず、設定済みは文字ラベ�
   expect(screen.queryByText('P7')).not.toBeInTheDocument();
   expect(screen.getByText('空き')).toHaveClass('bg-success');
   expect(screen.getByText('満車')).toHaveClass('bg-warning');
-  expect(screen.getAllByText('14:05更新')).toHaveLength(2);
+  expect(screen.getAllByText('14:05 更新')).toHaveLength(2);
 });
