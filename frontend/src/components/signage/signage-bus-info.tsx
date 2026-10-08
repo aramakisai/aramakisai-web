@@ -33,7 +33,7 @@ export function SignageBusInfo({ boards }: SignageBusInfoProps) {
           : board.departures.map((d) => (
               <div
                 key={`${board.direction}-${d.route}-${d.departAt}`}
-                className="flex h-9 w-full items-center gap-3 overflow-hidden font-noto portrait:h-[64px]"
+                className="flex h-9 w-full shrink-0 items-center gap-3 overflow-hidden font-noto portrait:h-[64px]"
               >
                 <span className="flex shrink-0 items-start justify-center rounded-[4px] bg-primary px-3 py-1 text-[24px] leading-none font-bold text-text portrait:w-[80px] portrait:text-[28px]">
                   {d.route}
