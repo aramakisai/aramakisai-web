@@ -30,6 +30,10 @@ vi.mock('react-leaflet', () => ({
   },
 }));
 
+vi.mock('./map-viewport-sync', () => ({
+  MapViewportSync: () => null,
+}));
+
 vi.mock('./area-polygon-layer', () => ({
   AreaPolygonLayer: (props: Record<string, unknown>) => {
     areaPolygonLayerProps.push(props);
@@ -86,7 +90,7 @@ describe('CampusMapView', () => {
     mockMatchMedia(false);
   });
 
-  it('中心・初期ズーム・ズーム範囲・表示範囲の上限を設定値から渡す', () => {
+  it('初期表示範囲・ズーム範囲・表示範囲の上限を設定値から渡し、ズームを連続的にする', () => {
     render(
       <CampusMapView
         areas={[]}
@@ -95,8 +99,9 @@ describe('CampusMapView', () => {
       />,
     );
     const props = mapContainerProps.at(-1)!;
-    expect(props.center).toEqual(CAMPUS_MAP_CONFIG.center);
-    expect(props.zoom).toBe(CAMPUS_MAP_CONFIG.initialZoom);
+    expect(props.bounds).toEqual(CAMPUS_MAP_CONFIG.campusBounds);
+    expect(props.zoomSnap).toBeLessThan(1);
+    expect(props.zoomDelta).toBeLessThan(1);
     expect(props.minZoom).toBe(CAMPUS_MAP_CONFIG.minZoom);
     expect(props.maxZoom).toBe(CAMPUS_MAP_CONFIG.maxZoom);
     expect(props.maxBounds).toEqual(CAMPUS_MAP_CONFIG.bounds);
@@ -138,6 +143,8 @@ describe('CampusMapView', () => {
     expect(props.bounds).toEqual(CAMPUS_MAP_CONFIG.bounds);
     expect(props.minZoom).toBe(CAMPUS_MAP_CONFIG.minZoom);
     expect(props.maxZoom).toBe(CAMPUS_MAP_CONFIG.maxZoom);
+    expect(props.minNativeZoom).toBe(CAMPUS_MAP_CONFIG.minNativeZoom);
+    expect(props.maxNativeZoom).toBe(CAMPUS_MAP_CONFIG.maxNativeZoom);
   });
 
   it('出典表記を常時表示する', () => {

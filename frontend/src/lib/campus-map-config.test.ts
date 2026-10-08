@@ -8,15 +8,12 @@ import {
 } from './campus-map-config';
 
 describe('CAMPUS_MAP_CONFIG', () => {
-  it('ズーム範囲は下限 16・上限 19 で、初期ズームがその範囲内にある', () => {
-    expect(CAMPUS_MAP_CONFIG.minZoom).toBe(16);
-    expect(CAMPUS_MAP_CONFIG.maxZoom).toBe(19);
-    expect(CAMPUS_MAP_CONFIG.initialZoom).toBeGreaterThanOrEqual(
-      CAMPUS_MAP_CONFIG.minZoom,
-    );
-    expect(CAMPUS_MAP_CONFIG.initialZoom).toBeLessThanOrEqual(
-      CAMPUS_MAP_CONFIG.maxZoom,
-    );
+  it('表示ズームはタイルの実在範囲を内包し、電子ズームできる上限を持つ', () => {
+    const c = CAMPUS_MAP_CONFIG;
+    expect(c.minNativeZoom).toBe(16);
+    expect(c.maxNativeZoom).toBe(19);
+    expect(c.minZoom).toBeLessThanOrEqual(c.minNativeZoom);
+    expect(c.maxZoom).toBeGreaterThan(c.maxNativeZoom);
   });
 
   it('bounds は南西・北東の順で、南 < 北・西 < 東 となる', () => {
@@ -25,13 +22,13 @@ describe('CAMPUS_MAP_CONFIG', () => {
     expect(west).toBeLessThan(east);
   });
 
-  it('center は bounds の範囲内にある', () => {
-    const [lat, lon] = CAMPUS_MAP_CONFIG.center;
+  it('campusBounds は bounds の範囲内にある', () => {
+    const [[s0, w0], [n0, e0]] = CAMPUS_MAP_CONFIG.campusBounds;
     const [[south, west], [north, east]] = CAMPUS_MAP_CONFIG.bounds;
-    expect(lat).toBeGreaterThanOrEqual(south);
-    expect(lat).toBeLessThanOrEqual(north);
-    expect(lon).toBeGreaterThanOrEqual(west);
-    expect(lon).toBeLessThanOrEqual(east);
+    expect(s0).toBeGreaterThanOrEqual(south);
+    expect(n0).toBeLessThanOrEqual(north);
+    expect(w0).toBeGreaterThanOrEqual(west);
+    expect(e0).toBeLessThanOrEqual(east);
   });
 
   it('tileUrlTemplate は z/x/y のプレースホルダーを含む', () => {

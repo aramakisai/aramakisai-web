@@ -35,7 +35,8 @@ export function ExhibitionLocationMapView({
   targetAreas,
   bounds,
 }: ExhibitionLocationMapViewProps) {
-  const { minZoom, maxZoom, tileUrlTemplate } = CAMPUS_MAP_CONFIG;
+  const { minZoom, maxZoom, minNativeZoom, maxNativeZoom, tileUrlTemplate } =
+    CAMPUS_MAP_CONFIG;
   // leaflet の型は mutable なタプルを要求するため、readonly な bounds をここでキャストする
   const initialBounds = [
     bounds.southWest,
@@ -66,6 +67,8 @@ export function ExhibitionLocationMapView({
           bounds={MAX_BOUNDS}
           minZoom={minZoom}
           maxZoom={maxZoom}
+          minNativeZoom={minNativeZoom}
+          maxNativeZoom={maxNativeZoom}
           attribution={MAP_ATTRIBUTION}
           errorTileUrl={TRANSPARENT_TILE_URL}
         />

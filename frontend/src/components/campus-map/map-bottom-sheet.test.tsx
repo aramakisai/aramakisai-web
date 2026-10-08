@@ -172,22 +172,26 @@ describe('MapBottomSheet', () => {
       });
       const sheet = getByTestId('map-bottom-sheet');
 
-      // 条件あり (filtered) の既定は「中」(380px)。折りたたみへは戻れない
-      expect(sheet.className).toMatch(/h-\[380px\]/);
+      // 条件あり (filtered) の既定は「標準」(380px)。折りたたみへは戻れない
+      expect(sheet.style.height).toBe('380px');
       expect(grabber).toHaveAttribute('aria-expanded', 'false');
 
       fireEvent.keyDown(grabber, { key: 'ArrowDown' });
-      expect(sheet.className).toMatch(/h-\[380px\]/);
+      expect(sheet.style.height).toBe('380px');
 
       fireEvent.keyDown(grabber, { key: 'ArrowUp' });
-      expect(sheet.className).toMatch(/h-\[55vh\]/);
+      expect(sheet.style.height).toBe('55vh');
       expect(grabber).toHaveAttribute('aria-expanded', 'true');
 
       fireEvent.keyDown(grabber, { key: 'ArrowUp' });
-      expect(sheet.className).toMatch(/h-\[55vh\]/);
+      expect(sheet.style.height).toMatch(/100dvh/);
+      expect(grabber).toHaveAccessibleName(/全画面/);
+
+      fireEvent.keyDown(grabber, { key: 'ArrowUp' });
+      expect(sheet.style.height).toMatch(/100dvh/);
 
       fireEvent.keyDown(grabber, { key: 'ArrowDown' });
-      expect(sheet.className).toMatch(/h-\[380px\]/);
+      expect(sheet.style.height).toBe('55vh');
     });
 
     it('lets Enter/Space toggle between the floor and one step up', () => {
@@ -199,18 +203,18 @@ describe('MapBottomSheet', () => {
       });
       const sheet = getByTestId('map-bottom-sheet');
 
-      expect(sheet.className).not.toMatch(/h-\[/);
+      expect(sheet.style.height).toBe('auto');
 
       fireEvent.keyDown(grabber, { key: 'Enter' });
-      expect(sheet.className).toMatch(/h-\[380px\]/);
+      expect(sheet.style.height).toBe('380px');
 
       fireEvent.keyDown(grabber, { key: ' ' });
-      expect(sheet.className).not.toMatch(/h-\[/);
+      expect(sheet.style.height).toBe('auto');
     });
 
     it('follows the pointer continuously while dragging and snaps to the nearest position on release', () => {
       mockMatchMedia(false);
-      window.innerHeight = 800; // 最大スナップ = 55vh = 440px
+      window.innerHeight = 800;
       const state: AreaExhibitionListState = {
         kind: 'filtered',
         areaName: 'Aゾーン',
@@ -227,21 +231,57 @@ describe('MapBottomSheet', () => {
       const rectSpy = vi
         .spyOn(sheet, 'getBoundingClientRect')
         .mockReturnValueOnce({ height: 380 } as DOMRect) // pointerdown: 開始高さ
-        .mockReturnValueOnce({ height: 1000 } as DOMRect); // pointerup: 離した時点の高さ
+        .mockReturnValueOnce({ height: 700 } as DOMRect); // pointerup: 離した時点の高さ
 
       firePointer(grabber, 'pointerdown', { clientY: 500 });
-      firePointer(grabber, 'pointermove', { clientY: 400 }); // 100px 上へドラッグ
+      // ドラッグ中は遷移を切って指に追従させる
+      expect(sheet.style.transition).toBe('none');
+      firePointer(grabber, 'pointermove', { clientY: 100 }); // 400px 上へドラッグ
 
-      // 380 + 100 = 480 は上限 440 でクランプされ、連続して追従する
-      expect(sheet.style.height).toBe('440px');
+      // 380 + 400 = 780 (全画面 800 未満) をそのまま反映する
+      expect(sheet.style.height).toBe('780px');
 
-      firePointer(grabber, 'pointerup', { clientY: 400 });
+      firePointer(grabber, 'pointerup', { clientY: 100 });
 
-      // 離した高さ (1000) は 440 (最大) に最も近いのでそこへスナップする
-      expect(sheet.style.height).toBe('');
-      expect(sheet.className).toMatch(/h-\[55vh\]/);
+      // 700 は 440 (大) より 800 (全画面) に近い
+      expect(sheet.style.transition).toBe('');
+      expect(sheet.style.height).toMatch(/100dvh/);
+      expect(grabber).toHaveAccessibleName(/全画面/);
 
       rectSpy.mockRestore();
+    });
+
+    it('advances to the next snap in the flick direction even when the release height is nearer to the previous one', () => {
+      mockMatchMedia(false);
+      window.innerHeight = 800;
+      const state: AreaExhibitionListState = {
+        kind: 'filtered',
+        areaName: 'Aゾーン',
+        keyword: '',
+        categories: [],
+        items: [],
+      };
+      const { getByTestId } = render(<MapBottomSheet state={state} />);
+      const grabber = screen.getByRole('button', {
+        name: /シートの高さを変更/,
+      });
+      const sheet = getByTestId('map-bottom-sheet');
+      let now = 1000;
+      vi.spyOn(performance, 'now').mockImplementation(() => now);
+      vi.spyOn(sheet, 'getBoundingClientRect')
+        .mockReturnValueOnce({ height: 380 } as DOMRect)
+        .mockReturnValueOnce({ height: 400 } as DOMRect); // 380 に最寄りだが勢いがある
+
+      firePointer(grabber, 'pointerdown', { clientY: 500 });
+      now = 1050;
+      firePointer(grabber, 'pointermove', { clientY: 480 });
+      now = 1060;
+      firePointer(grabber, 'pointermove', { clientY: 470 });
+      now = 1070;
+      firePointer(grabber, 'pointerup', { clientY: 470 });
+
+      // 50ms で 30px = 0.6px/ms の上向きフリック → 400 の次 (440) へ
+      expect(sheet.style.height).toBe('55vh');
     });
 
     it('reports its rendered height via ResizeObserver for the caller to follow', () => {

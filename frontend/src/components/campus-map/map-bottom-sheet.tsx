@@ -16,18 +16,33 @@ export interface MapBottomSheetProps {
 // 0: 内容の高さに合わせて縮んだ状態 (条件なしのときのみ到達可能)
 // 1: Figma の SP「エリア選択時」「検索結果」フレームが指定する 380px
 // 2: 従来の展開時の値 55vh
-type SnapIndex = 0 | 1 | 2;
+// 3: 全画面 (上端は safe-area を避ける)
+type SnapIndex = 0 | 1 | 2 | 3;
 
 const MID_SNAP_PX = 380;
 const MAX_SNAP_VH = 55;
 const SNAP_LABELS: Record<SnapIndex, string> = {
   0: '折りたたみ',
   1: '標準',
-  2: '最大',
+  2: '大',
+  3: '全画面',
 };
+// 高さの遷移を成立させるため、スナップ先は常に数値を含む長さで持つ ('auto' のみ例外)
+const SNAP_HEIGHTS: Record<SnapIndex, string> = {
+  0: 'auto',
+  1: `${MID_SNAP_PX}px`,
+  2: `${MAX_SNAP_VH}vh`,
+  3: 'calc(100dvh - env(safe-area-inset-top))',
+};
+// 離す直前にこの速さ (px/ms) 以上で動いていたらフリックとして扱う
+const FLICK_VELOCITY = 0.5;
+const FLICK_WINDOW_MS = 100;
 
-function maxSnapPx(): number {
+function largeSnapPx(): number {
   return (window.innerHeight * MAX_SNAP_VH) / 100;
+}
+function fullSnapPx(): number {
+  return window.innerHeight;
 }
 
 export function MapBottomSheet({
@@ -59,6 +74,7 @@ export function MapBottomSheet({
     startHeight: number;
     minPx: number;
     maxPx: number;
+    samples: { t: number; y: number }[];
   } | null>(null);
 
   useEffect(() => {
@@ -89,8 +105,11 @@ export function MapBottomSheet({
       startY: event.clientY,
       startHeight: el.getBoundingClientRect().height,
       minPx,
-      maxPx: maxSnapPx(),
+      maxPx: fullSnapPx(),
+      samples: [{ t: performance.now(), y: event.clientY }],
     };
+    // ドラッグ中は指に追従させるため遷移を切る
+    el.style.transition = 'none';
     event.currentTarget.setPointerCapture?.(event.pointerId);
   };
 
@@ -104,6 +123,7 @@ export function MapBottomSheet({
       Math.max(drag.minPx, drag.startHeight + draggedUpBy),
     );
     el.style.height = `${next}px`;
+    drag.samples.push({ t: performance.now(), y: event.clientY });
   };
 
   const handlePointerUp = (event: PointerEvent<HTMLDivElement>) => {
@@ -113,37 +133,56 @@ export function MapBottomSheet({
     if (!drag || !el) return;
     event.currentTarget.releasePointerCapture?.(event.pointerId);
     const currentPx = el.getBoundingClientRect().height;
-    // 以降の高さは snapIndex に応じた Tailwind クラスへ戻す
-    el.style.height = '';
 
-    const candidates: ReadonlyArray<readonly [SnapIndex, number]> =
-      minSnapIndex === 0
-        ? [
-            [0, drag.minPx],
-            [1, MID_SNAP_PX],
-            [2, drag.maxPx],
-          ]
-        : [
-            [1, MID_SNAP_PX],
-            [2, drag.maxPx],
-          ];
-    let nearest: SnapIndex = minSnapIndex;
-    let nearestDistance = Infinity;
-    for (const [index, px] of candidates) {
-      const distance = Math.abs(currentPx - px);
-      if (distance < nearestDistance) {
-        nearestDistance = distance;
-        nearest = index;
+    const candidates: ReadonlyArray<readonly [SnapIndex, number]> = [
+      ...(minSnapIndex === 0 ? [[0, drag.minPx] as const] : []),
+      [1, MID_SNAP_PX],
+      [2, largeSnapPx()],
+      [3, fullSnapPx()],
+    ];
+    const now = performance.now();
+    const recent = drag.samples.filter((p) => now - p.t <= FLICK_WINDOW_MS);
+    const first = recent[0];
+    const last = drag.samples[drag.samples.length - 1];
+    const velocity =
+      first && last && last.t > first.t
+        ? (first.y - last.y) / (last.t - first.t) // 正: 上方向
+        : 0;
+
+    let target: SnapIndex | null = null;
+    if (Math.abs(velocity) >= FLICK_VELOCITY) {
+      const ahead = candidates
+        .filter(([, px]) =>
+          velocity > 0 ? px > currentPx + 1 : px < currentPx - 1,
+        )
+        .sort((a, b) => (velocity > 0 ? a[1] - b[1] : b[1] - a[1]));
+      target = ahead[0]?.[0] ?? null;
+    }
+    if (target === null) {
+      let nearestDistance = Infinity;
+      target = minSnapIndex;
+      for (const [index, px] of candidates) {
+        const distance = Math.abs(currentPx - px);
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          target = index;
+        }
       }
     }
-    setSnapIndex(nearest);
+
+    // 遷移を戻した後に reflow を挟んでからスナップ先を与えないと、ドラッグ位置からの
+    // アニメーションにならず即座にジャンプする
+    el.style.transition = '';
+    void el.offsetHeight;
+    el.style.height = SNAP_HEIGHTS[target];
+    setSnapIndex(target);
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'ArrowUp') {
       event.preventDefault();
       setSnapIndex((current) =>
-        current >= 2 ? current : ((current + 1) as SnapIndex),
+        current >= 3 ? current : ((current + 1) as SnapIndex),
       );
     } else if (event.key === 'ArrowDown') {
       event.preventDefault();
@@ -154,32 +193,27 @@ export function MapBottomSheet({
       event.preventDefault();
       setSnapIndex((current) =>
         current === minSnapIndex
-          ? (Math.min(2, minSnapIndex + 1) as SnapIndex)
+          ? ((minSnapIndex + 1) as SnapIndex)
           : minSnapIndex,
       );
     }
   };
-
-  const heightClassName =
-    snapIndex === 0
-      ? ''
-      : snapIndex === 1
-        ? 'h-[380px] overflow-y-auto'
-        : 'h-[55vh] overflow-y-auto';
 
   return (
     // 高さが内容に応じて縮む (collapsed) 場合でも上限一杯 (expanded) の場合でも、
     // この外枠自体は下端に貼り付くだけで余白を持たないため地図を覆わない。
     // pointer-events-none はそれでも確実にするための保険
     <div
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-[1050] flex justify-center md:hidden"
+      className={`pointer-events-none fixed inset-x-0 bottom-0 flex justify-center md:hidden ${snapIndex === 3 ? 'z-[1100]' : 'z-[1050]'}`}
       aria-hidden={isAboveBreakpoint}
       inert={isAboveBreakpoint}
     >
       <div
         ref={sheetRef}
         data-testid="map-bottom-sheet"
-        className={`pointer-events-auto w-full max-w-2xl rounded-t-2xl bg-white p-4 shadow-xl ${heightClassName}`}
+        // interpolate-size は 'auto' への/からの高さ遷移を許す (非対応ブラウザでは即時切替)
+        className={`pointer-events-auto w-full max-w-2xl bg-white p-4 shadow-xl transition-[height] duration-300 ease-out [interpolate-size:allow-keywords] ${snapIndex === 3 ? '' : 'rounded-t-2xl'} ${snapIndex === 0 ? '' : 'overflow-y-auto'}`}
+        style={{ height: SNAP_HEIGHTS[snapIndex] }}
       >
         <div
           role="button"
