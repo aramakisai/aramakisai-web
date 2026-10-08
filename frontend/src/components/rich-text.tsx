@@ -27,11 +27,29 @@ export function RichText({ html, className }: RichTextProps) {
       'blockquote',
       'img',
       'hr',
+      'div',
+      'figure',
+      'figcaption',
+      'aside',
+      'table',
+      'tbody',
+      'tr',
+      'th',
+      'td',
     ],
     allowedAttributes: {
       a: ['href', 'rel'],
       span: ['style'],
       img: ['src', 'alt', 'data-media-id'],
+      div: ['data-count'],
+      aside: ['data-kind'],
+      th: ['colspan', 'rowspan'],
+      td: ['colspan', 'rowspan'],
+    },
+    allowedClasses: {
+      div: ['rt-image-row', 'rt-table'],
+      aside: ['rt-callout'],
+      p: ['rt-button'],
     },
     allowedStyles: {
       span: {
@@ -39,8 +57,6 @@ export function RichText({ html, className }: RichTextProps) {
       },
     },
     transformTags: {
-      // 既存公開済み本文の h1 をページの見出しと重複させないため h2 として描画する (要件 15.4)
-      h1: 'h2',
       a: (tagName, attribs) => ({
         tagName: 'a',
         attribs: {
