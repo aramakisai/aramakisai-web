@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { getPinnedId, reloadPin, subscribePin } from './useSignagePin';
+import { getPinnedId, getPinState, pinSlide, reloadPin, subscribePin } from './useSignagePin';
 
 const respond = (pinned: number | null) =>
   vi.fn().mockResolvedValue({ ok: true, json: async () => ({ pinned_slide: pinned }) } as Response);
@@ -45,5 +45,25 @@ describe('reloadPin', () => {
     expect(getPinnedId()).toBeNull();
     expect(listener).toHaveBeenCalled();
     off();
+  });
+});
+
+describe('pinSlide', () => {
+  it('保存中は共有状態が保存中になり、失敗すると対象を覚える', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false } as Response));
+    const p = pinSlide(7);
+    expect(getPinState().saving).toBe(true);
+    await p;
+    expect(getPinState()).toEqual({ saving: false, failedId: 7 });
+  });
+
+  it('保存中の再操作は無視する', async () => {
+    const f = vi.fn().mockResolvedValue({ ok: true } as Response);
+    vi.stubGlobal('fetch', f);
+    const p = pinSlide(1);
+    await pinSlide(2);
+    await p;
+    expect(f).toHaveBeenCalledTimes(1);
+    expect(getPinnedId()).toBe(1);
   });
 });

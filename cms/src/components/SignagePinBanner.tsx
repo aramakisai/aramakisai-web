@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useSignagePin } from './useSignagePin';
 
 export default function SignagePinBanner() {
-  const { pinnedId, saving, error, pin } = useSignagePin();
+  const { pinnedId, saving, failedId, pin } = useSignagePin();
   const [loaded, setLoaded] = useState<{ id: number; title: string | null } | null>(null);
   const title = loaded && loaded.id === pinnedId ? loaded.title : null;
 
@@ -45,7 +45,7 @@ export default function SignagePinBanner() {
           解除
         </button>
       ) : null}
-      {error && <span style={{ color: 'var(--theme-error-500)' }}>更新できませんでした</span>}
+      {failedId !== undefined && <span style={{ color: 'var(--theme-error-500)' }}>更新できませんでした</span>}
     </div>
   );
 }

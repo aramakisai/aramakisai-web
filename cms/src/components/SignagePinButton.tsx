@@ -8,7 +8,7 @@ import { reloadPin, useSignagePin } from './useSignagePin';
 export default function SignagePinButton() {
   const { id, savedDocumentData } = useDocumentInfo();
   const enabled = savedDocumentData?.enabled;
-  const { pinnedId, saving, error, pin } = useSignagePin();
+  const { pinnedId, saving, failedId, pin } = useSignagePin();
   // 無効にして保存すると afterChange が固定を外すため、保存後の状態を読み直す
   useEffect(() => {
     if (enabled === false) void reloadPin();
@@ -26,7 +26,7 @@ export default function SignagePinButton() {
       >
         {isPinned ? '固定表示を解除する' : 'このスライドを固定表示する'}
       </button>
-      {error && <p style={{ color: 'var(--theme-error-500)' }}>更新できませんでした</p>}
+      {failedId !== undefined && <p style={{ color: 'var(--theme-error-500)' }}>更新できませんでした</p>}
     </div>
   );
 }

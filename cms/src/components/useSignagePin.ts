@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { fetchPinnedId, setPinnedId } from './signage-pin';
 
@@ -27,26 +27,30 @@ export function subscribePin(listener: () => void): () => void {
   return () => void listeners.delete(listener);
 }
 
+// 保存中は全操作部品を止め、POST の並行による応答順の逆転を防ぐ
+let saving = false;
+let failedId: number | null | undefined; // 直近の保存失敗の対象。成功・再試行で消える
+
+export const getPinState = () => ({ saving, failedId });
+
+export async function pinSlide(id: number | null) {
+  if (saving) return;
+  saving = true;
+  failedId = undefined;
+  emit();
+  try {
+    await setPinnedId(id);
+    pinned = id;
+  } catch {
+    failedId = id;
+  } finally {
+    saving = false;
+    emit();
+  }
+}
+
 export function useSignagePin() {
   const [, rerender] = useState(0);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(false);
-
   useEffect(() => subscribePin(() => rerender((n) => n + 1)), []);
-
-  const pin = useCallback(async (id: number | null) => {
-    setSaving(true);
-    setError(false);
-    try {
-      await setPinnedId(id);
-      pinned = id;
-      emit();
-    } catch {
-      setError(true);
-    } finally {
-      setSaving(false);
-    }
-  }, []);
-
-  return { pinnedId: pinned, saving, error, pin };
+  return { pinnedId: pinned, saving, failedId, pin: pinSlide };
 }
