@@ -182,6 +182,28 @@ describe('cms キャッシュ', () => {
     expect(match.mock.calls[0][0].url).not.toBe(match.mock.calls[1][0].url);
   });
 
+  it('findGlobal も ttlSeconds 指定時はその TTL で put する', async () => {
+    const put = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('caches', {
+      default: { match: vi.fn().mockResolvedValue(undefined), put },
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async () => okResponse()),
+    );
+    (globalThis as Record<symbol, unknown>)[
+      Symbol.for('__cloudflare-context__')
+    ] = { ctx: { waitUntil: vi.fn() } };
+    await cms.findGlobal('festival_meta', {}, { ttlSeconds: 15 });
+    await cms.findGlobal('festival_meta');
+    expect(put.mock.calls[0][1].headers.get('Cache-Control')).toBe(
+      's-maxage=15',
+    );
+    expect(put.mock.calls[1][1].headers.get('Cache-Control')).toBe(
+      's-maxage=60',
+    );
+  });
+
   it('非 2xx は put しない', async () => {
     const put = vi.fn();
     vi.stubGlobal('caches', {

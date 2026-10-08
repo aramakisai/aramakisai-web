@@ -1,5 +1,5 @@
 import type { Sponsor } from '@/cms-types';
-import { cms } from './cms';
+import { cms, type CmsFetchOptions } from './cms';
 import { toMediaId } from './cms-media';
 import { SponsorType } from './home-page-types';
 
@@ -36,12 +36,14 @@ function mapSponsor(s: Sponsor): SponsorListItem {
   };
 }
 
-export async function getSponsors(): Promise<GetSponsorsResult> {
-  const result = await cms.findMany('sponsors', {
-    sort: ['sort'],
-    limit: 0,
-    depth: 1,
-  });
+export async function getSponsors(
+  options?: CmsFetchOptions,
+): Promise<GetSponsorsResult> {
+  const result = await cms.findMany(
+    'sponsors',
+    { sort: ['sort'], limit: 0, depth: 1 },
+    options,
+  );
   if (!result.ok) return { ok: false };
 
   // 1 件が複数種別を持てるため、同じ協賛が複数の一覧に重複して現れうる。

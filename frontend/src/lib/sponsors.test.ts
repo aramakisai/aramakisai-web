@@ -75,6 +75,21 @@ describe('getSponsors', () => {
     expect(query.depth).toBe(1);
   });
 
+  it('ttlSeconds を cms.findMany へ渡し、省略時は渡さない', async () => {
+    vi.mocked(cms.findMany).mockResolvedValue({
+      ok: true,
+      value: { totalDocs: 0, docs: [] },
+    } as never);
+
+    await getSponsors({ ttlSeconds: 15 });
+    await getSponsors();
+
+    expect(vi.mocked(cms.findMany).mock.calls[0][2]).toEqual({
+      ttlSeconds: 15,
+    });
+    expect(vi.mocked(cms.findMany).mock.calls[1][2]).toBeUndefined();
+  });
+
   it('0件のときは取得成功のまま空の一覧を返す', async () => {
     vi.mocked(cms.findMany).mockResolvedValue({
       ok: true,

@@ -165,9 +165,11 @@ export const cms = {
   findGlobal<K extends CmsGlobalSlug>(
     slug: K,
     query: { depth?: number } = {},
+    options: CmsFetchOptions = {},
   ): Promise<CmsResult<CmsGlobals[K]>> {
     return request(
       withQuery(`/api/globals/${String(slug)}`, buildQueryString(query)),
+      options.ttlSeconds,
     );
   },
 };
