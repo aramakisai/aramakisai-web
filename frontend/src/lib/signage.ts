@@ -1,3 +1,8 @@
+import type {
+  SignageSlide as CmsSignageSlide,
+  Sponsor,
+  Telop,
+} from '@/cms-types';
 import type { Attachment, EventDay } from '@/lib/home-page-types';
 import type { ParkingResponse } from '@/lib/parking';
 import type {
@@ -21,8 +26,8 @@ export const CANVAS_SIZE: Readonly<
   portrait: { width: 1080, height: 1920 },
 };
 
-export type SlideLayout = 'title' | 'title-content' | 'section' | 'two-content';
-export type SlideTone = 'normal' | 'alert';
+export type SlideLayout = NonNullable<CmsSignageSlide['layout']>;
+export type SlideTone = NonNullable<CmsSignageSlide['tone']>;
 
 interface SlideBase {
   readonly id: number;
@@ -31,10 +36,13 @@ interface SlideBase {
 }
 export type SignageSlide =
   | (SlideBase & {
-      readonly kind: 'sponsors' | 'lost_items' | 'parking' | 'timetable';
+      readonly kind: Extract<
+        CmsSignageSlide['kind'],
+        'sponsors' | 'lost_items' | 'parking' | 'timetable'
+      >;
     })
   | (SlideBase & {
-      readonly kind: 'image' | 'campus_map';
+      readonly kind: Extract<CmsSignageSlide['kind'], 'image' | 'campus_map'>;
       readonly image: Attachment | null;
     })
   | (SlideBase & {
@@ -49,13 +57,13 @@ export type SignageSlide =
 
 export interface SignageTelopItem {
   readonly id: number;
-  readonly audience: 'visitor' | 'group';
+  readonly audience: Telop['audience'];
   /** audienceがgroupのときの対象表記。例: "出店団体へ" */
   readonly target: string | null;
   readonly body: string;
 }
 
-export type SponsorTier = 'planA' | 'planB' | 'planC' | 'planD';
+export type SponsorTier = NonNullable<Sponsor['tier']>;
 export interface SignageSponsor {
   readonly id: number;
   readonly name: string;
