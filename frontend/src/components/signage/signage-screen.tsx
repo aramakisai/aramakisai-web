@@ -46,7 +46,7 @@ export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
   const entry = useSlideRotation(entries);
   const canvas = CANVAS_SIZE[orientation];
   const eventDays = data?.eventDays ?? [];
-  const rows = data ? stageNow(data.timetable, now) : [];
+  const rows = data ? stageNow(data.timetable, now) : null;
   const boards = nextDepartures(
     BUS_TIMETABLE,
     now,

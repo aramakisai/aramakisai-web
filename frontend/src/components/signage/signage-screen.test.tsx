@@ -38,6 +38,13 @@ describe('SignageScreen', () => {
     expect(canvas.style.height).toBe('1920px');
   });
 
+  it('初回取得に失敗している間は「いまのステージ」見出しを出さない', () => {
+    const { container } = render(
+      <SignageScreen initial={null} renderedAt="2026-11-14T00:00:00Z" />,
+    );
+    expect(container.textContent).not.toContain('いまのステージ');
+  });
+
   it('20秒ごとに集約APIを読み、失敗しても画面は落ちない', async () => {
     render(<SignageScreen initial={null} renderedAt="2026-11-14T00:00:00Z" />);
     await act(() => vi.advanceTimersByTimeAsync(20_000));

@@ -13,7 +13,7 @@ import {
 export interface SignageLeftColumnProps {
   readonly now: Date;
   readonly eventDays: readonly EventDay[];
-  readonly rows: readonly StageNowRow[];
+  readonly rows: readonly StageNowRow[] | null;
 }
 
 export function SignageLeftColumn({
@@ -32,34 +32,38 @@ export function SignageLeftColumn({
           {formatSignageClock(now)}
         </p>
         <div className="h-px w-full bg-gray-200" />
-        <div className="flex items-center gap-2 font-display text-[28px] leading-none font-bold text-text">
-          <SignageIcon name="mic" />
-          <span>いまのステージ</span>
-        </div>
-        <div className="flex w-full flex-col gap-5">
-          {rows.map(({ stage, colorIndex, performance }) => (
-            <div
-              key={stage.id}
-              className="flex w-full flex-col items-start gap-1"
-            >
-              <SignageStageChip colorIndex={colorIndex} name={stage.name} />
-              {performance ? (
-                <>
-                  <p className="line-clamp-2 w-full font-noto text-[30px] leading-[1.25] font-bold text-text">
-                    {performance.name}
-                  </p>
-                  <p className="font-noto text-[24px] leading-[1.25] whitespace-nowrap text-gray-600">
-                    {formatPerformanceRange(performance)}
-                  </p>
-                </>
-              ) : (
-                <p className="font-noto text-[30px] leading-[1.25] font-bold text-gray-600">
-                  公演なし
-                </p>
-              )}
+        {rows && (
+          <>
+            <div className="flex items-center gap-2 font-display text-[28px] leading-none font-bold text-text">
+              <SignageIcon name="mic" />
+              <span>いまのステージ</span>
             </div>
-          ))}
-        </div>
+            <div className="flex w-full flex-col gap-5">
+              {rows.map(({ stage, colorIndex, performance }) => (
+                <div
+                  key={stage.id}
+                  className="flex w-full flex-col items-start gap-1"
+                >
+                  <SignageStageChip colorIndex={colorIndex} name={stage.name} />
+                  {performance ? (
+                    <>
+                      <p className="line-clamp-2 w-full font-noto text-[30px] leading-[1.25] font-bold text-text">
+                        {performance.name}
+                      </p>
+                      <p className="font-noto text-[24px] leading-[1.25] whitespace-nowrap text-gray-600">
+                        {formatPerformanceRange(performance)}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="font-noto text-[30px] leading-[1.25] font-bold text-gray-600">
+                      公演なし
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
       <SignageOfficialSite labelClass="text-[28px]" qrClass="size-[240px]" />
     </div>
