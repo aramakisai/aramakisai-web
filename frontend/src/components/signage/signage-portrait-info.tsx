@@ -30,12 +30,12 @@ export function SignagePortraitInfo({ rows }: SignagePortraitInfoProps) {
                     <p className="line-clamp-2 text-[36px] leading-[48px] font-bold text-text">
                       {performance.name}
                     </p>
-                    <p className="text-[28px] leading-[1.25] whitespace-nowrap text-gray-500">
+                    <p className="text-[28px] leading-[1.25] whitespace-nowrap text-gray-600">
                       {formatPerformanceRange(performance)}
                     </p>
                   </>
                 ) : (
-                  <p className="text-[36px] leading-[48px] font-bold text-gray-500">
+                  <p className="text-[36px] leading-[48px] font-bold text-gray-600">
                     公演なし
                   </p>
                 )}
