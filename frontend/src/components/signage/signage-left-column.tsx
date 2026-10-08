@@ -1,6 +1,6 @@
 import type { EventDay } from '@/lib/home-page-types';
 import type { StageNowRow } from '@/lib/signage';
-import { formatSignageClock } from '@/lib/signage-clock';
+import { SignageClock } from './signage-clock';
 import {
   SignageDayDate,
   SignageIcon,
@@ -28,9 +28,7 @@ export function SignageLeftColumn({
           <SignageLogo className="h-[55.42px] w-full" />
           <SignageDayDate eventDays={eventDays} now={now} />
         </div>
-        <p className="font-display text-[104px] leading-none font-extrabold whitespace-nowrap text-text">
-          {formatSignageClock(now)}
-        </p>
+        <SignageClock now={now} />
         <div className="h-px w-full bg-gray-200" />
         {rows && (
           <>

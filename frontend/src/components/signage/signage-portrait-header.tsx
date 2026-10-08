@@ -1,5 +1,5 @@
 import type { EventDay } from '@/lib/home-page-types';
-import { formatSignageClock } from '@/lib/signage-clock';
+import { SignageClock } from './signage-clock';
 import { SignageDayDate, SignageLogo } from './signage-parts';
 
 export interface SignagePortraitHeaderProps {
@@ -16,9 +16,7 @@ export function SignagePortraitHeader({
       <SignageLogo className="h-full w-[312px]" />
       <div className="flex flex-col items-end gap-2">
         <SignageDayDate eventDays={eventDays} now={now} />
-        <p className="font-display text-[104px] leading-none font-extrabold whitespace-nowrap text-text">
-          {formatSignageClock(now)}
-        </p>
+        <SignageClock now={now} />
       </div>
     </div>
   );
