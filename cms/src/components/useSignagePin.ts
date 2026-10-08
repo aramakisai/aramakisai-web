@@ -18,17 +18,21 @@ async function reload() {
   emit();
 }
 
+export const getPinnedId = () => pinned;
+
+// 画面遷移ではモジュールが残るため、画面に入るたびに読み直して他の担当者の変更を拾う
+export function subscribePin(listener: () => void): () => void {
+  listeners.add(listener);
+  if (listeners.size === 1) void reload();
+  return () => void listeners.delete(listener);
+}
+
 export function useSignagePin() {
   const [, rerender] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(false);
 
-  useEffect(() => {
-    const l = () => rerender((n) => n + 1);
-    listeners.add(l);
-    if (pinned === undefined) void reload();
-    return () => void listeners.delete(l);
-  }, []);
+  useEffect(() => subscribePin(() => rerender((n) => n + 1)), []);
 
   const pin = useCallback(async (id: number | null) => {
     setSaving(true);
