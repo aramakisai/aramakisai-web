@@ -298,10 +298,7 @@ export const BUS_TIMETABLE: BusTimetable = {
       route: '22K',
       destination: '群馬大学荒牧',
       direction: 'shibukawa',
-      departures: [
-        { stop: 'driving_school', time: '08:02' },
-        { stop: 'gunma_univ_aramaki', time: '08:05' },
-      ],
+      departures: [{ stop: 'driving_school', time: '08:02' }],
     },
     {
       route: '22B',
@@ -325,10 +322,7 @@ export const BUS_TIMETABLE: BusTimetable = {
       route: '22K',
       destination: '群馬大学荒牧',
       direction: 'shibukawa',
-      departures: [
-        { stop: 'driving_school', time: '08:51' },
-        { stop: 'gunma_univ_aramaki', time: '08:54' },
-      ],
+      departures: [{ stop: 'driving_school', time: '08:51' }],
     },
     {
       route: '22A',
@@ -349,10 +343,7 @@ export const BUS_TIMETABLE: BusTimetable = {
       route: '22K',
       destination: '群馬大学荒牧',
       direction: 'shibukawa',
-      departures: [
-        { stop: 'driving_school', time: '09:39' },
-        { stop: 'gunma_univ_aramaki', time: '09:42' },
-      ],
+      departures: [{ stop: 'driving_school', time: '09:39' }],
     },
     {
       route: '22B',
@@ -394,10 +385,7 @@ export const BUS_TIMETABLE: BusTimetable = {
       route: '22M',
       destination: '群馬大学荒牧',
       direction: 'shibukawa',
-      departures: [
-        { stop: 'driving_school', time: '11:41' },
-        { stop: 'gunma_univ_aramaki', time: '11:44' },
-      ],
+      departures: [{ stop: 'driving_school', time: '11:41' }],
     },
     {
       route: '22A',
@@ -430,10 +418,7 @@ export const BUS_TIMETABLE: BusTimetable = {
       route: '22M',
       destination: '群馬大学荒牧',
       direction: 'shibukawa',
-      departures: [
-        { stop: 'driving_school', time: '13:41' },
-        { stop: 'gunma_univ_aramaki', time: '13:44' },
-      ],
+      departures: [{ stop: 'driving_school', time: '13:41' }],
     },
     {
       route: '22A',
@@ -472,10 +457,7 @@ export const BUS_TIMETABLE: BusTimetable = {
       route: '22M',
       destination: '群馬大学荒牧',
       direction: 'shibukawa',
-      departures: [
-        { stop: 'driving_school', time: '15:41' },
-        { stop: 'gunma_univ_aramaki', time: '15:44' },
-      ],
+      departures: [{ stop: 'driving_school', time: '15:41' }],
     },
     {
       route: '22A',

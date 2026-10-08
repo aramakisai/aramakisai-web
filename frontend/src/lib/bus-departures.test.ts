@@ -122,4 +122,15 @@ describe('BUS_TIMETABLE', () => {
       }
     }
   });
+
+  it('終点の停留所への到着を発車として持たない', () => {
+    const stopNames = {
+      gunma_univ_aramaki: '群馬大学荒牧',
+      driving_school: '前橋自動車教習所前',
+    } as const;
+    for (const t of BUS_TIMETABLE.holiday) {
+      for (const d of t.departures)
+        expect(stopNames[d.stop]).not.toBe(t.destination);
+    }
+  });
 });

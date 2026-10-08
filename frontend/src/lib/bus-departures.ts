@@ -10,7 +10,7 @@ export interface BusTrip {
   /** 行先の表示名。例: "前橋駅" */
   readonly destination: string;
   readonly direction: BusDirection;
-  /** 停車するサイネージ対象停留所と発車時刻 "HH:MM" (JST)。通過・非経由の停留所は含めない */
+  /** 停車するサイネージ対象停留所と発車時刻 "HH:MM" (JST)。通過・非経由の停留所と、終点での到着は含めない */
   readonly departures: readonly {
     readonly stop: BusStop;
     readonly time: string;
