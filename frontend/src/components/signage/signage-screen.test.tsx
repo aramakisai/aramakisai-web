@@ -6,6 +6,7 @@ vi.mock('@/env', () => ({
   env: { NEXT_PUBLIC_CMS_URL: 'http://localhost:3100' },
 }));
 
+import type { SignageSnapshot } from '@/lib/signage';
 import { SignageScreen } from './signage-screen';
 
 let viewport = { width: 500, height: 1330 };
@@ -82,5 +83,23 @@ describe('SignageScreen', () => {
     render(<SignageScreen initial={null} renderedAt="2026-11-14T00:00:00Z" />);
     await act(() => vi.advanceTimersByTimeAsync(20_000));
     expect(fetch).toHaveBeenCalledWith('/api/signage', { cache: 'no-store' });
+  });
+
+  it('初期スナップショットがあってもマウント直後に1回取得し、往復時間込みの時計に更新する', async () => {
+    const initial: SignageSnapshot = {
+      fetchedAt: '',
+      serverNow: '2026-11-14T00:00:00Z',
+      pinnedSlideId: null,
+      eventDays: [],
+      slides: [],
+      telops: [],
+      timetable: { days: [], stages: [], performances: [] },
+      sponsors: [],
+      lostItems: [],
+      parking: { isEventDay: false, fetchedAt: '', lots: [] },
+    };
+    render(<SignageScreen initial={initial} renderedAt={initial.serverNow} />);
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 });

@@ -7,6 +7,8 @@ interface PollingOptions<T> {
   readonly initial: T | null;
   /** 偽を返した取得結果で再取得を止める */
   readonly shouldContinue?: (data: T) => boolean;
+  /** 真ならマウント直後にも1回取得する。初期値があっても最初の取得を intervalMs 待たない */
+  readonly immediate?: boolean;
 }
 
 interface PollingState<T> {
@@ -21,6 +23,7 @@ export function usePolling<T>({
   intervalMs,
   initial,
   shouldContinue = always,
+  immediate = false,
 }: PollingOptions<T>): PollingState<T> {
   const [state, setState] = useState<PollingState<T>>({
     data: initial,
@@ -82,14 +85,15 @@ export function usePolling<T>({
       return;
     }
     document.addEventListener('visibilitychange', onVisibility);
-    schedule();
+    if (immediate) void run();
+    else schedule();
     return () => {
       stopped = true;
       generation++;
       clearTimeout(timer);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [intervalMs]);
+  }, [intervalMs, immediate]);
 
   return state;
 }

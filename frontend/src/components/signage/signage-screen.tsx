@@ -50,11 +50,12 @@ export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
   const { data: polled } = usePolling<Polled>({
     fetcher: fetchSnapshot,
     intervalMs: POLL_INTERVAL_MS,
+    immediate: true,
     initial: initial && { snapshot: initial, offsetMs: null },
   });
   const data = polled?.snapshot ?? null;
   const serverIso = initial?.serverNow ?? renderedAt;
-  // 初回ポーリングまでは SSR 時のサーバー時刻を基準にする (配送遅延ぶん遅れるが、最初の取得で補正される)
+  // マウント直後の最初の取得が終わるまでは SSR 時のサーバー時刻を基準にする (配送遅延ぶん遅れる)
   const [mountOffsetMs, setMountOffsetMs] = useState<number | null>(null);
   useEffect(() => {
     setMountOffsetMs(Date.parse(serverIso) - Date.now());

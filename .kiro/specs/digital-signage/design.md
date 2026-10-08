@@ -211,7 +211,7 @@ sequenceDiagram
 
 - `/api/signage`の応答と初期スナップショット(SSR)は、サーバーの現在時刻`serverNow`(ISO)を含む
 - ポーリング: 要求の送信時刻`sentAt`と受信時刻`receivedAt`(いずれも`Date.now()`)を取り、`offsetMs = Date.parse(serverNow) + (receivedAt − sentAt) / 2 − receivedAt`。取得に成功するたびに更新し、失敗時は直前の値を保つ
-- 初期値: マウント時に`offsetMs = Date.parse(initial.serverNow) − Date.now()`(SSRからの配送時間ぶん遅れるが、最初のポーリングで補正される)。初期スナップショットが無いときは`renderedAt`(SSR時のサーバー時刻)を使う
+- 初期値: マウント時に`offsetMs = Date.parse(initial.serverNow) − Date.now()`(SSRからの配送時間ぶん遅れるため、マウント直後に`/api/signage`を1回取得して往復時間込みの値に更新する。その後は20秒ごと)。初期スナップショットが無いときは`renderedAt`(SSR時のサーバー時刻)を使う
 - `useCorrectedNow(offsetMs)`は、補正済み時刻の秒の境目に合わせて1秒ごとに`now`を更新する(端末ごとの更新位相のずれで切り替えが最大1秒ずれるのを防ぐ)
 - 時計・スライドの巡回・バス案内・いまのステージ・タイムテーブル・DAY表記はこの`now`を使う。テロップの流し位置だけは`requestAnimationFrame`ごとに`Date.now() + offsetMs`から求める
 
