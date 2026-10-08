@@ -18,7 +18,8 @@ const f = (c: { fields: unknown[] }, name: string) => c.fields.find((x) => (x as
 describe('Telops', () => {
   it('slug・並び・access は登録口任せ', () => {
     expect(Telops.slug).toBe('telops');
-    expect(Telops.defaultSort).toBe('sort');
+    expect(Telops.orderable).toBe(true);
+    expect(f(Telops, 'sort')).toBeUndefined();
     expect(Telops.labels).toEqual({ singular: 'サイネージ テロップ', plural: 'サイネージ テロップ' });
     expect(Telops.access).toBeUndefined();
   });

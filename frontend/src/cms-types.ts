@@ -690,6 +690,7 @@ export interface ParkingStatus {
  */
 export interface SignageSlide {
   id: number;
+  _order?: string | null;
   kind: 'sponsors' | 'lost_items' | 'campus_map' | 'image' | 'parking' | 'timetable' | 'layout';
   /**
    * レイアウトでは画面に表示される。それ以外は管理用の名前
@@ -740,7 +741,6 @@ export interface SignageSlide {
    * 有効なスライドのうち、固定表示の先頭の1枚だけが表示される
    */
   pinned?: boolean | null;
-  sort?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -750,6 +750,7 @@ export interface SignageSlide {
  */
 export interface Telop {
   id: number;
+  _order?: string | null;
   audience: 'visitor' | 'group';
   /**
    * 例: 出店団体へ
@@ -757,7 +758,6 @@ export interface Telop {
   target?: string | null;
   body: string;
   enabled?: boolean | null;
-  sort?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1301,6 +1301,7 @@ export interface ParkingStatusesSelect<T extends boolean = true> {
  * via the `definition` "signage_slides_select".
  */
 export interface SignageSlidesSelect<T extends boolean = true> {
+  _order?: T;
   kind?: T;
   title?: T;
   layout?: T;
@@ -1314,7 +1315,6 @@ export interface SignageSlidesSelect<T extends boolean = true> {
   duration_seconds?: T;
   enabled?: T;
   pinned?: T;
-  sort?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1323,11 +1323,11 @@ export interface SignageSlidesSelect<T extends boolean = true> {
  * via the `definition` "telops_select".
  */
 export interface TelopsSelect<T extends boolean = true> {
+  _order?: T;
   audience?: T;
   target?: T;
   body?: T;
   enabled?: T;
-  sort?: T;
   updatedAt?: T;
   createdAt?: T;
 }

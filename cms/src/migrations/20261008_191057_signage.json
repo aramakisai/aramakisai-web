@@ -3044,6 +3044,12 @@
           "primaryKey": true,
           "notNull": true
         },
+        "_order": {
+          "name": "_order",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
         "kind": {
           "name": "kind",
           "type": "enum_signage_slides_kind",
@@ -3129,12 +3135,6 @@
           "notNull": false,
           "default": false
         },
-        "sort": {
-          "name": "sort",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": false
-        },
         "updated_at": {
           "name": "updated_at",
           "type": "timestamp(3) with time zone",
@@ -3151,6 +3151,21 @@
         }
       },
       "indexes": {
+        "signage_slides__order_idx": {
+          "name": "signage_slides__order_idx",
+          "columns": [
+            {
+              "expression": "_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "signage_slides_image_idx": {
           "name": "signage_slides_image_idx",
           "columns": [
@@ -3228,6 +3243,12 @@
           "primaryKey": true,
           "notNull": true
         },
+        "_order": {
+          "name": "_order",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
         "audience": {
           "name": "audience",
           "type": "enum_telops_audience",
@@ -3255,12 +3276,6 @@
           "notNull": false,
           "default": true
         },
-        "sort": {
-          "name": "sort",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": false
-        },
         "updated_at": {
           "name": "updated_at",
           "type": "timestamp(3) with time zone",
@@ -3277,6 +3292,21 @@
         }
       },
       "indexes": {
+        "telops__order_idx": {
+          "name": "telops__order_idx",
+          "columns": [
+            {
+              "expression": "_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "telops_updated_at_idx": {
           "name": "telops_updated_at_idx",
           "columns": [
@@ -5585,6 +5615,6 @@
     "tables": {},
     "columns": {}
   },
-  "id": "1bb9c4a7-81e1-4b8c-8eb8-534d0c278c4f",
+  "id": "e0511785-4340-4564-9edb-52faf8dd8886",
   "prevId": "00000000-0000-0000-0000-000000000000"
 }

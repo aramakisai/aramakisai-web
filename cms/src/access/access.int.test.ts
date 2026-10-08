@@ -497,15 +497,23 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
           data: { name: `sig-${suffix}-${returned}`, found_place: 'x', found_at: new Date().toISOString(), returned },
           overrideAccess: true,
         });
-      const [s1, s0, t1, t0, l0, l1] = await Promise.all([
-        slide(true), slide(false), telop(true), telop(false), lost(false), lost(true),
-      ]);
+      // _order は作成順に末尾へ採番されるため、順序の検証には逐次作成が要る
+      const s1 = await slide(true);
+      const s0 = await slide(false);
+      const t1 = await telop(true);
+      const t0 = await telop(false);
+      const [l0, l1] = await Promise.all([lost(false), lost(true)]);
       try {
-        const names = async (collection: 'signage_slides' | 'telops' | 'lost_items') =>
-          (await payload.find({ collection, overrideAccess: false, pagination: false })).docs.map((d) => d.id);
+        const names = async (collection: 'signage_slides' | 'telops' | 'lost_items', sort?: string) =>
+          (await payload.find({ collection, overrideAccess: false, pagination: false, sort })).docs.map((d) => d.id);
         const slides = await names('signage_slides');
         expect(slides).toContain(s1.id);
         expect(slides).not.toContain(s0.id);
+        const orderOf = async (collection: 'signage_slides' | 'telops', ids: number[]) =>
+          (await names(collection, '_order')).filter((id) => ids.includes(id));
+        expect(await orderOf('signage_slides', [s1.id])).toEqual([s1.id]);
+        const all = await Promise.all([s1, s0].map((x) => payload.findByID({ collection: 'signage_slides', id: x.id, overrideAccess: true })));
+        expect((all[0] as { _order?: string })._order! < (all[1] as { _order?: string })._order!).toBe(true);
         const telops = await names('telops');
         expect(telops).toContain(t1.id);
         expect(telops).not.toContain(t0.id);

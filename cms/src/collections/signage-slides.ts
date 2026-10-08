@@ -27,8 +27,8 @@ const layoutIs =
 export const SignageSlides: CollectionConfig = {
   slug: 'signage_slides',
   labels: { singular: 'サイネージ スライド', plural: 'サイネージ スライド' },
-  admin: { useAsTitle: 'title', defaultColumns: ['title', 'kind', 'enabled', 'pinned', 'sort'] },
-  defaultSort: 'sort',
+  orderable: true,
+  admin: { useAsTitle: 'title', defaultColumns: ['title', 'kind', 'enabled', 'pinned'] },
   fields: [
     {
       name: 'kind',
@@ -129,6 +129,5 @@ export const SignageSlides: CollectionConfig = {
       label: '固定表示',
       admin: { description: '有効なスライドのうち、固定表示の先頭の1枚だけが表示される' },
     },
-    { name: 'sort', type: 'number', label: '並び順' },
   ],
 };

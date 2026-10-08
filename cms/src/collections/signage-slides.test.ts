@@ -17,10 +17,11 @@ const check = (name: string, value: unknown, siblingData: Record<string, unknown
   f(name).validate!(value, { siblingData });
 
 describe('SignageSlides', () => {
-  it('slug・管理画面名・並び', () => {
+  it('slug・管理画面名・ドラッグ並び', () => {
     expect(SignageSlides.slug).toBe('signage_slides');
     expect(SignageSlides.labels).toEqual({ singular: 'サイネージ スライド', plural: 'サイネージ スライド' });
-    expect(SignageSlides.defaultSort).toBe('sort');
+    expect(SignageSlides.orderable).toBe(true);
+    expect(f('sort')).toBeUndefined();
     expect(SignageSlides.access).toBeUndefined();
   });
 

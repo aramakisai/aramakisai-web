@@ -3,8 +3,8 @@ import type { CollectionConfig, Validate } from 'payload';
 export const Telops: CollectionConfig = {
   slug: 'telops',
   labels: { singular: 'サイネージ テロップ', plural: 'サイネージ テロップ' },
-  admin: { useAsTitle: 'body', defaultColumns: ['body', 'audience', 'enabled', 'sort'] },
-  defaultSort: 'sort',
+  orderable: true,
+  admin: { useAsTitle: 'body', defaultColumns: ['body', 'audience', 'enabled'] },
   fields: [
     {
       name: 'audience',
@@ -34,6 +34,5 @@ export const Telops: CollectionConfig = {
     },
     { name: 'body', type: 'text', required: true, maxLength: 200, label: '文面' },
     { name: 'enabled', type: 'checkbox', defaultValue: true, label: '有効' },
-    { name: 'sort', type: 'number', label: '並び順' },
   ],
 };
