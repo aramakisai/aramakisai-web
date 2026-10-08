@@ -131,6 +131,18 @@ describe('RichText', () => {
     );
   });
 
+  test('unwraps the payload-richtext container div so blocks stay direct children', () => {
+    const { container } = render(
+      <RichText html='<div class="payload-richtext"><h2>見出し</h2><p>本文</p><div class="rt-table"><table><tbody><tr><td>a</td></tr></tbody></table></div></div>' />,
+    );
+
+    const body = container.querySelector('.rich-text-body');
+    expect(
+      Array.from(body?.children ?? []).map((el) => el.tagName.toLowerCase()),
+    ).toEqual(['h2', 'p', 'div']);
+    expect(body?.lastElementChild).toHaveClass('rt-table');
+  });
+
   test('builds img src from data-media-id via toAssetUrl and keeps alt', () => {
     render(<RichText html='<img data-media-id="42" alt="説明文">' />);
 

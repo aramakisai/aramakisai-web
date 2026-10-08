@@ -57,6 +57,15 @@ export function RichText({ html, className }: RichTextProps) {
       },
     },
     transformTags: {
+      // lexicalHTMLField は本文全体を <div class="payload-richtext"> で包む。div を残すと
+      // `.rich-text-body > :first-child` 等の余白指定が本文の先頭・末尾に効かなくなるため、
+      // 部品の div 以外は許可外のタグ名に変えて中身だけ残す
+      div: (tagName, attribs) => ({
+        tagName: /\brt-(image-row|table)\b/.test(attribs.class ?? '')
+          ? 'div'
+          : 'unwrap',
+        attribs,
+      }),
       a: (tagName, attribs) => ({
         tagName: 'a',
         attribs: {
