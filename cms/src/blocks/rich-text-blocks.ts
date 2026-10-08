@@ -1,7 +1,7 @@
 import type { Block } from 'payload';
 
-// プロトコル相対 (//host) は外部サイトへ飛ばせてしまうため、先頭の / は 2 連続を除く
-const SAFE_URL = /^(https?:\/\/|\/(?!\/))/;
+// プロトコル相対 (//host) と、ブラウザが // と同じに解釈する /\host は外部サイトへ飛ばせてしまうため除く
+const SAFE_URL = /^(https?:\/\/|\/(?![/\\]))/;
 
 export const validateButtonUrl = (value: unknown): true | string =>
   typeof value === 'string' && SAFE_URL.test(value)

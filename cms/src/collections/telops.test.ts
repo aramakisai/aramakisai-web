@@ -19,6 +19,7 @@ describe('Telops', () => {
   it('slug・並び・access は登録口任せ', () => {
     expect(Telops.slug).toBe('telops');
     expect(Telops.defaultSort).toBe('sort');
+    expect(Telops.labels).toEqual({ singular: 'サイネージ テロップ', plural: 'サイネージ テロップ' });
     expect(Telops.access).toBeUndefined();
   });
 
@@ -59,6 +60,11 @@ describe('LostItems', () => {
     expect(LostItems.slug).toBe('lost_items');
     expect(LostItems.defaultSort).toBe('-found_at');
     expect(LostItems.access).toBeUndefined();
+  });
+
+  it('品名は50字・拾得場所は30字まで', () => {
+    expect(f(LostItems, 'name').maxLength).toBe(50);
+    expect(f(LostItems, 'found_place').maxLength).toBe(30);
   });
 
   it('品名・拾得場所・拾得時刻は必須、写真は media、返却済みは既定 false', () => {

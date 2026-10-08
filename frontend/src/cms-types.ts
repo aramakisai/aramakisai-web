@@ -694,7 +694,7 @@ export interface SignageSlide {
   /**
    * レイアウトでは画面に表示される。それ以外は管理用の名前
    */
-  title?: string | null;
+  title: string;
   layout?: ('title' | 'title-content' | 'section' | 'two-content') | null;
   tone?: ('normal' | 'alert') | null;
   subtext?: string | null;
@@ -734,7 +734,7 @@ export interface SignageSlide {
   /**
    * QR・表・タイムテーブル・落とし物は15秒を推奨
    */
-  duration_sec: number;
+  duration_seconds: number;
   enabled?: boolean | null;
   /**
    * 有効なスライドのうち、固定表示の先頭の1枚だけが表示される
@@ -1311,7 +1311,7 @@ export interface SignageSlidesSelect<T extends boolean = true> {
   content2?: T;
   content2_html?: T;
   image?: T;
-  duration_sec?: T;
+  duration_seconds?: T;
   enabled?: T;
   pinned?: T;
   sort?: T;

@@ -2,7 +2,7 @@ import type { CollectionConfig, Validate } from 'payload';
 
 export const Telops: CollectionConfig = {
   slug: 'telops',
-  labels: { singular: 'テロップ', plural: 'テロップ' },
+  labels: { singular: 'サイネージ テロップ', plural: 'サイネージ テロップ' },
   admin: { useAsTitle: 'body', defaultColumns: ['body', 'audience', 'enabled', 'sort'] },
   defaultSort: 'sort',
   fields: [

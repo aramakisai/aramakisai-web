@@ -482,7 +482,7 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
       const slide = (enabled: boolean) =>
         payload.create({
           collection: 'signage_slides',
-          data: { kind: 'parking', title: `sig-${suffix}-${enabled}`, enabled, duration_sec: 10 },
+          data: { kind: 'parking', title: `sig-${suffix}-${enabled}`, enabled, duration_seconds: 10 },
           overrideAccess: true,
         });
       const telop = (enabled: boolean) =>

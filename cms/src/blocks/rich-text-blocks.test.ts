@@ -10,7 +10,7 @@ describe('validateButtonUrl', () => {
     expect(validateButtonUrl(url)).toBe(true);
   });
 
-  it.each(['javascript:alert(1)', 'data:text/html,x', '//evil.example', 'example.com', 'mailto:a@b.c', ''])(
+  it.each(['javascript:alert(1)', 'data:text/html,x', '//evil.example', '/\\evil.example', 'example.com', 'mailto:a@b.c', ''])(
     '%j を拒否する',
     (url) => {
       expect(typeof validateButtonUrl(url)).toBe('string');

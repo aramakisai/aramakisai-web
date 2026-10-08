@@ -6,8 +6,8 @@ export const LostItems: CollectionConfig = {
   admin: { useAsTitle: 'name', defaultColumns: ['name', 'found_place', 'found_at', 'returned'] },
   defaultSort: '-found_at',
   fields: [
-    { name: 'name', type: 'text', required: true, maxLength: 255, label: '品名' },
-    { name: 'found_place', type: 'text', required: true, maxLength: 255, label: '拾得場所' },
+    { name: 'name', type: 'text', required: true, maxLength: 50, label: '品名' },
+    { name: 'found_place', type: 'text', required: true, maxLength: 30, label: '拾得場所' },
     {
       name: 'found_at',
       type: 'date',

@@ -19,6 +19,11 @@ const requiredWhen =
 
 const layoutOnly = { condition: kindIs('layout') };
 
+const layoutIs =
+  (...layouts: string[]) =>
+  (data: Record<string, unknown>) =>
+    kindIs('layout')(data) && layouts.includes(String(data?.layout));
+
 export const SignageSlides: CollectionConfig = {
   slug: 'signage_slides',
   labels: { singular: 'サイネージ スライド', plural: 'サイネージ スライド' },
@@ -43,10 +48,10 @@ export const SignageSlides: CollectionConfig = {
     {
       name: 'title',
       type: 'text',
-      maxLength: 255,
+      required: true,
+      maxLength: 100,
       label: 'タイトル',
       admin: { description: 'レイアウトでは画面に表示される。それ以外は管理用の名前' },
-      validate: requiredWhen(['layout'], 'レイアウトにはタイトルが必要です'),
     },
     {
       name: 'layout',
@@ -72,15 +77,26 @@ export const SignageSlides: CollectionConfig = {
       ],
       admin: layoutOnly,
     },
-    { name: 'subtext', type: 'text', maxLength: 255, label: 'サブテキスト', admin: layoutOnly },
-    { name: 'content1', type: 'richText', label: '本文枠 1', admin: layoutOnly },
+    {
+      name: 'subtext',
+      type: 'textarea',
+      maxLength: 200,
+      label: 'サブテキスト',
+      admin: { condition: layoutIs('title', 'section') },
+    },
+    {
+      name: 'content1',
+      type: 'richText',
+      label: '本文枠 1',
+      admin: { condition: layoutIs('title-content', 'two-content') },
+    },
     lexicalHTMLField({
       htmlFieldName: 'content1_html',
       lexicalFieldName: 'content1',
       storeInDB: true,
       converters: richTextHTMLConverters,
     }),
-    { name: 'content2', type: 'richText', label: '本文枠 2', admin: layoutOnly },
+    { name: 'content2', type: 'richText', label: '本文枠 2', admin: { condition: layoutIs('two-content') } },
     lexicalHTMLField({
       htmlFieldName: 'content2_html',
       lexicalFieldName: 'content2',
@@ -96,7 +112,7 @@ export const SignageSlides: CollectionConfig = {
       validate: requiredWhen(['image', 'campus_map'], '画像を選んでください'),
     },
     {
-      name: 'duration_sec',
+      name: 'duration_seconds',
       type: 'number',
       required: true,
       defaultValue: 10,
