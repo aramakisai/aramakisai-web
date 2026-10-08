@@ -17,6 +17,16 @@ const check = (name: string, value: unknown, siblingData: Record<string, unknown
   f(name).validate!(value, { siblingData });
 
 describe('SignageSlides', () => {
+  it('固定の操作部品を一覧の列・サイドバー・一覧上部の帯に置く', () => {
+    const pin = f('pin') as unknown as { type: string; admin: { position: string; components: Record<string, string> } };
+    expect(pin.type).toBe('ui');
+    expect(pin.admin.position).toBe('sidebar');
+    expect(pin.admin.components.Cell).toBe('./components/SignagePinCell.tsx');
+    expect(pin.admin.components.Field).toBe('./components/SignagePinButton.tsx');
+    expect(SignageSlides.admin?.defaultColumns).toContain('pin');
+    expect(SignageSlides.admin?.components?.beforeListTable).toEqual(['./components/SignagePinBanner.tsx']);
+  });
+
   it('slug・管理画面名・ドラッグ並び', () => {
     expect(SignageSlides.slug).toBe('signage_slides');
     expect(SignageSlides.labels).toEqual({ singular: 'サイネージ スライド', plural: 'サイネージ スライド' });

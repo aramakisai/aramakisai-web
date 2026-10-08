@@ -1,0 +1,27 @@
+'use client';
+
+import { useDocumentInfo, useFormFields } from '@payloadcms/ui';
+
+import { useSignagePin } from './useSignagePin';
+
+export default function SignagePinButton() {
+  const { id } = useDocumentInfo();
+  const enabled = useFormFields(([fields]) => fields.enabled?.value);
+  const { pinnedId, saving, error, pin } = useSignagePin();
+  if (!id) return null;
+  const isPinned = pinnedId === Number(id);
+
+  return (
+    <div>
+      <button
+        type="button"
+        className="btn btn--style-secondary btn--size-medium"
+        disabled={saving || pinnedId === undefined || (!isPinned && !enabled)}
+        onClick={() => void pin(isPinned ? null : Number(id))}
+      >
+        {isPinned ? '固定表示を解除する' : 'このスライドを固定表示する'}
+      </button>
+      {error && <p style={{ color: 'var(--theme-error-500)' }}>更新できませんでした</p>}
+    </div>
+  );
+}

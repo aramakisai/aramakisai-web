@@ -13,6 +13,10 @@ describe('SignageSettings', () => {
     expect(SignageSettings.label).toBe('サイネージ設定');
   });
 
+  it('ナビには出さず、操作はスライド画面で行う', () => {
+    expect(SignageSettings.admin?.hidden).toBe(true);
+  });
+
   it('固定表示するスライドは任意の単一参照で、有効なスライドだけ選べる', () => {
     expect(fields).toHaveLength(1);
     expect(pinned.type).toBe('relationship');

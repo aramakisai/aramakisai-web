@@ -30,11 +30,21 @@ export const SignageSlides: CollectionConfig = {
   orderable: true,
   admin: {
     useAsTitle: 'title',
-    defaultColumns: ['title', 'kind', 'enabled'],
+    defaultColumns: ['title', 'kind', 'enabled', 'pin'],
+    components: { beforeListTable: ['./components/SignagePinBanner.tsx'] },
     // ドラッグ並べ替えはページをまたげないため、全件を1ページに収める
     pagination: { defaultLimit: 100 },
   },
   fields: [
+    {
+      name: 'pin',
+      type: 'ui',
+      label: '固定',
+      admin: {
+        position: 'sidebar',
+        components: { Cell: './components/SignagePinCell.tsx', Field: './components/SignagePinButton.tsx' },
+      },
+    },
     {
       name: 'kind',
       type: 'select',

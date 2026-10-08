@@ -21,6 +21,9 @@ import { ItalicFeatureClient as ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0
 import { default as default_00c726c713f496c3755871b372f6a445 } from '../../../components/EventDayCell.tsx'
 import { default as default_865dc7d07d004c420a6d9b7fc6db63a7 } from '../../../components/EventDaySelect.tsx'
 import { default as default_42b4dc53b2f2e15edc073b0f303c1d16 } from '../../../components/EventDayCheckboxes.tsx'
+import { default as default_94d312732a635f395da61fd489cd8943 } from '../../../components/SignagePinCell.tsx'
+import { default as default_b8239a33d555f0c0b19f6fed8046038f } from '../../../components/SignagePinButton.tsx'
+import { default as default_504d5e68a80296875d878bfb87ddfa84 } from '../../../components/SignagePinBanner.tsx'
 import { default as default_2ed8aac779ca9418101260c808295bcc } from '../../../components/ZitadelLoginButton.tsx'
 import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
@@ -50,6 +53,9 @@ export const importMap = {
   "./components/EventDayCell.tsx#default": default_00c726c713f496c3755871b372f6a445,
   "./components/EventDaySelect.tsx#default": default_865dc7d07d004c420a6d9b7fc6db63a7,
   "./components/EventDayCheckboxes.tsx#default": default_42b4dc53b2f2e15edc073b0f303c1d16,
+  "./components/SignagePinCell.tsx#default": default_94d312732a635f395da61fd489cd8943,
+  "./components/SignagePinButton.tsx#default": default_b8239a33d555f0c0b19f6fed8046038f,
+  "./components/SignagePinBanner.tsx#default": default_504d5e68a80296875d878bfb87ddfa84,
   "./components/ZitadelLoginButton.tsx#default": default_2ed8aac779ca9418101260c808295bcc,
   "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1

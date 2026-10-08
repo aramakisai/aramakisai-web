@@ -3,6 +3,8 @@ import type { GlobalConfig } from 'payload';
 export const SignageSettings: GlobalConfig = {
   slug: 'signage_settings',
   label: 'サイネージ設定',
+  // 固定の操作はサイネージ スライドの画面で行う。保存先としてだけ残す
+  admin: { hidden: true },
   fields: [
     {
       name: 'pinned_slide',
