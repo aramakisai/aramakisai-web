@@ -53,7 +53,10 @@ export function SignageTelop({
 
   // 全件の文面とチップを paint 前に測る。offsetWidth は拡縮前の設計座標で、端末の画面サイズ・向きに依らない
   useLayoutEffect(() => {
-    if (count === 0) return;
+    if (count === 0) {
+      setMeasured(null);
+      return;
+    }
     let disposed = false;
     const measure = () => {
       const widthsOf = (els: (HTMLElement | null)[]) =>
