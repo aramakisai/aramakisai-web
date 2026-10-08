@@ -16,7 +16,11 @@ vi.mock('./sponsors', async (importOriginal) => ({
 }));
 vi.mock('./parking-data', () => ({ getParkingResponse }));
 
-import { getSignageSnapshot, SIGNAGE_TTL_SECONDS } from './signage-data';
+import {
+  getPinState,
+  getSignageSnapshot,
+  SIGNAGE_TTL_SECONDS,
+} from './signage-data';
 
 const docs = (list: unknown[]) => ({
   ok: true,
@@ -254,3 +258,40 @@ describe('getSignageSnapshot', () => {
     expect((await getSignageSnapshot()).ok).toBe(false);
   });
 });
+
+describe('getPinState', () => {
+  const pinned = (extra = {}) => ({ ...slide(7), enabled: true, ...extra });
+
+  it('有効な固定スライドを正規化し、キャッシュなし・depth 2 で取得する', async () => {
+    setup({}, { pinned_slide: pinned() });
+    const r = await getPinState();
+    if (!r.ok) throw new Error('failed');
+    expect(r.value.slide).toMatchObject({ id: 7, title: 's7' });
+    expect(Number.isNaN(Date.parse(r.value.serverNow))).toBe(false);
+    expect(findGlobal).toHaveBeenCalledWith(
+      'signage_settings',
+      { depth: 2 },
+      { ttlSeconds: 0 },
+    );
+  });
+
+  it.each([
+    ['未設定', null],
+    ['IDのまま(読めない)', 7],
+    ['無効', pinnedDisabled()],
+  ])('%s は slide: null', async (_, ref) => {
+    setup({}, { pinned_slide: ref });
+    const r = await getPinState();
+    if (!r.ok) throw new Error('failed');
+    expect(r.value.slide).toBeNull();
+  });
+
+  it('取得失敗は失敗を返す', async () => {
+    findGlobal.mockResolvedValue(fail);
+    expect((await getPinState()).ok).toBe(false);
+  });
+});
+
+function pinnedDisabled() {
+  return { ...slide(7), enabled: false };
+}

@@ -90,6 +90,8 @@ function getEdgeCache(): Cache | undefined {
 
 async function cachedFetch(url: string, ttlSeconds: number): Promise<Response> {
   const cache = getEdgeCache();
+  // TTL 0 は即時反映が要る取得。エッジキャッシュも Next の fetch キャッシュも通さない
+  if (ttlSeconds === 0) return fetch(url, { cache: 'no-store' });
   if (!cache) return fetch(url);
   // キャッシュキーは URL のみなので、既定外の TTL は別キーにして同じクエリを別 TTL と共有しない
   const key = new Request(

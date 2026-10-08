@@ -10,6 +10,7 @@ import {
   stageNow,
   type SignageSnapshot,
 } from '@/lib/signage';
+import { withPin, usePinnedSlide } from '@/lib/signage-pin';
 import { clockOffsetMs, useCorrectedNow } from '@/lib/signage-time';
 import { useCanvasLayout } from '@/lib/signage-viewport';
 import { usePolling } from '@/lib/use-polling';
@@ -53,14 +54,19 @@ export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
     immediate: true,
     initial: initial && { snapshot: initial, offsetMs: null },
   });
-  const data = polled?.snapshot ?? null;
+  const [pinOffsetMs, setPinOffsetMs] = useState<number | null>(null);
+  const pin = usePinnedSlide((serverNow, sentAt, receivedAt) =>
+    setPinOffsetMs(clockOffsetMs(serverNow, sentAt, receivedAt)),
+  );
+  const snapshot = polled?.snapshot ?? null;
+  const data = snapshot && withPin(snapshot, pin);
   const serverIso = initial?.serverNow ?? renderedAt;
   // マウント直後の最初の取得が終わるまでは SSR 時のサーバー時刻を基準にする (配送遅延ぶん遅れる)
   const [mountOffsetMs, setMountOffsetMs] = useState<number | null>(null);
   useEffect(() => {
     setMountOffsetMs(Date.parse(serverIso) - Date.now());
   }, [serverIso]);
-  const offsetMs = polled?.offsetMs ?? mountOffsetMs;
+  const offsetMs = pinOffsetMs ?? polled?.offsetMs ?? mountOffsetMs;
   const now = useCorrectedNow(offsetMs, serverIso);
   const rootRef = useRef<HTMLDivElement>(null);
   const layout = useCanvasLayout(rootRef);

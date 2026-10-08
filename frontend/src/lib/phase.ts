@@ -43,6 +43,7 @@ export const PRE_EVENT_PUBLIC_PATHS: readonly string[] = [
   '/signage',
   // 開催前の試験表示でもサイネージ画面がポーリングで更新を受け取るため
   '/api/signage',
+  '/api/signage/pin',
 ];
 
 // お知らせ・トピックの詳細はルート単位で許可する。id ごとの公開判定は既存の

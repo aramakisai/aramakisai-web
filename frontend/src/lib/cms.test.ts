@@ -131,6 +131,20 @@ describe('cms キャッシュ', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('ttlSeconds 0 はキャッシュを参照も保存もせず no-store で取得する', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(okResponse());
+    const match = vi.fn();
+    const put = vi.fn();
+    vi.stubGlobal('caches', { default: { match, put } });
+    vi.stubGlobal('fetch', fetchMock);
+    await cms.findGlobal('signage_settings', {}, { ttlSeconds: 0 });
+    expect(match).not.toHaveBeenCalled();
+    expect(put).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledWith(expect.any(String), {
+      cache: 'no-store',
+    });
+  });
+
   it('ヒット時は fetch せずキャッシュを返す', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('caches', {

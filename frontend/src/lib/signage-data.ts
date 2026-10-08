@@ -16,6 +16,7 @@ import type {
   SignageTelopItem,
   SponsorTier,
 } from './signage';
+import type { SignagePinState } from './signage-pin';
 import { getSponsors, mergeSponsorLogos } from './sponsors';
 import { toTimetable } from './timetable';
 
@@ -139,5 +140,24 @@ export async function getSignageSnapshot(): Promise<
         .map(toLostItem),
       parking: parking.value,
     },
+  };
+}
+
+/** 固定状態だけをキャッシュなしで返す。無効・未設定・読めない(IDのまま)の固定は slide: null */
+export async function getPinState(): Promise<CmsResult<SignagePinState>> {
+  const settings = await cms.findGlobal(
+    'signage_settings',
+    { depth: 2 },
+    { ttlSeconds: 0 },
+  );
+  if (!settings.ok) return settings;
+  const ref = settings.value.pinned_slide;
+  const slide =
+    typeof ref === 'object' && ref !== null && ref.enabled
+      ? toSlide(ref)
+      : null;
+  return {
+    ok: true,
+    value: { serverNow: new Date().toISOString(), slide },
   };
 }

@@ -100,6 +100,16 @@ describe('SignageScreen', () => {
     };
     render(<SignageScreen initial={initial} renderedAt={initial.serverNow} />);
     await act(() => vi.advanceTimersByTimeAsync(0));
-    expect(fetch).toHaveBeenCalledTimes(1);
+    const urls = vi.mocked(fetch).mock.calls.map(([u]) => u);
+    expect(urls.filter((u) => u === '/api/signage')).toHaveLength(1);
+  });
+
+  it('固定状態を3秒ごとに確認する', async () => {
+    render(<SignageScreen initial={null} renderedAt="2026-11-14T00:00:00Z" />);
+    await act(() => vi.advanceTimersByTimeAsync(6_000));
+    const pins = vi
+      .mocked(fetch)
+      .mock.calls.filter(([u]) => u === '/api/signage/pin');
+    expect(pins.length).toBeGreaterThanOrEqual(3);
   });
 });

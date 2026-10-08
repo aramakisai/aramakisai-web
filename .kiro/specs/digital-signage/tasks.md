@@ -303,7 +303,7 @@ CMS側(タスク1〜3)とフロント側(タスク4〜10)は別PRに分ける。
   - _Requirements: 4.7, 4.8, 4.12_
   - _Boundary: signage_settings, signage_slides, cms/src/components/SignagePin*_
 
-- [ ] 10.3g (P) フロント: 固定表示を3秒以内に割り込ませる
+- [x] 10.3g (P) フロント: 固定表示を3秒以内に割り込ませる
   - `getPinState`と`/api/signage/pin`(固定スライドを`depth: 2`でキャッシュなしに取得し、有効なときだけ正規化して`serverNow`とともに返す。`no-store`、失敗時502)をテスト先行で作り、開催前でも公開されるパスへ加える。`findGlobal`の`ttlSeconds: 0`はCache APIを使わない
   - `withPin`と`usePinnedSlide`(3秒ごと、失敗時は直前を保持、成功のたびに時刻オフセットを更新)をテスト先行で作り、画面の再生リストを`withPin`を通したスナップショットから作る
   - `getPinState`・`/api/signage/pin`・`withPin`の単体テストと、フロントの型チェック・テストが通る
