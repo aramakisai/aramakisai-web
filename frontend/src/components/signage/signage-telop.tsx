@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import type { SignageTelopItem } from '@/lib/signage';
 import { nextTelopIndex, telopPlan } from '@/lib/signage-telop';
 
@@ -22,32 +22,48 @@ export function SignageTelop({ items }: SignageTelopProps) {
   const item = items[index < count ? index : 0];
   const itemKey = item ? `${item.id}:${tick}` : null;
 
-  useEffect(() => {
+  // paint 前に計測・開始しないと、未アニメ状態(左寄せ)が 1 フレーム見える
+  useLayoutEffect(() => {
     const box = boxRef.current;
     const text = textRef.current;
     if (itemKey === null || !box || !text) return;
-    const boxWidth = box.clientWidth;
-    const textWidth = text.scrollWidth;
-    const plan = telopPlan(textWidth, boxWidth);
-    const anim = plan.scroll
-      ? text.animate(
-          [
-            { transform: `translateX(${boxWidth}px)` },
-            { transform: `translateX(-${textWidth}px)` },
-          ],
-          { duration: plan.durationMs, easing: 'linear', fill: 'forwards' },
-        )
-      : null;
-    const timer = setTimeout(
-      () =>
-        setPos((p) => ({
-          index: nextTelopIndex(p.index, count),
-          // 1件だけのときも再生を最初からやり直すため、indexとは別に進める
-          tick: p.tick + 1,
-        })),
-      plan.durationMs,
-    );
+    let anim: Animation | null = null;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let disposed = false;
+    const start = () => {
+      anim?.cancel();
+      clearTimeout(timer);
+      const boxWidth = box.clientWidth;
+      const textWidth = text.scrollWidth;
+      const plan = telopPlan(textWidth, boxWidth);
+      anim = plan.scroll
+        ? text.animate(
+            [
+              { transform: `translateX(${boxWidth}px)` },
+              { transform: `translateX(-${textWidth}px)` },
+            ],
+            { duration: plan.durationMs, easing: 'linear', fill: 'forwards' },
+          )
+        : null;
+      timer = setTimeout(
+        () =>
+          setPos((p) => ({
+            index: nextTelopIndex(p.index, count),
+            // 1件だけのときも再生を最初からやり直すため、indexとは別に進める
+            tick: p.tick + 1,
+          })),
+        plan.durationMs,
+      );
+    };
+    start();
+    // Web フォント読込前の幅で計測した場合に備え、読込完了後に測り直す
+    if (document.fonts.status !== 'loaded') {
+      void document.fonts.ready.then(() => {
+        if (!disposed) start();
+      });
+    }
     return () => {
+      disposed = true;
       clearTimeout(timer);
       anim?.cancel();
     };
