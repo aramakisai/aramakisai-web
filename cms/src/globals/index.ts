@@ -16,7 +16,7 @@ const withAccess = (global: GlobalConfig): GlobalConfig => {
     access: { read, update },
     admin: {
       ...global.admin,
-      hidden: ({ user }) => isHiddenInAdmin(toCmsUser(user), global.slug),
+      hidden: ({ user }) => global.admin?.hidden === true || isHiddenInAdmin(toCmsUser(user), global.slug),
     },
   };
 };
