@@ -8,10 +8,10 @@ import type { AreaExhibitionListState } from './area-exhibition-list';
 function firePointer(
   element: Element,
   type: 'pointerdown' | 'pointermove' | 'pointerup',
-  props: { clientY: number },
+  props: { clientY: number; clientX?: number },
 ) {
   const event = new Event(type, { bubbles: true, cancelable: true });
-  Object.assign(event, { pointerId: 1, button: 0, ...props });
+  Object.assign(event, { pointerId: 1, button: 0, clientX: 0, ...props });
   fireEvent(element, event);
 }
 
@@ -172,11 +172,18 @@ describe('MapBottomSheet', () => {
       });
       const sheet = getByTestId('map-bottom-sheet');
 
-      // 条件あり (filtered) の既定は「標準」(380px)。折りたたみへは戻れない
+      // 条件あり (filtered) の既定は「標準」(380px)。内容高 (auto) は飛ばして最小へ下がる
       expect(sheet.style.height).toBe('380px');
       expect(grabber).toHaveAttribute('aria-expanded', 'false');
 
       fireEvent.keyDown(grabber, { key: 'ArrowDown' });
+      expect(sheet.style.height).toBe('44px');
+      expect(grabber).toHaveAccessibleName(/最小/);
+
+      fireEvent.keyDown(grabber, { key: 'ArrowDown' });
+      expect(sheet.style.height).toBe('44px');
+
+      fireEvent.keyDown(grabber, { key: 'ArrowUp' });
       expect(sheet.style.height).toBe('380px');
 
       fireEvent.keyDown(grabber, { key: 'ArrowUp' });
@@ -194,7 +201,7 @@ describe('MapBottomSheet', () => {
       expect(sheet.style.height).toBe('55vh');
     });
 
-    it('lets Enter/Space toggle between the floor and one step up', () => {
+    it('lets Enter/Space toggle between the rest snap and one step up', () => {
       mockMatchMedia(false);
       const state: AreaExhibitionListState = { kind: 'unselected' };
       const { getByTestId } = render(<MapBottomSheet state={state} />);
@@ -210,6 +217,23 @@ describe('MapBottomSheet', () => {
 
       fireEvent.keyDown(grabber, { key: ' ' });
       expect(sheet.style.height).toBe('auto');
+
+      fireEvent.keyDown(grabber, { key: 'ArrowDown' });
+      expect(sheet.style.height).toBe('44px');
+    });
+
+    it('keeps content out of reach at the minimum snap', () => {
+      mockMatchMedia(false);
+      const state: AreaExhibitionListState = { kind: 'unselected' };
+      const { getByTestId } = render(<MapBottomSheet state={state} />);
+      const grabber = screen.getByRole('button', {
+        name: /シートの高さを変更/,
+      });
+      fireEvent.keyDown(grabber, { key: 'ArrowDown' });
+      expect(getByTestId('map-bottom-sheet').className).toMatch(
+        /overflow-hidden/,
+      );
+      expect(screen.getByText(/エリアを選/).closest('[inert]')).not.toBeNull();
     });
 
     it('follows the pointer continuously while dragging and snaps to the nearest position on release', () => {
@@ -234,12 +258,13 @@ describe('MapBottomSheet', () => {
         .mockReturnValueOnce({ height: 700 } as DOMRect); // pointerup: 離した時点の高さ
 
       firePointer(grabber, 'pointerdown', { clientY: 500 });
+      firePointer(grabber, 'pointermove', { clientY: 480 }); // 閾値超えでドラッグ確定
       // ドラッグ中は遷移を切って指に追従させる
       expect(sheet.style.transition).toBe('none');
-      firePointer(grabber, 'pointermove', { clientY: 100 }); // 400px 上へドラッグ
+      firePointer(grabber, 'pointermove', { clientY: 100 }); // 確定地点から 380px 上へ
 
-      // 380 + 400 = 780 (全画面 800 未満) をそのまま反映する
-      expect(sheet.style.height).toBe('780px');
+      // 380 + 380 = 760 (全画面 800 未満) をそのまま反映する
+      expect(sheet.style.height).toBe('760px');
 
       firePointer(grabber, 'pointerup', { clientY: 100 });
 
@@ -281,6 +306,126 @@ describe('MapBottomSheet', () => {
       firePointer(grabber, 'pointerup', { clientY: 470 });
 
       // 50ms で 30px = 0.6px/ms の上向きフリック → 400 の次 (440) へ
+      expect(sheet.style.height).toBe('55vh');
+    });
+
+    describe('dragging from the sheet body', () => {
+      const filtered: AreaExhibitionListState = {
+        kind: 'filtered',
+        areaName: 'Aゾーン',
+        keyword: '',
+        categories: [],
+        items: [],
+      };
+
+      it('resizes when dragging a non-scrollable body, and swallows the trailing click', () => {
+        mockMatchMedia(false);
+        window.innerHeight = 800;
+        const onClick = vi.fn();
+        const { getByTestId } = render(
+          <MapBottomSheet state={{ kind: 'unselected' }} />,
+        );
+        const sheet = getByTestId('map-bottom-sheet');
+        const body = screen.getByText(/エリアを選/);
+        body.addEventListener('click', onClick);
+        vi.spyOn(sheet, 'getBoundingClientRect').mockReturnValue({
+          height: 100,
+        } as DOMRect);
+
+        firePointer(body, 'pointerdown', { clientY: 500 });
+        firePointer(body, 'pointermove', { clientY: 480 });
+        firePointer(body, 'pointermove', { clientY: 380 });
+        expect(sheet.style.height).toBe('200px');
+        firePointer(body, 'pointerup', { clientY: 380 });
+        fireEvent.click(body);
+        expect(onClick).not.toHaveBeenCalled();
+      });
+
+      it('leaves taps with sub-threshold movement alone', () => {
+        mockMatchMedia(false);
+        const onClick = vi.fn();
+        const { getByTestId } = render(
+          <MapBottomSheet state={{ kind: 'unselected' }} />,
+        );
+        const sheet = getByTestId('map-bottom-sheet');
+        const body = screen.getByText(/エリアを選/);
+        body.addEventListener('click', onClick);
+
+        firePointer(body, 'pointerdown', { clientY: 500 });
+        firePointer(body, 'pointermove', { clientY: 497 });
+        firePointer(body, 'pointerup', { clientY: 497 });
+        fireEvent.click(body);
+        expect(sheet.style.transition).toBe('');
+        expect(onClick).toHaveBeenCalledTimes(1);
+      });
+
+      it('does not claim horizontal-dominant moves', () => {
+        mockMatchMedia(false);
+        const { getByTestId } = render(
+          <MapBottomSheet state={{ kind: 'unselected' }} />,
+        );
+        const sheet = getByTestId('map-bottom-sheet');
+        const body = screen.getByText(/エリアを選/);
+
+        firePointer(body, 'pointerdown', { clientY: 500, clientX: 100 });
+        firePointer(body, 'pointermove', { clientY: 495, clientX: 160 });
+        expect(sheet.style.transition).toBe('');
+      });
+
+      it('leaves a downward drag to list scrolling when the list is scrolled', () => {
+        mockMatchMedia(false);
+        const { getByTestId } = render(<MapBottomSheet state={filtered} />);
+        const sheet = getByTestId('map-bottom-sheet');
+        Object.defineProperty(sheet, 'scrollHeight', { value: 1000 });
+        Object.defineProperty(sheet, 'clientHeight', { value: 380 });
+        sheet.scrollTop = 50;
+        const body = sheet.lastElementChild as HTMLElement;
+
+        firePointer(body, 'pointerdown', { clientY: 300 });
+        firePointer(body, 'pointermove', { clientY: 400 });
+        expect(sheet.style.transition).toBe('');
+      });
+
+      it('shrinks the sheet on a downward drag when the list is at the top', () => {
+        mockMatchMedia(false);
+        const { getByTestId } = render(<MapBottomSheet state={filtered} />);
+        const sheet = getByTestId('map-bottom-sheet');
+        Object.defineProperty(sheet, 'scrollHeight', { value: 1000 });
+        Object.defineProperty(sheet, 'clientHeight', { value: 380 });
+        const body = sheet.lastElementChild as HTMLElement;
+
+        firePointer(body, 'pointerdown', { clientY: 300 });
+        firePointer(body, 'pointermove', { clientY: 400 });
+        expect(sheet.style.transition).toBe('none');
+      });
+    });
+
+    it('lifts a minimized sheet to the standard snap when an area gets selected, but never lowers a taller one', () => {
+      mockMatchMedia(false);
+      const state: AreaExhibitionListState = {
+        kind: 'filtered',
+        areaName: 'Aゾーン',
+        keyword: '',
+        categories: [],
+        items: [],
+      };
+      const { getByTestId, rerender } = render(
+        <MapBottomSheet state={state} selectedAreaId={1} />,
+      );
+      const sheet = getByTestId('map-bottom-sheet');
+      const grabber = screen.getByRole('button', {
+        name: /シートの高さを変更/,
+      });
+
+      fireEvent.keyDown(grabber, { key: 'ArrowDown' });
+      expect(sheet.style.height).toBe('44px');
+      rerender(<MapBottomSheet state={state} selectedAreaId={null} />);
+      expect(sheet.style.height).toBe('44px');
+      rerender(<MapBottomSheet state={state} selectedAreaId={2} />);
+      expect(sheet.style.height).toBe('380px');
+
+      fireEvent.keyDown(grabber, { key: 'ArrowUp' });
+      rerender(<MapBottomSheet state={state} selectedAreaId={3} />);
       expect(sheet.style.height).toBe('55vh');
     });
 

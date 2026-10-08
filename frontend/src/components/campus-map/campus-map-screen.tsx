@@ -141,6 +141,7 @@ export function CampusMapScreen({
       <MapBottomSheet
         state={listState}
         notice={areaNotice}
+        selectedAreaId={filters.selectedAreaId}
         onHeightChange={handleSheetHeightChange}
       />
       {/*
