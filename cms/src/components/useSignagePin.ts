@@ -9,7 +9,7 @@ let pinned: number | null | undefined; // undefined は読み込み前
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
 
-async function reload() {
+export async function reloadPin() {
   try {
     pinned = await fetchPinnedId();
   } catch {
@@ -23,7 +23,7 @@ export const getPinnedId = () => pinned;
 // 画面遷移ではモジュールが残るため、画面に入るたびに読み直して他の担当者の変更を拾う
 export function subscribePin(listener: () => void): () => void {
   listeners.add(listener);
-  if (listeners.size === 1) void reload();
+  if (listeners.size === 1) void reloadPin();
   return () => void listeners.delete(listener);
 }
 

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { getPinnedId, subscribePin } from './useSignagePin';
+import { getPinnedId, reloadPin, subscribePin } from './useSignagePin';
 
 const respond = (pinned: number | null) =>
   vi.fn().mockResolvedValue({ ok: true, json: async () => ({ pinned_slide: pinned }) } as Response);
@@ -29,5 +29,21 @@ describe('subscribePin', () => {
     expect(f).toHaveBeenCalledTimes(1);
     off();
     off2();
+  });
+});
+
+describe('reloadPin', () => {
+  it('購読者へ最新の固定状態を知らせる', async () => {
+    vi.stubGlobal('fetch', respond(4));
+    const listener = vi.fn();
+    const off = subscribePin(listener);
+    await vi.waitFor(() => expect(getPinnedId()).toBe(4));
+
+    vi.stubGlobal('fetch', respond(null));
+    listener.mockClear();
+    await reloadPin();
+    expect(getPinnedId()).toBeNull();
+    expect(listener).toHaveBeenCalled();
+    off();
   });
 });

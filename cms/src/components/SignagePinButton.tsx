@@ -1,13 +1,18 @@
 'use client';
 
-import { useDocumentInfo, useFormFields } from '@payloadcms/ui';
+import { useDocumentInfo } from '@payloadcms/ui';
+import { useEffect } from 'react';
 
-import { useSignagePin } from './useSignagePin';
+import { reloadPin, useSignagePin } from './useSignagePin';
 
 export default function SignagePinButton() {
-  const { id } = useDocumentInfo();
-  const enabled = useFormFields(([fields]) => fields.enabled?.value);
+  const { id, savedDocumentData } = useDocumentInfo();
+  const enabled = savedDocumentData?.enabled;
   const { pinnedId, saving, error, pin } = useSignagePin();
+  // 無効にして保存すると afterChange が固定を外すため、保存後の状態を読み直す
+  useEffect(() => {
+    if (enabled === false) void reloadPin();
+  }, [enabled]);
   if (!id) return null;
   const isPinned = pinnedId === Number(id);
 

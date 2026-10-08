@@ -6,15 +6,15 @@ import { useSignagePin } from './useSignagePin';
 
 export default function SignagePinBanner() {
   const { pinnedId, saving, error, pin } = useSignagePin();
-  const [title, setTitle] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState<{ id: number; title: string | null } | null>(null);
+  const title = loaded && loaded.id === pinnedId ? loaded.title : null;
 
   useEffect(() => {
-    setTitle(null);
     if (!pinnedId) return;
     let alive = true;
     fetch(`/api/signage_slides/${pinnedId}?depth=0`, { credentials: 'include' })
       .then((res) => (res.ok ? res.json() : null))
-      .then((doc) => alive && setTitle(doc?.title ?? null))
+      .then((doc) => alive && setLoaded({ id: pinnedId, title: doc?.title ?? null }))
       .catch(() => {});
     return () => {
       alive = false;
