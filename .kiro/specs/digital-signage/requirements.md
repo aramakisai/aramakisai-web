@@ -1,0 +1,239 @@
+# Requirements Document
+
+## Introduction
+
+会場内のディスプレイに常時表示するデジタルサイネージ用ページ(以下、サイネージ画面)の要件を定める。サイネージ画面は1920×1080の横長画面と1080×1920の縦長画面を想定し、テレビのL字放送のように、常設の左カラム・下部のテロップ帯とバス案内・メイン領域のスライドを同時に配置する。表示内容はCMSに登録されたデータから組み立てる。
+
+画面のレイアウトと見た目はFigmaを正とする。ファイル`0kWDqHsLr6xE8b4FFgR1Zx`のページ「デジタルサイネージ」に、スライドごとのフレーム(協賛`829:54`、落とし物`829:179`、構内マップ`829:281`、登録画像`829:341`、駐車場`832:4529`、タイムテーブル`843:267`)と、コンポーネント(左カラム`829:2`、テロップ`829:45`(variant Target=visitor/group)、バス案内`829:46`)がある。本書は表示する情報と振る舞いだけを定め、色・寸法・書体などの見た目の値は扱わない。
+
+Requirement 15は公式サイトと共通の本文(リッチテキスト)を扱う。「本文表示」は、公式サイトのお知らせ・トピック・固定ページとサイネージ画面のスライドで本文を描画する部分を指す。
+
+## Project Description (Input)
+
+会場内のディスプレイに常時表示するデジタルサイネージ用ページを実装する。ホームページで使用している Payload CMS のデータを集約して表示する。
+
+### 外観
+
+情報番組・災害時のテレビ放送・配信画面のような、複数の情報ブロックを画面内に同時配置するレイアウト。
+
+### 表示する情報
+
+- タイムテーブルと連動した「現在のステージ企画」
+- 協賛企業 (協賛プラン `tier` ごとにロゴの大きさを変えて表示する)
+- 落とし物 (新規コレクション。定義は別途)
+- 時刻
+- 最寄りバス停の時刻表 (次のバス)
+- 自由メッセージ
+- 構内マップ
+- 登録画像
+- 公式サイトへのQRコード
+- 祭のロゴ・キャッチコピー
+- 参加団体向けの業務連絡 (来場者向けの自由メッセージと区別し、対象団体を表示する)
+
+### 機能
+
+- コレクションが更新されたら画面表示も更新する
+
+### 関連 spec
+
+- **本 spec が依存するもの**
+  - `campus-map`: サイネージ画面に表示する構内マップ
+  - `exhibition-pages`: 企画データの取得層とカード表示を流用する
+  - `timetable-page`: 「現在のステージ企画」の表示にタイムテーブルのデータ取得層を流用する
+  - `parking-availability`: 更新の伝達方式 (ポーリング / SSE など) を共通化できる可能性がある
+
+  依存が最も多いため、5 spec の中では最後に着手する。
+
+- **本 spec に依存するもの**: なし
+
+### 未確定事項
+
+- 落とし物コレクションのフィールド定義 (別途定義予定)
+- バス時刻表のデータ源 (静的な時刻表を CMS に登録するか、外部 API を参照するか)
+- 画面更新の方式と許容遅延。`parking-availability` の技術検証結果に合わせる
+- サイネージ端末側の運用 (常時表示するブラウザ、画面サイズ、認証の要否)
+- サイネージ用ページを公開 URL に置くか、Cloudflare Access などで保護するか
+
+## Boundary Context
+
+- **In scope**: サイネージ画面の表示内容と切り替え・更新の振る舞い、サイネージ画面でのみ使う情報(落とし物・テロップ・登録画像)をCMSで登録・管理できること
+- **In scope (共通)**: 公式サイトのお知らせ・トピック・固定ページとサイネージのスライドで共通に使う本文(リッチテキスト)の編集部品と表示(Requirement 15)
+- **Out of scope**: サイネージ端末の機材・ブラウザの設定と設置作業、公式サイトの既存ページ(タイムテーブル・駐車場・マップ等)の表示変更(本文の表示を除く)
+- **Adjacent expectations**: ステージ・出演枠(`stages`/`performance_slots`)、協賛(`sponsors`)、駐車場(`parking_lots`/`parking_statuses`)、開催日程(`festival_meta`の`event_days`)は現行のCMSデータをそのまま参照する
+
+## Requirements
+
+### Requirement 1: 画面構成
+**Objective:** As a 来場者, I want 会場のディスプレイで祭の情報を一目で把握したい, so that 立ち止まらずに必要な情報を得られる
+
+#### Acceptance Criteria
+1. The Signage Page shall 1920×1080の画面に、左カラム・メイン領域・テロップ帯・バス案内を同時に表示する
+2. The Signage Page shall 操作なしで表示を続け、利用者の入力を必要としない
+3. The Signage Page shall 画面全体をスクロールなしで1画面に収める
+4. While 画面が縦長(1080×1920)である, the Signage Page shall 縦長用の配置で、横長と同じ情報(常設情報・メイン領域・テロップ帯・バス案内)を同時に表示し、メイン領域は横長と同じ16:9で同じ内容を縮小して表示する
+5. The Signage Page shall 画面の縦横の向きに応じて横長用・縦長用の配置を自動で切り替え、端末ごとの設定を必要としない
+
+### Requirement 2: 左カラム(常設情報)
+**Objective:** As a 来場者, I want 祭の基本情報と今のステージを常に見られる, so that スライドの切り替わりを待たずに現在の状況がわかる
+
+#### Acceptance Criteria
+1. The Signage Page shall 左カラムに祭のロゴを常に表示する
+2. The Signage Page shall 左カラムにキャッチコピーを表示しない(キャッチコピーは登録画像スライドとして掲示する)
+3. While 開催日である, the Signage Page shall 当日が何日目かを示すDAY表記(DAY1、DAY2など)と日付を表示する
+4. The Signage Page shall 現在時刻を表示し、時刻の経過に合わせて更新する
+5. The Signage Page shall 公式サイトへのQRコードを「▼公式サイト」のラベルとともに、左カラム内で目立つように表示する
+
+### Requirement 3: いまのステージ
+**Objective:** As a 来場者, I want 各ステージで今行われている企画を知りたい, so that 見に行くステージを決められる
+
+#### Acceptance Criteria
+1. The Signage Page shall 登録済みのステージごとに、ステージ名と現在の公演を表示欄として並べる
+2. When 現在時刻があるステージの出演枠の開催日・開始時刻・終了時刻の範囲内にある, the Signage Page shall そのステージの欄に当該公演の企画名と時刻を表示する
+3. If あるステージに現在時刻に該当する公演が無い, then the Signage Page shall そのステージの欄に「公演なし」と表示する
+4. If 企画名が2行に収まらない, then the Signage Page shall 2行目の末尾を省略記号にして2行以内で表示する
+5. When 現在時刻が公演の終了時刻を過ぎる、または次の公演の開始時刻に達する, the Signage Page shall 再読み込みなしに表示中の公演を切り替える
+
+### Requirement 4: メイン領域のスライド切り替え
+**Objective:** As a 来場者, I want 複数の情報を順に見たい, so that 限られた画面で多くの案内を受け取れる
+
+#### Acceptance Criteria
+1. The Signage Page shall メイン領域に表示対象のスライドを1枚ずつ順に表示し、一定時間ごとに次のスライドへ切り替える
+2. When 最後のスライドの表示が終わる, the Signage Page shall 最初のスライドに戻って切り替えを続ける
+3. The Signage Page shall スライドの種別として協賛・落とし物・構内マップ・登録画像・駐車場の空き状況・タイムテーブル・レイアウトから作成したスライドを扱う
+4. The CMS shall 実行委員が表示するスライドとその順番を設定できるようにする
+5. The Signage Page shall CMSで設定された順番どおりにスライドを表示する
+6. Where 実行委員が1枚のスライドを固定表示に設定する(閉祭後・緊急時など), the Signage Page shall 切り替えを止めてそのスライドだけを表示し続ける
+7. When 固定表示が解除される, the Signage Page shall 設定された順番での切り替えに戻る
+
+### Requirement 5: 協賛スライド
+**Objective:** As a 実行委員, I want 協賛企業をプランに応じた大きさで掲示したい, so that 協賛への返礼として適切に露出できる
+
+#### Acceptance Criteria
+1. The Signage Page shall 協賛スライドに協賛企業を協賛プラン(`tier`のA〜D)ごとにまとめて表示する
+2. The Signage Page shall 上位のプランほど協賛企業のロゴを大きく表示する
+3. The Signage Page shall 最下位のプランの協賛企業をロゴではなく社名のみで表示する
+4. The Signage Page shall 協賛プランまたはロゴが登録されていない協賛者(個人協賛を含む)を、社名のみの一覧に表示する
+
+### Requirement 6: 落とし物スライド
+**Objective:** As a 来場者, I want 届いている落とし物を確認したい, so that 自分の持ち物が届いているかを本部に行く前に知れる
+
+#### Acceptance Criteria
+1. The Signage Page shall 落とし物スライドに登録済みの落とし物を一覧表示する
+2. The Signage Page shall 各落とし物について写真・品名・拾得場所・拾得時刻を表示する
+3. The Signage Page shall 落とし物スライドに「本部テントでお預かりしています」という案内を表示する
+4. The CMS shall 実行委員が落とし物の写真・品名・拾得場所・拾得時刻を登録・更新・削除できるようにする
+
+### Requirement 7: 構内マップスライド
+**Objective:** As a 来場者, I want 会場の構内マップを見たい, so that 目的の場所へ移動できる
+
+#### Acceptance Criteria
+1. The Signage Page shall 構内マップスライドに会場の構内マップを表示する
+
+### Requirement 8: 登録画像スライド
+**Objective:** As a 実行委員, I want 任意の画像をサイネージに掲示したい, so that キャッチコピー・ポスター・告知画像を会場で流せる
+
+#### Acceptance Criteria
+1. The Signage Page shall 登録画像スライドに登録された画像を16:9でメイン領域全面に表示する
+2. The CMS shall 実行委員がサイネージに表示する画像を登録・削除できるようにする
+
+### Requirement 9: 駐車場スライド
+**Objective:** As a 車で来場した人, I want 駐車場の空き状況を会場内でも確認したい, so that 帰りや再入場の判断ができる
+
+#### Acceptance Criteria
+1. The Signage Page shall 駐車場スライドに既存の駐車場データから各駐車場の名称と空き状況(空き・混雑・満車)を表示する
+2. The Signage Page shall 各駐車場に空き状況の更新時刻を添えて表示する
+3. The Signage Page shall 空き状況を色だけに依存せず文字ラベルでも判別できるように表示する
+4. If 空き状況が未設定である, then the Signage Page shall その駐車場を表示しない
+5. If 当日が開催日ではない, then the Signage Page shall 駐車場の空き状況を表示しない
+6. If 表示できる駐車場が1件も無い, then the Signage Page shall 駐車場スライドを表示対象から外す
+
+### Requirement 10: テロップ帯
+**Objective:** As a 実行委員, I want 来場者へのお知らせと参加団体への業務連絡を画面に流したい, so that 会場全体へ速やかに伝達できる
+
+#### Acceptance Criteria
+1. The CMS shall 実行委員がテロップの文面を登録・更新・削除できるようにする
+2. The CMS shall テロップごとに、来場者向けメッセージか参加団体向け業務連絡かを区別して登録できるようにする
+3. The CMS shall 参加団体向け業務連絡に、伝える対象(例:「出店団体へ」)を登録できるようにする
+4. The Signage Page shall 登録されたテロップの文面をテロップ帯に表示する
+5. The Signage Page shall 来場者向けメッセージと参加団体向け業務連絡を見分けられるように表示する
+6. When 参加団体向け業務連絡を表示する, the Signage Page shall その業務連絡の対象を文面とともに表示する
+7. If テロップの文面がテロップ帯の幅に収まらない, then the Signage Page shall 文面を流して全文を読めるように表示する
+8. The Signage Page shall グランプリ結果などの告知を通常のテロップと同じ仕組みで表示し、専用の表示を持たない
+
+### Requirement 11: バス案内
+**Objective:** As a 来場者, I want 次のバスの時刻と乗り場を知りたい, so that 帰りのバスに間に合うように行動できる
+
+#### Acceptance Criteria
+1. The Signage Page shall バス案内に見出し「バス発車案内」と対象エリア(荒牧キャンパスエリア)を表示する
+2. The Signage Page shall 方面ごと(前橋駅方面・渋川駅方面)に次の便を1行ずつ表示する
+3. The Signage Page shall 各便の系統番号・行先・発車時刻・発車までの残り分数・発車バス停を表示する
+4. When 時刻の経過で便が発車時刻を過ぎる, the Signage Page shall 再読み込みなしにその方面の表示を次の便へ進める
+5. The Signage Page shall 発車までの残り分数を時刻の経過に合わせて更新する
+6. The Signage Page shall 関越交通 前橋渋川線のうち、群馬大学荒牧・前橋自動車教習所前の2つのバス停を発車する便を対象にし、各便の発車バス停名を表示する
+7. The Signage Page shall 開催日の曜日に合ったダイヤ(平日/土日祝)の時刻を用いる
+8. The Signage Page shall 関越交通の公式時刻表(https://kan-etsu.net/pages/23/ に掲載のPDF)をもとに自前で保持した時刻データを表示し、表示中に外部のサービスへ問い合わせない
+
+### Requirement 12: データ更新の反映
+**Objective:** As a 実行委員, I want CMSで更新した内容が自動で画面に反映されてほしい, so that 端末を操作しに行かずに表示を最新にできる
+
+#### Acceptance Criteria
+1. When サイネージ画面が参照するコレクションまたはグローバルが更新される, the Signage Page shall 手動の再読み込みなしに更新後の内容を表示する
+2. If 最新データの取得に失敗する, then the Signage Page shall 直前に表示していた内容を表示し続ける
+3. The Signage Page shall 更新内容を数十秒以内に表示へ反映する
+4. The Signage Page shall Cloudflareの課金対象サービスを新たに追加せずに更新を反映する
+5. Where サイネージ画面を動画配信(YouTubeライブ等)に取り込んで表示する, the Signage Page shall 端末で直接表示する場合と同じ内容を表示する
+
+### Requirement 13: タイムテーブルスライド
+**Objective:** As a 来場者, I want 前後の時間帯のステージ公演を見たい, so that 次に観る公演を選べる
+
+#### Acceptance Criteria
+1. The Signage Page shall タイムテーブルスライドに当日の全ステージの公演を、ステージごとの列で表示する
+2. The Signage Page shall 現在時刻の前後の時間帯をメイン領域に収めて表示し、現在時刻の位置を線で示す
+3. While 公演が出演中である, the Signage Page shall その公演を出演中であると区別して表示する
+4. The Signage Page shall 公式サイトのタイムテーブルと同じステージの並び順と色分けで表示する
+5. The Signage Page shall 公演から詳細ページへの導線(リンクの印)を表示しない
+
+### Requirement 14: レイアウトからのスライド作成
+**Objective:** As a 実行委員, I want 用意されたレイアウトに文字・画像・QRコードを入れてスライドを作りたい, so that 画像を作らずに告知・閉祭・緊急の案内を出せる
+
+#### Acceptance Criteria
+1. The CMS shall 実行委員がレイアウトを選び、中身を入力してスライドを作成・更新・削除できるようにする
+2. The Signage Page shall PowerPointの標準レイアウトに倣い、「タイトル スライド」「タイトルとコンテンツ」「セクション見出し」「2つのコンテンツ」の4種のレイアウトを扱う
+3. The CMS shall レイアウト内の各コンテンツ枠に、Requirement 15の本文(画像・横並び・注意枠・ボタン型リンク・表を含む)を入れられるようにする
+4. The Signage Page shall 各レイアウトのタイトル・テキストを、レイアウトごとに定めた最大行数を超えた分は省略記号で切って表示する
+5. Where 実行委員が注意喚起の表示を選ぶ, the Signage Page shall 通常と区別できる注意喚起の配色でスライドを表示する
+6. The Signage Page shall 画像をコンテンツ枠の中に縦横比を保って収める
+
+### Requirement 15: 本文(リッチテキスト)の共通部品
+**Objective:** As a 実行委員, I want お知らせ・トピック・固定ページ・サイネージのスライドの本文で、画像の横並び・注意枠・ボタン型リンク・表を使いたい, so that 画像を作らずに見やすい案内を書ける
+
+#### Acceptance Criteria
+1. The CMS shall お知らせ・トピック・固定ページ・サイネージのスライドの本文で、同じ編集機能を使えるようにする
+2. The CMS shall 本文に、画像とラベルの組を1〜3個並べる「横並び」を挿入できるようにする
+3. The 本文表示 shall 横並びの各組を等幅で横一列に並べ、画像の上にラベルを表示する
+4. The CMS shall 本文に、種類(注意・補足)を選んで文章を囲む「注意枠」を挿入できるようにする
+5. The 本文表示 shall 注意枠を本文と区別できる枠で囲み、種類ごとに区別できる配色で表示する
+6. The CMS shall 本文に、表示文言とリンク先を入力する「ボタン型リンク」を挿入できるようにする
+7. The 公式サイト shall ボタン型リンクをボタンの形で表示し、選ぶとリンク先へ移動する
+8. The CMS shall 本文に、行と列からなる「表」を挿入できるようにする
+9. The 本文表示 shall 表の見出しのセルを他のセルと区別して表示する
+10. If 表が本文の幅に収まらない, then the 公式サイト shall 表だけを横にスクロールできるようにし、ページ全体を横にはみ出させない
+11. The 本文表示 shall 見出しをエディタで選んだレベル(h2〜h4)のまま表示し、レベルを読み替えない
+12. If 本文に見出し1(h1)が含まれる, then the 本文表示 shall それを見出しとして扱わず、文字として表示する
+13. The 本文表示 shall 部品の追加後も、既存の本文(見出し1を除く)を追加前と同じに表示する
+
+## 未確定事項
+
+以下は決定していないため受入基準に含めていない。design以降で決める。
+
+- 当日の最終便以降・運行が無い時間帯の表示
+- 公式時刻表の二次利用の可否(関越交通への確認)
+- 落とし物の項目定義の詳細(返却済みの扱い、表示件数が多い場合の扱い)
+- テロップの表示期間・複数件の表示順、業務連絡の対象を自由記述にするか選択肢にするか
+- スライドごとの表示時間、内容が空になった自動スライド(落とし物・協賛・駐車場)の扱い
+- 登録画像が複数ある場合に1枚ずつ別スライドにするか、16:9以外の画像の扱い
+- 開催日以外に開いた場合の左カラム(DAY表記・日付)といまのステージの表示
+- 構内マップとして表示する内容(静的画像か、公式サイトのマップと同じデータか)
+- サイネージ画面でのボタン型リンクの表示(表示しないか、リンク先のQRコードとラベルに置き換えるか)
+- 横並びの画像にQRコードを使うときの用意の仕方(QR画像を登録するか、URLから生成するか)
+- サイネージ端末側の運用(常時表示するブラウザ、認証の要否)と、サイネージ画面を公開URLに置くか保護するか
