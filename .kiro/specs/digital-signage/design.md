@@ -217,7 +217,7 @@ stateDiagram-v2
 | 3.1〜3.5 | いまのステージ | SignageLeftColumn, `stageNow` | `StageNowRow` | — |
 | 4.1, 4.2, 4.5 | 順番どおりの巡回 | buildPlaylist, useSlideRotation | `PlaylistEntry` | 巡回状態 |
 | 4.3 | スライド種別 | signage_slides, slides/* | `SignageSlide` | — |
-| 4.4 | 種別と順番をCMSで設定 | signage_slides(`kind`/`sort`/`enabled`) | — | — |
+| 4.4 | 種別と順番をCMSで設定 | signage_slides(`kind`/`enabled`、`orderable`の`_order`) | — | — |
 | 4.6, 4.7 | 固定表示と解除 | signage_slides(`pinned`), buildPlaylist | — | 巡回状態 |
 | 5.1〜5.4 | 協賛のプラン別表示 | SponsorsSlide, `paginateSponsors` | `SignageSponsor` | — |
 | 6.1〜6.3 | 落とし物一覧と案内 | LostItemsSlide, `paginate` | `SignageLostItem` | — |
@@ -282,12 +282,13 @@ stateDiagram-v2
 **Contracts**: State [x]
 
 ##### State Management
-- 固定表示: 有効なスライドのうち`pinned`が真で`sort`が最小の1枚だけを使う。複数チェックは許すが、管理画面の説明に「先頭の1枚だけが表示される」と書く
-- 並び順: `sort`昇順、未設定は末尾、同値は`id`昇順(既存`parking-data.ts`と同じ扱い)
+- 固定表示: 有効なスライドのうち`pinned`が真で並び順が先頭の1枚だけを使う。複数チェックは許すが、管理画面の説明に「先頭の1枚だけが表示される」と書く
+- 並び順: `signage_slides`と`telops`は`orderable: true`とし、管理画面の一覧でドラッグして並べ替える。順序はPayloadが追加する`_order`(文字列の順序キー、管理画面では非表示)に保存され、新規作成は末尾に入る。数値の並び順項目は持たない
+- 並び順の取得: RESTの`sort=_order`(昇順)で取得し、返った順のまま使う。フロントで`_order`を比較し直さない(管理画面の一覧と同じDB上の並びにするため)
 - 落とし物の返却済みは削除せず`returned`で隠す(問い合わせ対応で履歴を見るため)
 
 **Implementation Notes**
-- Integration: `pnpm migrate:create digital_signage`で1本のマイグレーションに3コレクションを入れ、`pnpm generate:types`を実行する。新コレクション追加のみのため`cms-schema-check.yml`の破壊的変更には当たらない
+- Integration: `pnpm migrate:create digital_signage`で1本のマイグレーションに3コレクション(`signage_slides`・`telops`の`_order`列と索引を含む)を入れ、`pnpm generate:types`を実行する。新コレクション追加のみのため`cms-schema-check.yml`の破壊的変更には当たらない
 - Validation: `policy.test.ts`と`access.int.test.ts`へ新コレクションの未認証読み取り(フィルタ)と学生団体の拒否を追加
 - Risks: なし
 
@@ -343,6 +344,7 @@ CMSが`*_html`に出すHTMLの形を固定する。frontendの許可リストと
 - 取得はすべて`cms.ts`経由、TTLは`SIGNAGE_TTL_SECONDS = 15`。駐車場は既存`getParkingResponse()`をそのまま使う(当日判定・未設定除外を含む)
 - 協賛は`getSponsors({ ttlSeconds })`+`mergeSponsorLogos`、タイムテーブルは`toTimetable`を再利用する
 - `limit: 0`で全件取得(Payload既定の10件で切れるため)
+- スライドとテロップは`sort: '_order'`を指定して取得する
 - いずれかの取得が失敗したら全体を失敗にする
 
 **Dependencies**
@@ -356,7 +358,7 @@ import type { CmsResult } from '@/lib/cms';
 
 export function getSignageSnapshot(): Promise<CmsResult<SignageSnapshot>>;
 ```
-- Postconditions: `slides`は有効なものだけを`sort`順で含む。`lostItems`は返却済みを含まず拾得時刻の新しい順。`telops`は有効なものを`sort`順
+- Postconditions: `slides`は有効なものだけを`_order`昇順で含む。`lostItems`は返却済みを含まず拾得時刻の新しい順。`telops`は有効なものを`_order`昇順
 
 ##### API Contract
 | Method | Endpoint | Request | Response | Errors |
@@ -639,7 +641,7 @@ export interface SignageScreenProps {
 
 ### Logical Data Model
 
-**signage_slides**(管理画面名「サイネージ スライド」、`useAsTitle: title`)
+**signage_slides**(管理画面名「サイネージ スライド」、`useAsTitle: title`、`orderable: true`)
 
 | Field | Type | 条件・既定 | 用途 |
 |-------|------|-----------|------|
@@ -654,9 +656,8 @@ export interface SignageScreenProps {
 | `duration_seconds` | number(5〜120) | 既定10 | 表示秒数。説明に「QR・表・タイムテーブル・落とし物は15秒を推奨」 |
 | `enabled` | checkbox | 既定true | 巡回に含めるか |
 | `pinned` | checkbox | 既定false | 固定表示 |
-| `sort` | number | — | 表示順 |
 
-**telops**(「サイネージ テロップ」、`useAsTitle: body`)
+**telops**(「サイネージ テロップ」、`useAsTitle: body`、`orderable: true`)
 
 | Field | Type | 条件・既定 |
 |-------|------|-----------|
@@ -664,7 +665,6 @@ export interface SignageScreenProps {
 | `target` | text(20字まで) | `audience = group`で表示・必須。例「出店団体へ」 |
 | `body` | text(必須、200字まで) | 文面 |
 | `enabled` | checkbox | 既定true |
-| `sort` | number | — |
 
 **lost_items**(「落とし物」、`useAsTitle: name`、`defaultSort: -found_at`)
 
@@ -699,8 +699,9 @@ export interface SignageScreenProps {
 
 - **Unit (frontend)**: `buildPlaylist`(固定表示・空スライド除外・ページ展開・順序)、`useSlideRotation`の`key`引き継ぎ、`paginateSponsors`/`paginateLostItems`、`stageNow`(境界: 開始ちょうど・終了ちょうど・重なり)、`timetableWindow`(朝・夕方の寄せ)、`nextDepartures`(発車時刻ちょうど・最終便後・両停留所停車便・平日データ無し)、`eventDayIndex`
 - **Unit (frontend RichText)**: `rt-*`の各部品が残る、許可外class・属性が落ちる、h1が文字だけになる、既存本文サンプル(h2〜h4・リスト・リンク・画像)の出力が変わらない
+- **Unit (frontend 取得)**: `getSignageSnapshot`がスライドとテロップを`sort=_order`で要求し、返った順を保つ
 - **Unit (cms)**: 3ブロックと表の変換HTML、ラベル・URLのエスケープ、`buttonLink`のURL検証、種別依存の必須検証、`policy.ts`の新フィルタ
-- **Integration (cms `*.int.test.ts`)**: 未認証で無効スライド・無効テロップ・返却済み落とし物が読めない、学生団体が作成・更新できない
+- **Integration (cms `*.int.test.ts`)**: 未認証で無効スライド・無効テロップ・返却済み落とし物が読めない、学生団体が作成・更新できない、スライドとテロップの新規作成が末尾の`_order`を持ち未認証の`sort=_order`取得がその順で返る
 - **Unit (向き)**: `nextDepartures`の`perDirection`(1件/2件、2件目が無い場合)
 - **Browser (実測)**: 1920×1080と1080×1920で各領域の位置・寸法がFigmaと一致し(縦型のメイン領域は1032×580.5で、中身が横型の0.671875倍)、ビューポートの縦横を切り替えると配置が自動で変わる、テロップの流し、スライド巡回と固定表示の切り替え、表の横スクロール(公式サイトSP幅358)
 
@@ -748,4 +749,4 @@ flowchart TD
 | 落とし物 | 決定 | 返却済みは`returned`で非表示。1ページ8件を超えたらページを分けて巡回 |
 | 向きの切替 | 決定 | 端末設定なし。`@media (orientation: portrait)`と`matchMedia`で自動。外周の配置とバス案内の便数だけが違い、メイン領域は横型と同じ中身を縮小し、データ・巡回・状態は共通 |
 | 折り返し | 決定 | 見出し・本文は`word-break: auto-phrase`で文節単位。非対応ブラウザは通常の折り返し |
-| テロップ | 決定 | 表示期間は持たず`enabled`で出し入れ。並びは`sort`順。団体向けの対象は自由記述(20字) |
+| テロップ | 決定 | 表示期間は持たず`enabled`で出し入れ。並びは管理画面の一覧で並べ替えた順(`_order`昇順)。団体向けの対象は自由記述(20字) |
