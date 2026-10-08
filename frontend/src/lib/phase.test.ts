@@ -83,6 +83,8 @@ describe('isPublicPath', () => {
     '/faq',
     '/sponsors/ad',
     '/sponsors/local',
+    '/signage',
+    '/api/signage',
   ])('%s は開催前フェーズで公開される', (path) => {
     expect(isPublicPath(path, 'pre_event')).toBe(true);
   });
