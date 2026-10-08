@@ -69,9 +69,9 @@ Requirement 15は公式サイトと共通の本文(リッチテキスト)を扱�
 #### Acceptance Criteria
 1. The Signage Page shall 1920×1080の画面に、左カラム・メイン領域・テロップ帯・バス案内を同時に表示する
 2. The Signage Page shall 操作なしで表示を続け、利用者の入力を必要としない
-3. The Signage Page shall 画面全体をスクロールなしで1画面に収める
+3. The Signage Page shall どのような縦横比のビューポートでも、画面全体を縦横比を保ったまま収まる大きさに縮小して中央に置き、切れやスクロールなしで1画面に収める
 4. While 画面が縦長(1080×1920)である, the Signage Page shall 縦長用の配置で、横長と同じ情報(常設情報・メイン領域・テロップ帯・バス案内)を同時に表示し、メイン領域は横長と同じ16:9で同じ内容を縮小して表示する
-5. The Signage Page shall 画面の縦横の向きに応じて横長用・縦長用の配置を自動で切り替え、端末ごとの設定を必要としない
+5. The Signage Page shall ビューポートが縦長なら縦長用、横長なら横長用の配置を自動で選び、端末ごとの設定を必要としない
 
 ### Requirement 2: 左カラム(常設情報)
 **Objective:** As a 来場者, I want 祭の基本情報と今のステージを常に見られる, so that スライドの切り替わりを待たずに現在の状況がわかる
@@ -102,8 +102,10 @@ Requirement 15は公式サイトと共通の本文(リッチテキスト)を扱�
 3. The Signage Page shall スライドの種別として協賛・落とし物・構内マップ・登録画像・駐車場の空き状況・タイムテーブル・レイアウトから作成したスライドを扱う
 4. The CMS shall 実行委員が表示するスライドを設定し、スライドの一覧上で並べ替えて順番を設定できるようにする
 5. The Signage Page shall CMSで設定された順番どおりにスライドを表示する
-6. Where 実行委員が1枚のスライドを固定表示に設定する(閉祭後・緊急時など), the Signage Page shall 切り替えを止めてそのスライドだけを表示し続ける
-7. When 固定表示が解除される, the Signage Page shall 設定された順番での切り替えに戻る
+6. Where 実行委員がサイネージ設定で固定表示するスライドを選ぶ(閉祭後・緊急時など), the Signage Page shall 切り替えを止めてそのスライドだけを表示し続ける
+7. When 固定表示するスライドの選択が空にされる、または選ばれたスライドが無効化・削除される, the Signage Page shall 設定された順番での切り替えに戻る
+8. The CMS shall 固定表示するスライドをサイネージ設定の1か所で1枚だけ選ぶ形にし、複数のスライドを同時に固定表示に設定できないようにする
+9. The Signage Page shall 同じ内容を表示している全端末で、画面の大きさ・向き・表示を始めた時刻に関わらず、同じ時刻に同じスライドを表示する
 
 ### Requirement 5: 協賛スライド
 **Objective:** As a 実行委員, I want 協賛企業をプランに応じた大きさで掲示したい, so that 協賛への返礼として適切に露出できる
@@ -159,6 +161,7 @@ Requirement 15は公式サイトと共通の本文(リッチテキスト)を扱�
 6. When 参加団体向け業務連絡を表示する, the Signage Page shall その業務連絡の対象を文面とともに表示する
 7. If テロップの文面がテロップ帯の幅に収まらない, then the Signage Page shall 文面を流して全文を読めるように表示する
 8. The Signage Page shall グランプリ結果などの告知を通常のテロップと同じ仕組みで表示し、専用の表示を持たない
+9. The Signage Page shall 同じ内容を表示している全端末で、同じ時刻に同じテロップを同じ流し位置で表示する
 
 ### Requirement 11: バス案内
 **Objective:** As a 来場者, I want 次のバスの時刻と乗り場を知りたい, so that 帰りのバスに間に合うように行動できる
@@ -182,6 +185,8 @@ Requirement 15は公式サイトと共通の本文(リッチテキスト)を扱�
 3. The Signage Page shall 更新内容を数十秒以内に表示へ反映する
 4. The Signage Page shall Cloudflareの課金対象サービスを新たに追加せずに更新を反映する
 5. Where サイネージ画面を動画配信(YouTubeライブ等)に取り込んで表示する, the Signage Page shall 端末で直接表示する場合と同じ内容を表示する
+6. The Signage Page shall 端末の時計のずれに依らず、配信元の時刻に合わせた現在時刻で時計・スライドの切り替え・テロップ・バス案内・いまのステージ・タイムテーブルを表示する
+7. When CMSの更新が反映される途中である, the Signage Page shall 端末間の表示の食い違いを更新の反映にかかる時間(数十秒)以内に収める
 
 ### Requirement 13: タイムテーブルスライド
 **Objective:** As a 来場者, I want 前後の時間帯のステージ公演を見たい, so that 次に観る公演を選べる

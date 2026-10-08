@@ -2,16 +2,17 @@
 
 ## Overview
 
-**Purpose**: 会場のディスプレイに、祭の基本情報・いまのステージ・スライド・テロップ・バス発車案内を1920×1080(横型)または1080×1920(縦型)の1画面で常時表示する。向きは画面の縦横から自動で決まり、端末設定は持たない。あわせて、公式サイトとサイネージで共通に使う本文部品(横並び・注意枠・ボタン型リンク・表)を本文エディタへ追加する。
+**Purpose**: 会場のディスプレイに、祭の基本情報・いまのステージ・スライド・テロップ・バス発車案内を1920×1080(横型)または1080×1920(縦型)のキャンバスで常時表示する。向きはビューポートの縦横から自動で決まり、キャンバスは任意の縦横比のビューポートに収まるよう縮小して中央に置く。スライドとテロップは補正済みの時刻から決定的に求め、全端末が同時刻に同じものを表示する。端末設定は持たない。あわせて、公式サイトとサイネージで共通に使う本文部品(横並び・注意枠・ボタン型リンク・表)を本文エディタへ追加する。
 
-**Users**: 来場者は会場で画面を見る。実行委員はCMS管理画面でスライド・テロップ・落とし物を登録し、閉祭後・緊急時に1枚を固定表示する。公式サイトの閲覧者はお知らせ・トピック・固定ページで新しい本文部品を見る。
+**Users**: 来場者は会場で画面を見る。実行委員はCMS管理画面でスライド・テロップ・落とし物を登録し、閉祭後・緊急時にサイネージ設定で1枚を固定表示する。公式サイトの閲覧者はお知らせ・トピック・固定ページで新しい本文部品を見る。
 
-**Impact**: 新ページ`/signage`、集約APIの`/api/signage`、CMSコレクション3つ(`signage_slides`/`telops`/`lost_items`)を追加する。本文エディタ共通設定と本文描画(`rich-text.tsx`)を拡張し、h1をh2へ読み替える現行挙動を撤廃する。
+**Impact**: 新ページ`/signage`、集約APIの`/api/signage`、CMSコレクション3つ(`signage_slides`/`telops`/`lost_items`)とグローバル`signage_settings`を追加する。本文エディタ共通設定と本文描画(`rich-text.tsx`)を拡張し、h1をh2へ読み替える現行挙動を撤廃する。
 
 ### Goals
-- 操作なしで1画面に左カラム・メイン・テロップ・バス案内を表示し続ける(1.1〜1.3)
-- 縦横の向きに応じて横型・縦型の配置を自動で切り替える。データ取得・巡回・状態は共通で、縦型のメイン領域は横型と同じ16:9の中身を縮小して表示する(1.4、1.5)
+- 操作なしで1画面に左カラム・メイン・テロップ・バス案内を表示し続け、任意の縦横比のビューポートでキャンバス全体を収める(1.1〜1.3)
+- ビューポートの縦横に応じて横型・縦型の配置を自動で切り替える。データ取得・巡回・状態は共通で、縦型のメイン領域は横型と同じ16:9の中身を縮小して表示する(1.4、1.5)
 - CMS更新を手動再読み込みなしで約35秒以内に反映し、取得失敗時は直前の内容を保つ(12.1〜12.3)
+- 同じスナップショットを持つ全端末が、サーバー時刻で補正した時刻から同じスライド・テロップ・流し位置を表示する(4.9、10.9、12.6、12.7)
 - 新しい課金サービス・外部問い合わせを増やさない(11.8、12.4)
 - 本文部品を全richTextフィールドで共通に使え、既存本文の表示を変えない(15.1、15.13)
 
@@ -26,7 +27,8 @@
 ### This Spec Owns
 - `/signage`の画面構成(横型・縦型)・向きの判定・切り替え・時刻経過による表示更新・ポーリング
 - `/api/signage`の応答型`SignageSnapshot`(サイネージ画面だけが使う)
-- CMSコレクション`signage_slides`・`telops`・`lost_items`の定義・公開判定・マイグレーション
+- CMSコレクション`signage_slides`・`telops`・`lost_items`とグローバル`signage_settings`の定義・公開判定・マイグレーション
+- 端末の時刻補正(`serverNow`によるオフセット)と、時刻からの巡回・テロップの計算
 - バス時刻データ(`frontend/src/lib/bus-timetable-data.ts`)と次便計算
 - 本文部品3種(Blocks)と表機能の追加、そのHTML変換契約(`rt-*`クラスのHTML)、本文描画の許可リストと見た目
 - h1の読み替え撤廃
@@ -38,7 +40,7 @@
 - 本番の既存本文中のh1をCMS上で書き換える作業そのもの(手順はMigration Strategyに記す)
 
 ### Allowed Dependencies
-- `frontend/src/lib/cms.ts`(CMSクライアント、Cache API)、`use-polling.ts`、`use-now.ts`、`event-day.ts`、`timetable.ts`(`toTimetable`/`isPerformanceActive`/`findActivePerformances`)、`sponsors.ts`、`parking-data.ts`、`cms-asset-url.ts`、`cms-media.ts`、`timetable-stage-colors.ts`
+- `frontend/src/lib/cms.ts`(CMSクライアント、Cache API)、`use-polling.ts`、`event-day.ts`、`timetable.ts`(`toTimetable`/`isPerformanceActive`/`findActivePerformances`)、`sponsors.ts`、`parking-data.ts`、`cms-asset-url.ts`、`cms-media.ts`、`timetable-stage-colors.ts`
 - `cms/src/access/policy.ts`の`PUBLISHED_FILTER`、`collections/index.ts`の`withAccess`
 - `@payloadcms/richtext-lexical` 3.88.0の`BlocksFeature`・`EXPERIMENTAL_TableFeature`・非同期HTML変換器
 - 依存方向: CMS定義 → 生成型(`cms-types.ts`) → `lib/*`(データ取得・純関数) → `app/api`・`components/signage/*` → `app/(fullscreen)/signage`。上流への逆参照は禁止
@@ -65,6 +67,7 @@ graph LR
     Slides[signage_slides]
     Telops[telops]
     Lost[lost_items]
+    Settings[signage_settings]
     Existing[stages performance_slots sponsors parking festival_meta]
     Conv[rich text html converters]
   end
@@ -76,13 +79,15 @@ graph LR
   subgraph Browser
     Screen[SignageScreen]
     Poll[usePolling]
-    Playlist[buildPlaylist]
+    Playlist[buildPlaylist slideAt]
+    Clock[clock offset]
     Bus[nextDepartures]
     BusData[bus timetable data]
   end
   Slides --> Data
   Telops --> Data
   Lost --> Data
+  Settings --> Data
   Existing --> Data
   Conv --> Slides
   Data --> Api
@@ -90,6 +95,8 @@ graph LR
   Page --> Screen
   Poll --> Api
   Screen --> Poll
+  Poll --> Clock
+  Clock --> Screen
   Screen --> Playlist
   Screen --> Bus
   BusData --> Bus
@@ -97,9 +104,9 @@ graph LR
 
 **Architecture Integration**:
 - Selected pattern: 集約エンドポイント+クライアントポーリング(駐車場空き情報と同型)。代替案の比較は`research.md`
-- Domain/feature boundaries: サーバ側`signage-data.ts`はCMSの値を表示用の型へ正規化するだけ。何を何秒表示するか・次便・いまのステージは端末側の純関数が`now`から決める(時刻経過の表示更新に再取得を要しない)
-- Existing patterns preserved: `cms.ts`経由の取得、`CmsResult`、`usePolling`、`useNow`、`PUBLISHED_FILTER`、`withAccess`、`lexicalHTMLField`+`richTextHTMLConverters`
-- New components rationale: スライド・テロップ・落とし物はCMSに対応データが無い。バス時刻は外部問い合わせ禁止のため同梱データ
+- Domain/feature boundaries: サーバ側`signage-data.ts`はCMSの値を表示用の型へ正規化するだけ。何を表示するか・次便・いまのステージ・テロップの件と流し位置は、端末側の純関数が補正済みの`now`から決める(時刻経過の表示更新に再取得を要せず、端末ごとの経過時間に依存しない)
+- Existing patterns preserved: `cms.ts`経由の取得、`CmsResult`、`usePolling`、`PUBLISHED_FILTER`、`withAccess`、`lexicalHTMLField`+`richTextHTMLConverters`
+- New components rationale: スライド・テロップ・落とし物はCMSに対応データが無い。固定表示は排他(1枚だけ)のため、スライドごとのチェックではなくグローバルの単一リレーションで持つ。バス時刻は外部問い合わせ禁止のため同梱データ
 - Steering compliance: Edge制約(Node専用API無し)、`.env`不使用、コレクション変更はマイグレーション経由、`any`不使用
 
 ### Technology Stack
@@ -119,9 +126,11 @@ graph LR
 ```
 cms/src/
 ├── collections/
-│   ├── signage-slides.ts        # スライド(種別・レイアウト・本文・画像・表示秒数・有効・固定表示・並び順)
+│   ├── signage-slides.ts        # スライド(種別・レイアウト・本文・画像・表示秒数・有効・並び順)
 │   ├── telops.ts                # テロップ(対象区分・対象・文面・有効・並び順)
 │   └── lost-items.ts            # 落とし物(写真・品名・拾得場所・拾得時刻・返却済み)
+├── globals/
+│   └── signage-settings.ts      # サイネージ設定(固定表示するスライド)
 ├── blocks/
 │   └── rich-text-blocks.ts      # 本文Blocks定義(imageRow/callout/buttonLink)
 └── migrations/<timestamp>_digital_signage.ts
@@ -131,35 +140,41 @@ frontend/src/
 │   ├── api/signage/route.ts                 # GETで集約スナップショットを返す(no-store)
 │   └── (fullscreen)/signage/page.tsx        # 初期スナップショットを取得しSignageScreenへ渡す
 ├── lib/
-│   ├── signage.ts                # SignageSnapshot等の型と端末側純関数(buildPlaylist/paginate*/stageNow/timetableWindow)
+│   ├── signage.ts                # SignageSnapshot等の型と端末側純関数(buildPlaylist/slideAt/paginate*/stageNow/timetableWindow)
+│   ├── signage-time.ts           # 時刻補正(clockOffsetMs)と補正済み時刻のフック(useCorrectedNow)
+│   ├── signage-telop.ts          # テロップの時刻表(telopSchedule)と時刻からの件・流し位置(telopAt)
+│   ├── signage-viewport.ts       # 向きの判定(orientationOf)とキャンバスの拡縮(fitCanvas/useCanvasLayout)
 │   ├── signage-data.ts           # getSignageSnapshot(): CMS取得と正規化(サーバ専用)
 │   ├── bus-timetable-data.ts     # 関越交通 前橋渋川線の時刻データ(人手変換)
 │   └── bus-departures.ts         # 次便計算・ダイヤ種別判定
 └── components/signage/
-    ├── signage-screen.tsx        # 'use client'。ポーリング・now・回転・向き判定の結線と、向きごとの固定キャンバス(1920×1080 / 1080×1920)の拡縮
+    ├── signage-screen.tsx        # 'use client'。ポーリング・時刻補正・巡回・向き判定の結線と、向きごとの固定キャンバス(1920×1080 / 1080×1920)の拡縮
     ├── signage-left-column.tsx   # 横型の左カラム
     ├── signage-portrait-header.tsx  # 縦型の上部帯(ロゴ・DAY・日付・時計)
     ├── signage-portrait-info.tsx    # 縦型の情報帯(いまのステージ・公式サイトQR)
-    ├── signage-telop.tsx         # 横型・縦型共通。寸法はCSSの向き別指定
+    ├── signage-telop.tsx         # 横型・縦型共通。寸法は向き別指定。流し位置は補正済み時刻から毎フレーム求める
     ├── signage-bus-info.tsx      # 横型・縦型共通。縦型は方面ごとに次の2便、横型は1便
-    ├── signage-main.tsx          # メイン領域。常に1536×864で描画し、縦型は`@media (orientation: portrait)`で0.671875倍に縮小して1032×580.5の枠に収める
+    ├── signage-main.tsx          # メイン領域。常に1536×864で描画し、縦型は0.671875倍に縮小して1032×580.5の枠に収める
     ├── signage-heading-chip.tsx  # スライド見出しチップ (アイコン+文字)
     └── slides/                   # 種別ごとに1ファイル: sponsors / lost-items / image (登録画像・構内マップ兼用) / parking / timetable / layout
 ```
 
 ### Modified Files
 - `cms/src/collections/index.ts` — 新3コレクションを登録口へ追加
+- `cms/src/globals/index.ts` — `signage_settings`を登録口へ追加(既存グローバルと同じ結線で、読み取りは公開、更新は実行委員のみ、学生団体には管理画面で非表示)
 - `cms/src/access/policy.ts` — `PUBLISHED_FILTER`へ`signage_slides`(有効のみ)・`telops`(有効のみ)・`lost_items`(返却済み以外)を追加
 - `cms/src/lib/rich-text-editor.ts` — `BlocksFeature`(3ブロック)と`EXPERIMENTAL_TableFeature`を共通機能に追加
 - `cms/src/lib/rich-text-html-converters.ts` — 3ブロックと表の変換器を追加(画像は既存の`data-media-id`方式を共用)
 - `cms/src/app/(payload)/admin/importMap.js` — `pnpm generate:importmap`で再生成(ローカル差分のZitadel/S3エントリ消失は戻す)
 - `cms/src/payload-types.ts`、`frontend/src/cms-types.ts` — `pnpm generate:types`で再生成
 - `frontend/src/components/rich-text.tsx` — 許可タグ・class・属性の追加、h1→h2読み替えの削除
-- `frontend/src/app/globals.css` — `.rich-text-body`配下に`rt-*`の公式サイト用スタイル、`.rich-text-body--signage`配下にサイネージ用スタイル。サイネージ画面の縦型配置と、縦型でのメイン領域の縮小(`transform: scale(0.671875)`、transform-origin左上)は`@media (orientation: portrait)`で切り替える。見出し・本文の折り返しに`word-break: auto-phrase`を指定する
+- `frontend/src/app/globals.css` — `.rich-text-body`配下に`rt-*`の公式サイト用スタイル、`.rich-text-body--signage`配下にサイネージ用スタイル。サイネージ画面の縦型配置と、縦型でのメイン領域の縮小(`transform: scale(0.671875)`、transform-origin左上)は、キャンバスの`data-orientation="portrait"`で切り替える(メディア条件は使わない)。見出し・本文の折り返しに`word-break: auto-phrase`を指定する
 - `frontend/src/app/layout.tsx` — Material Symbolsの`icon_names`へ`handshake`・`local_parking`・`mic`・`directions_bus`・`warning`・`info`を追加
 - `frontend/src/lib/cms.ts` — `findGlobal`にTTL指定(`CmsFetchOptions`)を追加(既存呼び出しは不変)
 - `frontend/src/lib/sponsors.ts` — `getSponsors`にTTL指定を受ける省略可能な引数を追加
+- `frontend/src/lib/use-slide-rotation.ts` — 削除(巡回は`slideAt`で時刻から求める)
 - `frontend/src/lib/phase.ts` — `PRE_EVENT_PUBLIC_PATHS`へ`/signage`を追加
+- `frontend/tailwind.config.ts` — 組み込みの`portrait:`(メディア条件)を、キャンバスの`data-orientation="portrait"`配下を指すバリアントに置き換える
 - `docs/cms-operations.md` — スライド・テロップ・落とし物・固定表示の操作とQR画像の用意の仕方
 
 ## System Flows
@@ -178,15 +193,52 @@ sequenceDiagram
     C->>P: GET
     P-->>C: JSON
   end
-  W-->>D: SignageSnapshot (no-store)
-  Note over D: 失敗時は直前のスナップショットを保持
+  W-->>D: SignageSnapshot + serverNow (no-store)
+  Note over D: 失敗時は直前のスナップショットと時刻オフセットを保持
+  D->>D: clockOffsetMs(serverNow, 送信時刻, 受信時刻)
   D->>D: buildPlaylist(snapshot, now)
-  D->>D: 現在のスライドをkeyで引き継ぎ、表示秒数ごとに次へ
+  D->>D: slideAt(entries, now) 補正済み時刻から現在の項目を決める
 ```
 
 - 反映遅延の上限はTTL 15秒+ポーリング20秒で約35秒(12.3)。`festival_meta`もTTL 15秒で取得する
 - 1つでもCMS取得に失敗したら`/api/signage`は502を返し、端末は全体を直前の内容のまま保つ(画面内の整合を優先、12.2)
 - 時刻・いまのステージ・タイムテーブルの現在線・バス・DAY表記は再取得を待たず`now`(1秒ごと)から再計算する(3.5、11.4、11.5)
+- 端末ごとに取得の時点が最大20秒ずれるため、CMS更新直後の最大20秒程度は端末間で再生リストが食い違いうる(12.7)。全端末が新しいスナップショットを得た後は同じ表示に揃う
+
+### 時刻の同期
+
+全端末が同時刻に同じスライド・テロップを出すため、表示に使う時刻はすべて補正済みの時刻`now = Date.now() + offsetMs`とする(4.9、10.9、12.6)。
+
+- `/api/signage`の応答と初期スナップショット(SSR)は、サーバーの現在時刻`serverNow`(ISO)を含む
+- ポーリング: 要求の送信時刻`sentAt`と受信時刻`receivedAt`(いずれも`Date.now()`)を取り、`offsetMs = Date.parse(serverNow) + (receivedAt − sentAt) / 2 − receivedAt`。取得に成功するたびに更新し、失敗時は直前の値を保つ
+- 初期値: マウント時に`offsetMs = Date.parse(initial.serverNow) − Date.now()`(SSRからの配送時間ぶん遅れるが、最初のポーリングで補正される)。初期スナップショットが無いときは`renderedAt`(SSR時のサーバー時刻)を使う
+- `useCorrectedNow(offsetMs)`は、補正済み時刻の秒の境目に合わせて1秒ごとに`now`を更新する(端末ごとの更新位相のずれで切り替えが最大1秒ずれるのを防ぐ)
+- 時計・スライドの巡回・バス案内・いまのステージ・タイムテーブル・DAY表記はこの`now`を使う。テロップの流し位置だけは`requestAnimationFrame`ごとに`Date.now() + offsetMs`から求める
+
+### スライド巡回の計算
+
+```
+cycleMs = Σ entries[i].slide.durationSec × 1000
+t = now(ms, UNIXエポック基準) mod cycleMs
+先頭から durationSec × 1000 を順に引き、t が収まる項目が現在の項目、残りがその項目内の経過時間
+```
+
+- 表示秒数は整数秒のため、切り替えは補正済み時刻の秒の境目で起きる
+- 同じスナップショットと同じ補正済み時刻を持つ端末は同じ項目を出す。端末で表示を始めた時刻・画面の大きさ・向きは結果に影響しない(再生リストは向きに依存しない)
+- 再生リストが変わると(スナップショット更新・日付や開催状態の変化)、新しいリストで同じ式を計算し直す。現在位置の引き継ぎは行わない
+
+### テロップの計算
+
+```
+各件 i の表示秒数 d_i = 文面が枠に収まる: 8秒 / 収まらない: ceil((文面幅 + 枠幅) / 速度)
+cycle = Σ d_i(秒)
+t = now(秒、小数を含む) mod cycle → 件 i と件内の経過 e を決める
+流す件の translateX = 枠幅 − 速度 × e(e が流し切りの時間を超えた残りは文面が枠外に出たまま)
+```
+
+- 文面幅・枠幅はキャンバスの設計座標(拡縮前)で測る(`scrollWidth`/`clientWidth`はtransformの影響を受けない)。全件を測ってから時刻表を作り、Webフォントの読み込み完了後に測り直す
+- 各件の表示秒数を秒単位に切り上げ、端末間の文面幅の計測誤差(フォントの描画差)で周期がずれないようにする
+- 流し位置はCSSアニメーションの開始時刻に依存させず、時刻から`translate`を求める
 
 ### スライド巡回の状態
 
@@ -194,31 +246,33 @@ sequenceDiagram
 stateDiagram-v2
   [*] --> Rotating
   Rotating --> Rotating: 表示秒数経過で次の項目、末尾なら先頭
-  Rotating --> Pinned: 有効かつ固定表示のスライドが現れる
-  Pinned --> Rotating: 固定表示が解除される
+  Rotating --> Pinned: サイネージ設定の固定スライドが有効なスライドを指す
+  Pinned --> Rotating: 固定スライドが空にされる、または無効化・削除される
   Rotating --> Empty: 表示できる項目が0件
   Empty --> Rotating: 項目が1件以上になる
 ```
 
-- 再生リスト(`buildPlaylist`)はスナップショットか`now`の分が変わるたびに作り直す。現在の項目の`key`が新しいリストにあればそれを表示し続け、無ければ同じ位置(リスト長で剰余)から再開する
-- 固定表示中も、そのスライドが複数ページ(落とし物・協賛)を持つ場合はページ間で巡回する
+- 再生リスト(`buildPlaylist`)はスナップショットか`now`の分が変わるたびに作り直し、現在の項目は常に`slideAt`で時刻から求める
+- 固定表示の判定: スナップショットの`pinnedSlideId`が有効スライド(`slides`)のいずれかを指すときだけ、そのスライド1枚のページで再生リストを作る。指す先が無い(空・無効化・削除)ときは通常の巡回
+- 固定表示中も同じ式で時刻から求めるため、時計の同期は保たれ、そのスライドが複数ページ(落とし物・協賛)を持つ場合はページ間で巡回する
 
 ## Requirements Traceability
 
 | Requirement | Summary | Components | Interfaces | Flows |
 |-------------|---------|------------|------------|-------|
-| 1.1, 1.3 | 1920×1080の4領域を1画面 | SignageScreen | `SignageScreenProps` | — |
+| 1.1, 1.3 | 4領域を1画面、任意の縦横比で縮小・中央寄せ | SignageScreen, `fitCanvas` | `SignageScreenProps` | — |
 | 1.4 | 縦型(1080×1920)で同じ情報を縦型配置で表示し、メイン領域は横型と同じ16:9の中身を縮小 | SignageScreen, SignagePortraitHeader, SignagePortraitInfo, SignageMain, SignageTelop, SignageBusInfo | `SignageOrientation`、`CANVAS_SIZE` | — |
-| 1.5 | 向きの自動切替、端末設定なし | SignageScreen(`useOrientation`)、globals.cssの`@media (orientation: portrait)` | `SignageOrientation`、`CANVAS_SIZE` | — |
+| 1.5 | 向きの自動切替、端末設定なし | SignageScreen(`useCanvasLayout`、`orientationOf`)、キャンバスの`data-orientation` | `SignageOrientation`、`CANVAS_SIZE` | — |
 | 1.2 | 操作不要で表示継続 | SignageScreen, usePolling | — | 更新反映 |
 | 2.1, 2.2, 2.5 | ロゴ・QR、キャッチコピー無し | SignageLeftColumn | — | — |
 | 2.3 | DAY表記と日付 | SignageLeftColumn, `eventDayIndex` | `signage.ts` | — |
-| 2.4 | 現在時刻 | SignageScreen(`useNow` 1秒) | — | — |
+| 2.4 | 現在時刻 | SignageScreen(`useCorrectedNow` 1秒) | — | — |
 | 3.1〜3.5 | いまのステージ | SignageLeftColumn, `stageNow` | `StageNowRow` | — |
-| 4.1, 4.2, 4.5 | 順番どおりの巡回 | buildPlaylist, useSlideRotation | `PlaylistEntry` | 巡回状態 |
+| 4.1, 4.2, 4.5 | 順番どおりの巡回 | buildPlaylist, slideAt | `PlaylistEntry` | スライド巡回の計算 |
 | 4.3 | スライド種別 | signage_slides, slides/* | `SignageSlide` | — |
 | 4.4 | 種別と順番をCMSで設定 | signage_slides(`kind`/`enabled`、`orderable`の`_order`) | — | — |
-| 4.6, 4.7 | 固定表示と解除 | signage_slides(`pinned`), buildPlaylist | — | 巡回状態 |
+| 4.6, 4.7, 4.8 | 固定表示(1枚だけ)と解除 | signage_settings(`pinned_slide`), buildPlaylist | `SignageSnapshot.pinnedSlideId` | 巡回状態 |
+| 4.9 | 全端末で同時刻に同じスライド | slideAt, signage-time | `SignageSnapshot.serverNow` | 時刻の同期、スライド巡回の計算 |
 | 5.1〜5.4 | 協賛のプラン別表示 | SponsorsSlide, `paginateSponsors` | `SignageSponsor` | — |
 | 6.1〜6.3 | 落とし物一覧と案内 | LostItemsSlide, `paginate` | `SignageLostItem` | — |
 | 6.4 | 落とし物の登録・更新・削除 | lost_items | — | — |
@@ -227,12 +281,15 @@ stateDiagram-v2
 | 9.1〜9.5 | 駐車場の空き状況 | ParkingSlide, `getParkingResponse` | `ParkingResponse` | — |
 | 9.6 | 0件なら外す | buildPlaylist | — | 巡回状態 |
 | 10.1〜10.3 | テロップ登録 | telops | — | — |
-| 10.4〜10.8 | テロップ表示・流し | SignageTelop, useTelopRotation | `SignageTelopItem` | — |
+| 10.4〜10.8 | テロップ表示・流し | SignageTelop, telopSchedule, telopAt | `SignageTelopItem` | テロップの計算 |
+| 10.9 | 全端末で同時刻に同じテロップ・流し位置 | telopAt, signage-time | — | 時刻の同期、テロップの計算 |
 | 11.1〜11.6 | バス発車案内 | SignageBusInfo, nextDepartures | `DirectionBoard` | — |
 | 11.7 | 曜日に合うダイヤ | `serviceDayOf` | `ServiceDay` | — |
 | 11.8 | 自前データ・外部問い合わせ無し | bus-timetable-data | `BusTimetable` | — |
 | 12.1〜12.4 | 自動反映・失敗時保持・数十秒・課金無し | /api/signage, usePolling, cms.ts | `SignageSnapshot` | 更新反映 |
 | 12.5 | 配信取り込みでも同じ内容 | SignageScreen(固定キャンバス拡縮) | — | — |
+| 12.6 | 補正済み時刻で全表示 | clockOffsetMs, useCorrectedNow | `SignageSnapshot.serverNow` | 時刻の同期 |
+| 12.7 | 更新途中の食い違いは数十秒以内 | usePolling(20秒)、Cache API(15秒) | — | 更新反映 |
 | 13.1〜13.5 | タイムテーブルスライド | TimetableSlide, `timetableWindow` | `TimetableWindow` | — |
 | 14.1, 14.2 | レイアウト4種の作成 | signage_slides(`layout`系), LayoutSlide | — | — |
 | 14.3 | 枠に本文部品 | signage_slides(`content1`/`content2`), RichText | — | — |
@@ -250,13 +307,14 @@ stateDiagram-v2
 
 | Component | Domain/Layer | Intent | Req Coverage | Key Dependencies (P0/P1) | Contracts |
 |-----------|--------------|--------|--------------|--------------------------|-----------|
-| signage_slides / telops / lost_items | CMS | サイネージ専用データの登録 | 4.4, 4.6, 4.7, 6.4, 8.2, 10.1〜10.3, 14.1, 14.3 | policy.ts (P0) | State |
+| signage_slides / telops / lost_items / signage_settings | CMS | サイネージ専用データと固定表示の登録 | 4.4, 4.6〜4.8, 6.4, 8.2, 10.1〜10.3, 14.1, 14.3 | policy.ts (P0) | State |
 | richTextBlocks + converters | CMS | 本文部品と表のHTML化 | 15.1〜15.10 | richtext-lexical (P0) | API(HTML契約) |
 | getSignageSnapshot | frontend lib(server) | CMSデータの取得・正規化 | 12.1, 12.2, 9.1〜9.5 | cms.ts (P0), parking-data (P0), timetable (P0), sponsors (P1) | Service |
 | /api/signage | frontend route | スナップショット配信 | 12.1〜12.4 | getSignageSnapshot (P0) | API |
-| signage.tsの純関数 | frontend lib | 再生リスト・ページ分割・いまのステージ・時間窓(向き別の定数を受ける) | 1.4, 2.3, 3.2〜3.5, 4.1〜4.7, 5.1〜5.4, 6.1, 9.6, 13.2 | timetable (P0) | Service |
+| signage.tsの純関数 | frontend lib | 再生リスト・時刻からの現在項目・ページ分割・いまのステージ・時間窓 | 1.4, 2.3, 3.2〜3.5, 4.1〜4.9, 5.1〜5.4, 6.1, 9.6, 13.2 | timetable (P0) | Service |
+| signage-time / signage-telop / signage-viewport | frontend lib | 時刻補正、テロップの時刻表、向き判定と拡縮 | 1.3, 1.5, 10.7, 10.9, 12.6 | — | Service |
 | bus-departures + data | frontend lib | 次便計算 | 11.2〜11.8 | event-day (P1) | Service |
-| SignageScreen | UI | 結線・向き判定・拡縮・回転 | 1.1〜1.5, 2.4, 4.1, 12.2, 12.5 | usePolling (P0), useNow (P0) | State |
+| SignageScreen | UI | 結線・時刻補正・向き判定・拡縮・巡回 | 1.1〜1.5, 2.4, 4.1, 4.9, 12.2, 12.5, 12.6 | usePolling (P0), useCorrectedNow (P0) | State |
 | SignageLeftColumn / SignagePortraitHeader / SignagePortraitInfo / SignageMain / SignageTelop / SignageBusInfo / slides/* | UI | Figma部品の描画(横型・縦型) | 各要件 | — | — |
 | RichText(拡張) | UI | 本文の許可リストと描画 | 14.6, 15.3, 15.5, 15.7, 15.9〜15.13 | sanitize-html (P0) | — |
 
@@ -282,15 +340,30 @@ stateDiagram-v2
 **Contracts**: State [x]
 
 ##### State Management
-- 固定表示: 有効なスライドのうち`pinned`が真で並び順が先頭の1枚だけを使う。複数チェックは許すが、管理画面の説明に「先頭の1枚だけが表示される」と書く
 - 並び順: `signage_slides`と`telops`は`orderable: true`とし、管理画面の一覧でドラッグして並べ替える。順序はPayloadが追加する`_order`(文字列の順序キー、管理画面では非表示)に保存され、新規作成は末尾に入る。数値の並び順項目は持たない
 - 並び順の取得: RESTの`sort=_order`(昇順)で取得し、返った順のまま使う。フロントで`_order`を比較し直さない(管理画面の一覧と同じDB上の並びにするため)
 - 落とし物の返却済みは削除せず`returned`で隠す(問い合わせ対応で履歴を見るため)
 
 **Implementation Notes**
-- Integration: `pnpm migrate:create digital_signage`で1本のマイグレーションに3コレクション(`signage_slides`・`telops`の`_order`列と索引を含む)を入れ、`pnpm generate:types`を実行する。新コレクション追加のみのため`cms-schema-check.yml`の破壊的変更には当たらない
+- Integration: `pnpm migrate:create digital_signage`で1本のマイグレーションに3コレクション(`signage_slides`・`telops`の`_order`列と索引を含む)とグローバル`signage_settings`を入れ、`pnpm generate:types`を実行する。新コレクション・グローバルの追加のみのため`cms-schema-check.yml`の破壊的変更には当たらない
 - Validation: `policy.test.ts`と`access.int.test.ts`へ新コレクションの未認証読み取り(フィルタ)と学生団体の拒否を追加
 - Risks: なし
+
+#### signage_settings(グローバル)
+
+| Field | Detail |
+|-------|--------|
+| Intent | 固定表示するスライドを1か所で1枚だけ選ぶ |
+| Requirements | 4.6, 4.7, 4.8 |
+
+**Responsibilities & Constraints**
+- 管理画面名「サイネージ設定」。項目は単一のリレーション`pinned_slide`(「固定表示するスライド」、`signage_slides`への単一参照、任意)だけ。値が1つしか持てないため、固定表示の排他は構造で保証される
+- 選択肢は`filterOptions`で有効なスライド(`enabled = true`)に限る
+- 説明文は「選んだスライドだけを全画面に表示し続けます。空にすると通常の巡回に戻ります。」
+- 結線は`globals/index.ts`の`withAccess`(読み取りは公開、更新は実行委員のみ、学生団体には管理画面で非表示)。`policy.ts`の変更は要らない
+- 参照先のスライドが削除されると参照は`NULL`になる(外部キー`SET NULL`)。無効化されたスライドを指したままでも、フロントは有効スライドの中に無いため通常の巡回に戻す
+
+**Contracts**: State [x]
 
 #### richTextBlocksとHTML変換器
 
@@ -345,7 +418,9 @@ CMSが`*_html`に出すHTMLの形を固定する。frontendの許可リストと
 - 協賛は`getSponsors({ ttlSeconds })`+`mergeSponsorLogos`、タイムテーブルは`toTimetable`を再利用する
 - `limit: 0`で全件取得(Payload既定の10件で切れるため)
 - スライドとテロップは`sort: '_order'`を指定して取得する
+- サイネージ設定は`findGlobal('signage_settings', { depth: 0 })`で取得し、`pinned_slide`のIDだけを`pinnedSlideId`として渡す(固定対象が有効かどうかの判定は端末側で`slides`と突き合わせる)
 - いずれかの取得が失敗したら全体を失敗にする
+- 取得が揃った時点のサーバー時刻を`serverNow`に入れて返す(スナップショット全体はキャッシュしないため、応答の直前の時刻になる)
 
 **Dependencies**
 - Outbound: `cms.ts`(P0)、`parking-data.ts`(P0)、`timetable.ts`(P0)、`sponsors.ts`(P1)、`cms-media.ts`(P1)
@@ -358,19 +433,19 @@ import type { CmsResult } from '@/lib/cms';
 
 export function getSignageSnapshot(): Promise<CmsResult<SignageSnapshot>>;
 ```
-- Postconditions: `slides`は有効なものだけを`_order`昇順で含む。`lostItems`は返却済みを含まず拾得時刻の新しい順。`telops`は有効なものを`_order`昇順
+- Postconditions: `serverNow`は返す直前のサーバー時刻。`pinnedSlideId`はサイネージ設定の値(未設定ならnull、有効かどうかは問わない)。`slides`は有効なものだけを`_order`昇順で含む。`lostItems`は返却済みを含まず拾得時刻の新しい順。`telops`は有効なものを`_order`昇順
 
 ##### API Contract
 | Method | Endpoint | Request | Response | Errors |
 |--------|----------|---------|----------|--------|
-| GET | /api/signage | なし | `SignageSnapshot`(`Cache-Control: no-store`) | 502 `{ error: 'cms_unavailable' }` |
+| GET | /api/signage | なし | `SignageSnapshot`(`serverNow`を含む、`Cache-Control: no-store`) | 502 `{ error: 'cms_unavailable' }` |
 
 #### signage.ts(型と端末側の純関数)
 
 | Field | Detail |
 |-------|--------|
 | Intent | スナップショットと`now`から、表示する内容を決める |
-| Requirements | 2.3, 3.1〜3.5, 4.1〜4.7, 5.1〜5.4, 6.1, 9.6, 13.1〜13.3 |
+| Requirements | 2.3, 3.1〜3.5, 4.1〜4.9, 5.1〜5.4, 6.1, 9.6, 13.1〜13.3 |
 
 **Contracts**: Service [x]
 
@@ -391,7 +466,6 @@ export type SlideTone = 'normal' | 'alert';
 interface SlideBase {
   readonly id: number;
   readonly durationSec: number;
-  readonly pinned: boolean;
 }
 export type SignageSlide =
   | (SlideBase & { readonly kind: 'sponsors' | 'lost_items' | 'parking' | 'timetable' })
@@ -432,6 +506,10 @@ export interface SignageLostItem {
 
 export interface SignageSnapshot {
   readonly fetchedAt: string;
+  /** 応答を返す直前のサーバー時刻(ISO)。端末の時刻補正に使う */
+  readonly serverNow: string;
+  /** サイネージ設定の固定表示スライドID。有効スライドに無ければ通常の巡回 */
+  readonly pinnedSlideId: number | null;
   readonly eventDays: readonly EventDay[];
   readonly slides: readonly SignageSlide[];
   readonly telops: readonly SignageTelopItem[];
@@ -442,14 +520,20 @@ export interface SignageSnapshot {
 }
 
 export interface PlaylistEntry {
-  /** `${slideId}:${page}`。スナップショット更新を跨いで現在位置を引き継ぐ鍵 */
+  /** `${slideId}:${page}`。描画のkey */
   readonly key: string;
   readonly slide: SignageSlide;
   readonly page: number;
 }
 
-/** 固定表示があればその1枚のページだけ、無ければ有効スライドを順に。空の自動スライドは除く */
+/** pinnedSlideIdが有効スライドを指せばその1枚のページだけ、無ければ有効スライドを順に。空の自動スライドは除く */
 export function buildPlaylist(snapshot: SignageSnapshot, now: Date): readonly PlaylistEntry[];
+
+/** 表示秒数の合計を周期として、nowMs mod 周期から現在の項目と項目内の経過を返す。空ならnull */
+export function slideAt(
+  entries: readonly PlaylistEntry[],
+  nowMs: number,
+): { readonly entry: PlaylistEntry; readonly elapsedMs: number } | null;
 
 /** 1ページ8件(4列×2行) */
 export function paginateLostItems(items: readonly SignageLostItem[]): readonly (readonly SignageLostItem[])[];
@@ -479,9 +563,55 @@ export interface TimetableWindow {
 /** 幅は4時間(240分)。開始 = floor30(now − 幅/2) を当日の公演範囲 (時単位に丸め) 内へ寄せる */
 export function timetableWindow(dayPerformances: readonly TimetablePerformance[], now: Date): TimetableWindow;
 ```
-- Preconditions: `now`は端末時刻。JST変換は`event-day.ts`の`toJstParts`を使う(端末のタイムゾーンに依存しない)
+- Preconditions: `now`は補正済みの時刻(「時刻の同期」)。JST変換は`event-day.ts`の`toJstParts`を使う(端末のタイムゾーンに依存しない)
 - 空の自動スライドの判定(`buildPlaylist`): 協賛0件、落とし物0件、`parking.lots`のうち`status`が非nullの件数0(当日以外は全件null)、当日の公演0件、`image`/`campus_map`で画像未登録
 - `stageNow`は全ステージを`toTimetable`の順で返し、出演中の判定は`isPerformanceActive`(開始≦now<終了)。同一ステージに重なる出演中枠があれば開始の遅い方(後から始まった公演)を出す
+
+#### signage-time.ts / signage-telop.ts / signage-viewport.ts
+
+| Field | Detail |
+|-------|--------|
+| Intent | 時刻補正、テロップの時刻からの決定、向きと拡縮の算出 |
+| Requirements | 1.3, 1.5, 10.7, 10.9, 12.6 |
+
+**Contracts**: Service [x]
+
+```typescript
+// signage-time.ts
+/** serverNow + 往復時間の半分 − 受信時刻 */
+export function clockOffsetMs(serverNowIso: string, sentAtMs: number, receivedAtMs: number): number;
+/** 補正済み時刻。補正済みの秒の境目に合わせて1秒ごとに更新する */
+export function useCorrectedNow(offsetMs: number): Date;
+
+// signage-telop.ts
+export const TELOP_FIT_SEC = 8;
+/** 調整用。流す文面の速さ */
+export const TELOP_SPEED_PX_PER_SEC = 150;
+export interface TelopSlot {
+  readonly scroll: boolean;
+  /** 秒単位に切り上げた表示秒数 */
+  readonly durationSec: number;
+}
+/** 各件の文面幅と枠幅(設計座標)から表示秒数を決める */
+export function telopSchedule(textWidths: readonly number[], boxWidth: number): readonly TelopSlot[];
+/** 周期 = 表示秒数の合計。nowMs mod 周期から現在の件とtranslateX(流さない件は0)を返す。空ならnull */
+export function telopAt(
+  schedule: readonly TelopSlot[],
+  boxWidth: number,
+  nowMs: number,
+): { readonly index: number; readonly translateX: number } | null;
+
+// signage-viewport.ts
+/** 高さ > 幅なら縦型、それ以外は横型 */
+export function orientationOf(viewport: { width: number; height: number }): SignageOrientation;
+/** min(幅比, 高さ比)で縮小し、余白を左右・上下に等分する */
+export function fitCanvas(
+  viewport: { width: number; height: number },
+  canvas: { width: number; height: number },
+): { readonly scale: number; readonly left: number; readonly top: number };
+/** innerWidth/innerHeightを1か所で測り、向き・倍率・位置を同時に返す。測るまではnull */
+export function useCanvasLayout(): { readonly orientation: SignageOrientation; readonly fit: ReturnType<typeof fitCanvas> } | null;
+```
 
 #### bus-departures.ts / bus-timetable-data.ts
 
@@ -550,8 +680,8 @@ export function nextDepartures(timetable: BusTimetable, now: Date, perDirection:
 
 | Field | Detail |
 |-------|--------|
-| Intent | ポーリング・時刻・回転・向きを結線し、向きごとの固定キャンバスを画面へ拡縮して描く |
-| Requirements | 1.1〜1.5, 2.4, 4.1, 4.2, 12.2, 12.5 |
+| Intent | ポーリング・時刻補正・巡回・向きを結線し、向きごとの固定キャンバスをビューポートへ拡縮して描く |
+| Requirements | 1.1〜1.5, 2.4, 4.1, 4.2, 4.9, 12.2, 12.5, 12.6 |
 
 **Contracts**: State [x]
 
@@ -563,11 +693,13 @@ export interface SignageScreenProps {
 ```
 
 ##### State Management
-- `usePolling<SignageSnapshot>({ fetcher, intervalMs: 20_000, initial })`。`shouldContinue`は常に真。失敗時は直前の`data`を使い続ける
-- `useNow(renderedAt, 1000)`を画面全体で1つだけ持ち、子へ`now`を渡す
-- `useSlideRotation(entries)`: 現在の`key`と経過時間を持ち、`durationSec`経過で次へ。`entries`が変わったら`key`で位置を引き継ぐ
-- 向き: `useOrientation()`が`matchMedia('(orientation: portrait)')`を購読して`SignageOrientation`を返す(初回描画は`landscape`、マウント後に確定)。端末設定・URLパラメータは持たない(1.5)。配置の切り替えはCSSの`@media (orientation: portrait)`が担い、同じ判定をキャンバス寸法の選択(`CANVAS_SIZE`)とバス案内の便数(横型1、縦型2)の選択にも使う。`useOrientation`を残すのは、拡縮の計算(JS)がキャンバス寸法を要するため。メイン領域の縮小はCSSだけで済み、JSを要しない。データ取得・`useSlideRotation`・`now`は向きに依存しない
-- 拡縮: キャンバスは横型1920×1080・縦型1080×1920(`CANVAS_SIZE[orientation]`)。`min(innerWidth/canvas.width, innerHeight/canvas.height)`で`transform: scale`し中央に置く。`resize`で再計算。配信取り込み(OBSのブラウザソース等)も同じページを1920×1080または1080×1920で読むだけで同じ表示になる(12.5)
+- `usePolling<SignageSnapshot>({ fetcher, intervalMs: 20_000, initial })`。`shouldContinue`は常に真。失敗時は直前の`data`を使い続ける。`fetcher`は送信・受信時刻を測り、成功時に`clockOffsetMs`で時刻オフセットを更新する(「時刻の同期」)
+- `useCorrectedNow(offsetMs)`を画面全体で1つだけ持ち、子へ`now`を渡す。テロップには`offsetMs`も渡す
+- 巡回: `slideAt(buildPlaylist(data, now), now.getTime())`で現在の項目を毎回求める。巡回の状態(現在位置・経過時間)は持たない
+- 向きと拡縮: `useCanvasLayout()`が`innerWidth`/`innerHeight`を測り、`orientationOf`で向き(高さ>幅なら縦型)を、`fitCanvas`で倍率`min(innerWidth/canvas.width, innerHeight/canvas.height)`と中央寄せの位置を同じ測定から求める。`resize`で再計算する。端末設定・URLパラメータは持たない(1.5)
+- 向きはキャンバスの`data-orientation`属性に出し、外周の配置・メイン領域の縮小・テロップ帯の高さはこの属性で切り替える。メディア条件(`orientation`)は使わず、配置・キャンバス寸法(`CANVAS_SIZE`)・倍率・バス案内の便数(横型1、縦型2)が同じ判定に従う(1.3)
+- 測る前(SSR・マウント直後)はキャンバスを`visibility: hidden`にし、拡縮前の原寸が見えたりはみ出したりしない。外枠は`position: fixed; inset: 0; overflow: hidden`でスクロールを出さない
+- 配信取り込み(OBSのブラウザソース等)も同じページを1920×1080または1080×1920で読むだけで同じ表示になる(12.5)
 - 初回が取得失敗(`initial`が`null`)の間は、CMSに依存しない時計・バス案内・ロゴ・QRだけを描く
 
 #### 表示部品(summary-only)
@@ -578,7 +710,7 @@ export interface SignageScreenProps {
 |-----------|-------|-----|------|
 | SignageLeftColumn | `829:2` | 2.1〜2.5, 3.1〜3.5 | x24 y24 312×1032。上: ロゴ(`/images/logo-2026.webp`、高55.42)、DAYチップ+日付「M/D (曜)」、時計「HH:MM」104px。区切り線の下に`mic`アイコン+「いまのステージ」と`stageNow`の行。ステージ名チップ色は`STAGE_BAND_CLASSES[colorIndex]`、企画名は`-webkit-line-clamp: 2`で省略(3.4)、公演なしは「公演なし」。下端に「▼公式サイト」と`/images/qr-aramakisai.svg`を240角。開催日以外はDAYチップを出さず日付だけ |
 | SignageHeadingChip | 各スライドの`見出しチップ` | 4.3 | メイン左上(24,24)。地`text`、文字`background`、32px Bold、px20 py10、角丸8、アイコン(Material Symbols)+文字gap8 |
-| SignageTelop | `829:45`(`829:37`/`829:41`) | 10.4〜10.8 | x360 y912 816×144、地`text`、角丸16。対象チップ: 来場者「ご来場のみなさまへ」=primary、団体`target`=warning。文面44px Bold `background`色。テロップは1件ずつ順に表示し、幅に収まらない文面は右から左へ一定速度で流す(速度は調整用定数、初期値150px/秒)。1件の表示は「収まる: 8秒」「流す: 全文が流れ切るまで」 |
+| SignageTelop | `829:45`(`829:37`/`829:41`) | 10.4〜10.8 | x360 y912 816×144、地`text`、角丸16。対象チップ: 来場者「ご来場のみなさまへ」=primary、団体`target`=warning。文面44px Bold `background`色。テロップは1件ずつ順に表示し、幅に収まらない文面は右から左へ一定速度で流す(速度は調整用定数、初期値150px/秒)。件と流し位置は「テロップの計算」のとおり補正済み時刻から求め、全端末で揃う(10.9) |
 | SignageBusInfo | `829:46` | 11.1〜11.6 | x1200 y912 696×144。見出しは`directions_bus`アイコン+「バス発車案内」+「荒牧キャンパスエリア」。方面ごと1行: 系統チップ・行先・発車時刻・「あとN分」・停留所名(右寄せ)。`departures`が空の方面は行先の位置に「本日の運行は終了しました」 |
 | SponsorsSlide | `829:54` | 5.1〜5.4 | 見出しは`handshake`+「ご協賛いただいた皆さま」。A=3列440×200、B=4列324×144、C=6列208×96(ロゴ`object-contain`、下に社名24px)、社名行=4列24px。プラン間32 |
 | LostItemsSlide | `829:179` | 6.1〜6.3 | 見出しは`search`+「落とし物」。4列×2行、写真336×252(`object-cover`、写真なしは灰地)、品名30px Bold(1行で省略)、「拾得場所｜HH:MM」24px。右下に「本部テントでお預かりしています」(28px Bold) |
@@ -589,7 +721,7 @@ export interface SignageScreenProps {
 
 #### 縦型の配置(1080×1920)
 
-キャンバス1080×1920、外周24、要素間24、幅1032、x=24、地は`background`。Figmaページ「デジタルサイネージ」(`828:2`)に作成済み。横型と同じ情報をCSSの`@media (orientation: portrait)`で並べ替え、データ・巡回・状態は共通とする。
+キャンバス1080×1920、外周24、要素間24、幅1032、x=24、地は`background`。Figmaページ「デジタルサイネージ」(`828:2`)に作成済み。横型と同じ情報をキャンバスの`data-orientation="portrait"`で並べ替え、データ・巡回・状態は共通とする。
 
 | 領域 | 座標・寸法 | Figma | 要点 |
 |------|-----------|-------|------|
@@ -601,7 +733,7 @@ export interface SignageScreenProps {
 
 縦型のメイン領域の各スライド(LayoutSlide・協賛・落とし物・構内マップ・登録画像・駐車場・タイムテーブル)は、横型と同じ中身の縮小で、縦型専用の配置・定数を持たない。Figmaの縦型画面ノード(協賛`915:748`、落とし物`915:1008`、構内マップ`915:1245`、登録画像`915:1440`、駐車場`915:1632`、タイムテーブル`915:1852`)と、レイアウトスライドの縦型見本(`917:8113`/`917:8306`/`917:8499`/`917:8694`/`917:8887`)も横型の縮小である。
 
-**実装**: メイン領域は常に1536×864の要素として描画し、縦型では`@media (orientation: portrait)`で`transform: scale(0.671875)`(transform-origin左上)を掛けて1032×580.5の枠に入れる。
+**実装**: メイン領域は常に1536×864の要素として描画し、縦型では`data-orientation="portrait"`配下で`transform: scale(0.671875)`(transform-origin左上)を掛けて1032×580.5の枠に入れる。
 
 **折り返し**: 見出し(タイトル・サブテキスト)と本文は、横型・縦型共通で`word-break: auto-phrase`を指定し、文節単位で折り返す。対応しないブラウザでは通常の折り返しになる(表示は崩れないが文節の途中で折れ得る)。
 
@@ -655,7 +787,6 @@ export interface SignageScreenProps {
 | `image` | upload media | `kind`が`image`/`campus_map`で表示・必須 | 画像(推奨1536×864) |
 | `duration_seconds` | number(5〜120) | 既定10 | 表示秒数。説明に「QR・表・タイムテーブル・落とし物は15秒を推奨」 |
 | `enabled` | checkbox | 既定true | 巡回に含めるか |
-| `pinned` | checkbox | 既定false | 固定表示 |
 
 **telops**(「サイネージ テロップ」、`useAsTitle: body`、`orderable: true`)
 
@@ -665,6 +796,12 @@ export interface SignageScreenProps {
 | `target` | text(20字まで) | `audience = group`で表示・必須。例「出店団体へ」 |
 | `body` | text(必須、200字まで) | 文面 |
 | `enabled` | checkbox | 既定true |
+
+**signage_settings**(グローバル「サイネージ設定」)
+
+| Field | Type | 条件・既定 |
+|-------|------|-----------|
+| `pinned_slide` | relationship(`signage_slides`、単一、任意) | 管理画面名「固定表示するスライド」。選択肢は有効なスライドのみ。説明「選んだスライドだけを全画面に表示し続けます。空にすると通常の巡回に戻ります。」 |
 
 **lost_items**(「落とし物」、`useAsTitle: name`、`defaultSort: -found_at`)
 
@@ -677,7 +814,7 @@ export interface SignageScreenProps {
 | `returned` | checkbox | 既定false。真でサイネージ・公開APIから外れる |
 
 **Consistency & Integrity**
-- 3コレクションとも独立。`media`への参照は既存と同じ外部キー(削除時は`SET NULL`)
+- 3コレクションは互いに独立。`media`への参照と`signage_settings.pinned_slide`は外部キー(削除時は`SET NULL`)
 - 本文の`*_html`は読み出し時に生成されるため、変換器の更新で過去データも新しいHTMLになる
 
 ### Data Contracts & Integration
@@ -697,13 +834,14 @@ export interface SignageScreenProps {
 
 ## Testing Strategy
 
-- **Unit (frontend)**: `buildPlaylist`(固定表示・空スライド除外・ページ展開・順序)、`useSlideRotation`の`key`引き継ぎ、`paginateSponsors`/`paginateLostItems`、`stageNow`(境界: 開始ちょうど・終了ちょうど・重なり)、`timetableWindow`(朝・夕方の寄せ)、`nextDepartures`(発車時刻ちょうど・最終便後・両停留所停車便・平日データ無し)、`eventDayIndex`
+- **Unit (frontend)**: `buildPlaylist`(`pinnedSlideId`が有効スライドを指す/無効・削除済み・nullで通常巡回、空スライド除外・ページ展開・順序)、`slideAt`(周期の境目、同じ時刻なら同じ項目、項目内の経過、1件・0件)、`paginateSponsors`/`paginateLostItems`、`stageNow`(境界: 開始ちょうど・終了ちょうど・重なり)、`timetableWindow`(朝・夕方の寄せ)、`nextDepartures`(発車時刻ちょうど・最終便後・両停留所停車便・平日データ無し)、`eventDayIndex`
 - **Unit (frontend RichText)**: `rt-*`の各部品が残る、許可外class・属性が落ちる、h1が文字だけになる、既存本文サンプル(h2〜h4・リスト・リンク・画像)の出力が変わらない
-- **Unit (frontend 取得)**: `getSignageSnapshot`がスライドとテロップを`sort=_order`で要求し、返った順を保つ
-- **Unit (cms)**: 3ブロックと表の変換HTML、ラベル・URLのエスケープ、`buttonLink`のURL検証、種別依存の必須検証、`policy.ts`の新フィルタ
-- **Integration (cms `*.int.test.ts`)**: 未認証で無効スライド・無効テロップ・返却済み落とし物が読めない、学生団体が作成・更新できない、スライドとテロップの新規作成が末尾の`_order`を持ち未認証の`sort=_order`取得がその順で返る
+- **Unit (frontend 取得)**: `getSignageSnapshot`がスライドとテロップを`sort=_order`で要求し返った順を保つ、`pinnedSlideId`と`serverNow`を返す。`/api/signage`の応答に`serverNow`が入る
+- **Unit (frontend 時刻・テロップ・拡縮)**: `clockOffsetMs`(往復時間の半分の考慮)、`telopSchedule`(収まる8秒、流す件の切り上げ)、`telopAt`(周期の境目、同じ時刻なら同じ件と位置、流し切った後)、`orientationOf`と`fitCanvas`(横長・縦長・正方形・極端な細長で全体が収まり中央に来る)
+- **Unit (cms)**: 3ブロックと表の変換HTML、ラベル・URLのエスケープ、`buttonLink`のURL検証、種別依存の必須検証、`policy.ts`の新フィルタ、`signage_settings`の項目定義(単一リレーション・有効スライドに限る選択肢)
+- **Integration (cms `*.int.test.ts`)**: 未認証で無効スライド・無効テロップ・返却済み落とし物が読めない、学生団体が作成・更新できない、スライドとテロップの新規作成が末尾の`_order`を持ち未認証の`sort=_order`取得がその順で返る、`signage_settings`を未認証で読めて学生団体が更新できない、固定対象のスライド削除で参照が空になる
 - **Unit (向き)**: `nextDepartures`の`perDirection`(1件/2件、2件目が無い場合)
-- **Browser (実測)**: 1920×1080と1080×1920で各領域の位置・寸法がFigmaと一致し(縦型のメイン領域は1032×580.5で、中身が横型の0.671875倍)、ビューポートの縦横を切り替えると配置が自動で変わる、テロップの流し、スライド巡回と固定表示の切り替え、表の横スクロール(公式サイトSP幅358)
+- **Browser (実測)**: 1920×1080と1080×1920で各領域の位置・寸法がFigmaと一致し(縦型のメイン領域は1032×580.5で、中身が横型の0.671875倍)、ビューポートの縦横を切り替えると配置が自動で変わる、細長いビューポート(例: 500×1330、1920×600)でキャンバス全体が収まり中央に来てスクロールが出ない、大きさ・読み込み時刻の異なる2つのページで同時刻に同じスライド・テロップ・流し位置が出る、端末時計をずらしても揃う、テロップの流し、スライド巡回と固定表示の切り替え、表の横スクロール(公式サイトSP幅358)
 
 ## Security Considerations
 - `/signage`は公開URLとし、ナビ・サイトマップに載せず`robots: { index: false }`を付ける。表示データはすべてCMSの公開REST由来で、新たに公開範囲は広がらない(落とし物・テロップ・スライドは新規に公開されるデータであり、公開判定で無効・返却済みを除く)
@@ -712,7 +850,7 @@ export interface SignageScreenProps {
 
 ## Performance & Scalability
 - 端末1台あたり20秒に1回の`/api/signage`(1日約4,300リクエスト)。CMSへの問い合わせはCache API(TTL 15秒)で端末間共有される
-- 画面内の時刻更新は1秒ごとの`now`のみで、再取得は伴わない
+- 画面内の時刻更新は1秒ごとの`now`のみで、再取得は伴わない。毎フレームの計算はテロップの流し位置(`translate`の更新)だけ
 - 長時間表示によるメモリ増加は当日に観察し、問題が出たら定時再読み込みを足す(初期実装では入れない)
 
 ## Migration Strategy
@@ -720,7 +858,7 @@ export interface SignageScreenProps {
 ```mermaid
 flowchart TD
   A[本番の本文にh1が無いか確認] --> B[comittee等のh1をCMSで見出し2へ修正]
-  B --> C[CMS PRマージ: 3コレクションのマイグレーション, Blocks, 表, 変換器]
+  B --> C[CMS PRマージ: 3コレクションとサイネージ設定のマイグレーション, Blocks, 表, 変換器]
   C --> D[ArgoCD PreSyncでpayload migrate]
   D --> E[frontend PRマージ: RichText許可リスト, h1読み替え撤廃, signage]
   E --> F[CMSにスライド・テロップを登録し/signageを端末で確認]
@@ -729,7 +867,7 @@ flowchart TD
 - B→Eの順を守る。h1読み替え撤廃が先に出ると、修正前の`comittee`のh1が見出しでなく文字として表示される
 - 確認はREST(`pages`/`announcements`/`topics`/`festival_meta`/`page_home`の`*_html`)で`<h1`を検索する
 - CMSを先に出すと、フロント更新前は新部品のHTMLが旧許可リストで落ちる(文字のみ残る)。新部品は手順Eの後に使い始める
-- ロールバック: frontendは前バージョンへ戻せば旧表示。CMSのマイグレーションは`down`で3テーブルを削除(データは失われる)
+- ロールバック: frontendは前バージョンへ戻せば旧表示。CMSのマイグレーションは`down`でサイネージのテーブルを削除(データは失われる)
 
 ## 未決・要判断
 
@@ -747,6 +885,8 @@ flowchart TD
 | 構内マップ | 決定 | CMSに登録した構内マップ画像を表示(公式サイトのLeafletマップは操作前提で遠目に読みにくい) |
 | 登録画像 | 決定 | 1スライド1画像。16:9以外は縦横比を保って収め余白は白 |
 | 落とし物 | 決定 | 返却済みは`returned`で非表示。1ページ8件を超えたらページを分けて巡回 |
-| 向きの切替 | 決定 | 端末設定なし。`@media (orientation: portrait)`と`matchMedia`で自動。外周の配置とバス案内の便数だけが違い、メイン領域は横型と同じ中身を縮小し、データ・巡回・状態は共通 |
+| 向きの切替 | 決定 | 端末設定なし。ビューポートの高さ>幅で縦型。JSの1回の測定で向き・倍率・位置を決め、`data-orientation`で配置を切り替える。外周の配置とバス案内の便数だけが違い、メイン領域は横型と同じ中身を縮小し、データ・巡回・状態は共通 |
+| 端末間の同期 | 決定 | 巡回とテロップは補正済み時刻から決定的に計算する。CMS更新直後の最大20秒程度の食い違いは許容 |
+| 固定表示 | 決定 | サイネージ設定の単一リレーションで1枚だけ選ぶ。スライドごとのチェックは持たない |
 | 折り返し | 決定 | 見出し・本文は`word-break: auto-phrase`で文節単位。非対応ブラウザは通常の折り返し |
-| テロップ | 決定 | 表示期間は持たず`enabled`で出し入れ。並びは管理画面の一覧で並べ替えた順(`_order`昇順)。団体向けの対象は自由記述(20字) |
+| テロップ | 決定 | 表示期間は持たず`enabled`で出し入れ。各件は収まれば8秒、流す件は秒単位に切り上げた流し切りの時間。並びは管理画面の一覧で並べ替えた順(`_order`昇順)。団体向けの対象は自由記述(20字) |
