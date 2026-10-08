@@ -93,7 +93,8 @@ export function MapBottomSheet({
   const listRef = useRef<HTMLDivElement>(null);
   const suppressClickRef = useRef(false);
   // 全画面以外のスナップでは検索欄 (z-[1080]) より背面だが、ドラッグ中とスナップへの
-  // 遷移中はシートが検索欄の位置まで伸びうるため、その間だけ全画面と同じ前面に出す
+  // 遷移中はシートが検索欄の位置まで伸びうるため、その間だけ全画面と同じ前面に出す。
+  // 全画面で外す角丸も、全画面から離れつつある間は付けておく
   const [elevated, setElevated] = useState(false);
   const dragRef = useRef<{
     startX: number;
@@ -334,7 +335,7 @@ export function MapBottomSheet({
         ref={sheetRef}
         data-testid="map-bottom-sheet"
         // interpolate-size は 'auto' への/からの高さ遷移を許す (非対応ブラウザでは即時切替)
-        className={`pointer-events-auto w-full select-none max-w-2xl bg-white p-4 shadow-xl transition-[height] duration-300 ease-out [interpolate-size:allow-keywords] ${snapIndex === 4 ? '' : 'rounded-t-2xl'} ${snapIndex <= 1 ? 'overflow-hidden' : 'overflow-y-auto'}`}
+        className={`pointer-events-auto w-full select-none max-w-2xl bg-white p-4 shadow-xl transition-[height] duration-300 ease-out [interpolate-size:allow-keywords] ${snapIndex === 4 && !elevated ? '' : 'rounded-t-2xl'} ${snapIndex <= 1 ? 'overflow-hidden' : 'overflow-y-auto'}`}
         style={{ height: SNAP_HEIGHTS[snapIndex] }}
         onPointerDown={handlePointerDown}
         onClickCapture={handleClickCapture}
