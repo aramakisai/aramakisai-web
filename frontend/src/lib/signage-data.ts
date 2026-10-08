@@ -1,5 +1,6 @@
 import type {
   LostItem,
+  SignageSetting,
   SignageSlide as CmsSignageSlide,
   Telop,
 } from '@/cms-types';
@@ -31,7 +32,6 @@ function toSlide(doc: CmsSignageSlide): SignageSlide {
   const base = {
     id: doc.id,
     durationSec: doc.duration_seconds,
-    pinned: doc.pinned === true,
   };
   switch (doc.kind) {
     case 'image':
@@ -51,6 +51,10 @@ function toSlide(doc: CmsSignageSlide): SignageSlide {
     default:
       return { ...base, kind: doc.kind };
   }
+}
+
+function pinnedSlideId(ref: SignageSetting['pinned_slide']): number | null {
+  return typeof ref === 'object' && ref !== null ? ref.id : (ref ?? null);
 }
 
 function toTelop(doc: Telop): SignageTelopItem {
@@ -75,18 +79,29 @@ function toLostItem(doc: LostItem): SignageLostItem {
 export async function getSignageSnapshot(): Promise<
   CmsResult<SignageSnapshot>
 > {
-  const [meta, slides, telops, lostItems, stages, slots, sponsors, parking] =
-    await Promise.all([
-      cms.findGlobal('festival_meta', {}, OPTIONS),
-      cms.findMany('signage_slides', { ...ORDERED, depth: 1 }, OPTIONS),
-      cms.findMany('telops', ORDERED, OPTIONS),
-      cms.findMany('lost_items', { ...ALL, depth: 1 }, OPTIONS),
-      cms.findMany('stages', { ...ALL, depth: 0 }, OPTIONS),
-      cms.findMany('performance_slots', { ...ALL, depth: 1 }, OPTIONS),
-      getSponsors(OPTIONS),
-      getParkingResponse(),
-    ]);
+  const [
+    meta,
+    settings,
+    slides,
+    telops,
+    lostItems,
+    stages,
+    slots,
+    sponsors,
+    parking,
+  ] = await Promise.all([
+    cms.findGlobal('festival_meta', {}, OPTIONS),
+    cms.findGlobal('signage_settings', { depth: 0 }, OPTIONS),
+    cms.findMany('signage_slides', { ...ORDERED, depth: 1 }, OPTIONS),
+    cms.findMany('telops', ORDERED, OPTIONS),
+    cms.findMany('lost_items', { ...ALL, depth: 1 }, OPTIONS),
+    cms.findMany('stages', { ...ALL, depth: 0 }, OPTIONS),
+    cms.findMany('performance_slots', { ...ALL, depth: 1 }, OPTIONS),
+    getSponsors(OPTIONS),
+    getParkingResponse(),
+  ]);
   if (!meta.ok) return meta;
+  if (!settings.ok) return settings;
   if (!slides.ok) return slides;
   if (!telops.ok) return telops;
   if (!lostItems.ok) return lostItems;
@@ -108,6 +123,8 @@ export async function getSignageSnapshot(): Promise<
     ok: true,
     value: {
       fetchedAt: new Date().toISOString(),
+      serverNow: new Date().toISOString(),
+      pinnedSlideId: pinnedSlideId(settings.value.pinned_slide),
       eventDays: toEventDays(meta.value.event_days),
       slides: slides.value.docs.map(toSlide),
       telops: telops.value.docs.map(toTelop),

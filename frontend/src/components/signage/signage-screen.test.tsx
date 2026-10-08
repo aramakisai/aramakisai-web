@@ -8,16 +8,24 @@ vi.mock('@/env', () => ({
 
 import { SignageScreen } from './signage-screen';
 
+let viewport = { width: 500, height: 1330 };
+
 describe('SignageScreen', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.stubGlobal(
-      'matchMedia',
-      vi.fn(() => ({
-        matches: true,
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-      })),
+      'ResizeObserver',
+      class {
+        observe() {}
+        disconnect() {}
+      },
+    );
+    viewport = { width: 500, height: 1330 };
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(
+      () => viewport.width,
+    );
+    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockImplementation(
+      () => viewport.height,
     );
     vi.stubGlobal(
       'fetch',
@@ -26,6 +34,7 @@ describe('SignageScreen', () => {
   });
   afterEach(() => {
     vi.useRealTimers();
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
@@ -36,6 +45,30 @@ describe('SignageScreen', () => {
     const canvas = container.querySelector<HTMLElement>('.signage-canvas')!;
     expect(canvas.style.width).toBe('1080px');
     expect(canvas.style.height).toBe('1920px');
+  });
+
+  it('縦長の細いペインでも縦型キャンバスを全体が収まる倍率で中央に置く', () => {
+    const { container } = render(
+      <SignageScreen initial={null} renderedAt="2026-11-14T00:00:00Z" />,
+    );
+    const canvas = container.querySelector<HTMLElement>('.signage-canvas')!;
+    expect(canvas.dataset.orientation).toBe('portrait');
+    expect(canvas.style.transform).toBe(`scale(${500 / 1080})`);
+    expect(canvas.style.left).toBe('0px');
+    expect(parseFloat(canvas.style.top)).toBeCloseTo(
+      (1330 - 1920 * (500 / 1080)) / 2,
+    );
+  });
+
+  it('横長なら横型キャンバスを使う', () => {
+    viewport = { width: 1600, height: 300 };
+    const { container } = render(
+      <SignageScreen initial={null} renderedAt="2026-11-14T00:00:00Z" />,
+    );
+    const canvas = container.querySelector<HTMLElement>('.signage-canvas')!;
+    expect(canvas.dataset.orientation).toBe('landscape');
+    expect(canvas.style.width).toBe('1920px');
+    expect(canvas.style.transform).toBe(`scale(${300 / 1080})`);
   });
 
   it('初回取得に失敗している間は「いまのステージ」見出しを出さない', () => {

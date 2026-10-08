@@ -83,6 +83,17 @@
   }
 }
 
+/*
+ * サイネージの縦型配置は、ビューポートのメディアクエリではなく画面の実寸から決めた
+ * キャンバスの data-orientation で切り替える (signage-viewport.ts)。
+ * メディアクエリのままだと、キャンバスの向き・倍率と配置が食い違いうる。
+ */
+@custom-variant portrait {
+  &:is([data-orientation='portrait'] *, [data-orientation='portrait']) {
+    @slot;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   html:not([data-motion='reduce']) {
     scroll-behavior: smooth;
@@ -701,17 +712,15 @@ html[data-pl] .exhibition-gradient-bg::before {
   height: 864px;
 }
 
-@media (orientation: portrait) {
-  .signage-main-frame {
-    left: 24px;
-    top: 224px;
-    width: 1032px;
-    height: 580.5px;
-    border-radius: 10.75px;
-  }
+.signage-canvas[data-orientation='portrait'] .signage-main-frame {
+  left: 24px;
+  top: 224px;
+  width: 1032px;
+  height: 580.5px;
+  border-radius: 10.75px;
+}
 
-  .signage-main {
-    transform: scale(0.671875);
-    transform-origin: top left;
-  }
+.signage-canvas[data-orientation='portrait'] .signage-main {
+  transform: scale(0.671875);
+  transform-origin: top left;
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   buildPlaylist,
+  slideAt,
   eventDayIndex,
   paginateLostItems,
   paginateSponsors,
@@ -67,16 +68,18 @@ const lost = (id: number): SignageLostItem => ({
   photoId: null,
 });
 
-const base = { durationSec: 10, pinned: false } as const;
+const base = { durationSec: 10 } as const;
 const slide = (
   id: number,
   kind: 'sponsors' | 'lost_items' | 'parking' | 'timetable',
-  pinned = false,
-): SignageSlide => ({ id, kind, durationSec: 10, pinned });
+  durationSec = 10,
+): SignageSlide => ({ id, kind, durationSec });
 
 function snapshot(over: Partial<SignageSnapshot> = {}): SignageSnapshot {
   return {
     fetchedAt: '',
+    serverNow: '',
+    pinnedSlideId: null,
     eventDays: DAYS,
     slides: [],
     telops: [],
@@ -121,18 +124,43 @@ describe('buildPlaylist', () => {
     expect(list.map((e) => e.key)).toEqual(['1:0', '1:1']);
   });
 
-  it('固定表示があれば先頭の固定スライドのページだけを返す', () => {
+  it('固定スライドが有効スライドにあればそのページだけを返す', () => {
     const list = buildPlaylist(
       snapshot({
+        pinnedSlideId: 2,
         slides: [
           slide(1, 'parking'),
-          slide(2, 'sponsors', true),
-          slide(3, 'lost_items', true),
+          slide(2, 'sponsors'),
+          slide(3, 'lost_items'),
         ],
       }),
       NOW,
     );
     expect(list.map((e) => e.key)).toEqual(['2:0']);
+  });
+
+  it('固定スライドが有効スライドに無ければ(無効化・削除)通常の巡回に戻る', () => {
+    const list = buildPlaylist(
+      snapshot({
+        pinnedSlideId: 99,
+        slides: [slide(1, 'parking'), slide(2, 'sponsors')],
+        lostItems: [],
+      }),
+      NOW,
+    );
+    expect(list.map((e) => e.key)).toEqual(['1:0', '2:0']);
+  });
+
+  it('固定スライドが複数ページなら全ページを巡回する', () => {
+    const list = buildPlaylist(
+      snapshot({
+        pinnedSlideId: 3,
+        slides: [slide(1, 'parking'), slide(3, 'lost_items')],
+        lostItems: Array.from({ length: 9 }, (_, i) => lost(i)),
+      }),
+      NOW,
+    );
+    expect(list.map((e) => e.key)).toEqual(['3:0', '3:1']);
   });
 
   it('空の自動スライドを除く', () => {
@@ -186,12 +214,48 @@ describe('buildPlaylist', () => {
     expect(
       buildPlaylist(
         snapshot({
-          slides: [slide(1, 'sponsors', true), slide(2, 'parking')],
+          pinnedSlideId: 1,
+          slides: [slide(1, 'sponsors'), slide(2, 'parking')],
           sponsors: [],
         }),
         NOW,
       ),
     ).toEqual([]);
+  });
+});
+
+describe('slideAt', () => {
+  const entries = buildPlaylist(
+    snapshot({
+      slides: [slide(1, 'parking', 10), slide(2, 'sponsors', 20)],
+    }),
+    NOW,
+  ); // 周期30秒
+
+  it('0件、表示秒数の合計0ではnull', () => {
+    expect(slideAt([], 5000)).toBeNull();
+    const zero = buildPlaylist(
+      snapshot({ slides: [slide(1, 'parking', 0)] }),
+      NOW,
+    );
+    expect(slideAt(zero, 5000)).toBeNull();
+  });
+
+  it('時刻から現在の項目と項目内の経過を決める', () => {
+    expect(slideAt(entries, 0)).toMatchObject({ elapsedMs: 0 });
+    expect(slideAt(entries, 9_999)?.entry.key).toBe('1:0');
+    expect(slideAt(entries, 9_999)?.elapsedMs).toBe(9_999);
+    expect(slideAt(entries, 10_000)?.entry.key).toBe('2:0');
+    expect(slideAt(entries, 10_000)?.elapsedMs).toBe(0);
+    expect(slideAt(entries, 29_999)?.entry.key).toBe('2:0');
+  });
+
+  it('周期の境目で先頭へ戻り、エポックからの経過が同じなら同じ項目', () => {
+    expect(slideAt(entries, 30_000)?.entry.key).toBe('1:0');
+    const t = 1_700_000_000_000;
+    expect(slideAt(entries, t)?.entry.key).toBe(
+      slideAt(entries, t + 30_000 * 7)?.entry.key,
+    );
   });
 });
 

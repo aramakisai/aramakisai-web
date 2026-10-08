@@ -7,7 +7,7 @@ import { SignageMain } from './signage-main';
 const entry: PlaylistEntry = {
   key: '1:0',
   page: 0,
-  slide: { id: 1, durationSec: 10, pinned: false, kind: 'parking' },
+  slide: { id: 1, durationSec: 10, kind: 'parking' },
 };
 const snapshot = {} as SignageSnapshot;
 const now = new Date('2026-11-14T00:00:00Z');

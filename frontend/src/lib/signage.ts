@@ -32,7 +32,6 @@ export type SlideTone = NonNullable<CmsSignageSlide['tone']>;
 interface SlideBase {
   readonly id: number;
   readonly durationSec: number;
-  readonly pinned: boolean;
 }
 export type SignageSlide =
   | (SlideBase & {
@@ -81,6 +80,10 @@ export interface SignageLostItem {
 
 export interface SignageSnapshot {
   readonly fetchedAt: string;
+  /** 応答を返す直前のサーバー時刻(ISO)。端末の時刻補正に使う */
+  readonly serverNow: string;
+  /** サイネージ設定の固定表示スライドID。有効スライドに無ければ通常の巡回 */
+  readonly pinnedSlideId: number | null;
   readonly eventDays: readonly EventDay[];
   readonly slides: readonly SignageSlide[];
   readonly telops: readonly SignageTelopItem[];
@@ -91,7 +94,7 @@ export interface SignageSnapshot {
 }
 
 export interface PlaylistEntry {
-  /** `${slideId}:${page}`。スナップショット更新を跨いで現在位置を引き継ぐ鍵 */
+  /** `${slideId}:${page}`。描画のkey */
   readonly key: string;
   readonly slide: SignageSlide;
   readonly page: number;
@@ -223,12 +226,12 @@ function pageCount(
   }
 }
 
-/** 固定表示があればその1枚のページだけ、無ければ有効スライドを順に。空の自動スライドは除く */
+/** pinnedSlideIdが有効スライドを指せばその1枚のページだけ、無ければ有効スライドを順に。空の自動スライドは除く */
 export function buildPlaylist(
   snapshot: SignageSnapshot,
   now: Date,
 ): readonly PlaylistEntry[] {
-  const pinned = snapshot.slides.find((s) => s.pinned);
+  const pinned = snapshot.slides.find((s) => s.id === snapshot.pinnedSlideId);
   const slides = pinned ? [pinned] : snapshot.slides;
   return slides.flatMap((slide) =>
     Array.from({ length: pageCount(slide, snapshot, now) }, (_, page) => ({
@@ -237,6 +240,25 @@ export function buildPlaylist(
       page,
     })),
   );
+}
+
+/** 表示秒数の合計を周期として、nowMs mod 周期から現在の項目と項目内の経過を返す。周期が0ならnull */
+export function slideAt(
+  entries: readonly PlaylistEntry[],
+  nowMs: number,
+): { readonly entry: PlaylistEntry; readonly elapsedMs: number } | null {
+  const cycleMs = entries.reduce(
+    (sum, e) => sum + e.slide.durationSec * 1000,
+    0,
+  );
+  if (cycleMs <= 0) return null;
+  let t = ((nowMs % cycleMs) + cycleMs) % cycleMs;
+  for (const entry of entries) {
+    const ms = entry.slide.durationSec * 1000;
+    if (t < ms) return { entry, elapsedMs: t };
+    t -= ms;
+  }
+  return null;
 }
 
 export interface StageNowRow {

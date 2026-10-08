@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { CANVAS_SIZE, type SignageOrientation } from './signage';
+import { type RefObject, useEffect, useState } from 'react';
+import type { SignageOrientation } from './signage';
+import { CANVAS_SIZE } from './signage';
 
 interface Size {
   readonly width: number;
@@ -12,6 +13,12 @@ export interface CanvasFit {
   readonly top: number;
 }
 
+/** 高さが幅を超えるときだけ縦型。正方形・測定不能(0)は横型 */
+export function orientationOf(viewport: Size): SignageOrientation {
+  return viewport.height > viewport.width ? 'portrait' : 'landscape';
+}
+
+/** min(幅比, 高さ比)で縮小し、余白を左右・上下に等分する */
 export function fitCanvas(viewport: Size, canvas: Size): CanvasFit {
   const scale = Math.min(
     viewport.width / canvas.width,
@@ -24,35 +31,39 @@ export function fitCanvas(viewport: Size, canvas: Size): CanvasFit {
   };
 }
 
-const PORTRAIT_QUERY = '(orientation: portrait)';
-
-/** 初回は横型、マウント後に確定する(SSRとのhydration不一致を避ける) */
-export function useOrientation(): SignageOrientation {
-  const [orientation, setOrientation] =
-    useState<SignageOrientation>('landscape');
-  useEffect(() => {
-    const mql = window.matchMedia(PORTRAIT_QUERY);
-    const update = () => setOrientation(mql.matches ? 'portrait' : 'landscape');
-    update();
-    mql.addEventListener('change', update);
-    return () => mql.removeEventListener('change', update);
-  }, []);
-  return orientation;
+export interface CanvasLayout {
+  readonly orientation: SignageOrientation;
+  readonly fit: CanvasFit;
 }
 
-export function useCanvasFit(orientation: SignageOrientation): CanvasFit {
-  const [fit, setFit] = useState<CanvasFit>({ scale: 1, left: 0, top: 0 });
+export function layoutFor(viewport: Size): CanvasLayout {
+  const orientation = orientationOf(viewport);
+  return { orientation, fit: fitCanvas(viewport, CANVAS_SIZE[orientation]) };
+}
+
+/**
+ * 向きと倍率を、画面を覆う要素の実寸1か所から同時に決める。
+ * メディアクエリ(向き)と window の resize(倍率)を別々に使うと、
+ * 環境によって一方だけ更新されて向きと倍率が食い違い、キャンバスが切れる。
+ * 測るまではnull(SSRとのhydration不一致を避ける)。
+ */
+export function useCanvasLayout(
+  ref: RefObject<HTMLElement | null>,
+): CanvasLayout | null {
+  const [layout, setLayout] = useState<CanvasLayout | null>(null);
   useEffect(() => {
-    const update = () =>
-      setFit(
-        fitCanvas(
-          { width: window.innerWidth, height: window.innerHeight },
-          CANVAS_SIZE[orientation],
-        ),
-      );
+    const el = ref.current;
+    if (!el) return;
+    const update = () => {
+      const width = el.clientWidth;
+      const height = el.clientHeight;
+      if (width <= 0 || height <= 0) return;
+      setLayout(layoutFor({ width, height }));
+    };
     update();
-    window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
-  }, [orientation]);
-  return fit;
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ref]);
+  return layout;
 }

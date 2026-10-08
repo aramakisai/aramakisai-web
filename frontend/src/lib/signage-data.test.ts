@@ -25,7 +25,10 @@ const docs = (list: unknown[]) => ({
 const fail = { ok: false, error: { kind: 'network', status: 500 } };
 const base = { updatedAt: '', createdAt: '' };
 
-function setup(overrides: Record<string, unknown> = {}) {
+function setup(
+  overrides: Record<string, unknown> = {},
+  settings: Record<string, unknown> = {},
+) {
   const byCollection: Record<string, unknown> = {
     signage_slides: docs([]),
     telops: docs([]),
@@ -35,17 +38,21 @@ function setup(overrides: Record<string, unknown> = {}) {
     ...overrides,
   };
   findMany.mockImplementation(async (c: string) => byCollection[c]);
-  findGlobal.mockResolvedValue({
-    ok: true,
-    value: {
-      event_days: [
-        {
-          start_at: '2026-11-14T10:00:00+09:00',
-          end_at: '2026-11-14T17:00:00+09:00',
+  findGlobal.mockImplementation(async (slug: string) =>
+    slug === 'signage_settings'
+      ? { ok: true, value: { pinned_slide: null, ...settings } }
+      : {
+          ok: true,
+          value: {
+            event_days: [
+              {
+                start_at: '2026-11-14T10:00:00+09:00',
+                end_at: '2026-11-14T17:00:00+09:00',
+              },
+            ],
+          },
         },
-      ],
-    },
-  });
+  );
   getSponsors.mockResolvedValue({
     ok: true,
     value: {
@@ -71,7 +78,6 @@ const slide = (id: number, extra = {}) => ({
   content1_html: '<p>a</p>',
   content2_html: null,
   duration_seconds: 12,
-  pinned: false,
   ...base,
   ...extra,
 });
@@ -112,14 +118,13 @@ describe('getSignageSnapshot', () => {
   });
 
   it('レイアウトスライドを表示用の型へ正規化する', async () => {
-    setup({ signage_slides: docs([slide(1, { pinned: true })]) });
+    setup({ signage_slides: docs([slide(1)]) });
     const r = await getSignageSnapshot();
     if (!r.ok) throw new Error('failed');
     expect(r.value.slides[0]).toEqual({
       id: 1,
       kind: 'layout',
       durationSec: 12,
-      pinned: true,
       layout: 'title-content',
       tone: 'alert',
       title: 's1',
@@ -127,6 +132,35 @@ describe('getSignageSnapshot', () => {
       content1Html: '<p>a</p>',
       content2Html: '',
     });
+  });
+
+  it('固定表示スライドのIDと、応答直前のサーバー時刻を返す', async () => {
+    setup({}, { pinned_slide: 7 });
+    const before = Date.now();
+    const r = await getSignageSnapshot();
+    if (!r.ok) throw new Error('failed');
+    expect(r.value.pinnedSlideId).toBe(7);
+    expect(Date.parse(r.value.serverNow)).toBeGreaterThanOrEqual(before);
+  });
+
+  it('固定表示は展開済みの関連でもIDにし、未設定ならnull', async () => {
+    setup({}, { pinned_slide: { id: 9 } });
+    const a = await getSignageSnapshot();
+    setup();
+    const b = await getSignageSnapshot();
+    if (!a.ok || !b.ok) throw new Error('failed');
+    expect(a.value.pinnedSlideId).toBe(9);
+    expect(b.value.pinnedSlideId).toBeNull();
+  });
+
+  it('サイネージ設定の取得に失敗したら全体が失敗する', async () => {
+    setup();
+    findGlobal.mockImplementation(async (slug: string) =>
+      slug === 'signage_settings'
+        ? fail
+        : { ok: true, value: { event_days: [] } },
+    );
+    expect((await getSignageSnapshot()).ok).toBe(false);
   });
 
   it('画像スライドは画像を添付に変換し、未登録はnull', async () => {
