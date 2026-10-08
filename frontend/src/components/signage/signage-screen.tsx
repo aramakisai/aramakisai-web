@@ -100,7 +100,11 @@ export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
           <SignagePortraitInfo rows={rows} />
         </div>
         <div className="absolute top-[912px] left-[360px] portrait:top-[1776px] portrait:left-6">
-          <SignageTelop items={data?.telops ?? []} offsetMs={offsetMs} />
+          <SignageTelop
+            items={data?.telops ?? []}
+            orientation={orientation}
+            offsetMs={offsetMs}
+          />
         </div>
         <div className="absolute top-[912px] left-[1200px] portrait:top-[1389px] portrait:left-6">
           <SignageBusInfo boards={boards} />

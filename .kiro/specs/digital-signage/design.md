@@ -230,13 +230,15 @@ t = now(ms, UNIXエポック基準) mod cycleMs
 ### テロップの計算
 
 ```
-各件 i の表示秒数 d_i = 文面が枠に収まる: 8秒 / 収まらない: ceil((文面幅 + 枠幅) / 速度)
+件 i の枠幅 box_i(向き) = 帯の内寸(横型768 / 縦型984) − 対象チップ幅_i − 20
+各件 i の表示秒数 d_i = 文面幅 ≤ box_i(横型): 8秒 / それ以外: ceil((文面幅 + box_i(縦型)) / 速度)
 cycle = Σ d_i(秒)
 t = now(秒、小数を含む) mod cycle → 件 i と件内の経過 e を決める
-流す件の translateX = 枠幅 − 速度 × e(e が流し切りの時間を超えた残りは文面が枠外に出たまま)
+流す件の translateX = box_i(端末の向き) − 速度 × e(e が流し切りの時間を超えた残りは文面が枠外に出たまま)
 ```
 
-- 文面幅・枠幅はキャンバスの設計座標(拡縮前)で測る(`scrollWidth`/`clientWidth`はtransformの影響を受けない)。全件を測ってから時刻表を作り、Webフォントの読み込み完了後に測り直す
+- 時刻表は向きに依らない。収まるかは狭い横型の枠で、流す時間は広い縦型の枠で決め、横型と縦型の端末で周期・件・枠の右端からの流れた距離が揃う(横型は流し切った後の残りが空白になる)
+- 文面幅・チップ幅はキャンバスの設計座標(拡縮前)で測る(`offsetWidth`はtransformの影響を受けない)。全件を測ってから時刻表を作り、Webフォントの読み込み完了後に測り直す
 - 各件の表示秒数を秒単位に切り上げ、端末間の文面幅の計測誤差(フォントの描画差)で周期がずれないようにする
 - 流し位置はCSSアニメーションの開始時刻に依存させず、時刻から`translate`を求める
 
@@ -837,7 +839,7 @@ export interface SignageScreenProps {
 - **Unit (frontend)**: `buildPlaylist`(`pinnedSlideId`が有効スライドを指す/無効・削除済み・nullで通常巡回、空スライド除外・ページ展開・順序)、`slideAt`(周期の境目、同じ時刻なら同じ項目、項目内の経過、1件・0件)、`paginateSponsors`/`paginateLostItems`、`stageNow`(境界: 開始ちょうど・終了ちょうど・重なり)、`timetableWindow`(朝・夕方の寄せ)、`nextDepartures`(発車時刻ちょうど・最終便後・両停留所停車便・平日データ無し)、`eventDayIndex`
 - **Unit (frontend RichText)**: `rt-*`の各部品が残る、許可外class・属性が落ちる、h1が文字だけになる、既存本文サンプル(h2〜h4・リスト・リンク・画像)の出力が変わらない
 - **Unit (frontend 取得)**: `getSignageSnapshot`がスライドとテロップを`sort=_order`で要求し返った順を保つ、`pinnedSlideId`と`serverNow`を返す。`/api/signage`の応答に`serverNow`が入る
-- **Unit (frontend 時刻・テロップ・拡縮)**: `clockOffsetMs`(往復時間の半分の考慮)、`telopSchedule`(収まる8秒、流す件の切り上げ)、`telopAt`(周期の境目、同じ時刻なら同じ件と位置、流し切った後)、`orientationOf`と`fitCanvas`(横長・縦長・正方形・極端な細長で全体が収まり中央に来る)
+- **Unit (frontend 時刻・テロップ・拡縮)**: `clockOffsetMs`(往復時間の半分の考慮)、`telopSchedule`(横型の枠で収まる8秒、縦型の枠で流す件の切り上げ、チップ幅で枠が狭まる)、`telopAt`(周期の境目、同じ時刻なら同じ件と流れた距離)、`orientationOf`と`fitCanvas`(横長・縦長・正方形・極端な細長で全体が収まり中央に来る)
 - **Unit (cms)**: 3ブロックと表の変換HTML、ラベル・URLのエスケープ、`buttonLink`のURL検証、種別依存の必須検証、`policy.ts`の新フィルタ、`signage_settings`の項目定義(単一リレーション・有効スライドに限る選択肢)
 - **Integration (cms `*.int.test.ts`)**: 未認証で無効スライド・無効テロップ・返却済み落とし物が読めない、学生団体が作成・更新できない、スライドとテロップの新規作成が末尾の`_order`を持ち未認証の`sort=_order`取得がその順で返る、`signage_settings`を未認証で読めて学生団体が更新できない、固定対象のスライド削除で参照が空になる
 - **Unit (向き)**: `nextDepartures`の`perDirection`(1件/2件、2件目が無い場合)
