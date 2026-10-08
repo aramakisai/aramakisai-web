@@ -484,11 +484,22 @@
     @apply text-[36px] leading-[1.5] text-text;
     word-break: auto-phrase;
     overflow: hidden;
+    /* 枠の高さを基準にしないと、単独の画像が枠の残り高さへ縮まず下が切れる */
+    display: flex;
+    flex-direction: column;
+    height: 100%;
   }
 
   .rich-text-body.rich-text-body--signage > * {
+    flex-shrink: 0;
     margin-top: 0;
     margin-bottom: 0;
+  }
+
+  /* 単独の画像だけが残り高さまで縮み、object-contain で縦横比を保つ */
+  .rich-text-body.rich-text-body--signage > img {
+    flex-shrink: 1;
+    min-height: 0;
   }
 
   .rich-text-body.rich-text-body--signage > * + * {
