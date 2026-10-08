@@ -8,14 +8,17 @@ import { Announcements } from './announcements';
 import { FaqItems } from './faq-items';
 import { MapAreas } from './map-areas';
 import { MapPoints } from './map-points';
+import { LostItems } from './lost-items';
 import { Media } from './media';
 import { Pages } from './pages';
 import { ParkingLots } from './parking-lots';
 import { ParkingStatuses } from './parking-statuses';
 import { PerformanceSlots } from './performance-slots';
+import { SignageSlides } from './signage-slides';
 import { Sponsors } from './sponsors';
 import { Stages } from './stages';
 import { StudentExhibitions } from './student-exhibitions';
+import { Telops } from './telops';
 import { Topics } from './topics';
 import { Users } from './users';
 
@@ -48,4 +51,7 @@ export const collections: CollectionConfig[] = [
   StudentExhibitions,
   ParkingLots,
   ParkingStatuses,
+  SignageSlides,
+  Telops,
+  LostItems,
 ].map(withAccess);

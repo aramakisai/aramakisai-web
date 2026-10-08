@@ -81,6 +81,9 @@ export interface Config {
     student_exhibitions: StudentExhibition;
     parking_lots: ParkingLot;
     parking_statuses: ParkingStatus;
+    signage_slides: SignageSlide;
+    telops: Telop;
+    lost_items: LostItem;
     'payload-kv': PayloadKv;
     'payload-jobs': PayloadJob;
     'payload-locked-documents': PayloadLockedDocument;
@@ -107,6 +110,9 @@ export interface Config {
     student_exhibitions: StudentExhibitionsSelect<false> | StudentExhibitionsSelect<true>;
     parking_lots: ParkingLotsSelect<false> | ParkingLotsSelect<true>;
     parking_statuses: ParkingStatusesSelect<false> | ParkingStatusesSelect<true>;
+    signage_slides: SignageSlidesSelect<false> | SignageSlidesSelect<true>;
+    telops: TelopsSelect<false> | TelopsSelect<true>;
+    lost_items: LostItemsSelect<false> | LostItemsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -680,6 +686,100 @@ export interface ParkingStatus {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "signage_slides".
+ */
+export interface SignageSlide {
+  id: number;
+  kind: 'sponsors' | 'lost_items' | 'campus_map' | 'image' | 'parking' | 'timetable' | 'layout';
+  /**
+   * レイアウトでは画面に表示される。それ以外は管理用の名前
+   */
+  title?: string | null;
+  layout?: ('title' | 'title-content' | 'section' | 'two-content') | null;
+  tone?: ('normal' | 'alert') | null;
+  subtext?: string | null;
+  content1?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  content1_html?: string | null;
+  content2?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  content2_html?: string | null;
+  image?: (number | null) | Media;
+  /**
+   * QR・表・タイムテーブル・落とし物は15秒を推奨
+   */
+  duration_sec: number;
+  enabled?: boolean | null;
+  /**
+   * 有効なスライドのうち、固定表示の先頭の1枚だけが表示される
+   */
+  pinned?: boolean | null;
+  sort?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "telops".
+ */
+export interface Telop {
+  id: number;
+  audience: 'visitor' | 'group';
+  /**
+   * 例: 出店団体へ
+   */
+  target?: string | null;
+  body: string;
+  enabled?: boolean | null;
+  sort?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "lost_items".
+ */
+export interface LostItem {
+  id: number;
+  name: string;
+  found_place: string;
+  found_at: string;
+  photo?: (number | null) | Media;
+  /**
+   * 返却済みは画面に表示されない。履歴確認のため削除せず残す
+   */
+  returned?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -849,6 +949,18 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'parking_statuses';
         value: number | ParkingStatus;
+      } | null)
+    | ({
+        relationTo: 'signage_slides';
+        value: number | SignageSlide;
+      } | null)
+    | ({
+        relationTo: 'telops';
+        value: number | Telop;
+      } | null)
+    | ({
+        relationTo: 'lost_items';
+        value: number | LostItem;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -1181,6 +1293,54 @@ export interface ParkingLotsSelect<T extends boolean = true> {
 export interface ParkingStatusesSelect<T extends boolean = true> {
   lot?: T;
   status?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "signage_slides_select".
+ */
+export interface SignageSlidesSelect<T extends boolean = true> {
+  kind?: T;
+  title?: T;
+  layout?: T;
+  tone?: T;
+  subtext?: T;
+  content1?: T;
+  content1_html?: T;
+  content2?: T;
+  content2_html?: T;
+  image?: T;
+  duration_sec?: T;
+  enabled?: T;
+  pinned?: T;
+  sort?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "telops_select".
+ */
+export interface TelopsSelect<T extends boolean = true> {
+  audience?: T;
+  target?: T;
+  body?: T;
+  enabled?: T;
+  sort?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "lost_items_select".
+ */
+export interface LostItemsSelect<T extends boolean = true> {
+  name?: T;
+  found_place?: T;
+  found_at?: T;
+  photo?: T;
+  returned?: T;
   updatedAt?: T;
   createdAt?: T;
 }

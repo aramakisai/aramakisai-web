@@ -477,6 +477,67 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
     });
   });
 
+  describe('サイネージ', () => {
+    it('未認証は無効スライド・無効テロップ・返却済み落とし物を読めず、学生団体は作成できない', async () => {
+      const slide = (enabled: boolean) =>
+        payload.create({
+          collection: 'signage_slides',
+          data: { kind: 'parking', title: `sig-${suffix}-${enabled}`, enabled, duration_sec: 10 },
+          overrideAccess: true,
+        });
+      const telop = (enabled: boolean) =>
+        payload.create({
+          collection: 'telops',
+          data: { audience: 'visitor', body: `sig-${suffix}-${enabled}`, enabled },
+          overrideAccess: true,
+        });
+      const lost = (returned: boolean) =>
+        payload.create({
+          collection: 'lost_items',
+          data: { name: `sig-${suffix}-${returned}`, found_place: 'x', found_at: new Date().toISOString(), returned },
+          overrideAccess: true,
+        });
+      const [s1, s0, t1, t0, l0, l1] = await Promise.all([
+        slide(true), slide(false), telop(true), telop(false), lost(false), lost(true),
+      ]);
+      try {
+        const names = async (collection: 'signage_slides' | 'telops' | 'lost_items') =>
+          (await payload.find({ collection, overrideAccess: false, pagination: false })).docs.map((d) => d.id);
+        const slides = await names('signage_slides');
+        expect(slides).toContain(s1.id);
+        expect(slides).not.toContain(s0.id);
+        const telops = await names('telops');
+        expect(telops).toContain(t1.id);
+        expect(telops).not.toContain(t0.id);
+        const lostIds = await names('lost_items');
+        expect(lostIds).toContain(l0.id);
+        expect(lostIds).not.toContain(l1.id);
+
+        const user = await asOwner();
+        await expect(
+          payload.create({
+            collection: 'telops',
+            data: { audience: 'visitor', body: 'x', enabled: true },
+            overrideAccess: false,
+            user,
+          }),
+        ).rejects.toThrow();
+        await expect(
+          payload.update({ collection: 'telops', id: t1.id, data: { body: 'y' }, overrideAccess: false, user }),
+        ).rejects.toThrow();
+      } finally {
+        await Promise.all([
+          payload.delete({ collection: 'signage_slides', id: s1.id, overrideAccess: true }),
+          payload.delete({ collection: 'signage_slides', id: s0.id, overrideAccess: true }),
+          payload.delete({ collection: 'telops', id: t1.id, overrideAccess: true }),
+          payload.delete({ collection: 'telops', id: t0.id, overrideAccess: true }),
+          payload.delete({ collection: 'lost_items', id: l0.id, overrideAccess: true }),
+          payload.delete({ collection: 'lost_items', id: l1.id, overrideAccess: true }),
+        ]).catch(() => null);
+      }
+    });
+  });
+
   describe('駐車場', () => {
     it('未認証でも読み取れる', async () => {
       const lots = await payload.find({ collection: 'parking_lots', overrideAccess: false, pagination: false });
