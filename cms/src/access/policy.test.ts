@@ -56,6 +56,14 @@ describe('canRead', () => {
     }
   });
 
+  it('サイネージ設定は未認証でも読め、学生団体は更新できず管理画面で隠れる', () => {
+    expect(canRead(null, 'signage_settings', NOW)).toBe(true);
+    expect(canUpdate(exhibitor, 'signage_settings')).toBe(false);
+    expect(canUpdate(executive, 'signage_settings')).toBe(true);
+    expect(isHiddenInAdmin(exhibitor, 'signage_settings')).toBe(true);
+    expect(isHiddenInAdmin(executive, 'signage_settings')).toBe(false);
+  });
+
   it('未認証はユーザーを読めない', () => {
     expect(canRead(null, 'users', NOW)).toBe(false);
   });

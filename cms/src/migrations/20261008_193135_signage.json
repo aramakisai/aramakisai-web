@@ -3128,13 +3128,6 @@
           "notNull": false,
           "default": true
         },
-        "pinned": {
-          "name": "pinned",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": false,
-          "default": false
-        },
         "updated_at": {
           "name": "updated_at",
           "type": "timestamp(3) with time zone",
@@ -5454,6 +5447,73 @@
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
+    },
+    "public.signage_settings": {
+      "name": "signage_settings",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "pinned_slide_id": {
+          "name": "pinned_slide_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "signage_settings_pinned_slide_idx": {
+          "name": "signage_settings_pinned_slide_idx",
+          "columns": [
+            {
+              "expression": "pinned_slide_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "signage_settings_pinned_slide_id_signage_slides_id_fk": {
+          "name": "signage_settings_pinned_slide_id_signage_slides_id_fk",
+          "tableFrom": "signage_settings",
+          "tableTo": "signage_slides",
+          "columnsFrom": [
+            "pinned_slide_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     }
   },
   "enums": {
@@ -5615,6 +5675,6 @@
     "tables": {},
     "columns": {}
   },
-  "id": "e0511785-4340-4564-9edb-52faf8dd8886",
+  "id": "ac4237c7-a955-49fd-ae4a-8f75980be1bf",
   "prevId": "00000000-0000-0000-0000-000000000000"
 }

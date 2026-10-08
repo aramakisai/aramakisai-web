@@ -41,13 +41,9 @@ describe('SignageSlides', () => {
     expect(d.admin?.description).toContain('QR・表・タイムテーブル・落とし物は15秒を推奨');
   });
 
-  it('固定表示の説明に先頭1枚だけ表示と書く', () => {
-    expect(f('pinned').admin?.description).toContain('先頭の1枚だけが表示される');
-  });
-
-  it('有効の既定は true、固定表示の既定は false', () => {
+  it('有効の既定は true、固定表示の項目は持たない', () => {
     expect(f('enabled').defaultValue).toBe(true);
-    expect(f('pinned').defaultValue).toBe(false);
+    expect(f('pinned')).toBeUndefined();
   });
 
   it('レイアウト関連はレイアウト種別のときだけ表示する', () => {

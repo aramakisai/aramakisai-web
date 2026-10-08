@@ -22,7 +22,7 @@ import * as migration_20260929_161314_student_exhibitions_menu_open_days from '.
 import * as migration_20260930_145729_users_activated_at from './20260930_145729_users_activated_at';
 import * as migration_20260930_185535_student_exhibitions_category_placement from './20260930_185535_student_exhibitions_category_placement';
 import * as migration_20261003_155255_parking_lots from './20261003_155255_parking_lots';
-import * as migration_20261008_191057_signage from './20261008_191057_signage';
+import * as migration_20261008_193135_signage from './20261008_193135_signage';
 
 export const migrations = [
   {
@@ -146,8 +146,8 @@ export const migrations = [
     name: '20261003_155255_parking_lots',
   },
   {
-    up: migration_20261008_191057_signage.up,
-    down: migration_20261008_191057_signage.down,
-    name: '20261008_191057_signage'
+    up: migration_20261008_193135_signage.up,
+    down: migration_20261008_193135_signage.down,
+    name: '20261008_193135_signage'
   },
 ];

@@ -478,6 +478,47 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
   });
 
   describe('サイネージ', () => {
+    it('サイネージ設定は未認証で読め、学生団体は更新できず、固定対象のスライド削除で参照が空になる', async () => {
+      const slide = await payload.create({
+        collection: 'signage_slides',
+        data: { kind: 'parking', title: `pin-${suffix}`, enabled: true, duration_seconds: 10 },
+        overrideAccess: true,
+      });
+      const disabled = await payload.create({
+        collection: 'signage_slides',
+        data: { kind: 'parking', title: `pin-off-${suffix}`, enabled: false, duration_seconds: 10 },
+        overrideAccess: true,
+      });
+      try {
+        await payload.updateGlobal({ slug: 'signage_settings', data: { pinned_slide: slide.id }, overrideAccess: true });
+        const read = await payload.findGlobal({ slug: 'signage_settings', overrideAccess: false, depth: 0 });
+        expect(read.pinned_slide).toBe(slide.id);
+        await expect(
+          payload.updateGlobal({
+            slug: 'signage_settings',
+            data: { pinned_slide: null },
+            overrideAccess: false,
+            user: await asOwner(),
+          }),
+        ).rejects.toThrow();
+        // 無効なスライドは選択肢から外れる (filterOptions はバリデーションにも効く)
+        await expect(
+          payload.updateGlobal({
+            slug: 'signage_settings',
+            data: { pinned_slide: disabled.id },
+            overrideAccess: false,
+            user: await asUser(executive.id),
+          }),
+        ).rejects.toThrow();
+        await payload.delete({ collection: 'signage_slides', id: slide.id, overrideAccess: true });
+        const after = await payload.findGlobal({ slug: 'signage_settings', overrideAccess: true, depth: 0 });
+        expect(after.pinned_slide ?? null).toBeNull();
+      } finally {
+        await payload.updateGlobal({ slug: 'signage_settings', data: { pinned_slide: null }, overrideAccess: true }).catch(() => null);
+        await Promise.all([slide, disabled].map((x) => payload.delete({ collection: 'signage_slides', id: x.id, overrideAccess: true }).catch(() => null)));
+      }
+    });
+
     it('未認証は無効スライド・無効テロップ・返却済み落とし物を読めず、学生団体は作成できない', async () => {
       const slide = (enabled: boolean) =>
         payload.create({

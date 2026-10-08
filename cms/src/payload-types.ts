@@ -126,10 +126,12 @@ export interface Config {
   globals: {
     festival_meta: FestivalMeta;
     page_home: PageHome;
+    signage_settings: SignageSetting;
   };
   globalsSelect: {
     festival_meta: FestivalMetaSelect<false> | FestivalMetaSelect<true>;
     page_home: PageHomeSelect<false> | PageHomeSelect<true>;
+    signage_settings: SignageSettingsSelect<false> | SignageSettingsSelect<true>;
   };
   locale: null;
   widgets: {
@@ -737,10 +739,6 @@ export interface SignageSlide {
    */
   duration_seconds: number;
   enabled?: boolean | null;
-  /**
-   * 有効なスライドのうち、固定表示の先頭の1枚だけが表示される
-   */
-  pinned?: boolean | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1314,7 +1312,6 @@ export interface SignageSlidesSelect<T extends boolean = true> {
   image?: T;
   duration_seconds?: T;
   enabled?: T;
-  pinned?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1548,6 +1545,19 @@ export interface PageHome {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "signage_settings".
+ */
+export interface SignageSetting {
+  id: number;
+  /**
+   * 選んだスライドだけを全画面に表示し続けます。空にすると通常の巡回に戻ります。
+   */
+  pinned_slide?: (number | null) | SignageSlide;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "festival_meta_select".
  */
 export interface FestivalMetaSelect<T extends boolean = true> {
@@ -1590,6 +1600,16 @@ export interface PageHomeSelect<T extends boolean = true> {
   hero_message?: T;
   hero_message_html?: T;
   hero_images?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "signage_settings_select".
+ */
+export interface SignageSettingsSelect<T extends boolean = true> {
+  pinned_slide?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

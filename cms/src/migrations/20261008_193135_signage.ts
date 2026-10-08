@@ -21,7 +21,6 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	"image_id" integer,
   	"duration_seconds" numeric DEFAULT 10 NOT NULL,
   	"enabled" boolean DEFAULT true,
-  	"pinned" boolean DEFAULT false,
   	"updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
   	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
   );
@@ -48,11 +47,19 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	"created_at" timestamp(3) with time zone DEFAULT now() NOT NULL
   );
   
+  CREATE TABLE "signage_settings" (
+  	"id" serial PRIMARY KEY NOT NULL,
+  	"pinned_slide_id" integer,
+  	"updated_at" timestamp(3) with time zone,
+  	"created_at" timestamp(3) with time zone
+  );
+  
   ALTER TABLE "payload_locked_documents_rels" ADD COLUMN "signage_slides_id" integer;
   ALTER TABLE "payload_locked_documents_rels" ADD COLUMN "telops_id" integer;
   ALTER TABLE "payload_locked_documents_rels" ADD COLUMN "lost_items_id" integer;
   ALTER TABLE "signage_slides" ADD CONSTRAINT "signage_slides_image_id_media_id_fk" FOREIGN KEY ("image_id") REFERENCES "public"."media"("id") ON DELETE set null ON UPDATE no action;
   ALTER TABLE "lost_items" ADD CONSTRAINT "lost_items_photo_id_media_id_fk" FOREIGN KEY ("photo_id") REFERENCES "public"."media"("id") ON DELETE set null ON UPDATE no action;
+  ALTER TABLE "signage_settings" ADD CONSTRAINT "signage_settings_pinned_slide_id_signage_slides_id_fk" FOREIGN KEY ("pinned_slide_id") REFERENCES "public"."signage_slides"("id") ON DELETE set null ON UPDATE no action;
   CREATE INDEX "signage_slides__order_idx" ON "signage_slides" USING btree ("_order");
   CREATE INDEX "signage_slides_image_idx" ON "signage_slides" USING btree ("image_id");
   CREATE INDEX "signage_slides_updated_at_idx" ON "signage_slides" USING btree ("updated_at");
@@ -63,6 +70,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   CREATE INDEX "lost_items_photo_idx" ON "lost_items" USING btree ("photo_id");
   CREATE INDEX "lost_items_updated_at_idx" ON "lost_items" USING btree ("updated_at");
   CREATE INDEX "lost_items_created_at_idx" ON "lost_items" USING btree ("created_at");
+  CREATE INDEX "signage_settings_pinned_slide_idx" ON "signage_settings" USING btree ("pinned_slide_id");
   ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_signage_slides_fk" FOREIGN KEY ("signage_slides_id") REFERENCES "public"."signage_slides"("id") ON DELETE cascade ON UPDATE no action;
   ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_telops_fk" FOREIGN KEY ("telops_id") REFERENCES "public"."telops"("id") ON DELETE cascade ON UPDATE no action;
   ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_lost_items_fk" FOREIGN KEY ("lost_items_id") REFERENCES "public"."lost_items"("id") ON DELETE cascade ON UPDATE no action;
@@ -76,15 +84,17 @@ export async function down({ db, payload, req }: MigrateDownArgs): Promise<void>
    ALTER TABLE "signage_slides" DISABLE ROW LEVEL SECURITY;
   ALTER TABLE "telops" DISABLE ROW LEVEL SECURITY;
   ALTER TABLE "lost_items" DISABLE ROW LEVEL SECURITY;
-  DROP TABLE "signage_slides" CASCADE;
-  DROP TABLE "telops" CASCADE;
-  DROP TABLE "lost_items" CASCADE;
+  ALTER TABLE "signage_settings" DISABLE ROW LEVEL SECURITY;
   ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT "payload_locked_documents_rels_signage_slides_fk";
   
   ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT "payload_locked_documents_rels_telops_fk";
   
   ALTER TABLE "payload_locked_documents_rels" DROP CONSTRAINT "payload_locked_documents_rels_lost_items_fk";
   
+  DROP TABLE "signage_slides" CASCADE;
+  DROP TABLE "telops" CASCADE;
+  DROP TABLE "lost_items" CASCADE;
+  DROP TABLE "signage_settings" CASCADE;
   DROP INDEX "payload_locked_documents_rels_signage_slides_id_idx";
   DROP INDEX "payload_locked_documents_rels_telops_id_idx";
   DROP INDEX "payload_locked_documents_rels_lost_items_id_idx";

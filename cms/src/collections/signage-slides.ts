@@ -30,7 +30,7 @@ export const SignageSlides: CollectionConfig = {
   orderable: true,
   admin: {
     useAsTitle: 'title',
-    defaultColumns: ['title', 'kind', 'enabled', 'pinned'],
+    defaultColumns: ['title', 'kind', 'enabled'],
     // ドラッグ並べ替えはページをまたげないため、全件を1ページに収める
     pagination: { defaultLimit: 100 },
   },
@@ -127,12 +127,5 @@ export const SignageSlides: CollectionConfig = {
       admin: { description: 'QR・表・タイムテーブル・落とし物は15秒を推奨' },
     },
     { name: 'enabled', type: 'checkbox', defaultValue: true, label: '有効' },
-    {
-      name: 'pinned',
-      type: 'checkbox',
-      defaultValue: false,
-      label: '固定表示',
-      admin: { description: '有効なスライドのうち、固定表示の先頭の1枚だけが表示される' },
-    },
   ],
 };
