@@ -519,6 +519,36 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
       }
     });
 
+    it('固定は null の更新で解除され、固定中のスライドを無効にしても解除される', async () => {
+      const slide = await payload.create({
+        collection: 'signage_slides',
+        data: { kind: 'parking', title: `pin-unset-${suffix}`, enabled: true, duration_seconds: 10 },
+        overrideAccess: true,
+      });
+      const other = await payload.create({
+        collection: 'signage_slides',
+        data: { kind: 'parking', title: `pin-other-${suffix}`, enabled: true, duration_seconds: 10 },
+        overrideAccess: true,
+      });
+      const pinned = async () =>
+        (await payload.findGlobal({ slug: 'signage_settings', overrideAccess: true, depth: 0 })).pinned_slide ?? null;
+      const user = await asUser(executive.id);
+      try {
+        await payload.updateGlobal({ slug: 'signage_settings', data: { pinned_slide: slide.id }, overrideAccess: false, user });
+        await payload.updateGlobal({ slug: 'signage_settings', data: { pinned_slide: null }, overrideAccess: false, user });
+        expect(await pinned()).toBeNull();
+
+        await payload.updateGlobal({ slug: 'signage_settings', data: { pinned_slide: slide.id }, overrideAccess: true });
+        await payload.update({ collection: 'signage_slides', id: other.id, data: { enabled: false }, overrideAccess: true });
+        expect(await pinned()).toBe(slide.id);
+        await payload.update({ collection: 'signage_slides', id: slide.id, data: { enabled: false }, overrideAccess: true });
+        expect(await pinned()).toBeNull();
+      } finally {
+        await payload.updateGlobal({ slug: 'signage_settings', data: { pinned_slide: null }, overrideAccess: true }).catch(() => null);
+        await Promise.all([slide, other].map((x) => payload.delete({ collection: 'signage_slides', id: x.id, overrideAccess: true }).catch(() => null)));
+      }
+    });
+
     it('未認証は無効スライド・無効テロップ・返却済み落とし物を読めず、学生団体は作成できない', async () => {
       const slide = (enabled: boolean) =>
         payload.create({

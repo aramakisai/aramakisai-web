@@ -35,6 +35,19 @@ export const SignageSlides: CollectionConfig = {
     // ドラッグ並べ替えはページをまたげないため、全件を1ページに収める
     pagination: { defaultLimit: 100 },
   },
+  hooks: {
+    afterChange: [
+      // 無効なスライドは画面に出ないため、固定を残すと帯・列だけが固定中を示し、再び有効にした時に予告なく固定へ戻る
+      async ({ doc, previousDoc, req }) => {
+        if (doc.enabled || !previousDoc?.enabled) return doc;
+        const settings = await req.payload.findGlobal({ slug: 'signage_settings', depth: 0, req });
+        if (settings.pinned_slide === doc.id) {
+          await req.payload.updateGlobal({ slug: 'signage_settings', data: { pinned_slide: null }, req });
+        }
+        return doc;
+      },
+    ],
+  },
   fields: [
     {
       name: 'pin',
