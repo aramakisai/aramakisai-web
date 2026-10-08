@@ -61,7 +61,7 @@ function setup(overrides: Record<string, unknown> = {}) {
   });
 }
 
-const slide = (id: number, sort: number | null, extra = {}) => ({
+const slide = (id: number, extra = {}) => ({
   id,
   kind: 'layout',
   title: `s${id}`,
@@ -72,7 +72,6 @@ const slide = (id: number, sort: number | null, extra = {}) => ({
   content2_html: null,
   duration_seconds: 12,
   pinned: false,
-  sort,
   ...base,
   ...extra,
 });
@@ -80,31 +79,32 @@ const slide = (id: number, sort: number | null, extra = {}) => ({
 beforeEach(() => vi.clearAllMocks());
 
 describe('getSignageSnapshot', () => {
-  it('スライドとテロップは並び順 (未設定は末尾、同値はID順) で返す', async () => {
+  it('スライドとテロップは取得した並び順のまま返し、_order 昇順で取得する', async () => {
     setup({
-      signage_slides: docs([
-        slide(3, null),
-        slide(2, 1),
-        slide(1, 1),
-        slide(4, 0),
-      ]),
+      signage_slides: docs([slide(4), slide(1), slide(2), slide(3)]),
       telops: docs([
-        { id: 9, audience: 'visitor', body: 'x', sort: null, ...base },
+        { id: 9, audience: 'visitor', body: 'x', ...base },
         {
           id: 8,
           audience: 'group',
           target: '出店団体へ',
           body: 'y',
-          sort: 2,
           ...base,
         },
-        { id: 7, audience: 'visitor', body: 'z', sort: 2, ...base },
+        { id: 7, audience: 'visitor', body: 'z', ...base },
       ]),
     });
     const r = await getSignageSnapshot();
     if (!r.ok) throw new Error('failed');
+    for (const c of ['signage_slides', 'telops']) {
+      expect(findMany).toHaveBeenCalledWith(
+        c,
+        expect.objectContaining({ sort: ['_order'] }),
+        expect.anything(),
+      );
+    }
     expect(r.value.slides.map((s) => s.id)).toEqual([4, 1, 2, 3]);
-    expect(r.value.telops.map((t) => t.id)).toEqual([7, 8, 9]);
+    expect(r.value.telops.map((t) => t.id)).toEqual([9, 8, 7]);
     expect(r.value.telops[1]).toMatchObject({
       audience: 'group',
       target: '出店団体へ',
@@ -112,7 +112,7 @@ describe('getSignageSnapshot', () => {
   });
 
   it('レイアウトスライドを表示用の型へ正規化する', async () => {
-    setup({ signage_slides: docs([slide(1, 0, { pinned: true })]) });
+    setup({ signage_slides: docs([slide(1, { pinned: true })]) });
     const r = await getSignageSnapshot();
     if (!r.ok) throw new Error('failed');
     expect(r.value.slides[0]).toEqual({
@@ -132,8 +132,8 @@ describe('getSignageSnapshot', () => {
   it('画像スライドは画像を添付に変換し、未登録はnull', async () => {
     setup({
       signage_slides: docs([
-        slide(1, 0, { kind: 'image', image: { id: 4, filename: 'a.png' } }),
-        slide(2, 1, { kind: 'campus_map', image: null }),
+        slide(1, { kind: 'image', image: { id: 4, filename: 'a.png' } }),
+        slide(2, { kind: 'campus_map', image: null }),
       ]),
     });
     const r = await getSignageSnapshot();

@@ -23,17 +23,9 @@ export const SIGNAGE_TTL_SECONDS = 15;
 const OPTIONS = { ttlSeconds: SIGNAGE_TTL_SECONDS } as const;
 // limit を省くと Payload 既定の 10 件で切れる
 const ALL = { limit: 0 } as const;
+// _order は Payload の orderable が持つ fractional index。昇順の取得順がそのまま並び順
+const ORDERED = { ...ALL, sort: ['_order'] } as const;
 const TIERS: readonly string[] = ['planA', 'planB', 'planC', 'planD'];
-
-/** 並び順の未設定は末尾、同値はID順 */
-function bySort<T extends { id: number; sort?: number | null }>(
-  a: T,
-  b: T,
-): number {
-  const sa = a.sort ?? Number.POSITIVE_INFINITY;
-  const sb = b.sort ?? Number.POSITIVE_INFINITY;
-  return sa === sb ? a.id - b.id : sa < sb ? -1 : 1;
-}
 
 function toSlide(doc: CmsSignageSlide): SignageSlide {
   const base = {
@@ -86,8 +78,8 @@ export async function getSignageSnapshot(): Promise<
   const [meta, slides, telops, lostItems, stages, slots, sponsors, parking] =
     await Promise.all([
       cms.findGlobal('festival_meta', {}, OPTIONS),
-      cms.findMany('signage_slides', { ...ALL, depth: 1 }, OPTIONS),
-      cms.findMany('telops', ALL, OPTIONS),
+      cms.findMany('signage_slides', { ...ORDERED, depth: 1 }, OPTIONS),
+      cms.findMany('telops', ORDERED, OPTIONS),
       cms.findMany('lost_items', { ...ALL, depth: 1 }, OPTIONS),
       cms.findMany('stages', { ...ALL, depth: 0 }, OPTIONS),
       cms.findMany('performance_slots', { ...ALL, depth: 1 }, OPTIONS),
@@ -117,8 +109,8 @@ export async function getSignageSnapshot(): Promise<
     value: {
       fetchedAt: new Date().toISOString(),
       eventDays: toEventDays(meta.value.event_days),
-      slides: [...slides.value.docs].sort(bySort).map(toSlide),
-      telops: [...telops.value.docs].sort(bySort).map(toTelop),
+      slides: slides.value.docs.map(toSlide),
+      telops: telops.value.docs.map(toTelop),
       timetable: toTimetable({
         eventDays: meta.value.event_days,
         stages: stages.value.docs,
