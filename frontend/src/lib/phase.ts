@@ -40,6 +40,7 @@ export const PRE_EVENT_PUBLIC_PATHS: readonly string[] = [
   '/faq',
   '/sponsors/ad',
   '/sponsors/local',
+  '/signage',
 ];
 
 // お知らせ・トピックの詳細はルート単位で許可する。id ごとの公開判定は既存の

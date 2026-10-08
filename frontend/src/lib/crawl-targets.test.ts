@@ -58,6 +58,10 @@ describe('SITEMAP_CODE_ROUTES', () => {
     expect(SITEMAP_CODE_ROUTES).not.toContain('/sponsors/local');
   });
 
+  it('サイネージ画面は検索対象のサイトマップに載せない', () => {
+    expect(SITEMAP_CODE_ROUTES).not.toContain('/signage');
+  });
+
   it('開催中のみ公開される一覧ルートを含む', () => {
     expect(SITEMAP_CODE_ROUTES).toEqual(
       expect.arrayContaining(['/exhibitions', '/topics', '/map', '/timetable']),
@@ -66,7 +70,7 @@ describe('SITEMAP_CODE_ROUTES', () => {
 
   it('1 セグメントの公開パス一覧をすべて含む', () => {
     for (const path of PRE_EVENT_PUBLIC_PATHS) {
-      if (path.split('/').length <= 2) {
+      if (path.split('/').length <= 2 && path !== '/signage') {
         expect(SITEMAP_CODE_ROUTES).toContain(path);
       }
     }

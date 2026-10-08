@@ -448,3 +448,42 @@ html[data-pl] [style*='/images/textures/'] {
 html[data-pl] .exhibition-gradient-bg::before {
   background-image: none;
 }
+
+/*
+ * サイネージのメイン領域は常に1536×864で描画し、縦型だけ縮小して1032×580.5の枠へ入れる。
+ * 縦型専用のスライド配置を持たないため、枠の位置と縮小をここ一箇所で切り替える。
+ */
+.signage-canvas {
+  word-break: auto-phrase;
+}
+
+.signage-main-frame {
+  position: absolute;
+  left: 360px;
+  top: 24px;
+  width: 1536px;
+  height: 864px;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.signage-main {
+  position: relative;
+  width: 1536px;
+  height: 864px;
+}
+
+@media (orientation: portrait) {
+  .signage-main-frame {
+    left: 24px;
+    top: 224px;
+    width: 1032px;
+    height: 580.5px;
+  }
+
+  .signage-main {
+    transform: scale(0.671875);
+    transform-origin: top left;
+  }
+}

@@ -62,6 +62,8 @@ const config: Config = {
           'Meiryo',
           'sans-serif',
         ],
+        // サイネージ画面だけ next/font で読み込む (app/(fullscreen)/signage/page.tsx)
+        noto: ['var(--font-noto-sans-jp)', 'Noto Sans JP', 'sans-serif'],
         display: [
           'LINE Seed JP',
           'system-ui',
