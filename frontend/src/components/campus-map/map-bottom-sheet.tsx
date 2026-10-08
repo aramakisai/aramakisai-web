@@ -92,6 +92,9 @@ export function MapBottomSheet({
   const grabberRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const suppressClickRef = useRef(false);
+  // 全画面以外のスナップでは検索欄 (z-[1080]) より背面だが、ドラッグ中とスナップへの
+  // 遷移中はシートが検索欄の位置まで伸びうるため、その間だけ全画面と同じ前面に出す
+  const [elevated, setElevated] = useState(false);
   const dragRef = useRef<{
     startX: number;
     startY: number;
@@ -203,6 +206,7 @@ export function MapBottomSheet({
       // ドラッグ中は指に追従させるため遷移を切る。capture は確定後にだけ取る
       // (最初から取ると配下のリンクへの click が届かなくなる)
       el.style.transition = 'none';
+      setElevated(true);
       el.setPointerCapture?.(event.pointerId);
     }
     const draggedUpBy = drag.startY - event.clientY;
@@ -286,6 +290,8 @@ export function MapBottomSheet({
     void el.offsetHeight;
     el.style.height = SNAP_HEIGHTS[target];
     setSnapIndex(target);
+    // duration-300 の遷移が終わるまで前面を保つ
+    setTimeout(() => setElevated(false), 300);
   };
 
   const handleClickCapture = (event: MouseEvent<HTMLDivElement>) => {
@@ -320,7 +326,7 @@ export function MapBottomSheet({
     // この外枠自体は下端に貼り付くだけで余白を持たないため地図を覆わない。
     // pointer-events-none はそれでも確実にするための保険
     <div
-      className={`pointer-events-none fixed inset-x-0 bottom-0 flex justify-center md:hidden ${snapIndex === 4 ? 'z-[1100]' : 'z-[1050]'}`}
+      className={`pointer-events-none fixed inset-x-0 bottom-0 flex justify-center md:hidden ${snapIndex === 4 || elevated ? 'z-[1100]' : 'z-[1050]'}`}
       aria-hidden={isAboveBreakpoint}
       inert={isAboveBreakpoint}
     >

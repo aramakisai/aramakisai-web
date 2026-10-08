@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MapBottomSheet } from './map-bottom-sheet';
 import type { AreaExhibitionListState } from './area-exhibition-list';
@@ -234,6 +234,44 @@ describe('MapBottomSheet', () => {
         /overflow-hidden/,
       );
       expect(screen.getByText(/エリアを選/).closest('[inert]')).not.toBeNull();
+    });
+
+    it('stays above the search overlay while dragging and until the snap transition ends', () => {
+      vi.useFakeTimers();
+      mockMatchMedia(false);
+      window.innerHeight = 800;
+      const state: AreaExhibitionListState = {
+        kind: 'filtered',
+        areaName: 'Aゾーン',
+        keyword: '',
+        categories: [],
+        items: [],
+      };
+      const { getByTestId } = render(<MapBottomSheet state={state} />);
+      const grabber = screen.getByRole('button', {
+        name: /シートの高さを変更/,
+      });
+      const wrapper = getByTestId('map-bottom-sheet').parentElement!;
+      vi.spyOn(
+        getByTestId('map-bottom-sheet'),
+        'getBoundingClientRect',
+      ).mockReturnValue({ height: 380 } as DOMRect);
+
+      expect(wrapper.className).toMatch(/z-\[1050\]/);
+      act(() => {
+        firePointer(grabber, 'pointerdown', { clientY: 500 });
+        firePointer(grabber, 'pointermove', { clientY: 480 });
+      });
+      expect(wrapper.className).toMatch(/z-\[1100\]/);
+      act(() => {
+        firePointer(grabber, 'pointerup', { clientY: 480 });
+      });
+      expect(wrapper.className).toMatch(/z-\[1100\]/);
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+      expect(wrapper.className).toMatch(/z-\[1050\]/);
+      vi.useRealTimers();
     });
 
     it('follows the pointer continuously while dragging and snaps to the nearest position on release', () => {
