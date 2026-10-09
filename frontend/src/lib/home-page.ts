@@ -14,7 +14,7 @@ import {
 export async function getHomePage(): Promise<HomePageContent> {
   const [metaResult, announcementsResult, topicsResult, pageHomeResult] =
     await Promise.all([
-      cms.findGlobal('festival_meta', { depth: 1 }),
+      cms.findGlobal('festival_meta'),
       cms.findMany('announcements', {
         where: publishedFilter(),
         sort: ['-published_at'],

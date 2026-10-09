@@ -1,6 +1,5 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import type { CampusMapFilters } from '@/lib/campus-map';
 import { useMapFilters } from './use-map-filters';
 
 vi.mock('@/env', () => ({
@@ -10,13 +9,35 @@ vi.mock('@/env', () => ({
   },
 }));
 
-function baseFilters(
-  overrides: Partial<CampusMapFilters> = {},
-): CampusMapFilters {
-  return { q: '', categories: [], selectedAreaId: null, ...overrides };
-}
-
 describe('useMapFilters', () => {
+  test('マウント時に location.search から初期条件を読む', () => {
+    window.history.replaceState(
+      null,
+      '',
+      '/map?q=ロボット&category=stage&area=3',
+    );
+
+    const { result } = renderHook(() => useMapFilters());
+
+    expect(result.current.filters).toEqual({
+      q: 'ロボット',
+      categories: ['stage'],
+      selectedAreaId: 3,
+    });
+    expect(result.current.keywordInput).toBe('ロボット');
+    expect(pushStateSpy).not.toHaveBeenCalled();
+  });
+
+  test('クエリが無ければ空の条件で始まる', () => {
+    const { result } = renderHook(() => useMapFilters());
+
+    expect(result.current.filters).toEqual({
+      q: '',
+      categories: [],
+      selectedAreaId: null,
+    });
+  });
+
   let pushStateSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
@@ -31,7 +52,7 @@ describe('useMapFilters', () => {
   });
 
   test('エリア選択は即座に履歴 API で URL を更新する', () => {
-    const { result } = renderHook(() => useMapFilters(baseFilters()));
+    const { result } = renderHook(() => useMapFilters());
 
     act(() => result.current.selectArea(3));
 
@@ -45,7 +66,7 @@ describe('useMapFilters', () => {
   });
 
   test('カテゴリ変更は即座に履歴 API で URL を更新する', () => {
-    const { result } = renderHook(() => useMapFilters(baseFilters()));
+    const { result } = renderHook(() => useMapFilters());
 
     act(() => result.current.setCategories(['stage']));
 
@@ -58,7 +79,7 @@ describe('useMapFilters', () => {
   });
 
   test('キーワード入力は状態へ即時反映するが URL 更新はデバウンスする', () => {
-    const { result } = renderHook(() => useMapFilters(baseFilters()));
+    const { result } = renderHook(() => useMapFilters());
 
     act(() => result.current.setKeywordInput('ロボット'));
 
@@ -80,7 +101,7 @@ describe('useMapFilters', () => {
   });
 
   test('1 文字ごとに履歴を積まず、確定後の値のみ 1 エントリとして積む', () => {
-    const { result } = renderHook(() => useMapFilters(baseFilters()));
+    const { result } = renderHook(() => useMapFilters());
 
     act(() => result.current.setKeywordInput('ろ'));
     act(() => vi.advanceTimersByTime(200));
@@ -94,20 +115,22 @@ describe('useMapFilters', () => {
   });
 
   test('エリア選択の直後にキーワードのデバウンスが確定しても選択中エリアを保つ', () => {
-    const { result } = renderHook(() => useMapFilters(baseFilters()));
+    const { result } = renderHook(() => useMapFilters());
 
     act(() => result.current.selectArea(7));
     act(() => result.current.setKeywordInput('x'));
     act(() => vi.advanceTimersByTime(300));
 
-    expect(result.current.filters).toEqual(
-      baseFilters({ selectedAreaId: 7, q: 'x' }),
-    );
+    expect(result.current.filters).toEqual({
+      q: 'x',
+      categories: [],
+      selectedAreaId: 7,
+    });
   });
 
   test('絞り込みの適用はネットワークリクエストを発生させない (History API のみを使う)', () => {
     const replaceState = vi.spyOn(window.history, 'replaceState');
-    const { result } = renderHook(() => useMapFilters(baseFilters()));
+    const { result } = renderHook(() => useMapFilters());
 
     act(() => result.current.selectArea(1));
     act(() => result.current.setCategories(['stage']));
@@ -121,7 +144,7 @@ describe('useMapFilters', () => {
   });
 
   test('戻る操作 (popstate) で URL 側の変化を状態へ反映する', () => {
-    const { result } = renderHook(() => useMapFilters(baseFilters()));
+    const { result } = renderHook(() => useMapFilters());
 
     act(() => result.current.selectArea(1));
     act(() => result.current.selectArea(2));
@@ -138,7 +161,7 @@ describe('useMapFilters', () => {
   });
 
   test('popstate はデバウンス中のキーワード確定を上書きしない', () => {
-    const { result } = renderHook(() => useMapFilters(baseFilters()));
+    const { result } = renderHook(() => useMapFilters());
 
     act(() => result.current.setKeywordInput('保留中'));
 

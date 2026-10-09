@@ -792,13 +792,18 @@ describe('getExhibitionDetail', () => {
       exhibit: {
         name: '企画A',
         description: '紹介文',
-        images: [{ id: 5, alt: '写真の説明' }],
+        images: [{ id: 5, alt: '写真の説明' }, 6],
       },
       vendor: { name: '企画A-出店', images: [] },
       links: [{ platform: 'x', url: 'https://x.com/example' }],
     });
 
     const result = await getExhibitionDetail(1, 'exhibit');
+    expect(vi.mocked(cms.findById).mock.calls[0]).toEqual([
+      'student_exhibitions',
+      1,
+      { depth: 0 },
+    ]);
     expect(result).toEqual({
       kind: 'found',
       value: expect.objectContaining({
@@ -807,7 +812,10 @@ describe('getExhibitionDetail', () => {
         displayName: '企画A',
         categories: ['exhibit', 'vendor'],
         description: '紹介文',
-        images: [{ id: '5', alt: '写真の説明' }],
+        images: [
+          { id: '5', alt: '企画A' },
+          { id: '6', alt: '企画A' },
+        ],
         links: [{ platform: 'x', url: 'https://x.com/example' }],
       }),
     });

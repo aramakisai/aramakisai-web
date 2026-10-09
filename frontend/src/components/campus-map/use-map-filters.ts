@@ -1,6 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import {
   buildCampusMapHref,
   parseCampusMapQuery,
@@ -30,11 +36,18 @@ function readFiltersFromLocation(): CampusMapFilters {
   });
 }
 
-export function useMapFilters(initial: CampusMapFilters): UseMapFiltersResult {
-  const [filters, setFilters] = useState(initial);
-  const [keywordInput, setKeywordInput] = useState(initial.q);
+const EMPTY_FILTERS: CampusMapFilters = {
+  q: '',
+  categories: [],
+  selectedAreaId: null,
+};
+
+export function useMapFilters(): UseMapFiltersResult {
+  // サーバー描画 (ISR のキャッシュ) は URL を知らないため空の条件で始まり、マウント時に URL から復元する
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [keywordInput, setKeywordInput] = useState(EMPTY_FILTERS.q);
   // 直近の確定状態を同期的に参照するための ref。setState は非同期で連続更新時に取りこぼすため使う
-  const filtersRef = useRef(initial);
+  const filtersRef = useRef(EMPTY_FILTERS);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Next のルーターを経由すると Server Component の再レンダリング (CMS への再取得) が
@@ -43,6 +56,14 @@ export function useMapFilters(initial: CampusMapFilters): UseMapFiltersResult {
     filtersRef.current = next;
     setFilters(next);
     window.history.pushState(next, '', buildCampusMapHref(next));
+  }, []);
+
+  // ハイドレーション直後の描画より前に反映し、空の条件が一瞬見えるのを最小にする
+  useLayoutEffect(() => {
+    const restored = readFiltersFromLocation();
+    filtersRef.current = restored;
+    setFilters(restored);
+    setKeywordInput(restored.q);
   }, []);
 
   useEffect(() => {
