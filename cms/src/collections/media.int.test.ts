@@ -551,3 +551,190 @@ describe.skipIf(!hasDatabase)('所有者の消滅・ロール変更後の read a
     await payload.delete({ collection: 'users', id: promoted.id, overrideAccess: true }).catch(() => null);
   });
 });
+
+describe.skipIf(!hasDatabase)('未認証の公開読み取りと配信のキャッシュヘッダ', () => {
+  let payload: Awaited<ReturnType<typeof import('payload').getPayload>>;
+  let workdir: string;
+  let filePath: string;
+
+  const suffix = String(process.pid);
+  const cleanup: { media: number[]; users: number[]; exhibitions: number[] } = {
+    media: [],
+    users: [],
+    exhibitions: [],
+  };
+
+  const serve = async (id: number) => {
+    const { createLocalReq } = await import('payload');
+    const req = await createLocalReq({}, payload);
+    Object.assign(req, { routeParams: { id: String(id), size: 'original' } });
+    const endpoints = Media.endpoints;
+    if (!endpoints) throw new Error('Media.endpoints is not defined');
+    return endpoints[0].handler(req) as Promise<Response>;
+  };
+
+  // 302 の転送先 /api/media/file/<filename> は REST の checkFileAccess を通る
+  const fetchFile = async (filename: string) => {
+    const { handleEndpoints } = await import('payload');
+    return handleEndpoints({
+      config: payload.config,
+      request: new Request(`http://localhost/api/media/file/${encodeURIComponent(filename)}`),
+    });
+  };
+
+  const createUser = async (role: 'executive' | 'student_exhibitor', label: string) => {
+    const user = (await payload.create({
+      collection: 'users',
+      data: { email: `${label}-${suffix}@test.local`, password: 'test-password', role },
+      overrideAccess: true,
+    })) as { id: number };
+    cleanup.users.push(user.id);
+    return user;
+  };
+
+  const createMedia = async (user: { id: number }, alt: string) => {
+    const doc = await payload.create({
+      collection: 'media',
+      filePath,
+      data: { alt },
+      overrideAccess: true,
+      user: user as never,
+    });
+    cleanup.media.push(doc.id);
+    return doc;
+  };
+
+  const readMedia = (id: number) =>
+    payload.findByID({ collection: 'media', id, depth: 0, overrideAccess: true });
+
+  const createExhibition = async (owner: { id: number }, imageId: number, status: 'published' | 'draft') => {
+    const exhibition = (await payload.create({
+      collection: 'student_exhibitions',
+      data: {
+        owner: owner.id,
+        organization_name: `public-read-${suffix}`,
+        status,
+        categories: ['exhibit'],
+        exhibit: {
+          name: `public-read-${suffix}`,
+          description: `public-read-${suffix}`,
+          images: [imageId],
+          open_days: ['2026-11-01T12:00:00.000Z'],
+        },
+      },
+      overrideAccess: true,
+    })) as { id: number };
+    cleanup.exhibitions.push(exhibition.id);
+    return exhibition;
+  };
+
+  beforeAll(async () => {
+    const { getPayload } = await import('payload');
+    const sharp = (await import('sharp')).default;
+    const config = (await import('../payload.config')).default;
+    payload = await getPayload({ config });
+
+    workdir = mkdtempSync(path.join(tmpdir(), 'media-public-int-'));
+    filePath = path.join(workdir, `public-${suffix}.png`);
+    await sharp({
+      create: { width: 400, height: 300, channels: 3, background: { r: 30, g: 31, b: 32 } },
+    })
+      .png()
+      .toFile(filePath);
+  });
+
+  afterAll(async () => {
+    if (workdir) rmSync(workdir, { recursive: true, force: true });
+    for (const id of cleanup.exhibitions) {
+      await payload.delete({ collection: 'student_exhibitions', id, overrideAccess: true }).catch(() => null);
+    }
+    for (const id of cleanup.media) {
+      await payload.delete({ collection: 'media', id, overrideAccess: true }).catch(() => null);
+    }
+    for (const id of cleanup.users) {
+      await payload.delete({ collection: 'users', id, overrideAccess: true }).catch(() => null);
+    }
+  });
+
+  it('実行委員のアップロードは used_in_published が NULL になり、未認証で読める', async () => {
+    const executive = await createUser('executive', 'pub-exec');
+    const doc = await createMedia(executive, 'by executive');
+
+    expect((await readMedia(doc.id)).used_in_published).toBeNull();
+    expect((await serve(doc.id)).status).toBe(302);
+    expect((await fetchFile(doc.filename as string)).status).toBe(200);
+  });
+
+  it('実行委員の画像は企画に付けて公開し、下書きに戻しても公開のまま残る', async () => {
+    const executive = await createUser('executive', 'pub-exec-draft');
+    const student = await createUser('student_exhibitor', 'pub-stu-draft');
+    const doc = await createMedia(executive, 'exec image in exhibition');
+
+    const exhibition = await createExhibition(student, doc.id, 'published');
+    expect((await readMedia(doc.id)).used_in_published).toBeNull();
+
+    await payload.update({
+      collection: 'student_exhibitions',
+      id: exhibition.id,
+      data: { status: 'draft' },
+      overrideAccess: true,
+    });
+    expect((await readMedia(doc.id)).used_in_published).toBeNull();
+    expect((await serve(doc.id)).status).toBe(302);
+  });
+
+  it('実行委員ユーザーを削除しても、その人の画像は公開のまま残る', async () => {
+    const executive = await createUser('executive', 'pub-exec-del');
+    const doc = await createMedia(executive, 'exec image after owner deletion');
+
+    await payload.delete({ collection: 'users', id: executive.id, overrideAccess: true });
+
+    const after = await readMedia(doc.id);
+    expect(after.owner).toBeFalsy();
+    expect(after.used_in_published).toBeNull();
+    expect((await serve(doc.id)).status).toBe(302);
+    expect((await fetchFile(doc.filename as string)).status).toBe(200);
+  });
+
+  it('学生団体の画像は false のままで、/serve も /api/media/file も未認証では読めない', async () => {
+    const student = await createUser('student_exhibitor', 'pub-stu-private');
+    const doc = await createMedia(student, 'student draft image');
+
+    expect((await readMedia(doc.id)).used_in_published).toBe(false);
+    expect((await serve(doc.id)).status).toBe(404);
+    expect([401, 403, 404]).toContain((await fetchFile(doc.filename as string)).status);
+  });
+
+  it('学生団体の画像は公開企画で使用中のあいだだけ読める', async () => {
+    const student = await createUser('student_exhibitor', 'pub-stu-used');
+    const doc = await createMedia(student, 'student image in exhibition');
+    const exhibition = await createExhibition(student, doc.id, 'published');
+
+    expect((await readMedia(doc.id)).used_in_published).toBe(true);
+    expect((await fetchFile(doc.filename as string)).status).toBe(200);
+
+    await payload.update({
+      collection: 'student_exhibitions',
+      id: exhibition.id,
+      data: { status: 'draft' },
+      overrideAccess: true,
+    });
+    expect((await readMedia(doc.id)).used_in_published).toBe(false);
+    expect([401, 403, 404]).toContain((await fetchFile(doc.filename as string)).status);
+  });
+
+  it('公開画像の 302 には Cache-Control が付き、非公開の 404 には付かない', async () => {
+    const executive = await createUser('executive', 'pub-exec-cache');
+    const student = await createUser('student_exhibitor', 'pub-stu-cache');
+    const publicDoc = await createMedia(executive, 'cache public');
+    const privateDoc = await createMedia(student, 'cache private');
+
+    const ok = await serve(publicDoc.id);
+    expect(ok.status).toBe(302);
+    expect(ok.headers.get('Cache-Control')).toBe('public, max-age=60');
+
+    const notFound = await serve(privateDoc.id);
+    expect(notFound.status).toBe(404);
+    expect(notFound.headers.get('Cache-Control')).toBeNull();
+  });
+});

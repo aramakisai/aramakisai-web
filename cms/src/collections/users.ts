@@ -114,8 +114,8 @@ const queueInvitationEmail: CollectionAfterChangeHook = async ({ doc, operation,
 
 /**
  * 学生団体から他ロールへ変わった (実行委員への昇格等) 際、その人が学生団体としてアップロードした
- * メディアの owner を外す。放置すると media.owner.role が新しいロールに連動し、
- * publicMediaRead の「所有者が実行委員」条件に未公開の画像まで一致して公開されてしまう (7.9)。
+ * メディアの owner を外す。used_in_published は false のまま残るため下書き画像は公開されない
+ * (NULL にはしない: NULL は常に公開になる)。
  */
 const detachMediaOnRoleChange: CollectionAfterChangeHook = async ({ doc, previousDoc, operation, req }) => {
   if (operation !== 'update') return doc;
