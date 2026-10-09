@@ -28,6 +28,14 @@ import { toMetaDescription } from '@/lib/meta-description';
 import { buildBreadcrumbJsonLd } from '@/lib/structured-data';
 import { JsonLd } from '@/components/json-ld';
 
+// ビルド時には何も生成せず、初回アクセスで生成して以後キャッシュする
+export function generateStaticParams() {
+  return [];
+}
+
+// 実効値はルート layout の revalidate (60) との最小値になる。layout 側を伸ばさない限り 60 秒
+export const revalidate = 300;
+
 export interface ExhibitionPageProps {
   readonly params: Promise<{ id: string; category: string }>;
 }
@@ -117,15 +125,15 @@ export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
     notFound();
   }
 
-  if (result.kind === 'error') {
-    return (
-      <div className="mx-auto max-w-[1440px] space-y-6 px-4 py-8 lg:px-20 lg:py-12">
-        <BackLink href="/exhibitions" label="企画一覧へ戻る" />
-        <p role="alert">
-          企画情報の取得に失敗しました。しばらくしてから再度お試しください。
-        </p>
-      </div>
-    );
+  // 取得失敗の描画は再検証までキャッシュされ古い正常なページを上書きするため、
+  // 404 にもエラー表示にもせず例外にして古いページを保つ (要件 5.9)
+  if (
+    result.kind === 'error' ||
+    areasResult.kind === 'error' ||
+    performancesResult?.kind === 'error' ||
+    (category !== 'stage' && eventDays === null)
+  ) {
+    throw new Error('企画詳細の取得に失敗しました');
   }
 
   const exhibition = result.value;
@@ -133,9 +141,7 @@ export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
     ? formatOpenDays(exhibition.openDayKeys, eventDays)
     : null;
   const shareUrl = `${env.NEXT_PUBLIC_SITE_URL}/exhibitions/${exhibition.id}/${exhibition.category}`;
-  // 区画取得失敗をページ全体のエラーへ昇格させないため、ここで空区画へ縮退させる
-  const areas: readonly CampusMapArea[] =
-    areasResult.kind === 'loaded' ? areasResult.value : [];
+  const areas: readonly CampusMapArea[] = areasResult.value;
   const breadcrumb = buildBreadcrumbJsonLd(
     [
       { name: 'トップ', path: '/' },

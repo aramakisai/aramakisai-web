@@ -166,8 +166,13 @@ export const cms = {
     slug: K,
     query: { depth?: number } = {},
   ): Promise<CmsResult<CmsGlobals[K]>> {
+    // populate が要る global は呼び出し側で depth を明示する。既定を 0 に揃えると
+    // URL (= Workers Cache API のキー) が 1 種類になり、CMS の DB 問い合わせも減る。
     return request(
-      withQuery(`/api/globals/${String(slug)}`, buildQueryString(query)),
+      withQuery(
+        `/api/globals/${String(slug)}`,
+        buildQueryString({ depth: 0, ...query }),
+      ),
     );
   },
 };

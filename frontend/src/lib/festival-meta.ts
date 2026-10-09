@@ -4,7 +4,7 @@ import { toEventDays } from './event-day';
 import { FestivalMeta, SnsLink } from './home-page-types';
 
 export async function getFestivalMeta(): Promise<FestivalMeta> {
-  const result = await cms.findGlobal('festival_meta', { depth: 1 });
+  const result = await cms.findGlobal('festival_meta');
   if (!result.ok) throw new Error('祭メタ情報の取得に失敗しました');
   const meta = result.value;
 

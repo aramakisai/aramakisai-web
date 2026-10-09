@@ -1,10 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { SearchIcon } from './icons';
 import {
-  buildExhibitionsHref,
   CATEGORY_LABELS,
   type AreaOption,
   type ExhibitionCategory,
@@ -14,7 +12,14 @@ import {
 export interface ExhibitionFiltersProps {
   readonly query: ExhibitionQuery;
   readonly areas: readonly AreaOption[];
+  /** page は含めない: 条件変更のたびに 1 ページ目へ戻す (要件 2.8) */
+  readonly onChange: (next: ExhibitionFilterValues) => void;
 }
+
+export type ExhibitionFilterValues = Pick<
+  ExhibitionQuery,
+  'q' | 'categories' | 'areaIds'
+>;
 
 const CATEGORY_OPTIONS: readonly ExhibitionCategory[] = [
   'stage',
@@ -23,28 +28,26 @@ const CATEGORY_OPTIONS: readonly ExhibitionCategory[] = [
   'other',
 ];
 
-// 1 打鍵ごとの URL 更新 (履歴汚染・再取得の頻発) を避けるための確定待ち時間 (要件 2.1)
+// 1 打鍵ごとの URL 更新 (履歴汚染・再描画の頻発) を避けるための確定待ち時間 (要件 2.1)
 const KEYWORD_DEBOUNCE_MS = 300;
 
-export function ExhibitionFilters({ query, areas }: ExhibitionFiltersProps) {
-  const router = useRouter();
+export function ExhibitionFilters({
+  query,
+  areas,
+  onChange,
+}: ExhibitionFiltersProps) {
   const [keyword, setKeyword] = useState(query.q);
-  const isFirstRender = useRef(true);
 
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
-    // page は渡さない: 条件変更のたびに 1 ページ目へ戻す (要件 2.8)
+    // 条件が変わっていなければ通知しない。通知するとページ番号が 1 に戻り、
+    // URL から復元した状態を再マウント (StrictMode の再実行を含む) が打ち消してしまう
+    if (keyword.trim() === query.q) return;
     const timer = setTimeout(() => {
-      router.replace(
-        buildExhibitionsHref({
-          q: keyword.trim(),
-          categories: query.categories,
-          areaIds: query.areaIds,
-        }),
-      );
+      onChange({
+        q: keyword.trim(),
+        categories: query.categories,
+        areaIds: query.areaIds,
+      });
     }, KEYWORD_DEBOUNCE_MS);
     return () => clearTimeout(timer);
     // query.categories / query.areaIds はチップ操作時に別途 replace するため依存に含めない
@@ -55,26 +58,14 @@ export function ExhibitionFilters({ query, areas }: ExhibitionFiltersProps) {
     const categories = query.categories.includes(category)
       ? query.categories.filter((c) => c !== category)
       : [...query.categories, category];
-    router.replace(
-      buildExhibitionsHref({
-        q: keyword.trim(),
-        categories,
-        areaIds: query.areaIds,
-      }),
-    );
+    onChange({ q: keyword.trim(), categories, areaIds: query.areaIds });
   };
 
   const toggleArea = (areaId: number) => {
     const areaIds = query.areaIds.includes(areaId)
       ? query.areaIds.filter((id) => id !== areaId)
       : [...query.areaIds, areaId];
-    router.replace(
-      buildExhibitionsHref({
-        q: keyword.trim(),
-        categories: query.categories,
-        areaIds,
-      }),
-    );
+    onChange({ q: keyword.trim(), categories: query.categories, areaIds });
   };
 
   return (
