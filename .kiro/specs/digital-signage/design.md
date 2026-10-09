@@ -13,7 +13,7 @@
 - ビューポートの縦横に応じて横型・縦型の配置を自動で切り替える。データ取得・巡回・状態は共通で、縦型のメイン領域は横型と同じ16:9の中身を縮小して表示する(1.4、1.5)
 - CMS更新を手動再読み込みなしで約35秒以内に反映し、取得失敗時は直前の内容を保つ(12.1〜12.3)
 - 同じスナップショットを持つ全端末が、サーバー時刻で補正した時刻から同じスライド・テロップ・流し位置を表示する(4.9、10.9、12.6、12.7)
-- 固定表示の選択・解除と、グループの表示の切り替え・所属スライドの変更は、管理画面で保存してから約3秒以内に全端末へ反映する(4.10、4.11、4.21)
+- 固定表示の選択・解除と、グループの表示の切り替え・所属スライドの変更で表示対象から外れるスライドは、管理画面で保存してから約3秒以内に全端末へ反映する。表示対象に加わるスライドは中身の取り直しを挟むため数秒遅れる(4.10、4.11、4.21)
 - スライドをグループ単位で表示・非表示にでき、その操作をスライドの一覧で完結させる(4.13〜4.20)
 - 新しい課金サービス・外部問い合わせを増やさない(11.8、12.4)
 - 本文部品を全richTextフィールドで共通に使え、既存本文の表示を変えない(15.1、15.13)
@@ -171,10 +171,10 @@ frontend/src/
 ├── lib/
 │   ├── signage.ts                # SignageSnapshot等の型と端末側純関数(buildPlaylist/slideAt/paginate*/stageNow/timetableWindow)
 │   ├── signage-time.ts           # 時刻補正(clockOffsetMs)と補正済み時刻のフック(useCorrectedNow)
-│   ├── signage-pin.ts            # 固定状態と表示対象の型、スナップショットへの適用(withPin)と3秒ごとの確認フック(usePinnedSlide)
+│   ├── signage-pin.ts            # 固定状態と表示対象の型、スナップショットへの適用(withPin)、取り直しの要否(missingSlideIds)と3秒ごとの確認フック(usePinnedSlide)
 │   ├── signage-telop.ts          # テロップの時刻表(telopSchedule)と時刻からの件・流し位置(telopAt)
 │   ├── signage-viewport.ts       # 向きの判定(orientationOf)とキャンバスの拡縮(fitCanvas/useCanvasLayout)
-│   ├── signage-data.ts           # getSignageSnapshot()・getPinState(): CMS取得と正規化、表示対象のスライドIDの計算(visibleSlideIds)(サーバ専用)
+│   ├── signage-data.ts           # getSignageSnapshot()・getPinState(): CMS取得と正規化(サーバ専用)
 │   ├── bus-timetable-data.ts     # 関越交通 前橋渋川線の時刻データ(人手変換)
 │   └── bus-departures.ts         # 次便計算・ダイヤ種別判定
 └── components/signage/
@@ -192,7 +192,8 @@ frontend/src/
 ### Modified Files
 - `cms/src/collections/index.ts` — 新4コレクションを登録口へ追加。`withAccess`は`admin.hidden`だけを上書きし、`signage_groups`のナビ除外は`admin.group: false`で行う(`admin.hidden`は管理画面の画面・ドロワーごと消えるため使わない)
 - `cms/src/globals/index.ts` — `signage_settings`を登録口へ追加(既存グローバルと同じ結線で、読み取りは公開、更新は実行委員のみ)。`withAccess`は`admin.hidden`を上書きするため、グローバル自身が`admin.hidden: true`を持つときは全員に非表示にする
-- `cms/src/access/policy.ts` — `PUBLISHED_FILTER`へ`signage_slides`(有効のみ。グループでは絞らない)・`telops`(有効のみ)・`lost_items`(返却済み以外)を追加。`signage_groups`は絞らない(名前・表示状態・所属だけで秘匿する内容が無い)
+- `cms/src/access/policy.ts` — `PUBLISHED_FILTER`へ`signage_slides`(有効のみ。グループでの絞り込みは`accessFor`で重ねる)・`telops`(有効のみ)・`lost_items`(返却済み以外)を追加。`signage_groups`は絞らない(名前・表示状態・所属だけで秘匿する内容が無い)
+- `cms/src/access/payload-access.ts` — `accessFor`の読み取りで、`signage_slides`の公開判定が条件を返したときに`visibleSlideFilter`の条件を`and`で重ねる(「実効的な表示とグループ」)
 - `cms/src/lib/rich-text-editor.ts` — `BlocksFeature`(3ブロック)と`EXPERIMENTAL_TableFeature`を共通機能に追加
 - `cms/src/lib/rich-text-html-converters.ts` — 3ブロックと表の変換器を追加(画像は既存の`data-media-id`方式を共用)
 - `cms/src/app/(payload)/admin/importMap.js` — `pnpm generate:importmap`で再生成。固定表示の操作部品3つとグループの操作部品2つの登録だけを取り込み、ローカル差分のZitadel/S3エントリ消失は戻す
@@ -200,7 +201,8 @@ frontend/src/
 - `frontend/src/components/rich-text.tsx` — 許可タグ・class・属性の追加、h1→h2読み替えの削除
 - `frontend/src/app/globals.css` — `.rich-text-body`配下に`rt-*`の公式サイト用スタイル、`.rich-text-body--signage`配下にサイネージ用スタイル。サイネージ画面の縦型配置と、縦型でのメイン領域の縮小(`transform: scale(0.671875)`、transform-origin左上)は、キャンバスの`data-orientation="portrait"`で切り替える(メディア条件は使わない)。見出し・本文の折り返しに`word-break: auto-phrase`を指定する
 - `frontend/src/app/layout.tsx` — Material Symbolsの`icon_names`へ`handshake`・`local_parking`・`mic`・`directions_bus`・`warning`・`info`を追加
-- `frontend/src/lib/cms.ts` — `findGlobal`にTTL指定(`CmsFetchOptions`)を追加(既存呼び出しは不変)。`ttlSeconds: 0`はCache APIを読み書きせずに取得する
+- `frontend/src/lib/cms.ts` — `findGlobal`にTTL指定(`CmsFetchOptions`)を追加(既存呼び出しは不変)。`ttlSeconds: 0`はCache APIを読み書きせずに取得する。`refresh: true`はCache APIを読まずにCMSから取得し、その応答で同じキーのキャッシュを置き換える
+- `frontend/src/lib/use-polling.ts` — 戻り値に、即時に1回取得して次回の予約をそこから数え直す`refresh(fetcher?)`を追加(既存呼び出しは不変)
 - `frontend/src/lib/sponsors.ts` — `getSponsors`にTTL指定を受ける省略可能な引数を追加
 - `frontend/src/lib/use-slide-rotation.ts` — 削除(巡回は`slideAt`で時刻から求める)
 - `frontend/src/lib/phase.ts` — `PRE_EVENT_PUBLIC_PATHS`へ`/signage`・`/api/signage`・`/api/signage/pin`を追加
@@ -249,16 +251,21 @@ sequenceDiagram
   D->>W: GET /api/signage/pin (3秒ごと)
   par キャッシュなし
     W->>P: GET /api/globals/signage_settings?depth=2
-    W->>P: GET /api/signage_groups?limit=0&depth=0
     W->>P: GET /api/signage_slides?limit=0&depth=0&select[id]=true
   end
   W-->>D: SignagePinState {serverNow, slide, visibleSlideIds} (no-store)
   D->>D: withPin(snapshot, pin) で再生リストを作り直す
+  opt visibleSlideIdsにスナップショットに無いIDがある
+    D->>W: GET /api/signage?fresh=1
+    W->>P: GET /api/signage_slides (Cache APIを読まずに取得し、キャッシュを置き換える)
+    W-->>D: SignageSnapshot (no-store)
+  end
 ```
 
-- 端末は`/api/signage`の20秒ごとの取得とは別に、`/api/signage/pin`を3秒ごとに確認する。CMSへの取得もキャッシュしないため、保存から表示の切り替えまでは確認間隔の3秒と往復時間で収まる(4.10、4.21)
-- 確認の応答は、固定スライドに加えて、いま表示対象のスライドIDの一覧(`visibleSlideIds`)を返す。グループの表示の切り替え・所属スライドの変更・グループの削除・スライドの無効化は、この一覧の変化として3秒以内に全端末へ伝わる
-- 固定状態の確認が一度でも成功した後は、スナップショットの`pinnedSlideId`・`visibleSlideIds`ではなく確認結果を使う(スナップショットは最大35秒古いため)。確認が一度も成功していない間はスナップショットの値を使う
+- 端末は`/api/signage`の20秒ごとの取得とは別に、`/api/signage/pin`を3秒ごとに確認する。CMSへの取得もキャッシュしないため、保存から表示の切り替え(固定・解除と、表示対象から外れるスライド)までは確認間隔の3秒と往復時間で収まる(4.10、4.21)。確認の通信方式の見直しは別specで扱い、本specは3秒ごとの確認のままにする
+- 確認の応答は、固定スライドに加えて、いま表示対象のスライドIDの一覧(`visibleSlideIds`)を返す。グループの表示の切り替え・所属スライドの変更・グループの削除・スライドの有効の切り替えは、この一覧の変化として3秒以内に全端末へ伝わる
+- 表示対象から外れたスライドは、端末がスナップショットの`slides`を`visibleSlideIds`で絞ってすぐ外す。表示対象に加わったスライドはスナップショットに中身が無いため(「実効的な表示とグループ」)、`visibleSlideIds`にスナップショットに無いIDがあれば、端末はただちに`/api/signage?fresh=1`でスナップショットを取り直す。保存から表示までは確認の3秒に取り直しの時間を加えた数秒になる(4.21)
+- 固定状態の確認が一度でも成功した後は、スナップショットの`pinnedSlideId`と`slides`の範囲ではなく確認結果の固定と`visibleSlideIds`を使う(スナップショットは最大35秒古いため)。確認が一度も成功していない間はスナップショットの値をそのまま使う
 - 固定スライドの中身(レイアウトの本文・画像など)は確認結果のものを使い、それ以外のスライドの中身と、協賛・落とし物・駐車場・タイムテーブルなど自動スライドが描くデータはスナップショットのものを使う
 - 確認に失敗したら直前の固定状態と表示対象を保ち、画面にエラーを出さない(4.11)
 - 確認の応答の`serverNow`でも時刻オフセットを`clockOffsetMs`で更新する
@@ -275,11 +282,13 @@ sequenceDiagram
 - 判定は「表示中のグループに1つ以上属する」の和(OR)にする。「開場前」と「開場中」の両方に入れた共通スライドは、片方を非表示にしてももう片方が表示中なら出続ける。積(AND)にすると、共通スライドを残したいときに別のグループへ複製する運用になるため採らない。個別のスライドを隠すときは、グループではなく各スライドの「有効」を外す
 - 運用例: 普段は「すべて」を表示にしておく(全スライドが巡回する)。開場前は「すべて」を非表示にして「開場前」だけを表示にする。開場したら「開場前」を非表示に、「すべて」を表示に戻す。「すべて」が表示中の間は、通常のグループを非表示にしてもそのスライドは「すべて」経由で出続ける(グループ切り替えの非表示の行にその旨を出す)
 - 巡回の順番はスライドの並び順(`_order`)だけで決まる。グループは表示対象を選ぶだけで、グループ内の所属スライドの並びは巡回順に影響しない
-- 判定は1か所の純関数に置く。CMS側は`cms/src/lib/signage-visibility.ts`の`visibleSlideIds(enabledSlideIds, groups)`、フロント側は`signage-data.ts`の同名の関数で、同じ式を実装する(CMSとフロントは別パッケージで共有の仕組みが無いため。両者の単体テストを同じ表で書く)
-- 公開判定(`PUBLISHED_FILTER.signage_slides`)は`enabled = true`だけにし、グループでは絞らない。端末が非表示のグループのスライドの中身もスナップショットに持っておき、グループを表示にした瞬間に`/api/signage`の取得を待たずに出せるようにするため。サイネージのスライドは来場者向けに掲示する内容で、グループで隠している間も秘匿の必要は無い
-- 表示対象の判定はWorkerが行う。`getSignageSnapshot`と`getPinState`はいずれも、有効なスライドのIDとグループ一覧(`visible`・`is_all`・所属スライドID)から`visibleSlideIds`を計算して返す。端末は`SignageSnapshot.slides`を`visibleSlideIds`で絞ってから再生リストを作り、グループを知らずに済む
-- 全端末が同じスナップショットと同じ`visibleSlideIds`を持てば、時刻基準の巡回(`slideAt`)で同じスライドを出す。表示対象が変わった直後の最大3秒(確認の位相差)は端末間で食い違いうるが、固定表示の切り替えと同じ扱いとし、全端末が新しい確認結果を得た後は揃う
-- 表示に切り替えたスライドがスナップショットに無い(新規作成から35秒以内など)場合は、次のスナップショットの取得で巡回に入る
+- 判定は1か所の純関数に置く。`cms/src/lib/signage-visibility.ts`の`visibleSlideIds(enabledSlideIds, groups)`だけで計算し、フロントは判定を持たない(CMSの公開判定で絞られたスライドだけを受け取るため)
+- 表示対象でないスライドは配らない(4.14)。未認証の読み取りは表示対象のスライドだけを返し、`/api/signage`のスナップショットにも表示対象のスライドだけが入る。通信量を表示中のスライドの分に抑えるため
+- 公開判定の結線: `policy.ts`は同期の純関数でDBを読めないため、`PUBLISHED_FILTER.signage_slides`は`enabled = true`のままにする。`accessFor`の読み取りで、`signage_slides`の公開判定が条件(Where)を返したとき(未認証・学生団体)、`signage-visibility.ts`の`visibleSlideFilter(req)`の条件を`and`で重ねる。`visibleSlideFilter`はグループ一覧(`visible`・`is_all`・`slides`)と有効なスライドのIDを`overrideAccess: true`で読み、`visibleSlideIds`の結果を`{ id: { in: ids } }`で返す。表示対象が無いときは一致しない条件(`{ id: { exists: false } }`)を返す(`false`を返すと読み取りが403になるため)。実行委員の読み取りは絞らない
+- 固定スライドの展開(`signage_settings`の`depth: 2`)も`signage_slides`の読み取り権限で絞られるため、表示対象に無い固定スライドは未認証ではIDのまま返る
+- Workerと端末はグループを知らない。`getSignageSnapshot`は公開判定で絞られたスライドをそのまま`slides`に入れ、`getPinState`は同じく絞られたスライドのIDを`visibleSlideIds`として返す
+- 全端末が同じスナップショットと同じ`visibleSlideIds`を持てば、時刻基準の巡回(`slideAt`)で同じスライドを出す。表示対象が変わった直後は、確認の位相差(最大3秒)と取り直しの時間の間、端末間で食い違いうる。全端末が新しい確認結果と取り直したスナップショットを得た後は揃う
+- 取り直し: 端末は`missingSlideIds(snapshot, pin)`(`pin.visibleSlideIds`のうち`snapshot.slides`に無いID)が空でなければ、`usePolling`の`refresh`で`/api/signage?fresh=1`を取得する。取り直し中は重ねて要求せず、取り直しは端末ごとに10秒に1回までにする(取り直した後も、別の拠点のキャッシュから古いスナップショットが返った場合などに要求が続かないようにするため)。新規作成・有効化したスライドも同じ経路で巡回に入る
 
 ```mermaid
 sequenceDiagram
@@ -370,11 +379,11 @@ stateDiagram-v2
 | 4.6, 4.7 | 固定表示と解除 | signage_settings(`pinned_slide`), getPinState, withPin, buildPlaylist | `SignagePinState`、`SignageSnapshot.pinnedSlideId` | 巡回状態 |
 | 4.8, 4.12 | 固定の操作をスライドの一覧・編集画面で行い、1枚だけと分かる | SignagePinBanner, SignagePinCell, SignagePinButton, useSignagePin | Payload REST(`/api/globals/signage_settings`) | 固定表示と表示対象の即時反映 |
 | 4.13, 4.16, 4.19 | 多対多のグループ、グループ側で所属を左右2列のリストで登録・解除(題名で絞り込み)、スライド側は所属を読み取り専用、実行委員だけが操作 | signage_groups(`slides`), SignageGroupSlidesField, signage_slides(`groups`のjoin) | Payload REST(`/api/signage_slides`) | — |
-| 4.14 | 実効的な表示(表示中のグループに1つ以上属する)で巡回・固定を判定 | `visibleSlideIds`(CMS・フロント), withPin, signage_settings(`filterOptions`) | `SignageSnapshot.visibleSlideIds`、`SignagePinState.visibleSlideIds` | 実効的な表示とグループ |
+| 4.14 | 実効的な表示(表示中のグループに1つ以上属する)で巡回・固定を判定し、表示対象でないスライドは配らない | `visibleSlideIds`・`visibleSlideFilter`(CMS), accessFor, withPin, signage_settings(`filterOptions`) | `SignagePinState.visibleSlideIds` | 実効的な表示とグループ |
 | 4.15 | 固定中のスライドが表示対象から外れたら固定を解除 | signage_groupsの`afterChange`・`afterDelete`、signage_slidesの`afterChange` | — | 実効的な表示とグループ |
 | 4.17, 4.18 | 一覧上部のグループ切り替え(「すべて」が先頭)、一覧での所属グループと表示されない印 | SignageGroupSwitches, SignageGroupCell, useSignageGroups | Payload REST(`/api/signage_groups`) | 実効的な表示とグループ |
 | 4.20 | 全スライドが属する「すべて」、所属の編集・削除の禁止 | signage_groups(`is_all`)、マイグレーション | — | 実効的な表示とグループ |
-| 4.21 | グループの切り替え・所属の変更を約3秒で反映 | /api/signage/pin, getPinState, usePinnedSlide, withPin | `SignagePinState.visibleSlideIds` | 固定表示と表示対象の即時反映 |
+| 4.21 | グループの切り替え・所属の変更で外れるスライドは約3秒、加わるスライドは取り直しを挟んで数秒で反映 | /api/signage/pin, getPinState, usePinnedSlide, withPin, missingSlideIds, /api/signage?fresh=1 | `SignagePinState.visibleSlideIds` | 固定表示と表示対象の即時反映 |
 | 4.10, 4.11 | 保存から約3秒で反映、確認失敗時は直前を保持 | /api/signage/pin, usePinnedSlide | `SignagePinState` | 固定表示と表示対象の即時反映 |
 | 4.9 | 全端末で同時刻に同じスライド | slideAt, signage-time | `SignageSnapshot.serverNow` | 時刻の同期、スライド巡回の計算 |
 | 5.1〜5.4 | 協賛のプラン別表示 | SponsorsSlide, `paginateSponsors` | `SignageSponsor` | — |
@@ -436,7 +445,7 @@ stateDiagram-v2
 
 **Responsibilities & Constraints**
 - 1ファイル1コレクション、accessは`collections/index.ts`の`withAccess`で結線(実行委員のみCRUD、学生団体には管理画面で非表示)
-- 未認証の読み取りは`PUBLISHED_FILTER`で絞る: `signage_slides`は`enabled = true`、`telops`は`enabled = true`、`lost_items`は`returned != true`。`signage_slides`をグループで絞らない理由は「実効的な表示とグループ」のとおり。`signage_groups`は絞らない
+- 未認証の読み取りは`PUBLISHED_FILTER`で絞る: `signage_slides`は`enabled = true`、`telops`は`enabled = true`、`lost_items`は`returned != true`。`signage_slides`には`accessFor`で表示対象の条件を重ねる(「実効的な表示とグループ」)。`signage_groups`は絞らない
 - `signage_groups`は管理画面のナビに出さない(`admin.group: false`)。`admin.hidden`は一覧・編集画面・ドロワーの経路ごと消すため使わない。学生団体には`withAccess`の`admin.hidden`で全体を隠す
 - 種別に依存する必須項目は`required`ではなくフィールドの`validate`で判定する(全種別に必須化しないため)
 - 本文フィールドは他のコレクションと同じ`lexicalHTMLField({ storeInDB: true, converters: richTextHTMLConverters })`で`*_html`を持つ
@@ -468,7 +477,7 @@ stateDiagram-v2
 
 **Implementation Notes**
 - Integration: 未リリースのサイネージ用マイグレーション(`20261008_193135_signage`)を削除し、`pnpm migrate:create signage`で作り直して1本に4コレクション(`signage_slides`・`telops`の`_order`列と索引、`signage_groups_rels`)とグローバル`signage_settings`を入れ、生成後に「すべて」の`INSERT`を`up`へ手で足し、`migrations/index.ts`の登録を差し替える。`pnpm generate:types`を実行する。新コレクション・グローバルの追加のみのため`cms-schema-check.yml`の破壊的変更には当たらない
-- Validation: `policy.test.ts`と`access.int.test.ts`へ新コレクションの未認証読み取り(フィルタ)と学生団体の拒否を追加。`visibleSlideIds`は単体テストで、「すべて」表示中・「すべて」非表示で通常のグループに属する/属さない・表示中と非表示の両方に属する・無効の各場合を確かめる。「すべて」の保護(削除の拒否、`is_all`の付け外し不可、所属の書き込み不可、名前と表示は変更可)と固定の自動解除は結合テストで確かめる
+- Validation: `policy.test.ts`と`access.int.test.ts`へ新コレクションの未認証読み取り(フィルタ)と学生団体の拒否を追加。未認証のスライド読み取りが表示対象だけを返すことは結合テストで確かめる。`visibleSlideIds`は単体テストで、「すべて」表示中・「すべて」非表示で通常のグループに属する/属さない・表示中と非表示の両方に属する・無効の各場合を確かめる。「すべて」の保護(削除の拒否、`is_all`の付け外し不可、所属の書き込み不可、名前と表示は変更可)と固定の自動解除は結合テストで確かめる
 - Risks: `is_all`の1件だけという制約はDBの一意制約ではなく、APIから付けられないことで保つ(Payloadは部分一意索引を定義できない)。SQLで直接触る作業では守られない
 
 **Payload 3.88のjoinとhasManyのrelationship(調査結果)**
@@ -549,7 +558,7 @@ stateDiagram-v2
 | Requirements | 4.16, 4.20 |
 
 **Responsibilities & Constraints**
-- `SignageGroupSlidesField`: `slides`の`admin.components.Field`に置くクライアント部品。保存値は`slides`(hasManyのrelationship)のままで、`useField<number[]>({ path })`でスライドIDの配列を読み書きする。保存はPayloadの標準の保存ボタンで行い、部品はRESTで書き込まない
+- `SignageGroupSlidesField`: `slides`の`admin.components.Field`に置くクライアント部品。保存値は`slides`(hasManyのrelationship)のままで、`useField<number[]>({ path })`でスライドIDの配列を読み書きする。保存はPayloadの標準の保存ボタンで行う。部品がRESTで書き込むのは、下記の新規作成したスライドの所属だけ
 - 選択肢の取得: 画面を開いたときに1回、`GET /api/signage_slides?limit=0&depth=0&sort=_order&select[title]=true&select[enabled]=true`(`credentials: 'include'`)で全スライドの題名と有効を取る。既存のカスタム部品(`useEventDays`・`signage-pin`)と同じくクライアントからのRESTにし、サーバー部品から渡す経路を新たに作らない。スライドは数十枚の規模のため件数の上限と分割の読み込みは持たない
 - 並び: 左の列「未登録」は取得したスライドのうち値に無いもの、右の列「登録済み」は値にあるものを、どちらも取得順(`_order`順)に並べる。右の列の並びは巡回順に影響しないため、移したスライドも`_order`の位置に入り、`setValue`も`_order`順の配列にする。列の見出しに件数を出す。無効のスライドは題名の横に「無効」と出す
 - 選択: 各行にチェックボックスを付け、各列の見出しに「全選択」のチェックボックスを付ける。「全選択」の対象は、その列でいま絞り込みで見えている行だけ
@@ -560,13 +569,17 @@ stateDiagram-v2
 - 読み込み中は「読み込み中」、取得に失敗したら「スライドを読み込めませんでした」と出して列を出さない。値は変えないため、保存しても所属は消えない
 - 保存の権限が無い(`readOnly`)ときはボタンと入力欄を押せなくする
 - 「すべて」では`slides`が`admin.condition`で隠れるため、この部品も出ない(所属の編集不可、4.20)
-- スライドの新規作成はこの部品から行わない。スライドはスライドの一覧で作り、グループの編集画面を開き直すと左の列に出る
+- 新規作成: 列の上に「スライドを新規作成」ボタンを置き、`@payloadcms/ui`の`useDocumentDrawer({ collectionSlug: 'signage_slides' })`のドロワーでスライドの作成画面を開く。ドロワーの`onSave`が`operation: 'create'`で呼ばれたら、作成したスライド(`doc`の`id`・`title`・`enabled`)を取得済みの一覧の末尾に足し(新規作成は`_order`の末尾に入るため)、値に加えて右の列に出し、ドロワーを閉じる
+- 新規作成した所属はその場で保存する。Payloadの標準のrelationshipもドロワーで作成した文書を値に加えるだけで(`AddNewRelation`の`onSave`)、親の保存まで所属は保存されないため、グループの保存を忘れると作ったスライドがどのグループにも付かない。これを防ぐため、部品は`GET /api/signage_groups/{id}?depth=0`で保存済みの`slides`を読み、新しいIDを足して`PATCH /api/signage_groups/{id}`(`{ slides }`、`credentials: 'include'`)で所属だけを保存する。グループの名前・表示やリストでの移動など、他の未保存の変更は保存しない(標準の保存ボタンで保存する)。値にも加えてあるため、後で保存ボタンを押しても所属は保たれる
+- 所属の保存に失敗したら「所属を保存できませんでした。グループを保存してください」と出す。スライドは作成済みで値にも加えてあるため、保存ボタンで所属を保存できる
+- 未保存の新規グループ(`useDocumentInfo`の`id`が無い)では、新規作成のボタンを押せなくし、「グループを保存すると、ここからスライドを作成できます」と添える。保存先のグループが無いまま作ると、その場で所属を保存できないため
+- 新規作成のボタンは`readOnly`のときとスライドの作成権限が無いときは出さない。「すべて」では部品ごと出ないため、この導線も出ない
 
 **Contracts**: State [x]
 
 **Implementation Notes**
 - Integration: 部品のパスは`./components/SignageGroupSlidesField.tsx`で指定し、`pnpm generate:importmap`で登録する(`SignagePin*`と同じ)
-- Validation: `signage-group-slides`の振り分け(未登録・登録済み、`_order`順)・移動後の値の順・絞り込み(左右両方、大文字・小文字、絞り込みで隠れた登録済みが値に残る)・まとめての移動(選んだ複数行を左右それぞれへ移す、「全選択」が見えている行だけを選ぶ、選択中でも絞り込みで隠れた行は移さない、選択が無ければ移せない、移した行の選択が外れる)を単体テストで確認する。表示と操作は実ブラウザで確認する
+- Validation: 新規作成した所属の保存(保存済みの`slides`への追加、他の未保存の変更を送らない、失敗時の表示)を単体テストで確認する。`signage-group-slides`の振り分け(未登録・登録済み、`_order`順)・移動後の値の順・絞り込み(左右両方、大文字・小文字、絞り込みで隠れた登録済みが値に残る)・まとめての移動(選んだ複数行を左右それぞれへ移す、「全選択」が見えている行だけを選ぶ、選択中でも絞り込みで隠れた行は移さない、選択が無ければ移せない、移した行の選択が外れる)を単体テストで確認する。表示と操作は実ブラウザで確認する
 - Risks: 部品が開いている間に別のタブで作ったスライドは、開き直すまで左の列に出ない(許容)
 
 #### richTextBlocksとHTML変換器
@@ -622,9 +635,10 @@ CMSが`*_html`に出すHTMLの形を固定する。frontendの許可リストと
 - 協賛は`getSponsors({ ttlSeconds })`+`mergeSponsorLogos`、タイムテーブルは`toTimetable`を再利用する
 - `limit: 0`で全件取得(Payload既定の10件で切れるため)
 - スライドとテロップは`sort: '_order'`を指定して取得する
-- スライドは公開判定(`enabled = true`)のとおり有効なものを全件取得して正規化し、グループの表示状態では絞らない(グループを表示にした瞬間に端末が中身を持っているため)
-- グループは`signage_groups`を`limit: 0`・`depth: 0`(同じTTL)で取得し、有効なスライドのIDとあわせて`visibleSlideIds(enabledSlideIds, groups)`で表示対象のIDを計算して`visibleSlideIds`に入れる。`SignageSnapshot`にグループそのものは出さない(端末はグループを知らずに済む)
-- `visibleSlideIds`: `is_all`のグループが`visible`なら有効なスライド全部。そうでなければ、`visible`な通常のグループの`slides`の和集合と有効なスライドの積。並びは`slides`の`_order`順
+- スライドは公開判定のとおり表示対象のもの(有効かつ表示中のグループに1つ以上属する)を全件取得して正規化する。表示対象でないスライドは含まない
+- `getSignageSnapshot({ fresh })`: `fresh`が真のときは、スライドだけを`{ ttlSeconds: SIGNAGE_TTL_SECONDS, refresh: true }`で取得する。`/api/signage`自体は`force-dynamic`・`no-store`で、キャッシュはWorkerがCMSへの取得を`cms.ts`の`cachedFetch`でCache API(`caches.default`、キーはURL、TTL 15秒)に保持するものだけのため、その読み出しを飛ばせば最新のスライドが取れる。読み出しを飛ばした応答で同じキーを置き換えるため、他の端末の通常の取得もそれ以降は新しい内容を受け取る。他のコレクションは通常どおりキャッシュを使う
+- `/api/signage`はクエリ`fresh=1`のときだけ`getSignageSnapshot({ fresh: true })`を呼ぶ
+- Risks: `fresh=1`は誰でも付けられ、付けた要求はCMSへスライド一覧を1回取りに行く
 - サイネージ設定は`findGlobal('signage_settings', { depth: 0 })`で取得し、`pinned_slide`のIDだけを`pinnedSlideId`として渡す(固定対象が有効かどうかの判定は端末側で`slides`と突き合わせる)
 - いずれかの取得が失敗したら全体を失敗にする
 - 取得が揃った時点のサーバー時刻を`serverNow`に入れて返す(スナップショット全体はキャッシュしないため、応答の直前の時刻になる)
@@ -638,14 +652,14 @@ CMSが`*_html`に出すHTMLの形を固定する。frontendの許可リストと
 ```typescript
 import type { CmsResult } from '@/lib/cms';
 
-export function getSignageSnapshot(): Promise<CmsResult<SignageSnapshot>>;
+export function getSignageSnapshot(options?: { readonly fresh?: boolean }): Promise<CmsResult<SignageSnapshot>>;
 ```
-- Postconditions: `serverNow`は返す直前のサーバー時刻。`pinnedSlideId`はサイネージ設定の値(未設定ならnull、有効かどうかは問わない)。`slides`は有効なものを`_order`昇順で含む(グループで非表示のものを含む)。`visibleSlideIds`は`slides`のIDの部分集合。`lostItems`は返却済みを含まず拾得時刻の新しい順。`telops`は有効なものを`_order`昇順
+- Postconditions: `serverNow`は返す直前のサーバー時刻。`pinnedSlideId`はサイネージ設定の値(未設定ならnull、有効かどうかは問わない)。`slides`は表示対象のものを`_order`昇順で含む。`lostItems`は返却済みを含まず拾得時刻の新しい順。`telops`は有効なものを`_order`昇順
 
 ##### API Contract
 | Method | Endpoint | Request | Response | Errors |
 |--------|----------|---------|----------|--------|
-| GET | /api/signage | なし | `SignageSnapshot`(`serverNow`を含む、`Cache-Control: no-store`) | 502 `{ error: 'cms_unavailable' }` |
+| GET | /api/signage | `fresh=1`(任意。スライドをキャッシュを読まずに取得する) | `SignageSnapshot`(`serverNow`を含む、`Cache-Control: no-store`) | 502 `{ error: 'cms_unavailable' }` |
 
 #### getPinState(`signage-data.ts`)と`/api/signage/pin`、`signage-pin.ts`
 
@@ -655,13 +669,14 @@ export function getSignageSnapshot(): Promise<CmsResult<SignageSnapshot>>;
 | Requirements | 4.6, 4.7, 4.10, 4.11, 4.14, 4.21 |
 
 **Responsibilities & Constraints**
-- `getPinState`は、サイネージ設定(`findGlobal('signage_settings', { depth: 2 }, { ttlSeconds: 0 })`)、グループ一覧(`limit: 0`・`depth: 0`)、有効なスライドのID(`limit: 0`・`depth: 0`・`select[id]=true`)の3つを、いずれもキャッシュなしで並行して取得する。いずれかが失敗したら全体を失敗にする
-- `visibleSlideIds`は`getSignageSnapshot`と同じ関数で計算する
-- `pinned_slide`がオブジェクトで、そのIDが`visibleSlideIds`に含まれるときだけ、`getSignageSnapshot`と同じ正規化でスライドへ変換して`slide`に返す。未設定・IDのまま(未認証で読めない無効スライド)・表示対象に無いものは`slide: null`
+- `getPinState`は、サイネージ設定(`findGlobal('signage_settings', { depth: 2 }, { ttlSeconds: 0 })`)と表示対象のスライドのID(`limit: 0`・`depth: 0`・`select[id]=true`。公開判定で表示対象だけが返る)の2つを、いずれもキャッシュなしで並行して取得する。いずれかが失敗したら全体を失敗にする
+- `visibleSlideIds`は取得したスライドのIDを`_order`順のまま返す
+- `pinned_slide`がオブジェクトで、そのIDが`visibleSlideIds`に含まれるときだけ、`getSignageSnapshot`と同じ正規化でスライドへ変換して`slide`に返す。未設定・IDのまま(未認証で読めない、表示対象に無いスライド)・`visibleSlideIds`に無いものは`slide: null`
 - `depth: 2`は固定スライド→画像(`media`)までを展開するため。本文HTMLは読み出し時に生成され、画像は`data-media-id`方式のまま
 - `/api/signage/pin`は`Cache-Control: no-store`。取得に失敗したら502`{ error: 'cms_unavailable' }`
 - `usePinnedSlide`は`usePolling`を3秒間隔で使い、失敗時は直前の値を保つ。確認が一度も成功していない間は`undefined`
-- `withPin(snapshot, pin)`は、表示対象のIDを`pin`があれば`pin.visibleSlideIds`、`undefined`ならスナップショットの`visibleSlideIds`とし、`slides`をそのIDに含まれるものだけに絞って返す(並びは`slides`の`_order`順のまま)。`pin`があれば、さらに`pinnedSlideId`を`pin.slide?.id ?? null`に置き換え、`pin.slide`があれば`slides`の同じIDの項目をそれで置き換える(無ければ末尾に加える)。再生リストの計算(`buildPlaylist`)は変えない
+- `withPin(snapshot, pin)`は、`pin`があれば`slides`を`pin.visibleSlideIds`に含まれるものだけに絞り(並びは`slides`の`_order`順のまま)、`pinnedSlideId`を`pin.slide?.id ?? null`に置き換え、`pin.slide`があれば`slides`の同じIDの項目をそれで置き換える(無ければ末尾に加える)。`undefined`ならスナップショットをそのまま返す。再生リストの計算(`buildPlaylist`)は変えない
+- `missingSlideIds(snapshot, pin)`は、`pin.visibleSlideIds`のうち`snapshot.slides`に無いIDを返す(`pin`が`undefined`なら空)。`SignageScreen`はこれが空でないとき取り直す(「固定表示と表示対象の即時反映」)
 - 全端末が同じスナップショットと同じ`visibleSlideIds`から同じ再生リストを作るため、表示対象の変化後も時刻基準の巡回で同じスライドを出す
 
 **Contracts**: Service [x] / API [x] / State [x]
@@ -678,6 +693,7 @@ export interface SignagePinState {
 
 export function getPinState(): Promise<CmsResult<SignagePinState>>;
 export function withPin(snapshot: SignageSnapshot, pin: SignagePinState | undefined): SignageSnapshot;
+export function missingSlideIds(snapshot: SignageSnapshot, pin: SignagePinState | undefined): readonly number[];
 /** 3秒ごとに/api/signage/pinを確認する。成功のたびにonSampleへ送信・受信時刻を渡し、時刻オフセットを更新させる */
 export function usePinnedSlide(onSample: (serverNow: string, sentAtMs: number, receivedAtMs: number) => void): SignagePinState | undefined;
 ```
@@ -756,10 +772,8 @@ export interface SignageSnapshot {
   readonly serverNow: string;
   /** サイネージ設定の固定表示スライドID。表示対象に無ければ通常の巡回 */
   readonly pinnedSlideId: number | null;
-  /** 表示対象のスライドID。slidesのうち、表示中のグループに1つ以上属するもの */
-  readonly visibleSlideIds: readonly number[];
   readonly eventDays: readonly EventDay[];
-  /** 有効なスライド全部(グループで非表示のものを含む)。表示はvisibleSlideIdsで絞る */
+  /** 表示対象のスライド(有効かつ表示中のグループに1つ以上属する)。_order順 */
   readonly slides: readonly SignageSlide[];
   readonly telops: readonly SignageTelopItem[];
   readonly timetable: Timetable;
@@ -944,7 +958,7 @@ export interface SignageScreenProps {
 ##### State Management
 - `usePolling<SignageSnapshot>({ fetcher, intervalMs: 20_000, initial })`。`shouldContinue`は常に真。失敗時は直前の`data`を使い続ける。`fetcher`は送信・受信時刻を測り、成功時に`clockOffsetMs`で時刻オフセットを更新する(「時刻の同期」)
 - `useCorrectedNow(offsetMs)`を画面全体で1つだけ持ち、子へ`now`を渡す。テロップには`offsetMs`も渡す
-- 固定状態と表示対象: `usePinnedSlide`の結果を`withPin(data, pin)`で重ねる。確認の応答でも時刻オフセットを更新する(「固定表示と表示対象の即時反映」)
+- 固定状態と表示対象: `usePinnedSlide`の結果を`withPin(data, pin)`で重ねる。`missingSlideIds(data, pin)`が空でなければ`/api/signage?fresh=1`で取り直す(取り直し中は重ねず、10秒に1回まで)。確認の応答でも時刻オフセットを更新する(「固定表示と表示対象の即時反映」)
 - 巡回: `slideAt(buildPlaylist(withPin(data, pin), now), now.getTime())`で現在の項目を毎回求める。巡回の状態(現在位置・経過時間)は持たない
 - 向きと拡縮: `useCanvasLayout()`が`innerWidth`/`innerHeight`を測り、`orientationOf`で向き(高さ>幅なら縦型)を、`fitCanvas`で倍率`min(innerWidth/canvas.width, innerHeight/canvas.height)`と中央寄せの位置を同じ測定から求める。`resize`で再計算する。端末設定・URLパラメータは持たない(1.5)
 - 向きはキャンバスの`data-orientation`属性に出し、外周の配置・メイン領域の縮小・テロップ帯の高さはこの属性で切り替える。メディア条件(`orientation`)は使わず、配置・キャンバス寸法(`CANVAS_SIZE`)・倍率・バス案内の便数(横型1、縦型2)が同じ判定に従う(1.3)
@@ -1100,22 +1114,22 @@ export interface SignageScreenProps {
 
 - **Unit (frontend)**: `buildPlaylist`(`pinnedSlideId`が有効スライドを指す/無効・削除済み・nullで通常巡回、空スライド除外・ページ展開・順序)、`slideAt`(周期の境目、同じ時刻なら同じ項目、項目内の経過、1件・0件)、`paginateSponsors`/`paginateLostItems`、`stageNow`(境界: 開始ちょうど・終了ちょうど・重なり)、`timetableWindow`(朝・夕方の寄せ)、`nextDepartures`(発車時刻ちょうど・最終便後・両停留所停車便・平日データ無し)、`eventDayIndex`
 - **Unit (frontend RichText)**: `rt-*`の各部品が残る、許可外class・属性が落ちる、h1が文字だけになる、既存本文サンプル(h2〜h4・リスト・リンク・画像)の出力が変わらない
-- **Unit (frontend 取得)**: `getSignageSnapshot`がスライドとテロップを`sort=_order`で要求し返った順を保つ、`pinnedSlideId`と`serverNow`を返す、`slides`にグループで非表示のスライドも含め`visibleSlideIds`で表示対象を返す。`visibleSlideIds`(「すべて」表示中・「すべて」非表示で表示中の通常のグループに属する/属さない・表示中と非表示の両方に属する・無効・グループ削除後)。`/api/signage`の応答に`serverNow`が入る
-- **Unit (frontend 固定状態)**: `getPinState`(固定なし・有効・無効・表示対象に無い・IDのまま→null、3つの取得をキャッシュなしで要求し`visibleSlideIds`を返す、いずれかの失敗で全体を失敗)、`/api/signage/pin`の応答と`no-store`・失敗時502、`withPin`(`undefined`はスナップショットの`visibleSlideIds`で絞る、`pin`があれば`pin.visibleSlideIds`で絞り`_order`順を保つ、`slide: null`はスナップショットの`pinnedSlideId`を打ち消す、スナップショットに無いスライドの追加、同じIDの置き換え)
+- **Unit (frontend 取得)**: `getSignageSnapshot`がスライドとテロップを`sort=_order`で要求し返った順を保つ、`pinnedSlideId`と`serverNow`を返す、`fresh`のときスライドだけをキャッシュを読まずに取得しキャッシュを置き換える。`cms.ts`の`refresh`(Cache APIを読まずに取得し同じキーへ書き込む)。`/api/signage`の応答に`serverNow`が入り、`fresh=1`で`fresh`の取得になる
+- **Unit (frontend 固定状態)**: `getPinState`(固定なし・有効・無効・表示対象に無い・IDのまま→null、2つの取得をキャッシュなしで要求し`visibleSlideIds`を返す、いずれかの失敗で全体を失敗)、`/api/signage/pin`の応答と`no-store`・失敗時502、`withPin`(`undefined`はそのまま、`pin`があれば`pin.visibleSlideIds`で絞り`_order`順を保つ、`slide: null`はスナップショットの`pinnedSlideId`を打ち消す、スナップショットに無いスライドの追加、同じIDの置き換え)、`missingSlideIds`(無い・ある・`undefined`)、`usePolling`の`refresh`
 - **Unit (frontend 時刻・テロップ・拡縮)**: `clockOffsetMs`(往復時間の半分の考慮)、`telopSchedule`(横型の枠で収まる8秒、縦型の枠で流す件の切り上げ、チップ幅で枠が狭まる)、`telopAt`(周期の境目、同じ時刻なら同じ件と流れた距離)、`orientationOf`と`fitCanvas`(横長・縦長・正方形・極端な細長で全体が収まり中央に来る)
-- **Unit (cms)**: 3ブロックと表の変換HTML、ラベル・URLのエスケープ、`buttonLink`のURL検証、種別依存の必須検証、`policy.ts`の新フィルタ、`signage_settings`の項目定義(単一リレーション・有効スライドに限る選択肢・`admin.hidden`)、`signage-pin`・`useSignagePin`(取得・固定・解除・失敗時に状態を保つ)、`signage-groups`・`useSignageGroups`(「すべて」を先頭にした並びと枚数・表示の更新・失敗時に状態を保つ・更新後に固定状態を読み直す)、`signage-group-slides`(左右の振り分けと`_order`順・移動後の値の順・左右両方への絞り込み・絞り込みで隠れた登録済みが値に残る・選んだ複数行のまとめての移動・「全選択」は見えている行だけ・選択中でも隠れた行は移さない・選択が無ければ移せない・移した行の選択が外れる)、`signage-visibility`の`visibleSlideIds`(フロントと同じ表)、`signage_settings`の選択肢が実効的な表示の条件であること
-- **Integration (cms `*.int.test.ts`)**: 未認証で無効スライド・無効テロップ・返却済み落とし物が読めない、学生団体が作成・更新できない、スライドとテロップの新規作成が末尾の`_order`を持ち未認証の`sort=_order`取得がその順で返る、`signage_settings`を未認証で読めて学生団体が更新できない、固定対象のスライド削除で参照が空になる、`pinned_slide: null`の更新で解除され読み取りが`null`を返す、固定中のスライドを無効にすると参照が空になる、未認証のスライド読み取りがグループの表示状態に関わらず有効なスライドを返す、表示中のグループに1つも属さないスライドを固定に選べない、固定中のスライドについてグループの非表示(「すべて」を含む)・グループの所属からの除外・グループの削除で表示対象から外れると参照が空になり、他の表示中のグループに属していれば空にならない、グループの削除で`signage_groups_rels`の行が消えスライドは残る、「すべて」がマイグレーションで1件作られ削除できず`is_all`を付け外しできず所属を書き込めず名前と表示は変えられる、学生団体がグループを作成・更新できない
+- **Unit (cms)**: 3ブロックと表の変換HTML、ラベル・URLのエスケープ、`buttonLink`のURL検証、種別依存の必須検証、`policy.ts`の新フィルタ、`signage_settings`の項目定義(単一リレーション・有効スライドに限る選択肢・`admin.hidden`)、`signage-pin`・`useSignagePin`(取得・固定・解除・失敗時に状態を保つ)、`signage-groups`・`useSignageGroups`(「すべて」を先頭にした並びと枚数・表示の更新・失敗時に状態を保つ・更新後に固定状態を読み直す)、`signage-group-slides`(左右の振り分けと`_order`順・移動後の値の順・左右両方への絞り込み・絞り込みで隠れた登録済みが値に残る・選んだ複数行のまとめての移動・「全選択」は見えている行だけ・選択中でも隠れた行は移さない・選択が無ければ移せない・移した行の選択が外れる)、`signage-visibility`の`visibleSlideIds`(「すべて」表示中・「すべて」非表示で表示中の通常のグループに属する/属さない・表示中と非表示の両方に属する・無効)と`visibleSlideFilter`(表示対象が無いとき一致しない条件)、`signage_settings`の選択肢が実効的な表示の条件であること
+- **Integration (cms `*.int.test.ts`)**: 未認証で無効スライド・無効テロップ・返却済み落とし物が読めない、学生団体が作成・更新できない、スライドとテロップの新規作成が末尾の`_order`を持ち未認証の`sort=_order`取得がその順で返る、`signage_settings`を未認証で読めて学生団体が更新できない、固定対象のスライド削除で参照が空になる、`pinned_slide: null`の更新で解除され読み取りが`null`を返す、固定中のスライドを無効にすると参照が空になる、未認証のスライド読み取りが表示対象のスライドだけを返す(「すべて」表示中は有効なもの全部、「すべて」非表示では表示中のグループに属するものだけ、表示対象が無ければ0件で403にならない)、表示対象に無い固定スライドが未認証の`signage_settings`の`depth: 2`でIDのまま返る、実行委員の読み取りは絞られない、表示中のグループに1つも属さないスライドを固定に選べない、固定中のスライドについてグループの非表示(「すべて」を含む)・グループの所属からの除外・グループの削除で表示対象から外れると参照が空になり、他の表示中のグループに属していれば空にならない、グループの削除で`signage_groups_rels`の行が消えスライドは残る、「すべて」がマイグレーションで1件作られ削除できず`is_all`を付け外しできず所属を書き込めず名前と表示は変えられる、学生団体がグループを作成・更新できない
 - **Unit (向き)**: `nextDepartures`の`perDirection`(1件/2件、2件目が無い場合)
-- **Browser (実測)**: 1920×1080と1080×1920で各領域の位置・寸法がFigmaと一致し(縦型のメイン領域は1032×580.5で、中身が横型の0.671875倍)、ビューポートの縦横を切り替えると配置が自動で変わる、細長いビューポート(例: 500×1330、1920×600)でキャンバス全体が収まり中央に来てスクロールが出ない、大きさ・読み込み時刻の異なる2つのページで同時刻に同じスライド・テロップ・流し位置が出る、端末時計をずらしても揃う、テロップの流し、スライド巡回と固定表示の切り替え、管理画面の帯・「固定」列・サイドバーのボタンで固定と解除ができ表示がただちに変わる、一覧上部のグループ切り替え(「すべて」が先頭)で所属スライドが巡回から外れ・戻り、「所属グループ」列の印と「固定」列が切り替えに追随する、グループの編集画面の左右のリストでチェックボックスで選んだ複数のスライドをまとめて追加・解除して保存でき、題名の絞り込みが両方の列に効く、グループの表示の切り替え・所属の変更・固定の各操作で保存から全画面の切り替えまでが約3秒以内で、2つのページが同じスライドを出し続ける、表の横スクロール(公式サイトSP幅358)
+- **Browser (実測)**: 1920×1080と1080×1920で各領域の位置・寸法がFigmaと一致し(縦型のメイン領域は1032×580.5で、中身が横型の0.671875倍)、ビューポートの縦横を切り替えると配置が自動で変わる、細長いビューポート(例: 500×1330、1920×600)でキャンバス全体が収まり中央に来てスクロールが出ない、大きさ・読み込み時刻の異なる2つのページで同時刻に同じスライド・テロップ・流し位置が出る、端末時計をずらしても揃う、テロップの流し、スライド巡回と固定表示の切り替え、管理画面の帯・「固定」列・サイドバーのボタンで固定と解除ができ表示がただちに変わる、一覧上部のグループ切り替え(「すべて」が先頭)で所属スライドが巡回から外れ・戻り、「所属グループ」列の印と「固定」列が切り替えに追随する、グループの編集画面の左右のリストでチェックボックスで選んだ複数のスライドをまとめて追加・解除して保存でき、題名の絞り込みが両方の列に効く、固定・解除と表示対象から外れる切り替えで保存から全画面の切り替えまでが約3秒以内、表示対象に加わる切り替えで取り直しを挟んで数秒以内で、グループの編集画面から新規作成したスライドがグループの保存なしに所属し巡回に入る、2つのページが同じスライドを出し続ける、表の横スクロール(公式サイトSP幅358)
 
 ## Security Considerations
-- `/signage`は公開URLとし、ナビ・サイトマップに載せず`robots: { index: false }`を付ける。表示データはすべてCMSの公開REST由来で、新たに公開範囲は広がらない(落とし物・テロップ・スライドは新規に公開されるデータであり、公開判定で無効・返却済みを除く)
+- `/signage`は公開URLとし、ナビ・サイトマップに載せず`robots: { index: false }`を付ける。表示データはすべてCMSの公開REST由来で、新たに公開範囲は広がらない(落とし物・テロップ・スライドは新規に公開されるデータであり、公開判定で無効・返却済み・表示対象でないスライドを除く)
 - 落とし物の写真に氏名等が写る場合は撮影・登録時に避ける(運用手順に書く)
 - 本文は従来どおりCMS変換時のエスケープとフロントの許可リストの二重で防ぐ。`buttonLink.url`はスキームを`http(s)`と`/`に限定
 
 ## Performance & Scalability
 - 端末1台あたり20秒に1回の`/api/signage`(1日約4,300リクエスト)。CMSへの問い合わせはCache API(TTL 15秒)で端末間共有される
-- 固定状態と表示対象の確認は端末1台あたり3秒に1回(1日約28,800リクエスト)で、毎回CMSへ3回(サイネージ設定・グループ一覧・有効なスライドのID)並行して問い合わせる。応答はグローバル1件と固定スライド1件、グループ数件、IDの一覧だけの小さなもの。CMSへの問い合わせは端末1台あたり1秒に1回程度になる
+- 固定状態と表示対象の確認は端末1台あたり3秒に1回(1日約28,800リクエスト)で、毎回CMSへ2回(サイネージ設定・表示対象のスライドのID)並行して問い合わせる。CMSはスライドの未認証の読み取りごとに表示対象の計算でグループ一覧と有効なスライドのIDを読む。表示対象が変わったときは、各端末がスナップショットを1回取り直す。確認の通信方式の見直しは別specで扱う
 - 画面内の時刻更新は1秒ごとの`now`のみで、再取得は伴わない。毎フレームの計算はテロップの流し位置(`translate`の更新)だけ
 - 長時間表示によるメモリ増加は当日に観察し、問題が出たら定時再読み込みを足す(初期実装では入れない)
 
@@ -1154,13 +1168,14 @@ flowchart TD
 | 向きの切替 | 決定 | 端末設定なし。ビューポートの高さ>幅で縦型。JSの1回の測定で向き・倍率・位置を決め、`data-orientation`で配置を切り替える。外周の配置とバス案内の便数だけが違い、メイン領域は横型と同じ中身を縮小し、データ・巡回・状態は共通 |
 | 端末間の同期 | 決定 | 巡回とテロップは補正済み時刻から決定的に計算する。CMS更新直後の最大20秒程度の食い違いは許容 |
 | グループを削除したときの所属スライド | 決定 | 削除で所属の行だけが消え(`CASCADE`)、スライドは残って「すべて」に属したままになる。所属スライドが残るグループも削除できる |
-| 所属スライドの編集 | 決定 | グループの編集画面で、未登録と登録済みの左右2列で、チェックボックス(列ごとの「全選択」は見えている行だけ)で選んだ行を列の間の「追加 →」「← 外す」でまとめて移す。絞り込みで隠れた行は選択中でも移さない。標準のrelationshipに左右2列の表示が無いため`admin.components.Field`のカスタム部品とし、保存値は`slides`のまま。題名の絞り込みは左右両方に効く。並びは`_order`順で、巡回順に影響しない |
+| 所属スライドの編集 | 決定 | グループの編集画面で、未登録と登録済みの左右2列で、チェックボックス(列ごとの「全選択」は見えている行だけ)で選んだ行を列の間の「追加 →」「← 外す」でまとめて移す。絞り込みで隠れた行は選択中でも移さない。標準のrelationshipに左右2列の表示が無いため`admin.components.Field`のカスタム部品とし、保存値は`slides`のまま。題名の絞り込みは左右両方に効く。並びは`_order`順で、巡回順に影響しない 同じ画面からドロワーでスライドを新規作成でき、作成したスライドの所属はその場で保存する(グループの保存忘れで所属が付かない事故を防ぐ)。未保存の新規グループでは作成できない |
 | グループとスライドの関係 | 決定 | 多対多。所属はグループ側の`slides`(hasMany)に保存し、スライド側はjoinで読み取り専用に出す。一覧をグループで区切る表示(`admin.groupBy`)は単一の値の項目が要るため使わず、「所属グループ」列と一覧上部の切り替えで見る |
 | 表示の判定 | 決定 | 有効で、かつ表示中のグループに1つ以上属するスライドを出す(和)。「すべて」が表示中の間は、通常のグループを非表示にしても所属スライドは出続ける。個別のスライドは各スライドの「有効」で隠す。全スライドは「すべて」に属する。普段は「すべて」を表示、開場前は「すべて」を非表示にして「開場前」だけ表示する |
 | 「すべて」 | 決定 | 組み込みのグループ1件(`is_all`)。所属は保存せず全スライドが属するものとして計算し、新規スライドも自動で属する。名前の変更と表示の切り替えだけでき、所属の編集と削除はできない。マイグレーションで作る |
-| グループの切り替えの反映時間 | 決定 | 固定表示と同じ3秒ごとの確認で表示対象のスライドIDを返し、約3秒以内に全端末へ反映する。グループで非表示のスライドの中身もスナップショットに含め、表示に切り替えた瞬間に出せるようにする |
+| グループの切り替えの反映時間 | 決定 | 固定表示と同じ3秒ごとの確認で表示対象のスライドIDを返す。表示対象から外れるスライドは約3秒以内に全端末から外れ、加わるスライドは端末がスナップショットを取り直して数秒で出る |
+| 表示対象でないスライドの配信 | 決定 | 配らない。未認証の読み取りとスナップショットには表示対象のスライドだけを出す(通信量を抑えるため) |
+| 確認の通信方式 | 決定 | 本specは3秒ごとの確認のまま。方式の見直しは別specで扱う |
 | グループの並び | 決定 | 一覧上部の切り替えは「すべて」を先頭に、通常のグループは作成順。巡回順はスライドの並び順だけで決まり、グループとグループ内の所属の並びは巡回順に影響しない |
 | 固定表示 | 決定 | グローバルの単一リレーションで1枚だけ保持し、操作はスライドの一覧・編集画面の部品で行う。グローバルは管理画面に出さない。端末は3秒ごとに固定状態を確認して即時に割り込む |
-| Workersのリクエスト数 | 要判断 | 固定状態と表示対象の確認を含め端末1台あたり1日約33,000リクエスト。Workers無料枠(1日10万)に収まるのは3台程度まで。それを超える台数で運用する場合は契約の確認か確認間隔の見直しが要る |
 | 折り返し | 決定 | 見出し・本文は`word-break: auto-phrase`で文節単位。非対応ブラウザは通常の折り返し |
 | テロップ | 決定 | 表示期間は持たず`enabled`で出し入れ。各件は収まれば8秒、流す件は秒単位に切り上げた流し切りの時間。並びは管理画面の一覧で並べ替えた順(`_order`昇順)。団体向けの対象は自由記述(20字) |
