@@ -44,6 +44,23 @@ describe('AreaLabelMarker', () => {
     expect(markerProps.at(-1)!.position).toEqual([latitude, longitude]);
   });
 
+  it('ラベルのクリックで選択処理を呼び、キーボードの停止位置は増やさない', () => {
+    const onSelect = vi.fn();
+    render(
+      <AreaLabelMarker
+        name="Aゾーン"
+        geometry={GEOMETRY}
+        selected={false}
+        onSelect={onSelect}
+      />,
+    );
+    const props = markerProps.at(-1)!;
+    expect(props.interactive).toBe(true);
+    expect(props.keyboard).toBe(false);
+    (props.eventHandlers as { click: () => void }).click();
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
   it('エリア名をラベルの文字列として描画する', () => {
     render(
       <AreaLabelMarker name="Aゾーン" geometry={GEOMETRY} selected={false} />,
@@ -76,13 +93,6 @@ describe('AreaLabelMarker', () => {
     );
     expect(lastIconHtml()).toContain('bg-primary');
     expect(lastIconHtml()).not.toContain('bg-white');
-  });
-
-  it('ラベル自身はクリックを受け取らない (ポリゴン側に通す)', () => {
-    render(
-      <AreaLabelMarker name="Aゾーン" geometry={GEOMETRY} selected={false} />,
-    );
-    expect(markerProps.at(-1)!.interactive).toBe(false);
   });
 
   it('複数ポリゴンを持つエリアでは、面積が最大のポリゴンの重心にラベルを 1 個だけ配置する', () => {
