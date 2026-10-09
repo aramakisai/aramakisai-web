@@ -192,8 +192,7 @@ frontend/src/
 ### Modified Files
 - `cms/src/collections/index.ts` — 新4コレクションを登録口へ追加。`withAccess`は`admin.hidden`だけを上書きし、`signage_groups`のナビ除外は`admin.group: false`で行う(`admin.hidden`は管理画面の画面・ドロワーごと消えるため使わない)
 - `cms/src/globals/index.ts` — `signage_settings`を登録口へ追加(既存グローバルと同じ結線で、読み取りは公開、更新は実行委員のみ)。`withAccess`は`admin.hidden`を上書きするため、グローバル自身が`admin.hidden: true`を持つときは全員に非表示にする
-- `cms/src/access/policy.ts` — `PUBLISHED_FILTER`へ`signage_slides`(有効のみ。グループでの絞り込みは`accessFor`で重ねる)・`telops`(有効のみ)・`lost_items`(返却済み以外)を追加。`signage_groups`は絞らない(名前・表示状態・所属だけで秘匿する内容が無い)
-- `cms/src/access/policy.ts`・`payload-access.ts` — サイネージ専用のコレクションとグローバルの未認証の読み取りを、`x-signage-token`が`SIGNAGE_READ_TOKEN`と一致するときだけ許す(「Security Considerations」)
+- `cms/src/access/policy.ts` — `PUBLISHED_FILTER`へ`signage_slides`(有効のみ。グループでの絞り込みは`accessFor`で重ねる)・`telops`(有効のみ)・`lost_items`(返却済み以外)を追加。`signage_groups`は絞らない
 - `cms/src/access/payload-access.ts` — `accessFor`の読み取りで、`signage_slides`の公開判定が条件を返したときに`visibleSlideFilter`の条件を`and`で重ねる(「実効的な表示とグループ」)
 - `cms/src/lib/rich-text-editor.ts` — `BlocksFeature`(3ブロック)と`EXPERIMENTAL_TableFeature`を共通機能に追加
 - `cms/src/lib/rich-text-html-converters.ts` — 3ブロックと表の変換器を追加(画像は既存の`data-media-id`方式を共用)
@@ -203,7 +202,6 @@ frontend/src/
 - `frontend/src/app/globals.css` — `.rich-text-body`配下に`rt-*`の公式サイト用スタイル、`.rich-text-body--signage`配下にサイネージ用スタイル。サイネージ画面の縦型配置と、縦型でのメイン領域の縮小(`transform: scale(0.671875)`、transform-origin左上)は、キャンバスの`data-orientation="portrait"`で切り替える(メディア条件は使わない)。見出し・本文の折り返しに`word-break: auto-phrase`を指定する
 - `frontend/src/app/layout.tsx` — Material Symbolsの`icon_names`へ`handshake`・`local_parking`・`mic`・`directions_bus`・`warning`・`info`を追加
 - `frontend/src/lib/cms.ts` — `findGlobal`にTTL指定(`CmsFetchOptions`)を追加(既存呼び出しは不変)。`ttlSeconds: 0`はCache APIを読み書きせずに取得する。`refreshIntervalSeconds`はCache APIの通常のキーを読まずに、取り直し用のキーの保存時刻で取り直しの頻度を制限する(下記`getSignageSnapshot`)
-- `frontend/src/lib/signage-data.ts`・`cms.ts` — サイネージの取得に`x-signage-token`(環境変数`SIGNAGE_CMS_TOKEN`)を付ける。`cms.ts`の取得に要求ヘッダの指定を足す(既存呼び出しは不変)
 - `frontend/src/lib/use-polling.ts` — 戻り値に、即時に1回取得して次回の予約をそこから数え直す`refresh(fetcher?)`を追加(既存呼び出しは不変)
 - `frontend/src/lib/sponsors.ts` — `getSponsors`にTTL指定を受ける省略可能な引数を追加
 - `frontend/src/lib/use-slide-rotation.ts` — 削除(巡回は`slideAt`で時刻から求める)
@@ -422,7 +420,7 @@ stateDiagram-v2
 | 15.6, 15.7 | ボタン型リンク | buttonLinkブロック、変換器、CSS | HTML契約 | — |
 | 15.8〜15.10 | 表 | EXPERIMENTAL_TableFeature、表変換器、CSS | HTML契約 | — |
 | 15.11〜15.13 | 見出しレベル保持・h1は文字・既存表示不変 | RichText | — | — |
-| 16.1〜16.4 | 画面・APIとCMSのサイネージ専用データの保護、開催期間中の認証の維持、認証切れ時の表示の継続 | Cloudflare Access(aramakisai-infra)、policy.ts・payload-access.ts(`x-signage-token`)、signage-data | `x-signage-token`ヘッダ | — |
+| 16.1〜16.4 | 画面とAPIへの要求を認証済みの端末に限り、外部の要求はWorkerの前で拒否、開催期間中の認証の維持、認証切れ時の表示の継続 | Cloudflare Access(aramakisai-infra) | — | — |
 
 ## Components and Interfaces
 
@@ -580,7 +578,7 @@ stateDiagram-v2
 - 保存の権限が無い(`readOnly`)ときはボタンと入力欄を押せなくする
 - 「すべて」では`slides`が`admin.condition`で隠れるため、この部品も出ない(所属の編集不可、4.20)
 - 新規作成: 列の上に「スライドを新規作成」ボタンを置き、`@payloadcms/ui`の`useDocumentDrawer({ collectionSlug: 'signage_slides' })`のドロワーでスライドの作成画面を開く。ドロワーには`initialData={{ enabled: false }}`を渡し、「有効」を外した状態で開く。ドロワーの`onSave`が`operation: 'create'`で呼ばれたら、作成したスライド(`doc`の`id`・`title`・`enabled`)を取得済みの一覧の末尾に足し(新規作成は`_order`の末尾に入るため)、値に加えて右の列に出し、ドロワーを閉じる
-- 作成直後のスライドは公開しない。所属はその場で保存するため、有効のまま作ると、グループが表示中ならグループの保存を待たずに巡回へ入る。中身を確かめてから実行委員が「有効」を付ける。`enabled`の既定値(`defaultValue: true`)は変えないため、スライドの一覧からの通常の新規作成は従来どおり有効で始まる
+- 作成直後のスライドは画面に出さない。所属はその場で保存するため、有効のまま作ると、グループが表示中ならグループの保存を待たずに巡回へ入る。中身を確かめてから実行委員が「有効」を付ける。`enabled`の既定値(`defaultValue: true`)は変えないため、スライドの一覧からの通常の新規作成は従来どおり有効で始まる
 - 新規作成した所属はその場で保存する(スライドは無効のため、保存しても表示には出ない)。Payloadの標準のrelationshipもドロワーで作成した文書を値に加えるだけで(`AddNewRelation`の`onSave`)、親の保存まで所属は保存されないため、グループの保存を忘れると作ったスライドがどのグループにも付かない。これを防ぐため、部品は`GET /api/signage_groups/{id}?depth=0`で保存済みの`slides`を読み、新しいIDを足して`PATCH /api/signage_groups/{id}`(`{ slides }`、`credentials: 'include'`)で所属だけを保存する。グループの名前・表示やリストでの移動など、他の未保存の変更は保存しない(標準の保存ボタンで保存する)。値にも加えてあるため、後で保存ボタンを押しても所属は保たれる
 - 所属の保存に失敗したら「所属を保存できませんでした。グループを保存してください」と出す。スライドは作成済みで値にも加えてあるため、保存ボタンで所属を保存できる
 - 未保存の新規グループ(`useDocumentInfo`の`id`が無い)では、新規作成のボタンを押せなくし、「グループを保存すると、ここからスライドを作成できます」と添える。保存先のグループが無いまま作ると、その場で所属を保存できないため
@@ -651,7 +649,7 @@ CMSが`*_html`に出すHTMLの形を固定する。frontendの許可リストと
 - 取り直しの頻度の制限: Workerのisolateのメモリは要求の間で共有されないため、制限はCache APIで行う。取り直し用のキー(URLに`__refresh=5`を足したもの)を`s-maxage=5`で置き、その有無を「直前の取り直しから5秒以内か」の印にする。キーがあれば、CMSへ行かずにそのキーの応答(直前に取り直したデータ)を返す。無ければCMSから取得し、取り直し用のキーと通常のキー(15秒)の両方を置き換える。通常のキーも置き換えるため、他の端末の通常の取得もそれ以降は新しい内容を受け取る。他のコレクションは通常どおりキャッシュを使う
 - 制限が効く範囲: Cache APIはCloudflareのデータセンター(コロ)ごとに別で、全世界で1つではない。制限は同じコロに届いた取り直しの間でだけ効き、端末が別々のコロへつながれば、それぞれのコロで5秒に1回までCMSへ行く。保存は`waitUntil`の非同期のため、ほぼ同時に届いた取り直しは両方CMSへ行きうる。Cache APIは`*.workers.dev`では効かないため、PRのプレビューでは制限されない(本番は`aramakisai.com`)
 - `/api/signage`はクエリ`fresh=1`のときだけ`getSignageSnapshot({ fresh: true })`を呼ぶ
-- Risks: `fresh=1`の要求でCMSへ行くのは、コロごとにおおむね5秒に1回まで(上記の範囲)。サイネージのURLはCloudflare Accessで保護するため(「Security Considerations」)、`fresh=1`を付けられるのは認証済みの端末だけ
+- Risks: `fresh=1`の要求でCMSへ行くのは、コロごとにおおむね5秒に1回まで(上記の範囲)。外部からの要求はCloudflare AccessがWorkerの前で拒否するため(「Security Considerations」)、`fresh=1`でWorkerが動きCMSへ行くのは認証済みの端末の要求だけ
 - サイネージ設定は`findGlobal('signage_settings', { depth: 0 })`で取得し、`pinned_slide`のIDだけを`pinnedSlideId`として渡す(固定対象が有効かどうかの判定は端末側で`slides`と突き合わせる)
 - いずれかの取得が失敗したら全体を失敗にする
 - 取得が揃った時点のサーバー時刻を`serverNow`に入れて返す(スナップショット全体はキャッシュしないため、応答の直前の時刻になる)
@@ -1136,18 +1134,22 @@ export interface SignageScreenProps {
 - **Browser (実測)**: 1920×1080と1080×1920で各領域の位置・寸法がFigmaと一致し(縦型のメイン領域は1032×580.5で、中身が横型の0.671875倍)、ビューポートの縦横を切り替えると配置が自動で変わる、細長いビューポート(例: 500×1330、1920×600)でキャンバス全体が収まり中央に来てスクロールが出ない、大きさ・読み込み時刻の異なる2つのページで同時刻に同じスライド・テロップ・流し位置が出る、端末時計をずらしても揃う、テロップの流し、スライド巡回と固定表示の切り替え、管理画面の帯・「固定」列・サイドバーのボタンで固定と解除ができ表示がただちに変わる、一覧上部のグループ切り替え(「すべて」が先頭)で所属スライドが巡回から外れ・戻り、「所属グループ」列の印と「固定」列が切り替えに追随する、グループの編集画面の左右のリストでチェックボックスで選んだ複数のスライドをまとめて追加・解除して保存でき、題名の絞り込みが両方の列に効く、固定・解除と表示対象から外れる切り替えで保存から全画面の切り替えまでが約3秒以内、表示対象に加わる切り替えで取り直しを挟んで数秒以内で、グループの編集画面から新規作成したスライドがグループの保存なしに所属し巡回に入る、2つのページが同じスライドを出し続ける、表の横スクロール(公式サイトSP幅358)
 
 ## Security Considerations
-- サイネージは公開せず保護する(16.1〜16.4)。ナビ・サイトマップには載せず、`robots: { index: false }`も付ける
-- 画面とAPI(推奨): Cloudflare Accessの`self_hosted`アプリを`aramakisai.com/signage`と`aramakisai.com/api/signage`(下位の`/api/signage/pin`を含む)に置き、既存のZitadelのIdPと`allow_zitadel`の形のポリシーで保護する。設定はaramakisai-infraの`terraform/access.tf`に置く(既存のプレビュー・dev環境と同じ管理。本specの外の作業として依頼する)。`/_next/static`などの共有アセットは公式サイトと共有のため保護しない
+- サイネージの画面とAPIへの要求は、認証を通った端末・配信PCからのものだけにする(16.1〜16.4)。目的は、外部からの要求でWorkersのリクエスト数(無料枠は1日10万件)とCMSの負荷が増えないようにすること。そのため、外部からの要求はWorkerを起動させずに拒否できる方式にする。ナビ・サイトマップには載せず、`robots: { index: false }`も付ける
+- Cloudflareで確かめた事実
+  - Accessは要求をWorkerより前に検査し、通らない要求にはログイン画面を出すか拒否する(「every request is checked before your Worker runs」 https://developers.cloudflare.com/workers/configuration/cloudflare-access/ )。ホスト名単位のAccessでは`example.com/login`のような1つのパスだけを保護できる(同ページ)
+  - Workersのリクエスト数に数えられるのはWorkerに届いた要求だけ(「Only requests that hit a Worker will count against your limits and your bill」、無料枠は1日10万件 https://developers.cloudflare.com/workers/platform/pricing/ )。上の2つから、Accessに拒否された要求はWorkerに届かず数えられない。拒否された要求を数えないと明記した文は公式ドキュメントに無く、2つの記述から導いたもの
+  - アプリのセッションは即時から最長1か月まで設定でき、既定は24時間。アプリのトークンが切れても、全体のトークンが有効で条件を満たしていれば自動で発行し直し、両方切れていればIdPで再認証を求める(https://developers.cloudflare.com/cloudflare-one/access-controls/access-settings/session-management/ )
+  - ポリシーの条件にIP範囲を使える。Bypassはその要求にAccessの検査をかけず、ログも残さない(https://developers.cloudflare.com/cloudflare-one/access-controls/policies/ )
+- 方式の比較(観点は通信量)
+  - (A) Access+サイネージ専用のZitadelのアカウント+セッション730h: 外部からの要求はAccessが拒否しWorkerは動かない。Workerに届くのはログイン済みの端末・配信PCの要求だけ。セッションが切れると端末の要求もAccessで止まり、Workerには届かない(表示は直前のまま、更新が止まる)
+  - (B) Access+会場の送信元IPをBypass: 外部からの要求はAccessが拒否しWorkerは動かない。ログインが要らず期限切れも無い。ただし同じ送信元IPから出る端末以外の機器(会場の回線を共有する利用者)の要求もWorkerに届く。送信元IPが固定かの確認が要り、配信PCが別の回線なら別途許可が要る
+  - (C) URLの秘密の文字列をWorkerで照合: 照合はWorkerの中で行うため、拒否する要求でもWorkerが起動し、リクエスト数に数えられる。外部からの要求を数えない目的に合わないため採らない
+- 推奨は(A)。Cloudflare Accessの`self_hosted`アプリを`aramakisai.com/signage`と`aramakisai.com/api/signage`(下位の`/api/signage/pin`を含む)に置き、既存のZitadelのIdPと`allow_zitadel`の形のポリシーで制限する。設定はaramakisai-infraの`terraform/access.tf`に置く(既存のプレビュー・dev環境と同じ管理。本specの外の作業として依頼する)。`/_next/static`などの共有アセットは公式サイトと共有のため対象にしない
   - 端末・配信PCは、サイネージ専用のZitadelのアカウントで1回ログインする。Accessの`session_duration`はこのアプリだけ上限の`730h`(1か月)にし、開催前日に全端末でログインし直してセッションの期限を開催期間の後にする(運用手順に書く)。キオスクのブラウザはcookieを残す設定にし、シークレットモードを使わない。OBSのブラウザソースはcookieを保持し、「操作」から同じアカウントでログインする
   - Accessのサービストークンは要求ヘッダで渡すもので、端末のブラウザは付けられないため使わない(既存の`e2e_ci`はCI専用)
   - セッションが切れると、ページの再読み込みはログイン画面になる。表示中のページは`/api/signage`と`/api/signage/pin`の取得がログインへの転送で失敗し、直前の表示を続ける(16.4、12.2)が、更新は止まる
-- CMS(推奨): 未認証の読み取りから、サイネージ専用の`signage_slides`・`signage_groups`・`telops`・`lost_items`と`signage_settings`を外す。画面だけを保護してもCMSのRESTが公開のままでは同じ中身を読めるため。Workerはサイネージの取得に共有トークンを要求ヘッダ`x-signage-token`で付け、CMSは未認証でもこのヘッダが環境変数`SIGNAGE_READ_TOKEN`と一致すれば、従来の公開判定(表示対象のスライドだけ、有効なテロップ、返却済み以外の落とし物)で読ませる。一致しなければ0件(グローバルは拒否)。実行委員の読み取りは従来どおり
-  - 共有トークンにする理由: WorkerからCMSへ認証付きで取得する既存の例は無い。PayloadのAPIキー(`auth.useAPIKey`、ヘッダ`users API-Key ...`)はユーザーに紐づき、`users`への列の追加と、サイネージを読むだけのロールの新設が要る。共有トークンなら列もロールも増やさず、読み取りだけに限れる
-  - 判定は`policy.ts`の`canRead`に、未認証の読み手がトークンを示したかを渡して行う(`accessFor`が`req.headers`から渡す)。`policy.ts`の純関数の形は保つ
-  - トークンはInfisicalの`prod`で管理し、Workersのsecret(フロントの`SIGNAGE_CMS_TOKEN`、`NEXT_PUBLIC_`を付けない)とCMSのk8sのSecret(aramakisai-infra)の両方に入れる
-  - `cms.ts`の`request`は、認証ヘッダを付けない公開取得をURLだけのキーでCache APIに置く。サイネージの取得はトークン付きで同じCache APIを使うが、Cache APIはWorkerの内部からしか読めず、サイネージのURLを取得するのはサイネージのコードだけのため、トークン無しの利用者へは渡らない
-  - スライドの画像(`media`)は公式サイトと共有の公開判定のまま保護しない。画像のURLを知っていれば読める(許容)
-- 表示データはCMS由来で、落とし物・テロップ・スライドは保護したうえで新たに配信するデータ(公開判定で無効・返却済み・表示対象でないスライドを除く)
+- CMSの公開判定は他のコレクションと同じ扱いにし、サイネージのために未認証の読み取りを別に制限しない。CMSへの要求はWorkerからのものだけで、Workerへの外部の要求はAccessが止める
+- 表示データはCMSの公開REST由来(公開判定で無効・返却済み・表示対象でないスライドを除く)
 - 落とし物の写真に氏名等が写る場合は撮影・登録時に避ける(運用手順に書く)
 - 本文は従来どおりCMS変換時のエスケープとフロントの許可リストの二重で防ぐ。`buttonLink.url`はスキームを`http(s)`と`/`に限定
 
@@ -1180,9 +1182,8 @@ flowchart TD
 | 書体 | 未決(ユーザー回答待ち) | Figmaはサイネージ本文・公式サイト本文がLINE Seed JP、左カラムのステージ欄・バス便行・落とし物カードがNoto Sans JP。設計はFigmaのとおりとし、Noto Sans JP部分は`next/font/google`をサイネージ画面だけで読み込む。統一する場合はこの読み込みを外すだけ |
 | 時計の数字 | 決定 | FigmaのLINE Seed JP 104pxのまま、1桁ずつ固定幅の箱に入れて左カラム(312px)に収める。プロポーショナル数字だと時刻によっては最大349pxになり、はみ出すため |
 | 灰色の文字 | 決定 | Figmaのgray-500ではなくgray-600を使う。リポジトリの既存テストがgray-500の使用を禁止しているため |
-| サイネージの保護 | 決定 | 公開せず保護する。画面とAPIはCloudflare Access、CMSはサイネージ専用のデータを未認証の読み取りから外す(推奨案は「Security Considerations」) |
-| 保護の方式① 画面とAPI | 要判断 | (A) Cloudflare Access+サイネージ専用のZitadelのアカウント+セッション730h(推奨。既存のAccessの管理に乗り、期限切れは開催前日の再ログインで避ける)/(B) Cloudflare Access+会場の送信元IPで許可(ログイン不要だが、会場の回線の送信元IPが固定かの確認が要り、配信PCが別回線なら別途許可が要る)/(C) URLに秘密の文字列を付けWorkerで照合(期限切れは無いが、URLが漏れると誰でも見られる) |
-| 保護の方式② CMS | 要判断 | (A) 共有トークンのヘッダ`x-signage-token`(推奨。列もロールも増やさない)/(B) PayloadのAPIキー+サイネージを読むだけのロール(Payload標準だが、`users`への列の追加とロールの新設が要る)/(C) CMSは公開のまま(画面の保護の意味が薄れる) |
+| サイネージへの要求の制限 | 決定 | 目的は通信量(Workersのリクエスト数とCMSの負荷)。画面とAPIへの外部からの要求をWorkerの前で拒否する。CMSの公開判定は他のコレクションと同じ扱い |
+| 要求を制限する方式 | 要判断 | (A) Cloudflare Access+サイネージ専用のZitadelのアカウント+セッション730h(推奨。外部の要求はWorkerに届かず、届くのはログイン済みの端末だけ。期限切れは開催前日の再ログインで避ける)/(B) Cloudflare Access+会場の送信元IPをBypass(外部の要求はWorkerに届かずログインも不要だが、同じ回線の他の機器の要求も届き、送信元IPが固定かの確認が要る)/(C) URLの秘密の文字列をWorkerで照合(拒否する要求でもWorkerが起動し数えられるため目的に合わない) |
 | 関越交通の時刻表の二次利用 | 運用確認 | 開催前に関越交通へ確認する。不可ならバス案内を外す |
 | ボタン型リンクのサイネージ表示 | 決定(推奨) | 表示しない。QRが要るときは横並びにQR画像を登録する(QR生成ライブラリを足さず、公式サイトQRの事前生成方針と揃える) |
 | 横並びでのQRの用意 | 決定(推奨) | QR画像を登録する。作り方(誤り訂正M・余白2モジュール)を運用手順に書く |
@@ -1201,7 +1202,7 @@ flowchart TD
 | 表示の判定 | 決定 | 有効で、かつ表示中のグループに1つ以上属するスライドを出す(和)。「すべて」が表示中の間は、通常のグループを非表示にしても所属スライドは出続ける。個別のスライドは各スライドの「有効」で隠す。全スライドは「すべて」に属する。普段は「すべて」を表示、開場前は「すべて」を非表示にして「開場前」だけ表示する |
 | 「すべて」 | 決定 | 組み込みのグループ1件(`is_all`)。所属は保存せず全スライドが属するものとして計算し、新規スライドも自動で属する。名前の変更と表示の切り替えだけでき、所属の編集と削除はできない。マイグレーションで作る |
 | グループの切り替えの反映時間 | 決定 | 固定表示と同じ3秒ごとの確認で表示対象のスライドIDを返す。表示対象から外れるスライドは約3秒以内に全端末から外れ、加わるスライドは端末がスナップショットを取り直して数秒で出る |
-| 表示対象でないスライドの配信 | 決定 | 配らない。未認証の読み取りとスナップショットには表示対象のスライドだけを出す(通信量を抑えるため) |
+| 表示対象でないスライドの配信 | 決定 | 配らない。未認証の読み取りとスナップショットには表示対象のスライドだけを出す(通信量を表示中のスライドの分に抑えるため) |
 | 確認の通信方式 | 決定 | 本specは3秒ごとの確認のまま。方式の見直しは別specで扱う |
 | 取り直しの頻度 | 決定 | `fresh=1`の取り直しはWorkerでCache APIの取り直し用のキー(TTL 5秒)により5秒に1回までにし、間隔内は直前に取り直したデータを返す。効くのはコロ単位で、全世界で1つの制限ではない |
 | グループの並び | 決定 | 一覧上部の切り替えは「すべて」を先頭に、通常のグループは作成順。巡回順はスライドの並び順だけで決まり、グループとグループ内の所属の並びは巡回順に影響しない |

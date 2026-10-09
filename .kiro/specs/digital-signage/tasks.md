@@ -348,15 +348,14 @@ CMS側(タスク1〜3)とフロント側(タスク4〜10)は別PRに分ける。
   - _Requirements: 4.7, 4.8, 4.13, 4.14, 4.15, 4.16, 4.17, 4.18, 4.19, 4.20, 4.21_
   - _Depends: 10.3i, 10.3j_
 
-- [ ] 10.3l サイネージの画面とCMSのデータを保護する
-  - 保護の方式の要判断(design「未決・要判断」の保護の方式①②)がユーザーと決まってから着手する。以下は推奨案(画面とAPIはCloudflare Access、CMSは共有トークン)の場合
-  - CMS: `policy.ts`の`canRead`に未認証の読み手がトークンを示したかを渡し、`signage_slides`・`signage_groups`・`telops`・`lost_items`・`signage_settings`は、`x-signage-token`が`SIGNAGE_READ_TOKEN`と一致するときだけ従来の公開判定で読ませ、一致しなければ0件(グローバルは拒否)にする。実行委員の読み取りは変えない。単体テストと、トークン無し・誤り・正しいトークン・実行委員のそれぞれの結合テストをテスト先行で書く
-  - フロント: サイネージの取得(`getSignageSnapshot`・`getPinState`)に`x-signage-token`(`SIGNAGE_CMS_TOKEN`)を付け、`cms.ts`に要求ヘッダの指定を足す。単体テストで、サイネージの取得にだけヘッダが付くことを確かめる
-  - 運用: `SIGNAGE_READ_TOKEN`と`SIGNAGE_CMS_TOKEN`をInfisicalの`prod`に入れ、CMSのk8sのSecretとWorkersのsecretへの反映、aramakisai-infraの`terraform/access.tf`へのAccessアプリ(`aramakisai.com/signage`・`aramakisai.com/api/signage`、`session_duration = "730h"`)の追加を、aramakisai-infra側の作業として依頼する。端末のログインと開催前日の再ログインを`docs/cms-operations.md`に書く
-  - CMSとフロントの型チェック・テスト・ビルドが通る
+- [ ] 10.3l サイネージの画面とAPIへの要求を認証済みの端末に限る
+  - 要求を制限する方式の要判断(design「未決・要判断」)がユーザーと決まってから着手する。以下は推奨案(Cloudflare Access+サイネージ専用のZitadelのアカウント+セッション730h)の場合で、本リポジトリのコードは変えない
+  - aramakisai-infraの`terraform/access.tf`へのAccessアプリ(`aramakisai.com/signage`・`aramakisai.com/api/signage`、`session_duration = "730h"`、既存のZitadelのIdPと`allow_zitadel`の形のポリシー)の追加と、サイネージ専用のZitadelのアカウントの用意を、aramakisai-infra側の作業として依頼する
+  - 端末・配信PCのログイン、cookieを残すブラウザの設定、開催前日の再ログインを`docs/cms-operations.md`に書く
+  - 適用後、未ログインのブラウザで画面と2つのAPIがAccessのログイン画面になり、ログイン後は表示と更新が続き、公式サイトの他のページはログインなしで見られることを確認する。未ログインの要求がWorkersの要求数に現れないことをCloudflareのWorkersの分析で確認する
   - _Requirements: 16.1, 16.2, 16.3, 16.4_
   - _Depends: 10.3j_
-  - _Boundary: policy.ts, payload-access.ts, cms.ts, signage-data, docs/cms-operations.md_
+  - _Boundary: docs/cms-operations.md_
 
 - [ ] 10.3 ユーザーによるフロントとCMSの確認と修正の反映
   - `make cms-worktree`で自worktreeのCMSを起動し、`pnpm migrate`と`pnpm seed:dev`を済ませる。フロントは`make dev CMS=worktree`で起動する(いずれも`run_in_background`)
