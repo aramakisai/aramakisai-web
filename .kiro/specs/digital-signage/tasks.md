@@ -135,7 +135,7 @@ CMS側(タスク1〜3)とフロント側(タスク4〜10)は別PRに分ける。
 - [x] 7.1 サイネージのページを用意する
   - 全画面用のレイアウトの下に`/signage`を作り、初期スナップショットを取得して画面部品へ渡す
   - 開催前の公開対象に`/signage`を加え、検索エンジンに載せない指定を付け、ナビ・サイトマップには載せない
-  - サイネージで使うアイコン名(`handshake`・`local_parking`・`mic`・`directions_bus`・`warning`・`info`など)を読み込み対象に加え、Noto Sans JPをサイネージ画面だけで読み込む
+  - サイネージで使うアイコン名(`handshake`・`local_parking`・`mic`・`directions_bus`・`warning`・`info`など)を読み込み対象に加え
   - 開催前の状態でも`/signage`が開け、検索エンジン除外の指定が出力されることをテストで確認できる
   - _Requirements: 1.2, 12.5_
 
@@ -349,13 +349,20 @@ CMS側(タスク1〜3)とフロント側(タスク4〜10)は別PRに分ける。
   - _Depends: 10.3i, 10.3j_
 
 - [ ] 10.3l サイネージの画面とAPIへの要求を認証済みの端末に限る
-  - 要求を制限する方式の要判断(design「未決・要判断」)がユーザーと決まってから着手する。以下は推奨案(Cloudflare Access+サイネージ専用のZitadelのアカウント+セッション730h)の場合で、本リポジトリのコードは変えない
+  - 方式はCloudflare Access+サイネージ専用のZitadelのアカウント+セッション730h。本リポジトリのコードは変えない
   - aramakisai-infraの`terraform/access.tf`へのAccessアプリ(`aramakisai.com/signage`・`aramakisai.com/api/signage`、`session_duration = "730h"`、既存のZitadelのIdPと`allow_zitadel`の形のポリシー)の追加と、サイネージ専用のZitadelのアカウントの用意を、aramakisai-infra側の作業として依頼する
   - 端末・配信PCのログイン、cookieを残すブラウザの設定、開催前日の再ログインを`docs/cms-operations.md`に書く
   - 適用後、未ログインのブラウザで画面と2つのAPIがAccessのログイン画面になり、ログイン後は表示と更新が続き、公式サイトの他のページはログインなしで見られることを確認する。未ログインの要求がWorkersの要求数に現れないことをCloudflareのWorkersの分析で確認する
   - _Requirements: 16.1, 16.2, 16.3, 16.4_
   - _Depends: 10.3j_
   - _Boundary: docs/cms-operations.md_
+
+- [ ] 10.3m フロント: サイネージ画面の書体をLINE Seed JPに統一する
+  - `/signage`のページから`next/font/google`の`Noto_Sans_JP`の読み込みと`--font-noto-sans-jp`の変数を外し、テストのモックも外す。`tailwind.config.ts`の`noto`の書体の指定を消し、サイネージの部品の`font-noto`を外して周りと同じLINE Seed JPにする
+  - `/signage`の応答にNoto Sans JPのフォントの読み込み(`<link rel="preload">`・`@font-face`)が無いことをテストで確かめ、フロントの型チェック・テスト・ビルドが通る
+  - 1920×1080と1080×1920で、書体を変えた箇所(左カラムのステージ欄・バス案内・落とし物・協賛・駐車場・縦型の情報帯)が枠からはみ出さないことを実ブラウザで確認する。検証後はブラウザを必ず閉じ、判断に使ったスクリーンショットのパスを揃える
+  - _Requirements: 1.1_
+  - _Boundary: app/(fullscreen)/signage, tailwind.config.ts, components/signage_
 
 - [ ] 10.3 ユーザーによるフロントとCMSの確認と修正の反映
   - `make cms-worktree`で自worktreeのCMSを起動し、`pnpm migrate`と`pnpm seed:dev`を済ませる。フロントは`make dev CMS=worktree`で起動する(いずれも`run_in_background`)
@@ -364,7 +371,7 @@ CMS側(タスク1〜3)とフロント側(タスク4〜10)は別PRに分ける。
   - ユーザーから受けた修正事項は、内容が要件・設計の変更に当たる場合はrequirements.md・design.mdを先に直してから実装へ反映する。修正が既存タスクの範囲に収まらない場合は、tasks.mdにタスクを追加・更新してから着手する。反映のたびに同じ環境で再確認を依頼し、ユーザーが了承するまで繰り返す
   - 確認が終わったら自分で起動したサーバーを`make dev-stop`・`make dev-stop CMS=worktree`で止め、作成した確認用データは残すか消すかをユーザーに確認する
   - ユーザーがサイネージ画面・公式サイトの本文表示・CMSの操作を了承している
-  - _Depends: 10.2, 10.3a, 10.3e, 10.3h, 10.3i, 10.3j, 10.3k, 10.3l_
+  - _Depends: 10.2, 10.3a, 10.3e, 10.3h, 10.3i, 10.3j, 10.3k, 10.3l, 10.3m_
   - _Requirements: 1.1, 1.4, 1.5, 4.17, 14.2, 14.3, 15.1, 15.3, 15.5, 15.7, 15.9, 15.10_
 
 - [ ] 11. リリース前の本文h1の修正(運用作業)

@@ -128,7 +128,6 @@ graph LR
 |-------|------------------|-----------------|-------|
 | Frontend | Next.js 15 App Router / React 19 | `/signage`ページ、`/api/signage` | 既存 |
 | Frontend | sanitize-html ^2.17.6 | 本文HTMLの許可リスト | `allowedClasses`を新たに使う |
-| Frontend | next/font/google `Noto_Sans_JP` | Figmaが指定するNoto Sans JP部分 | 新規利用(依存追加なし)。書体は未決事項を参照 |
 | Backend | Payload 3.88.0 / @payloadcms/richtext-lexical 3.88.0 | 新コレクション、`BlocksFeature`、`EXPERIMENTAL_TableFeature` | 表はEXPERIMENTAL |
 | Data | Postgres 16 | 新4コレクションのテーブル | `pnpm migrate:create` |
 | Infrastructure | Cloudflare Workers + Cache API | 集約APIとCMS応答の短期キャッシュ | 追加課金サービスなし |
@@ -1144,7 +1143,7 @@ export interface SignageScreenProps {
   - (A) Access+サイネージ専用のZitadelのアカウント+セッション730h: 外部からの要求はAccessが拒否しWorkerは動かない。Workerに届くのはログイン済みの端末・配信PCの要求だけ。セッションが切れると端末の要求もAccessで止まり、Workerには届かない(表示は直前のまま、更新が止まる)
   - (B) Access+会場の送信元IPをBypass: 外部からの要求はAccessが拒否しWorkerは動かない。ログインが要らず期限切れも無い。ただし同じ送信元IPから出る端末以外の機器(会場の回線を共有する利用者)の要求もWorkerに届く。送信元IPが固定かの確認が要り、配信PCが別の回線なら別途許可が要る
   - (C) URLの秘密の文字列をWorkerで照合: 照合はWorkerの中で行うため、拒否する要求でもWorkerが起動し、リクエスト数に数えられる。外部からの要求を数えない目的に合わないため採らない
-- 推奨は(A)。Cloudflare Accessの`self_hosted`アプリを`aramakisai.com/signage`と`aramakisai.com/api/signage`(下位の`/api/signage/pin`を含む)に置き、既存のZitadelのIdPと`allow_zitadel`の形のポリシーで制限する。設定はaramakisai-infraの`terraform/access.tf`に置く(既存のプレビュー・dev環境と同じ管理。本specの外の作業として依頼する)。`/_next/static`などの共有アセットは公式サイトと共有のため対象にしない
+- (A)に決める。Cloudflare Accessの`self_hosted`アプリを`aramakisai.com/signage`と`aramakisai.com/api/signage`(下位の`/api/signage/pin`を含む)に置き、既存のZitadelのIdPと`allow_zitadel`の形のポリシーで制限する。設定はaramakisai-infraの`terraform/access.tf`に置く(既存のプレビュー・dev環境と同じ管理。本specの外の作業として依頼する)。`/_next/static`などの共有アセットは公式サイトと共有のため対象にしない
   - 端末・配信PCは、サイネージ専用のZitadelのアカウントで1回ログインする。Accessの`session_duration`はこのアプリだけ上限の`730h`(1か月)にし、開催前日に全端末でログインし直してセッションの期限を開催期間の後にする(運用手順に書く)。キオスクのブラウザはcookieを残す設定にし、シークレットモードを使わない。OBSのブラウザソースはcookieを保持し、「操作」から同じアカウントでログインする
   - Accessのサービストークンは要求ヘッダで渡すもので、端末のブラウザは付けられないため使わない(既存の`e2e_ci`はCI専用)
   - セッションが切れると、ページの再読み込みはログイン画面になる。表示中のページは`/api/signage`と`/api/signage/pin`の取得がログインへの転送で失敗し、直前の表示を続ける(16.4、12.2)が、更新は止まる
@@ -1179,11 +1178,10 @@ flowchart TD
 
 | 項目 | 状態 | 内容 |
 |------|------|------|
-| 書体 | 未決(ユーザー回答待ち) | Figmaはサイネージ本文・公式サイト本文がLINE Seed JP、左カラムのステージ欄・バス便行・落とし物カードがNoto Sans JP。設計はFigmaのとおりとし、Noto Sans JP部分は`next/font/google`をサイネージ画面だけで読み込む。統一する場合はこの読み込みを外すだけ |
+| 書体 | 決定 | サイネージ画面の書体はLINE Seed JPに統一し、Noto Sans JPは読み込まない。Figmaで左カラムのステージ欄・バス便行・落とし物カードなどがNoto Sans JPの箇所もLINE Seed JPにする。読み込むフォントを減らし、通信量を抑えるため |
 | 時計の数字 | 決定 | FigmaのLINE Seed JP 104pxのまま、1桁ずつ固定幅の箱に入れて左カラム(312px)に収める。プロポーショナル数字だと時刻によっては最大349pxになり、はみ出すため |
 | 灰色の文字 | 決定 | Figmaのgray-500ではなくgray-600を使う。リポジトリの既存テストがgray-500の使用を禁止しているため |
-| サイネージへの要求の制限 | 決定 | 目的は通信量(Workersのリクエスト数とCMSの負荷)。画面とAPIへの外部からの要求をWorkerの前で拒否する。CMSの公開判定は他のコレクションと同じ扱い |
-| 要求を制限する方式 | 要判断 | (A) Cloudflare Access+サイネージ専用のZitadelのアカウント+セッション730h(推奨。外部の要求はWorkerに届かず、届くのはログイン済みの端末だけ。期限切れは開催前日の再ログインで避ける)/(B) Cloudflare Access+会場の送信元IPをBypass(外部の要求はWorkerに届かずログインも不要だが、同じ回線の他の機器の要求も届き、送信元IPが固定かの確認が要る)/(C) URLの秘密の文字列をWorkerで照合(拒否する要求でもWorkerが起動し数えられるため目的に合わない) |
+| サイネージへの要求の制限 | 決定 | 目的は通信量(Workersのリクエスト数とCMSの負荷)。画面とAPIへの外部からの要求を、Cloudflare Access+サイネージ専用のZitadelのアカウント+セッション730hでWorkerの前で拒否する。会場の送信元IPのBypassは同じ回線の他の機器の要求もWorkerに届き送信元IPの固定の確認も要るため、URLの秘密の文字列のWorkerでの照合は拒否する要求でもWorkerが起動し数えられるため採らない。CMSの公開判定は他のコレクションと同じ扱い |
 | 関越交通の時刻表の二次利用 | 運用確認 | 開催前に関越交通へ確認する。不可ならバス案内を外す |
 | ボタン型リンクのサイネージ表示 | 決定(推奨) | 表示しない。QRが要るときは横並びにQR画像を登録する(QR生成ライブラリを足さず、公式サイトQRの事前生成方針と揃える) |
 | 横並びでのQRの用意 | 決定(推奨) | QR画像を登録する。作り方(誤り訂正M・余白2モジュール)を運用手順に書く |
