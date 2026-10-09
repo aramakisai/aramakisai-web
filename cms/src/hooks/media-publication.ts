@@ -59,7 +59,8 @@ export async function syncMediaPublication(
       .map(({ ids, used_in_published }) =>
         req.payload.update({
           collection: 'media',
-          where: { id: { in: ids } } satisfies Where,
+          // NULL (実行委員の画像など公開判定の対象外) は同期の対象から外し、false に落とさない
+          where: { and: [{ id: { in: ids } }, { used_in_published: { exists: true } }] } satisfies Where,
           data: { used_in_published },
           overrideAccess: true,
           req,

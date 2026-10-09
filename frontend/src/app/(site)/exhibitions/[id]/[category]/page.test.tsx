@@ -1,7 +1,11 @@
 import { render, screen, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { notFound } from 'next/navigation';
-import ExhibitionPage, { generateMetadata } from './page';
+import ExhibitionPage, {
+  generateMetadata,
+  generateStaticParams,
+  revalidate,
+} from './page';
 import { getExhibitionDetail } from '@/lib/exhibitions';
 import type {
   ExhibitionDetail,
@@ -213,12 +217,9 @@ describe('ExhibitionPage', () => {
       expect(screen.queryByText('1日目・2日目')).toBeNull();
     });
 
-    it('開催日程の取得に失敗したら出店日の行だけ出さない', async () => {
+    it('開催日程の取得に失敗したら例外を投げる (ISR が古い内容を保つため)', async () => {
       vi.mocked(getEventDayList).mockResolvedValue(null);
-      await renderVendor();
-      expect(screen.queryByText('1日目・2日目')).toBeNull();
-      expect(screen.getByText('メニュー')).toBeInTheDocument();
-      expect(screen.getByText('第一ステージ')).toBeInTheDocument();
+      await expect(renderVendor()).rejects.toThrow();
     });
 
     it('新フィールドが空ならメニュー欄も出店日の行も出ない', async () => {
@@ -275,25 +276,18 @@ describe('ExhibitionPage', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('取得に失敗しても欄だけ出さずページは表示される', async () => {
+    it('取得に失敗したら例外を投げる (ISR が古い内容を保つため)', async () => {
       mockResult({ kind: 'found', value: baseExhibition });
       vi.mocked(getExhibitionPerformances).mockResolvedValue({
         kind: 'error',
         error: { kind: 'network', message: 'x' } as never,
       });
 
-      render(
-        await ExhibitionPage({
+      await expect(
+        ExhibitionPage({
           params: Promise.resolve({ id: '1', category: 'stage' }),
         }),
-      );
-
-      expect(
-        screen.getByRole('heading', { level: 1, name: /アラマキ祭/ }),
-      ).toBeInTheDocument();
-      expect(
-        screen.queryByRole('heading', { name: '出演時間' }),
-      ).not.toBeInTheDocument();
+      ).rejects.toThrow();
     });
   });
 
@@ -428,48 +422,20 @@ describe('ExhibitionPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('区画データの取得に失敗し企画位置セクションが描画されない場合も、ギャラリー・基本情報・リンク・紹介が従来どおり描画される (要件 1.1, 4.2, 4.5)', async () => {
-    mockResult({ kind: 'found', value: baseExhibition });
-    mockAreas({
-      kind: 'error',
-      error: { kind: 'network', status: 500 },
-    });
-
-    const jsx = await ExhibitionPage({
-      params: Promise.resolve({ id: '1', category: 'stage' }),
-    });
-    render(jsx);
-
-    expect(
-      screen.getByRole('heading', {
-        name: 'アラマキ祭実行委員会 (出演名)',
-        level: 1,
-      }),
-    ).toBeInTheDocument();
-    expect(screen.getByText('実行委員会')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'X' })).toHaveAttribute(
-      'href',
-      'https://x.com/aramaki',
-    );
-    expect(screen.getByText('たのしい企画です')).toBeInTheDocument();
-    expect(
-      screen.queryByRole('heading', { name: '場所', level: 2 }),
-    ).not.toBeInTheDocument();
-  });
-
-  it('取得に失敗した場合は 404 にせず失敗が分かる表示をする', async () => {
+  it('企画の取得に失敗した場合は 404 にせず例外を投げる (ISR が古い内容を保つため)', async () => {
     mockResult({ kind: 'error', error: { kind: 'network', status: 500 } });
 
-    const jsx = await ExhibitionPage({
-      params: Promise.resolve({ id: '1', category: 'stage' }),
-    });
-    render(jsx);
-
+    await expect(
+      ExhibitionPage({
+        params: Promise.resolve({ id: '1', category: 'stage' }),
+      }),
+    ).rejects.toThrow();
     expect(notFound).not.toHaveBeenCalled();
-    expect(screen.getByRole('alert')).toHaveTextContent('取得');
-    expect(
-      screen.getByRole('link', { name: '企画一覧へ戻る' }),
-    ).toHaveAttribute('href', '/exhibitions');
+  });
+
+  it('ISR: 初回アクセス時に生成してキャッシュする', async () => {
+    expect(await generateStaticParams()).toEqual([]);
+    expect(revalidate).toBe(300);
   });
 
   // exhibition-location-section.test.tsx がコンポーネント単体の描画可否を検証するのに対し、
@@ -548,21 +514,15 @@ describe('ExhibitionPage', () => {
       );
     });
 
-    it('区画データの取得に失敗した場合、セクションは描画されず既存の所在地テキスト表記が維持される (要件 4.2)', async () => {
+    it('区画データの取得に失敗した場合は例外を投げる (ISR が古い内容を保つため)', async () => {
       mockResult({ kind: 'found', value: baseExhibition });
       mockAreas({ kind: 'error', error: { kind: 'network', status: 500 } });
 
-      const jsx = await ExhibitionPage({
-        params: Promise.resolve({ id: '1', category: 'stage' }),
-      });
-      render(jsx);
-
-      expect(
-        screen.queryByRole('heading', { name: '場所', level: 2 }),
-      ).not.toBeInTheDocument();
-      expect(
-        screen.getByText(baseExhibition.location as string),
-      ).toBeInTheDocument();
+      await expect(
+        ExhibitionPage({
+          params: Promise.resolve({ id: '1', category: 'stage' }),
+        }),
+      ).rejects.toThrow();
     });
 
     it('形状検証に失敗する区画が混在する場合、当該エリアのみが対象から除外される (要件 4.3, 4.4)', async () => {

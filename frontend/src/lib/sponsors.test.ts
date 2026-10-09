@@ -72,7 +72,7 @@ describe('getSponsors', () => {
     expect(collection).toBe('sponsors');
     expect(query.sort).toEqual(['sort']);
     expect(query.limit).toBe(0);
-    expect(query.depth).toBe(1);
+    expect(query.depth).toBe(0);
   });
 
   it('0件のときは取得成功のまま空の一覧を返す', async () => {

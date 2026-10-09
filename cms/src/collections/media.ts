@@ -18,10 +18,14 @@ export const IMAGE_SIZES = [
   { name: 'card', width: 960 },
 ] as const;
 
-/** アップロード時に owner をアップロード者、used_in_published を未使用として記録する。 */
+/**
+ * アップロード時に owner をアップロード者として記録する。used_in_published は学生団体なら
+ * 未使用 (false)、それ以外 (実行委員) は公開判定の対象外 (NULL) にする。
+ */
 const assignMediaOwner: CollectionBeforeChangeHook = ({ data, operation, req }) => {
   if (operation !== 'create') return data;
-  return { ...data, owner: req.user?.id ?? null, used_in_published: false };
+  const used_in_published = isStudentExhibitor(toCmsUser(req.user)) ? false : null;
+  return { ...data, owner: req.user?.id ?? null, used_in_published };
 };
 
 /**
@@ -80,7 +84,12 @@ export const Media: CollectionConfig = {
         const url = size === 'original' ? doc.url : (sizes[size]?.url ?? doc.url);
         if (!url) return Response.json({ errors: [{ message: 'not found' }] }, { status: 404 });
 
-        return new Response(null, { status: 302, headers: { Location: url } });
+        const headers: Record<string, string> = { Location: url };
+        // 認証済みの読み取りは非公開画像にも成功するため、未認証で読めた (= 公開) 場合だけ共有キャッシュ可にする。
+        // 60 秒はフロントの ISR (revalidate 60) に揃える。CDN 側は Cache Rule の Edge TTL が優先され、
+        // このヘッダはブラウザの保持期間だけを決める。
+        if (!req.user) headers['Cache-Control'] = 'public, max-age=60';
+        return new Response(null, { status: 302, headers });
       },
     },
   ],

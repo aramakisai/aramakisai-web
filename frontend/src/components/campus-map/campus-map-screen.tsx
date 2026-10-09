@@ -3,11 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useCallback, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
-import type {
-  CampusMapArea,
-  CampusMapDataResult,
-  CampusMapFilters,
-} from '@/lib/campus-map';
+import type { CampusMapArea, CampusMapDataResult } from '@/lib/campus-map';
 import { filterExhibitions } from '@/lib/exhibitions';
 import { BUILD_PHASE, type FestivalPhase } from '@/lib/phase';
 import type { AreaExhibitionListState } from './area-exhibition-list';
@@ -51,19 +47,17 @@ const EMPTY_AREAS: readonly CampusMapArea[] = [];
 
 export interface CampusMapScreenProps {
   readonly data: CampusMapDataResult;
-  readonly initialFilters: CampusMapFilters;
   readonly phase?: FestivalPhase;
 }
 
 export function CampusMapScreen({
   data,
-  initialFilters,
   // MapPage (Server Component) からのみ実際のフェーズが渡る。省略時は
   // BUILD_PHASE を使うことで、フェーズ結線に関与しない既存呼び出し元を壊さない
   phase = BUILD_PHASE,
 }: CampusMapScreenProps) {
   const { filters, keywordInput, setKeywordInput, setCategories, selectArea } =
-    useMapFilters(initialFilters);
+    useMapFilters();
   const [bottomInset, setBottomInset] = useState(0);
   const handleSheetHeightChange = useCallback((height: number) => {
     setBottomInset(
