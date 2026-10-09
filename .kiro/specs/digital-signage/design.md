@@ -154,7 +154,9 @@ cms/src/
 │   ├── signage-groups.ts        # グループ一覧(所属スライドIDを含む)の取得と表示の更新(REST)
 │   ├── useSignageGroups.ts      # グループ切り替え・「所属グループ」列・固定の操作部品で共有するグループの状態
 │   ├── SignageGroupSwitches.tsx # スライド一覧の上部のグループ切り替え
-│   └── SignageGroupCell.tsx     # スライド一覧の「所属グループ」列(表示されない印を含む)
+│   ├── SignageGroupCell.tsx     # スライド一覧の「所属グループ」列(表示されない印を含む)
+│   ├── signage-group-slides.ts  # 所属スライドの左右リストの振り分け・絞り込み(純関数)
+│   └── SignageGroupSlidesField.tsx # グループ編集画面の所属スライドの左右リスト
 ├── lib/
 │   └── signage-visibility.ts    # 実効的な表示の判定(表示対象のスライドIDの計算)。固定の自動解除・固定の選択肢・操作部品で共用
 ├── blocks/
@@ -270,7 +272,7 @@ sequenceDiagram
 ```
 
 - 「すべて」は所属を保存せず、全スライドが属するものとして計算する。新しく作成したスライドも設定なしで属する(4.20)
-- 判定は「表示中のグループに1つ以上属する」の和(OR)にする。「開場前」と「開場中」の両方に入れた共通スライドは、片方を非表示にしてももう片方が表示中なら出続ける。積(AND)にすると、共通スライドを残したいときに別のグループへ複製する運用になるため採らない
+- 判定は「表示中のグループに1つ以上属する」の和(OR)にする。「開場前」と「開場中」の両方に入れた共通スライドは、片方を非表示にしてももう片方が表示中なら出続ける。積(AND)にすると、共通スライドを残したいときに別のグループへ複製する運用になるため採らない。個別のスライドを隠すときは、グループではなく各スライドの「有効」を外す
 - 運用例: 普段は「すべて」を表示にしておく(全スライドが巡回する)。開場前は「すべて」を非表示にして「開場前」だけを表示にする。開場したら「開場前」を非表示に、「すべて」を表示に戻す。「すべて」が表示中の間は、通常のグループを非表示にしてもそのスライドは「すべて」経由で出続ける(グループ切り替えの非表示の行にその旨を出す)
 - 巡回の順番はスライドの並び順(`_order`)だけで決まる。グループは表示対象を選ぶだけで、グループ内の所属スライドの並びは巡回順に影響しない
 - 判定は1か所の純関数に置く。CMS側は`cms/src/lib/signage-visibility.ts`の`visibleSlideIds(enabledSlideIds, groups)`、フロント側は`signage-data.ts`の同名の関数で、同じ式を実装する(CMSとフロントは別パッケージで共有の仕組みが無いため。両者の単体テストを同じ表で書く)
@@ -367,7 +369,7 @@ stateDiagram-v2
 | 4.4 | 種別と順番をCMSで設定 | signage_slides(`kind`/`enabled`、`orderable`の`_order`) | — | — |
 | 4.6, 4.7 | 固定表示と解除 | signage_settings(`pinned_slide`), getPinState, withPin, buildPlaylist | `SignagePinState`、`SignageSnapshot.pinnedSlideId` | 巡回状態 |
 | 4.8, 4.12 | 固定の操作をスライドの一覧・編集画面で行い、1枚だけと分かる | SignagePinBanner, SignagePinCell, SignagePinButton, useSignagePin | Payload REST(`/api/globals/signage_settings`) | 固定表示と表示対象の即時反映 |
-| 4.13, 4.16, 4.19 | 多対多のグループ、グループ側で所属を複数選択、スライド側は所属を読み取り専用、実行委員だけが操作 | signage_groups(`slides`), signage_slides(`groups`のjoin) | — | — |
+| 4.13, 4.16, 4.19 | 多対多のグループ、グループ側で所属を左右2列のリストで登録・解除(題名で絞り込み)、スライド側は所属を読み取り専用、実行委員だけが操作 | signage_groups(`slides`), SignageGroupSlidesField, signage_slides(`groups`のjoin) | Payload REST(`/api/signage_slides`) | — |
 | 4.14 | 実効的な表示(表示中のグループに1つ以上属する)で巡回・固定を判定 | `visibleSlideIds`(CMS・フロント), withPin, signage_settings(`filterOptions`) | `SignageSnapshot.visibleSlideIds`、`SignagePinState.visibleSlideIds` | 実効的な表示とグループ |
 | 4.15 | 固定中のスライドが表示対象から外れたら固定を解除 | signage_groupsの`afterChange`・`afterDelete`、signage_slidesの`afterChange` | — | 実効的な表示とグループ |
 | 4.17, 4.18 | 一覧上部のグループ切り替え(「すべて」が先頭)、一覧での所属グループと表示されない印 | SignageGroupSwitches, SignageGroupCell, useSignageGroups | Payload REST(`/api/signage_groups`) | 実効的な表示とグループ |
@@ -449,8 +451,8 @@ stateDiagram-v2
 - 並び順: `signage_slides`と`telops`は`orderable: true`とし、管理画面の一覧でドラッグして並べ替える。順序はPayloadが追加する`_order`(文字列の順序キー、管理画面では非表示)に保存され、新規作成は末尾に入る。数値の並び順項目は持たない
 - 並び順の取得: RESTの`sort=_order`(昇順)で取得し、返った順のまま使う。フロントで`_order`を比較し直さない(管理画面の一覧と同じDB上の並びにするため)
 - 落とし物の返却済みは削除せず`returned`で隠す(問い合わせ対応で履歴を見るため)
-- グループとスライドの所属: グループ側の`slides`(`signage_slides`へのhasManyのrelationship)に保存する。スライド側は`groups`(`type: 'join'`、`collection: 'signage_groups'`、`on: 'slides'`)で所属グループを読み取るだけで、所属は保存しない。所属の編集はグループの編集画面で行う(4.16)
-- グループは巡回の順番を持たない。巡回順はスライドの`_order`だけで決まり、グループの`slides`の並びは使わない(グループの編集画面の所属スライドは並べ替えを出さない)
+- グループとスライドの所属: グループ側の`slides`(`signage_slides`へのhasManyのrelationship)に保存する。スライド側は`groups`(`type: 'join'`、`collection: 'signage_groups'`、`on: 'slides'`)で所属グループを読み取るだけで、所属は保存しない。所属の編集はグループの編集画面の左右2列のリスト(`SignageGroupSlidesField`)で行う(4.16)
+- グループは巡回の順番を持たない。巡回順はスライドの`_order`だけで決まり、グループの`slides`の並びは使わない(グループの編集画面の左右のリストはスライドの`_order`順に並べ、並べ替えの操作を持たない)
 - 「すべて」: `is_all = true`のグループ1件。所属は保存せず、全スライドが属するものとして計算する(4.20)
   - マイグレーションの`up`で`INSERT`して作る(本番はArgoCDのPreSyncの`payload migrate`で入り、`seed:dev`の有無に左右されない)。`down`ではテーブルごと消える
   - `is_all`はフィールドの`access`で`create`・`update`を常に偽にし、管理画面でも`admin.hidden`にする。APIから付けることも外すこともできないため、マイグレーションで作った1件だけが`is_all`を持つ
@@ -462,7 +464,7 @@ stateDiagram-v2
   - グループの`afterChange`: `visible`または`slides`が変わったら、固定中のスライドがまだ表示対象かを計算し、外れていれば空にする(「すべて」の`visible`の変更を含む)
   - グループの`afterDelete`: 同じ計算をする(削除で所属が消え、表示中のグループから外れることがあるため)
   - スライド側に所属の項目が無いため、所属の変化はすべてグループのフックで捉える
-- グループを削除すると、所属の行(`signage_groups_rels`)は外部キーの`ON DELETE CASCADE`で消える。スライドは残り、「すべて」には属したままになる。スライドを削除した場合も、グループの所属の行が同じく消える
+- グループを削除すると、所属の行(`signage_groups_rels`)は外部キーの`ON DELETE CASCADE`で消える。スライドは残り、「すべて」には属したままになる。所属スライドが残るグループも削除できる。スライドを削除した場合も、グループの所属の行が同じく消える
 
 **Implementation Notes**
 - Integration: 未リリースのサイネージ用マイグレーション(`20261008_193135_signage`)を削除し、`pnpm migrate:create signage`で作り直して1本に4コレクション(`signage_slides`・`telops`の`_order`列と索引、`signage_groups_rels`)とグローバル`signage_settings`を入れ、生成後に「すべて」の`INSERT`を`up`へ手で足し、`migrations/index.ts`の登録を差し替える。`pnpm generate:types`を実行する。新コレクション・グローバルの追加のみのため`cms-schema-check.yml`の破壊的変更には当たらない
@@ -475,6 +477,8 @@ stateDiagram-v2
 - joinの`where`は読み出し時の条件に`combineQueries`で足される(`database/sanitizeJoinQuery.js`)。「すべて」は所属の行を持たないため、`where`で除かなくてもjoinに現れない
 - joinは一覧の列にできる。一覧の列の候補から外れるのは隠し・無効・`disableListColumn`の項目だけで(`@payloadcms/ui`の`buildColumnState/filterFields.js`)、既定のセルはrelationshipと同じ`RelationshipCell`(先頭3件の題名)。一覧は`depth: 0`で取得し、joinの`defaultLimit`(既定10)件まで返る
 - joinの`admin`は`readOnly`を受け付けない(型が`never`)。編集画面のjoinは関連の表と「新規作成」を出すため、`admin.allowCreate: false`で新規作成を消して読み取り専用の表示にする
+- relationshipの管理画面の標準の入力は`admin.appearance`の`select`(既定。選択済みを並べた複数選択の入力欄と候補のメニュー)と`drawer`(一覧のドロワーから選ぶ)の2つだけで、左右2列のリストは無い(`payload`の`fields/config/types.d.ts`、`@payloadcms/ui`の`fields/Relationship/Input.js`)。所属の左右リストはカスタム部品で作る
+- relationshipの部品が扱うフォームの値は、関連先が1つのhasManyではIDの配列(`@payloadcms/ui`の`fields/Relationship/index.js`が選択肢の`value`だけを`setValue`する)。カスタム部品も`useField<number[]>`でIDの配列を読み書きすれば、保存の形は標準の部品と同じになる
 - joinを通じた条件(`groups.visible`など)は`getTableColumnFromPath`がhasManyの`_rels`を結合して扱える。本設計は表示対象の計算をWorker・CMSの関数で行うため使わない
 
 #### signage_settings(グローバル)
@@ -527,7 +531,7 @@ stateDiagram-v2
 - `signage-groups.ts`・`useSignageGroups.ts`: `GET /api/signage_groups?limit=0&depth=0&sort=createdAt`でグループ(`name`・`visible`・`is_all`・`slides`のID)を、`GET /api/signage_slides?limit=1&depth=0`の`totalDocs`で全スライド数を取って持ち、`PATCH /api/signage_groups/{id}`(`{ visible }`、`credentials: 'include'`)で表示を更新する。状態はモジュール内に1つだけ持ち、グループ切り替え・「所属グループ」列・固定の操作部品が購読する(`useSignagePin`と同じ作り)。更新が成功したら状態を置き換え、固定状態を読み直す(グループの`afterChange`が固定を外し得るため)。失敗時は状態を変えず「更新できませんでした」と出す。一覧の画面に入るたびに読み直す
 - グループ切り替え(`SignageGroupSwitches`、`admin.components.beforeListTable`に固定表示の帯の次に置く): 「すべて」を先頭に、続けて通常のグループを作成順に、1行ずつ表示/非表示のスイッチ(`role="switch"`のチェックボックス)、グループ名、「{n}枚」、グループの編集画面(`/admin/collections/signage_groups/{id}`)へのリンクを並べる。「すべて」の枚数は全スライド数、通常のグループは`slides`の件数。非表示のグループは名前の横に「非表示中」と出す。「すべて」が表示中の間は、非表示の通常のグループの行に「『すべて』が表示中のため表示されます」を添える(非表示にしたのにスライドが消えない理由が分かるように)
 - 「所属グループ」列(`groups`のjoinの`admin.components.Cell`、列名「所属グループ」): 所属する通常のグループ名を並べる(「すべて」は全行に出て邪魔なため出さない)。実効的に表示されないスライドには「表示されません」の印を添える。印の判定は行の`enabled`と`useSignageGroups`の状態から`visibleSlideIds`で行い、無効のスライドにも同じ印を付ける。joinの既定のセル(先頭3件)ではなく自前のセルにするのは、印を添えるためと、グループ切り替えの直後に再読み込みなしで印を変えるため
-- スライドの編集画面の`groups`はjoinの標準の表示で、所属グループを読み取り専用で出す(`admin.allowCreate: false`)。所属の編集はグループの編集画面の`slides`(標準のrelationship、`hasMany`、`admin.isSortable: false`)で行い、選択とドロワーでの新規作成ができる(4.16)。`signage_groups`は`admin.group: false`のためナビには無いが、画面・ドロワーの経路は残る
+- スライドの編集画面の`groups`はjoinの標準の表示で、所属グループを読み取り専用で出す(`admin.allowCreate: false`)。所属の編集はグループの編集画面の`slides`の左右2列のリスト(下記)で行う(4.16)。`signage_groups`は`admin.group: false`のためナビには無いが、画面・ドロワーの経路は残る
 - 一覧をグループで区切る表示(`admin.groupBy`)は使わない。Payloadのグループ化は単一の値の項目で区切るもので、スライド側に単一のグループ列が無い多対多では成り立たない。所属は「所属グループ」列で、表示状態はグループ切り替えと印で見る
 
 **Contracts**: State [x]
@@ -536,6 +540,32 @@ stateDiagram-v2
 - Integration: `slides`は`signage_groups_rels`を持つためマイグレーションに含める。`groups`のjoinはDB列を持たない。部品は`./components/...`で指定し、`pnpm generate:importmap`で登録する
 - Validation: `signage-groups`・`useSignageGroups`の取得(「すべて」を先頭にした並び、枚数)・更新・失敗時の状態保持・更新後の固定状態の読み直しを単体テストで確認する。表示と操作は実ブラウザで確認する
 - Risks: 一覧を複数タブで開いている場合、他タブの更新は再読み込みまで反映されない(許容)
+
+#### 所属スライドの左右リスト(`signage_groups`の編集画面)
+
+| Field | Detail |
+|-------|--------|
+| Intent | グループの所属スライドを、未登録と登録済みの2列の間で移して登録・解除する |
+| Requirements | 4.16, 4.20 |
+
+**Responsibilities & Constraints**
+- `SignageGroupSlidesField`: `slides`の`admin.components.Field`に置くクライアント部品。保存値は`slides`(hasManyのrelationship)のままで、`useField<number[]>({ path })`でスライドIDの配列を読み書きする。保存はPayloadの標準の保存ボタンで行い、部品はRESTで書き込まない
+- 選択肢の取得: 画面を開いたときに1回、`GET /api/signage_slides?limit=0&depth=0&sort=_order&select[title]=true&select[enabled]=true`(`credentials: 'include'`)で全スライドの題名と有効を取る。既存のカスタム部品(`useEventDays`・`signage-pin`)と同じくクライアントからのRESTにし、サーバー部品から渡す経路を新たに作らない。スライドは数十枚の規模のため件数の上限と分割の読み込みは持たない
+- 並び: 左の列「未登録」は取得したスライドのうち値に無いもの、右の列「登録済み」は値にあるものを、どちらも取得順(`_order`順)に並べる。右の列の並びは巡回順に影響しないため、移したスライドも`_order`の位置に入り、`setValue`も`_order`順の配列にする。列の見出しに件数を出す。無効のスライドは題名の横に「無効」と出す
+- 移動: 各行のボタンで1件ずつ移す(左の行は「追加」、右の行は「外す」)。ドラッグと複数選択は持たない
+- 絞り込み: 列の上の入力欄1つで、題名の部分一致(大文字・小文字を区別しない)で左右両方の列を絞る。外すスライドを探す操作も追加と同じく起こり、題名を1回入れればそのスライドが左右どちらにあるか(登録済みか)が分かるため、両方に効かせる。絞り込みは表示だけで、隠れた登録済みのスライドは値に残る
+- 振り分けと絞り込みは`signage-group-slides.ts`の純関数(全スライド・値・絞り込みの文字列から左右の列を返す、移動後の値を`_order`順で返す)に置く
+- 読み込み中は「読み込み中」、取得に失敗したら「スライドを読み込めませんでした」と出して列を出さない。値は変えないため、保存しても所属は消えない
+- 保存の権限が無い(`readOnly`)ときはボタンと入力欄を押せなくする
+- 「すべて」では`slides`が`admin.condition`で隠れるため、この部品も出ない(所属の編集不可、4.20)
+- スライドの新規作成はこの部品から行わない。スライドはスライドの一覧で作り、グループの編集画面を開き直すと左の列に出る
+
+**Contracts**: State [x]
+
+**Implementation Notes**
+- Integration: 部品のパスは`./components/SignageGroupSlidesField.tsx`で指定し、`pnpm generate:importmap`で登録する(`SignagePin*`と同じ)
+- Validation: `signage-group-slides`の振り分け(未登録・登録済み、`_order`順)・移動後の値の順・絞り込み(左右両方、大文字・小文字、絞り込みで隠れた登録済みが値に残る)を単体テストで確認する。表示と操作は実ブラウザで確認する
+- Risks: 部品が開いている間に別のタブで作ったスライドは、開き直すまで左の列に出ない(許容)
 
 #### richTextBlocksとHTML変換器
 
@@ -1023,7 +1053,7 @@ export interface SignageScreenProps {
 |-------|------|-----------|
 | `name` | text(必須、30字まで) | グループ名。例「開場前」。「すべて」も変更できる |
 | `visible` | checkbox | 既定true。ラベル「表示」。偽にすると、他の表示中のグループに属さない所属スライドを巡回・固定から外す |
-| `slides` | relationship(`signage_slides`、`hasMany`、任意、`admin.isSortable: false`) | 所属スライド。保存先は`signage_groups_rels`。「すべて」では`access.update`が偽で`admin.condition`により隠す |
+| `slides` | relationship(`signage_slides`、`hasMany`、任意、`admin.components.Field: './components/SignageGroupSlidesField.tsx'`) | 所属スライド。左右2列のリストで登録・解除する。保存先は`signage_groups_rels`。「すべて」では`access.update`が偽で`admin.condition`により隠す |
 | `is_all` | checkbox | 既定false。`access.create`・`access.update`は常に偽、`admin.hidden`。マイグレーションで作る「すべて」の1件だけが真 |
 
 **signage_settings**(グローバル「サイネージ設定」)
@@ -1071,10 +1101,10 @@ export interface SignageScreenProps {
 - **Unit (frontend 取得)**: `getSignageSnapshot`がスライドとテロップを`sort=_order`で要求し返った順を保つ、`pinnedSlideId`と`serverNow`を返す、`slides`にグループで非表示のスライドも含め`visibleSlideIds`で表示対象を返す。`visibleSlideIds`(「すべて」表示中・「すべて」非表示で表示中の通常のグループに属する/属さない・表示中と非表示の両方に属する・無効・グループ削除後)。`/api/signage`の応答に`serverNow`が入る
 - **Unit (frontend 固定状態)**: `getPinState`(固定なし・有効・無効・表示対象に無い・IDのまま→null、3つの取得をキャッシュなしで要求し`visibleSlideIds`を返す、いずれかの失敗で全体を失敗)、`/api/signage/pin`の応答と`no-store`・失敗時502、`withPin`(`undefined`はスナップショットの`visibleSlideIds`で絞る、`pin`があれば`pin.visibleSlideIds`で絞り`_order`順を保つ、`slide: null`はスナップショットの`pinnedSlideId`を打ち消す、スナップショットに無いスライドの追加、同じIDの置き換え)
 - **Unit (frontend 時刻・テロップ・拡縮)**: `clockOffsetMs`(往復時間の半分の考慮)、`telopSchedule`(横型の枠で収まる8秒、縦型の枠で流す件の切り上げ、チップ幅で枠が狭まる)、`telopAt`(周期の境目、同じ時刻なら同じ件と流れた距離)、`orientationOf`と`fitCanvas`(横長・縦長・正方形・極端な細長で全体が収まり中央に来る)
-- **Unit (cms)**: 3ブロックと表の変換HTML、ラベル・URLのエスケープ、`buttonLink`のURL検証、種別依存の必須検証、`policy.ts`の新フィルタ、`signage_settings`の項目定義(単一リレーション・有効スライドに限る選択肢・`admin.hidden`)、`signage-pin`・`useSignagePin`(取得・固定・解除・失敗時に状態を保つ)、`signage-groups`・`useSignageGroups`(「すべて」を先頭にした並びと枚数・表示の更新・失敗時に状態を保つ・更新後に固定状態を読み直す)、`signage-visibility`の`visibleSlideIds`(フロントと同じ表)、`signage_settings`の選択肢が実効的な表示の条件であること
+- **Unit (cms)**: 3ブロックと表の変換HTML、ラベル・URLのエスケープ、`buttonLink`のURL検証、種別依存の必須検証、`policy.ts`の新フィルタ、`signage_settings`の項目定義(単一リレーション・有効スライドに限る選択肢・`admin.hidden`)、`signage-pin`・`useSignagePin`(取得・固定・解除・失敗時に状態を保つ)、`signage-groups`・`useSignageGroups`(「すべて」を先頭にした並びと枚数・表示の更新・失敗時に状態を保つ・更新後に固定状態を読み直す)、`signage-group-slides`(左右の振り分けと`_order`順・移動後の値の順・左右両方への絞り込み・絞り込みで隠れた登録済みが値に残る)、`signage-visibility`の`visibleSlideIds`(フロントと同じ表)、`signage_settings`の選択肢が実効的な表示の条件であること
 - **Integration (cms `*.int.test.ts`)**: 未認証で無効スライド・無効テロップ・返却済み落とし物が読めない、学生団体が作成・更新できない、スライドとテロップの新規作成が末尾の`_order`を持ち未認証の`sort=_order`取得がその順で返る、`signage_settings`を未認証で読めて学生団体が更新できない、固定対象のスライド削除で参照が空になる、`pinned_slide: null`の更新で解除され読み取りが`null`を返す、固定中のスライドを無効にすると参照が空になる、未認証のスライド読み取りがグループの表示状態に関わらず有効なスライドを返す、表示中のグループに1つも属さないスライドを固定に選べない、固定中のスライドについてグループの非表示(「すべて」を含む)・グループの所属からの除外・グループの削除で表示対象から外れると参照が空になり、他の表示中のグループに属していれば空にならない、グループの削除で`signage_groups_rels`の行が消えスライドは残る、「すべて」がマイグレーションで1件作られ削除できず`is_all`を付け外しできず所属を書き込めず名前と表示は変えられる、学生団体がグループを作成・更新できない
 - **Unit (向き)**: `nextDepartures`の`perDirection`(1件/2件、2件目が無い場合)
-- **Browser (実測)**: 1920×1080と1080×1920で各領域の位置・寸法がFigmaと一致し(縦型のメイン領域は1032×580.5で、中身が横型の0.671875倍)、ビューポートの縦横を切り替えると配置が自動で変わる、細長いビューポート(例: 500×1330、1920×600)でキャンバス全体が収まり中央に来てスクロールが出ない、大きさ・読み込み時刻の異なる2つのページで同時刻に同じスライド・テロップ・流し位置が出る、端末時計をずらしても揃う、テロップの流し、スライド巡回と固定表示の切り替え、管理画面の帯・「固定」列・サイドバーのボタンで固定と解除ができ表示がただちに変わる、一覧上部のグループ切り替え(「すべて」が先頭)で所属スライドが巡回から外れ・戻り、「所属グループ」列の印と「固定」列が切り替えに追随する、グループの表示の切り替え・所属の変更・固定の各操作で保存から全画面の切り替えまでが約3秒以内で、2つのページが同じスライドを出し続ける、表の横スクロール(公式サイトSP幅358)
+- **Browser (実測)**: 1920×1080と1080×1920で各領域の位置・寸法がFigmaと一致し(縦型のメイン領域は1032×580.5で、中身が横型の0.671875倍)、ビューポートの縦横を切り替えると配置が自動で変わる、細長いビューポート(例: 500×1330、1920×600)でキャンバス全体が収まり中央に来てスクロールが出ない、大きさ・読み込み時刻の異なる2つのページで同時刻に同じスライド・テロップ・流し位置が出る、端末時計をずらしても揃う、テロップの流し、スライド巡回と固定表示の切り替え、管理画面の帯・「固定」列・サイドバーのボタンで固定と解除ができ表示がただちに変わる、一覧上部のグループ切り替え(「すべて」が先頭)で所属スライドが巡回から外れ・戻り、「所属グループ」列の印と「固定」列が切り替えに追随する、グループの編集画面の左右のリストで所属を追加・解除して保存でき、題名の絞り込みが両方の列に効く、グループの表示の切り替え・所属の変更・固定の各操作で保存から全画面の切り替えまでが約3秒以内で、2つのページが同じスライドを出し続ける、表の横スクロール(公式サイトSP幅358)
 
 ## Security Considerations
 - `/signage`は公開URLとし、ナビ・サイトマップに載せず`robots: { index: false }`を付ける。表示データはすべてCMSの公開REST由来で、新たに公開範囲は広がらない(落とし物・テロップ・スライドは新規に公開されるデータであり、公開判定で無効・返却済みを除く)
@@ -1121,9 +1151,10 @@ flowchart TD
 | 落とし物 | 決定 | 返却済みは`returned`で非表示。1ページ8件を超えたらページを分けて巡回 |
 | 向きの切替 | 決定 | 端末設定なし。ビューポートの高さ>幅で縦型。JSの1回の測定で向き・倍率・位置を決め、`data-orientation`で配置を切り替える。外周の配置とバス案内の便数だけが違い、メイン領域は横型と同じ中身を縮小し、データ・巡回・状態は共通 |
 | 端末間の同期 | 決定 | 巡回とテロップは補正済み時刻から決定的に計算する。CMS更新直後の最大20秒程度の食い違いは許容 |
-| グループを削除したときの所属スライド | 要判断 | 設計は削除で所属の行が消える(`CASCADE`)。スライドは残り「すべて」には属したままのため、「すべて」が表示中なら巡回に出て、非表示なら出ない。表示中の別グループに属していればそのまま出る。「すべて」を非表示にした運用中に、非表示のグループを消して隠していたスライドが勝手に出る事故は起きない。より慎重にするなら、所属スライドが残るグループの削除を拒む案(`beforeDelete`で`slides`が空でなければ拒否)も選べる |
+| グループを削除したときの所属スライド | 決定 | 削除で所属の行だけが消え(`CASCADE`)、スライドは残って「すべて」に属したままになる。所属スライドが残るグループも削除できる |
+| 所属スライドの編集 | 決定 | グループの編集画面で、未登録と登録済みの左右2列の間を行ごとのボタンで移す。標準のrelationshipに左右2列の表示が無いため`admin.components.Field`のカスタム部品とし、保存値は`slides`のまま。題名の絞り込みは左右両方に効く。並びは`_order`順で、巡回順に影響しない |
 | グループとスライドの関係 | 決定 | 多対多。所属はグループ側の`slides`(hasMany)に保存し、スライド側はjoinで読み取り専用に出す。一覧をグループで区切る表示(`admin.groupBy`)は単一の値の項目が要るため使わず、「所属グループ」列と一覧上部の切り替えで見る |
-| 表示の判定 | 決定 | 有効で、かつ表示中のグループに1つ以上属するスライドを出す(和)。全スライドは「すべて」に属する。普段は「すべて」を表示、開場前は「すべて」を非表示にして「開場前」だけ表示する |
+| 表示の判定 | 決定 | 有効で、かつ表示中のグループに1つ以上属するスライドを出す(和)。「すべて」が表示中の間は、通常のグループを非表示にしても所属スライドは出続ける。個別のスライドは各スライドの「有効」で隠す。全スライドは「すべて」に属する。普段は「すべて」を表示、開場前は「すべて」を非表示にして「開場前」だけ表示する |
 | 「すべて」 | 決定 | 組み込みのグループ1件(`is_all`)。所属は保存せず全スライドが属するものとして計算し、新規スライドも自動で属する。名前の変更と表示の切り替えだけでき、所属の編集と削除はできない。マイグレーションで作る |
 | グループの切り替えの反映時間 | 決定 | 固定表示と同じ3秒ごとの確認で表示対象のスライドIDを返し、約3秒以内に全端末へ反映する。グループで非表示のスライドの中身もスナップショットに含め、表示に切り替えた瞬間に出せるようにする |
 | グループの並び | 決定 | 一覧上部の切り替えは「すべて」を先頭に、通常のグループは作成順。巡回順はスライドの並び順だけで決まり、グループとグループ内の所属の並びは巡回順に影響しない |
