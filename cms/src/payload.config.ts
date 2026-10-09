@@ -1,29 +1,32 @@
-import path from 'path';
-import { fileURLToPath } from 'url';
+import path from 'path'
+import { fileURLToPath } from 'url'
 
-import { postgresAdapter } from '@payloadcms/db-postgres';
-import { nodemailerAdapter } from '@payloadcms/email-nodemailer';
-import { s3Storage } from '@payloadcms/storage-s3';
-import { ja } from '@payloadcms/translations/languages/ja';
-import { lexicalEditor } from '@payloadcms/richtext-lexical';
-import { buildConfig } from 'payload';
-import sharp from 'sharp';
+import { postgresAdapter } from '@payloadcms/db-postgres'
+import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
+import { s3Storage } from '@payloadcms/storage-s3'
+import { ja } from '@payloadcms/translations/languages/ja'
+import { lexicalEditor } from '@payloadcms/richtext-lexical'
+import { buildConfig } from 'payload'
+import sharp from 'sharp'
 
-import { isExecutive, toCmsUser } from './access/roles';
-import { authentikEndpoints } from './auth/authentik-endpoints';
-import { sendInvitation } from './auth/invitation';
-import { collections } from './collections';
-import { optionalEnv, requireEnv } from './env';
-import { globals } from './globals';
-import { richTextEditorFeatures } from './lib/rich-text-editor';
+import { isExecutive, toCmsUser } from './access/roles'
+import { authentikEndpoints } from './auth/authentik-endpoints'
+import { sendInvitation } from './auth/invitation'
+import { collections } from './collections'
+import { pgWithPoolErrorHandler, resolveReadReplicaUrl } from './db/read-replica'
+import { optionalEnv, requireEnv } from './env'
+import { globals } from './globals'
+import { richTextEditorFeatures } from './lib/rich-text-editor'
 
 // S3 未設定のローカル開発ではディスク保存にフォールバックする。本番/staging は Infisical が必ず与える。
-const s3Bucket = optionalEnv('S3_BUCKET');
+const s3Bucket = optionalEnv('S3_BUCKET')
 // docker-mailserver への接続先。infisical run --env=prod には入らないため、ローカルは常にコンソール出力になる。
-const smtpHost = optionalEnv('SMTP_HOST');
+const smtpHost = optionalEnv('SMTP_HOST')
 
-const filename = fileURLToPath(import.meta.url);
-const dirname = path.dirname(filename);
+const readReplicaUrl = await resolveReadReplicaUrl()
+
+const filename = fileURLToPath(import.meta.url)
+const dirname = path.dirname(filename)
 
 export default buildConfig({
   admin: {
@@ -75,8 +78,8 @@ export default buildConfig({
         retries: 2,
         inputSchema: [{ name: 'userId', type: 'number', required: true }],
         handler: async ({ input, req }) => {
-          await sendInvitation({ req, userId: input.userId });
-          return { output: {} };
+          await sendInvitation({ req, userId: input.userId })
+          return { output: {} }
         },
       },
     ],
@@ -102,11 +105,13 @@ export default buildConfig({
     autoGenerate: false,
   },
   db: postgresAdapter({
+    pg: pgWithPoolErrorHandler,
     pool: { connectionString: requireEnv('DATABASE_URL') },
     migrationDir: path.resolve(dirname, 'migrations'),
     // dev push はコレクション定義に無い制約を DROP する。手書きマイグレーションが入れた
     // CHECK と複合 UNIQUE が接続のたびに消えるため、スキーマ変更は常に migrate 経由にする
     push: false,
+    ...(readReplicaUrl ? { readReplicas: [readReplicaUrl] } : {}),
   }),
   sharp,
   plugins: s3Bucket
@@ -128,4 +133,4 @@ export default buildConfig({
         }),
       ]
     : [],
-});
+})
