@@ -35,6 +35,8 @@ export function buildRobotsPlan(phase: FestivalPhase): RobotsPlan {
       ...PRE_EVENT_PUBLIC_PATHS.map((path) => `${path}$`),
       ...PRE_EVENT_PUBLIC_PREFIXES,
       ...RENDER_ASSET_PREFIXES,
+      // Disallow: / が最長一致で sitemap を塞ぐため明示的に許可する
+      '/sitemap.xml$',
     ],
     disallow: ['/', ...GATED_REWRITE_TARGETS],
   };

@@ -38,6 +38,7 @@ describe('navigationItemsByPhase', () => {
     const expected: readonly NavigationItem[] = [
       { label: '荒牧祭について', href: '/#about' },
       { label: 'お知らせ', href: '/announcements' },
+      { label: 'トピック', href: '/topics' },
       {
         label: 'ご案内',
         children: navigationItemsByPhase.live[4].children,

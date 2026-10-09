@@ -84,7 +84,13 @@ describe('Footer', () => {
       within(siteGuide)
         .getAllByRole('link')
         .map((link) => link.textContent),
-    ).toEqual(['荒牧祭について', 'お知らせ', '広告協賛', '地域協賛']);
+    ).toEqual([
+      '荒牧祭について',
+      'お知らせ',
+      'トピック',
+      '広告協賛',
+      '地域協賛',
+    ]);
   });
 
   test('ご案内ブロックは「ご案内」の子項目からお問い合わせを除いたものを表示する (両フェーズ共通)', async () => {

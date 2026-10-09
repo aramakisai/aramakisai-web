@@ -87,6 +87,7 @@ export const navigationItemsByPhase: Readonly<
   pre_event: [
     { label: '荒牧祭について', href: '/#about' },
     { label: 'お知らせ', href: '/announcements' },
+    { label: 'トピック', href: '/topics' },
     { label: 'ご案内', children: GUIDANCE_CHILDREN },
     {
       label: '協賛',
