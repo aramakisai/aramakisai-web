@@ -468,10 +468,13 @@ async function fetchJoinSources(exhibitionId?: number) {
   ]);
 }
 
-/** 一覧ページ用。取得失敗時は例外を投げる (既存 topics/announcements と同じ規約) */
-export async function getExhibitionListData(
-  query: ExhibitionQuery,
-): Promise<ExhibitionListResult> {
+export interface ExhibitionCatalog {
+  readonly cards: readonly ExhibitionCardSummary[];
+  readonly areas: readonly AreaOption[];
+}
+
+/** 一覧ページ用の全カード。絞り込みとページ送りはクライアントが行う。取得失敗時は例外を投げる */
+export async function getExhibitionCatalog(): Promise<ExhibitionCatalog> {
   const [exhibitionsResult, [slotsResult, stagesResult, areasResult]] =
     await Promise.all([
       cms.findMany('student_exhibitions', {
@@ -496,9 +499,17 @@ export async function getExhibitionListData(
     stagesResult.value.docs,
     areasResult.value.docs,
   );
-  const cards = exhibitionsResult.value.docs.flatMap((e) =>
-    toCards(e, context),
-  );
+  return {
+    cards: exhibitionsResult.value.docs.flatMap((e) => toCards(e, context)),
+    areas: areasResult.value.docs.map((a) => ({ id: a.id, name: a.name })),
+  };
+}
+
+/** 取得失敗時は例外を投げる (既存 topics/announcements と同じ規約) */
+export async function getExhibitionListData(
+  query: ExhibitionQuery,
+): Promise<ExhibitionListResult> {
+  const { cards, areas } = await getExhibitionCatalog();
   const filtered = filterExhibitions(cards, query);
   const paginated = paginate(filtered, query.page);
   const total = filtered.length;
@@ -510,7 +521,7 @@ export async function getExhibitionListData(
     pageCount: paginated.pageCount,
     rangeStart: total === 0 ? 0 : (paginated.page - 1) * PAGE_SIZE + 1,
     rangeEnd: total === 0 ? 0 : Math.min(paginated.page * PAGE_SIZE, total),
-    areas: areasResult.value.docs.map((a) => ({ id: a.id, name: a.name })),
+    areas,
   };
 }
 

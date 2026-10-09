@@ -6,11 +6,17 @@ import { getSiteMetadata } from '@/lib/site-metadata';
 import { buildPageMetadata } from '@/lib/page-metadata';
 import { ROUTE_METADATA } from '@/lib/route-metadata';
 import { buildBreadcrumbJsonLd } from '@/lib/structured-data';
-import { getTimetable, resolveInitialDayKey } from '@/lib/timetable';
+import {
+  getTimetable,
+  resolveInitialDayKey,
+  type Timetable,
+} from '@/lib/timetable';
+import { loadForIsr } from '@/lib/isr';
 import { env } from '@/env';
 
-// CMS 取得失敗で例外を投げるため、ダミー CMS のビルドで事前描画が落ちる
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
+
+const EMPTY_TIMETABLE: Timetable = { days: [], stages: [], performances: [] };
 
 export async function generateMetadata(): Promise<Metadata> {
   const site = await getSiteMetadata();
@@ -27,7 +33,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function TimetablePage() {
-  const timetable = await getTimetable();
+  const timetable = await loadForIsr(getTimetable, EMPTY_TIMETABLE);
   const renderedAt = new Date().toISOString();
   const initialDayKey = resolveInitialDayKey(
     timetable.days,
