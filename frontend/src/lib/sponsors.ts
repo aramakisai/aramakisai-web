@@ -40,7 +40,7 @@ export async function getSponsors(): Promise<GetSponsorsResult> {
   const result = await cms.findMany('sponsors', {
     sort: ['sort'],
     limit: 0,
-    depth: 1,
+    depth: 0,
   });
   if (!result.ok) return { ok: false };
 

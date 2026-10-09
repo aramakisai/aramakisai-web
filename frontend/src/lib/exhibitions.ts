@@ -284,14 +284,12 @@ function toRefId(
   return typeof ref === 'object' ? ref.id : ref;
 }
 
+// depth 0 では media が ID のままで alt を持たないため、alt は常に企画名にする。
 function toExhibitionImage(
   media: number | Media,
-  fallbackAlt: string,
+  alt: string,
 ): ExhibitionImage {
-  if (typeof media === 'object') {
-    return { id: String(media.id), alt: media.alt || fallbackAlt };
-  }
-  return { id: String(media), alt: fallbackAlt };
+  return { id: String(typeof media === 'object' ? media.id : media), alt };
 }
 
 interface JoinContext {
@@ -548,7 +546,7 @@ export async function getExhibitionDetail(
   category: ExhibitionCategory,
 ): Promise<ExhibitionDetailResult> {
   const exhibitionResult = await cms.findById('student_exhibitions', id, {
-    depth: 1,
+    depth: 0,
   });
   if (!exhibitionResult.ok) {
     if (exhibitionResult.error.kind === 'network') {
