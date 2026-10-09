@@ -1,11 +1,7 @@
 import type { ReactNode } from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type {
-  CampusMapArea,
-  CampusMapDataResult,
-  CampusMapFilters,
-} from '@/lib/campus-map';
+import type { CampusMapArea, CampusMapDataResult } from '@/lib/campus-map';
 import type { ExhibitionCardSummary } from '@/lib/exhibitions';
 
 vi.mock('@/env', () => ({
@@ -94,12 +90,6 @@ function card(
   };
 }
 
-function baseFilters(
-  overrides: Partial<CampusMapFilters> = {},
-): CampusMapFilters {
-  return { q: '', categories: [], selectedAreaId: null, ...overrides };
-}
-
 function dataResult(
   overrides: Partial<CampusMapDataResult> = {},
 ): CampusMapDataResult {
@@ -164,7 +154,6 @@ describe('CampusMapScreen', () => {
     render(
       <CampusMapScreen
         data={dataResult({ areas: { kind: 'loaded', value: [area()] } })}
-        initialFilters={baseFilters()}
       />,
     );
 
@@ -184,9 +173,7 @@ describe('CampusMapScreen', () => {
 
   it('loads the map view without SSR and shows a loading placeholder for it (要件 1.11)', () => {
     stubDesktop();
-    render(
-      <CampusMapScreen data={dataResult()} initialFilters={baseFilters()} />,
-    );
+    render(<CampusMapScreen data={dataResult()} />);
 
     expect(state.dynamicOptions?.ssr).toBe(false);
     render(<>{state.dynamicOptions?.loading?.()}</>);
@@ -232,7 +219,6 @@ describe('CampusMapScreen', () => {
           areas: { kind: 'loaded', value: areas },
           exhibitions: { kind: 'loaded', value: items },
         })}
-        initialFilters={baseFilters()}
       />,
     );
 
@@ -268,7 +254,6 @@ describe('CampusMapScreen', () => {
           areas: { kind: 'loaded', value: areas },
           exhibitions: { kind: 'loaded', value: items },
         })}
-        initialFilters={baseFilters()}
       />,
     );
 
@@ -288,7 +273,6 @@ describe('CampusMapScreen', () => {
             error: { kind: 'network', status: 500 },
           },
         })}
-        initialFilters={baseFilters()}
       />,
     );
 
@@ -303,7 +287,6 @@ describe('CampusMapScreen', () => {
         data={dataResult({
           areas: { kind: 'error', error: { kind: 'network', status: 500 } },
         })}
-        initialFilters={baseFilters()}
       />,
     );
 
@@ -320,7 +303,6 @@ describe('CampusMapScreen', () => {
     render(
       <CampusMapScreen
         data={dataResult({ areas: { kind: 'loaded', value: [] } })}
-        initialFilters={baseFilters()}
       />,
     );
 
@@ -338,7 +320,6 @@ describe('CampusMapScreen', () => {
     const { getByTestId } = render(
       <CampusMapScreen
         data={dataResult({ areas: { kind: 'loaded', value: [area()] } })}
-        initialFilters={baseFilters()}
       />,
     );
 

@@ -1,13 +1,9 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
-import MapPage, { generateMetadata } from './page';
+import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
+import MapPage, { generateMetadata, revalidate } from './page';
 import * as campusMapModule from '@/lib/campus-map';
 import * as siteMetadataModule from '@/lib/site-metadata';
-import type {
-  CampusMapArea,
-  CampusMapDataResult,
-  CampusMapFilters,
-} from '@/lib/campus-map';
+import type { CampusMapArea, CampusMapDataResult } from '@/lib/campus-map';
 import type { ExhibitionCardSummary } from '@/lib/exhibitions';
 import type { SiteMetadata } from '@/lib/site-metadata';
 
@@ -98,10 +94,8 @@ function dataResult(
   };
 }
 
-async function renderPage(
-  searchParams: Record<string, string | string[] | undefined> = {},
-) {
-  return render(await MapPage({ searchParams: Promise.resolve(searchParams) }));
+async function renderPage() {
+  return render(await MapPage());
 }
 
 const SITE_METADATA: SiteMetadata = {
@@ -120,6 +114,10 @@ describe('MapPage', () => {
     screenProps.length = 0;
   });
 
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it('取得結果をそのまま CampusMapScreen へ渡す', async () => {
     const data = dataResult({
       areas: { kind: 'loaded', value: [area({ id: 1 }), area({ id: 2 })] },
@@ -136,9 +134,26 @@ describe('MapPage', () => {
     expect(screenProps.at(-1)!.data).toEqual(data);
   });
 
-  it('取得に失敗した結果もそのまま渡す (エラー握り潰しをしない)', async () => {
+  it('実行時にエリアか出展物の取得が失敗したら例外を投げる (ISR が古いページを保つため)', async () => {
+    vi.mocked(campusMapModule.getCampusMapData).mockResolvedValue(
+      dataResult({
+        areas: { kind: 'error', error: { kind: 'network', status: 500 } },
+      }),
+    );
+    await expect(renderPage()).rejects.toThrow();
+
+    vi.mocked(campusMapModule.getCampusMapData).mockResolvedValue(
+      dataResult({
+        exhibitions: { kind: 'error', error: { kind: 'network', status: 500 } },
+      }),
+    );
+    await expect(renderPage()).rejects.toThrow();
+  });
+
+  it('ビルド時 (CMS 不在) の取得失敗は結果をそのまま渡して描画する', async () => {
+    vi.stubEnv('NEXT_PHASE', 'phase-production-build');
     const data = dataResult({
-      areas: { kind: 'error', error: { kind: 'network', status: 500 } },
+      areas: { kind: 'error', error: { kind: 'network', status: 0 } },
     });
     vi.mocked(campusMapModule.getCampusMapData).mockResolvedValue(data);
 
@@ -147,20 +162,18 @@ describe('MapPage', () => {
     expect(screenProps.at(-1)!.data).toEqual(data);
   });
 
-  it('searchParams を解釈した初期条件を渡す', async () => {
+  it('絞り込みの初期条件はクライアントが URL から読むため渡さない', async () => {
     vi.mocked(campusMapModule.getCampusMapData).mockResolvedValue(
       dataResult({}),
     );
 
-    await renderPage({ q: 'ロボット', category: 'stage', area: '3' });
+    await renderPage();
 
-    const initialFilters = screenProps.at(-1)!
-      .initialFilters as CampusMapFilters;
-    expect(initialFilters).toEqual({
-      q: 'ロボット',
-      categories: ['stage'],
-      selectedAreaId: 3,
-    });
+    expect(screenProps.at(-1)).not.toHaveProperty('initialFilters');
+  });
+
+  it('ISR 化されている', () => {
+    expect(revalidate).toBe(60);
   });
 
   it('解決したフェーズを CampusMapScreen へ渡す', async () => {
