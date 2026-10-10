@@ -85,6 +85,15 @@ describe('addSlideToGroup', () => {
     });
   });
 
+  it('保存済みに同じIDがあれば重複させずに PATCH する', async () => {
+    const f = vi
+      .fn()
+      .mockResolvedValueOnce(res({ id: 3, slides: [1, 9, 2] }))
+      .mockResolvedValueOnce(res({}));
+    await addSlideToGroup(3, 9, f);
+    expect(f).toHaveBeenNthCalledWith(2, '/api/signage_groups/3?depth=0', expect.objectContaining({ body: JSON.stringify({ slides: [1, 9, 2] }) }));
+  });
+
   it('取得・保存のどちらの失敗でも投げる', async () => {
     await expect(addSlideToGroup(3, 9, vi.fn().mockResolvedValue(res({}, false)))).rejects.toThrow();
     const f = vi.fn().mockResolvedValueOnce(res({ slides: [] })).mockResolvedValueOnce(res({}, false));

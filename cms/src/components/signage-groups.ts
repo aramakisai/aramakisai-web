@@ -52,7 +52,7 @@ export async function addSlideToGroup(groupId: number, slideId: number, f: typeo
     method: 'PATCH',
     credentials: 'include',
     headers: JSON_HEADERS,
-    body: JSON.stringify({ slides: [...saved, slideId] }),
+    body: JSON.stringify({ slides: saved.includes(slideId) ? saved : [...saved, slideId] }),
   });
   if (!res.ok) throw new Error('所属を保存できませんでした');
 }
