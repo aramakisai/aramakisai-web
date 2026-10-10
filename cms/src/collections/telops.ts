@@ -1,4 +1,4 @@
-import type { CollectionConfig, Validate } from 'payload';
+import type { CollectionConfig } from 'payload';
 
 export const Telops: CollectionConfig = {
   slug: 'telops',
@@ -25,17 +25,11 @@ export const Telops: CollectionConfig = {
     {
       name: 'target',
       type: 'text',
+      required: true,
       maxLength: 20,
-      label: '対象',
-      admin: {
-        description: '例: 出店団体へ',
-        condition: (data) => data?.audience === 'group',
-      },
-      // 区分で必須が変わるため required ではなく検証で判定する
-      validate: ((value, { siblingData }) => {
-        if ((siblingData as { audience?: string }).audience !== 'group') return true;
-        return typeof value === 'string' && value.trim() !== '' ? true : '参加団体向けには対象が必要です';
-      }) as Validate,
+      defaultValue: 'ご来場のみなさまへ',
+      label: 'ラベル',
+      admin: { description: '例: ご来場のみなさまへ、出店団体へ' },
     },
     { name: 'body', type: 'text', required: true, maxLength: 200, label: '文面' },
     { name: 'enabled', type: 'checkbox', defaultValue: true, label: '有効' },
