@@ -23,6 +23,7 @@ import * as migration_20260930_145729_users_activated_at from './20260930_145729
 import * as migration_20260930_185535_student_exhibitions_category_placement from './20260930_185535_student_exhibitions_category_placement';
 import * as migration_20261003_155255_parking_lots from './20261003_155255_parking_lots';
 import * as migration_20261009_100051_media_public_null from './20261009_100051_media_public_null';
+import * as migration_20261009_110654_purge_media_edge_cache from './20261009_110654_purge_media_edge_cache';
 
 export const migrations = [
   {
@@ -148,6 +149,11 @@ export const migrations = [
   {
     up: migration_20261009_100051_media_public_null.up,
     down: migration_20261009_100051_media_public_null.down,
-    name: '20261009_100051_media_public_null'
+    name: '20261009_100051_media_public_null',
+  },
+  {
+    up: migration_20261009_110654_purge_media_edge_cache.up,
+    down: migration_20261009_110654_purge_media_edge_cache.down,
+    name: '20261009_110654_purge_media_edge_cache'
   },
 ];
