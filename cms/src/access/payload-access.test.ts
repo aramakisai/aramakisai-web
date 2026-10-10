@@ -55,3 +55,22 @@ describe('accessFor の読み取り', () => {
     expect(find.mock.calls.length).toBe(before);
   });
 });
+
+describe('accessFor の削除', () => {
+  const del = (collection: string, user: unknown) =>
+    accessFor(collection).delete({ req: reqWith(user) } as never);
+  const executive = { id: 1, role: 'executive' };
+
+  it('サイネージ グループは、実行委員には「すべて」以外だけを対象にする条件を返す', async () => {
+    expect(await del('signage_groups', executive)).toEqual({ is_all: { not_equals: true } });
+  });
+
+  it('サイネージ グループは、未認証・学生団体には条件ではなく false を返す', async () => {
+    expect(await del('signage_groups', null)).toBe(false);
+    expect(await del('signage_groups', { id: 2, role: 'student_exhibitor' })).toBe(false);
+  });
+
+  it('他のコレクションは policy の結果のまま', async () => {
+    expect(await del('signage_slides', executive)).toBe(true);
+  });
+});

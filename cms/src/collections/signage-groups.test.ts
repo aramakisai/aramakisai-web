@@ -59,20 +59,8 @@ describe('SignageGroups', () => {
     expect(a.admin?.hidden).toBe(true);
   });
 
-  describe('beforeDelete', () => {
-    const run = (isAll: boolean) => {
-      const hook = SignageGroups.hooks!.beforeDelete![0];
-      const findByID = vi.fn().mockResolvedValue({ id: 1, is_all: isAll });
-      return hook({ id: 1, req: { payload: { findByID } } } as never);
-    };
-
-    it('「すべて」の削除を拒む', async () => {
-      await expect(run(true)).rejects.toThrow('「すべて」は削除できません');
-    });
-
-    it('通常のグループは削除できる', async () => {
-      await expect(run(false)).resolves.not.toThrow();
-    });
+  it('削除の拒否は access で行い、beforeDelete は持たない', () => {
+    expect(SignageGroups.hooks?.beforeDelete).toBeUndefined();
   });
 
   it('固定の自動解除を afterChange・afterDelete に持つ', () => {
