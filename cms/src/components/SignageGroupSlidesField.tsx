@@ -1,8 +1,17 @@
 'use client';
 
-import { FieldLabel, useAuth, useDocumentDrawer, useDocumentInfo, useField } from '@payloadcms/ui';
+import {
+  Button,
+  CheckboxInput,
+  FieldLabel,
+  TextInput,
+  useAuth,
+  useDocumentDrawer,
+  useDocumentInfo,
+  useField,
+} from '@payloadcms/ui';
 import type { RelationshipFieldClientComponent } from 'payload';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ChangeEvent } from 'react';
 
 import { addSlideToGroup } from './signage-groups';
 import {
@@ -15,6 +24,8 @@ import {
   withoutMoved,
   type SlideRow,
 } from './signage-group-slides';
+
+const BORDER = '1px solid var(--theme-elevation-150)';
 
 const SAVE_FAILED = '所属を保存できませんでした。グループを保存してください';
 
@@ -90,56 +101,64 @@ const SignageGroupSlidesField: RelationshipFieldClientComponent = ({ path, field
     rows: SlideRow[],
     selected: Set<number>,
     setSelected: (s: Set<number>) => void,
-    allowCreate: boolean,
   ) => {
     const visible = filterRows(rows, query);
     return (
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <strong>
+      <div style={{ flex: 1, minWidth: 0, border: BORDER, borderRadius: 'var(--style-radius-s)', overflow: 'hidden' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--base)',
+            padding: 'calc(var(--base) / 2) var(--base)',
+            background: 'var(--theme-elevation-50)',
+            borderBottom: BORDER,
+          }}
+        >
+          <CheckboxInput
+            label="全選択"
+            readOnly={locked}
+            checked={visible.length > 0 && visible.every((r) => selected.has(r.id))}
+            onToggle={(e) => setSelected(e.target.checked ? new Set(selectAllIds(rows, query)) : new Set())}
+          />
+          <strong style={{ flex: 1 }}>
             {title} ({rows.length})
           </strong>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <input
-              type="checkbox"
-              disabled={locked}
-              checked={visible.length > 0 && visible.every((r) => selected.has(r.id))}
-              onChange={(e) => setSelected(e.target.checked ? new Set(selectAllIds(rows, query)) : new Set())}
-            />
-            全選択
-          </label>
-        </div>
-        {allowCreate && canCreate && (
-          <div>
-            <button
-              type="button"
-              className="btn btn--style-secondary btn--size-small"
-              disabled={!groupId}
-              onClick={openDrawer}
-            >
+          {canCreate && (
+            <Button buttonStyle="secondary" size="small" margin={false} disabled={!groupId} onClick={openDrawer}>
               スライドを新規作成
-            </button>
-            {!groupId && <p>グループを保存すると、ここからスライドを作成できます</p>}
-          </div>
-        )}
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+            </Button>
+          )}
+        </div>
+        <ul style={{ listStyle: 'none', padding: 0, margin: 0, maxHeight: 400, overflowY: 'auto' }}>
+          {visible.length === 0 && (
+            <li style={{ padding: 'calc(var(--base) / 2) var(--base)', color: 'var(--theme-elevation-500)' }}>
+              スライドはありません
+            </li>
+          )}
           {visible.map((r) => (
-            <li key={r.id}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input
-                  type="checkbox"
-                  disabled={locked}
-                  checked={selected.has(r.id)}
-                  onChange={(e) => {
-                    const next = new Set(selected);
-                    if (e.target.checked) next.add(r.id);
-                    else next.delete(r.id);
-                    setSelected(next);
-                  }}
-                />
-                {r.title}
-                {!r.enabled && <span style={{ color: 'var(--theme-elevation-500)' }}>無効</span>}
-              </label>
+            <li
+              key={r.id}
+              style={{ padding: 'calc(var(--base) / 2) var(--base)', borderBottom: BORDER, minHeight: 'calc(var(--base) * 2)' }}
+            >
+              <CheckboxInput
+                Label={
+                  <span>
+                    {r.title}
+                    {!r.enabled && (
+                      <span style={{ marginLeft: 8, color: 'var(--theme-elevation-500)' }}>無効</span>
+                    )}
+                  </span>
+                }
+                readOnly={locked}
+                checked={selected.has(r.id)}
+                onToggle={(e) => {
+                  const next = new Set(selected);
+                  if (e.target.checked) next.add(r.id);
+                  else next.delete(r.id);
+                  setSelected(next);
+                }}
+              />
             </li>
           ))}
         </ul>
@@ -150,35 +169,39 @@ const SignageGroupSlidesField: RelationshipFieldClientComponent = ({ path, field
   return (
     <div className="field-type">
       {label}
-      <input
-        type="search"
-        aria-label="題名で絞り込む"
+      <TextInput
+        path={`${path}-filter`}
         placeholder="題名で絞り込む"
         value={query}
-        disabled={locked}
-        onChange={(e) => setQuery(e.target.value)}
+        readOnly={locked}
+        onChange={(e: ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
       />
-      <div style={{ display: 'flex', gap: 'var(--base)', alignItems: 'flex-start', marginTop: 'var(--base)' }}>
-        {column('未登録', unregistered, leftSel, setLeftSel, true)}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <button
-            type="button"
-            className="btn btn--style-secondary btn--size-small"
+      {canCreate && !groupId && (
+        <p style={{ color: 'var(--theme-elevation-500)' }}>グループを保存すると、ここからスライドを作成できます</p>
+      )}
+      <div style={{ display: 'flex', gap: 'var(--base)', alignItems: 'stretch', marginTop: 'var(--base)' }}>
+        {column('未登録', unregistered, leftSel, setLeftSel)}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'calc(var(--base) / 2)', justifyContent: 'center' }}>
+          <Button
+            buttonStyle="secondary"
+            size="small"
+            margin={false}
             disabled={locked || left.length === 0}
             onClick={() => move(left, 'add')}
           >
             追加 →
-          </button>
-          <button
-            type="button"
-            className="btn btn--style-secondary btn--size-small"
+          </Button>
+          <Button
+            buttonStyle="secondary"
+            size="small"
+            margin={false}
             disabled={locked || right.length === 0}
             onClick={() => move(right, 'remove')}
           >
             ← 外す
-          </button>
+          </Button>
         </div>
-        {column('登録済み', registered, rightSel, setRightSel, true)}
+        {column('登録済み', registered, rightSel, setRightSel)}
       </div>
       {createError && <p style={{ color: 'var(--theme-error-500)' }}>{SAVE_FAILED}</p>}
       <DocumentDrawer initialData={{ enabled: false }} onSave={onCreated} />

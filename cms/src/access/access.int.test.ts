@@ -649,8 +649,9 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
         const alls = await allGroup();
         expect(alls).toHaveLength(1);
         const a = alls[0];
-        await expect(payload.delete({ collection: 'signage_groups', id: a.id, overrideAccess: false, user })).rejects.toThrow('「すべて」は削除できません');
-        await expect(payload.delete({ collection: 'signage_groups', id: a.id, ...ov })).rejects.toThrow();
+        await expect(payload.delete({ collection: 'signage_groups', id: a.id, overrideAccess: false, user })).rejects.toThrow();
+        await expect(payload.delete({ collection: 'signage_groups', id: a.id, overrideAccess: false })).rejects.toThrow();
+        expect(await allGroup()).toHaveLength(1);
 
         const created = await payload.create({
           collection: 'signage_groups',
@@ -682,6 +683,21 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
         await payload.update({ collection: 'signage_groups', id: a.id, data: { name: 'すべて', visible: true }, ...ov });
       } finally {
         await cleanup([s], [normal]);
+      }
+    });
+
+    it('通常のグループは実行委員が削除でき、学生団体は削除できない', async () => {
+      const g = await group('del-normal', []);
+      const keep = await group('del-denied', []);
+      try {
+        await expect(
+          payload.delete({ collection: 'signage_groups', id: keep.id, overrideAccess: false, user: await asOwner() }),
+        ).rejects.toThrow();
+        await payload.delete({ collection: 'signage_groups', id: g.id, overrideAccess: false, user: await asUser(executive.id) });
+        const left = await payload.find({ collection: 'signage_groups', where: { id: { in: [g.id, keep.id] } }, depth: 0, ...ov });
+        expect(left.docs.map((d) => d.id)).toEqual([keep.id]);
+      } finally {
+        await cleanup([], [keep]);
       }
     });
 

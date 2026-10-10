@@ -26,7 +26,12 @@ export function accessFor(collection: string): {
     },
     create: ({ req }) => canCreate(toCmsUser(req.user), collection),
     update: ({ req }) => canUpdate(toCmsUser(req.user), collection),
-    delete: ({ req }) => canDelete(toCmsUser(req.user), collection),
+    delete: ({ req }) => {
+      const result = canDelete(toCmsUser(req.user), collection);
+      // 文書ごとの判定に使われるため、「すべて」の編集画面のメニューに削除が出ず、一覧の一括削除でも残る
+      if (collection === 'signage_groups' && result === true) return { is_all: { not_equals: true } };
+      return result;
+    },
   };
 }
 

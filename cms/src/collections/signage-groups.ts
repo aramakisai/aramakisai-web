@@ -1,5 +1,4 @@
 import type { CollectionConfig } from 'payload';
-import { APIError } from 'payload';
 
 import { releasePinIfHidden } from '../lib/signage-pin-release';
 
@@ -16,12 +15,6 @@ export const SignageGroups: CollectionConfig = {
     group: false,
   },
   hooks: {
-    beforeDelete: [
-      async ({ id, req }) => {
-        const doc = await req.payload.findByID({ collection: 'signage_groups', id, depth: 0, overrideAccess: true, req });
-        if (doc.is_all) throw new APIError('「すべて」は削除できません', 400);
-      },
-    ],
     afterChange: [
       async ({ doc, previousDoc, req }) => {
         const changed =
