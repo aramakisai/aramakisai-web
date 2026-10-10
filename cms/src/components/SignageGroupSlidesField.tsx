@@ -77,7 +77,8 @@ const SignageGroupSlidesField: RelationshipFieldClientComponent = ({ path, field
     const d = doc as { id: number; title: string; enabled?: boolean | null };
     const created: SlideRow = { id: d.id, title: d.title, enabled: Boolean(d.enabled) };
     setAll([...all, created]);
-    setValue(moveValue([...all, created], current, [created.id], 'add'));
+    // PATCH で保存済みのため、フォームを未保存扱いにしない(既に未保存なら、その状態はそのまま残る)
+    setValue(moveValue([...all, created], current, [created.id], 'add'), true);
     closeDrawer();
     setCreateError(false);
     // 標準の関連項目と違い、保存ボタンを待たずに所属を保存して、グループの保存忘れで孤立するのを防ぐ
