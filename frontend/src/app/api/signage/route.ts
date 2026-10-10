@@ -4,8 +4,9 @@ export const dynamic = 'force-dynamic';
 
 const HEADERS = { 'Cache-Control': 'no-store' };
 
-export async function GET(): Promise<Response> {
-  const result = await getSignageSnapshot();
+export async function GET(request: Request): Promise<Response> {
+  const fresh = new URL(request.url).searchParams.get('fresh') === '1';
+  const result = await getSignageSnapshot({ fresh });
   if (!result.ok) {
     return Response.json(
       { error: 'cms_unavailable' },

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface PollingOptions<T> {
   readonly fetcher: () => Promise<T>;
@@ -14,6 +14,8 @@ interface PollingOptions<T> {
 interface PollingState<T> {
   readonly data: T | null;
   readonly error: boolean;
+  /** 即時に1回取得し、次回の予約をそこから数え直す。fetcher を渡すとその1回だけ差し替える */
+  readonly refresh: (fetcher?: () => Promise<T>) => Promise<void>;
 }
 
 const always = () => true;
@@ -25,7 +27,7 @@ export function usePolling<T>({
   shouldContinue = always,
   immediate = false,
 }: PollingOptions<T>): PollingState<T> {
-  const [state, setState] = useState<PollingState<T>>({
+  const [state, setState] = useState<Pick<PollingState<T>, 'data' | 'error'>>({
     data: initial,
     error: false,
   });
@@ -33,6 +35,13 @@ export function usePolling<T>({
   const fetcherRef = useRef(fetcher);
   const continueRef = useRef(shouldContinue);
   const initialRef = useRef(initial);
+  const runRef = useRef<(fetcher?: () => Promise<T>) => Promise<void>>(
+    async () => {},
+  );
+  const refresh = useCallback(
+    (override?: () => Promise<T>) => runRef.current(override),
+    [],
+  );
   useEffect(() => {
     fetcherRef.current = fetcher;
     continueRef.current = shouldContinue;
@@ -44,15 +53,15 @@ export function usePolling<T>({
     let stopped = false;
 
     const schedule = () => {
-      timer = setTimeout(run, intervalMs);
+      timer = setTimeout(() => void run(), intervalMs);
     };
 
-    async function run() {
+    async function run(override?: () => Promise<T>) {
       clearTimeout(timer);
       if (stopped || document.visibilityState === 'hidden') return;
       const mine = ++generation;
       try {
-        const data = await fetcherRef.current();
+        const data = await (override ?? fetcherRef.current)();
         if (mine !== generation) return;
         setState({ data, error: false });
         if (!continueRef.current(data)) {
@@ -65,6 +74,8 @@ export function usePolling<T>({
       }
       schedule();
     }
+
+    runRef.current = run;
 
     const onVisibility = () => {
       if (stopped) return;
@@ -95,5 +106,5 @@ export function usePolling<T>({
     };
   }, [intervalMs, immediate]);
 
-  return state;
+  return { ...state, refresh };
 }

@@ -10,7 +10,7 @@ import {
   stageNow,
   type SignageSnapshot,
 } from '@/lib/signage';
-import { withPin, usePinnedSlide } from '@/lib/signage-pin';
+import { missingSlideIds, withPin, usePinnedSlide } from '@/lib/signage-pin';
 import { clockOffsetMs, useCorrectedNow } from '@/lib/signage-time';
 import { useCanvasLayout } from '@/lib/signage-viewport';
 import { usePolling } from '@/lib/use-polling';
@@ -28,6 +28,8 @@ export interface SignageScreenProps {
 }
 
 const POLL_INTERVAL_MS = 20_000;
+// 取り直しても確認結果のIDが揃わない(別拠点の古いキャッシュ等)場合に要求が続かないようにする
+const REFRESH_MIN_GAP_MS = 10_000;
 
 interface Polled {
   readonly snapshot: SignageSnapshot;
@@ -35,9 +37,12 @@ interface Polled {
   readonly offsetMs: number | null;
 }
 
-async function fetchSnapshot(): Promise<Polled> {
+const fetchSnapshot = () => fetchSnapshotFrom('/api/signage');
+const fetchFreshSnapshot = () => fetchSnapshotFrom('/api/signage?fresh=1');
+
+async function fetchSnapshotFrom(url: string): Promise<Polled> {
   const sentAt = Date.now();
-  const res = await fetch('/api/signage', { cache: 'no-store' });
+  const res = await fetch(url, { cache: 'no-store' });
   const receivedAt = Date.now();
   if (!res.ok) throw new Error(`signage ${res.status}`);
   const snapshot = (await res.json()) as SignageSnapshot;
@@ -48,7 +53,7 @@ async function fetchSnapshot(): Promise<Polled> {
 }
 
 export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
-  const { data: polled } = usePolling<Polled>({
+  const { data: polled, refresh } = usePolling<Polled>({
     fetcher: fetchSnapshot,
     intervalMs: POLL_INTERVAL_MS,
     immediate: true,
@@ -60,6 +65,22 @@ export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
   );
   const snapshot = polled?.snapshot ?? null;
   const data = snapshot && withPin(snapshot, pin);
+  const missing = snapshot ? missingSlideIds(snapshot, pin) : [];
+  const refreshing = useRef(false);
+  const lastRefreshAt = useRef(-Infinity);
+  const missingKey = missing.join();
+  useEffect(() => {
+    // 確認結果(3秒ごと)の更新のたびに再評価するので、間隔を空けた再試行も同じ経路になる
+    if (!missingKey || refreshing.current) return;
+    if (Date.now() - lastRefreshAt.current < REFRESH_MIN_GAP_MS) return;
+    refreshing.current = true;
+    lastRefreshAt.current = Date.now();
+    refresh(fetchFreshSnapshot)
+      .catch(() => {})
+      .finally(() => {
+        refreshing.current = false;
+      });
+  }, [missingKey, refresh, pin]);
   const serverIso = initial?.serverNow ?? renderedAt;
   // マウント直後の最初の取得が終わるまでは SSR 時のサーバー時刻を基準にする (配送遅延ぶん遅れる)
   const [mountOffsetMs, setMountOffsetMs] = useState<number | null>(null);

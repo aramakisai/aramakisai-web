@@ -7,26 +7,40 @@ export interface SignagePinState {
   readonly serverNow: string;
   /** 有効な固定スライド。固定なし・無効・削除済みなら null */
   readonly slide: SignageSlide | null;
+  /** いま表示対象のスライドID。_order 順 */
+  readonly visibleSlideIds: readonly number[];
 }
 
 export const PIN_POLL_INTERVAL_MS = 3000;
 
-// 確認が一度でも成功したら、最大35秒古いスナップショットの pinnedSlideId より確認結果を優先する
+// 確認が一度でも成功したら、最大35秒古いスナップショットの pinnedSlideId と slides より確認結果を優先する
 export function withPin(
   snapshot: SignageSnapshot,
   pin: SignagePinState | undefined,
 ): SignageSnapshot {
   if (!pin) return snapshot;
   const { slide } = pin;
-  if (!slide) return { ...snapshot, pinnedSlideId: null };
-  const exists = snapshot.slides.some((s) => s.id === slide.id);
+  const visible = new Set(pin.visibleSlideIds);
+  const slides = snapshot.slides.filter((s) => visible.has(s.id));
+  if (!slide) return { ...snapshot, pinnedSlideId: null, slides };
+  const exists = slides.some((s) => s.id === slide.id);
   return {
     ...snapshot,
     pinnedSlideId: slide.id,
     slides: exists
-      ? snapshot.slides.map((s) => (s.id === slide.id ? slide : s))
-      : [...snapshot.slides, slide],
+      ? slides.map((s) => (s.id === slide.id ? slide : s))
+      : [...slides, slide],
   };
+}
+
+/** 表示対象なのにスナップショットに中身が無いスライドID。あれば取り直しが要る */
+export function missingSlideIds(
+  snapshot: SignageSnapshot,
+  pin: SignagePinState | undefined,
+): readonly number[] {
+  if (!pin) return [];
+  const have = new Set(snapshot.slides.map((s) => s.id));
+  return pin.visibleSlideIds.filter((id) => !have.has(id));
 }
 
 export function usePinnedSlide(

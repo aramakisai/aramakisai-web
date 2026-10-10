@@ -21,6 +21,7 @@ import { getSponsors, mergeSponsorLogos } from './sponsors';
 import { toTimetable } from './timetable';
 
 export const SIGNAGE_TTL_SECONDS = 15;
+export const SIGNAGE_REFRESH_INTERVAL_SECONDS = 5;
 
 const OPTIONS = { ttlSeconds: SIGNAGE_TTL_SECONDS } as const;
 // limit を省くと Payload 既定の 10 件で切れる
@@ -77,9 +78,9 @@ function toLostItem(doc: LostItem): SignageLostItem {
   };
 }
 
-export async function getSignageSnapshot(): Promise<
-  CmsResult<SignageSnapshot>
-> {
+export async function getSignageSnapshot({
+  fresh = false,
+}: { readonly fresh?: boolean } = {}): Promise<CmsResult<SignageSnapshot>> {
   const [
     meta,
     settings,
@@ -93,7 +94,16 @@ export async function getSignageSnapshot(): Promise<
   ] = await Promise.all([
     cms.findGlobal('festival_meta', {}, OPTIONS),
     cms.findGlobal('signage_settings', { depth: 0 }, OPTIONS),
-    cms.findMany('signage_slides', { ...ORDERED, depth: 1 }, OPTIONS),
+    cms.findMany(
+      'signage_slides',
+      { ...ORDERED, depth: 1 },
+      fresh
+        ? {
+            ...OPTIONS,
+            refreshIntervalSeconds: SIGNAGE_REFRESH_INTERVAL_SECONDS,
+          }
+        : OPTIONS,
+    ),
     cms.findMany('telops', ORDERED, OPTIONS),
     cms.findMany('lost_items', { ...ALL, depth: 1 }, OPTIONS),
     cms.findMany('stages', { ...ALL, depth: 0 }, OPTIONS),
@@ -143,21 +153,30 @@ export async function getSignageSnapshot(): Promise<
   };
 }
 
-/** 固定状態だけをキャッシュなしで返す。無効・未設定・読めない(IDのまま)の固定は slide: null */
+/** 固定状態と表示対象のスライドIDだけをキャッシュなしで返す。固定は有効かつ表示対象のときだけ slide に入る */
 export async function getPinState(): Promise<CmsResult<SignagePinState>> {
-  const settings = await cms.findGlobal(
-    'signage_settings',
-    { depth: 2 },
-    { ttlSeconds: 0 },
-  );
+  const [settings, visible] = await Promise.all([
+    cms.findGlobal('signage_settings', { depth: 2 }, { ttlSeconds: 0 }),
+    // 未認証の読み取りは公開判定で表示対象のスライドだけに絞られる
+    cms.findMany(
+      'signage_slides',
+      { ...ORDERED, depth: 0, select: { id: true } },
+      { ttlSeconds: 0 },
+    ),
+  ]);
   if (!settings.ok) return settings;
+  if (!visible.ok) return visible;
+  const visibleSlideIds = visible.value.docs.map((d) => d.id);
   const ref = settings.value.pinned_slide;
   const slide =
-    typeof ref === 'object' && ref !== null && ref.enabled
+    typeof ref === 'object' &&
+    ref !== null &&
+    ref.enabled &&
+    visibleSlideIds.includes(ref.id)
       ? toSlide(ref)
       : null;
   return {
     ok: true,
-    value: { serverNow: new Date().toISOString(), slide },
+    value: { serverNow: new Date().toISOString(), slide, visibleSlideIds },
   };
 }

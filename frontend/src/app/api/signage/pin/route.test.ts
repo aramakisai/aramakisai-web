@@ -11,7 +11,7 @@ describe('GET /api/signage/pin', () => {
   beforeEach(() => mocked.mockReset());
 
   it('200 で固定状態をキャッシュ禁止で返す', async () => {
-    const value = { serverNow: 'x', slide: null };
+    const value = { serverNow: 'x', slide: null, visibleSlideIds: [1] };
     mocked.mockResolvedValue({ ok: true, value });
     const res = await GET();
     expect(res.status).toBe(200);

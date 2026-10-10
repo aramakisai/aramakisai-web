@@ -235,3 +235,69 @@ describe('cms キャッシュ', () => {
     expect(put).not.toHaveBeenCalled();
   });
 });
+
+describe('cms refreshIntervalSeconds', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    delete (globalThis as Record<symbol, unknown>)[
+      Symbol.for('__cloudflare-context__')
+    ];
+  });
+
+  const okResponse = (body = { docs: [], totalDocs: 0 }) =>
+    new Response(JSON.stringify(body), { status: 200 });
+  const opts = { ttlSeconds: 15, refreshIntervalSeconds: 5 };
+
+  it('取り直し用のキーがあればそれを返し、CMS へも通常のキーへも行かない', async () => {
+    const fetchMock = vi.fn();
+    const match = vi
+      .fn()
+      .mockImplementation(async (req: Request) =>
+        req.url.includes('__refresh=5')
+          ? okResponse({ docs: [{ id: 1 }] } as never)
+          : undefined,
+      );
+    vi.stubGlobal('caches', { default: { match, put: vi.fn() } });
+    vi.stubGlobal('fetch', fetchMock);
+    const r = await cms.findMany('signage_slides', {}, opts);
+    expect(r.ok && r.value.docs).toEqual([{ id: 1 }]);
+    expect(match).toHaveBeenCalledTimes(1);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('無ければ CMS から取得し、取り直し用のキー(5秒)と通常のキー(15秒)を置き換える', async () => {
+    const put = vi.fn().mockResolvedValue(undefined);
+    const match = vi.fn().mockResolvedValue(undefined);
+    const fetchMock = vi.fn().mockImplementation(async () => okResponse());
+    vi.stubGlobal('caches', { default: { match, put } });
+    vi.stubGlobal('fetch', fetchMock);
+    (globalThis as Record<symbol, unknown>)[
+      Symbol.for('__cloudflare-context__')
+    ] = { ctx: { waitUntil: vi.fn() } };
+    await cms.findMany('signage_slides', {}, opts);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const stored = put.mock.calls.map(([k, res]) => [
+      k.url,
+      res.headers.get('Cache-Control'),
+    ]);
+    expect(stored).toContainEqual([
+      expect.stringContaining('__refresh=5'),
+      's-maxage=5',
+    ]);
+    expect(stored).toContainEqual([
+      expect.stringContaining('__cache_ttl=15'),
+      's-maxage=15',
+    ]);
+    expect(match.mock.calls.map(([k]) => k.url).join()).not.toContain(
+      '__cache_ttl',
+    );
+  });
+});
+
+describe('buildQueryString select', () => {
+  it('select をブラケット記法へ展開する', () => {
+    expect(buildQueryString({ select: { id: true } })).toBe(
+      'select%5Bid%5D=true',
+    );
+  });
+});

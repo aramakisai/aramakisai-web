@@ -19,6 +19,7 @@ vi.mock('./parking-data', () => ({ getParkingResponse }));
 import {
   getPinState,
   getSignageSnapshot,
+  SIGNAGE_REFRESH_INTERVAL_SECONDS,
   SIGNAGE_TTL_SECONDS,
 } from './signage-data';
 
@@ -235,6 +236,26 @@ describe('getSignageSnapshot', () => {
     );
   });
 
+  it('fresh のときはスライドだけ取り直し間隔つきで取得する', async () => {
+    setup();
+    await getSignageSnapshot({ fresh: true });
+    expect(findMany).toHaveBeenCalledWith('signage_slides', expect.anything(), {
+      ttlSeconds: SIGNAGE_TTL_SECONDS,
+      refreshIntervalSeconds: SIGNAGE_REFRESH_INTERVAL_SECONDS,
+    });
+    expect(findMany).toHaveBeenCalledWith('telops', expect.anything(), {
+      ttlSeconds: SIGNAGE_TTL_SECONDS,
+    });
+  });
+
+  it('fresh でなければ取り直し間隔を付けない', async () => {
+    setup();
+    await getSignageSnapshot();
+    expect(findMany).toHaveBeenCalledWith('signage_slides', expect.anything(), {
+      ttlSeconds: SIGNAGE_TTL_SECONDS,
+    });
+  });
+
   it.each([
     ['signage_slides'],
     ['telops'],
@@ -261,16 +282,24 @@ describe('getSignageSnapshot', () => {
 
 describe('getPinState', () => {
   const pinned = (extra = {}) => ({ ...slide(7), enabled: true, ...extra });
+  const visible = (...ids: number[]) =>
+    docs(ids.map((id) => ({ id, ...base })));
 
-  it('有効な固定スライドを正規化し、キャッシュなし・depth 2 で取得する', async () => {
-    setup({}, { pinned_slide: pinned() });
+  it('有効な固定スライドを正規化し、設定と表示対象のIDをキャッシュなしで取得する', async () => {
+    setup({ signage_slides: visible(3, 7, 5) }, { pinned_slide: pinned() });
     const r = await getPinState();
     if (!r.ok) throw new Error('failed');
     expect(r.value.slide).toMatchObject({ id: 7, title: 's7' });
+    expect(r.value.visibleSlideIds).toEqual([3, 7, 5]);
     expect(Number.isNaN(Date.parse(r.value.serverNow))).toBe(false);
     expect(findGlobal).toHaveBeenCalledWith(
       'signage_settings',
       { depth: 2 },
+      { ttlSeconds: 0 },
+    );
+    expect(findMany).toHaveBeenCalledWith(
+      'signage_slides',
+      { limit: 0, sort: ['_order'], depth: 0, select: { id: true } },
       { ttlSeconds: 0 },
     );
   });
@@ -279,15 +308,22 @@ describe('getPinState', () => {
     ['未設定', null],
     ['IDのまま(読めない)', 7],
     ['無効', pinnedDisabled()],
+    ['表示対象に無い', { ...pinnedDisabled(), enabled: true, id: 99 }],
   ])('%s は slide: null', async (_, ref) => {
-    setup({}, { pinned_slide: ref });
+    setup({ signage_slides: visible(7) }, { pinned_slide: ref });
     const r = await getPinState();
     if (!r.ok) throw new Error('failed');
     expect(r.value.slide).toBeNull();
   });
 
-  it('取得失敗は失敗を返す', async () => {
+  it('設定の取得失敗は失敗を返す', async () => {
+    setup();
     findGlobal.mockResolvedValue(fail);
+    expect((await getPinState()).ok).toBe(false);
+  });
+
+  it('表示対象の取得失敗は失敗を返す', async () => {
+    setup({ signage_slides: fail });
     expect((await getPinState()).ok).toBe(false);
   });
 });

@@ -112,4 +112,61 @@ describe('SignageScreen', () => {
       .mock.calls.filter(([u]) => u === '/api/signage/pin');
     expect(pins.length).toBeGreaterThanOrEqual(3);
   });
+
+  describe('表示対象の取り直し', () => {
+    const initial: SignageSnapshot = {
+      fetchedAt: '',
+      serverNow: '2026-11-14T00:00:00Z',
+      pinnedSlideId: null,
+      eventDays: [],
+      slides: [],
+      telops: [],
+      timetable: { days: [], stages: [], performances: [] },
+      sponsors: [],
+      lostItems: [],
+      parking: { isEventDay: false, fetchedAt: '', lots: [] },
+    };
+    const json = (body: unknown) =>
+      new Response(JSON.stringify(body), { status: 200 });
+    const freshCalls = () =>
+      vi.mocked(fetch).mock.calls.filter(([u]) => u === '/api/signage?fresh=1');
+
+    function mockFetch(freshDelayMs = 0) {
+      vi.mocked(fetch).mockImplementation(async (u) => {
+        if (u === '/api/signage/pin') {
+          return json({
+            serverNow: initial.serverNow,
+            slide: null,
+            visibleSlideIds: [5],
+          });
+        }
+        if (u === '/api/signage?fresh=1' && freshDelayMs) {
+          await new Promise((r) => setTimeout(r, freshDelayMs));
+        }
+        return json(initial);
+      });
+    }
+
+    it('スナップショットに無い表示対象のIDがあれば fresh=1 で取り直す', async () => {
+      mockFetch();
+      render(
+        <SignageScreen initial={initial} renderedAt={initial.serverNow} />,
+      );
+      await act(() => vi.advanceTimersByTimeAsync(100));
+      expect(freshCalls()).toHaveLength(1);
+    });
+
+    it('取り直し中は重ねず、完了後も10秒に1回までにする', async () => {
+      mockFetch(5_000);
+      render(
+        <SignageScreen initial={initial} renderedAt={initial.serverNow} />,
+      );
+      await act(() => vi.advanceTimersByTimeAsync(4_000));
+      expect(freshCalls()).toHaveLength(1);
+      await act(() => vi.advanceTimersByTimeAsync(4_000));
+      expect(freshCalls()).toHaveLength(1);
+      await act(() => vi.advanceTimersByTimeAsync(8_000));
+      expect(freshCalls()).toHaveLength(2);
+    });
+  });
 });
