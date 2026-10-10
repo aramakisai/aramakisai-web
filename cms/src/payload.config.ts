@@ -13,7 +13,7 @@ import { isExecutive, toCmsUser } from './access/roles'
 import { authentikEndpoints } from './auth/authentik-endpoints'
 import { sendInvitation } from './auth/invitation'
 import { collections } from './collections'
-import { pgWithPoolErrorHandler, resolveReadReplicaUrl } from './db/read-replica'
+import { createPgWithPoolErrorHandler, resolveReadReplicaUrl } from './db/read-replica'
 import { optionalEnv, requireEnv } from './env'
 import { globals } from './globals'
 import { purgeEdgeCache, readPurgeConfig, warnIfPurgeUnconfigured } from './lib/edge-purge'
@@ -24,6 +24,7 @@ const s3Bucket = optionalEnv('S3_BUCKET')
 // docker-mailserver への接続先。infisical run --env=prod には入らないため、ローカルは常にコンソール出力になる。
 const smtpHost = optionalEnv('SMTP_HOST')
 
+const databaseUrl = requireEnv('DATABASE_URL')
 const readReplicaUrl = await resolveReadReplicaUrl()
 
 const filename = fileURLToPath(import.meta.url)
@@ -121,8 +122,8 @@ export default buildConfig({
     autoGenerate: false,
   },
   db: postgresAdapter({
-    pg: pgWithPoolErrorHandler,
-    pool: { connectionString: requireEnv('DATABASE_URL') },
+    pg: createPgWithPoolErrorHandler(databaseUrl),
+    pool: { connectionString: databaseUrl },
     migrationDir: path.resolve(dirname, 'migrations'),
     // dev push はコレクション定義に無い制約を DROP する。手書きマイグレーションが入れた
     // CHECK と複合 UNIQUE が接続のたびに消えるため、スキーマ変更は常に migrate 経由にする
