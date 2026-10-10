@@ -240,3 +240,22 @@ describe('現在出演中の強調と現在時刻の線', () => {
     );
   });
 });
+
+describe('TimetableView の初期開催日 (ISR のキャッシュ描画対策)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  test('マウント後は端末の現在日で開催日を選び直す', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(jst('2026-11-15', '09:00')));
+
+    // サーバー描画 (キャッシュ) 時点では 1 日目が選ばれていた
+    renderView(timetable, '2026-11-14');
+
+    expect(screen.getByRole('button', { name: /11\/15/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+});

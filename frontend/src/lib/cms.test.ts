@@ -102,6 +102,19 @@ describe('cms.findGlobal', () => {
       'http://localhost:3100/api/globals/festival_meta?depth=1',
     );
   });
+
+  it('depth 未指定なら depth=0 を付ける', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ id: 1 }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    await cms.findGlobal('festival_meta');
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      'http://localhost:3100/api/globals/festival_meta?depth=0',
+    );
+  });
 });
 
 describe('cms キャッシュ', () => {

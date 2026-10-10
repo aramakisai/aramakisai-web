@@ -1,11 +1,7 @@
 import type { ReactNode } from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type {
-  CampusMapArea,
-  CampusMapDataResult,
-  CampusMapFilters,
-} from '@/lib/campus-map';
+import type { CampusMapArea, CampusMapDataResult } from '@/lib/campus-map';
 import type { ExhibitionCardSummary } from '@/lib/exhibitions';
 
 vi.mock('@/env', () => ({
@@ -94,12 +90,6 @@ function card(
   };
 }
 
-function baseFilters(
-  overrides: Partial<CampusMapFilters> = {},
-): CampusMapFilters {
-  return { q: '', categories: [], selectedAreaId: null, ...overrides };
-}
-
 function dataResult(
   overrides: Partial<CampusMapDataResult> = {},
 ): CampusMapDataResult {
@@ -164,7 +154,6 @@ describe('CampusMapScreen', () => {
     render(
       <CampusMapScreen
         data={dataResult({ areas: { kind: 'loaded', value: [area()] } })}
-        initialFilters={baseFilters()}
       />,
     );
 
@@ -184,9 +173,7 @@ describe('CampusMapScreen', () => {
 
   it('loads the map view without SSR and shows a loading placeholder for it (要件 1.11)', () => {
     stubDesktop();
-    render(
-      <CampusMapScreen data={dataResult()} initialFilters={baseFilters()} />,
-    );
+    render(<CampusMapScreen data={dataResult()} />);
 
     expect(state.dynamicOptions?.ssr).toBe(false);
     render(<>{state.dynamicOptions?.loading?.()}</>);
@@ -232,7 +219,6 @@ describe('CampusMapScreen', () => {
           areas: { kind: 'loaded', value: areas },
           exhibitions: { kind: 'loaded', value: items },
         })}
-        initialFilters={baseFilters()}
       />,
     );
 
@@ -268,7 +254,6 @@ describe('CampusMapScreen', () => {
           areas: { kind: 'loaded', value: areas },
           exhibitions: { kind: 'loaded', value: items },
         })}
-        initialFilters={baseFilters()}
       />,
     );
 
@@ -288,7 +273,6 @@ describe('CampusMapScreen', () => {
             error: { kind: 'network', status: 500 },
           },
         })}
-        initialFilters={baseFilters()}
       />,
     );
 
@@ -303,7 +287,6 @@ describe('CampusMapScreen', () => {
         data={dataResult({
           areas: { kind: 'error', error: { kind: 'network', status: 500 } },
         })}
-        initialFilters={baseFilters()}
       />,
     );
 
@@ -320,7 +303,6 @@ describe('CampusMapScreen', () => {
     render(
       <CampusMapScreen
         data={dataResult({ areas: { kind: 'loaded', value: [] } })}
-        initialFilters={baseFilters()}
       />,
     );
 
@@ -329,51 +311,35 @@ describe('CampusMapScreen', () => {
     ).toBeGreaterThan(0);
   });
 
-  it('follows the bottom sheet height so the map controls margin tracks it', () => {
+  it('shrinks the map viewport to the bottom sheet top (minus the 16px rounded corner), capped at 55vh', () => {
     stubMobile();
     MockResizeObserver.instances.length = 0;
     vi.stubGlobal('ResizeObserver', MockResizeObserver);
+    vi.stubGlobal('innerHeight', 800);
 
     const { getByTestId } = render(
       <CampusMapScreen
         data={dataResult({ areas: { kind: 'loaded', value: [area()] } })}
-        initialFilters={baseFilters()}
       />,
     );
 
-    const controlsMargin = getByTestId('map-controls-margin');
+    const viewport = getByTestId('map-viewport');
     const sheet = getByTestId('map-bottom-sheet');
     const observer = MockResizeObserver.instances.at(-1);
+    const inset = () => viewport.style.getPropertyValue('--map-bottom-inset');
 
     vi.spyOn(sheet, 'getBoundingClientRect').mockReturnValue({
       height: 150,
     } as DOMRect);
-    act(() => observer?.trigger(sheet)); // collapsed 相当の低い高さ
-    expect(
-      controlsMargin.style.getPropertyValue('--map-bottom-sheet-height'),
-    ).toBe('150px');
+    act(() => observer?.trigger(sheet));
+    expect(inset()).toBe('134px');
 
     vi.spyOn(sheet, 'getBoundingClientRect').mockReturnValue({
-      height: 380,
-    } as DOMRect);
-    act(() => observer?.trigger(sheet)); // 中スナップまで手繰り寄せた高さ
-    expect(
-      controlsMargin.style.getPropertyValue('--map-bottom-sheet-height'),
-    ).toBe('380px');
+      height: 800,
+    } as DOMRect); // 全画面: 55vh = 440px で止まる
+    act(() => observer?.trigger(sheet));
+    expect(inset()).toBe('424px');
 
     vi.unstubAllGlobals();
-  });
-
-  it('tracks the bottom sheet height for both the zoom (bottomright) and attribution (bottomleft on SP) corners', () => {
-    stubMobile();
-    const { getByTestId } = render(
-      <CampusMapScreen
-        data={dataResult({ areas: { kind: 'loaded', value: [area()] } })}
-        initialFilters={baseFilters()}
-      />,
-    );
-    const className = getByTestId('map-controls-margin').className;
-    expect(className).toMatch(/leaflet-bottom\.leaflet-right/);
-    expect(className).toMatch(/leaflet-bottom\.leaflet-left/);
   });
 });

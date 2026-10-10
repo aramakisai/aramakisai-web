@@ -1,13 +1,9 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
-import type {
-  CampusMapArea,
-  CampusMapDataResult,
-  CampusMapFilters,
-} from '@/lib/campus-map';
+import type { CampusMapArea, CampusMapDataResult } from '@/lib/campus-map';
 import { filterExhibitions } from '@/lib/exhibitions';
 import { BUILD_PHASE, type FestivalPhase } from '@/lib/phase';
 import type { AreaExhibitionListState } from './area-exhibition-list';
@@ -34,6 +30,11 @@ const CampusMapView = dynamic(
   },
 );
 
+// シートが全画面近くまで伸びても地図コンテナが潰れないよう、追従はこの高さで止める
+const MAP_FOLLOW_MAX_VH = 55;
+// 角丸の裏が空かないよう、地図はシート上端からこの分だけシートの下に潜らせる
+const SHEET_RADIUS_PX = 16;
+
 const EXHIBITIONS_ERROR_MESSAGE =
   '出展物の取得に失敗しました。しばらくしてから再度お試しください。';
 
@@ -46,20 +47,27 @@ const EMPTY_AREAS: readonly CampusMapArea[] = [];
 
 export interface CampusMapScreenProps {
   readonly data: CampusMapDataResult;
-  readonly initialFilters: CampusMapFilters;
   readonly phase?: FestivalPhase;
 }
 
 export function CampusMapScreen({
   data,
-  initialFilters,
   // MapPage (Server Component) からのみ実際のフェーズが渡る。省略時は
   // BUILD_PHASE を使うことで、フェーズ結線に関与しない既存呼び出し元を壊さない
   phase = BUILD_PHASE,
 }: CampusMapScreenProps) {
   const { filters, keywordInput, setKeywordInput, setCategories, selectArea } =
-    useMapFilters(initialFilters);
-  const [sheetHeight, setSheetHeight] = useState(0);
+    useMapFilters();
+  const [bottomInset, setBottomInset] = useState(0);
+  const handleSheetHeightChange = useCallback((height: number) => {
+    setBottomInset(
+      Math.max(
+        0,
+        Math.min(height, (window.innerHeight * MAP_FOLLOW_MAX_VH) / 100) -
+          SHEET_RADIUS_PX,
+      ),
+    );
+  }, []);
 
   const areas: readonly CampusMapArea[] =
     data.areas.kind === 'loaded' ? data.areas.value : EMPTY_AREAS;
@@ -127,21 +135,17 @@ export function CampusMapScreen({
       <MapBottomSheet
         state={listState}
         notice={areaNotice}
-        onHeightChange={setSheetHeight}
+        selectedAreaId={filters.selectedAreaId}
+        onHeightChange={handleSheetHeightChange}
       />
       {/*
-       * ボトムシートは全幅で画面下端に固定され、Leaflet のコントロール (ズーム: bottomright,
-       * 出典表記: SP では bottomleft, z-index 1000) より前面 (z-[1050]) に重なる。シートの高さは
-       * ドラッグで連続的に変わるため、固定値ではなく実測値 (MapBottomSheet からの
-       * onHeightChange) を CSS 変数として margin に反映し、隠れないよう追従させる。
-       * SP では出典表記が左下 (leaflet-left) に移るため、両方の角に追従させる
+       * SP では地図コンテナ自体をシート上端までに縮め、fitBounds・maxBounds がシートに
+       * 隠れない可視領域基準になるようにする。コントロールは潜らせた分だけ持ち上げる
        */}
       <div
-        data-testid="map-controls-margin"
-        className="max-md:[&_.leaflet-bottom.leaflet-left]:mb-[calc(var(--map-bottom-sheet-height)+1rem)] max-md:[&_.leaflet-bottom.leaflet-right]:mb-[calc(var(--map-bottom-sheet-height)+1rem)]"
-        style={
-          { '--map-bottom-sheet-height': `${sheetHeight}px` } as CSSProperties
-        }
+        data-testid="map-viewport"
+        className="h-[calc(100dvh-var(--map-bottom-inset))] md:h-dvh max-md:[&_.leaflet-bottom]:mb-4"
+        style={{ '--map-bottom-inset': `${bottomInset}px` } as CSSProperties}
       >
         <CampusMapView
           areas={areas}

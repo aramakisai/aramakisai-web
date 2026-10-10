@@ -13,6 +13,7 @@ export interface AreaLabelMarkerProps {
   readonly name: string;
   readonly geometry: MultiPolygonGeometry;
   readonly selected: boolean;
+  readonly onSelect?: () => void;
   readonly hasAed?: boolean;
   readonly hasToilet?: boolean;
 }
@@ -58,6 +59,7 @@ export function AreaLabelMarker({
   name,
   geometry,
   selected,
+  onSelect,
   hasAed = false,
   hasToilet = false,
 }: AreaLabelMarkerProps) {
@@ -67,9 +69,12 @@ export function AreaLabelMarker({
     <Marker
       position={[latitude, longitude]}
       icon={buildLabelIcon(name, selected, hasAed, hasToilet)}
-      // クリックの購読はポリゴン側が担う。ラベルが前面にあるためポインタイベントを
-      // 素通りさせないと、ラベルに重なった部分だけ選択できなくなる
-      interactive={false}
+      // ラベルはポリゴンの外へはみ出すことがあり、素通りさせるとはみ出し部分を押しても
+      // 選択できない。クリックはポリゴンと同じ選択処理へ流す。キーボード操作は
+      // ポリゴン側が担うため、フォーカス停止位置が二重にならないよう keyboard は切る
+      interactive
+      keyboard={false}
+      eventHandlers={{ click: () => onSelect?.() }}
     />
   );
 }

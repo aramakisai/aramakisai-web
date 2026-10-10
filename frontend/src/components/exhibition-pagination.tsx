@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import type { ComponentProps } from 'react';
 import { ChevronLeftIcon, ChevronRightIcon } from './icons';
 
 export interface ExhibitionPaginationProps {
@@ -6,13 +6,33 @@ export interface ExhibitionPaginationProps {
   readonly pageCount: number;
   /** 現在の検索条件を保ったままページのみ差し替えた URL を返す */
   readonly hrefForPage: (page: number) => string;
+  /** 指定時は通常クリックでページ遷移せずこれを呼ぶ (href は新しいタブ等のために残す) */
+  readonly onPageChange?: (page: number) => void;
 }
 
-// 通常の <a> によるページ遷移で URL を書き換える。クライアント側の状態は持たない。
+function PageLink({
+  onNavigate,
+  ...props
+}: ComponentProps<'a'> & { readonly onNavigate?: () => void }) {
+  return (
+    <a
+      {...props}
+      onClick={(e) => {
+        if (!onNavigate || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+          return;
+        }
+        e.preventDefault();
+        onNavigate();
+      }}
+    />
+  );
+}
+
 export function ExhibitionPagination({
   page,
   pageCount,
   hrefForPage,
+  onPageChange,
 }: ExhibitionPaginationProps) {
   if (pageCount <= 1) return null;
 
@@ -23,13 +43,14 @@ export function ExhibitionPagination({
       <ul className="flex items-center justify-center gap-2">
         <li>
           {page > 1 ? (
-            <Link
+            <PageLink
               href={hrefForPage(page - 1)}
+              onNavigate={onPageChange && (() => onPageChange(page - 1))}
               aria-label="前のページ"
               className="flex h-10 w-10 items-center justify-center rounded-md border border-gray-200 bg-background text-text hover:bg-gray-100"
             >
               <ChevronLeftIcon size={20} />
-            </Link>
+            </PageLink>
           ) : (
             <span
               aria-hidden="true"
@@ -41,8 +62,9 @@ export function ExhibitionPagination({
         </li>
         {pages.map((p) => (
           <li key={p}>
-            <Link
+            <PageLink
               href={hrefForPage(p)}
+              onNavigate={onPageChange && (() => onPageChange(p))}
               aria-current={p === page ? 'page' : undefined}
               className={`flex h-10 w-10 items-center justify-center rounded-md border text-sm font-medium text-text ${
                 p === page
@@ -51,18 +73,19 @@ export function ExhibitionPagination({
               }`}
             >
               {p}
-            </Link>
+            </PageLink>
           </li>
         ))}
         <li>
           {page < pageCount ? (
-            <Link
+            <PageLink
               href={hrefForPage(page + 1)}
+              onNavigate={onPageChange && (() => onPageChange(page + 1))}
               aria-label="次のページ"
               className="flex h-10 w-10 items-center justify-center rounded-md border border-gray-200 bg-background text-text hover:bg-gray-100"
             >
               <ChevronRightIcon size={20} />
-            </Link>
+            </PageLink>
           ) : (
             <span
               aria-hidden="true"

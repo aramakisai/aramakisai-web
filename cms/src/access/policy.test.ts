@@ -91,14 +91,8 @@ describe('canRead', () => {
     expect(canRead(exhibitor, 'media', NOW)).toEqual({ owner: { equals: 'user-1' } });
   });
 
-  it('未認証は移行前の所有者なしメディア・実行委員所有・公開企画で使用中のメディアだけ読める', () => {
-    expect(canRead(null, 'media', NOW)).toEqual({
-      or: [
-        { and: [{ owner: { exists: false } }, { used_in_published: { exists: false } }] },
-        { 'owner.role': { equals: 'executive' } },
-        { used_in_published: { equals: true } },
-      ],
-    });
+  it('未認証は used_in_published が false のメディア以外 (NULL または true) を読める', () => {
+    expect(canRead(null, 'media', NOW)).toEqual({ used_in_published: { not_equals: false } });
   });
 });
 

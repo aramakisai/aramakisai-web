@@ -146,6 +146,7 @@ export interface Config {
   jobs: {
     tasks: {
       sendInvitation: TaskSendInvitation;
+      purgeMediaEdgeCache: TaskPurgeMediaEdgeCache;
       inline: {
         input: unknown;
         output: unknown;
@@ -868,7 +869,7 @@ export interface PayloadJob {
     | {
         executedAt: string;
         completedAt: string;
-        taskSlug: 'inline' | 'sendInvitation';
+        taskSlug: 'inline' | 'sendInvitation' | 'purgeMediaEdgeCache';
         taskID: string;
         input?:
           | {
@@ -901,7 +902,7 @@ export interface PayloadJob {
         id?: string | null;
       }[]
     | null;
-  taskSlug?: ('inline' | 'sendInvitation') | null;
+  taskSlug?: ('inline' | 'sendInvitation' | 'purgeMediaEdgeCache') | null;
   queue?: string | null;
   waitUntil?: string | null;
   processing?: boolean | null;
@@ -1671,6 +1672,33 @@ export interface CollectionsWidget {
 export interface TaskSendInvitation {
   input: {
     userId: number;
+  };
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskPurgeMediaEdgeCache".
+ */
+export interface TaskPurgeMediaEdgeCache {
+  input: {
+    files:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    prefixes:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
   };
   output?: unknown;
 }

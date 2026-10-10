@@ -34,6 +34,7 @@ describe('buildRobotsPlan', () => {
 
     expect(plan.allow).toContain('/_next/');
     expect(plan.allow).toContain('/images/');
+    expect(plan.allow).toContain('/sitemap.xml$');
   });
 
   it('開催前・開催中のいずれもゲートの rewrite 先を禁止する', () => {

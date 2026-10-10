@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
-import TimetablePage, { generateMetadata } from './page';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import TimetablePage, { generateMetadata, revalidate } from './page';
+import * as pageModule from './page';
 import * as timetableModule from '@/lib/timetable';
 import type { Timetable } from '@/lib/timetable';
 
@@ -33,6 +34,10 @@ const TIMETABLE: Timetable = {
 };
 
 describe('TimetablePage', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it('見出しと開催日切替を表示し、リクエスト時刻から初期開催日を決める', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-10-25T03:00:00Z'));
@@ -50,10 +55,24 @@ describe('TimetablePage', () => {
     );
   });
 
-  it('取得失敗は例外のまま伝える', async () => {
+  it('実行時の取得失敗は例外のまま伝える (ISR が古いページを保持するため)', async () => {
     vi.mocked(timetableModule.getTimetable).mockRejectedValue(new Error('x'));
 
     await expect(TimetablePage()).rejects.toThrow('x');
+  });
+
+  it('ビルド時 (CMS 不在) の取得失敗は空のタイムテーブルで描画する', async () => {
+    vi.stubEnv('NEXT_PHASE', 'phase-production-build');
+    vi.mocked(timetableModule.getTimetable).mockRejectedValue(new Error('x'));
+
+    render(await TimetablePage());
+
+    expect(screen.getByText('出演予定はありません')).toBeInTheDocument();
+  });
+
+  it('ISR 化されている (force-dynamic ではなく revalidate を持つ)', () => {
+    expect(revalidate).toBe(60);
+    expect('dynamic' in pageModule).toBe(false);
   });
 
   it('メタデータにタイトルと canonical を設定する', async () => {

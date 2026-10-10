@@ -1,14 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ChevronRightIcon, PlayCircleIcon } from './icons';
 import { TimetableGrid } from './timetable-grid';
 import { STAGE_BAND_CLASSES } from './timetable-stage-colors';
-import { formatEventDayTime } from '@/lib/event-day';
+import { formatEventDayTime, toJstDateKey } from '@/lib/event-day';
 import { useNow } from '@/lib/use-now';
 import {
   isPerformanceActive,
+  resolveInitialDayKey,
   type Timetable,
   type TimetablePerformance,
 } from '@/lib/timetable';
@@ -29,6 +30,14 @@ export function TimetableView({
   const now = useNow(renderedAt);
   const { days, stages, performances } = timetable;
   const [dayKey, setDayKey] = useState(initialDayKey);
+  // ISR のキャッシュ描画は再検証まで古い日付を初期値にしているため、描画時から日付が
+  // 変わっていれば端末の現在日で選び直す
+  useEffect(() => {
+    const current = new Date();
+    if (toJstDateKey(renderedAt) !== toJstDateKey(current.toISOString())) {
+      setDayKey(resolveInitialDayKey(days, current));
+    }
+  }, [days, renderedAt]);
   const [stageId, setStageId] = useState(stages[0]?.id ?? null);
 
   if (days.length === 0) {

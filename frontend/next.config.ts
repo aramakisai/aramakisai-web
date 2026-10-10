@@ -14,6 +14,38 @@ const nextConfig: NextConfig = {
   // (エラー画面のタイトルが巻き戻る)。全 UA を対象にして streaming を無効化し、
   // <head> を確定させてから送出させることでこの巻き戻りを防ぐ
   htmlLimitedBots: /.*/,
+  // 旧サイト (/2025/*) の検索流入を受ける。詳細ページは slug/ID 体系が新サイトと
+  // 異なり個別に対応付けられないため、対応する一覧ページへ集約する。
+  // 対応先の無いもの (welcome, wp-*, 画像等) は意図的にリダイレクトしない
+  async redirects() {
+    const statusCode = 301;
+    return [
+      { source: '/2025', destination: '/', statusCode },
+      { source: '/2025/about', destination: '/#about', statusCode },
+      { source: '/2025/topics', destination: '/topics', statusCode },
+      { source: '/2025/topics/:slug', destination: '/topics', statusCode },
+      { source: '/2025/news/:slug', destination: '/announcements', statusCode },
+      { source: '/2025/events', destination: '/exhibitions', statusCode },
+      {
+        source: '/2025/events/:slug*',
+        destination: '/exhibitions',
+        statusCode,
+      },
+      { source: '/2025/faqs', destination: '/faq', statusCode },
+      { source: '/2025/faqs/:slug', destination: '/faq', statusCode },
+      { source: '/2025/sponsors', destination: '/sponsors/ad', statusCode },
+      {
+        source: '/2025/local-sponsors',
+        destination: '/sponsors/local',
+        statusCode,
+      },
+      {
+        source: '/2025/local-sponsors/:slug',
+        destination: '/sponsors/local',
+        statusCode,
+      },
+    ];
+  },
   webpack(config) {
     // next/dynamic は初期バンドルからの遅延分割に過ぎず、分割後のチャンクが
     // 成果物ディレクトリに残るため、開発用フラグ無効ビルドでの除去には使えない。

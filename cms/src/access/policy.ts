@@ -46,23 +46,16 @@ function selfFilter(user: CmsUser): Where {
 }
 
 /**
- * 未認証・学生団体以外に公開する画像: 所有者記録の導入前から存在する画像、所有者が実行委員、
- * または公開企画で使用中のいずれか。
+ * 未認証・学生団体以外に公開する画像。used_in_published は三値で、false だけが非公開。
+ * NULL は公開判定の対象外 (実行委員のアップロード・所有者記録の導入前の画像) で常に公開、
+ * true は公開企画で使用中。
  *
- * 「所有者なし」は所有者記録の導入前から存在する画像に限定するため used_in_published も
- * 未設定であることを併せて見る。所有者記録の導入後に作成された画像は作成時のフックが必ず
- * used_in_published へ true/false を入れるため、NULL のままなのは移行前の行だけである。
- * これが無いと、学生団体ユーザーの削除で owner が NULL になった未公開の下書き画像が
- * 未認証に公開されてしまう (media.owner_id は ON DELETE SET NULL)。
+ * owner.role を条件に含めると users の LEFT JOIN が付き、drizzle が DISTINCT の ID 取得を
+ * 先に発行して 1 回の参照が SQL 2 本になるため、自テーブルの列だけで判定する。
+ * 学生団体の削除で owner が NULL になっても false のままなので下書き画像は公開されない。
  */
 function publicMediaRead(): Where {
-  return {
-    or: [
-      { and: [{ owner: { exists: false } }, { used_in_published: { exists: false } }] },
-      { 'owner.role': { equals: 'executive' } },
-      { used_in_published: { equals: true } },
-    ],
-  };
+  return { used_in_published: { not_equals: false } };
 }
 
 export function canRead(
