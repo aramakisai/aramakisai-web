@@ -471,7 +471,7 @@ stateDiagram-v2
   - マイグレーションの`up`で`INSERT`して作る(本番はArgoCDのPreSyncの`payload migrate`で入り、`seed:dev`の有無に左右されない)。`down`ではテーブルごと消える
   - `is_all`はフィールドの`access`で`create`・`update`を常に偽にし、管理画面でも`admin.hidden`にする。APIから付けることも外すこともできないため、マイグレーションで作った1件だけが`is_all`を持つ
   - `slides`はフィールドの`access.update`を`({ doc }) => !doc?.is_all`にし、`admin.condition`で「すべて」の編集画面から隠す。「すべて」に所属を書き込もうとしても保存されない
-  - 削除はコレクションの`beforeDelete`フックで`is_all`のグループなら`APIError`(「『すべて』は削除できません」)を投げて拒む。accessは`withAccess`が一括で上書きするため、コレクション固有の禁止はフックに置く
+  - 削除は`payload-access.ts`の`accessFor`の`delete`で、`signage_groups`かつ削除できる利用者のときだけ`canDelete`の結果に代えて条件`{ is_all: { not_equals: true } }`を返して拒む(`read`の`signage_slides`と同じく`accessFor`の中でコレクションを判定する。accessは`withAccess`が一括で上書きするため、コレクション側の`access`には置かない)。Payloadは文書ごとの権限をこの条件で判定するため、「すべて」の編集画面のドキュメント操作のメニューに「削除」が出ず、一覧の一括削除でも「すべて」は消えない。APIの削除も拒まれる。`beforeDelete`のフックは置かない
   - 名前(`name`)と表示(`visible`)は通常のグループと同じく変更できる
 - 固定の自動解除(4.15): 固定中のスライドが実効的に非表示になったら`signage_settings.pinned_slide`を空にする。判定は`signage-visibility.ts`の`visibleSlideIds`で、保存後のグループ一覧から計算する
   - スライドの`afterChange`: 保存後の`enabled`が偽で、固定中のスライドなら空にする
@@ -575,6 +575,8 @@ stateDiagram-v2
 - 振り分けと絞り込みは`signage-group-slides.ts`の純関数(全スライド・値・絞り込みの文字列から左右の列を返す、選択と絞り込みから移す対象を決める、移動後の値を`_order`順で返す)に置く
 - 読み込み中は「読み込み中」、取得に失敗したら「スライドを読み込めませんでした」と出して列を出さない。値は変えないため、保存しても所属は消えない
 - 保存の権限が無い(`readOnly`)ときはボタンと入力欄を押せなくする
+- 見た目は管理画面の他の項目に揃え、素のHTMLの部品を出さない。入力欄・チェックボックス・ボタンは`@payloadcms/ui`の`TextInput`・`CheckboxInput`・`Button`(`buttonStyle="secondary"`、`size="small"`)を使い、色・角丸・余白は管理画面のCSS変数(`--theme-elevation-*`・`--style-radius-s`・`--base`)だけで指定する。項目名「所属スライド」は他の項目と同じラベルの見た目にする
+- 配置: 絞り込みの入力欄を全幅で置き、その下に左右の列と列の間のボタンを横に並べる。各列は枠線(`--theme-elevation-150`)と角丸の箱で、上端の見出し帯(地`--theme-elevation-50`)に「全選択」のチェックボックス・列名と件数・「スライドを新規作成」ボタンを並べ、その下に行を並べる。行は区切り線で分け、行の高さを揃える。行が多いときは箱の中だけを縦にスクロールし(最大高さ400px程度)、ページ全体を伸ばさない。左右の列は同じ幅で、列の間のボタンは縦に並べて上下中央に置く。「グループを保存すると、ここからスライドを作成できます」は列ごとに繰り返さず、入力欄の下に1回だけ出す。列が空のときは箱の中に「スライドはありません」と出す
 - 「すべて」では`slides`が`admin.condition`で隠れるため、この部品も出ない(所属の編集不可、4.20)
 - 新規作成: 列の上に「スライドを新規作成」ボタンを置き、`@payloadcms/ui`の`useDocumentDrawer({ collectionSlug: 'signage_slides' })`のドロワーでスライドの作成画面を開く。ドロワーには`initialData={{ enabled: false }}`を渡し、「有効」を外した状態で開く。ドロワーの`onSave`が`operation: 'create'`で呼ばれたら、作成したスライド(`doc`の`id`・`title`・`enabled`)を取得済みの一覧の末尾に足し(新規作成は`_order`の末尾に入るため)、値に加えて右の列に出し、ドロワーを閉じる
 - 作成直後のスライドは画面に出さない。所属はその場で保存するため、有効のまま作ると、グループが表示中ならグループの保存を待たずに巡回へ入る。中身を確かめてから実行委員が「有効」を付ける。`enabled`の既定値(`defaultValue: true`)は変えないため、スライドの一覧からの通常の新規作成は従来どおり有効で始まる
@@ -1073,7 +1075,7 @@ export interface SignageScreenProps {
 | `body` | text(必須、200字まで) | 文面 |
 | `enabled` | checkbox | 既定true |
 
-**signage_groups**(「サイネージ グループ」、`useAsTitle: name`、`admin.group: false`、`defaultSort: createdAt`、`beforeDelete`で「すべて」の削除を拒む)
+**signage_groups**(「サイネージ グループ」、`useAsTitle: name`、`admin.group: false`、`defaultSort: createdAt`、`accessFor`の`delete`の条件で「すべて」の削除を拒む)
 
 | Field | Type | 条件・既定 |
 |-------|------|-----------|
