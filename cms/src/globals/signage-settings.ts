@@ -1,5 +1,7 @@
 import type { GlobalConfig } from 'payload';
 
+import { visibleSlideFilter } from '../lib/signage-visibility';
+
 export const SignageSettings: GlobalConfig = {
   slug: 'signage_settings',
   label: 'サイネージ設定',
@@ -11,7 +13,7 @@ export const SignageSettings: GlobalConfig = {
       type: 'relationship',
       relationTo: 'signage_slides',
       label: '固定表示するスライド',
-      filterOptions: { enabled: { equals: true } },
+      filterOptions: ({ req }) => visibleSlideFilter(req.payload, req),
       admin: { description: '選んだスライドだけを全画面に表示し続けます。空にすると通常の巡回に戻ります。' },
     },
   ],

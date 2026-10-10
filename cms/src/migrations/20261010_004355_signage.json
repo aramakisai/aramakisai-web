@@ -3226,6 +3226,221 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.signage_groups": {
+      "name": "signage_groups",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "visible": {
+          "name": "visible",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
+        },
+        "is_all": {
+          "name": "is_all",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "signage_groups_updated_at_idx": {
+          "name": "signage_groups_updated_at_idx",
+          "columns": [
+            {
+              "expression": "updated_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "signage_groups_created_at_idx": {
+          "name": "signage_groups_created_at_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.signage_groups_rels": {
+      "name": "signage_groups_rels",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "order": {
+          "name": "order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "path": {
+          "name": "path",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "signage_slides_id": {
+          "name": "signage_slides_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "signage_groups_rels_order_idx": {
+          "name": "signage_groups_rels_order_idx",
+          "columns": [
+            {
+              "expression": "order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "signage_groups_rels_parent_idx": {
+          "name": "signage_groups_rels_parent_idx",
+          "columns": [
+            {
+              "expression": "parent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "signage_groups_rels_path_idx": {
+          "name": "signage_groups_rels_path_idx",
+          "columns": [
+            {
+              "expression": "path",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "signage_groups_rels_signage_slides_id_idx": {
+          "name": "signage_groups_rels_signage_slides_id_idx",
+          "columns": [
+            {
+              "expression": "signage_slides_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "signage_groups_rels_parent_fk": {
+          "name": "signage_groups_rels_parent_fk",
+          "tableFrom": "signage_groups_rels",
+          "tableTo": "signage_groups",
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "signage_groups_rels_signage_slides_fk": {
+          "name": "signage_groups_rels_signage_slides_fk",
+          "tableFrom": "signage_groups_rels",
+          "tableTo": "signage_slides",
+          "columnsFrom": [
+            "signage_slides_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.telops": {
       "name": "telops",
       "schema": "",
@@ -4066,6 +4281,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "signage_groups_id": {
+          "name": "signage_groups_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "telops_id": {
           "name": "telops_id",
           "type": "integer",
@@ -4350,6 +4571,21 @@
           "method": "btree",
           "with": {}
         },
+        "payload_locked_documents_rels_signage_groups_id_idx": {
+          "name": "payload_locked_documents_rels_signage_groups_id_idx",
+          "columns": [
+            {
+              "expression": "signage_groups_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "payload_locked_documents_rels_telops_id_idx": {
           "name": "payload_locked_documents_rels_telops_id_idx",
           "columns": [
@@ -4583,6 +4819,19 @@
           "tableTo": "signage_slides",
           "columnsFrom": [
             "signage_slides_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "payload_locked_documents_rels_signage_groups_fk": {
+          "name": "payload_locked_documents_rels_signage_groups_fk",
+          "tableFrom": "payload_locked_documents_rels",
+          "tableTo": "signage_groups",
+          "columnsFrom": [
+            "signage_groups_id"
           ],
           "columnsTo": [
             "id"
@@ -5675,6 +5924,6 @@
     "tables": {},
     "columns": {}
   },
-  "id": "ac4237c7-a955-49fd-ae4a-8f75980be1bf",
+  "id": "1149dced-b91b-453e-90de-f656c41c257c",
   "prevId": "00000000-0000-0000-0000-000000000000"
 }

@@ -82,6 +82,7 @@ export interface Config {
     parking_lots: ParkingLot;
     parking_statuses: ParkingStatus;
     signage_slides: SignageSlide;
+    signage_groups: SignageGroup;
     telops: Telop;
     lost_items: LostItem;
     'payload-kv': PayloadKv;
@@ -93,6 +94,9 @@ export interface Config {
   collectionsJoins: {
     student_exhibitions: {
       'stage.performance_slots': 'performance_slots';
+    };
+    signage_slides: {
+      groups: 'signage_groups';
     };
   };
   collectionsSelect: {
@@ -111,6 +115,7 @@ export interface Config {
     parking_lots: ParkingLotsSelect<false> | ParkingLotsSelect<true>;
     parking_statuses: ParkingStatusesSelect<false> | ParkingStatusesSelect<true>;
     signage_slides: SignageSlidesSelect<false> | SignageSlidesSelect<true>;
+    signage_groups: SignageGroupsSelect<false> | SignageGroupsSelect<true>;
     telops: TelopsSelect<false> | TelopsSelect<true>;
     lost_items: LostItemsSelect<false> | LostItemsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
@@ -739,6 +744,24 @@ export interface SignageSlide {
    */
   duration_seconds: number;
   enabled?: boolean | null;
+  groups?: {
+    docs?: (number | SignageGroup)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "signage_groups".
+ */
+export interface SignageGroup {
+  id: number;
+  name: string;
+  visible?: boolean | null;
+  slides?: (number | SignageSlide)[] | null;
+  is_all?: boolean | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -951,6 +974,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'signage_slides';
         value: number | SignageSlide;
+      } | null)
+    | ({
+        relationTo: 'signage_groups';
+        value: number | SignageGroup;
       } | null)
     | ({
         relationTo: 'telops';
@@ -1312,6 +1339,19 @@ export interface SignageSlidesSelect<T extends boolean = true> {
   image?: T;
   duration_seconds?: T;
   enabled?: T;
+  groups?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "signage_groups_select".
+ */
+export interface SignageGroupsSelect<T extends boolean = true> {
+  name?: T;
+  visible?: T;
+  slides?: T;
+  is_all?: T;
   updatedAt?: T;
   createdAt?: T;
 }

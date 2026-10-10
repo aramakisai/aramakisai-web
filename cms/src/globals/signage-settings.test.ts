@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { SignageSettings } from './signage-settings';
 
@@ -17,13 +17,18 @@ describe('SignageSettings', () => {
     expect(SignageSettings.admin?.hidden).toBe(true);
   });
 
-  it('固定表示するスライドは任意の単一参照で、有効なスライドだけ選べる', () => {
+  it('固定表示するスライドは任意の単一参照で、表示対象のスライドだけ選べる', async () => {
     expect(fields).toHaveLength(1);
     expect(pinned.type).toBe('relationship');
     expect(pinned.relationTo).toBe('signage_slides');
     expect(pinned.hasMany).toBeFalsy();
     expect(pinned.required).toBeFalsy();
-    expect(pinned.filterOptions).toEqual({ enabled: { equals: true } });
+    const find = vi
+      .fn()
+      .mockResolvedValueOnce({ docs: [{ id: 1 }, { id: 2 }] })
+      .mockResolvedValueOnce({ docs: [{ id: 10, is_all: true, visible: false, slides: [] }, { id: 11, visible: true, slides: [2] }] });
+    const opts = pinned.filterOptions as (a: { req: unknown }) => Promise<unknown>;
+    expect(await opts({ req: { payload: { find } } })).toEqual({ id: { in: [2] } });
     expect(pinned.admin?.description).toBe(
       '選んだスライドだけを全画面に表示し続けます。空にすると通常の巡回に戻ります。',
     );
