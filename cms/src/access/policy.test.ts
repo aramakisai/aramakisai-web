@@ -39,6 +39,35 @@ describe('canRead', () => {
     expect(canRead(null, 'stages', NOW)).toBe(true);
   });
 
+  it('未認証は有効なスライド・テロップと返却済み以外の落とし物だけ読める', () => {
+    expect(canRead(null, 'signage_slides', NOW)).toEqual({ enabled: { equals: true } });
+    expect(canRead(null, 'telops', NOW)).toEqual({ enabled: { equals: true } });
+    expect(canRead(null, 'lost_items', NOW)).toEqual({ returned: { not_equals: true } });
+    expect(canRead(executive, 'lost_items', NOW)).toBe(true);
+  });
+
+  it('グループは公開判定で絞らない(スライド側で表示対象を絞る)', () => {
+    expect(canRead(null, 'signage_groups', NOW)).toBe(true);
+  });
+
+  it('サイネージ系は学生団体が作成・更新・削除できず管理画面で隠れる', () => {
+    for (const c of ['signage_slides', 'signage_groups', 'telops', 'lost_items']) {
+      expect(canCreate(exhibitor, c)).toBe(false);
+      expect(canUpdate(exhibitor, c)).toBe(false);
+      expect(canDelete(exhibitor, c)).toBe(false);
+      expect(canCreate(executive, c)).toBe(true);
+      expect(isHiddenInAdmin(exhibitor, c)).toBe(true);
+    }
+  });
+
+  it('サイネージ設定は未認証でも読め、学生団体は更新できず管理画面で隠れる', () => {
+    expect(canRead(null, 'signage_settings', NOW)).toBe(true);
+    expect(canUpdate(exhibitor, 'signage_settings')).toBe(false);
+    expect(canUpdate(executive, 'signage_settings')).toBe(true);
+    expect(isHiddenInAdmin(exhibitor, 'signage_settings')).toBe(true);
+    expect(isHiddenInAdmin(executive, 'signage_settings')).toBe(false);
+  });
+
   it('未認証はユーザーを読めない', () => {
     expect(canRead(null, 'users', NOW)).toBe(false);
   });

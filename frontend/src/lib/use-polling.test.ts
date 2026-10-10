@@ -28,7 +28,7 @@ describe('usePolling', () => {
     const { result } = renderHook(() =>
       usePolling({ fetcher, intervalMs: 1000, initial: 1 }),
     );
-    expect(result.current).toEqual({ data: 1, error: false });
+    expect(result.current).toMatchObject({ data: 1, error: false });
     await advance(1000);
     expect(result.current.data).toBe(2);
     await advance(1000);
@@ -57,9 +57,9 @@ describe('usePolling', () => {
       usePolling({ fetcher, intervalMs: 1000, initial: 1 }),
     );
     await advance(1000);
-    expect(result.current).toEqual({ data: 1, error: true });
+    expect(result.current).toMatchObject({ data: 1, error: true });
     await advance(1000);
-    expect(result.current).toEqual({ data: 5, error: false });
+    expect(result.current).toMatchObject({ data: 5, error: false });
   });
 
   it('initial が null のまま失敗しても null を保ち、成功で回復する', async () => {
@@ -71,9 +71,9 @@ describe('usePolling', () => {
       usePolling<number>({ fetcher, intervalMs: 1000, initial: null }),
     );
     await advance(1000);
-    expect(result.current).toEqual({ data: null, error: true });
+    expect(result.current).toMatchObject({ data: null, error: true });
     await advance(1000);
-    expect(result.current).toEqual({ data: 7, error: false });
+    expect(result.current).toMatchObject({ data: 7, error: false });
   });
 
   it('shouldContinue が偽を返すと以降は再取得せず、表示復帰でも再開しない', async () => {
@@ -130,5 +130,34 @@ describe('usePolling', () => {
     setVisibility('visible');
     await advance(5000);
     expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it('refresh は即時に1回取得し、次回の予約をそこから数え直す', async () => {
+    const fetcher = vi.fn().mockResolvedValue(1);
+    const { result } = renderHook(() =>
+      usePolling({ fetcher, intervalMs: 1000, initial: 0 }),
+    );
+    await advance(600);
+    const other = vi.fn().mockResolvedValue(7);
+    await act(async () => {
+      await result.current.refresh(other);
+    });
+    expect(other).toHaveBeenCalledTimes(1);
+    expect(result.current.data).toBe(7);
+    await advance(900);
+    expect(fetcher).not.toHaveBeenCalled();
+    await advance(100);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it('refresh に fetcher を渡さなければ既定の fetcher を使う', async () => {
+    const fetcher = vi.fn().mockResolvedValue(5);
+    const { result } = renderHook(() =>
+      usePolling({ fetcher, intervalMs: 1000, initial: 0 }),
+    );
+    await act(async () => {
+      await result.current.refresh();
+    });
+    expect(result.current.data).toBe(5);
   });
 });
