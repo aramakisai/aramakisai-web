@@ -40,7 +40,7 @@
 - 既存コレクション(`stages`/`performance_slots`/`sponsors`/`parking_lots`/`parking_statuses`/`festival_meta`)の定義変更
 - 公式サイトのタイムテーブル・駐車場・協賛・マップ画面の見た目
 - 開催フェーズ(`BUILD_PHASE`)の切り替え運用
-- 本番の既存本文中のh1をCMS上で書き換える作業そのもの(手順はMigration Strategyに記す)
+- 本番の既存本文中のh1をCMS上で書き換える作業
 
 ### Allowed Dependencies
 - `frontend/src/lib/cms.ts`(CMSクライアント、Cache API)、`use-polling.ts`、`event-day.ts`、`timetable.ts`(`toTimetable`/`isPerformanceActive`/`findActivePerformances`)、`sponsors.ts`、`parking-data.ts`、`cms-asset-url.ts`、`cms-media.ts`、`timetable-stage-colors.ts`
@@ -1164,15 +1164,13 @@ export interface SignageScreenProps {
 
 ```mermaid
 flowchart TD
-  A[本番の本文にh1が無いか確認] --> B[comittee等のh1をCMSで見出し2へ修正]
-  B --> C[CMS PRマージ: 4コレクションとサイネージ設定のマイグレーション, Blocks, 表, 変換器]
+  C[CMS PRマージ: 4コレクションとサイネージ設定のマイグレーション, Blocks, 表, 変換器]
   C --> D[ArgoCD PreSyncでpayload migrate]
   D --> E[frontend PRマージ: RichText許可リスト, h1読み替え撤廃, signage]
   E --> F[CMSにスライド・テロップを登録し/signageを端末で確認]
 ```
 
-- B→Eの順を守る。h1読み替え撤廃が先に出ると、修正前の`comittee`のh1が見出しでなく文字として表示される
-- 確認はREST(`pages`/`announcements`/`topics`/`festival_meta`/`page_home`の`*_html`)で`<h1`を検索する
+- 本番の固定ページ`waste`・`comittee`の本文に残るh1は、手順Eの後は見出しでなく文字として表示される
 - CMSを先に出すと、フロント更新前は新部品のHTMLが旧許可リストで落ちる(文字のみ残る)。新部品は手順Eの後に使い始める
 - ロールバック: frontendは前バージョンへ戻せば旧表示。CMSのマイグレーションは`down`でサイネージのテーブルを削除(データは失われる)
 
