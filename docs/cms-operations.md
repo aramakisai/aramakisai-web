@@ -90,6 +90,7 @@ S3 の接続情報 (`S3_BUCKET` 等) が未設定の場合はディスク保存�
 | `CMS_PUBLIC_URL` | 公開 URL (OIDC リダイレクト先の組み立てに使う) | Authentik 連携時 |
 | `S3_BUCKET` / `S3_ENDPOINT` / `S3_REGION` / `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | メディア保存先 | 本番 |
 | `S3_PREFIX` | メディアのキー接頭辞 (既定 `payload-uploads`) | 任意 |
+| `CLOUDFLARE_ZONE_ID` / `CLOUDFLARE_PURGE_TOKEN` | 画像の非公開化・削除・差し替え時に `cms.aramakisai.com` のエッジキャッシュを purge する (zone の Cache Purge 権限だけのトークン)。`CMS_PUBLIC_URL` と合わせて 3 つ揃わないと purge せず、起動時に警告を 1 回出す | 本番 |
 | `AUTHENTIK_ISSUER_URL` / `AUTHENTIK_CLIENT_ID` / `AUTHENTIK_CLIENT_SECRET` | Authentik OIDC | 本番 |
 | `CMS_CORS_ORIGINS` | CORS 許可オリジン (カンマ区切り) | 本番 |
 | `SMTP_HOST` | 招待メール送信先 (docker-mailserver)。設定時だけ SMTP アダプタを有効化する | 任意 (本番のみ設定) |

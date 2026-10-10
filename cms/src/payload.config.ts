@@ -16,6 +16,7 @@ import { collections } from './collections'
 import { pgWithPoolErrorHandler, resolveReadReplicaUrl } from './db/read-replica'
 import { optionalEnv, requireEnv } from './env'
 import { globals } from './globals'
+import { purgeEdgeCache, readPurgeConfig, warnIfPurgeUnconfigured } from './lib/edge-purge'
 import { richTextEditorFeatures } from './lib/rich-text-editor'
 
 // S3 未設定のローカル開発ではディスク保存にフォールバックする。本番/staging は Infisical が必ず与える。
@@ -43,6 +44,7 @@ export default buildConfig({
   },
   collections,
   globals,
+  onInit: (payload) => warnIfPurgeUnconfigured((message) => payload.logger.warn(message)),
   // Authentik OIDC を認証の一次経路とする。ローカル認証は実行委員の緊急用として残す
   endpoints: optionalEnv('AUTHENTIK_ISSUER_URL') ? authentikEndpoints : [],
   editor: lexicalEditor({ features: richTextEditorFeatures }),
@@ -79,6 +81,20 @@ export default buildConfig({
         inputSchema: [{ name: 'userId', type: 'number', required: true }],
         handler: async ({ input, req }) => {
           await sendInvitation({ req, userId: input.userId })
+          return { output: {} }
+        },
+      },
+      {
+        slug: 'purgeMediaEdgeCache',
+        // Free プランのプレフィックス purge は 1 分 5 リクエストのため、429 でも立ち直れるよう長めに待つ
+        retries: { attempts: 8, backoff: { type: 'fixed', delay: 60_000 } },
+        inputSchema: [
+          { name: 'files', type: 'json', required: true },
+          { name: 'prefixes', type: 'json', required: true },
+        ],
+        handler: async ({ input }) => {
+          const config = readPurgeConfig()
+          if (config) await purgeEdgeCache(config, input as { files: string[]; prefixes: string[] })
           return { output: {} }
         },
       },
