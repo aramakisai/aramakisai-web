@@ -143,7 +143,7 @@ const SignageGroupSlidesField: RelationshipFieldClientComponent = ({ path, field
             >
               <CheckboxInput
                 Label={
-                  <span>
+                  <span style={{ marginLeft: 'calc(var(--base) / 2)' }}>
                     {r.title}
                     {!r.enabled && (
                       <span style={{ marginLeft: 8, color: 'var(--theme-elevation-500)' }}>無効</span>
