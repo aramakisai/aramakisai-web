@@ -16,9 +16,15 @@ const all = [s(1, 'Opening'), s(2, 'Sponsors'), s(3, 'opening Map'), s(4, 'Parki
 
 describe('split', () => {
   it('値に無いものを未登録、あるものを登録済みに、どちらも取得順(_order順)で振り分ける', () => {
-    const { unregistered, registered } = split(all, [4, 2]);
+    const { unregistered, registered } = split(all, [4, 2], { left: '', right: '' });
     expect(unregistered.map((r) => r.id)).toEqual([1, 3]);
     expect(registered.map((r) => r.id)).toEqual([2, 4]);
+  });
+  it('左の絞り込みは未登録だけ、右の絞り込みは登録済みだけを絞り、件数は絞る前の数', () => {
+    const r = split(all, [3, 4], { left: 'spon', right: 'open' });
+    expect(r.unregistered.map((x) => x.id)).toEqual([2]);
+    expect(r.registered.map((x) => x.id)).toEqual([3]);
+    expect([r.unregisteredTotal, r.registeredTotal]).toEqual([2, 2]);
   });
 });
 
@@ -45,18 +51,18 @@ describe('moveValue', () => {
 });
 
 describe('selectAllIds', () => {
-  it('見えている行だけを選ぶ', () => {
-    expect(selectAllIds(all, 'open')).toEqual([1, 3]);
+  it('渡された(絞り込み済みの)行をすべて選ぶ', () => {
+    expect(selectAllIds(filterRows(all, 'open'))).toEqual([1, 3]);
   });
 });
 
 describe('movableIds', () => {
-  it('選択のうち、いま見えている行だけを移す。隠れた選択中の行は含めない', () => {
-    expect(movableIds(new Set([1, 2, 3]), all, 'open')).toEqual([1, 3]);
+  it('選択のうち、渡された(いま見えている)行だけを移す。隠れた選択中の行は含めない', () => {
+    expect(movableIds(new Set([1, 2, 3]), filterRows(all, 'open'))).toEqual([1, 3]);
   });
   it('選択が無ければ空(ボタンを押せない判定に使う)', () => {
-    expect(movableIds(new Set(), all, '')).toEqual([]);
-    expect(movableIds(new Set([2]), all, 'open')).toEqual([]);
+    expect(movableIds(new Set(), all)).toEqual([]);
+    expect(movableIds(new Set([2]), filterRows(all, 'open'))).toEqual([]);
   });
 });
 

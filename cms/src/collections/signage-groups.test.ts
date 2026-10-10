@@ -16,11 +16,11 @@ type F = {
 const f = (name: string) => SignageGroups.fields.find((x) => (x as F).name === name) as F;
 
 describe('SignageGroups', () => {
-  it('slug・管理画面名・ナビから外す(admin.hidden は使わない)', () => {
+  it('slug・管理画面名・ナビに出す(group 指定なし、admin.hidden は使わない)', () => {
     expect(SignageGroups.slug).toBe('signage_groups');
     expect(SignageGroups.labels).toEqual({ singular: 'サイネージ グループ', plural: 'サイネージ グループ' });
     expect(SignageGroups.admin?.useAsTitle).toBe('name');
-    expect(SignageGroups.admin?.group).toBe(false);
+    expect(SignageGroups.admin?.group).toBeUndefined();
     expect(SignageGroups.admin?.hidden).toBeUndefined();
     expect(SignageGroups.access).toBeUndefined();
   });
