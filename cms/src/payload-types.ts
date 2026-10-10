@@ -775,9 +775,9 @@ export interface Telop {
   _order?: string | null;
   audience: 'visitor' | 'group';
   /**
-   * 例: 出店団体へ
+   * 例: ご来場のみなさまへ、出店団体へ
    */
-  target?: string | null;
+  target: string;
   body: string;
   enabled?: boolean | null;
   updatedAt: string;

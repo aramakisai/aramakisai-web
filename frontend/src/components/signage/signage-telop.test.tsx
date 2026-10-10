@@ -7,7 +7,7 @@ import { SignageTelop } from './signage-telop';
 const item: SignageTelopItem = {
   id: 1,
   audience: 'visitor',
-  target: null,
+  target: 'ご来場のみなさまへ',
   body: 'お知らせ',
 } as SignageTelopItem;
 

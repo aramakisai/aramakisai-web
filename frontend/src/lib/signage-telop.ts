@@ -4,19 +4,15 @@ export const TELOP_FIT_SEC = 8;
 /** 調整用。流す文面の速さ */
 export const TELOP_SPEED_PX_PER_SEC = 150;
 
-// SignageTelop の帯幅(816/1032px)から左右余白 px-6 を引いた内寸と、対象チップとの間隔 gap-5
-const TELOP_INNER_WIDTH: Readonly<Record<SignageOrientation, number>> = {
-  landscape: 816 - 48,
+// SignageTelop の帯幅(984/1032px)から左右余白 px-6 を引いた内寸。対象チップは上段なので流す枠を狭めない
+const TELOP_BOX_WIDTH: Readonly<Record<SignageOrientation, number>> = {
+  landscape: 984 - 48,
   portrait: 1032 - 48,
 };
-const TELOP_CHIP_GAP = 20;
 
-/** 文面を流す枠の幅(設計座標)。対象チップの幅だけ狭まる */
-export function telopBoxWidth(
-  orientation: SignageOrientation,
-  chipWidth: number,
-): number {
-  return TELOP_INNER_WIDTH[orientation] - chipWidth - TELOP_CHIP_GAP;
+/** 文面を流す枠の幅(設計座標) */
+export function telopBoxWidth(orientation: SignageOrientation): number {
+  return TELOP_BOX_WIDTH[orientation];
 }
 
 export interface TelopSlot {
@@ -33,17 +29,15 @@ export interface TelopSlot {
  */
 export function telopSchedule(
   textWidths: readonly number[],
-  chipWidths: readonly number[],
   speedPxPerSec: number = TELOP_SPEED_PX_PER_SEC,
 ): readonly TelopSlot[] {
-  return textWidths.map((textWidth, i) => {
-    const chip = chipWidths[i] ?? 0;
-    return textWidth <= telopBoxWidth('landscape', chip)
+  return textWidths.map((textWidth) => {
+    return textWidth <= telopBoxWidth('landscape')
       ? { scroll: false, durationSec: TELOP_FIT_SEC }
       : {
           scroll: true,
           durationSec: Math.ceil(
-            (textWidth + telopBoxWidth('portrait', chip)) / speedPxPerSec,
+            (textWidth + telopBoxWidth('portrait')) / speedPxPerSec,
           ),
         };
   });

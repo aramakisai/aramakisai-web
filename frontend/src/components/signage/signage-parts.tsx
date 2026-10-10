@@ -47,7 +47,7 @@ export function SignageStageChip({
 }) {
   return (
     <span
-      className={`inline-block whitespace-nowrap rounded-[4px] px-3 py-1 font-display text-[24px] leading-none font-bold text-text ${STAGE_BAND_CLASSES[colorIndex % STAGE_BAND_CLASSES.length]}`}
+      className={`inline-block whitespace-nowrap rounded-[4px] px-3 py-1 text-[24px] leading-none font-bold text-text ${STAGE_BAND_CLASSES[colorIndex % STAGE_BAND_CLASSES.length]}`}
     >
       {name}
     </span>

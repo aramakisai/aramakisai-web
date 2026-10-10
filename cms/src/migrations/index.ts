@@ -25,6 +25,7 @@ import * as migration_20261003_155255_parking_lots from './20261003_155255_parki
 import * as migration_20261009_100051_media_public_null from './20261009_100051_media_public_null';
 import * as migration_20261009_110654_purge_media_edge_cache from './20261009_110654_purge_media_edge_cache';
 import * as migration_20261010_004355_signage from './20261010_004355_signage';
+import * as migration_20261010_150844_telop_label_free_text from './20261010_150844_telop_label_free_text';
 
 export const migrations = [
   {
@@ -160,6 +161,11 @@ export const migrations = [
   {
     up: migration_20261010_004355_signage.up,
     down: migration_20261010_004355_signage.down,
-    name: '20261010_004355_signage'
+    name: '20261010_004355_signage',
+  },
+  {
+    up: migration_20261010_150844_telop_label_free_text.up,
+    down: migration_20261010_150844_telop_label_free_text.down,
+    name: '20261010_150844_telop_label_free_text'
   },
 ];
