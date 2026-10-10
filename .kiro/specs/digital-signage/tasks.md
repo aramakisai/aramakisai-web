@@ -331,7 +331,7 @@ CMS側(タスク1〜3)とフロント側(タスク4〜10)は別PRに分ける。
   - _Requirements: 4.7, 4.8, 4.13, 4.14, 4.15, 4.16, 4.17, 4.18, 4.19, 4.20_
   - _Boundary: signage_groups, signage_slides, signage_settings, policy.ts, payload-access.ts, cms/src/lib/signage-visibility.ts, cms/src/components/SignageGroup*, cms/src/components/SignagePin*_
 
-- [ ] 10.3j フロント: 表示対象を3秒ごとの確認で即時に切り替える
+- [x] 10.3j フロント: 表示対象を3秒ごとの確認で即時に切り替える
   - `getSignageSnapshot`は公開判定で絞られた表示対象のスライドだけを`slides`に入れる(グループは取得しない)。`cms.ts`に`refreshIntervalSeconds`(Cache APIの取り直し用のキー(TTL 5秒)があればそれを返し、無ければCMSから取得して取り直し用のキーと通常のキーを置き換える)を、`getSignageSnapshot({ fresh })`と`/api/signage?fresh=1`(スライドだけを5秒に1回までに制限して取り直す)をテスト先行で足す
   - `getPinState`はサイネージ設定と表示対象のスライドのIDをキャッシュなしで並行して取得し、IDを`visibleSlideIds`として返す。固定スライドは表示対象に含まれるときだけ返す
   - `withPin`は確認結果があればその`visibleSlideIds`で`slides`を`_order`順のまま絞ってから固定を重ね、無ければスナップショットをそのまま使う。`missingSlideIds`と`usePolling`の`refresh`を足し、`SignageScreen`は確認結果にスナップショットに無いIDがあれば`/api/signage?fresh=1`で取り直す(取り直し中は重ねず、10秒に1回まで)
