@@ -16,12 +16,12 @@ import { useEffect, useState, type ChangeEvent } from 'react';
 import { addSlideToGroup } from './signage-groups';
 import {
   fetchAllSlides,
-  filterRows,
   movableIds,
   moveValue,
   selectAllIds,
   split,
   withoutMoved,
+  type Queries,
   type SlideRow,
 } from './signage-group-slides';
 
@@ -35,7 +35,7 @@ const SignageGroupSlidesField: RelationshipFieldClientComponent = ({ path, field
   const { permissions } = useAuth();
   const [all, setAll] = useState<SlideRow[] | null>(null);
   const [failed, setFailed] = useState(false);
-  const [query, setQuery] = useState('');
+  const [queries, setQueries] = useState<Queries>({ left: '', right: '' });
   const [leftSel, setLeftSel] = useState<Set<number>>(new Set());
   const [rightSel, setRightSel] = useState<Set<number>>(new Set());
   const [createError, setCreateError] = useState(false);
@@ -71,11 +71,11 @@ const SignageGroupSlidesField: RelationshipFieldClientComponent = ({ path, field
   }
 
   const current = value ?? [];
-  const { unregistered, registered } = split(all, current);
+  const { unregistered, registered, unregisteredTotal, registeredTotal } = split(all, current, queries);
   const locked = Boolean(readOnly);
   const canCreate = !locked && Boolean(permissions?.collections?.signage_slides?.create);
-  const left = movableIds(leftSel, unregistered, query);
-  const right = movableIds(rightSel, registered, query);
+  const left = movableIds(leftSel, unregistered);
+  const right = movableIds(rightSel, registered);
 
   const move = (ids: number[], direction: 'add' | 'remove') => {
     setValue(moveValue(all, current, ids, direction));
@@ -97,12 +97,13 @@ const SignageGroupSlidesField: RelationshipFieldClientComponent = ({ path, field
   };
 
   const column = (
+    side: keyof Queries,
     title: string,
-    rows: SlideRow[],
+    visible: SlideRow[],
+    total: number,
     selected: Set<number>,
     setSelected: (s: Set<number>) => void,
   ) => {
-    const visible = filterRows(rows, query);
     return (
       <div style={{ flex: 1, minWidth: 0, border: BORDER, borderRadius: 'var(--style-radius-s)', overflow: 'hidden' }}>
         <div
@@ -119,16 +120,25 @@ const SignageGroupSlidesField: RelationshipFieldClientComponent = ({ path, field
             label="全選択"
             readOnly={locked}
             checked={visible.length > 0 && visible.every((r) => selected.has(r.id))}
-            onToggle={(e) => setSelected(e.target.checked ? new Set(selectAllIds(rows, query)) : new Set())}
+            onToggle={(e) => setSelected(e.target.checked ? new Set(selectAllIds(visible)) : new Set())}
           />
           <strong style={{ flex: 1 }}>
-            {title} ({rows.length})
+            {title} ({total})
           </strong>
           {canCreate && (
             <Button buttonStyle="secondary" size="small" margin={false} disabled={!groupId} onClick={openDrawer}>
               スライドを新規作成
             </Button>
           )}
+        </div>
+        <div style={{ padding: 'calc(var(--base) / 2) var(--base)', borderBottom: BORDER }}>
+          <TextInput
+            path={`${path}-filter-${side}`}
+            placeholder="題名で絞り込む"
+            value={queries[side]}
+            readOnly={locked}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setQueries((q) => ({ ...q, [side]: e.target.value }))}
+          />
         </div>
         <ul style={{ listStyle: 'none', padding: 0, margin: 0, maxHeight: 400, overflowY: 'auto' }}>
           {visible.length === 0 && (
@@ -137,28 +147,29 @@ const SignageGroupSlidesField: RelationshipFieldClientComponent = ({ path, field
             </li>
           )}
           {visible.map((r) => (
-            <li
-              key={r.id}
-              style={{ padding: 'calc(var(--base) / 2) var(--base)', borderBottom: BORDER, minHeight: 'calc(var(--base) * 2)' }}
-            >
-              <CheckboxInput
-                Label={
-                  <span style={{ marginLeft: 'calc(var(--base) / 2)' }}>
-                    {r.title}
-                    {!r.enabled && (
-                      <span style={{ marginLeft: 8, color: 'var(--theme-elevation-500)' }}>無効</span>
-                    )}
-                  </span>
-                }
-                readOnly={locked}
-                checked={selected.has(r.id)}
-                onToggle={(e) => {
-                  const next = new Set(selected);
-                  if (e.target.checked) next.add(r.id);
-                  else next.delete(r.id);
-                  setSelected(next);
-                }}
-              />
+            <li key={r.id} style={{ borderBottom: BORDER, minHeight: 'calc(var(--base) * 2)' }}>
+              <label
+                htmlFor={`${path}-${side}-${r.id}`}
+                style={{ display: 'block', padding: 'calc(var(--base) / 2) var(--base)', cursor: locked ? 'default' : 'pointer' }}
+              >
+                <CheckboxInput
+                  id={`${path}-${side}-${r.id}`}
+                  Label={
+                    <span style={{ marginLeft: 'calc(var(--base) / 2)' }}>
+                      {r.title}
+                      {!r.enabled && <span style={{ marginLeft: 8, color: 'var(--theme-elevation-500)' }}>無効</span>}
+                    </span>
+                  }
+                  readOnly={locked}
+                  checked={selected.has(r.id)}
+                  onToggle={(e) => {
+                    const next = new Set(selected);
+                    if (e.target.checked) next.add(r.id);
+                    else next.delete(r.id);
+                    setSelected(next);
+                  }}
+                />
+              </label>
             </li>
           ))}
         </ul>
@@ -169,18 +180,11 @@ const SignageGroupSlidesField: RelationshipFieldClientComponent = ({ path, field
   return (
     <div className="field-type">
       {label}
-      <TextInput
-        path={`${path}-filter`}
-        placeholder="題名で絞り込む"
-        value={query}
-        readOnly={locked}
-        onChange={(e: ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
-      />
       {canCreate && !groupId && (
         <p style={{ color: 'var(--theme-elevation-500)' }}>グループを保存すると、ここからスライドを作成できます</p>
       )}
       <div style={{ display: 'flex', gap: 'var(--base)', alignItems: 'stretch', marginTop: 'var(--base)' }}>
-        {column('未登録', unregistered, leftSel, setLeftSel)}
+        {column('left', '未登録', unregistered, unregisteredTotal, leftSel, setLeftSel)}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'calc(var(--base) / 2)', justifyContent: 'center' }}>
           <Button
             buttonStyle="secondary"
@@ -201,7 +205,7 @@ const SignageGroupSlidesField: RelationshipFieldClientComponent = ({ path, field
             ← 外す
           </Button>
         </div>
-        {column('登録済み', registered, rightSel, setRightSel)}
+        {column('right', '登録済み', registered, registeredTotal, rightSel, setRightSel)}
       </div>
       {createError && <p style={{ color: 'var(--theme-error-500)' }}>{SAVE_FAILED}</p>}
       <DocumentDrawer initialData={{ enabled: false }} onSave={onCreated} />

@@ -11,8 +11,6 @@ export const SignageGroups: CollectionConfig = {
   admin: {
     useAsTitle: 'name',
     defaultColumns: ['name', 'visible'],
-    // admin.hidden は一覧・編集画面・ドロワーの経路ごと消すため、ナビからだけ外す
-    group: false,
   },
   hooks: {
     afterChange: [
