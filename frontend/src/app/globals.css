@@ -83,6 +83,17 @@
   }
 }
 
+/*
+ * サイネージの縦型配置は、ビューポートのメディアクエリではなく画面の実寸から決めた
+ * キャンバスの data-orientation で切り替える (signage-viewport.ts)。
+ * メディアクエリのままだと、キャンバスの向き・倍率と配置が食い違いうる。
+ */
+@custom-variant portrait {
+  &:is([data-orientation='portrait'] *, [data-orientation='portrait']) {
+    @slot;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   html:not([data-motion='reduce']) {
     scroll-behavior: smooth;
@@ -359,6 +370,233 @@
   .rich-text-body hr {
     @apply my-8 h-px w-full border-0 bg-gray-200;
   }
+
+  /*
+   * 本文部品 (HTML 契約は rich-text.tsx の許可リスト)。Figma 900:681〜900:683・900:617。
+   * 部品の上余白は 24px。直前の p の mb-4 とは相殺させず部品側の mt だけで決める
+   */
+  .rich-text-body .rt-image-row,
+  .rich-text-body .rt-table,
+  .rich-text-body .rt-callout,
+  .rich-text-body p.rt-button {
+    margin-top: 24px;
+    margin-bottom: 0;
+  }
+
+  .rich-text-body .rt-image-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 24px;
+  }
+
+  .rich-text-body .rt-image-row > figure {
+    display: flex;
+    flex: 1 0 0;
+    min-width: 0;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .rich-text-body .rt-image-row figcaption {
+    @apply w-full text-center text-[16px] font-bold leading-[1.8] text-text;
+  }
+
+  /* 画像は正方形枠に収める。余白は gray-200 (Figma の Placeholder と同色) */
+  .rich-text-body .rt-image-row img {
+    @apply m-0 aspect-square w-full bg-gray-200 object-contain;
+  }
+
+  @media (max-width: 767px) {
+    .rich-text-body .rt-image-row {
+      gap: 16px;
+    }
+
+    .rich-text-body .rt-image-row[data-count='3'] {
+      align-items: flex-start;
+    }
+
+    .rich-text-body .rt-image-row[data-count='3'] figcaption {
+      font-size: 14px;
+    }
+  }
+
+  .rich-text-body .rt-callout {
+    @apply flex items-start gap-3 rounded-md border-2 p-4 text-text;
+  }
+
+  .rich-text-body .rt-callout[data-kind='caution'] {
+    @apply border-warning;
+  }
+
+  .rich-text-body .rt-callout[data-kind='note'] {
+    @apply border-info;
+  }
+
+  /* アイコンは ::before のリガチャ文字 (SVG は使わない) */
+  .rich-text-body .rt-callout::before {
+    content: 'warning';
+    flex-shrink: 0;
+    font-family: 'Material Symbols Sharp';
+    font-weight: 300;
+    font-size: 24px;
+    line-height: 24px;
+    white-space: nowrap;
+    font-feature-settings: 'liga';
+  }
+
+  .rich-text-body .rt-callout[data-kind='note']::before {
+    content: 'info';
+  }
+
+  .rich-text-body .rt-callout > p {
+    @apply m-0 min-w-0 flex-1;
+  }
+
+  .rich-text-body p.rt-button {
+    @apply flex;
+  }
+
+  .rich-text-body p.rt-button > a {
+    @apply rounded-md bg-primary px-6 py-3 text-[16px] font-bold leading-[1.5] text-text no-underline;
+  }
+
+  /* 表だけ横スクロールさせ、ページ全体を押し広げない */
+  .rich-text-body .rt-table {
+    overflow-x: auto;
+  }
+
+  .rich-text-body .rt-table > table {
+    @apply w-full border-l border-t border-gray-200;
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 560px;
+  }
+
+  .rich-text-body .rt-table th,
+  .rich-text-body .rt-table td {
+    @apply border-b border-r border-gray-200 px-4 py-3 text-left align-top text-[16px] leading-[1.8] text-text;
+  }
+
+  .rich-text-body .rt-table th {
+    @apply bg-gray-100 font-bold;
+  }
+
+  /* セル内の段落は本文の段落間余白を持たない (セルの padding だけで高さを決める) */
+  .rich-text-body .rt-table p {
+    @apply m-0;
+  }
+
+  /*
+   * サイネージ用 (Figma 905:773〜905:777)。遠目表示向けに文字を大きくする。
+   * 公式サイト用と同じ特異度で後ろに置き上書きする。幅区分は画像枠の寸法だけを変える
+   */
+  .rich-text-body.rich-text-body--signage {
+    @apply text-[36px] leading-[1.5] text-text;
+    word-break: auto-phrase;
+    overflow: hidden;
+    /* 枠の高さを基準にしないと、単独の画像が枠の残り高さへ縮まず下が切れる */
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .rich-text-body.rich-text-body--signage > * {
+    flex-shrink: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+
+  /* 単独の画像だけが残り高さまで縮み、object-contain で縦横比を保つ */
+  .rich-text-body.rich-text-body--signage > img {
+    flex-shrink: 1;
+    min-height: 0;
+  }
+
+  .rich-text-body.rich-text-body--signage > * + * {
+    margin-top: 24px;
+  }
+
+  .rich-text-body.rich-text-body--signage p,
+  .rich-text-body.rich-text-body--signage blockquote,
+  .rich-text-body.rich-text-body--signage li {
+    @apply text-[36px] leading-[1.5];
+  }
+
+  .rich-text-body.rich-text-body--signage li {
+    margin-bottom: 0;
+  }
+
+  /* 画像は枠内に縦横比を保って収める */
+  .rich-text-body.rich-text-body--signage img {
+    @apply m-0 max-h-full max-w-full object-contain;
+  }
+
+  .rich-text-body.rich-text-body--signage p.rt-button {
+    display: none;
+  }
+
+  .rich-text-body--signage .rt-image-row {
+    align-items: flex-start;
+    gap: 24px;
+  }
+
+  .rich-text-body--signage .rt-image-row > figure {
+    flex: 0 0 auto;
+    width: 360px;
+  }
+
+  .rich-text-body--signage .rt-image-row figcaption {
+    @apply text-[28px] leading-[1.2];
+  }
+
+  .rich-text-body.rich-text-body--signage .rt-image-row img {
+    @apply box-border bg-white p-3;
+    max-height: none;
+    max-width: none;
+  }
+
+  .rich-text-body--half .rt-image-row > figure {
+    width: 320px;
+  }
+
+  .rich-text-body--half .rt-image-row[data-count='3'] > figure {
+    width: 210px;
+  }
+
+  .rich-text-body--signage .rt-callout {
+    @apply gap-4 border-4 bg-background p-6;
+  }
+
+  .rich-text-body--signage .rt-callout::before {
+    font-size: 32px;
+    line-height: 48px;
+  }
+
+  .rich-text-body.rich-text-body--signage .rt-callout > p {
+    @apply text-[32px] leading-[1.5];
+  }
+
+  .rich-text-body--signage .rt-table > table {
+    @apply border-l-2 border-t-2;
+    min-width: 0;
+    table-layout: fixed;
+  }
+
+  .rich-text-body--signage .rt-table th,
+  .rich-text-body--signage .rt-table td {
+    @apply border-b-2 border-r-2 p-3 text-[28px] leading-[1.5];
+  }
+
+  .rich-text-body--signage .rt-table td {
+    @apply bg-background;
+  }
+
+  /* セル内の段落に本文の 36px が掛からないよう、セルの指定を継がせる */
+  .rich-text-body.rich-text-body--signage .rt-table p {
+    font-size: inherit;
+    line-height: inherit;
+  }
 }
 
 @layer utilities {
@@ -447,4 +685,42 @@ html[data-pl] [style*='/images/textures/'] {
 }
 html[data-pl] .exhibition-gradient-bg::before {
   background-image: none;
+}
+
+/*
+ * サイネージのメイン領域は常に1536×864で描画し、縦型だけ縮小して1032×580.5の枠へ入れる。
+ * 縦型専用のスライド配置を持たないため、枠の位置と縮小をここ一箇所で切り替える。
+ */
+.signage-canvas {
+  word-break: auto-phrase;
+}
+
+.signage-main-frame {
+  position: absolute;
+  left: 360px;
+  top: 24px;
+  width: 1536px;
+  height: 864px;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.signage-main {
+  position: relative;
+  width: 1536px;
+  height: 864px;
+}
+
+.signage-canvas[data-orientation='portrait'] .signage-main-frame {
+  left: 24px;
+  top: 224px;
+  width: 1032px;
+  height: 580.5px;
+  border-radius: 10.75px;
+}
+
+.signage-canvas[data-orientation='portrait'] .signage-main {
+  transform: scale(0.671875);
+  transform-origin: top left;
 }

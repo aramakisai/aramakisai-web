@@ -1,5 +1,7 @@
 import type { Access, FieldAccess } from 'payload';
 
+import { visibleSlideFilter } from '../lib/signage-visibility';
+
 import { canCreate, canDelete, canRead, canUpdate } from './policy';
 import { isExecutive, toCmsUser } from './roles';
 
@@ -14,10 +16,22 @@ export function accessFor(collection: string): {
   delete: Access;
 } {
   return {
-    read: ({ req }) => canRead(toCmsUser(req.user), collection),
+    read: async ({ req }) => {
+      const result = canRead(toCmsUser(req.user), collection);
+      // 公開判定が条件を返すとき(未認証・学生団体)だけ、非表示グループのスライドを配らないよう絞る
+      if (collection === 'signage_slides' && typeof result === 'object') {
+        return { and: [result, await visibleSlideFilter(req.payload, req)] };
+      }
+      return result;
+    },
     create: ({ req }) => canCreate(toCmsUser(req.user), collection),
     update: ({ req }) => canUpdate(toCmsUser(req.user), collection),
-    delete: ({ req }) => canDelete(toCmsUser(req.user), collection),
+    delete: ({ req }) => {
+      const result = canDelete(toCmsUser(req.user), collection);
+      // 文書ごとの判定に使われるため、「すべて」の編集画面のメニューに削除が出ず、一覧の一括削除でも残る
+      if (collection === 'signage_groups' && result === true) return { is_all: { not_equals: true } };
+      return result;
+    },
   };
 }
 

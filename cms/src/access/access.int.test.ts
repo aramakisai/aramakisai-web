@@ -477,6 +477,346 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
     });
   });
 
+  describe('サイネージ', () => {
+    it('サイネージ設定は未認証で読め、学生団体は更新できず、固定対象のスライド削除で参照が空になる', async () => {
+      const slide = await payload.create({
+        collection: 'signage_slides',
+        data: { kind: 'parking', title: `pin-${suffix}`, enabled: true, duration_seconds: 10 },
+        overrideAccess: true,
+      });
+      const disabled = await payload.create({
+        collection: 'signage_slides',
+        data: { kind: 'parking', title: `pin-off-${suffix}`, enabled: false, duration_seconds: 10 },
+        overrideAccess: true,
+      });
+      try {
+        await payload.updateGlobal({ slug: 'signage_settings', data: { pinned_slide: slide.id }, overrideAccess: true });
+        const read = await payload.findGlobal({ slug: 'signage_settings', overrideAccess: false, depth: 0 });
+        expect(read.pinned_slide).toBe(slide.id);
+        await expect(
+          payload.updateGlobal({
+            slug: 'signage_settings',
+            data: { pinned_slide: null },
+            overrideAccess: false,
+            user: await asOwner(),
+          }),
+        ).rejects.toThrow();
+        // 無効なスライドは選択肢から外れる (filterOptions はバリデーションにも効く)
+        await expect(
+          payload.updateGlobal({
+            slug: 'signage_settings',
+            data: { pinned_slide: disabled.id },
+            overrideAccess: false,
+            user: await asUser(executive.id),
+          }),
+        ).rejects.toThrow();
+        await payload.delete({ collection: 'signage_slides', id: slide.id, overrideAccess: true });
+        const after = await payload.findGlobal({ slug: 'signage_settings', overrideAccess: true, depth: 0 });
+        expect(after.pinned_slide ?? null).toBeNull();
+      } finally {
+        await payload.updateGlobal({ slug: 'signage_settings', data: { pinned_slide: null }, overrideAccess: true }).catch(() => null);
+        await Promise.all([slide, disabled].map((x) => payload.delete({ collection: 'signage_slides', id: x.id, overrideAccess: true }).catch(() => null)));
+      }
+    });
+
+    it('固定は null の更新で解除され、固定中のスライドを無効にしても解除される', async () => {
+      const slide = await payload.create({
+        collection: 'signage_slides',
+        data: { kind: 'parking', title: `pin-unset-${suffix}`, enabled: true, duration_seconds: 10 },
+        overrideAccess: true,
+      });
+      const other = await payload.create({
+        collection: 'signage_slides',
+        data: { kind: 'parking', title: `pin-other-${suffix}`, enabled: true, duration_seconds: 10 },
+        overrideAccess: true,
+      });
+      const pinned = async () =>
+        (await payload.findGlobal({ slug: 'signage_settings', overrideAccess: true, depth: 0 })).pinned_slide ?? null;
+      const user = await asUser(executive.id);
+      try {
+        await payload.updateGlobal({ slug: 'signage_settings', data: { pinned_slide: slide.id }, overrideAccess: false, user });
+        await payload.updateGlobal({ slug: 'signage_settings', data: { pinned_slide: null }, overrideAccess: false, user });
+        expect(await pinned()).toBeNull();
+
+        await payload.updateGlobal({ slug: 'signage_settings', data: { pinned_slide: slide.id }, overrideAccess: true });
+        await payload.update({ collection: 'signage_slides', id: other.id, data: { enabled: false }, overrideAccess: true });
+        expect(await pinned()).toBe(slide.id);
+        await payload.update({ collection: 'signage_slides', id: slide.id, data: { enabled: false }, overrideAccess: true });
+        expect(await pinned()).toBeNull();
+      } finally {
+        await payload.updateGlobal({ slug: 'signage_settings', data: { pinned_slide: null }, overrideAccess: true }).catch(() => null);
+        await Promise.all([slide, other].map((x) => payload.delete({ collection: 'signage_slides', id: x.id, overrideAccess: true }).catch(() => null)));
+      }
+    });
+
+    it('未認証は無効スライド・無効テロップ・返却済み落とし物を読めず、学生団体は作成できない', async () => {
+      const slide = (enabled: boolean) =>
+        payload.create({
+          collection: 'signage_slides',
+          data: { kind: 'parking', title: `sig-${suffix}-${enabled}`, enabled, duration_seconds: 10 },
+          overrideAccess: true,
+        });
+      const telop = (enabled: boolean) =>
+        payload.create({
+          collection: 'telops',
+          data: { audience: 'visitor', body: `sig-${suffix}-${enabled}`, enabled },
+          overrideAccess: true,
+        });
+      const lost = (returned: boolean) =>
+        payload.create({
+          collection: 'lost_items',
+          data: { name: `sig-${suffix}-${returned}`, found_place: 'x', found_at: new Date().toISOString(), returned },
+          overrideAccess: true,
+        });
+      // _order は作成順に末尾へ採番されるため、順序の検証には逐次作成が要る
+      const s1 = await slide(true);
+      const s0 = await slide(false);
+      const t1 = await telop(true);
+      const t0 = await telop(false);
+      const [l0, l1] = await Promise.all([lost(false), lost(true)]);
+      try {
+        const names = async (collection: 'signage_slides' | 'telops' | 'lost_items', sort?: string) =>
+          (await payload.find({ collection, overrideAccess: false, pagination: false, sort })).docs.map((d) => d.id);
+        const slides = await names('signage_slides');
+        expect(slides).toContain(s1.id);
+        expect(slides).not.toContain(s0.id);
+        const orderOf = async (collection: 'signage_slides' | 'telops', ids: number[]) =>
+          (await names(collection, '_order')).filter((id) => ids.includes(id));
+        expect(await orderOf('signage_slides', [s1.id])).toEqual([s1.id]);
+        const all = await Promise.all([s1, s0].map((x) => payload.findByID({ collection: 'signage_slides', id: x.id, overrideAccess: true })));
+        expect((all[0] as { _order?: string })._order! < (all[1] as { _order?: string })._order!).toBe(true);
+        const telops = await names('telops');
+        expect(telops).toContain(t1.id);
+        expect(telops).not.toContain(t0.id);
+        const lostIds = await names('lost_items');
+        expect(lostIds).toContain(l0.id);
+        expect(lostIds).not.toContain(l1.id);
+
+        const user = await asOwner();
+        await expect(
+          payload.create({
+            collection: 'telops',
+            data: { audience: 'visitor', body: 'x', enabled: true },
+            overrideAccess: false,
+            user,
+          }),
+        ).rejects.toThrow();
+        await expect(
+          payload.update({ collection: 'telops', id: t1.id, data: { body: 'y' }, overrideAccess: false, user }),
+        ).rejects.toThrow();
+      } finally {
+        await Promise.all([
+          payload.delete({ collection: 'signage_slides', id: s1.id, overrideAccess: true }),
+          payload.delete({ collection: 'signage_slides', id: s0.id, overrideAccess: true }),
+          payload.delete({ collection: 'telops', id: t1.id, overrideAccess: true }),
+          payload.delete({ collection: 'telops', id: t0.id, overrideAccess: true }),
+          payload.delete({ collection: 'lost_items', id: l0.id, overrideAccess: true }),
+          payload.delete({ collection: 'lost_items', id: l1.id, overrideAccess: true }),
+        ]).catch(() => null);
+      }
+    });
+  });
+
+  describe('サイネージ グループ', () => {
+    const ov = { overrideAccess: true } as const;
+    const slide = (title: string, enabled = true) =>
+      payload.create({ collection: 'signage_slides', data: { kind: 'parking', title: `${title}-${suffix}`, enabled, duration_seconds: 10 }, ...ov });
+    const group = (name: string, slides: number[], visible = true) =>
+      payload.create({ collection: 'signage_groups', data: { name: `${name}-${suffix}`, visible, slides }, ...ov });
+    const allGroup = async () =>
+      (await payload.find({ collection: 'signage_groups', where: { is_all: { equals: true } }, depth: 0, ...ov })).docs;
+    const setAllVisible = async (visible: boolean) => {
+      const [a] = await allGroup();
+      await payload.update({ collection: 'signage_groups', id: a.id, data: { visible }, ...ov });
+    };
+    const pinned = async () =>
+      (await payload.findGlobal({ slug: 'signage_settings', depth: 0, ...ov })).pinned_slide ?? null;
+    const pin = (id: number | null) => payload.updateGlobal({ slug: 'signage_settings', data: { pinned_slide: id }, ...ov });
+    const publicIds = async () =>
+      (await payload.find({ collection: 'signage_slides', overrideAccess: false, pagination: false, depth: 0 })).docs.map((d) => d.id);
+    const cleanup = async (slides: { id: number }[], groups: { id: number }[]) => {
+      await setAllVisible(true).catch(() => null);
+      await pin(null).catch(() => null);
+      await Promise.all(groups.map((g) => payload.delete({ collection: 'signage_groups', id: g.id, ...ov }).catch(() => null)));
+      await Promise.all(slides.map((s) => payload.delete({ collection: 'signage_slides', id: s.id, ...ov }).catch(() => null)));
+    };
+
+    it('「すべて」が1件あり、削除できず、is_all を付け外しできず、所属を書き込めず、名前と表示は変えられる', async () => {
+      const user = await asUser(executive.id);
+      const s = await slide('all-s');
+      const normal = await group('all-normal', []);
+      try {
+        const alls = await allGroup();
+        expect(alls).toHaveLength(1);
+        const a = alls[0];
+        await expect(payload.delete({ collection: 'signage_groups', id: a.id, overrideAccess: false, user })).rejects.toThrow();
+        await expect(payload.delete({ collection: 'signage_groups', id: a.id, overrideAccess: false })).rejects.toThrow();
+        expect(await allGroup()).toHaveLength(1);
+
+        const created = await payload.create({
+          collection: 'signage_groups',
+          data: { name: `forged-${suffix}`, is_all: true },
+          overrideAccess: false,
+          user,
+        });
+        expect(created.is_all).toBe(false);
+        await payload.delete({ collection: 'signage_groups', id: created.id, ...ov });
+
+        const cleared = await payload.update({ collection: 'signage_groups', id: a.id, data: { is_all: false }, overrideAccess: false, user });
+        expect(cleared.is_all).toBe(true);
+        const forged = await payload.update({ collection: 'signage_groups', id: normal.id, data: { is_all: true }, overrideAccess: false, user });
+        expect(forged.is_all).toBe(false);
+        expect(await allGroup()).toHaveLength(1);
+
+        const withSlides = await payload.update({ collection: 'signage_groups', id: a.id, data: { slides: [s.id] }, overrideAccess: false, user, depth: 0 });
+        expect(withSlides.slides ?? []).toEqual([]);
+
+        const renamed = await payload.update({
+          collection: 'signage_groups',
+          id: a.id,
+          data: { name: `すべて-${suffix}`, visible: false },
+          overrideAccess: false,
+          user,
+        });
+        expect(renamed.name).toBe(`すべて-${suffix}`);
+        expect(renamed.visible).toBe(false);
+        await payload.update({ collection: 'signage_groups', id: a.id, data: { name: 'すべて', visible: true }, ...ov });
+      } finally {
+        await cleanup([s], [normal]);
+      }
+    });
+
+    it('通常のグループは実行委員が削除でき、学生団体は削除できない', async () => {
+      const g = await group('del-normal', []);
+      const keep = await group('del-denied', []);
+      try {
+        await expect(
+          payload.delete({ collection: 'signage_groups', id: keep.id, overrideAccess: false, user: await asOwner() }),
+        ).rejects.toThrow();
+        await payload.delete({ collection: 'signage_groups', id: g.id, overrideAccess: false, user: await asUser(executive.id) });
+        const left = await payload.find({ collection: 'signage_groups', where: { id: { in: [g.id, keep.id] } }, depth: 0, ...ov });
+        expect(left.docs.map((d) => d.id)).toEqual([keep.id]);
+      } finally {
+        await cleanup([], [keep]);
+      }
+    });
+
+    it('学生団体はグループを作成・更新できない', async () => {
+      const g = await group('exhibitor', []);
+      try {
+        const user = await asOwner();
+        await expect(
+          payload.create({ collection: 'signage_groups', data: { name: 'x' }, overrideAccess: false, user }),
+        ).rejects.toThrow();
+        await expect(
+          payload.update({ collection: 'signage_groups', id: g.id, data: { name: 'y' }, overrideAccess: false, user }),
+        ).rejects.toThrow();
+      } finally {
+        await cleanup([], [g]);
+      }
+    });
+
+    it('未認証のスライド読み取りは表示対象だけを返し、実行委員の読み取りは絞られない', async () => {
+      const a = await slide('vis-a');
+      const b = await slide('vis-b');
+      const c = await slide('vis-c', false);
+      const g = await group('vis', [a.id, c.id]);
+      const h = await group('vis-hidden', [b.id], false);
+      try {
+        // 「すべて」が表示中なら有効なスライドは全部出る
+        let ids = await publicIds();
+        expect(ids).toEqual(expect.arrayContaining([a.id, b.id]));
+        expect(ids).not.toContain(c.id);
+
+        await setAllVisible(false);
+        ids = await publicIds();
+        expect(ids).toContain(a.id);
+        expect(ids).not.toContain(b.id);
+        expect(ids).not.toContain(c.id);
+
+        // 表示中と非表示の両方に属するスライドは出続ける
+        await payload.update({ collection: 'signage_groups', id: h.id, data: { slides: [a.id, b.id] }, ...ov });
+        expect(await publicIds()).toContain(a.id);
+
+        const exec = await asUser(executive.id);
+        const all = await payload.find({ collection: 'signage_slides', overrideAccess: false, user: exec, pagination: false, depth: 0 });
+        expect(all.docs.map((d) => d.id)).toEqual(expect.arrayContaining([a.id, b.id, c.id]));
+
+        // 表示対象が無いときは 0 件 (403 ではない)
+        await payload.update({ collection: 'signage_groups', id: g.id, data: { visible: false }, ...ov });
+        expect(await publicIds()).toEqual([]);
+      } finally {
+        await cleanup([a, b, c], [g, h]);
+      }
+    });
+
+    it('表示対象に無い固定スライドは未認証の設定の depth 2 でIDのまま返り、表示対象に無いスライドは固定に選べない', async () => {
+      const a = await slide('pin-vis-a');
+      const b = await slide('pin-vis-b');
+      const g = await group('pin-vis', [a.id]);
+      try {
+        await setAllVisible(false);
+        const exec = await asUser(executive.id);
+        await expect(
+          payload.updateGlobal({ slug: 'signage_settings', data: { pinned_slide: b.id }, overrideAccess: false, user: exec }),
+        ).rejects.toThrow();
+        await payload.updateGlobal({ slug: 'signage_settings', data: { pinned_slide: a.id }, overrideAccess: false, user: exec });
+        const shown = await payload.findGlobal({ slug: 'signage_settings', depth: 2, overrideAccess: false });
+        expect(typeof shown.pinned_slide).toBe('object');
+        expect((shown.pinned_slide as { id: number }).id).toBe(a.id);
+
+        // フックを通さず所属だけを消し、固定が残ったまま表示対象から外れた状態を作る
+        const { sql } = await import('@payloadcms/db-postgres');
+        await payload.db.drizzle.execute(sql`DELETE FROM signage_groups_rels WHERE parent_id = ${g.id}`);
+        const hidden = await payload.findGlobal({ slug: 'signage_settings', depth: 2, overrideAccess: false });
+        expect(hidden.pinned_slide).toBe(a.id);
+      } finally {
+        await cleanup([a, b], [g]);
+      }
+    });
+
+    it('表示対象から外れると固定が外れ、他の表示中のグループに属していれば外れない', async () => {
+      const a = await slide('rel-a');
+      const g1 = await group('rel-1', [a.id]);
+      const g2 = await group('rel-2', [a.id]);
+      try {
+        await setAllVisible(false);
+        await pin(a.id);
+
+        await payload.update({ collection: 'signage_groups', id: g1.id, data: { visible: false }, ...ov });
+        expect(await pinned()).toBe(a.id);
+        await payload.update({ collection: 'signage_groups', id: g2.id, data: { slides: [] }, ...ov });
+        expect(await pinned()).toBeNull();
+
+        await payload.update({ collection: 'signage_groups', id: g2.id, data: { slides: [a.id] }, ...ov });
+        await pin(a.id);
+        await payload.delete({ collection: 'signage_groups', id: g2.id, ...ov });
+        expect(await pinned()).toBeNull();
+        const kept = await payload.findByID({ collection: 'signage_slides', id: a.id, depth: 0, ...ov });
+        expect(kept.groups?.docs).toEqual([g1.id]);
+
+        await setAllVisible(true);
+        await pin(a.id);
+        await setAllVisible(false);
+        expect(await pinned()).toBeNull();
+      } finally {
+        await cleanup([a], [g1, g2]);
+      }
+    });
+
+    it('グループを削除しても、所属スライドは残って「すべて」で出る', async () => {
+      const a = await slide('del-a');
+      const g = await group('del', [a.id]);
+      try {
+        await payload.delete({ collection: 'signage_groups', id: g.id, ...ov });
+        expect((await payload.findByID({ collection: 'signage_slides', id: a.id, depth: 0, ...ov })).id).toBe(a.id);
+        expect(await publicIds()).toContain(a.id);
+      } finally {
+        await cleanup([a], [g]);
+      }
+    });
+  });
+
   describe('駐車場', () => {
     it('未認証でも読み取れる', async () => {
       const lots = await payload.find({ collection: 'parking_lots', overrideAccess: false, pagination: false });
