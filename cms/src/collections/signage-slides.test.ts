@@ -24,7 +24,28 @@ describe('SignageSlides', () => {
     expect(pin.admin.components.Cell).toBe('./components/SignagePinCell.tsx');
     expect(pin.admin.components.Field).toBe('./components/SignagePinButton.tsx');
     expect(SignageSlides.admin?.defaultColumns).toContain('pin');
-    expect(SignageSlides.admin?.components?.beforeListTable).toEqual(['./components/SignagePinBanner.tsx']);
+    expect(SignageSlides.admin?.components?.beforeListTable).toEqual([
+      './components/SignagePinBanner.tsx',
+      './components/SignageGroupSwitches.tsx',
+    ]);
+  });
+
+  it('所属グループは signage_groups.slides のjoinで、新規作成を出さず専用の列で表示する。groupBy は使わない', () => {
+    const g = f('groups') as unknown as {
+      type: string;
+      collection: string;
+      on: string;
+      label: string;
+      admin: { allowCreate: boolean; components: { Cell: string } };
+    };
+    expect(g.type).toBe('join');
+    expect(g.collection).toBe('signage_groups');
+    expect(g.on).toBe('slides');
+    expect(g.label).toBe('所属グループ');
+    expect(g.admin.allowCreate).toBe(false);
+    expect(g.admin.components.Cell).toBe('./components/SignageGroupCell.tsx');
+    expect(SignageSlides.admin?.defaultColumns).toEqual(['title', 'kind', 'groups', 'enabled', 'pin']);
+    expect((SignageSlides.admin as Record<string, unknown>).groupBy).toBeUndefined();
   });
 
   it('slug・管理画面名・ドラッグ並び', () => {

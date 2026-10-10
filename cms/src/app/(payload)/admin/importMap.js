@@ -23,7 +23,12 @@ import { default as default_865dc7d07d004c420a6d9b7fc6db63a7 } from '../../../co
 import { default as default_42b4dc53b2f2e15edc073b0f303c1d16 } from '../../../components/EventDayCheckboxes.tsx'
 import { default as default_94d312732a635f395da61fd489cd8943 } from '../../../components/SignagePinCell.tsx'
 import { default as default_b8239a33d555f0c0b19f6fed8046038f } from '../../../components/SignagePinButton.tsx'
+import { default as default_f0a6d4414df0f9e6937e37bf1c269a0e } from '../../../components/SignageGroupCell.tsx'
 import { default as default_504d5e68a80296875d878bfb87ddfa84 } from '../../../components/SignagePinBanner.tsx'
+import { default as default_99060507d390123bc3ddd0e8ff97228f } from '../../../components/SignageGroupSwitches.tsx'
+import { default as default_e0c74b33c362c99b157f95bf582e39c4 } from '../../../components/SignageGroupSlidesField.tsx'
+import { default as default_2ed8aac779ca9418101260c808295bcc } from '../../../components/ZitadelLoginButton.tsx'
+import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
 /** @type import('payload').ImportMap */
@@ -53,6 +58,11 @@ export const importMap = {
   "./components/EventDayCheckboxes.tsx#default": default_42b4dc53b2f2e15edc073b0f303c1d16,
   "./components/SignagePinCell.tsx#default": default_94d312732a635f395da61fd489cd8943,
   "./components/SignagePinButton.tsx#default": default_b8239a33d555f0c0b19f6fed8046038f,
+  "./components/SignageGroupCell.tsx#default": default_f0a6d4414df0f9e6937e37bf1c269a0e,
   "./components/SignagePinBanner.tsx#default": default_504d5e68a80296875d878bfb87ddfa84,
+  "./components/SignageGroupSwitches.tsx#default": default_99060507d390123bc3ddd0e8ff97228f,
+  "./components/SignageGroupSlidesField.tsx#default": default_e0c74b33c362c99b157f95bf582e39c4,
+  "./components/ZitadelLoginButton.tsx#default": default_2ed8aac779ca9418101260c808295bcc,
+  "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }

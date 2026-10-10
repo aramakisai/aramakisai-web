@@ -14,6 +14,7 @@ import { Pages } from './pages';
 import { ParkingLots } from './parking-lots';
 import { ParkingStatuses } from './parking-statuses';
 import { PerformanceSlots } from './performance-slots';
+import { SignageGroups } from './signage-groups';
 import { SignageSlides } from './signage-slides';
 import { Sponsors } from './sponsors';
 import { Stages } from './stages';
@@ -52,6 +53,7 @@ export const collections: CollectionConfig[] = [
   ParkingLots,
   ParkingStatuses,
   SignageSlides,
+  SignageGroups,
   Telops,
   LostItems,
 ].map(withAccess);

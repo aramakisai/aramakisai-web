@@ -46,8 +46,12 @@ describe('canRead', () => {
     expect(canRead(executive, 'lost_items', NOW)).toBe(true);
   });
 
+  it('グループは公開判定で絞らない(スライド側で表示対象を絞る)', () => {
+    expect(canRead(null, 'signage_groups', NOW)).toBe(true);
+  });
+
   it('サイネージ系は学生団体が作成・更新・削除できず管理画面で隠れる', () => {
-    for (const c of ['signage_slides', 'telops', 'lost_items']) {
+    for (const c of ['signage_slides', 'signage_groups', 'telops', 'lost_items']) {
       expect(canCreate(exhibitor, c)).toBe(false);
       expect(canUpdate(exhibitor, c)).toBe(false);
       expect(canDelete(exhibitor, c)).toBe(false);

@@ -30,8 +30,10 @@ export const SignageSlides: CollectionConfig = {
   orderable: true,
   admin: {
     useAsTitle: 'title',
-    defaultColumns: ['title', 'kind', 'enabled', 'pin'],
-    components: { beforeListTable: ['./components/SignagePinBanner.tsx'] },
+    defaultColumns: ['title', 'kind', 'groups', 'enabled', 'pin'],
+    components: {
+      beforeListTable: ['./components/SignagePinBanner.tsx', './components/SignageGroupSwitches.tsx'],
+    },
     // ドラッグ並べ替えはページをまたげないため、全件を1ページに収める
     pagination: { defaultLimit: 100 },
   },
@@ -150,5 +152,14 @@ export const SignageSlides: CollectionConfig = {
       admin: { description: 'QR・表・タイムテーブル・落とし物は15秒を推奨' },
     },
     { name: 'enabled', type: 'checkbox', defaultValue: true, label: '有効' },
+    {
+      name: 'groups',
+      type: 'join',
+      collection: 'signage_groups',
+      on: 'slides',
+      label: '所属グループ',
+      // 所属の編集はグループの編集画面で行う。join は読み取り専用にできないため新規作成の導線を消す
+      admin: { allowCreate: false, components: { Cell: './components/SignageGroupCell.tsx' } },
+    },
   ],
 };
