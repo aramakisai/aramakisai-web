@@ -348,7 +348,7 @@ CMS側(タスク1〜3)とフロント側(タスク4〜10)は別PRに分ける。
   - _Requirements: 4.7, 4.8, 4.13, 4.14, 4.15, 4.16, 4.17, 4.18, 4.19, 4.20, 4.21_
   - _Depends: 10.3i, 10.3j_
 
-- [ ] 10.3l サイネージの画面とAPIへの要求を認証済みの端末に限る
+- [x] 10.3l サイネージの画面とAPIへの要求を認証済みの端末に限る
   - 方式はCloudflare Access+サイネージ専用のZitadelのアカウント+セッション730h。本リポジトリのコードは変えない
   - aramakisai-infraの`terraform/access.tf`へのAccessアプリ(`aramakisai.com/signage`・`aramakisai.com/api/signage`、`session_duration = "730h"`、既存のZitadelのIdPと`allow_zitadel`の形のポリシー)の追加と、サイネージ専用のZitadelのアカウントの用意を、aramakisai-infra側の作業として依頼する
   - 端末・配信PCのログイン、cookieを残すブラウザの設定、開催前日の再ログインを`docs/cms-operations.md`に書く
