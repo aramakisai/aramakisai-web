@@ -381,7 +381,7 @@ CMS側(タスク1〜3)とフロント側(タスク4〜10)は別PRに分ける。
   - _Requirements: 4.16_
   - _Boundary: cms/src/components/SignageGroupSlidesField.tsx, signage-group-slides.ts_
 
-- [ ] 10.3p CMS: サイネージ グループを実行委員の管理画面のナビに出す
+- [x] 10.3p CMS: サイネージ グループを実行委員の管理画面のナビに出す
   - `signage-groups.ts`の`admin.group: false`とその理由のコメントを外し、ナビに「サイネージ グループ」を出す(既存のコレクション定義のテストがあれば先に期待値を直す)
   - CMSの型チェック・テスト・ビルドが通り、実ブラウザで、実行委員のナビに「サイネージ グループ」が出てそこから一覧・新規作成・保存ができること、学生団体のナビには出ないことをスクリーンショットで確認する。検証後はブラウザを必ず閉じる
   - _Requirements: 4.19_
