@@ -1,9 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('next/font/google', () => ({
-  Noto_Sans_JP: () => ({ variable: 'noto-var' }),
-}));
 vi.mock('@/lib/signage-data', () => ({ getSignageSnapshot: vi.fn() }));
 
 const screenProps: Record<string, unknown>[] = [];
@@ -41,6 +38,14 @@ describe('/signage', () => {
     expect(screen.getByTestId('signage-screen')).toBeTruthy();
     expect(screenProps[0].initial).toBe(value);
     expect(typeof screenProps[0].renderedAt).toBe('string');
+  });
+
+  it('Noto Sans JP の読み込みを出力しない', async () => {
+    mocked.mockResolvedValue({ ok: true, value: { fetchedAt: 'x' } as never });
+    const { container } = render(await SignagePage());
+    expect(container.innerHTML).not.toMatch(/noto/i);
+    expect(container.querySelector('link[rel="preload"]')).toBeNull();
+    expect(container.innerHTML).not.toContain('@font-face');
   });
 
   it('取得に失敗しても開け、初期値は null', async () => {

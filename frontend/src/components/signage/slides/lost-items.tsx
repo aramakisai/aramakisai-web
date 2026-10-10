@@ -12,7 +12,7 @@ export function LostItemsSlide({
   return (
     <div className="relative h-[864px] w-[1536px] overflow-clip rounded-2xl bg-white">
       <SignageHeadingChip icon="search" label="落とし物" />
-      <ul className="absolute top-[100px] left-6 grid font-noto grid-cols-[repeat(4,336px)] gap-x-12 gap-y-4">
+      <ul className="absolute top-[100px] left-6 grid font-display grid-cols-[repeat(4,336px)] gap-x-12 gap-y-4">
         {items.map((item) => {
           const photo = toAssetUrl(item.photoId, 960);
           return (
@@ -32,7 +32,7 @@ export function LostItemsSlide({
           );
         })}
       </ul>
-      <p className="absolute right-6 bottom-6 font-noto text-[28px] leading-[1.2] font-bold text-text">
+      <p className="absolute right-6 bottom-6 font-display text-[28px] leading-[1.2] font-bold text-text">
         本部テントでお預かりしています
       </p>
     </div>
