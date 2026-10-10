@@ -364,7 +364,7 @@ CMS側(タスク1〜3)とフロント側(タスク4〜10)は別PRに分ける。
   - _Requirements: 1.1_
   - _Boundary: app/(fullscreen)/signage, tailwind.config.ts, components/signage_
 
-- [ ] 10.3n CMS: 「すべて」の削除の操作を出さず、所属スライドの左右リストの見た目を管理画面に揃える
+- [x] 10.3n CMS: 「すべて」の削除の操作を出さず、所属スライドの左右リストの見た目を管理画面に揃える
   - `accessFor`の`delete`を、`signage_groups`かつ削除できる利用者のとき条件`{ is_all: { not_equals: true } }`を返すようにテスト先行で変え、`signage_groups`の`beforeDelete`のフックを外す
   - `SignageGroupSlidesField`の入力欄・チェックボックス・ボタンを`@payloadcms/ui`の`TextInput`・`CheckboxInput`・`Button`に替え、designの配置(全幅の絞り込み、枠付きの左右の列と見出し帯、行の区切り、列の中だけの縦スクロール、上下中央の移動ボタン、新規作成の案内は1回だけ、空の列の表示)に揃える。振る舞い(選択・移動・絞り込み・新規作成と所属の保存)は変えない
   - 新規作成したスライドが、名前など他の未保存の変更がある状態では、開き直したグループの所属から消えることがある現象を、修正前に実ブラウザで再現して原因を特定し、所属がその場で保存されるように直す
