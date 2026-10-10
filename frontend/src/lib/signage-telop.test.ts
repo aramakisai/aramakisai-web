@@ -1,44 +1,37 @@
 import { describe, expect, it } from 'vitest';
 import { telopAt, telopBoxWidth, telopSchedule } from './signage-telop';
 
-// チップ幅 148 → 横型の枠 600、縦型の枠 816
-const CHIP = 148;
-
 describe('telopBoxWidth', () => {
-  it('帯の内寸からチップと間隔を引く', () => {
-    expect(telopBoxWidth('landscape', CHIP)).toBe(600);
-    expect(telopBoxWidth('portrait', CHIP)).toBe(816);
+  it('帯の内寸(左右余白を除いた幅)', () => {
+    expect(telopBoxWidth('landscape')).toBe(936);
+    expect(telopBoxWidth('portrait')).toBe(984);
   });
 });
 
 describe('telopSchedule', () => {
   it('横型の枠に収まる文面は8秒、幅ちょうども収まる扱い', () => {
-    expect(telopSchedule([100, 600], [CHIP, CHIP], 150)).toEqual([
+    expect(telopSchedule([100, 936], 150)).toEqual([
       { scroll: false, durationSec: 8 },
       { scroll: false, durationSec: 8 },
     ]);
   });
 
   it('収まらない文面は(文面幅+縦型の枠幅)/速度を秒に切り上げる', () => {
-    expect(telopSchedule([601], [CHIP], 150)).toEqual([
-      { scroll: true, durationSec: 10 }, // 1417/150 = 9.45
+    expect(telopSchedule([937], 150)).toEqual([
+      { scroll: true, durationSec: 13 }, // 1921/150 = 12.8
     ]);
-    expect(telopSchedule([834], [CHIP], 150)).toEqual([
-      { scroll: true, durationSec: 11 }, // 1650/150 = 11
+    expect(telopSchedule([966], 150)).toEqual([
+      { scroll: true, durationSec: 13 }, // 1950/150 = 13
     ]);
-  });
-
-  it('チップが広い件ほど枠が狭まる', () => {
-    expect(telopSchedule([600], [CHIP + 1], 150)[0].scroll).toBe(true);
   });
 
   it('0件は空', () => {
-    expect(telopSchedule([], [], 150)).toEqual([]);
+    expect(telopSchedule([], 150)).toEqual([]);
   });
 });
 
 describe('telopAt', () => {
-  const schedule = telopSchedule([100, 1134], [CHIP, CHIP], 150); // 8秒 + 13秒 = 周期21秒
+  const schedule = telopSchedule([100, 966], 150); // 8秒 + 13秒 = 周期21秒
 
   it('0件・周期0ではnull', () => {
     expect(telopAt([], 5000, 150)).toBeNull();
@@ -63,7 +56,7 @@ describe('telopAt', () => {
   });
 
   it('1件だけでも周期で繰り返す', () => {
-    const one = telopSchedule([100], [CHIP], 150);
+    const one = telopSchedule([100], 150);
     expect(telopAt(one, 8_000, 150)?.index).toBe(0);
   });
 });

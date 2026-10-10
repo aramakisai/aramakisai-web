@@ -63,7 +63,7 @@ function toTelop(doc: Telop): SignageTelopItem {
   return {
     id: doc.id,
     audience: doc.audience,
-    target: doc.target ?? null,
+    target: doc.target,
     body: doc.body,
   };
 }

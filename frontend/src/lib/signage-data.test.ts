@@ -94,7 +94,13 @@ describe('getSignageSnapshot', () => {
     setup({
       signage_slides: docs([slide(4), slide(1), slide(2), slide(3)]),
       telops: docs([
-        { id: 9, audience: 'visitor', body: 'x', ...base },
+        {
+          id: 9,
+          audience: 'visitor',
+          target: 'ご来場のみなさまへ',
+          body: 'x',
+          ...base,
+        },
         {
           id: 8,
           audience: 'group',
@@ -102,7 +108,13 @@ describe('getSignageSnapshot', () => {
           body: 'y',
           ...base,
         },
-        { id: 7, audience: 'visitor', body: 'z', ...base },
+        {
+          id: 7,
+          audience: 'visitor',
+          target: 'ご来場のみなさまへ',
+          body: 'z',
+          ...base,
+        },
       ]),
     });
     const r = await getSignageSnapshot();

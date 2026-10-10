@@ -57,8 +57,8 @@ export type SignageSlide =
 export interface SignageTelopItem {
   readonly id: number;
   readonly audience: Telop['audience'];
-  /** audienceがgroupのときの対象表記。例: "出店団体へ" */
-  readonly target: string | null;
+  /** 対象チップの表記。例: "出店団体へ" */
+  readonly target: string;
   readonly body: string;
 }
 

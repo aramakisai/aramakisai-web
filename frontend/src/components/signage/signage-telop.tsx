@@ -16,23 +16,12 @@ export interface SignageTelopProps {
   readonly offsetMs: number | null;
 }
 
-interface Measured {
-  readonly slots: readonly TelopSlot[];
-  readonly chipWidths: readonly number[];
-}
-
-function chipLabel(item: SignageTelopItem): string {
-  return item.audience === 'visitor'
-    ? 'ご来場のみなさまへ'
-    : (item.target ?? '参加団体へ');
-}
-
 function Chip({ item }: { readonly item: SignageTelopItem }) {
   return (
     <span
       className={`shrink-0 whitespace-nowrap rounded-[8px] px-4 py-2 font-display text-[28px] leading-none font-bold text-text ${item.audience === 'visitor' ? 'bg-primary' : 'bg-warning'}`}
     >
-      {chipLabel(item)}
+      {item.target}
     </span>
   );
 }
@@ -43,29 +32,27 @@ export function SignageTelop({
   offsetMs,
 }: SignageTelopProps) {
   const textRefs = useRef<(HTMLParagraphElement | null)[]>([]);
-  const chipRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const [measured, setMeasured] = useState<Measured | null>(null);
+  const [slots, setSlots] = useState<readonly TelopSlot[] | null>(null);
   const [index, setIndex] = useState(0);
   const count = items.length;
-  const itemsKey = items
-    .map((i) => `${i.id}:${chipLabel(i)}:${i.body}`)
-    .join('\n');
+  const itemsKey = items.map((i) => `${i.id}:${i.target}:${i.body}`).join('\n');
 
-  // 全件の文面とチップを paint 前に測る。offsetWidth は拡縮前の設計座標で、端末の画面サイズ・向きに依らない
+  // 全件の文面を paint 前に測る。offsetWidth は拡縮前の設計座標で、端末の画面サイズ・向きに依らない
   useLayoutEffect(() => {
     if (count === 0) {
-      setMeasured(null);
+      setSlots(null);
       return;
     }
     let disposed = false;
     const measure = () => {
-      const widthsOf = (els: (HTMLElement | null)[]) =>
-        Array.from({ length: count }, (_, i) => els[i]?.offsetWidth ?? 0);
-      const chipWidths = widthsOf(chipRefs.current);
-      setMeasured({
-        slots: telopSchedule(widthsOf(textRefs.current), chipWidths),
-        chipWidths,
-      });
+      setSlots(
+        telopSchedule(
+          Array.from(
+            { length: count },
+            (_, i) => textRefs.current[i]?.offsetWidth ?? 0,
+          ),
+        ),
+      );
     };
     measure();
     // Web フォント読込前の幅で計測した場合に備え、読込完了後に測り直す
@@ -82,13 +69,13 @@ export function SignageTelop({
   // 件の切り替えと流し位置は端末の経過時間ではなく時刻から決め、全端末で同じ表示にする。
   // 毎フレームの位置は React の状態を経由せず直接反映する
   useEffect(() => {
-    if (!measured || offsetMs === null) return;
+    if (!slots || offsetMs === null) return;
     let raf = 0;
     const frame = () => {
-      const at = telopAt(measured.slots, Date.now() + offsetMs);
+      const at = telopAt(slots, Date.now() + offsetMs);
       if (at) {
         setIndex(at.index);
-        const box = telopBoxWidth(orientation, measured.chipWidths[at.index]);
+        const box = telopBoxWidth(orientation);
         textRefs.current.forEach((el, i) => {
           if (!el) return;
           el.style.visibility = i === at.index ? 'visible' : 'hidden';
@@ -102,27 +89,16 @@ export function SignageTelop({
     };
     frame();
     return () => cancelAnimationFrame(raf);
-  }, [measured, offsetMs, orientation]);
+  }, [slots, offsetMs, orientation]);
 
   const item = items[index < count ? index : 0];
   if (!item) return null;
   return (
-    <div className="relative flex h-[144px] w-[816px] items-center gap-5 overflow-hidden rounded-[16px] bg-text px-6 portrait:h-[120px] portrait:w-[1032px]">
-      <div aria-hidden className="invisible absolute top-0 left-0">
-        {items.map((it, i) => (
-          <div
-            key={it.id}
-            ref={(el) => {
-              chipRefs.current[i] = el;
-            }}
-            className="flex w-max"
-          >
-            <Chip item={it} />
-          </div>
-        ))}
+    <div className="flex h-[144px] w-[984px] flex-col justify-center gap-2 overflow-hidden rounded-[16px] bg-text px-6 portrait:h-[120px] portrait:w-[1032px]">
+      <div className="flex">
+        <Chip item={item} />
       </div>
-      <Chip item={item} />
-      <div className="relative min-w-0 flex-1 self-stretch overflow-hidden">
+      <div className="relative h-[44px] w-full overflow-hidden">
         {items.map((it, i) => (
           <p
             key={it.id}
@@ -130,7 +106,7 @@ export function SignageTelop({
               textRefs.current[i] = el;
             }}
             style={{ visibility: 'hidden' }}
-            className="absolute inset-y-0 left-0 flex w-max items-center font-display text-[44px] leading-none font-bold whitespace-nowrap text-background"
+            className="absolute top-0 left-0 w-max font-display text-[44px] leading-none font-bold whitespace-nowrap text-background"
           >
             {it.body}
           </p>
