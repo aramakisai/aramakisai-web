@@ -409,7 +409,7 @@ Local API から行う場合は `payload.create({ collection: 'student_exhibitio
 
 ## サイネージ端末のログイン
 
-サイネージの画面(`aramakisai.com/signage`)とAPI(`aramakisai.com/api/signage`)はCloudflare Accessで保護され、ログインしていない端末の要求はWorkerに届かない。公式サイトの他のページはログイン不要。端末・配信PCは、サイネージ専用のZitadelアカウントで1回ログインする。セッションは730h(約1か月)で、切れると表示は直前のまま更新が止まる。
+サイネージの画面(`aramakisai.com/signage`)とAPI(`aramakisai.com/api/signage`)はCloudflare Accessで保護され、ログインしていない端末の要求はWorkerに届かない。公式サイトの他のページはログイン不要。端末・配信PCは、サイネージ専用のZitadelアカウントで1回ログインする。アカウントのユーザー名は`signage`、パスワードはInfisicalのprod環境の`SIGNAGE_ZITADEL_PASSWORD`にある。セッションは730h(約1か月)で、切れると表示は直前のまま更新が止まる。
 
 ### 端末(キオスクのブラウザ)
 
