@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "type-check": "tsc --noEmit",
+    "types:workers": "wrangler types -c workers/signage-hub/wrangler.toml --path workers/worker-configuration.d.ts",
+    "type-check": "pnpm types:workers && tsc --noEmit && tsc --noEmit -p workers",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
