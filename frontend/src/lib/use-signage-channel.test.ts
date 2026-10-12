@@ -10,13 +10,13 @@ class FakeWebSocket {
   onmessage: ((e: { data: string }) => void) | null = null;
   onclose: (() => void) | null = null;
   onerror: (() => void) | null = null;
-  sent: { kind: string; id: number }[] = [];
+  sent: string[] = [];
   closed = false;
   constructor(readonly url: string) {
     FakeWebSocket.instances.push(this);
   }
   send(data: string) {
-    this.sent.push(JSON.parse(data));
+    this.sent.push(data);
   }
   close() {
     this.closed = true;
@@ -80,7 +80,7 @@ describe('useSignageChannel', () => {
     expect(count()).toBe(1);
     expect(last().url).toBe(`ws://${location.host}/api/signage/ws`);
     act(() => last().open());
-    expect(last().sent).toEqual([{ kind: 'ping', id: 1 }]);
+    expect(last().sent).toEqual(['ping']);
   });
 
   it('5秒ごとに ping を送る', () => {
@@ -88,31 +88,17 @@ describe('useSignageChannel', () => {
     const ws = last();
     act(() => ws.open());
     act(() => {
-      ws.receive({
-        kind: 'pong',
-        id: 1,
-        serverNow: new Date(T0).toISOString(),
-      });
+      ws.onmessage?.({ data: 'pong' });
       vi.advanceTimersByTime(5000);
     });
-    expect(ws.sent.map((m) => m.id)).toEqual([1, 2]);
+    expect(ws.sent).toEqual(['ping', 'ping']);
   });
 
-  it('pong の serverNow と RTT/2 から時刻のずれを更新する', () => {
+  it('offsetMs を返さない', () => {
     const { result } = renderHook(() => useSignageChannel());
-    const ws = last();
-    act(() => ws.open());
-    expect(result.current.offsetMs).toBeNull();
-    act(() => {
-      vi.advanceTimersByTime(200);
-      // 端末時計 T0+200 で受信、サーバーは T0+1100 + RTT/2(100) → ずれ +1000
-      ws.receive({
-        kind: 'pong',
-        id: 1,
-        serverNow: new Date(T0 + 1000).toISOString(),
-      });
-    });
-    expect(result.current.offsetMs).toBe(900);
+    act(() => last().open());
+    act(() => last().onmessage?.({ data: 'pong' }));
+    expect('offsetMs' in result.current).toBe(false);
   });
 
   it('pong が5秒以内に来なければ切断して接続し直す', () => {
@@ -128,6 +114,18 @@ describe('useSignageChannel', () => {
     expect(count()).toBe(2);
   });
 
+  it('pong が5秒以内に届けば再接続しない', () => {
+    renderHook(() => useSignageChannel());
+    const ws = last();
+    act(() => ws.open());
+    act(() => {
+      vi.advanceTimersByTime(4999);
+      ws.onmessage?.({ data: 'pong' });
+      vi.advanceTimersByTime(1);
+    });
+    expect(ws.closed).toBe(false);
+  });
+
   it('再接続の待ちは倍々で最大30秒になり、pong で1秒に戻る', () => {
     renderHook(() => useSignageChannel());
     const waits = [1000, 2000, 4000, 8000, 16000, 30000, 30000];
@@ -140,13 +138,7 @@ describe('useSignageChannel', () => {
     }
     const ws = last();
     act(() => ws.open());
-    act(() =>
-      ws.receive({
-        kind: 'pong',
-        id: 1,
-        serverNow: new Date(T0).toISOString(),
-      }),
-    );
+    act(() => ws.onmessage?.({ data: 'pong' }));
     act(() => ws.drop());
     const before = count();
     act(() => vi.advanceTimersByTime(999));
@@ -233,22 +225,16 @@ describe('useSignageChannel', () => {
     expect(result.current.pin).toBeUndefined();
   });
 
-  it('切断中も最後の固定・表示対象・ずれ・版を返し続ける', () => {
+  it('切断中も最後の固定・表示対象を返し続ける', () => {
     const { result } = renderHook(() => useSignageChannel());
     act(() => last().open());
     act(() => {
       last().receive(pinBroadcast({}, [7]));
-      last().receive({
-        kind: 'pong',
-        id: 1,
-        serverNow: new Date(T0).toISOString(),
-      });
     });
     const snapshot = result.current;
     act(() => last().drop());
     act(() => vi.advanceTimersByTime(60000));
     expect(result.current.pin).toEqual(snapshot.pin);
-    expect(result.current.offsetMs).toBe(snapshot.offsetMs);
   });
 
   it('アンマウントで接続とタイマーを片付ける', () => {

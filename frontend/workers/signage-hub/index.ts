@@ -1,6 +1,7 @@
 import { DurableObject } from 'cloudflare:workers';
 import {
-  parseClientMessage,
+  SIGNAGE_PING,
+  SIGNAGE_PONG,
   type SignageBroadcast,
   type SignagePinPayload,
   type SignagePublishInput,
@@ -34,7 +35,6 @@ function parsePin(value: unknown): SignagePinPayload | null {
   ) {
     return null;
   }
-  // serverNow はハブが pong で配るので、取り直しのたびに変わる値を比較に混ぜない
   return { slide, visibleSlideIds } as SignagePinPayload;
 }
 
@@ -44,6 +44,9 @@ export class SignageHub extends DurableObject<Env> {
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
+    ctx.setWebSocketAutoResponse(
+      new WebSocketRequestResponsePair(SIGNAGE_PING, SIGNAGE_PONG),
+    );
     // hibernation から起きるたびにコンストラクタが走るので、保持と保留はストレージから読み直す
     void ctx.blockConcurrencyWhile(async () => {
       const stored = await ctx.storage.get<HubState>(STATE_KEY);
@@ -71,17 +74,8 @@ export class SignageHub extends DurableObject<Env> {
     return new Response(null, { status: 101, webSocket: client });
   }
 
-  webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): void {
-    if (typeof message !== 'string') return;
-    const ping = parseClientMessage(message);
-    if (!ping) return;
-    ws.send(
-      JSON.stringify({
-        kind: 'pong',
-        id: ping.id,
-        serverNow: new Date().toISOString(),
-      }),
-    );
+  webSocketMessage(): void {
+    // ping は自動応答が返す。ここへ届くのは想定外のものだけで、起こさないために何もしない
   }
 
   webSocketClose(ws: WebSocket, code: number): void {

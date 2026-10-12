@@ -163,7 +163,13 @@ export async function Footer({ phase }: FooterProps) {
             />
             <address className="flex flex-col gap-3 text-sm leading-[1.6] text-text not-italic">
               <p className="font-bold leading-[1.4]">
-                群馬大学荒牧祭実行委員会
+                <Link
+                  href="/comittee"
+                  className="group relative inline-block focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                >
+                  群馬大学荒牧祭実行委員会
+                  <HoverLine />
+                </Link>
               </p>
               <div className="relative pl-5">
                 <PlaceIcon

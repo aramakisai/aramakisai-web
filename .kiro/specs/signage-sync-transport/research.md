@@ -50,7 +50,7 @@
   - 「Outgoing WebSockets do not hibernate.」「an open outbound WebSocket connection prevents eviction for up to 15 minutes.」
   - 「Deploying a new version restarts every Durable Object, which disconnects any existing connections.」
   - 1インスタンスで数千の接続を受けられる
-- **Implications**: 遅延はalarmで行い`setTimeout`を使わない。時刻を返すpongは`setWebSocketAutoResponse`(固定の応答)では作れないので、アプリケーションのpingを`webSocketMessage`で受ける。上流への接続をDOに持たせると、その間はhibernationしない。ハブのデプロイで全端末が切れるので、端末は自動で接続し直す
+- **Implications**: 遅延はalarmで行い`setTimeout`を使わない。pingは`setWebSocketAutoResponse`の固定の応答で返し、DOを起こさない(下の「DOの休止とping/pongの自動応答」参照)。上流への接続をDOに持たせると、その間はhibernationしない。ハブのデプロイで全端末が切れるので、端末は自動で接続し直す
 
 ### Durable Objectsの料金と込み量
 - **Context**: 3.2・3.3と、11/22以降のFreeでの扱い
@@ -63,7 +63,7 @@
   - `setAlarm()`はSQLite backedでは1行の書き込みに数える(Freeは1日10万行)
   - Workers: 「Durable Objects are available both on Workers Free and Workers Paid plans.」Freeは「Only Durable Objects with SQLite storage backend are available.」
   - Workers: 「Requests made from your Worker to another worker via a Service Binding do not incur additional request fees.」「WebSocket connections made to a Worker are charged as a request.」「WebSocket messages routed through a Worker do not count as requests.」
-- **Implications**: 9台でpingを5秒ごとにしても1日約7,800要求で、alarmや接続を足しても約10,300/日。Paid期間31日で約32万、Free期間でも1日の上限の約1割。durationは最悪(hibernationが効かない)でも10,800GB-s/日でFreeの13,000に収まる
+- **Implications**: 9台でpingを5秒ごとにしても1日約7,800要求で、alarmや接続を足しても約10,300/日。Paid期間31日で約32万、Free期間でも1日の上限の約1割。durationはalarmの起動(60秒ごと)だけで約3,200GB-s/日の上限(下の確認結果と、design.mdのPerformance & Scalability)
 
 ### バージョンURLとDurable Objects
 - **Context**: PRプレビュー(`wrangler versions upload`のバージョンURL)とe2eを保てるか
@@ -122,7 +122,7 @@
 | Cache APIで短TTL共有 | pinの状態をTTL 1秒で共有し、未命中時だけCMSへ | 変更が小さい | Accessの背後でCache APIが使えない。Workersの要求数は減らない(9台31日で約924万) | 不採用 |
 | `cf.cacheTtl`によるCDN共有 | CMSへの取得をCDNで1〜数秒キャッシュ | Accessの影響を受けない(CMSのホストはAccessの外) | 反映がTTL+ポーリング3秒+往復で最悪4秒強。Workersの要求数は減らない。サーバーからのpushの経路にならず、速報に使えない | 不採用 |
 | CMS側のメモリキャッシュ | Payloadで表示対象の計算結果を短時間保持 | DBの負荷は下がる | CMSへの要求数とWorkersの要求数は減らない。Pod間で共有されない | 不採用 |
-| SSE | Workerが応答を開いたまま変化時に送る | ブラウザ標準で再接続がある | Workerの1要求を長く保持し、待機中も変化を知る手段(結局DO等)が要る。サーバー→端末の片方向でpingの往復が取れず、RTT/2の時刻補正が成り立たない | 不採用 |
+| SSE | Workerが応答を開いたまま変化時に送る | ブラウザ標準で再接続がある | Workerの1要求を長く保持し、待機中も変化を知る手段(結局DO等)が要る。サーバー→端末の片方向でpingの往復が取れない | 不採用 |
 | ロングポーリング | 変化があるまで応答を保留 | 要求数は減る | 待機中に変化を知る手段が要る点はSSEと同じ。RTTに保留時間が入り、時刻補正が成り立たない | 不採用 |
 | 条件付きリクエスト(ETag/304) | 状態のハッシュをETagにして変化なしは304 | 転送量は減る | 304も1要求に数える。ETagを決めるのにCMSへの問い合わせが要る | 不採用 |
 | DOをサイトのWorkerに同居 | `main`のカスタムworkerでDOのクラスもexport | Workerが1つで済む | バージョンURLが出なくなり、PRプレビューとe2eが壊れる | 不採用 |
@@ -175,15 +175,15 @@
 - **Trade-offs**: WebSocketが繋がらない間、固定の反映は最悪2分強かかる
 - **Follow-up**: なし
 
-### Decision: 時刻補正はアプリケーションのping/pongで5秒ごと
-- **Context**: 2.2の時刻補正の情報源だったpinの`serverNow`が無くなる
+### Decision: 時刻補正はスナップショットの`serverNow`、ping/pongは自動応答の生存確認
+- **Context**: 時刻を載せたpongはpingのたびにDOを起こし、5秒間隔では休止できない(常時稼働で約10,800GB-s/日)
 - **Alternatives Considered**:
-  1. `setWebSocketAutoResponse`(DOを起こさない)
-  2. `webSocketMessage`でpingを受け、`serverNow`を付けたpongを返す
-- **Selected Approach**: 2。間隔5秒、pongの待ち5秒で切断を検出する
-- **Rationale**: 自動応答は固定の文字列しか返せない。5秒ごとでも要求は1日約7,800(9台)で込み量に余裕がある。半開きの接続の検出も兼ねる
-- **Trade-offs**: pingのたびにDOが起きる(処理時間だけdurationがかかる)
-- **Follow-up**: なし
+  1. `webSocketMessage`でpingを受け、`serverNow`付きのpongを返す
+  2. 固定文字列の自動応答(DOを起こさない)にし、時刻はスナップショットの`serverNow`から求める
+- **Selected Approach**: 2。pongは生存確認(5秒以内に来なければ再接続)だけに使う。接続直後のメッセージにも時刻は載せない(スナップショットで足りる)
+- **Rationale**: 2.2の「配信元の時刻に合わせる」を保ったまま、DOを休止できる。時刻のずれの求め方は`signage-screen.tsx`に既にある
+- **Trade-offs**: ずれの更新が2分ごと(と版の取り直しごと)になる
+- **Follow-up**: 本番で`quota.do_gbs_day`を見積もりと比べる
 
 ### Decision: 表示内容は版だけをpushし、端末が取り直す
 - **Context**: 6.1の数秒以内の反映。5.1の表示対象外の中身を配らないこと
@@ -227,3 +227,20 @@
 - [Custom Worker · OpenNext](https://opennext.js.org/cloudflare/howtos/custom-worker) — カスタムworkerの入口
 - [Cloudflare Access · Workers docs](https://developers.cloudflare.com/workers/configuration/cloudflare-access/) — Worker単位のAccessはWebSocket非対応
 - [Policy inheritance · Cloudflare One docs](https://developers.cloudflare.com/cloudflare-one/access-controls/policies/app-paths/) — 下位パスの規則の継承
+
+## DOの休止とping/pongの自動応答(確認結果)
+- **Sources**: [Pricing · Durable Objects](https://developers.cloudflare.com/durable-objects/platform/pricing/)、[Use WebSockets · Durable Objects](https://developers.cloudflare.com/durable-objects/best-practices/websockets/)、[DurableObjectState · Durable Objects API](https://developers.cloudflare.com/durable-objects/api/state/)、[Lifecycle of a Durable Object](https://developers.cloudflare.com/durable-objects/concepts/durable-object-lifecycle/)
+- **確認できたこと**
+  - `setWebSocketAutoResponse(new WebSocketRequestResponsePair(request, response))`は、一致する受信に、休止中のWebSocketを起こさずに応答する。引数を省くと設定が消える。request・responseは各2,048文字まで(State API)
+  - 自動応答は「additional wall-clock timeを消費せず課金されない」(Pricing)
+  - 「休止できる待機中のDOはdurationを課金されない」(Pricing)。durationは1オブジェクトあたり128MBで計算(Pricing)
+  - 受信のWebSocketメッセージは20件で1要求に換算して課金。接続の確立は別に1要求(Pricing)
+  - Free: 13,000GB-s/日。超えるとその種の操作はエラーになる。UTC0時にリセット。Paid: 月40万GB-s込み、超過は100万GB-sあたり12.50ドル(Pricing)
+  - 休止に入る条件: 実行中のリクエスト・イベントが無い、`setTimeout`/`setInterval`のコールバックが無い、未完了の`waitUntil`・アウトバウンド接続が無い。休止できる待機状態になってから10秒の無活動で休止する(Lifecycle: 「after 10 seconds of inactivity」)
+  - 休止中にイベントが来るとコンストラクタが再実行されて起動する(Lifecycle)。プロトコルのping/pongは休止を妨げない(WebSockets)
+- **未確認**
+  - 自動応答の受信がリクエスト数(20:1換算)に数えられるか。文書は自動応答をdurationの面でしか述べていない
+  - 自動応答がリクエスト文字列の完全一致だけか(文書は「matching the provided request」とのみ記載)
+  - alarmが休止中のDOを起こすと明記した箇所(Lifecycleは「アクティブでないオブジェクトに最初に来るリクエストまたはイベント(alarmなど)でコンストラクタが走る」とする)
+  - 休止に入るまでの10秒の待ちが課金対象か(課金対象の状態の一覧に休止できる待機は無いが、明記は無い)
+- **Implications**: 5秒ごとの時刻付きpongはDOを起こすので休止できない。固定文字列の自動応答にすればDOは休止でき、時刻はスナップショットの`serverNow`から求める。GB-sの見積もりは、休止に入るまでの10秒を課金されるものとして計算する

@@ -92,7 +92,7 @@ export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
   useEffect(() => {
     setMountOffsetMs(Date.parse(serverIso) - Date.now());
   }, [serverIso]);
-  const offsetMs = channel.offsetMs ?? polled?.offsetMs ?? mountOffsetMs;
+  const offsetMs = polled?.offsetMs ?? mountOffsetMs;
   const now = useCorrectedNow(offsetMs, serverIso);
   const rootRef = useRef<HTMLDivElement>(null);
   const layout = useCanvasLayout(rootRef);

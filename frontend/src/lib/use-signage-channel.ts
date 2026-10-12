@@ -2,21 +2,19 @@ import { useEffect, useState } from 'react';
 import {
   isExpired,
   parseServerMessage,
+  SIGNAGE_PING,
   SIGNAGE_PING_INTERVAL_MS,
+  SIGNAGE_PONG,
   SIGNAGE_PONG_TIMEOUT_MS,
   type SignageBroadcast,
-  type SignageClientMessage,
   type SignageFeature,
   type SignageFeaturePayloads,
   type SignagePinPayload,
 } from './signage-channel';
-import { clockOffsetMs } from './signage-time';
 
 export interface SignageChannelState {
   readonly pin: SignagePinPayload | undefined;
   readonly snapshotVersion: number | undefined;
-  /** 最後に得たずれ。一度も pong を受けていなければ null */
-  readonly offsetMs: number | null;
   /** 機能名ごとの最後の broadcast(期限切れは受信時に捨てる) */
   readonly latest: Partial<{
     readonly [F in SignageFeature]: Extract<SignageBroadcast, { feature: F }>;
@@ -26,7 +24,6 @@ export interface SignageChannelState {
 const INITIAL: SignageChannelState = {
   pin: undefined,
   snapshotVersion: undefined,
-  offsetMs: null,
   latest: {},
 };
 
@@ -46,15 +43,11 @@ export function useSignageChannel(): SignageChannelState {
     let pingTimer: ReturnType<typeof setInterval> | undefined;
     let pongTimer: Timer;
     let attempt = 0;
-    let nextPingId = 0;
-    let offsetMs: number | null = null;
-    const sentAt = new Map<number, number>();
 
     const stopSocket = () => {
       clearInterval(pingTimer);
       clearTimeout(pongTimer);
       pongTimer = undefined;
-      sentAt.clear();
       if (ws) {
         // 古い接続の遅れた受信・close が新しい接続の状態を壊さないよう先にハンドラを外す
         ws.onopen = ws.onmessage = ws.onclose = ws.onerror = null;
@@ -90,30 +83,20 @@ export function useSignageChannel(): SignageChannelState {
 
     const ping = () => {
       if (!ws) return;
-      const id = ++nextPingId;
-      sentAt.set(id, Date.now());
-      const msg: SignageClientMessage = { kind: 'ping', id };
-      ws.send(JSON.stringify(msg));
+      ws.send(SIGNAGE_PING);
       pongTimer ??= setTimeout(lost, SIGNAGE_PONG_TIMEOUT_MS);
     };
 
     const receive = (raw: string) => {
-      const msg = parseServerMessage(raw);
-      if (!msg) return;
-      if (msg.kind === 'pong') {
-        const sent = sentAt.get(msg.id);
-        if (sent === undefined) return;
-        sentAt.delete(msg.id);
+      if (raw === SIGNAGE_PONG) {
         clearTimeout(pongTimer);
         pongTimer = undefined;
         attempt = 0;
-        const next = clockOffsetMs(msg.serverNow, sent, Date.now());
-        if (Number.isNaN(next)) return;
-        offsetMs = next;
-        setState((s) => ({ ...s, offsetMs: next }));
         return;
       }
-      if (isExpired(msg, Date.now() + (offsetMs ?? 0))) return;
+      const msg = parseServerMessage(raw);
+      if (!msg) return;
+      if (isExpired(msg, Date.now())) return;
       setState((s) => {
         const latest = { ...s.latest, [msg.feature]: msg };
         return {
