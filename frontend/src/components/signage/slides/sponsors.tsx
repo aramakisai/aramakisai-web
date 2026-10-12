@@ -32,7 +32,7 @@ export function SponsorsSlide({
   return (
     <div className="relative h-[864px] w-[1536px] overflow-clip rounded-2xl bg-white">
       <SignageHeadingChip icon="handshake" label="ご協賛いただいた皆さま" />
-      <div className="absolute top-[106px] left-[84px] flex w-[1368px] flex-col font-display">
+      <div className="absolute top-[106px] left-[84px] flex w-[1368px] flex-col">
         {rows.map((row, i) => (
           <ul
             key={`${row.kind}-${row.items[0]?.id ?? i}`}

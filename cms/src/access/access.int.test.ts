@@ -559,7 +559,7 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
       const telop = (enabled: boolean) =>
         payload.create({
           collection: 'telops',
-          data: { audience: 'visitor', body: `sig-${suffix}-${enabled}`, enabled },
+          data: { audience: 'visitor', target: 'ご来場のみなさまへ', body: `sig-${suffix}-${enabled}`, enabled },
           overrideAccess: true,
         });
       const lost = (returned: boolean) =>
@@ -596,7 +596,7 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
         await expect(
           payload.create({
             collection: 'telops',
-            data: { audience: 'visitor', body: 'x', enabled: true },
+            data: { audience: 'visitor', target: 'ご来場のみなさまへ', body: 'x', enabled: true },
             overrideAccess: false,
             user,
           }),
