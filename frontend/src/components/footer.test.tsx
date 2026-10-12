@@ -146,6 +146,13 @@ describe('Footer', () => {
     ).toHaveAttribute('href', '/privacy');
   });
 
+  test('住所欄の団体名は実行委員会紹介ページへリンクする', async () => {
+    await renderFooter();
+    expect(
+      screen.getByRole('link', { name: '群馬大学荒牧祭実行委員会' }),
+    ).toHaveAttribute('href', '/comittee');
+  });
+
   test('contact_form_url が無い場合お問い合わせを表示せず、残りは維持する', async () => {
     vi.mocked(festivalMetaModule.getContactFormUrl).mockResolvedValue(null);
     await renderFooter();
