@@ -112,5 +112,13 @@ describe('ExhibitionCard', () => {
     expect(
       (bgWith as HTMLElement).style.getPropertyValue('--exhibition-texture'),
     ).toBe('url(/images/textures/card/watercolor.webp)');
+    for (const v of [
+      '--exhibition-texture-y',
+      '--exhibition-texture-sx',
+      '--exhibition-texture-sy',
+    ]) {
+      expect((bgWith as HTMLElement).style.getPropertyValue(v)).not.toBe('');
+      expect((bgWithout as HTMLElement).style.getPropertyValue(v)).toBe('');
+    }
   });
 });

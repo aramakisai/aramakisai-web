@@ -25,17 +25,28 @@ describe('getExhibitionGradient', () => {
     expect(a).toEqual(b);
   });
 
-  it('from と to は必ず異なるトークンになる', () => {
-    for (const name of [
-      '',
-      'アラマキ祭',
-      'Test Project',
-      '荒牧祭実行委員会',
-      'あ',
-    ]) {
-      const gradient = getExhibitionGradient(name);
-      expect(gradient.from).not.toBe(gradient.to);
+  it('from と to は色相順 (環状) で必ず隣り合う', () => {
+    const order = [
+      'warning',
+      'primary',
+      'success',
+      'secondary',
+      'info',
+      'accent-alt',
+      'accent',
+    ];
+    for (let i = 0; i < 500; i++) {
+      const { from, to } = getExhibitionGradient(`企画${i}`);
+      const d = Math.abs(order.indexOf(from) - order.indexOf(to));
+      expect([1, order.length - 1]).toContain(d);
     }
+  });
+
+  it('溜まりの中心は angle から算出される', () => {
+    const g = getExhibitionGradient('アラマキ祭');
+    const rad = (g.angle * Math.PI) / 180;
+    expect(g.poolX).toBeCloseTo(50 + 90 * Math.sin(rad), 1);
+    expect(g.poolY).toBeCloseTo(50 - 40 * Math.cos(rad), 1);
   });
 
   it('角度は 0〜359 の整数になる', () => {
@@ -65,11 +76,11 @@ describe('getExhibitionGradient', () => {
 
   // FNV-1a(32bit) → mulberry32 の算出手順自体を固定する (design.md のアルゴリズムどおりの参照実装で算出)
   it.each([
-    ['', 'info', 'accent', 278],
-    ['アラマキ祭', 'primary', 'warning', 130],
-    ['Test Project', 'info', 'accent-alt', 1],
-    ['荒牧祭実行委員会', 'primary', 'info', 270],
-    ['あ', 'secondary', 'warning', 106],
+    ['', 'info', 'accent-alt', 278],
+    ['アラマキ祭', 'warning', 'accent', 130],
+    ['Test Project', 'info', 'secondary', 1],
+    ['荒牧祭実行委員会', 'warning', 'accent', 270],
+    ['あ', 'primary', 'warning', 106],
   ] as const)('%s の既知の組み合わせを返す', (name, from, to, angle) => {
     expect(getExhibitionGradient(name)).toEqual({
       from,
@@ -77,6 +88,8 @@ describe('getExhibitionGradient', () => {
       fromColor: GRADIENT_PALETTE[from],
       toColor: GRADIENT_PALETTE[to],
       angle,
+      poolX: expect.any(Number),
+      poolY: expect.any(Number),
     });
   });
 });
@@ -107,5 +120,17 @@ describe('getExhibitionAppearance', () => {
     ['あ', 'halftone'],
   ] as const)('%s の既知の質感を返す', (name, texture) => {
     expect(getExhibitionAppearance(name).texture).toBe(texture);
+  });
+
+  it('質感の切り出し位置・反転は決定的で範囲内', () => {
+    for (let i = 0; i < 200; i++) {
+      const a = getExhibitionAppearance(`企画${i}`);
+      expect(a).toEqual(getExhibitionAppearance(`企画${i}`));
+      expect(Number.isInteger(a.texturePositionY)).toBe(true);
+      expect(a.texturePositionY).toBeGreaterThanOrEqual(0);
+      expect(a.texturePositionY).toBeLessThanOrEqual(100);
+      expect(typeof a.textureFlipX).toBe('boolean');
+      expect(typeof a.textureFlipY).toBe('boolean');
+    }
   });
 });
