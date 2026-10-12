@@ -1,4 +1,5 @@
 /* eslint-disable @next/next/no-img-element -- ロゴは公開ディレクトリの静的画像で最適化不要 */
+import Link from 'next/link';
 import { getSnsLinks } from '@/lib/sns-links';
 import { getContactFormUrl } from '@/lib/festival-meta';
 import type { SnsLink } from '@/lib/home-page-types';
