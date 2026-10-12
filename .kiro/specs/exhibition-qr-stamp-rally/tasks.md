@@ -97,6 +97,11 @@ UIを含むタスクのFigmaはファイル`0kWDqHsLr6xE8b4FFgR1Zx`。node-idは
   - liveフェーズのSP幅ハンバーガーメニューにだけ末尾へ「マイページ」を足し、PC幅の横並びナビゲーションと開催前フェーズのヘッダーには出さない。トップへの導線はヘッダーのロゴのままにする
   - 完了条件: ヘッダーのテストでliveのハンバーガーメニューのみに出ることを確認し、実ブラウザでSP幅とPC幅(1024px以上)を切り替えて表示・非表示と寸法を確認している
   - _Requirements: 3.8, 3.9_
+- [ ] 7.3 構内マップのハンバーガーメニューにマイページを追加する
+  - 構内マップのメニュー(`MapMenuButton`)の項目を7.2と同じハンバーガーメニュー専用の項目定義に切り替え、liveのときだけ末尾に「マイページ」を出す。開催前フェーズには出さない
+  - Figmaに構内マップのメニューのフレームがあれば同じ行を足し、コードと項目構成を揃える
+  - 完了条件: 構内マップのメニューのテストでliveのときだけ出ることを確認し、実ブラウザ(SP幅)の`/map`でメニューを開いて末尾に「マイページ」が出て`/mypage`へ遷移すること、行の寸法がヘッダーのメニューと同じことを確認している
+  - _Requirements: 3.8, 3.9_
 
 - [x] 8. (P) 印刷用QRの一括出力スクリプト
   - サイトURL(必須)と出力先(既定はgit管理外のディレクトリ)を引数で受け取り、秘密値とCMSのURLは実行環境、実行委員のCMSセッショントークンはシェルの環境変数から読む
@@ -130,13 +135,15 @@ UIを含むタスクのFigmaはファイル`0kWDqHsLr6xE8b4FFgR1Zx`。node-idは
   - 9.2のローカル確認に`staging`の値が要るため、9.2より前に実施する
   - 完了条件: 両環境で値が取得でき、互いに異なる
   - _Requirements: 1.3, 1.4_
-- [ ] 11.2 dev Workerに秘密値を登録する
-  - dev Worker`aramakisai-web-dev`へInfisical`staging`の値を`wrangler secret put STAMP_SIGNING_SECRET --env dev`で登録する
-  - 完了条件: devの検証APIに`staging`の値で署名したURLの検証値を送ると一致が返る
-  - _Requirements: 2.1_
-- [ ] 11.3 本番Workerに秘密値を登録する
-  - mainへのデプロイ直後、最新バージョンがデプロイ済みの状態で、本番Worker`aramakisai-web`へInfisical`prod`の値を`wrangler secret put STAMP_SIGNING_SECRET`で登録する(PRプレビューの未デプロイ版が積まれていると失敗する)
-  - 完了条件: 本番の検証APIに`prod`の値で署名した検証値を送ると一致、改変した値で不一致が返る
+- [ ] 11.2 CIで秘密値をWorkersに設定する
+  - `frontend-ci.yml`のPRプレビューの`wrangler versions upload`、devの`wrangler deploy --env=dev`、本番の`opennextjs-cloudflare deploy`に`--secrets-file`を付け、プレビュー・devはInfisical`staging`、本番は`prod`の`STAMP_SIGNING_SECRET`を渡す
+  - secretsファイルは`infisical run`配下で`$RUNNER_TEMP`にJSONで書き、値をログに出さず、ステップの終了時に消す(失敗時も消す)
+  - steeringのtech.mdの設定方法を、手作業の`wrangler secret put`からCIの`--secrets-file`に書き換える
+  - 完了条件: PRプレビューで、`staging`の値で作った検証値付きURLを開くとトーストが出てマイページに反映され、改変した値では何も起きない。CIのログに値が出ていない
+  - _Requirements: 2.1, 2.3_
+- [ ] 11.3 devと本番での動作確認
+  - devへのマージ後のデプロイで、devの検証APIに`staging`の値で作った検証値を送ると一致が返る
+  - mainへのマージ後のデプロイで、本番の検証APIに`prod`の値で作った検証値を送ると一致、改変した値で不一致が返る
   - 開催期間中は値を変えない(変えると配布済みのQRがすべて無効になる)
   - _Requirements: 2.1, 2.3_
 

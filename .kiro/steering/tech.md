@@ -90,7 +90,7 @@ make kubectl ARGS="get pods -A"   # kubectl 直実行不可、Infisical 経由 K
 
 - **Edge Runtime 制約 (frontend のみ)**: `@opennextjs/cloudflare` の制約上 Node.js 専用 API 不可。ファイルシステムアクセスや Node ネイティブモジュールに依存する実装は避ける。CMS (`cms/`) は Node ランタイムで動くためこの制約を受けない。
 - **.env 禁止 (guard stub パターン, aramakisai-infra 準拠)**: シークレットは Infisical 経由 (`infisical run --env=<env> -- <cmd>`) で注入する。`.env`/`.env.local` は実際の環境変数ファイルではなく、`echo "DO NOT USE THIS FILE. USE Infisical INSTEAD"; exit 1` という**意図的に実行失敗する Git 管理下のダミースクリプト**であり、誤って本物の `.env` を作成・使用することを防ぐ役割を持つ。**上書きして実シークレットを書き込まないこと**。`.gitignore` は `.env.*.local`/`*.local` のみ除外しており、この 2 ファイル自体は追跡対象。
-- **スタンプ検証の秘密値 `STAMP_SIGNING_SECRET`**: Workers secret として登録する (`wrangler secret put STAMP_SIGNING_SECRET`、dev Worker は `--env dev`)。正本は Infisical `prod` (本番用) と `staging` (本番とは別のテスト用)。検証 API が実行時に `getCloudflareContext().env` から読む。`make dev` は起動前に Infisical `staging` からこの 1 つだけを取得して export し、`CLOUDFLARE_INCLUDE_PROCESS_ENV=true` を付けて起動する (起動コマンド自体は `infisical run` で包まない)。取得に失敗しても起動は続き、その場合ローカルではスタンプが付かない。
+- **スタンプ検証の秘密値 `STAMP_SIGNING_SECRET`**: CI のデプロイ時に `wrangler` の `--secrets-file` で Workers に渡す (プレビューと dev は Infisical `staging`、本番は `prod` から作成。手作業の `wrangler secret put` は使わない)。正本は Infisical `prod` (本番用) と `staging` (本番とは別のテスト用)。検証 API が実行時に `getCloudflareContext().env` から読む。`make dev` は起動前に Infisical `staging` からこの 1 つだけを取得して export し、`CLOUDFLARE_INCLUDE_PROCESS_ENV=true` を付けて起動する (起動コマンド自体は `infisical run` で包まない)。取得に失敗しても起動は続き、その場合ローカルではスタンプが付かない。
 - **K8s アクセスは `make kubectl` 経由のみ**: ローカルから kubeconfig 未設定で直接到達不可。
 - **CMS コンテンツモデルの変更ゲート**: 破壊的変更は `cms-schema-check.yml` が機械的に検出する。承認された破壊的変更のバイパスは repo admin による branch protection override が前提 (ラベル/コメントでの自動バイパス機構はあえて未実装)。
 

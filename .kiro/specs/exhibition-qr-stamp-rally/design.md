@@ -100,7 +100,7 @@ graph TB
 | Data / Storage | localStorage | スタンプの保存 | キー`aramakisai_mypage` |
 | Analytics | GA4 gtag | `qr_stamp`イベント | 既存の読み込みに相乗り |
 | Script | tsx + `qrcode` ^1.5(devDependency追加) | 印刷用QRのSVG出力 | 実行時バンドルに入らない |
-| Secrets | Workers secret(`wrangler secret put`)、正本はInfisical(`prod`と、テスト用の別値を置く`staging`) | `STAMP_SIGNING_SECRET`を検証APIが実行時に読む | 新規。デプロイをまたいで保持される |
+| Secrets | Workers secret(CIの`--secrets-file`でアップロード・デプロイごとに設定)、正本はInfisical(`prod`と、テスト用の別値を置く`staging`) | `STAMP_SIGNING_SECRET`を検証APIが実行時に読む | 新規 |
 
 ## File Structure Plan
 
@@ -127,7 +127,7 @@ frontend/
 
 ### Modified Files
 - `frontend/src/app/(site)/exhibitions/[id]/[category]/page.tsx` — `stage`以外のとき`<StampCollector exhibitionId category />`を描画する
-- `frontend/src/lib/navigation.ts` — ヘッダーのハンバーガーメニュー専用に、liveのときだけ`{ label: 'マイページ', href: '/mypage' }`を末尾へ足す項目定義を追加(PCの横並びナビが読む`navigationItemsByPhase`は変えない)、`bottomNavigationItems`の「ホーム」を`{ label: 'マイページ', href: '/mypage', icon: 'person' }`に置換、`UNDERLINE_COLOR_CLASS`にマイページを追加
+- `frontend/src/lib/navigation.ts` — ヘッダーと構内マップのハンバーガーメニュー専用に、liveのときだけ`{ label: 'マイページ', href: '/mypage' }`を末尾へ足す項目定義を追加(PCの横並びナビが読む`navigationItemsByPhase`は変えない)、`bottomNavigationItems`の「ホーム」を`{ label: 'マイページ', href: '/mypage', icon: 'person' }`に置換、`UNDERLINE_COLOR_CLASS`にマイページを追加
 - `frontend/src/components/bottom-navigation.tsx` — `INDICATOR_COLOR_CLASS`の`'/'`を`'/mypage'`に置換(色は`bg-accent-alt`を引き継ぐ)
 - `frontend/src/app/layout.tsx` — `MATERIAL_SYMBOLS_ICON_NAMES`に`person`を追加
 - `frontend/src/lib/route-metadata.ts` — `/mypage`のタイトル・説明を追加
@@ -135,7 +135,8 @@ frontend/
 - `frontend/public/images/qr-mypage.svg` — 新規。PC幅の案内に表示するマイページのQR(静的ファイル)
 - `frontend/package.json` — devDependencies`qrcode`・`@types/qrcode`、スクリプト`qr:generate`
 - `scripts/dev.sh` — `cmd_dev`の起動前に`infisical secrets get STAMP_SIGNING_SECRET --env=staging --plain`でこの1つだけを取得して`export`し、`export CLOUDFLARE_INCLUDE_PROCESS_ENV=true`を足す。取得に失敗しても起動は続ける(ローカルではスタンプが付かないだけ)。起動コマンド自体は`infisical run`で包まず、従来のままにする
-- `.kiro/steering/tech.md` — Workers secret`STAMP_SIGNING_SECRET`の存在と登録方法(`wrangler secret put`、正本はInfisical`prod`・`staging`)、`make dev`が`staging`の値を1つだけ取得することを追記(値は含めない)
+- `.github/workflows/frontend-ci.yml` — PRプレビューの`wrangler versions upload`、devの`wrangler deploy --env=dev`、本番の`opennextjs-cloudflare deploy`に`--secrets-file`を付け、各ジョブの実行環境(プレビュー・devは`staging`、本番は`prod`)の`STAMP_SIGNING_SECRET`を渡す。secretsファイルは`infisical run`配下で`$RUNNER_TEMP`にJSONとして書き、値をログに出さず、ステップ終了時に消す
+- `.kiro/steering/tech.md` — Workers secret`STAMP_SIGNING_SECRET`の存在と設定方法(CIの`--secrets-file`、正本はInfisical`prod`・`staging`)、`make dev`が`staging`の値を1つだけ取得することを追記(値は含めない)
 
 ## System Flows
 
@@ -193,7 +194,7 @@ sequenceDiagram
 | 3.1–3.5, 3.7 | スタンプ一覧・空表示・欠損許容 | MyPage, MypageView, StampProgress | `MypageStampTarget`, `groupStampsByArea` | — |
 | 3.6 | 将来のリスト追加 | MypageStorage | `MypageData.lists` | — |
 | 3.8 | 下部ナビのホーム置換 | navigation.ts, BottomNavigation | `bottomNavigationItems` | — |
-| 3.9 | ハンバーガーメニュー(live)にマイページ、PC横並びナビには出さない | navigation.ts, Header | ハンバーガーメニュー専用の項目定義 | — |
+| 3.9 | ハンバーガーメニュー(live、ヘッダーと構内マップ)にマイページ、PC横並びナビには出さない | navigation.ts, Header, MapMenuButton | ハンバーガーメニュー専用の項目定義 | — |
 | 3.10 | エリア別取得率 | StampProgress, MypageView | `groupStampsByArea` | — |
 | 3.11 | PCでは利用不可の案内とスマートフォン用QR | MypageView | CSSメディアクエリ、`public/images/qr-mypage.svg` | — |
 | 4.1–4.4, 4.6 | GA4イベント | Analytics, StampCollector | `qr_stamp` | QR読み取り |
@@ -409,11 +410,12 @@ UIの確定はFigmaで行い、実装前にワイヤーフレームを作る。d
 - QR出力スクリプト: 失敗時は終了コード1とエラーメッセージ、出力先を変更しない
 
 ## Security Considerations
-- 秘密値の正本はInfisicalのシークレット`STAMP_SIGNING_SECRET`(パス`/`)に置く。`prod`に本番用、`staging`に本番とは別のテスト用ランダム値を置く(いずれも作成済み、`openssl rand -base64 48`による64文字)。本番用は本番Worker`aramakisai-web`に、dev用は`aramakisai-web-dev`にWorkers secretとして`wrangler secret put STAMP_SIGNING_SECRET`(devは`--env dev`付き)で一度だけ登録する。secretはデプロイをまたいで保持されるため、CI・デプロイ手順は変えない。ビルド時には読まず、クライアントバンドルにも入らない(`NEXT_PUBLIC_`を付けず、`env.ts`にも置かない)
-- 登録時の注意: PRプレビューが`wrangler versions upload`で未デプロイのバージョンを積んでいる間は`wrangler secret put`が失敗する(wranglerが未デプロイ版の巻き込みデプロイを防ぐため)。mainへのデプロイ直後、最新バージョンがデプロイ済みの状態で登録する
+- 秘密値の正本はInfisicalのシークレット`STAMP_SIGNING_SECRET`(パス`/`)に置く。`prod`に本番用、`staging`に本番とは別のテスト用ランダム値を置く(いずれも作成済み、`openssl rand -base64 48`による64文字)。Workers secretへの設定はCIが行い、手作業の`wrangler secret put`は使わない。ビルド時には読まず、クライアントバンドルにも入らない(`NEXT_PUBLIC_`を付けず、`env.ts`にも置かない)
+- CIでの設定: アップロード・デプロイのたびに`--secrets-file`で値を明示する。`--secrets-file`は既存のsecretに上書きで足す動作で、省略したsecretは前の値を引き継ぐ。PRプレビューが本番Workerに`staging`の値を積むため、本番デプロイで明示しないとプレビューの値が本番に引き継がれうる。全経路で明示してこれを防ぐ。手作業の`wrangler secret put`は、未デプロイのプレビュー版が積まれていると失敗するため使わない
 - 環境ごとの扱い:
-  - PRプレビュー: 本番Worker`aramakisai-web`のバージョンとしてアップロードされ、`versions upload`は直前のバージョンのsecretを引き継ぐ。本番と同じ値が使われ、本番用のQRでスタンプが付く。許容する(スタンプは端末内保存のみで、プレビューはCloudflare Access保護下のため実害がない)
-  - dev(`aramakisai-web-dev`、別Worker): Infisical`staging`のテスト用の値を`wrangler secret put STAMP_SIGNING_SECRET --env dev`で登録する。本番用QRはdevでは通らない
+  - PRプレビュー: 本番Worker`aramakisai-web`の未デプロイのバージョンとして、Infisical`staging`の値でアップロードする。dev用(`staging`)のQRでスタンプが付き、本番用QRは通らない
+  - dev(`aramakisai-web-dev`、別Worker): devへのpushのデプロイでInfisical`staging`の値を設定する。本番用QRはdevでは通らない
+  - 本番(`aramakisai-web`): mainへのpushのデプロイでInfisical`prod`の値を設定する
   - ローカル(`make dev`): `scripts/dev.sh`が`infisical secrets get STAMP_SIGNING_SECRET --env=staging --plain`でこの1つだけを取得して`export`し、`CLOUDFLARE_INCLUDE_PROCESS_ENV=true`を付けて起動する。Infisical未ログイン等で取得に失敗しても起動は続け、その場合ローカルではスタンプが付かない。`next.config.ts`の`initOpenNextCloudflareForDev()`が使うwranglerの`getPlatformProxy`(4.105)は、この変数が真のとき`process.env`を`getCloudflareContext().env`に含める。`.dev.vars`・`.env`は置かない。dev用QRと同じ`staging`の値のため、ローカルでdev用QRが検証できる。この経路(`CLOUDFLARE_INCLUDE_PROCESS_ENV`で`getCloudflareContext().env`に載ること)は未検証で、実機での確認が実装の最初の作業
   - 未設定の環境では検証APIが`{ valid: false }`を返し、ページは通常表示のまま、スタンプは付かない
 - 運用上の制約: `STAMP_SIGNING_SECRET`を変えると配布済みのQRがすべて無効になる。開催期間中は変更しない。漏えい時の変更は全QRの再印刷を伴う
@@ -430,6 +432,6 @@ UIの確定はFigmaで行い、実装前にワイヤーフレームを作る。d
   - `StampCollector`: フラグメント無しで検証APIを呼ばない、`valid: false`で記録しない、`added`/`exists`の文言とどちらもマイページへのリンクが付くこと、フラグメントを消す
   - `MypageView`: 空表示、エリア見出しの取得率、既定で閉じていること、行のリンク先、「その他」グループ(取得率なし、0件で非表示)、欠損スタンプを無視
   - `MypageView`のPC条件: PC条件(1024px以上かつ`hover: hover`・`pointer: fine`)で案内(見出し・1文・`alt`が「マイページのQRコード」のQR画像)が表示されマイページ本体が隠れること、それ以外では逆であること(実ブラウザでビューポートと入力デバイスを切り替えて確認)
-  - `BottomNavigation`/`Header`: マイページ項目(ヘッダーはliveのハンバーガーメニューのみ、PC横並びナビには出ない)
+  - `BottomNavigation`/`Header`/`MapMenuButton`: マイページ項目(ヘッダーと構内マップはliveのハンバーガーメニューのみ、PC横並びナビには出ない)
 - Route: `api/stamps/verify`の正・誤・`stage`・不正入力・秘密値未設定で`valid: false`
 - Script: CMS応答をモックし、`stage`除外・下書き込み・失敗時に出力先が変わらないこと
