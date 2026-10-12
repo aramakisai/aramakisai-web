@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
-import { cookies } from 'next/headers';
 import '@fontsource/line-seed-jp/100.css';
 import '@fontsource/line-seed-jp/400.css';
 import '@fontsource/line-seed-jp/700.css';
@@ -8,11 +7,7 @@ import '@fontsource/line-seed-jp/800.css';
 import './globals.css';
 import { getSiteMetadata } from '@/lib/site-metadata';
 import { buildPageMetadata } from '@/lib/page-metadata';
-import {
-  DEV_OVERRIDE_ENABLED,
-  PHASE_OVERRIDE_COOKIE,
-  resolvePhase,
-} from '@/lib/phase';
+import { DEV_OVERRIDE_ENABLED } from '@/lib/phase';
 import { PhaseToggle } from '@/components/phase-toggle';
 import { env } from '@/env';
 
@@ -99,7 +94,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export const revalidate = 60;
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -108,16 +103,8 @@ export default async function RootLayout({
   const cmsOrigin = new URL(env.NEXT_PUBLIC_CMS_URL).origin;
 
   // DEV_OVERRIDE_ENABLED はビルド時に真偽リテラルへ畳み込まれる。この分岐に
-  // 閉じ込めることで、偽のビルドでは Cookie を読む経路自体がバンドラの
-  // dead code elimination で成果物から消える。
-  let phaseToggle: React.ReactNode = null;
-  if (DEV_OVERRIDE_ENABLED) {
-    const cookieStore = await cookies();
-    const resolved = resolvePhase(
-      cookieStore.get(PHASE_OVERRIDE_COOKIE)?.value,
-    );
-    phaseToggle = <PhaseToggle resolved={resolved} />;
-  }
+  // 閉じ込めることで、偽のビルドでは PhaseToggle の参照が dead code elimination で消える。
+  const phaseToggle = DEV_OVERRIDE_ENABLED ? <PhaseToggle /> : null;
 
   return (
     <html lang="ja" suppressHydrationWarning>

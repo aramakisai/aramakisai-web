@@ -2,15 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  PHASE_OVERRIDE_COOKIE,
-  type FestivalPhase,
-  type ResolvedPhase,
-} from '@/lib/phase';
-
-export interface PhaseToggleProps {
-  readonly resolved: ResolvedPhase;
-}
+import { PHASE_OVERRIDE_COOKIE, type FestivalPhase } from '@/lib/phase';
+import { notifyPhaseChanged, usePhase } from '@/lib/use-phase';
 
 const PHASE_LABELS: Record<FestivalPhase, string> = {
   pre_event: '開催前',
@@ -25,18 +18,21 @@ const OTHER_PHASE: Record<FestivalPhase, FestivalPhase> = {
 // Chrome は Cookie の有効期限を発行から 400 日で切り詰めるため、それを上限とする
 const OVERRIDE_MAX_AGE_SECONDS = 400 * 24 * 60 * 60;
 
-export function PhaseToggle({ resolved }: PhaseToggleProps) {
+export function PhaseToggle() {
+  const resolved = usePhase();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const otherPhase = OTHER_PHASE[resolved.phase];
 
   const applyOverride = (phase: FestivalPhase) => {
     document.cookie = `${PHASE_OVERRIDE_COOKIE}=${phase}; path=/; max-age=${OVERRIDE_MAX_AGE_SECONDS}`;
+    notifyPhaseChanged();
     router.refresh();
   };
 
   const clearOverride = () => {
     document.cookie = `${PHASE_OVERRIDE_COOKIE}=; path=/; max-age=0`;
+    notifyPhaseChanged();
     router.refresh();
   };
 
