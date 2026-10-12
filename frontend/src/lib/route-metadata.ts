@@ -6,7 +6,8 @@ export type CodeRoutePath =
   | '/map'
   | '/faq'
   | '/timetable'
-  | '/parking';
+  | '/parking'
+  | '/mypage';
 
 export interface RouteMetadataEntry {
   /** null はサイトタイトルそのものを使うページ ('/') */
@@ -56,5 +57,10 @@ export const ROUTE_METADATA: Readonly<
     title: '駐車場空き情報',
     description:
       '荒牧祭の駐車場の空き状況を確認できます。混雑状況を見てご来場の際の参考にしてください。',
+  },
+  '/mypage': {
+    title: 'マイページ',
+    description:
+      'QRコードで集めたスタンプをエリアごとに振り返れます。スマートフォンでご利用ください。',
   },
 };

@@ -40,6 +40,7 @@ const UNDERLINE_COLOR_CLASS: Readonly<Record<string, string>> = {
   お知らせ: 'bg-warning',
   ご案内: 'bg-success',
   荒牧祭について: 'bg-accent-alt',
+  マイページ: 'bg-accent-alt',
   協賛: 'bg-accent',
 };
 
@@ -100,14 +101,27 @@ export const navigationItemsByPhase: Readonly<
 };
 
 /**
+ * SP のハンバーガーメニュー専用の項目。マイページは下部ナビゲーションが SP 専用のため、
+ * PC の横並びナビ (navigationItemsByPhase を直接読む) には出さない。
+ */
+export function mobileMenuItemsFor(
+  phase: FestivalPhase,
+): readonly NavigationItem[] {
+  const items = navigationItemsByPhase[phase];
+  return phase === 'live'
+    ? [...items, { label: 'マイページ', href: '/mypage' }]
+    : items;
+}
+
+/**
  * 下部ナビゲーション用の項目定義 (design.md Requirement 8)。
- * ヘッダーに無い「ホーム」を含みアイコンという固有の情報を持つため、
+ * ヘッダーに無い「マイページ」を含みアイコンという固有の情報を持つため、
  * navigationItemsByPhase とは別の配列として持つ。
  */
 export const bottomNavigationItems: readonly BottomNavigationItem[] = [
   { label: '企画', href: '/exhibitions', icon: 'festival' },
   { label: 'マップ', href: '/map', icon: 'map' },
-  { label: 'ホーム', href: '/', icon: 'home' },
+  { label: 'マイページ', href: '/mypage', icon: 'person' },
   { label: 'タイムテーブル', href: '/timetable', icon: 'calendar_clock' },
   { label: '駐車場', href: '/parking', icon: 'parking_sign' },
 ];

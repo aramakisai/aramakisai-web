@@ -27,6 +27,8 @@ import { buildPageMetadata } from '@/lib/page-metadata';
 import { toMetaDescription } from '@/lib/meta-description';
 import { buildBreadcrumbJsonLd } from '@/lib/structured-data';
 import { JsonLd } from '@/components/json-ld';
+import { StampCollector } from '@/components/stamp-collector';
+import { isStampCategory } from '@/lib/stamp-signature';
 
 // ビルド時には何も生成せず、初回アクセスで生成して以後キャッシュする
 export function generateStaticParams() {
@@ -86,12 +88,10 @@ export async function generateMetadata({
   });
 }
 
-// Figma は stage/exhibit/other のみ定義。vendor は未定義色のため既存トークンから
-// 他カテゴリと重複しない secondary を割り当てる (ponytail: Figma 追加時に差し替え)
 const CATEGORY_BADGE_COLORS: Readonly<Record<ExhibitionCategory, string>> = {
   stage: 'bg-accent',
   exhibit: 'bg-info',
-  vendor: 'bg-secondary',
+  vendor: 'bg-warning',
   other: 'bg-accent-alt',
 };
 
@@ -157,6 +157,12 @@ export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
   return (
     <div className="mx-auto flex max-w-[1440px] flex-col gap-6 px-4 pt-4 pb-12 lg:gap-8 lg:px-20 lg:pt-8 lg:pb-20">
       <JsonLd data={breadcrumb} />
+      {isStampCategory(exhibition.category) && (
+        <StampCollector
+          exhibitionId={exhibition.id}
+          category={exhibition.category}
+        />
+      )}
       <BackLink href="/exhibitions" label="企画一覧へ戻る" />
 
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-12">

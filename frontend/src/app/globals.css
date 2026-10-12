@@ -83,6 +83,17 @@
   }
 }
 
+/*
+ * マイページをスマートフォン専用にする判別。大画面でもタッチ主体の端末 (タブレット) は
+ * 対象外にするため、幅だけでなく hover / pointer も見る。User-Agent 判別は ISR を
+ * 壊すので使わない
+ */
+@custom-variant pc-input {
+  @media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+    @slot;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   html:not([data-motion='reduce']) {
     scroll-behavior: smooth;

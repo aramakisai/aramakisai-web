@@ -82,7 +82,7 @@ stop_port() {
 }
 
 cmd_dev() {
-  local cms_mode="${1:-}" root name port branch owner cms_url
+  local cms_mode="${1:-}" root name port branch owner cms_url stamp_secret
   root=$(worktree_root)
   name=$(basename "$root")
   port=$(port_for_name "$name")
@@ -108,6 +108,13 @@ cmd_dev() {
   cd "${root}/frontend"
   export NEXT_PUBLIC_CMS_URL="$cms_url"
   export NEXT_PUBLIC_SITE_URL="http://localhost:${port}"
+  # 更新案内等が stdout に混ざるため、末尾 1 行だけを値として採る。取得失敗時は未設定のまま起動する
+  stamp_secret=$(infisical secrets get STAMP_SIGNING_SECRET --env=staging --plain 2>/dev/null | tail -n 1 || true)
+  if [[ -n "$stamp_secret" ]]; then
+    export STAMP_SIGNING_SECRET="$stamp_secret"
+  fi
+  # getCloudflareContext().env にプロセス環境変数を載せるのに必要
+  export CLOUDFLARE_INCLUDE_PROCESS_ENV=true
   exec node_modules/.bin/next dev -p "${port}"
 }
 

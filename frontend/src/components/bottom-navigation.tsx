@@ -14,7 +14,7 @@ export interface BottomNavigationProps {
 const INDICATOR_COLOR_CLASS: Readonly<Record<string, string>> = {
   '/exhibitions': 'bg-primary',
   '/map': 'bg-secondary',
-  '/': 'bg-accent-alt',
+  '/mypage': 'bg-accent-alt',
   '/timetable': 'bg-info',
   '/parking': 'bg-accent',
 };

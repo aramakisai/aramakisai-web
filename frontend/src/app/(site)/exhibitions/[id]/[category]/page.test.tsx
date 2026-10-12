@@ -153,6 +153,11 @@ describe('ExhibitionPage', () => {
       );
     };
 
+    it('出店のカテゴリバッジは warning 色', async () => {
+      await renderVendor();
+      expect(screen.getByText('出店')).toHaveClass('bg-warning');
+    });
+
     it('場所→出店日→メニュー→共有の順に並ぶ', async () => {
       await renderVendor();
       const loc = screen.getByText('第一ステージ');

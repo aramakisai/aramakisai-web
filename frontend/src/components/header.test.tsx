@@ -4,6 +4,9 @@ import { usePathname } from 'next/navigation';
 import { Header, MAIN_CONTENT_ID } from './header';
 import { navigationItemsByPhase } from '@/lib/navigation';
 
+const DIVIDER = 'shadow-[inset_0_-1px_0_theme(colors.gray.200)]';
+const LEFT_LINE = 'shadow-[inset_1px_0_0_theme(colors.gray.200)]';
+
 vi.mock('next/navigation', () => ({
   usePathname: vi.fn(),
 }));
@@ -187,6 +190,25 @@ describe('Header', () => {
     expect(within(mobileNavigation).getByText('協賛')).toBeInTheDocument();
   });
 
+  test('liveのハンバーガーメニューだけ末尾にマイページを出す', () => {
+    mockedUsePathname.mockReturnValue('/');
+    const { unmount } = render(<Header phase="live" />);
+    const pc = screen.getByRole('navigation', { name: 'メインナビゲーション' });
+    expect(within(pc).queryByText('マイページ')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
+    const mobile = screen.getByRole('navigation', {
+      name: 'モバイルナビゲーション',
+    });
+    const links = within(mobile).getAllByRole('link');
+    expect(links.at(-1)).toHaveTextContent('マイページ');
+    expect(links.at(-1)).toHaveAttribute('href', '/mypage');
+    unmount();
+
+    render(<Header phase="pre_event" />);
+    fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
+    expect(screen.queryByText('マイページ')).not.toBeInTheDocument();
+  });
+
   test('複数の子項目持ちの親を、それぞれ独立して開閉できる (お知らせ + ご案内)', () => {
     mockedUsePathname.mockReturnValue('/');
     render(<Header phase="live" />);
@@ -246,8 +268,38 @@ describe('Header', () => {
       name: 'アクセス',
     });
     expect(childLink).toHaveClass('pl-8');
-    expect(childLink.parentElement).toHaveClass('border-l', 'border-gray-200');
+    expect(childLink.closest('ul')).toHaveClass(LEFT_LINE);
   });
+
+  test.each(['pre_event', 'live'] as const)(
+    '%s: 開いた親の最後の子行の下に区切り線を出し、親自身と末尾の項目には出さない',
+    (phase) => {
+      render(<Header phase={phase} />);
+      fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
+      const nav = screen.getByRole('navigation', {
+        name: 'モバイルナビゲーション',
+      });
+      const parentLi = within(nav)
+        .getByRole('button', { name: /ご案内/ })
+        .closest('li') as HTMLElement;
+      fireEvent.click(within(nav).getByRole('button', { name: /ご案内/ }));
+
+      expect(parentLi).not.toHaveClass(DIVIDER);
+      const children = within(parentLi).getAllByRole('link');
+      const last = children[children.length - 1].closest('li') as HTMLElement;
+      expect(last).toHaveClass(DIVIDER);
+      children.slice(0, -1).forEach((a) => {
+        expect(a.closest('li')).not.toHaveClass(DIVIDER);
+      });
+      const items = nav.querySelectorAll(':scope > ul > li');
+      expect(items[items.length - 1]).not.toHaveClass(DIVIDER);
+      expect(
+        [...items[items.length - 1].querySelectorAll('li')].some((li) =>
+          li.classList.contains(DIVIDER),
+        ),
+      ).toBe(false);
+    },
+  );
 
   test('開いている間は背面のスクロールを止め、本文・フッターを inert にする。閉じると復元する', () => {
     const main = document.createElement('main');
