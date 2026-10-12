@@ -1,5 +1,18 @@
 import { describe, expect, it, vi } from 'vitest';
 
+const autoResponses: [string, string][] = [];
+vi.stubGlobal(
+  'WebSocketRequestResponsePair',
+  class {
+    constructor(
+      readonly request: string,
+      readonly response: string,
+    ) {
+      autoResponses.push([request, response]);
+    }
+  },
+);
+
 vi.mock('cloudflare:workers', () => ({
   DurableObject: class {
     constructor(
@@ -15,6 +28,7 @@ function fakeCtx(alarm: number | null = null) {
   const store = new Map<string, unknown>();
   const ctx = {
     alarm,
+    setWebSocketAutoResponse: () => {},
     blockConcurrencyWhile: (fn: () => Promise<void>) => fn(),
     getWebSockets: () => [{ send: vi.fn() }],
     storage: {
@@ -30,6 +44,20 @@ function fakeCtx(alarm: number | null = null) {
 }
 
 const pin = { slide: null, visibleSlideIds: [1] };
+
+describe('SignageHub の ping/pong', () => {
+  it('コンストラクタで ping に pong を自動応答させ、届いたメッセージは捨てる', () => {
+    const ctx = { ...fakeCtx(), setWebSocketAutoResponse: vi.fn() };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const hub = new SignageHub(ctx as any, {} as any);
+    expect(ctx.setWebSocketAutoResponse).toHaveBeenCalledTimes(1);
+    expect(autoResponses.at(-1)).toEqual(['ping', 'pong']);
+    const ws = { send: vi.fn() };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (hub as any).webSocketMessage(ws, 'anything');
+    expect(ws.send).not.toHaveBeenCalled();
+  });
+});
 
 describe('SignageHub の alarm の扱い', () => {
   it('pin 取得中に届いた通知の早い alarm を、後ろへ上書きしない', async () => {

@@ -196,20 +196,20 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
   - _Requirements: 8.1_
 
 - [ ] 11. ハブのDOが休止できるように、ping/pongを自動応答に切り替える
-- [ ] 11.1 共有型とハブをテスト駆動で切り替える
+- [x] 11.1 共有型とハブをテスト駆動で切り替える
   - 先に失敗するテストを書く: `SignageClientMessage`と`pong`の型・`parseClientMessage`を使わないこと、`parseServerMessage`が`pong`を`null`にすること、ハブのコンストラクタが`ping`→`pong`の自動応答を設定すること
   - `signage-channel.ts`の`ping`をリテラル文字列`'ping'`・`'pong'`の定数にし、`serverNow`付きの`pong`の型と`parseClientMessage`を消す。ハブは`ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'))`をコンストラクタで設定し、`webSocketMessage`は届いたものを捨てる。`pin`の`serverNow`の扱いは変えない
   - ハブとサイトの型チェックとテストが通る
   - _Requirements: 2.2, 3.2, 7.4_
 
-- [ ] 11.2 端末のクライアントとサイネージ画面の時刻補正をテスト駆動でスナップショット由来に切り替える
+- [x] 11.2 端末のクライアントとサイネージ画面の時刻補正をテスト駆動でスナップショット由来に切り替える
   - 先に失敗するテストを書く: クライアントが文字列`ping`を送り、`pong`を5秒以内に受けなければ再接続すること、`offsetMs`を返さないこと。画面の時刻のずれが、ポーリングと版付きの取り直しで取ったスナップショットの`serverNow`から`clockOffsetMs`で更新され、取得に失敗したら直前のずれが保たれ、初回は表示開始時の値であること
   - `use-signage-channel.ts`から`offsetMs`とpongの`serverNow`の処理を除き、`signage-screen.tsx`のずれを`polled.offsetMs ?? mountOffsetMs`にする。接続直後のメッセージに時刻は足さない
   - フロントの型チェック・テスト・ビルドが通る
   - _Depends: 11.1_
   - _Requirements: 2.1, 2.2, 4.2, 7.4_
 
-- [ ] 11.3 ローカルで実ブラウザで確かめてからコミットする
+- [x] 11.3 ローカルで実ブラウザで確かめてからコミットする
   - `make signage-dev`でブラウザの`/signage`を開き、DevToolsでping/pongが5秒ごとに流れて再接続しないこと、端末の時計をずらしても時刻がスナップショットの`serverNow`で補正されること、`curl`の通知で表示が切り替わることを確かめる
   - 自分で起動したサーバーを止め、ブラウザを閉じ、確認内容とスクリーンショットのパスが揃ってから、コミットする
   - _Depends: 11.2_

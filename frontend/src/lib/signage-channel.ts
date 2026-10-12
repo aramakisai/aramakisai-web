@@ -1,6 +1,6 @@
 import type { SignageSlide } from './signage';
 
-/** ハブが配る固定と表示対象。serverNow は pong で配るので含めない */
+/** ハブが配る固定と表示対象 */
 // 型の正本はここ。signage-pin.ts は React に依存し、ハブの Worker(DOM の型が無い)の型検査に
 // 引き込めないため、SignagePinState 側がこれを継承する
 export interface SignagePinPayload {
@@ -38,14 +38,11 @@ export type SignageBroadcast = SignagePublishInput & {
   readonly sentAt: string;
 };
 
-export type SignageServerMessage =
-  | SignageBroadcast
-  | { readonly kind: 'pong'; readonly id: number; readonly serverNow: string };
+export type SignageServerMessage = SignageBroadcast;
 
-export type SignageClientMessage = {
-  readonly kind: 'ping';
-  readonly id: number;
-};
+// ハブの DO を休止させるため、ping への pong は ctx.setWebSocketAutoResponse が JSON を介さず返す
+export const SIGNAGE_PING = 'ping';
+export const SIGNAGE_PONG = 'pong';
 
 export const SIGNAGE_PING_INTERVAL_MS = 5_000;
 export const SIGNAGE_PONG_TIMEOUT_MS = 5_000;
@@ -77,11 +74,6 @@ function parseObject(raw: string): Record<string, unknown> | null {
 export function parseServerMessage(raw: string): SignageServerMessage | null {
   const obj = parseObject(raw);
   if (!obj) return null;
-  if (obj.kind === 'pong') {
-    if (typeof obj.id !== 'number' || typeof obj.serverNow !== 'string')
-      return null;
-    return { kind: 'pong', id: obj.id, serverNow: obj.serverNow };
-  }
   if (obj.kind === 'broadcast') {
     const { feature, payload, expiresAt, sentAt } = obj;
     if (typeof feature !== 'string' || typeof sentAt !== 'string') return null;
@@ -91,10 +83,4 @@ export function parseServerMessage(raw: string): SignageServerMessage | null {
     return obj as unknown as SignageBroadcast;
   }
   return null;
-}
-
-export function parseClientMessage(raw: string): SignageClientMessage | null {
-  const obj = parseObject(raw);
-  if (!obj || obj.kind !== 'ping' || typeof obj.id !== 'number') return null;
-  return { kind: 'ping', id: obj.id };
 }

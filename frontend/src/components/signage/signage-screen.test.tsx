@@ -13,7 +13,6 @@ import { SignageScreen } from './signage-screen';
 const CHANNEL_IDLE: SignageChannelState = {
   pin: undefined,
   snapshotVersion: undefined,
-  offsetMs: null,
   latest: {},
 };
 let channel: SignageChannelState = CHANNEL_IDLE;
@@ -128,11 +127,65 @@ describe('SignageScreen', () => {
     expect(urls.filter((u) => u === '/api/signage')).toHaveLength(1);
   });
 
-  it('配信経路の時計のずれがあればポーリングや初期値より優先して使う', async () => {
-    channel = { ...CHANNEL_IDLE, offsetMs: 4321 };
-    render(<SignageScreen initial={null} renderedAt="2026-11-14T00:00:00Z" />);
-    await act(() => vi.advanceTimersByTimeAsync(0));
-    expect(correctedNow.mock.calls.at(-1)?.[0]).toBe(4321);
+  describe('時計のずれ', () => {
+    const snap = (serverNow: string): SignageSnapshot => ({
+      fetchedAt: '',
+      serverNow,
+      pinnedSlideId: null,
+      eventDays: [],
+      slides: [],
+      telops: [],
+      timetable: { days: [], stages: [], performances: [] },
+      sponsors: [],
+      lostItems: [],
+      parking: { isEventDay: false, fetchedAt: '', lots: [] },
+    });
+    const lastOffset = () => correctedNow.mock.calls.at(-1)?.[0];
+
+    it('初回の取得前は表示開始時のずれを使う', async () => {
+      vi.setSystemTime(Date.parse('2026-11-14T00:00:00Z'));
+      render(
+        <SignageScreen initial={null} renderedAt="2026-11-14T00:00:03Z" />,
+      );
+      expect(lastOffset()).toBe(3000);
+    });
+
+    it('取得したスナップショットの serverNow でずれを更新し、取得に失敗しても直前のずれを保つ', async () => {
+      vi.setSystemTime(Date.parse('2026-11-14T00:00:00Z'));
+      vi.mocked(fetch).mockImplementationOnce(
+        async () =>
+          new Response(JSON.stringify(snap('2026-11-14T00:00:07Z')), {
+            status: 200,
+          }),
+      );
+      render(
+        <SignageScreen initial={null} renderedAt="2026-11-14T00:00:03Z" />,
+      );
+      await act(() => vi.advanceTimersByTimeAsync(0));
+      expect(lastOffset()).toBe(7000);
+      await act(() => vi.advanceTimersByTimeAsync(120_000));
+      expect(fetch).toHaveBeenCalledTimes(2);
+      expect(lastOffset()).toBe(7000);
+    });
+
+    it('版付きの取り直しのスナップショットでもずれを更新する', async () => {
+      vi.setSystemTime(Date.parse('2026-11-14T00:00:00Z'));
+      vi.mocked(fetch).mockImplementation(async (url) => {
+        const skew = String(url).includes('?v=') ? 9000 : 1000;
+        return new Response(
+          JSON.stringify(snap(new Date(Date.now() + skew).toISOString())),
+          { status: 200 },
+        );
+      });
+      channel = { ...CHANNEL_IDLE, snapshotVersion: 100 };
+      render(
+        <SignageScreen initial={null} renderedAt="2026-11-14T00:00:00Z" />,
+      );
+      await act(() => vi.advanceTimersByTimeAsync(0));
+      expect(lastOffset()).toBe(1000);
+      await act(() => vi.advanceTimersByTimeAsync(1_000));
+      expect(lastOffset()).toBe(9000);
+    });
   });
 
   it('固定状態を3秒ごとに確認しない(配信経路で受ける)', async () => {
@@ -188,7 +241,7 @@ describe('SignageScreen', () => {
       channel = { ...CHANNEL_IDLE, snapshotVersion: 100 };
       const { rerender } = renderScreen();
       await act(() => vi.advanceTimersByTimeAsync(1_000));
-      channel = { ...CHANNEL_IDLE, snapshotVersion: 100, offsetMs: 5 };
+      channel = { ...CHANNEL_IDLE, snapshotVersion: 100 };
       rerender(
         <SignageScreen initial={snapshot} renderedAt={snapshot.serverNow} />,
       );
