@@ -101,7 +101,7 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
   - 9.2でハブの不具合が見つかった場合は、ハブを直して段2より先にこの手順で出し直す
   - _Requirements: 7.1, 7.3_
 
-- [ ] 6. aramakisai-web: サイトのWorkerの入口と版付きのスナップショット(段2)
+- [x] 6. aramakisai-web: サイトのWorkerの入口と版付きのスナップショット(段2)
 - [x] 6.1 サイトのWorkerの入口で、配信経路だけをハブへ振り分ける
   - `/api/signage/ws`は、upgradeでなければ426、`Origin`がホストと違えば403を返し、それ以外はハブへそのまま渡して101を返す
   - `/api/signage/notify`はPOSTだけを受け(他は405)、本文の`targets`を検査して(不正なら400)ハブの`notify`を呼び204を返す。認証はAccessに任せる
@@ -117,7 +117,7 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
   - _Requirements: 6.1, 6.3_
   - _Boundary: SnapshotVersionFetch_
 
-- [ ] 7. aramakisai-web: 端末をポーリングから配信経路へ切り替える(段2)
+- [x] 7. aramakisai-web: 端末をポーリングから配信経路へ切り替える(段2)
 - [x] 7.1 (P) 端末のWebSocketクライアントを作る
   - 同じホストの`/api/signage/ws`へ1本だけ接続し、開いた直後と5秒ごとに`ping`を送り、`pong`からRTT/2で補正した時刻のずれを更新する
   - `pong`が5秒以内に来なければ切断して接続し直す。再接続の待ちは1秒から倍々に最大30秒(±20%の乱数)、`pong`を1回受けたら1秒に戻し、`online`イベントでは待ちを打ち切る。画面が非表示になったら閉じ、表示に戻ったらすぐ接続する
@@ -137,7 +137,7 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
   - _Depends: 6.1, 6.2, 7.1_
   - _Requirements: 1.1, 1.2, 1.4, 2.1, 2.3, 3.1, 3.2, 4.1, 6.1, 6.2, 6.3_
 
-- [ ] 8. aramakisai-web: CMSの保存時通知(段2)
+- [x] 8. aramakisai-web: CMSの保存時通知(段2)
 - [x] 8.1 (P) CMSからサイトのWorkerへ通知を送る仕組みを作る
   - 通知のURLとService Tokenの2つの値が揃っているときだけ、Accessのヘッダと`targets`の本文でPOSTする。揃っていなければ何もせず、プロセスにつき1回だけ警告する
   - 送信は待たずにすぐ戻り、3秒でタイムアウトし、失敗はロガーに警告として残して例外を出さない
