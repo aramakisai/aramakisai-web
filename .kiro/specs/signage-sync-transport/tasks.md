@@ -25,7 +25,7 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
   - _Requirements: 5.2, 7.5_
 
 - [ ] 2. aramakisai-infra: 通知用のService TokenとCMSの環境変数
-- [ ] 2.1 (P) 通知専用のService Tokenとポリシーを足す
+- [x] 2.1 (P) 通知専用のService Tokenとポリシーを足す
   - `terraform/access.tf`に、既存のE2E用(`e2e_ci`)と同じ形で通知用の`cloudflare_zero_trust_access_service_token`(`duration = "8760h"`・`min_days_for_renewal = 30`・`create_before_destroy`)と、サイネージのアプリケーション(`aramakisai_signage`)への`decision = "non_identity"`の独立したポリシーを足す。`terraform/outputs.tf`にトークンの`client_id`と`client_secret`(sensitive)を足す
   - 既存のドリフトがあるため、`terraform apply`は`-target`で今回のリソースだけに絞る
   - 出力の値をInfisical prodの`SIGNAGE_NOTIFY_ACCESS_CLIENT_ID`・`SIGNAGE_NOTIFY_ACCESS_CLIENT_SECRET`へ登録する
@@ -33,7 +33,7 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
   - _Requirements: 1.1, 5.2_
   - _Boundary: terraform/access.tf, terraform/outputs.tf_
 
-- [ ] 2.2 CMSへ通知の環境変数を渡す
+- [x] 2.2 CMSへ通知の環境変数を渡す
   - `gitops/manifests/prod/cms-secrets/external-secret.yaml`に`SIGNAGE_NOTIFY_ACCESS_CLIENT_ID`・`SIGNAGE_NOTIFY_ACCESS_CLIENT_SECRET`を足し、`gitops/manifests/prod/cms/`のDeploymentに秘密でない`SIGNAGE_NOTIFY_URL`(`https://aramakisai.com/api/signage/notify`)を足す
   - ArgoCDの同期後、`make kubectl`で`cms-secrets`のSecretに2つのキーがあることと、CMSのPodの環境変数に3つの値が入っていることを実測している(同期済みの表示だけで判断しない)
   - _Requirements: 1.1, 5.2_
@@ -46,7 +46,7 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
   - _Requirements: 8.1_
   - _Boundary: CloudflareUsageCollector_
 
-- [ ] 3.2 Workersのプランの期間と上限を宣言する
+- [x] 3.2 Workersのプランの期間と上限を宣言する
   - `dashboard.toml`の`cloudflare_workers`の`[[plans]]`を、Free〜2026-10-22、Paid 2026-10-23〜2026-11-22、Free 2026-11-23〜に直す
   - `limits`に、Freeは`do_requests_day = 100_000`・`do_gbs_day = 13_000`、Paidは`cpu_ms_month = 30_000_000`・`do_requests_month = 1_000_000`・`do_gbs_month = 400_000`を足す
   - `[[credentials]]`に通知用のService Tokenの期限日を足す
