@@ -135,11 +135,12 @@ UIを含むタスクのFigmaはファイル`0kWDqHsLr6xE8b4FFgR1Zx`。node-idは
   - 9.2のローカル確認に`staging`の値が要るため、9.2より前に実施する
   - 完了条件: 両環境で値が取得でき、互いに異なる
   - _Requirements: 1.3, 1.4_
-- [ ] 11.2 CIで秘密値をWorkersに設定する
+- [x] 11.2 CIで秘密値をWorkersに設定する
   - `frontend-ci.yml`のPRプレビューの`wrangler versions upload`、devの`wrangler deploy --env=dev`、本番の`opennextjs-cloudflare deploy`に`--secrets-file`を付け、プレビュー・devはInfisical`staging`、本番は`prod`の`STAMP_SIGNING_SECRET`を渡す
   - secretsファイルは`infisical run`配下で`$RUNNER_TEMP`にJSONで書き、値をログに出さず、ステップの終了時に消す(失敗時も消す)
   - steeringのtech.mdの設定方法を、手作業の`wrangler secret put`からCIの`--secrets-file`に書き換える
-  - 完了条件: PRプレビューで、`staging`の値で作った検証値付きURLを開くとトーストが出てマイページに反映され、改変した値では何も起きない。CIのログに値が出ていない
+  - 完了条件: PRプレビューの検証APIが、`staging`の値で作った検証値に一致、改変した値・別の組の値に不一致を返す。CIのログに値が出ていない
+  - プレビューの参照する本番CMSに公開済みの企画が無く、企画詳細ページからのトースト・マイページ反映はプレビューでは確認しない。公開後に12.で確認する
   - _Requirements: 2.1, 2.3_
 - [ ] 11.3 devと本番での動作確認
   - devへのマージ後のデプロイで、devの検証APIに`staging`の値で作った検証値を送ると一致が返る
@@ -147,7 +148,8 @@ UIを含むタスクのFigmaはファイル`0kWDqHsLr6xE8b4FFgR1Zx`。node-idは
   - 開催期間中は値を変えない(変えると配布済みのQRがすべて無効になる)
   - _Requirements: 2.1, 2.3_
 
-- [ ] 12. 印刷用QRの出力とスマートフォンでの実読確認
+- [ ] 12. 印刷用QRの出力とスマートフォンでの実読確認(公開後検証)
+  - 本番CMSで企画が公開され、本番がliveフェーズに切り替わった後に行う。企画詳細ページからのトースト・マイページ反映はこれが初めての通し確認になる
   - Infisical`prod`と実行委員のCMSセッショントークンで、サイトURLを本番にしてQR出力スクリプトを実行し、CSVで`stage`が含まれず下書きを含む全組が出ていることを確認する
   - スマートフォンの実機で、PC幅の`/mypage`に表示される案内のQRを読み取ってマイページが開くこと、出力した企画QRを読み取って当該カテゴリの企画詳細ページが開きトーストが出てマイページに反映されることを確認する
   - 完了条件: 両方のQRを実機で読み取れたことと、GA4のリアルタイム(またはDebugView)で`qr_stamp`が企画idとカテゴリ付きで届いたことを確認している
