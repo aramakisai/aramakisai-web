@@ -5,12 +5,12 @@
 
 **Users**: 実行委員はCMSでこれまでどおり保存するだけで、数秒以内に全端末の表示が変わる。来場者は会場のどの端末でも同じ時刻に同じ表示を見る。緊急地震速報など他のサイネージ機能の開発者は、同じ経路で全端末へメッセージを送る。
 
-**Impact**: 端末の3秒ごとの`/api/signage/pin`のポーリングをやめ、1本のWebSocketとその上のping/pongに置き換える。CMSは保存時にサイトのWorkerへ通知する。スナップショットのポーリングは20秒から2分に延ばす。DOは別のWorker(`aramakisai-signage-hub`)に置き、サイトのWorkerはカスタムの入口からDOへ中継する。
+**Impact**: 端末の3秒ごとの`/api/signage/pin`のポーリングをやめ、1本のWebSocketとその上の固定文字列のping/pong(ハブのDOを起こさない自動応答)に置き換える。CMSは保存時にサイトのWorkerへ通知する。スナップショットのポーリングは20秒から2分に延ばす。DOは別のWorker(`aramakisai-signage-hub`)に置き、サイトのWorkerはカスタムの入口からDOへ中継する。
 
 ### Goals
 - 固定表示とグループの切替を保存からおよそ3秒以内、表示内容の更新を保存から数秒以内に全端末へ反映する
 - CMSへの問い合わせとWorkersの要求数を、端末の台数にほぼ比例させない(9台・31日で約38万要求)
-- 時刻補正をWebSocketのping/pong上で続け、全端末の同期の精度を保つ
+- 時刻補正をスナップショットの`serverNow`で続け(RTT/2補正)、全端末の同期の精度を保つ。ハブのDOは接続中の端末のpingでは起きず、休止できる
 - 他のサイネージ機能が全端末へメッセージを送れる共通の口と、メッセージの有効期限の扱いを定める
 - Workersのリクエスト数・CPU時間とDOのリクエスト数・GB-sを、運用ダッシュボードで込み量・上限に対する割合として見られるようにする
 
@@ -26,7 +26,7 @@
 - サイネージのハブのDO(`SignageHub`)とその置き場のWorker(`aramakisai-signage-hub`)
 - サイトのWorkerのカスタムの入口(`/api/signage/ws`と`/api/signage/notify`の振り分け)
 - 端末とハブのあいだのメッセージの型(`SignageServerMessage`・`SignageClientMessage`)と、他機能が送るメッセージの型(`SignageBroadcast`)、有効期限の扱い
-- 端末のWebSocketクライアント(接続・再接続・追いつき・ping/pongによる時刻補正)
+- 端末のWebSocketクライアント(接続・再接続・追いつき・ping/pongによる生存確認)
 - CMSの保存時通知(送る側のフックと、受ける側の認証)
 - スナップショットの取り直しの経路(版による共有キー)と、ポーリング間隔
 - デプロイ手順への組み込み(ハブのWorkerのデプロイ、bindingとmigration)
@@ -112,7 +112,7 @@ frontend/
 │       ├── hub-core.ts               # 保持・期限・alarmの段取り・受信の解釈を純粋関数で持つ
 │       └── hub-core.test.ts
 └── src/lib/
-    ├── signage-channel.ts            # メッセージの型、期限の判定、定数(ping間隔等)
+    ├── signage-channel.ts            # メッセージの型、期限の判定、定数(ping間隔・ping/pongの文字列)
     ├── signage-channel.test.ts
     ├── use-signage-channel.ts        # 端末のWebSocketクライアントのhook
     └── use-signage-channel.test.ts
@@ -159,8 +159,9 @@ sequenceDiagram
     E->>H: stub fetch
     H-->>T: 101と保持中のpinとsnapshot版
     loop 5秒ごと
-        T->>H: ping id
-        H-->>T: pong id serverNow
+        T->>H: ping
+        Note over H: DOは起きず自動応答
+        H-->>T: pong
     end
     C->>C: 保存afterChange
     C-)E: POST api signage notify targets
@@ -188,16 +189,16 @@ sequenceDiagram
 | 1.3 | 自動解除も同じ時間で反映 | SignageNotify(自動解除が書く`signage_settings`の`afterChange`) | — | 1.1と同じ |
 | 1.4 | 他データの更新を待たない | SignageHub(pinと版を別のメッセージで配る) | `SignageBroadcast` | — |
 | 1.5 | 非表示からの復帰・通信回復で追いつく | SignageChannelClient、SignageHub(接続直後の送信) | `SignageServerMessage` | 再接続と保持の送信 |
-| 2.1 | 同時刻に同じスライド | SignageChannelClient(時刻のずれ)、既存の同期計算 | `pong` | — |
-| 2.2 | 配信元の時刻に合わせる | SignageHub(pongに`serverNow`)、SignageChannelClient(RTT/2補正) | `pong`・`clockOffsetMs` | 5秒ごとのping |
+| 2.1 | 同時刻に同じスライド | SignageScreen(スナップショット由来の時刻のずれ)、既存の同期計算 | スナップショットの`serverNow`・`clockOffsetMs` | — |
+| 2.2 | 配信元の時刻に合わせる | SignageScreen(スナップショットの`serverNow`をRTT/2補正) | `clockOffsetMs` | 2分ごとのポーリングと版付きの取り直し |
 | 2.3 | 反映途中の食い違いを1の範囲に | SignageHub(全端末へ同時に送る) | — | Performance & Scalability |
-| 2.4 | 起動・回復直後に揃う | SignageHub(接続直後の送信)、SignageChannelClient(接続直後のping) | — | — |
+| 2.4 | 起動・回復直後に揃う | SignageHub(接続直後の送信)、SignageScreen(表示開始時のスナップショット) | — | — |
 | 3.1 | CMSへの確認を台数に比例させない | SignageHub(取り直しは1か所) | — | — |
 | 3.2 | Paidの込み量に収める | 全体 | — | Performance & Scalability |
 | 3.3 | 有料の追加サービスを使わない | Durable Objects(Workers Paidの込み量内、Freでも利用可) | — | — |
 | 3.4 | 失敗中も要求を増やさない | SignageHub(取り直しはalarmの固定の段取り)、SignageChannelClient(再接続の指数バックオフ) | — | Error Handling |
 | 4.1 | 失敗時は直前の状態を保つ | SignageChannelClient(切断中も最後の値を返す) | — | Error Handling |
-| 4.2 | 時刻を取れないときは直前のずれ | SignageChannelClient(最後のずれを保つ) | — | — |
+| 4.2 | 時刻を取れないときは直前のずれ | SignageScreen(スナップショットの取得に失敗したら最後のずれを保つ) | — | — |
 | 4.3 | 成功で再読み込みなしに戻る | SignageChannelClient(再接続で保持を受け取る) | — | — |
 | 5.1 | 表示対象外の中身を配信しない | SignageHub(pinは`/api/signage/pin`の応答のみ、表示内容は版だけ) | `SignagePinPayload` | Security Considerations |
 | 5.2 | 認証を通った要求だけ受け付ける | Access(既存の保護範囲、通知はService Token) | — | Security Considerations |
@@ -222,7 +223,7 @@ sequenceDiagram
 | SignageChannel | lib(`signage-channel.ts`) | メッセージの型と期限の判定 | 1.4, 5.1, 7.2, 7.6 | なし | State |
 | SignageHub | Worker(`workers/signage-hub`) | WebSocketの保持、ブロードキャスト、直近の保持、pinの取り直し、版の発行 | 1.1〜1.5, 2.2〜2.4, 3.1, 3.3, 3.4, 5.1, 6.1, 7.1〜7.4, 7.6 | DO runtime(P0)、Service binding `SITE`(P0) | Service, State, Batch |
 | SiteEntry | Worker(`workers/site-entry.ts`) | `/api/signage/ws`と`/api/signage/notify`をハブへ、他をOpenNextへ | 1.1, 5.2, 7.5 | `SIGNAGE_HUB` binding(P0)、`.open-next/worker.js`(P0) | API |
-| SignageChannelClient | lib(`use-signage-channel.ts`) | 接続・再接続・ping/pong・受信の保持 | 1.5, 2.1, 2.2, 2.4, 3.4, 4.1〜4.3, 6.1, 6.3, 7.4, 7.6 | ブラウザの`WebSocket`(P0) | State |
+| SignageChannelClient | lib(`use-signage-channel.ts`) | 接続・再接続・ping/pongによる生存確認・受信の保持 | 1.5, 2.4, 3.4, 4.1, 4.3, 6.1, 6.3, 7.4, 7.6 | ブラウザの`WebSocket`(P0) | State |
 | SnapshotVersionFetch | lib・app/api(`signage-data.ts`・`cms.ts`・`route.ts`) | 版付きのスナップショットの取得 | 6.1, 6.3 | `cms`(P0) | API |
 | SignageNotify | cms(`signage-notify.ts`) | 保存時にサイトのWorkerへ通知する | 1.1〜1.3, 5.3, 6.1 | `fetch`(P1。失敗しても保存は成功させる) | Event |
 | CloudflareUsageCollector | infra collector(`billing_cloudflare.py`) | Cloudflareの利用量を込み量・上限と比べて表示する | 8.1, 8.2, 8.3 | Cloudflare GraphQL Analytics API(P0)、`dashboard.toml`(P0) | Batch |
@@ -246,7 +247,7 @@ sequenceDiagram
 ```typescript
 import type { SignagePinState } from './signage-pin';
 
-/** ハブが配る固定と表示対象。serverNowはpongで配るので含めない */
+/** ハブが配る固定と表示対象。serverNowは含めない(時刻のずれはスナップショットの`serverNow`から求める) */
 export type SignagePinPayload = Omit<SignagePinState, 'serverNow'>;
 
 /** スナップショットの版。版が変わったら端末は /api/signage?v=<version> を取り直す */
@@ -279,11 +280,12 @@ export type SignageBroadcast = SignagePublishInput & {
   readonly sentAt: string;
 };
 
-export type SignageServerMessage =
-  | SignageBroadcast
-  | { readonly kind: 'pong'; readonly id: number; readonly serverNow: string };
+/** ハブから端末へ送るJSONメッセージ。pongは固定文字列で自動応答されるのでここに含めない */
+export type SignageServerMessage = SignageBroadcast;
 
-export type SignageClientMessage = { readonly kind: 'ping'; readonly id: number };
+/** 端末からハブへ送る固定文字列。ハブはDOを起こさずに`SIGNAGE_PONG`を返す */
+export const SIGNAGE_PING = 'ping';
+export const SIGNAGE_PONG = 'pong';
 
 export const SIGNAGE_PING_INTERVAL_MS = 5_000;
 export const SIGNAGE_PONG_TIMEOUT_MS = 5_000;
@@ -291,9 +293,8 @@ export const SIGNAGE_PONG_TIMEOUT_MS = 5_000;
 /** 補正済みの現在時刻で期限を判定する。expiresAtがnullなら常に偽 */
 export function isExpired(message: Pick<SignageBroadcast, 'expiresAt'>, nowMs: number): boolean;
 
-/** 受信した文字列を解釈する。形の合わないものはnull(anyを経由しない) */
+/** 受信した文字列を解釈する。形の合わないものと`pong`はnull(anyを経由しない) */
 export function parseServerMessage(raw: string): SignageServerMessage | null;
-export function parseClientMessage(raw: string): SignageClientMessage | null;
 ```
 - Persistence & consistency: 持たない(型と純粋関数のみ)
 - Concurrency strategy: 該当なし
@@ -307,16 +308,16 @@ export function parseClientMessage(raw: string): SignageClientMessage | null;
 
 | Field | Detail |
 |-------|--------|
-| Intent | 端末で1本のWebSocketを保ち、受け取った状態と時刻のずれを返す |
-| Requirements | 1.5, 2.1, 2.2, 2.4, 3.4, 4.1, 4.2, 4.3, 6.1, 6.3, 7.4, 7.6 |
+| Intent | 端末で1本のWebSocketを保ち、受け取った状態を返す |
+| Requirements | 1.5, 2.4, 3.4, 4.1, 4.3, 6.1, 6.3, 7.4, 7.6 |
 
 **Responsibilities & Constraints**
 - `wss://<同じホスト>/api/signage/ws`に接続する。Accessのcookieは同じオリジンのupgrade要求に付く
-- 開いた直後と、その後5秒ごとにpingを送る。pongから`clockOffsetMs(serverNow, 送信時刻, 受信時刻)`でずれを更新する
+- 開いた直後と、その後5秒ごとに文字列`ping`を送る。`pong`は生存確認だけに使い、時刻は載らない
 - pingから5秒以内にpongが無ければ切断して接続し直す。再接続の待ちは1秒から倍々に最大30秒(±20%の乱数)。接続が開いてpongを1回受けたら待ちを1秒に戻す。`online`イベントで待ちを打ち切って即時に接続し直す
 - 画面が非表示になったら閉じ、表示に戻ったら即時に接続する(`usePolling`と同じ扱い)
 - 機能ごとに最後に受け取った`SignageBroadcast`を保持する。期限切れは受信時に捨て、保持中のものは`isExpired`で表示時に除く
-- 切断中も最後の状態とずれを返し続ける(画面にエラーを出さない)
+- 切断中も最後の状態を返し続ける(画面にエラーを出さない)
 
 **Dependencies**
 - Inbound: SignageScreen — 固定・表示対象・ずれ・版の利用(P0)。他機能の画面部品 — `useSignageFeature`(P1)
@@ -330,8 +331,6 @@ export function parseClientMessage(raw: string): SignageClientMessage | null;
 export interface SignageChannelState {
   readonly pin: SignagePinPayload | undefined;
   readonly snapshotVersion: number | undefined;
-  /** 最後に得たずれ。一度もpongを受けていなければnull */
-  readonly offsetMs: number | null;
   /** 機能名ごとの最後のbroadcast(期限切れは受信時に捨てる) */
   readonly latest: Partial<{ readonly [F in SignageFeature]: Extract<SignageBroadcast, { feature: F }> }>;
 }
@@ -349,7 +348,7 @@ export function useSignageFeature<F extends SignageFeature>(
 - Concurrency strategy: 接続は常に1本。新しい接続を張る前に古い接続のハンドラを外し、古い接続からの受信を捨てる
 
 **Implementation Notes**
-- Integration: `SignageScreen`は`offsetMs`を`channel.offsetMs ?? polled.offsetMs ?? mountOffsetMs`の順に使う。`withPin(snapshot, channel.pin)`はこれまでどおり。`snapshotVersion`が手元の版と違えば、0〜1,000msの乱数で待ってから`refresh(() => fetchSnapshotFrom('/api/signage?v=' + version))`を呼び、成功したらその版を手元の版とする。初回の`snapshotVersion`は手元の版が無いので必ず取り直す。手元の版を受け取った後は2分のポーリングも`/api/signage?v=<手元の版>`で取り、TTL最大60秒の版なしの通常キーへ戻って古い内容を表示しないようにする。版付きの取得が失敗しても、手元の版は進めず、2分のポーリング(版付き)で回復する(新しい再試行の仕組みは持たない)
+- Integration: `SignageScreen`は時刻のずれを`polled.offsetMs ?? mountOffsetMs`の順に使う。`polled.offsetMs`は、2分のポーリングと版付きの取り直しで取得したスナップショットの`serverNow`から、既存の`clockOffsetMs`(RTT/2補正)で求めた最後の値で、取得に失敗しても直前の値を保つ。接続直後のメッセージ(保持の一覧)には時刻を載せない(スナップショットで足りるので、メッセージを増やさない簡素な方を選ぶ)。`withPin(snapshot, channel.pin)`はこれまでどおり。`snapshotVersion`が手元の版と違えば、0〜1,000msの乱数で待ってから`refresh(() => fetchSnapshotFrom('/api/signage?v=' + version))`を呼び、成功したらその版を手元の版とする。初回の`snapshotVersion`は手元の版が無いので必ず取り直す。手元の版を受け取った後は2分のポーリングも`/api/signage?v=<手元の版>`で取り、TTL最大60秒の版なしの通常キーへ戻って古い内容を表示しないようにする。版付きの取得が失敗しても、手元の版は進めず、2分のポーリング(版付き)で回復する(新しい再試行の仕組みは持たない)
 - Validation: `parseServerMessage`が`null`を返した受信は捨てる
 - Risks: 半開きの接続はpongの待ちで検出するため、検出まで最大約10秒かかる
 
@@ -360,13 +359,13 @@ export function useSignageFeature<F extends SignageFeature>(
 | Field | Detail |
 |-------|--------|
 | Intent | 全端末のWebSocketを保持し、機能ごとの最新のメッセージを保持して配る |
-| Requirements | 1.1, 1.2, 1.3, 1.4, 1.5, 2.2, 2.3, 2.4, 3.1, 3.3, 3.4, 5.1, 6.1, 7.1, 7.2, 7.3, 7.4, 7.6 |
+| Requirements | 1.1, 1.2, 1.3, 1.4, 1.5, 2.3, 2.4, 3.1, 3.3, 3.4, 5.1, 6.1, 7.1, 7.2, 7.3, 7.4, 7.6 |
 
 **Responsibilities & Constraints**
 - 固定名`signage-hub`の1インスタンス(`idFromName`)。`wrangler.toml`の`[[migrations]]`で`new_sqlite_classes = ["SignageHub"]`
 - upgrade要求を`ctx.acceptWebSocket`で受け、Hibernation APIの`webSocketMessage`・`webSocketClose`・`webSocketError`で扱う。`setTimeout`・`setInterval`は使わない(hibernationを妨げる)。遅延はすべてalarmで行う
 - 受け入れ直後に、保持中の期限内の`SignageBroadcast`を全部その接続へ送る。保持に`pin`が無ければalarmを即時に設定して取り直す
-- `ping`には`pong`(`serverNow`はその時点の`Date.now()`)を返す。`setWebSocketAutoResponse`は固定文字列しか返せないので使わない
+- コンストラクタで`ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'))`を設定する。`ping`には`pong`がDOを起こさず返り、`webSocketMessage`には届かない。ハブが起きるのは接続直後・`notify`・`publish`・alarmだけ
 - `notify(targets)`: 保留中の`targets`に足して保存し、alarmが500ms後より遅ければ500ms後に設定する
 - `alarm()`: 保留中に`pin`があれば`SITE`のService bindingで`/api/signage/pin`を取得し、`slide`と`visibleSlideIds`が保持と違えば`pin`として配る。保留中に`snapshot`があれば`version = Date.now()`(保持より大きくなるよう`max(保持+1, now)`)で`snapshot`を配る。続けて次のalarmを決める: 通知で取り直した直後は5秒後(同じ`targets`での確かめ、1回だけ。`snapshot`を含むなら版をもう一度進める)、それ以外は接続が1本以上あれば60秒後(保険の取り直し)、接続が無ければ設定しない
 - `publish(input)`: `sentAt`を付けて全接続へ送り、`expiresAt`が過ぎていなければ機能ごとに保持を置き換えて保存する。既に期限切れなら送らずに捨てる
@@ -416,7 +415,7 @@ export interface SignageHubEnv {
 **Implementation Notes**
 - Integration: 状態の遷移(`notify`後のalarm時刻、alarm後の次のalarm、保持の置き換えと期限切れの除去、受信の解釈)は`hub-core.ts`の純粋関数に置き、DOのクラスはストレージ・WebSocket・Service bindingとの受け渡しだけを持つ
 - Integration(他機能の拡張点): Workerのコードからは`env.SIGNAGE_HUB.get(env.SIGNAGE_HUB.idFromName('signage-hub')).publish(...)`で送る。上流の配信元へDOの中から接続する場合、outboundのWebSocketはhibernationの対象外で、開いている間DOはメモリに残りduration課金が続く。デプロイでDOは再起動し全接続が切れるので、上流の接続はalarmで張り直す必要がある。上流の接続を持つなら`SignageHub`とは別のDOクラス(同じWorker)に置き、`SignageHub.publish`を呼ぶ形を推奨する(端末の接続の受け持ちとデプロイ時の振る舞いを分けるため)。この判断と実装は緊急地震速報のspecが行う
-- Validation: 端末からの受信は`parseClientMessage`で`ping`だけを受け、それ以外は捨てる
+- Validation: `webSocketMessage`に届く端末からの受信はすべて捨てる(端末が送るのは自動応答される`ping`だけ)
 - Risks: ハブのWorkerをデプロイすると全端末の接続が切れ、指数バックオフで接続し直す(1〜数秒)。開催中のハブのデプロイは避ける
 
 #### SiteEntry
@@ -556,7 +555,7 @@ export function signageNotifyGlobalHook(targets: readonly NotifyTarget[]): Globa
 
 ### Data Contracts & Integration
 - 端末とハブのあいだはJSON文字列のテキストフレーム。型は`SignageServerMessage`・`SignageClientMessage`
-- `SignagePinState`(`/api/signage/pin`の応答)は変更しない。ハブがこれを読んで`serverNow`を除いた`SignagePinPayload`を配る。旧JSの端末はこれまでどおり`/api/signage/pin`をポーリングでき、切り替えの間も動く
+- `SignagePinState`(`/api/signage/pin`の応答)は変更しない。ハブがこれを読んで`serverNow`を除いた`SignagePinPayload`を配る。旧JSの端末は`/api/signage/pin`のポーリングで動けるが、新しいハブとの互換は持たない
 - 互換性: `SignageFeaturePayloads`へのキーの追加は互換。既存のキーの`payload`の形を変えるときは、本番のハブと稼働中の端末とPRプレビューが混在することを前提に、新旧どちらでも読める形で足してから古い形を消す
 
 ## Error Handling
@@ -566,7 +565,7 @@ export function signageNotifyGlobalHook(targets: readonly NotifyTarget[]): Globa
 - Accessのセッション切れ: upgradeがWorkerに届かず失敗する。端末は同じ指数バックオフ(最大30秒)を続け、再ログインまで直前の表示のまま
 - CMSの障害: ハブの取り直しが失敗したら保持を変えず、次は60秒後の保険のalarmまで取りに行かない(3.4)。端末のスナップショットの取得は既存どおり502で直前を保つ
 - 通知の失敗・欠落: CMSはログを残して保存を成功させる。固定と表示対象は60秒以内、表示内容は2分以内に反映される(6.2)
-- 不正な受信: ハブは`ping`以外を捨てる。端末は解釈できないメッセージと未知の機能を捨てる
+- 不正な受信: ハブは`webSocketMessage`に届いたものを捨てる。端末は解釈できないメッセージと未知の機能を捨てる
 
 ### Monitoring
 - ハブのWorkerは`console.warn`で取り直しの失敗だけを残す(Workers Logs)。ログを増やさない
@@ -577,15 +576,16 @@ export function signageNotifyGlobalHook(targets: readonly NotifyTarget[]): Globa
 
 ### Unit Tests(vitest)
 - `hub-core.test.ts`: `notify`後のalarm時刻(500ms、既存の早いalarmは延ばさない)、alarm後の次のalarm(確かめの5秒→保険の60秒→接続なしなら無し)、確かめのalarmで`snapshot`を含む束なら版がもう一度進むこと、`publish`の保持の置き換え、期限切れの保持からの除去と送信の省略、接続直後に送る一覧、`snapshot.version`の単調増加、pinの応答が変わらなければ配らないこと
-- `signage-channel.test.ts`: `isExpired`(null・境界)、`parseServerMessage`・`parseClientMessage`の不正な入力と未知の機能
+- `signage-channel.test.ts`: `isExpired`(null・境界)、`parseServerMessage`の不正な入力・`pong`・未知の機能
+- `signage-hub.test.ts`: コンストラクタが`ping`→`pong`の自動応答を設定すること
 - `site-entry.test.ts`: 通知の正しい本文で`notify`が呼ばれ204、本文の検査(400)、POST以外(405)、`/api/signage/ws`のupgradeでない要求(426)とOrigin不一致(403)、その他のパスがOpenNextへ渡ること。ハブのstubは差し替える
-- `use-signage-channel.test.ts`: 偽の`WebSocket`で、開いた直後のping、pongからのずれ、pongの待ちの超過で再接続、バックオフの増加と復帰、非表示で閉じて表示で即時接続、期限切れの受信の破棄、`useSignageFeature`が期限後に`undefined`
+- `use-signage-channel.test.ts`: 偽の`WebSocket`で、開いた直後と5秒ごとのping、pongの待ちの超過で再接続、バックオフの増加と復帰、非表示で閉じて表示で即時接続、期限切れの受信の破棄、`useSignageFeature`が期限後に`undefined`(時刻のずれは持たない)
 - `signage-notify.test.ts`(cms): 設定が揃わなければ送らない、送るヘッダと本文、`fetch`の失敗で例外を出さない
-- `signage-screen.test.tsx`: 版が変わったら乱数の待ちの後に`/api/signage?v=`を取り直し、同じ版では取り直さない
+- `signage-screen.test.tsx`: 時刻のずれがスナップショットの`serverNow`から更新され、取得に失敗したら直前のずれが保たれること。版が変わったら乱数の待ちの後に`/api/signage?v=`を取り直し、同じ版では取り直さない
 - `cms.test.ts`・`signage-data.test.ts`: 版があるときは通常のキーを読まず`__v=`のキーで保存する
 
 ### Integration Tests
-- ローカルで`make signage-dev`(サイトを`opennextjs-cloudflare build`の後、`wrangler dev -c wrangler.toml -c workers/signage-hub/wrangler.toml`をworktreeごとのポートで起動する)を使い、ブラウザで`/signage`を2枚開き、`curl`で`/api/signage/notify`を送って両方の表示が変わること、DevToolsでping/pongが5秒ごとに流れることを確かめる。CMSは`make cms`の共有インスタンスに`SIGNAGE_NOTIFY_URL`をローカルの入口へ向けて保存から通しても確かめる
+- ローカルで`make signage-dev`(サイトを`opennextjs-cloudflare build`の後、`wrangler dev -c wrangler.toml -c workers/signage-hub/wrangler.toml`をworktreeごとのポートで起動する)を使い、ブラウザで`/signage`を2枚開き、`curl`で`/api/signage/notify`を送って両方の表示が変わること、DevToolsでping/pongが5秒ごとに流れて再接続しないこと、端末の時計をずらしても時刻がスナップショット由来で補正されることを確かめる。CMSは`make cms`の共有インスタンスに`SIGNAGE_NOTIFY_URL`をローカルの入口へ向けて保存から通しても確かめる
 - 最初のPRで、サイトのWorkerが`script_name`付きのDOのbindingを持ってもバージョンURLが発行され、e2eが通ることを確かめる
 - ハブにはdev環境もPRプレビューも無い。ハブの変更は`make signage-dev`で確かめてから本番へ出す
 - collector(`aramakisai-infra`): `test_billing.py`で、FreeとPaidの期間それぞれで出る項目と上限、Paidの集計の起点がプランの`from`であること、DOのリクエスト数からWebSocketの受信の換算分を差し引くこと、80%で警告・100%で超過になること
@@ -597,7 +597,7 @@ export function signageNotifyGlobalHook(targets: readonly NotifyTarget[]): Globa
 - Accessの背後での接続: ログイン済みの端末で`/signage`を開き、DevToolsのNetworkで`/api/signage/ws`が101になること。ログインしていないブラウザでは接続できないこと
 - 反映時間: 端末を3台以上並べ、画面の時計が映るように1台のカメラ(スマートフォンの動画)で撮りながら、CMSで固定・グループ・テロップをそれぞれ保存する。保存ボタンを押した瞬間と各端末の切り替わりのフレームを動画から読み、1.1は3秒、6.1は数秒、端末間の差は1秒程度以内であることを確かめる
 - 通知の欠落時: `SIGNAGE_NOTIFY_URL`を一時的に外したCMS(ローカル)で、固定は60秒以内、テロップは2分以内に反映されること
-- 要求数: 開催前の1日、全端末を表示した状態で、運用ダッシュボードの各項目とCloudflareのダッシュボードの値を読み、Performance & Scalabilityの見積もりと比べる
+- 要求数: 開催前の1日、全端末を表示した状態で、運用ダッシュボードの各項目(`quota.do_gbs_day`を含む)とCloudflareのダッシュボードの値を読み、Performance & Scalabilityの見積もりと比べる
 
 ## Security Considerations
 - `/api/signage/ws`と`/api/signage/notify`は既存のAccessアプリケーション(`aramakisai.com/api/signage`、ホスト名とパスで指定する種類)の配下に置く。Worker単位のAccessではWebSocketのupgradeが403になるが、この種類は対象外。認証を通っていない要求はWorkerを起動しない(5.2, 7.5)
@@ -615,7 +615,7 @@ export function signageNotifyGlobalHook(targets: readonly NotifyTarget[]): Globa
 
 ## Performance & Scalability
 - 反映時間: 固定は、保存→通知(約0.1〜0.3秒)→500msの待ち→pinの取得(約0.3〜0.5秒)→配信(約0.1秒)で約1〜1.5秒。表示内容は、これに乱数の待ち(0〜1秒)とスナップショットの取得(約0.5〜1.5秒)を足して約2〜4秒。端末間の差は乱数の待ちと取得時間の差で、1秒強に収まる
-- 時刻補正: 5秒ごとのpingで、精度は従来(3秒ごと)と同じRTT/2の誤差の範囲
+- 時刻補正: スナップショット(2分ごと・版の取り直しごと)の`serverNow`をRTT/2で補正し、誤差は従来と同じRTT/2の範囲。ずれの更新間隔は従来の3秒から2分に延びる。この間は直前のずれを使い続ける
 
 ### 要求数とコスト(9台、Paid期間31日、終日表示)
 前提: 保存は1日300回(取り直しの束で数える。駐車場の状況の更新を含む)、端末1台あたりの再接続は1日20回。
@@ -627,26 +627,32 @@ export function signageNotifyGlobalHook(targets: readonly NotifyTarget[]): Globa
 | Workers: CMSからの通知 | 300 | 9,300 |
 | Workers: WebSocketの接続 | 9×20=180 | 5,580 |
 | Workers計 | 約12,400 | 約38万(込み量1,000万) |
-| DO: pingの受信(5秒ごと、20:1換算) | 9×17,280÷20=7,776 | 241,056 |
+| DO: pingの自動応答(5秒ごと、20:1換算。数えられるかは未確認のため上限として計上) | 9×17,280÷20=7,776 | 241,056 |
 | DO: alarm(保険60秒+通知と確かめ) | 1,440+600=2,040 | 63,240 |
 | DO: 接続・notifyのRPC | 180+300=480 | 14,880 |
 | DO計 | 約10,300 | 約32万(込み量100万) |
 
 - pinの取得はService binding経由で、要求の追加料金がかからない(上表に含めない)。WebSocketで送るメッセージと端末のプロトコルのpingは課金されない
-- DOのduration: 待機中はhibernationできるので、課金されるのはメッセージとalarmの処理時間だけ。仮にhibernationが一切効かなくても、128MB×86,400秒=10,800GB-s/日で、31日で334,800GB-s(込み量40万)
+- DOのduration(GB-s): pingは自動応答でDOを起こさず稼働時間を消費しない。DOが起きるのは接続直後・notify・publish・alarmで、起きるたびに処理のあと約10秒の無活動で休止に入る(休止に入るまでの待ちが課金されるかは文書に明記が無く、課金されるとして計算する)。1回あたり約10.1秒×128MB(0.125GB)≒1.26GB-s。
+  - 保険のalarm(接続がある間は60秒ごと、終日で1,440回): 1,440×1.26≒1,820GB-s/日
+  - 通知と確かめ(300回の保存×2回のalarm=600回)と接続・notifyのRPC(480回): 最悪すべて別々に起きるとして1,080×1.26≒1,360GB-s/日。実際は保険のalarmと重なり、通知の束は1回にまとまるのでこれより小さい
+  - 合計の上限は約3,200GB-s/日、31日で約99,000GB-s
+  - 比較: Free期間は1日13,000GB-sに対し約25%(超過すると操作が失敗する)。Paid期間は月40万GB-sに対し約25%で、超過課金は発生しない。ハブが常時メモリにいた場合の10,800GB-s/日(31日で334,800GB-s)より約7割少なく、Freeの上限に近づかない
+  - 緊急地震速報の上流接続のDOは別specが受け持ち、Paid期間だけ動かす。上の見積もりに含めない
 - 駐車場の更新が集中した場合(例: 1分に1回を10時間)は、1日あたり通知600・版の取り直し10,800が増えるだけで、込み量に影響しない。CMSへの問い合わせは、Cache APIが効かない場合、1回の版につき9台×約10件=約90件で、保存1回あたり2回の版で約180件。ハブの500msのまとめで、連続保存は1組の版になる
 - CPU時間: サイネージの要求は約38万で、3,000万msに対して1要求あたり70ms使っても収まる
-- 11/22以降のFree: Workersは1日10万要求で、サイネージは約12,400/日。DOはFreeで1日10万要求・13,000GB-sで、約10,300/日・最悪10,800GB-s/日。込み量を超えると要求が失敗するが、超えない。10/23より前のFree期間も同じ
+- 11/22以降のFree: Workersは1日10万要求で、サイネージは約12,400/日。DOはFreeで1日10万要求・13,000GB-sで、約10,300/日・約3,200GB-s/日。込み量を超えると要求が失敗するが、超えない。10/23より前のFree期間も同じ
 
 ## Migration Strategy
 順に本番まで出す。各段は前の段が本番にあることを前提にする。
 
 - 1: `aramakisai-infra`で通知用のService Tokenと`non_identity`のpolicyを足し、Infisical prodに値を登録する。`cms-secrets`に2つのキー(`SIGNAGE_NOTIFY_ACCESS_CLIENT_ID`・`SIGNAGE_NOTIFY_ACCESS_CLIENT_SECRET`)を足す
 - 2: ハブのWorkerとそのデプロイのジョブだけをmainまで出す。サイトのWorkerが`script_name`で参照するには、ハブが先に本番に存在している必要がある(存在しないscriptを指すbindingでは`wrangler deploy`・`versions upload`が失敗する見込み。未確認のため、順序で避ける)。DOの新しいクラスのmigrationを含む版は`versions upload`できないので、ハブは常に`wrangler deploy`で出す
-- 3: サイトのWorkerのbinding・入口・端末のクライアントを出す。旧JSの端末は`/api/signage/pin`のポーリングのまま動く
+- 3: サイトのWorkerのbinding・入口・端末のクライアントを出す
 - 4: CMSの通知のフックを出す(cms-ci→infraのタグ更新PR→ArgoCD)
 - 5: 全端末・配信PCを再読み込みして新しいJSにする
 - 監視(`aramakisai-infra`のcollector)は上の段と独立に出せる。`dashboard.toml`の期間はPaidの開始(10/23)より前に直す
+- ハブのメッセージ形式(固定文字列のping/pong、serverNowを載せないpong)は旧形式と互換を持たず、一度に切り替える。開催前で常時稼働中の端末は無いため、ハブ→サイトの順に出し、その後に端末を再読み込みする。deploy-prodの順序は変えない
 - 切り戻し: サイトのWorkerを前の版に戻せば端末は`/api/signage/pin`のポーリングに戻る。CMSの通知は宛先が無くても保存に影響しない
 
 ### 運用: 通知用のService Tokenの更新

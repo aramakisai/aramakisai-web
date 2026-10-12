@@ -194,3 +194,34 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
   - 合わない場合は、collectorでWebSocketの受信の換算をやめ、`requests`をそのまま出す形に直して出し直す
   - 見比べた結果を記録し、WBS(GitHub Projects #1)の進捗とtasks.mdのチェックを更新している
   - _Requirements: 8.1_
+
+- [ ] 11. ハブのDOが休止できるように、ping/pongを自動応答に切り替える
+- [ ] 11.1 共有型とハブをテスト駆動で切り替える
+  - 先に失敗するテストを書く: `SignageClientMessage`と`pong`の型・`parseClientMessage`を使わないこと、`parseServerMessage`が`pong`を`null`にすること、ハブのコンストラクタが`ping`→`pong`の自動応答を設定すること
+  - `signage-channel.ts`の`ping`をリテラル文字列`'ping'`・`'pong'`の定数にし、`serverNow`付きの`pong`の型と`parseClientMessage`を消す。ハブは`ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'))`をコンストラクタで設定し、`webSocketMessage`は届いたものを捨てる。`pin`の`serverNow`の扱いは変えない
+  - ハブとサイトの型チェックとテストが通る
+  - _Requirements: 2.2, 3.2, 7.4_
+
+- [ ] 11.2 端末のクライアントとサイネージ画面の時刻補正をテスト駆動でスナップショット由来に切り替える
+  - 先に失敗するテストを書く: クライアントが文字列`ping`を送り、`pong`を5秒以内に受けなければ再接続すること、`offsetMs`を返さないこと。画面の時刻のずれが、ポーリングと版付きの取り直しで取ったスナップショットの`serverNow`から`clockOffsetMs`で更新され、取得に失敗したら直前のずれが保たれ、初回は表示開始時の値であること
+  - `use-signage-channel.ts`から`offsetMs`とpongの`serverNow`の処理を除き、`signage-screen.tsx`のずれを`polled.offsetMs ?? mountOffsetMs`にする。接続直後のメッセージに時刻は足さない
+  - フロントの型チェック・テスト・ビルドが通る
+  - _Depends: 11.1_
+  - _Requirements: 2.1, 2.2, 4.2, 7.4_
+
+- [ ] 11.3 ローカルで実ブラウザで確かめてからコミットする
+  - `make signage-dev`でブラウザの`/signage`を開き、DevToolsでping/pongが5秒ごとに流れて再接続しないこと、端末の時計をずらしても時刻がスナップショットの`serverNow`で補正されること、`curl`の通知で表示が切り替わることを確かめる
+  - 自分で起動したサーバーを止め、ブラウザを閉じ、確認内容とスクリーンショットのパスが揃ってから、コミットする
+  - _Depends: 11.2_
+  - _Requirements: 1.1, 2.1, 2.2, 4.2, 7.4_
+
+- [ ] 11.4 devへのPRから本番まで出す
+  - devへのPRで既存のe2eとPRプレビューを確かめ、devへマージし、`dev.aramakisai.com`で確かめてからmainまで出す。deploy-prodはハブ→サイトの順のまま。旧形式との互換は持たず一度に切り替え、出した後に端末と配信PCを再読み込みする
+  - _Depends: 11.3_
+  - _Requirements: 2.2, 3.2, 5.2_
+
+- [ ] 11.5 本番で端末を数時間つないでGB-sを見積もりと比べる
+  - 本番で端末(`/signage`)を数時間つないだ状態にし、運用ダッシュボードの`quota.do_gbs_day`が、design.mdのPerformance & Scalabilityの見積もり(約3,200GB-s/日以下)の範囲に収まることを確かめる。常時稼働の約10,800GB-s/日に近ければ、休止できていないので原因を調べる
+  - 自動応答の受信がDOの要求数に数えられるかも、DOの要求数の値から読み、結果をresearch.mdに記録する。WBS(GitHub Projects #1)の進捗とチェックを更新する
+  - _Depends: 11.4_
+  - _Requirements: 3.2, 8.1_
