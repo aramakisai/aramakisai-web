@@ -1,8 +1,8 @@
 import type { SignageSlide } from './signage';
 
 /** ハブが配る固定と表示対象。serverNow は pong で配るので含めない */
-// signage-pin.ts は React に依存し、ハブの Worker(DOM の型が無い)の型検査に引き込めないため、
-// SignagePinState から serverNow を除いた形をここで持つ
+// 型の正本はここ。signage-pin.ts は React に依存し、ハブの Worker(DOM の型が無い)の型検査に
+// 引き込めないため、SignagePinState 側がこれを継承する
 export interface SignagePinPayload {
   readonly slide: SignageSlide | null;
   readonly visibleSlideIds: readonly number[];

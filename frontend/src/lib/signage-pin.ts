@@ -1,14 +1,12 @@
 import { useRef } from 'react';
-import type { SignageSlide, SignageSnapshot } from './signage';
+import type { SignageSnapshot } from './signage';
+import type { SignagePinPayload } from './signage-channel';
 import { usePolling } from './use-polling';
 
-export interface SignagePinState {
+// slide: 有効な固定スライド(固定なし・無効・削除済みなら null)、visibleSlideIds: いま表示対象のスライドID(_order 順)
+export interface SignagePinState extends SignagePinPayload {
   /** 応答を返す直前のサーバー時刻(ISO) */
   readonly serverNow: string;
-  /** 有効な固定スライド。固定なし・無効・削除済みなら null */
-  readonly slide: SignageSlide | null;
-  /** いま表示対象のスライドID。_order 順 */
-  readonly visibleSlideIds: readonly number[];
 }
 
 export const PIN_POLL_INTERVAL_MS = 3000;

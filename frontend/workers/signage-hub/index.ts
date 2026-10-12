@@ -59,7 +59,11 @@ export class SignageHub extends DurableObject<Env> {
     const { 0: client, 1: server } = new WebSocketPair();
     this.ctx.acceptWebSocket(server);
 
-    const plan = planConnect(this.hub, Date.now());
+    const plan = planConnect(
+      this.hub,
+      Date.now(),
+      await this.ctx.storage.getAlarm(),
+    );
     this.hub = plan.state;
     for (const message of plan.messages) server.send(JSON.stringify(message));
     if (plan.alarmAt !== null) await this.setAlarmEarlier(plan.alarmAt);
@@ -126,8 +130,8 @@ export class SignageHub extends DurableObject<Env> {
     });
     this.hub = result.state;
     this.broadcast(result.broadcasts);
-    if (result.alarmAt !== null)
-      await this.ctx.storage.setAlarm(result.alarmAt);
+    // fetchPin の await 中に届いた通知の 500ms 後の alarm を後ろへ上書きしない
+    if (result.alarmAt !== null) await this.setAlarmEarlier(result.alarmAt);
     await this.persist();
   }
 

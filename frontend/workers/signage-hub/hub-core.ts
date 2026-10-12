@@ -167,10 +167,14 @@ export function pruneExpired(retained: Retained, now: number): Retained {
   ) as Retained;
 }
 
-/** 接続の直後。期限内の保持を送り、pin の保持が無ければすぐ取り直す */
+/**
+ * 接続の直後。期限内の保持を送り、pin の保持が無ければすぐ取り直す。
+ * alarm の連鎖は接続 0 で止まるので、保持があっても alarm が無ければ保険を張り直す
+ */
 export function planConnect(
   state: HubState,
   now: number,
+  currentAlarmAt: number | null,
 ): {
   state: HubState;
   messages: readonly SignageBroadcast[];
@@ -179,7 +183,11 @@ export function planConnect(
   const retained = pruneExpired(state.retained, now);
   const messages = Object.values(retained) as SignageBroadcast[];
   if (retained.pin)
-    return { state: { ...state, retained }, messages, alarmAt: null };
+    return {
+      state: { ...state, retained },
+      messages,
+      alarmAt: currentAlarmAt === null ? now + SAFETY_DELAY_MS : null,
+    };
   return {
     state: {
       retained,

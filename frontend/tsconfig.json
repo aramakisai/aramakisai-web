@@ -26,6 +26,7 @@
   "exclude": [
     "node_modules",
     "workers/worker-configuration.d.ts",
-    "workers/signage-hub/index.ts"
+    "workers/signage-hub/index.ts",
+    "workers/signage-hub/index.test.ts"
   ]
 }

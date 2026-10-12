@@ -383,7 +383,7 @@ describe('planConnect', () => {
   it('期限内の保持を全部返す', () => {
     const pin = pinBroadcast(pinPayload([1]));
     const snap = snapshotBroadcast(3);
-    const r = planConnect(state({ retained: { pin, snapshot: snap } }), NOW);
+    const r = planConnect(state({ retained: { pin, snapshot: snap } }), NOW, NOW + 1);
     expect(r.messages).toEqual([pin, snap]);
     expect(r.alarmAt).toBeNull();
   });
@@ -397,6 +397,7 @@ describe('planConnect', () => {
     const r = planConnect(
       state({ retained: { pin: expired, snapshot: live } }),
       NOW,
+      NOW + 1,
     );
     expect(r.messages).toEqual([live]);
     expect(r.state.retained.pin).toBeUndefined();
@@ -404,14 +405,25 @@ describe('planConnect', () => {
   });
 
   it('pin の保持が無ければ pin を保留に足して即時に取り直す', () => {
-    const r = planConnect(emptyState(), NOW);
+    const r = planConnect(emptyState(), NOW, null);
     expect(r.messages).toEqual([]);
     expect(r.state.pendingTargets).toEqual(['pin']);
     expect(r.alarmAt).toBe(NOW);
   });
 
+  it('保持ありで接続・alarm 無しなら保険の alarm を予約する', () => {
+    const pin = pinBroadcast(pinPayload([1]));
+    const r = planConnect(state({ retained: { pin } }), NOW, null);
+    expect(r.alarmAt).toBe(NOW + SAFETY_DELAY_MS);
+    expect(r.state.pendingTargets).toEqual([]);
+  });
+
   it('保持が空の接続でも、既存の保留 targets は残す', () => {
-    const r = planConnect(state({ pendingTargets: ['snapshot'] }), NOW);
+    const r = planConnect(
+      state({ pendingTargets: ['snapshot'] }),
+      NOW,
+      null,
+    );
     expect(r.state.pendingTargets).toEqual(['snapshot', 'pin']);
   });
 });
