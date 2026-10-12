@@ -161,7 +161,7 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
   - _Requirements: 5.2_
   - _Boundary: docs/cms-operations.md_
 
-- [ ] 9. aramakisai-web: ローカルでの結合の確認と、段2の本番への反映
+- [x] 9. aramakisai-web: ローカルでの結合の確認と、段2の本番への反映
 - [x] 9.1 ハブとサイトをまとめて起動する`make signage-dev`を足す
   - サイトを`opennextjs-cloudflare build`した後、サイトとハブの2つの設定で`wrangler dev`を起動する。ポートは`make dev`と同じくworktree名から決め、`make dev-ps`・`make dev-stop`で扱えるようにする
   - `run_in_background`で`make signage-dev`を起動し、表示されたポートで`/signage`が開ける
@@ -183,7 +183,7 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
   - _Depends: 2.2_
   - _Requirements: 1.1, 5.2, 7.5_
 
-- [ ] 9.4 CMSの通知を本番へ出し、全端末を切り替える
+- [x] 9.4 CMSの通知を本番へ出し、全端末を切り替える
   - CMSの変更をdevへのPRを経てmainまで出し、`cms-ci`が作る`aramakisai-infra`のタグ更新のPRをマージして、ArgoCDの同期を待つ
   - 本番のCMSで保存したとき、CMSのログに通知の警告が出ず、ハブが取り直すことを確かめる
   - 全端末と配信PCを再読み込みして新しいJSにし、全端末が配信経路に繋がっていることを確かめる
