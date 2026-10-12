@@ -8,6 +8,7 @@ import { APIError } from 'payload';
 
 import { denyField, executiveOnlyField } from '../access/payload-access';
 import { isStudentExhibitor, toCmsUser } from '../access/roles';
+import { purgeEdgeCacheAfterChange, purgeEdgeCacheAfterDelete } from '../hooks/media-edge-purge';
 
 /**
  * フロントエンドが要求する表示幅の実測値は 1920 / 960 / 無指定 の 3 種。
@@ -132,7 +133,9 @@ export const Media: CollectionConfig = {
   hooks: {
     beforeOperation: [guardPublishedMedia],
     beforeChange: [assignMediaOwner],
+    afterDelete: [purgeEdgeCacheAfterDelete],
     afterChange: [
+      purgeEdgeCacheAfterChange,
       ({ doc, req }) => {
         // 生成失敗や原本より大きいサイズ指定でも保存は中断せず、欠落だけ警告として残す
         const generated = new Set(Object.keys((doc?.sizes as object) ?? {}));

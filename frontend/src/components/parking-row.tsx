@@ -3,13 +3,14 @@ import { isStale, type ParkingLot, type ParkingStatus } from '@/lib/parking';
 
 export type ParkingBadgeKind = ParkingStatus | 'unset' | 'closed';
 
-const BADGE: Record<ParkingBadgeKind, { label: string; style: string }> = {
-  available: { label: '空き', style: 'bg-success text-text' },
-  crowded: { label: '混雑', style: 'bg-primary text-text' },
-  full: { label: '満車', style: 'bg-warning text-text' },
-  unset: { label: '未設定', style: 'bg-gray-200 text-gray-600' },
-  closed: { label: '非公開', style: 'bg-gray-200 text-gray-600' },
-};
+export const BADGE: Record<ParkingBadgeKind, { label: string; style: string }> =
+  {
+    available: { label: '空き', style: 'bg-success text-text' },
+    crowded: { label: '混雑', style: 'bg-primary text-text' },
+    full: { label: '満車', style: 'bg-warning text-text' },
+    unset: { label: '未設定', style: 'bg-gray-200 text-gray-600' },
+    closed: { label: '非公開', style: 'bg-gray-200 text-gray-600' },
+  };
 
 export function ParkingStatusBadge({
   kind,

@@ -7,7 +7,7 @@ describe('richTextEditorFeatures', () => {
   const resolved = richTextEditorFeatures({ defaultFeatures: defaultEditorFeatures });
   const keys = resolved.map((feature) => feature.key);
 
-  it('見出し・段落・強調・リンク・リスト・引用・画像・水平線・インラインツールバーを残す', () => {
+  it('見出し・段落・強調・リンク・リスト・引用・画像・水平線・インラインツールバー・ブロック・表を残す', () => {
     expect(keys.sort()).toEqual(
       [
         'bold',
@@ -23,6 +23,8 @@ describe('richTextEditorFeatures', () => {
         'upload',
         'horizontalRule',
         'toolbarInline',
+        'blocks',
+        'experimental_table',
       ].sort(),
     );
   });

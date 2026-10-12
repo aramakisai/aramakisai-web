@@ -48,6 +48,9 @@ function hasRouteEntity(path: string): boolean {
   return path.split('/').length <= 2;
 }
 
+/** 配信端末向けの画面で、検索結果にも載せない */
+const SIGNAGE_PATH = '/signage';
+
 /** /exhibitions /map /timetable はフェーズによっては公開されないため PRE_EVENT_PUBLIC_PATHS に無い */
 const LIVE_ONLY_CODE_ROUTES: readonly string[] = [
   '/exhibitions',
@@ -60,6 +63,8 @@ const LIVE_ONLY_CODE_ROUTES: readonly string[] = [
  * 呼び出し側 (sitemap.ts) が isPublicPath で絞る。
  */
 export const SITEMAP_CODE_ROUTES: readonly string[] = [
-  ...PRE_EVENT_PUBLIC_PATHS.filter(hasRouteEntity),
+  ...PRE_EVENT_PUBLIC_PATHS.filter(
+    (path) => hasRouteEntity(path) && path !== SIGNAGE_PATH,
+  ),
   ...LIVE_ONLY_CODE_ROUTES,
 ];

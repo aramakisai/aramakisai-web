@@ -46,19 +46,29 @@ export async function resolveReadReplicaUrl(
   return undefined
 }
 
-/**
- * アイドル接続が切れると pg の Pool は 'error' を emit する。リスナーが無いと未捕捉例外で
- * Node が落ちる。@payloadcms/db-postgres はレプリカ側の Pool にリスナーを付けないため、
- * レプリカの再起動やフェイルオーバーのたびに CMS が落ちる。Pool 生成時に必ず付ける。
- * 切れた接続は Pool が破棄し、次のクエリが張り直す。
- */
-class ErrorHandledPool extends pg.Pool {
-  constructor(options?: pg.PoolConfig) {
-    super(options)
-    this.on('error', (err) => {
-      console.error(`Postgres のアイドル接続でエラー: ${err.message}`)
-    })
-  }
-}
+const PRIMARY_POOL_MAX = 5
+const REPLICA_POOL_MAX = 10
 
-export const pgWithPoolErrorHandler: typeof pg = { ...pg, Pool: ErrorHandledPool }
+/**
+ * @payloadcms/db-postgres はレプリカ用 Pool を primary の pool 設定 (max 含む) の
+ * コピーで作るため、primary だけ絞るには Pool 生成時に接続先で max を振り分ける。
+ * primary は書き込み中心で接続数が少なくて済む。
+ */
+export function createPgWithPoolErrorHandler(primaryUrl: string): typeof pg {
+  // アイドル接続が切れると pg の Pool は 'error' を emit する。リスナーが無いと未捕捉例外で
+  // Node が落ちる。@payloadcms/db-postgres はレプリカ側の Pool にリスナーを付けないため、
+  // レプリカの再起動やフェイルオーバーのたびに CMS が落ちる。Pool 生成時に必ず付ける。
+  // 切れた接続は Pool が破棄し、次のクエリが張り直す。
+  class ErrorHandledPool extends pg.Pool {
+    constructor(options?: pg.PoolConfig) {
+      super({
+        ...options,
+        max: options?.connectionString === primaryUrl ? PRIMARY_POOL_MAX : REPLICA_POOL_MAX,
+      })
+      this.on('error', (err) => {
+        console.error(`Postgres のアイドル接続でエラー: ${err.message}`)
+      })
+    }
+  }
+  return { ...pg, Pool: ErrorHandledPool }
+}

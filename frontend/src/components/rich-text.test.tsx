@@ -54,17 +54,17 @@ describe('RichText', () => {
     expect(container.firstChild).toHaveClass('my-rich-text');
   });
 
-  test('renders h1 as h2 and keeps h2〜h4 as-is, dropping h5/h6 tags', () => {
+  test('drops h1 tag keeping its text, keeps h2〜h4 as-is and drops h5/h6 tags', () => {
     const { container } = render(
       <RichText html="<h1>見出し1</h1><h2>見出し2</h2><h3>見出し3</h3><h4>見出し4</h4><h5>見出し5</h5>" />,
     );
 
-    expect(
-      screen.getByRole('heading', { level: 2, name: '見出し1' }),
-    ).toBeInTheDocument();
+    expect(container.querySelector('h1')).not.toBeInTheDocument();
+    expect(container.firstChild).toHaveTextContent('見出し1');
     expect(
       screen.getByRole('heading', { level: 2, name: '見出し2' }),
     ).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(1);
     expect(
       screen.getByRole('heading', { level: 3, name: '見出し3' }),
     ).toBeInTheDocument();
@@ -72,7 +72,75 @@ describe('RichText', () => {
       screen.getByRole('heading', { level: 4, name: '見出し4' }),
     ).toBeInTheDocument();
     expect(container.querySelector('h5')).not.toBeInTheDocument();
-    expect(screen.getByText('見出し5')).toBeInTheDocument();
+    expect(container.firstChild).toHaveTextContent('見出し5');
+  });
+
+  test('keeps rich-text component HTML (image row, callout, button link, table)', () => {
+    const { container } = render(
+      <RichText
+        html={
+          '<div class="rt-image-row" data-count="2"><figure><figcaption>左</figcaption><img data-media-id="1" alt="左"></figure><figure><img data-media-id="2" alt="右"></figure></div>' +
+          '<aside class="rt-callout" data-kind="caution"><p>注意<br>です</p></aside>' +
+          '<p class="rt-button"><a href="https://example.com">詳細</a></p>' +
+          '<div class="rt-table"><table><tbody><tr><th colspan="2" rowspan="3">見出し</th><td>値</td></tr></tbody></table></div>'
+        }
+      />,
+    );
+
+    const row = container.querySelector('div.rt-image-row');
+    expect(row).toHaveAttribute('data-count', '2');
+    expect(row?.querySelectorAll('figure')).toHaveLength(2);
+    expect(row?.querySelector('figcaption')).toHaveTextContent('左');
+    expect(row?.querySelector('img')).toHaveAttribute(
+      'src',
+      'https://example.com/assets/1',
+    );
+    expect(container.querySelector('aside.rt-callout')).toHaveAttribute(
+      'data-kind',
+      'caution',
+    );
+    expect(container.querySelector('aside.rt-callout p br')).not.toBeNull();
+    expect(container.querySelector('p.rt-button a')).toHaveAttribute(
+      'href',
+      'https://example.com',
+    );
+    expect(
+      container.querySelector('div.rt-table table tbody tr'),
+    ).not.toBeNull();
+    const th = container.querySelector('th');
+    expect(th).toHaveAttribute('colspan', '2');
+    expect(th).toHaveAttribute('rowspan', '3');
+    expect(container.querySelector('td')).toHaveTextContent('値');
+  });
+
+  test('drops classes and attributes outside the allow list', () => {
+    const { container } = render(
+      <RichText html='<div class="evil rt-table" style="color:red" data-count="9"><table class="x"><tbody><tr><td colspan="2" onclick="x()" class="y">a</td></tr></tbody></table></div><aside class="foo" data-kind="x"><p class="rt-button z">b</p></aside>' />,
+    );
+
+    const inner = container.querySelector('.rich-text-body > div');
+    expect(inner?.getAttribute('class')).toBe('rt-table');
+    expect(inner).not.toHaveAttribute('style');
+    expect(container.querySelector('table')).not.toHaveAttribute('class');
+    const td = container.querySelector('td');
+    expect(td).not.toHaveAttribute('class');
+    expect(td).not.toHaveAttribute('onclick');
+    expect(container.querySelector('aside')).not.toHaveAttribute('class');
+    expect(container.querySelector('aside p')?.getAttribute('class')).toBe(
+      'rt-button',
+    );
+  });
+
+  test('unwraps the payload-richtext container div so blocks stay direct children', () => {
+    const { container } = render(
+      <RichText html='<div class="payload-richtext"><h2>見出し</h2><p>本文</p><div class="rt-table"><table><tbody><tr><td>a</td></tr></tbody></table></div></div>' />,
+    );
+
+    const body = container.querySelector('.rich-text-body');
+    expect(
+      Array.from(body?.children ?? []).map((el) => el.tagName.toLowerCase()),
+    ).toEqual(['h2', 'p', 'div']);
+    expect(body?.lastElementChild).toHaveClass('rt-table');
   });
 
   test('builds img src from data-media-id via toAssetUrl and keeps alt', () => {

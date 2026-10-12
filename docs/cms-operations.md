@@ -90,6 +90,7 @@ S3 の接続情報 (`S3_BUCKET` 等) が未設定の場合はディスク保存�
 | `CMS_PUBLIC_URL` | 公開 URL (OIDC リダイレクト先の組み立てに使う) | Authentik 連携時 |
 | `S3_BUCKET` / `S3_ENDPOINT` / `S3_REGION` / `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | メディア保存先 | 本番 |
 | `S3_PREFIX` | メディアのキー接頭辞 (既定 `payload-uploads`) | 任意 |
+| `CLOUDFLARE_ZONE_ID` / `CLOUDFLARE_PURGE_TOKEN` | 画像の非公開化・削除・差し替え時に `cms.aramakisai.com` のエッジキャッシュを purge する (zone の Cache Purge 権限だけのトークン)。`CMS_PUBLIC_URL` と合わせて 3 つ揃わないと purge せず、起動時に警告を 1 回出す | 本番 |
 | `AUTHENTIK_ISSUER_URL` / `AUTHENTIK_CLIENT_ID` / `AUTHENTIK_CLIENT_SECRET` | Authentik OIDC | 本番 |
 | `CMS_CORS_ORIGINS` | CORS 許可オリジン (カンマ区切り) | 本番 |
 | `SMTP_HOST` | 招待メール送信先 (docker-mailserver)。設定時だけ SMTP アダプタを有効化する | 任意 (本番のみ設定) |
@@ -413,3 +414,22 @@ Local API から行う場合は `payload.create({ collection: 'student_exhibitio
 `authentik_sub` を持つユーザーは、ロール写像から `student_exhibitor` グループが
 外れたことで荒牧祭SSO からログインできなくなる。該当ユーザーには招待メールを再送し、
 ローカル認証のパスワード設定へ移行してもらう。
+
+## サイネージ端末のログイン
+
+サイネージの画面(`aramakisai.com/signage`)とAPI(`aramakisai.com/api/signage`)はCloudflare Accessで保護され、ログインしていない端末の要求はWorkerに届かない。公式サイトの他のページはログイン不要。端末・配信PCは、サイネージ専用のZitadelアカウントで1回ログインする。アカウントのユーザー名は`signage`、パスワードはInfisicalのprod環境の`SIGNAGE_ZITADEL_PASSWORD`にある。セッションは730h(約1か月)で、切れると表示は直前のまま更新が止まる。
+
+### 端末(キオスクのブラウザ)
+
+1. 端末のブラウザで`https://aramakisai.com/signage`を開く。Accessのログイン画面でサイネージ専用アカウントを入力してログインし、画面が表示されることを確かめる
+2. ブラウザは終了時にcookieを消さない設定にし、シークレットモード(プライベートウィンドウ)で開かない。cookieが消えるとセッションが失われ、再ログインが要る
+
+### 配信PC(OBSのブラウザソース)
+
+1. OBSのブラウザソースのURLに`https://aramakisai.com/signage`を指定し、「ブラウザソースのcookieを保持する」ような設定(OBSのCEF cookie保持)を有効のままにする
+2. ソースのプロパティで「操作」を開き、表示されたログイン画面からサイネージ専用アカウントでログインする
+3. ログイン後に画面が表示され、OBSを再起動してもログインが残ることを確かめる
+
+### 開催前日の再ログイン
+
+セッションの期限を開催期間の後にするため、開催前日に全端末・配信PCでログインし直す。ログイン済みの端末は一度ログアウトするか、cookieを消してから上記の手順でログインする。ログイン画面で期限が730hに更新される。

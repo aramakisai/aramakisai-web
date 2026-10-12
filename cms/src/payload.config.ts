@@ -13,9 +13,10 @@ import { isExecutive, toCmsUser } from './access/roles'
 import { authentikEndpoints } from './auth/authentik-endpoints'
 import { sendInvitation } from './auth/invitation'
 import { collections } from './collections'
-import { pgWithPoolErrorHandler, resolveReadReplicaUrl } from './db/read-replica'
+import { createPgWithPoolErrorHandler, resolveReadReplicaUrl } from './db/read-replica'
 import { optionalEnv, requireEnv } from './env'
 import { globals } from './globals'
+import { purgeEdgeCache, readPurgeConfig, warnIfPurgeUnconfigured } from './lib/edge-purge'
 import { richTextEditorFeatures } from './lib/rich-text-editor'
 
 // S3 未設定のローカル開発ではディスク保存にフォールバックする。本番/staging は Infisical が必ず与える。
@@ -23,6 +24,7 @@ const s3Bucket = optionalEnv('S3_BUCKET')
 // docker-mailserver への接続先。infisical run --env=prod には入らないため、ローカルは常にコンソール出力になる。
 const smtpHost = optionalEnv('SMTP_HOST')
 
+const databaseUrl = requireEnv('DATABASE_URL')
 const readReplicaUrl = await resolveReadReplicaUrl()
 
 const filename = fileURLToPath(import.meta.url)
@@ -43,6 +45,7 @@ export default buildConfig({
   },
   collections,
   globals,
+  onInit: (payload) => warnIfPurgeUnconfigured((message) => payload.logger.warn(message)),
   // Authentik OIDC を認証の一次経路とする。ローカル認証は実行委員の緊急用として残す
   endpoints: optionalEnv('AUTHENTIK_ISSUER_URL') ? authentikEndpoints : [],
   editor: lexicalEditor({ features: richTextEditorFeatures }),
@@ -82,6 +85,20 @@ export default buildConfig({
           return { output: {} }
         },
       },
+      {
+        slug: 'purgeMediaEdgeCache',
+        // Free プランのプレフィックス purge は 1 分 5 リクエストのため、429 でも立ち直れるよう長めに待つ
+        retries: { attempts: 8, backoff: { type: 'fixed', delay: 60_000 } },
+        inputSchema: [
+          { name: 'files', type: 'json', required: true },
+          { name: 'prefixes', type: 'json', required: true },
+        ],
+        handler: async ({ input }) => {
+          const config = readPurgeConfig()
+          if (config) await purgeEdgeCache(config, input as { files: string[]; prefixes: string[] })
+          return { output: {} }
+        },
+      },
     ],
     autoRun: [{ cron: '*/10 * * * * *' }],
     // vitest はプロセス全体に VITEST=true を設定する。テストは payload.jobs.run() を明示的に呼ぶ
@@ -105,8 +122,8 @@ export default buildConfig({
     autoGenerate: false,
   },
   db: postgresAdapter({
-    pg: pgWithPoolErrorHandler,
-    pool: { connectionString: requireEnv('DATABASE_URL') },
+    pg: createPgWithPoolErrorHandler(databaseUrl),
+    pool: { connectionString: databaseUrl },
     migrationDir: path.resolve(dirname, 'migrations'),
     // dev push はコレクション定義に無い制約を DROP する。手書きマイグレーションが入れた
     // CHECK と複合 UNIQUE が接続のたびに消えるため、スキーマ変更は常に migrate 経由にする

@@ -22,6 +22,10 @@ const PUBLISHED_FILTER: Record<string, (now: string) => Where> = {
     published_at: { less_than_equal: now, exists: true },
   }),
   student_exhibitions: () => ({ status: { equals: 'published' } }),
+  signage_slides: () => ({ enabled: { equals: true } }),
+  telops: () => ({ enabled: { equals: true } }),
+  // returned が未設定の行も読めるよう、equals false ではなく not_equals true にする
+  lost_items: () => ({ returned: { not_equals: true } }),
 };
 
 /** 未認証には見せないコレクション (owner や id で個別に絞るものはここに含めない)。 */

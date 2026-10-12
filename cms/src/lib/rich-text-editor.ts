@@ -1,5 +1,7 @@
-import { HeadingFeature } from '@payloadcms/richtext-lexical';
+import { BlocksFeature, EXPERIMENTAL_TableFeature, HeadingFeature } from '@payloadcms/richtext-lexical';
 import type { FeatureProviderServer } from '@payloadcms/richtext-lexical';
+
+import { buttonLink, callout, imageRow } from '../blocks/rich-text-blocks';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 各機能が異なる props 型を持つ配列を扱うための必要な any
 type Features = FeatureProviderServer<any, any, any>[];
@@ -24,11 +26,15 @@ export const richTextEditorFeatures = ({
 }: {
   defaultFeatures: Features;
 }): Features =>
-  defaultFeatures
-    .filter((feature) => !DISABLED_FEATURE_KEYS.has(feature.key))
-    .map((feature) =>
-      feature.key === 'heading'
-        ? // h1・h5・h6 は本文設置先の見出しと重複する/使用実績がないため許可しない
-          HeadingFeature({ enabledHeadingSizes: ['h2', 'h3', 'h4'] })
-        : feature,
-    );
+  [
+    ...defaultFeatures
+      .filter((feature) => !DISABLED_FEATURE_KEYS.has(feature.key))
+      .map((feature) =>
+        feature.key === 'heading'
+          ? // h1・h5・h6 は本文設置先の見出しと重複する/使用実績がないため許可しない
+            HeadingFeature({ enabledHeadingSizes: ['h2', 'h3', 'h4'] })
+          : feature,
+      ),
+    BlocksFeature({ blocks: [imageRow, callout, buttonLink] }),
+    EXPERIMENTAL_TableFeature(),
+  ];

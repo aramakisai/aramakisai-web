@@ -15,16 +15,23 @@ export interface ExhibitionCardProps {
 
 export function ExhibitionCard({ exhibition }: ExhibitionCardProps) {
   const gradient = getExhibitionGradient(exhibition.displayName);
-  const { texture } = getExhibitionAppearance(exhibition.displayName);
-  // globals.css の .exhibition-gradient-bg が参照する。角度は単位付きでないと
-  // linear-gradient() に渡した際に無効な値としてカスケード全体が無視される。
+  const { texture, texturePositionY, textureFlipX, textureFlipY } =
+    getExhibitionAppearance(exhibition.displayName);
+  // globals.css の .exhibition-gradient-bg が参照する。α 付きの色は color-mix を使わず 8 桁 hex で渡す。
+  // 透明端を transparent にすると to 色との補間で灰色の縁が出るため、to 自身の α0 を使う。
   // texture='gradient' は質感画像を重ねないので --exhibition-texture を設定しない (CSS 側の既定値 none を使う)。
   const gradientStyle = {
     '--exhibition-gradient-from': gradient.fromColor,
     '--exhibition-gradient-to': gradient.toColor,
-    '--exhibition-gradient-angle': `${gradient.angle}deg`,
+    '--exhibition-gradient-to-half': `${gradient.toColor}80`,
+    '--exhibition-gradient-to-clear': `${gradient.toColor}00`,
+    '--exhibition-pool-x': `${gradient.poolX}%`,
+    '--exhibition-pool-y': `${gradient.poolY}%`,
     ...(texture !== 'gradient' && {
       '--exhibition-texture': `url(/images/textures/card/${texture}.webp)`,
+      '--exhibition-texture-y': `${texturePositionY}%`,
+      '--exhibition-texture-sx': textureFlipX ? -1 : 1,
+      '--exhibition-texture-sy': textureFlipY ? -1 : 1,
     }),
   } as CSSProperties;
 

@@ -2,7 +2,7 @@ import net from 'node:net'
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { pgWithPoolErrorHandler, resolveReadReplicaUrl } from './read-replica'
+import { createPgWithPoolErrorHandler, resolveReadReplicaUrl } from './read-replica'
 
 describe('resolveReadReplicaUrl', () => {
   it('未設定なら undefined', async () => {
@@ -32,16 +32,24 @@ describe('resolveReadReplicaUrl', () => {
   })
 })
 
-describe('pgWithPoolErrorHandler', () => {
+describe('createPgWithPoolErrorHandler', () => {
+  const primary = 'postgres://x:y@127.0.0.1:1/p'
+  const replica = 'postgres://x:y@127.0.0.1:2/p'
   afterEach(() => vi.restoreAllMocks())
 
   it('Pool の error イベントで落ちない', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
-    const pool = new pgWithPoolErrorHandler.Pool({
-      connectionString: 'postgres://x:y@127.0.0.1:1/p',
-    })
+    const pool = new (createPgWithPoolErrorHandler(primary).Pool)({ connectionString: primary })
     expect(() => pool.emit('error', new Error('Connection terminated unexpectedly'))).not.toThrow()
     await pool.end()
+  })
+
+  it('primary は max 5、レプリカは max 10', async () => {
+    const { Pool } = createPgWithPoolErrorHandler(primary)
+    const p = new Pool({ connectionString: primary, max: 5 })
+    const r = new Pool({ connectionString: replica, max: 5 })
+    expect([p.options.max, r.options.max]).toEqual([5, 10])
+    await Promise.all([p.end(), r.end()])
   })
 })
 
