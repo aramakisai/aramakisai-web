@@ -6,6 +6,7 @@ import {
   performanceTimeConstraint,
   stageAssignmentConstraint,
 } from '../hooks/payload-constraints'
+import { signageNotifyHook } from '../lib/signage-notify'
 
 export const PerformanceSlots: CollectionConfig = {
   slug: 'performance_slots',
@@ -20,6 +21,8 @@ export const PerformanceSlots: CollectionConfig = {
       stageAssignmentConstraint,
       performanceTimeConstraint,
     ],
+    afterChange: [signageNotifyHook(['snapshot'])],
+    afterDelete: [signageNotifyHook(['snapshot'])],
   },
   fields: [
     {

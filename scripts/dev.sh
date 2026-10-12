@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# make dev / dev-ps / dev-stop / preview / cms / cms-worktree のロジック本体。
+# make dev / signage-dev / dev-ps / dev-stop / preview / cms / cms-worktree のロジック本体。
 set -euo pipefail
 
 PORT_MIN=3200
@@ -41,12 +41,12 @@ owner_desc() {
   echo "$(basename "$toplevel") (${branch}) [pid ${pid}]"
 }
 
-# next dev の実体プロセス (next/dist/bin/next 経由の起動) を祖先方向に辿って探す。
-# next-server はワーカーとして listen し、next dev の CLI プロセスと別なことがあるため両方を SIGTERM 対象にする。
+# next / wrangler の CLI プロセスを祖先方向に辿って探す。
+# next-server・workerd はワーカーとして listen し、CLI プロセスと別なことがあるため両方を SIGTERM 対象にする。
 find_next_cli_pid() {
   local pid="$1" depth=0 ppid
   while [[ -n "$pid" && "$pid" != "1" && $depth -lt 6 ]]; do
-    if tr '\0' ' ' <"/proc/${pid}/cmdline" 2>/dev/null | grep -qE '(next/dist/bin/next|node_modules/\.bin/next)\b'; then
+    if tr '\0' ' ' <"/proc/${pid}/cmdline" 2>/dev/null | grep -qE '(next/dist/bin/next|node_modules/\.bin/next|wrangler/bin/wrangler\.js|node_modules/\.bin/wrangler)\b'; then
       echo "$pid"
       return 0
     fi
@@ -116,6 +116,34 @@ cmd_dev() {
   # getCloudflareContext().env にプロセス環境変数を載せるのに必要
   export CLOUDFLARE_INCLUDE_PROCESS_ENV=true
   exec node_modules/.bin/next dev -p "${port}"
+}
+
+cmd_signage_dev() {
+  local cms_mode="${1:-}" root name port owner cms_url
+  root=$(worktree_root)
+  name=$(basename "$root")
+  port=$(port_for_name "$name")
+
+  owner=$(owner_desc "$port")
+  if [[ -n "$owner" ]]; then
+    echo "${port} は ${owner} が使用中です" >&2
+    exit 1
+  fi
+
+  if [[ ! -d "${root}/frontend/node_modules" ]]; then
+    (cd "${root}/frontend" && pnpm install --frozen-lockfile)
+  fi
+
+  cms_url="http://localhost:${CMS_PORT}"
+  [[ "$cms_mode" == "worktree" ]] && cms_url="http://localhost:$((port + 1000))"
+
+  echo "起動: http://localhost:${port}/signage (worktree: ${name}, CMS: ${cms_url}, ハブ同梱)"
+  cd "${root}/frontend"
+  export NEXT_PUBLIC_CMS_URL="$cms_url"
+  export NEXT_PUBLIC_SITE_URL="http://localhost:${port}"
+  node_modules/.bin/opennextjs-cloudflare build
+  # 先頭の -c がプライマリ(HTTP を受ける側)。ハブは同じセッションの DO / service binding として解決される
+  exec node_modules/.bin/wrangler dev -c wrangler.toml -c workers/signage-hub/wrangler.toml --port "${port}"
 }
 
 cmd_dev_ps() {
@@ -290,13 +318,14 @@ sub="${1:-}"
 shift || true
 case "$sub" in
   dev) cmd_dev "$@" ;;
+  signage-dev) cmd_signage_dev "$@" ;;
   dev-ps) cmd_dev_ps "$@" ;;
   dev-stop) cmd_dev_stop "$@" ;;
   preview) cmd_preview "$@" ;;
   cms) cmd_cms "$@" ;;
   cms-worktree) cmd_cms_worktree "$@" ;;
   *)
-    echo "使い方: scripts/dev.sh {dev|dev-ps|dev-stop|preview|cms|cms-worktree}" >&2
+    echo "使い方: scripts/dev.sh {dev|signage-dev|dev-ps|dev-stop|preview|cms|cms-worktree}" >&2
     exit 1
     ;;
 esac

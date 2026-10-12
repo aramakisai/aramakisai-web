@@ -21,9 +21,6 @@ import { getSponsors, mergeSponsorLogos } from './sponsors';
 import { toTimetable } from './timetable';
 
 export const SIGNAGE_TTL_SECONDS = 15;
-export const SIGNAGE_REFRESH_INTERVAL_SECONDS = 5;
-
-const OPTIONS = { ttlSeconds: SIGNAGE_TTL_SECONDS } as const;
 // limit を省くと Payload 既定の 10 件で切れる
 const ALL = { limit: 0 } as const;
 // _order は Payload の orderable が持つ fractional index。昇順の取得順がそのまま並び順
@@ -79,8 +76,9 @@ function toLostItem(doc: LostItem): SignageLostItem {
 }
 
 export async function getSignageSnapshot({
-  fresh = false,
-}: { readonly fresh?: boolean } = {}): Promise<CmsResult<SignageSnapshot>> {
+  version,
+}: { readonly version?: number } = {}): Promise<CmsResult<SignageSnapshot>> {
+  const OPTIONS = { ttlSeconds: SIGNAGE_TTL_SECONDS, version };
   const [
     meta,
     settings,
@@ -94,22 +92,13 @@ export async function getSignageSnapshot({
   ] = await Promise.all([
     cms.findGlobal('festival_meta', {}, OPTIONS),
     cms.findGlobal('signage_settings', { depth: 0 }, OPTIONS),
-    cms.findMany(
-      'signage_slides',
-      { ...ORDERED, depth: 1 },
-      fresh
-        ? {
-            ...OPTIONS,
-            refreshIntervalSeconds: SIGNAGE_REFRESH_INTERVAL_SECONDS,
-          }
-        : OPTIONS,
-    ),
+    cms.findMany('signage_slides', { ...ORDERED, depth: 1 }, OPTIONS),
     cms.findMany('telops', ORDERED, OPTIONS),
     cms.findMany('lost_items', { ...ALL, depth: 1 }, OPTIONS),
     cms.findMany('stages', { ...ALL, depth: 0 }, OPTIONS),
     cms.findMany('performance_slots', { ...ALL, depth: 1 }, OPTIONS),
     getSponsors(OPTIONS),
-    getParkingResponse(),
+    getParkingResponse({ version }),
   ]);
   if (!meta.ok) return meta;
   if (!settings.ok) return settings;

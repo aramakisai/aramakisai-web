@@ -86,8 +86,8 @@ const DEFAULT_CACHE_TTL_SECONDS = 60;
 
 export type CmsFetchOptions = {
   readonly ttlSeconds?: number;
-  /** 通常のキーを読まず、取り直し用のキーの有無で取得の頻度をこの秒数に1回までにする */
-  readonly refreshIntervalSeconds?: number;
+  /** 通常のキーを読まず、版付きのキー(__v)で取得・保存する */
+  readonly version?: number;
 };
 
 function getEdgeCache(): Cache | undefined {
@@ -98,7 +98,7 @@ function getEdgeCache(): Cache | undefined {
 async function cachedFetch(
   url: string,
   ttlSeconds: number,
-  refreshIntervalSeconds?: number,
+  version?: number,
 ): Promise<Response> {
   const cache = getEdgeCache();
   // TTL 0 は即時反映が要る取得。エッジキャッシュも Next の fetch キャッシュも通さない
@@ -106,31 +106,24 @@ async function cachedFetch(
   if (!cache) return fetch(url);
   const withParam = (name: string, value: number) =>
     new Request(`${url}${url.includes('?') ? '&' : '?'}${name}=${value}`);
-  // キャッシュキーは URL のみなので、既定外の TTL は別キーにして同じクエリを別 TTL と共有しない
+  // キャッシュキーは URL のみなので、既定外の TTL は別キーにして同じクエリを別 TTL と共有しない。
+  // 版付きは通常のキーを読み書きしない: 保存より前の内容が残っていても返さないため
   const key =
-    ttlSeconds === DEFAULT_CACHE_TTL_SECONDS
-      ? new Request(url)
-      : withParam('__cache_ttl', ttlSeconds);
-  const refreshKey =
-    refreshIntervalSeconds === undefined
-      ? undefined
-      : withParam('__refresh', refreshIntervalSeconds);
-  // 取り直しは通常のキーを読まない。取り直し用のキーが残っている間は直前に取り直した応答を返す
-  const hit = await cache.match(refreshKey ?? key);
+    version !== undefined
+      ? withParam('__v', version)
+      : ttlSeconds === DEFAULT_CACHE_TTL_SECONDS
+        ? new Request(url)
+        : withParam('__cache_ttl', ttlSeconds);
+  const hit = await cache.match(key);
   if (hit) return hit;
   const response = await fetch(url);
   if (response.ok) {
     try {
       const { getCloudflareContext } = await import('@opennextjs/cloudflare');
       const { waitUntil } = getCloudflareContext().ctx;
-      const store = (k: Request, seconds: number) => {
-        const stored = new Response(response.clone().body, response);
-        stored.headers.set('Cache-Control', `s-maxage=${seconds}`);
-        waitUntil(cache.put(k, stored));
-      };
-      store(key, ttlSeconds);
-      // 通常のキーも置き換え、他端末の通常の取得にも新しい内容を渡す
-      if (refreshKey) store(refreshKey, refreshIntervalSeconds!);
+      const stored = new Response(response.clone().body, response);
+      stored.headers.set('Cache-Control', `s-maxage=${ttlSeconds}`);
+      waitUntil(cache.put(key, stored));
     } catch {
       // waitUntil を取れない環境では保存を諦める (応答自体は返す)
     }
@@ -141,13 +134,13 @@ async function cachedFetch(
 async function request<T>(
   path: string,
   ttlSeconds = DEFAULT_CACHE_TTL_SECONDS,
-  refreshIntervalSeconds?: number,
+  version?: number,
 ): Promise<CmsResult<T>> {
   try {
     const response = await cachedFetch(
       `${env.NEXT_PUBLIC_CMS_URL}${path}`,
       ttlSeconds,
-      refreshIntervalSeconds,
+      version,
     );
     if (!response.ok) {
       if (response.status === 404)
@@ -176,7 +169,7 @@ export const cms = {
     return request(
       withQuery(`/api/${String(collection)}`, buildQueryString(query)),
       options.ttlSeconds,
-      options.refreshIntervalSeconds,
+      options.version,
     );
   },
 
@@ -203,7 +196,7 @@ export const cms = {
         buildQueryString({ depth: 0, ...query }),
       ),
       options.ttlSeconds,
-      options.refreshIntervalSeconds,
+      options.version,
     );
   },
 };

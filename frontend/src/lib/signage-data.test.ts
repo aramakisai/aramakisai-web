@@ -19,7 +19,6 @@ vi.mock('./parking-data', () => ({ getParkingResponse }));
 import {
   getPinState,
   getSignageSnapshot,
-  SIGNAGE_REFRESH_INTERVAL_SECONDS,
   SIGNAGE_TTL_SECONDS,
 } from './signage-data';
 
@@ -248,24 +247,24 @@ describe('getSignageSnapshot', () => {
     );
   });
 
-  it('fresh のときはスライドだけ取り直し間隔つきで取得する', async () => {
+  it('版があれば全取得・協賛・駐車場へ版を渡す', async () => {
     setup();
-    await getSignageSnapshot({ fresh: true });
-    expect(findMany).toHaveBeenCalledWith('signage_slides', expect.anything(), {
-      ttlSeconds: SIGNAGE_TTL_SECONDS,
-      refreshIntervalSeconds: SIGNAGE_REFRESH_INTERVAL_SECONDS,
-    });
-    expect(findMany).toHaveBeenCalledWith('telops', expect.anything(), {
-      ttlSeconds: SIGNAGE_TTL_SECONDS,
-    });
+    await getSignageSnapshot({ version: 123 });
+    const opts = { ttlSeconds: SIGNAGE_TTL_SECONDS, version: 123 };
+    for (const c of ['signage_slides', 'telops', 'lost_items', 'stages'])
+      expect(findMany).toHaveBeenCalledWith(c, expect.anything(), opts);
+    expect(findGlobal).toHaveBeenCalledWith('festival_meta', {}, opts);
+    expect(getSponsors).toHaveBeenCalledWith(opts);
+    expect(getParkingResponse).toHaveBeenCalledWith({ version: 123 });
   });
 
-  it('fresh でなければ取り直し間隔を付けない', async () => {
+  it('版が無ければ版を渡さない', async () => {
     setup();
     await getSignageSnapshot();
     expect(findMany).toHaveBeenCalledWith('signage_slides', expect.anything(), {
       ttlSeconds: SIGNAGE_TTL_SECONDS,
     });
+    expect(getParkingResponse).toHaveBeenCalledWith({ version: undefined });
   });
 
   it.each([

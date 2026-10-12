@@ -30,17 +30,17 @@ describe('GET /api/signage', () => {
     expect(res.headers.get('Cache-Control')).toBe('no-store');
   });
 
-  it('通常は fresh なしで取得する', async () => {
+  it.each([
+    ['', undefined],
+    ['?v=1760000000000', 1760000000000],
+    ['?v=0', undefined],
+    ['?v=-5', undefined],
+    ['?v=1.5', undefined],
+    ['?v=abc', undefined],
+    ['?v=99999999999999999999', undefined],
+  ])('クエリ %s は版 %s として取得する', async (qs, version) => {
     mocked.mockResolvedValue({ ok: true, value: {} as never });
-    await GET(new Request('http://x/api/signage'));
-    expect(mocked).toHaveBeenCalledWith({ fresh: false });
-  });
-
-  it('fresh=1 のときだけ fresh で取得する', async () => {
-    mocked.mockResolvedValue({ ok: true, value: {} as never });
-    await GET(new Request('http://x/api/signage?fresh=1'));
-    expect(mocked).toHaveBeenCalledWith({ fresh: true });
-    await GET(new Request('http://x/api/signage?fresh=0'));
-    expect(mocked).toHaveBeenLastCalledWith({ fresh: false });
+    await GET(new Request(`http://x/api/signage${qs}`));
+    expect(mocked).toHaveBeenCalledWith({ version });
   });
 });

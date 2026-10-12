@@ -1,7 +1,5 @@
-import { useRef } from 'react';
 import type { SignageSnapshot } from './signage';
 import type { SignagePinPayload } from './signage-channel';
-import { usePolling } from './use-polling';
 
 // slide: 有効な固定スライド(固定なし・無効・削除済みなら null)、visibleSlideIds: いま表示対象のスライドID(_order 順)
 export interface SignagePinState extends SignagePinPayload {
@@ -9,12 +7,10 @@ export interface SignagePinState extends SignagePinPayload {
   readonly serverNow: string;
 }
 
-export const PIN_POLL_INTERVAL_MS = 3000;
-
-// 確認が一度でも成功したら、最大35秒古いスナップショットの pinnedSlideId と slides より確認結果を優先する
+// 配信経路で固定と表示対象を受けたら、古い可能性のあるスナップショットの pinnedSlideId と slides より優先する
 export function withPin(
   snapshot: SignageSnapshot,
-  pin: SignagePinState | undefined,
+  pin: SignagePinPayload | undefined,
 ): SignageSnapshot {
   if (!pin) return snapshot;
   const { slide } = pin;
@@ -29,36 +25,4 @@ export function withPin(
       ? slides.map((s) => (s.id === slide.id ? slide : s))
       : [...slides, slide],
   };
-}
-
-/** 表示対象なのにスナップショットに中身が無いスライドID。あれば取り直しが要る */
-export function missingSlideIds(
-  snapshot: SignageSnapshot,
-  pin: SignagePinState | undefined,
-): readonly number[] {
-  if (!pin) return [];
-  const have = new Set(snapshot.slides.map((s) => s.id));
-  return pin.visibleSlideIds.filter((id) => !have.has(id));
-}
-
-export function usePinnedSlide(
-  onSample: (serverNow: string, sentAtMs: number, receivedAtMs: number) => void,
-): SignagePinState | undefined {
-  const onSampleRef = useRef(onSample);
-  onSampleRef.current = onSample;
-  const { data } = usePolling<SignagePinState>({
-    fetcher: async () => {
-      const sentAt = Date.now();
-      const res = await fetch('/api/signage/pin', { cache: 'no-store' });
-      const receivedAt = Date.now();
-      if (!res.ok) throw new Error(`signage pin ${res.status}`);
-      const state = (await res.json()) as SignagePinState;
-      onSampleRef.current(state.serverNow, sentAt, receivedAt);
-      return state;
-    },
-    intervalMs: PIN_POLL_INTERVAL_MS,
-    immediate: true,
-    initial: null,
-  });
-  return data ?? undefined;
 }

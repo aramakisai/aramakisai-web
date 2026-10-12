@@ -7,11 +7,11 @@ const PARKING_TTL_SECONDS = 20;
 // limit を省くと Payload 既定の 10 件で切れる
 const PARKING_LIMIT = 100;
 
-export async function getParkingResponse(): Promise<
-  CmsResult<ParkingResponse>
-> {
+export async function getParkingResponse({
+  version,
+}: { readonly version?: number } = {}): Promise<CmsResult<ParkingResponse>> {
   // 上書きで当日扱いにする場合も festival_meta の失敗は握りつぶさず失敗として返す
-  const meta = await cms.findGlobal('festival_meta');
+  const meta = await cms.findGlobal('festival_meta', {}, { version });
   if (!meta.ok) return meta;
   const phase = await getRequestPhase();
   const eventDay =
@@ -21,7 +21,7 @@ export async function getParkingResponse(): Promise<
   const statuses = await cms.findMany(
     'parking_statuses',
     { depth: 1, limit: PARKING_LIMIT },
-    { ttlSeconds: PARKING_TTL_SECONDS },
+    { ttlSeconds: PARKING_TTL_SECONDS, version },
   );
   if (!statuses.ok) return statuses;
 
