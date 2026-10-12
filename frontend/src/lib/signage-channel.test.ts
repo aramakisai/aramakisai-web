@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  SIGNAGE_PING,
   SIGNAGE_PING_INTERVAL_MS,
+  SIGNAGE_PONG,
   SIGNAGE_PONG_TIMEOUT_MS,
   isExpired,
-  parseClientMessage,
   parseServerMessage,
 } from './signage-channel';
 
@@ -37,6 +38,11 @@ describe('定数', () => {
     expect(SIGNAGE_PING_INTERVAL_MS).toBe(5_000);
     expect(SIGNAGE_PONG_TIMEOUT_MS).toBe(5_000);
   });
+
+  it('ping と pong はハブの自動応答に合わせたリテラル文字列', () => {
+    expect(SIGNAGE_PING).toBe('ping');
+    expect(SIGNAGE_PONG).toBe('pong');
+  });
 });
 
 describe('parseServerMessage', () => {
@@ -48,17 +54,17 @@ describe('parseServerMessage', () => {
     sentAt: '2026-10-12T00:00:00.000Z',
   };
 
-  it('pong を解釈する', () => {
-    const raw = JSON.stringify({
-      kind: 'pong',
-      id: 3,
-      serverNow: '2026-10-12T00:00:00.000Z',
-    });
-    expect(parseServerMessage(raw)).toEqual({
-      kind: 'pong',
-      id: 3,
-      serverNow: '2026-10-12T00:00:00.000Z',
-    });
+  it('pong は自動応答の文字列なので解釈せず null', () => {
+    expect(parseServerMessage('pong')).toBeNull();
+    expect(
+      parseServerMessage(
+        JSON.stringify({
+          kind: 'pong',
+          id: 3,
+          serverNow: '2026-10-12T00:00:00.000Z',
+        }),
+      ),
+    ).toBeNull();
   });
 
   it('broadcast を解釈する', () => {
@@ -84,11 +90,6 @@ describe('parseServerMessage', () => {
     ['数値', '1'],
     ['kind が無い', '{}'],
     ['未知の kind', JSON.stringify({ kind: 'ping', id: 1 })],
-    [
-      'pong の id が文字列',
-      JSON.stringify({ kind: 'pong', id: '1', serverNow: 'x' }),
-    ],
-    ['pong の serverNow が無い', JSON.stringify({ kind: 'pong', id: 1 })],
     ['feature が文字列でない', JSON.stringify({ ...broadcast, feature: 1 })],
     [
       'expiresAt が undefined',
@@ -100,29 +101,5 @@ describe('parseServerMessage', () => {
     ['payload が null', JSON.stringify({ ...broadcast, payload: null })],
   ])('形の合わないものは null: %s', (_name, raw) => {
     expect(parseServerMessage(raw)).toBeNull();
-  });
-});
-
-describe('parseClientMessage', () => {
-  it('ping を解釈する', () => {
-    expect(parseClientMessage('{"kind":"ping","id":7}')).toEqual({
-      kind: 'ping',
-      id: 7,
-    });
-  });
-
-  it.each([
-    ['JSON でない', '{'],
-    ['null', 'null'],
-    ['配列', '[1]'],
-    ['id が無い', '{"kind":"ping"}'],
-    ['id が文字列', '{"kind":"ping","id":"1"}'],
-    ['未知の kind', '{"kind":"pong","id":1}'],
-    [
-      'broadcast は受け付けない',
-      JSON.stringify({ kind: 'broadcast', feature: 'pin' }),
-    ],
-  ])('形の合わないものは null: %s', (_name, raw) => {
-    expect(parseClientMessage(raw)).toBeNull();
   });
 });
