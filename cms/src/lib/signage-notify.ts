@@ -51,9 +51,11 @@ export function notifySignage(
       },
       body: JSON.stringify({ targets }),
       signal: AbortSignal.timeout(TIMEOUT_MS),
+      // Access のログイン 302 を追うと 200 の HTML を受けて、拒否が成功に見える
+      redirect: 'manual',
     })
       .then((res) => {
-        if (!res.ok) fail(`HTTP ${res.status}`);
+        if (res.status !== 204) fail(`HTTP ${res.status}`);
       })
       .catch((error: unknown) => fail(error instanceof Error ? error.message : String(error)));
   } catch (error) {

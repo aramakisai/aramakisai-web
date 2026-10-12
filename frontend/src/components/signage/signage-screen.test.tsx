@@ -17,6 +17,17 @@ const CHANNEL_IDLE: SignageChannelState = {
   latest: {},
 };
 let channel: SignageChannelState = CHANNEL_IDLE;
+const correctedNow = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/signage-time', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/signage-time')>();
+  return {
+    ...actual,
+    useCorrectedNow: (...args: Parameters<typeof actual.useCorrectedNow>) => {
+      correctedNow(...args);
+      return actual.useCorrectedNow(...args);
+    },
+  };
+});
 vi.mock('@/lib/use-signage-channel', () => ({
   useSignageChannel: () => channel,
 }));
@@ -117,6 +128,13 @@ describe('SignageScreen', () => {
     expect(urls.filter((u) => u === '/api/signage')).toHaveLength(1);
   });
 
+  it('配信経路の時計のずれがあればポーリングや初期値より優先して使う', async () => {
+    channel = { ...CHANNEL_IDLE, offsetMs: 4321 };
+    render(<SignageScreen initial={null} renderedAt="2026-11-14T00:00:00Z" />);
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    expect(correctedNow.mock.calls.at(-1)?.[0]).toBe(4321);
+  });
+
   it('固定状態を3秒ごとに確認しない(配信経路で受ける)', async () => {
     render(<SignageScreen initial={null} renderedAt="2026-11-14T00:00:00Z" />);
     await act(() => vi.advanceTimersByTimeAsync(10_000));
@@ -182,6 +200,17 @@ describe('SignageScreen', () => {
       );
       await act(() => vi.advanceTimersByTimeAsync(1_000));
       expect(versioned()).toEqual(['/api/signage?v=100', '/api/signage?v=200']);
+    });
+
+    it('版を受けた後の2分ポーリングも版付きで取る', async () => {
+      channel = { ...CHANNEL_IDLE, snapshotVersion: 100 };
+      renderScreen();
+      await act(() => vi.advanceTimersByTimeAsync(1_000));
+      vi.mocked(fetch).mockClear();
+      await act(() => vi.advanceTimersByTimeAsync(120_000));
+      expect(vi.mocked(fetch).mock.calls.map(([u]) => u)).toEqual([
+        '/api/signage?v=100',
+      ]);
     });
 
     it('版が無い間は取り直さない', async () => {

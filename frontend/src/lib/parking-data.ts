@@ -9,9 +9,7 @@ const PARKING_LIMIT = 100;
 
 export async function getParkingResponse({
   version,
-}: { readonly version?: number } = {}): Promise<
-  CmsResult<ParkingResponse>
-> {
+}: { readonly version?: number } = {}): Promise<CmsResult<ParkingResponse>> {
   // 上書きで当日扱いにする場合も festival_meta の失敗は握りつぶさず失敗として返す
   const meta = await cms.findGlobal('festival_meta', {}, { version });
   if (!meta.ok) return meta;

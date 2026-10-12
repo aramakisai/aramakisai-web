@@ -66,6 +66,23 @@ describe('notifySignage', () => {
     expect(log).toHaveBeenCalled();
   });
 
+  it('リダイレクトを追わず、Access のログイン 302 を失敗として警告する', async () => {
+    const log = vi.fn();
+    const fetchImpl = vi.fn().mockResolvedValue(new Response(null, { status: 302 }));
+    notifySignage(['pin'], log, fetchImpl as unknown as typeof fetch, env);
+    expect(fetchImpl.mock.calls[0][1].redirect).toBe('manual');
+    await vi.waitFor(() => expect(log).toHaveBeenCalled());
+    expect(log.mock.calls[0][0]).toContain('302');
+  });
+
+  it('204 以外の 2xx も失敗として警告する', async () => {
+    const log = vi.fn();
+    const fetchImpl = vi.fn().mockResolvedValue(new Response('<html>', { status: 200 }));
+    notifySignage(['pin'], log, fetchImpl as unknown as typeof fetch, env);
+    await vi.waitFor(() => expect(log).toHaveBeenCalled());
+    expect(log.mock.calls[0][0]).toContain('200');
+  });
+
   it('HTTP エラーも警告に残す', async () => {
     const log = vi.fn();
     const fetchImpl = vi.fn().mockResolvedValue(new Response(null, { status: 403 }));
@@ -105,5 +122,21 @@ describe('対象の配線', () => {
     expect(Telops.hooks?.afterDelete).toHaveLength(1);
     expect(SignageSettings.hooks?.afterChange).toHaveLength(1);
     expect(FestivalMeta.hooks?.afterChange).toHaveLength(1);
+  });
+
+  it('グループは表示切替で加わるスライドの中身のため pin と snapshot を通知する', async () => {
+    const { SignageGroups } = await import('../collections/signage-groups');
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal('fetch', fetchMock);
+    for (const [k, v] of Object.entries(env)) vi.stubEnv(k, v);
+    const req = { payload: { logger: { warn: vi.fn() } } };
+    const change = SignageGroups.hooks?.afterChange?.at(-1);
+    const del = SignageGroups.hooks?.afterDelete?.at(-1);
+    await change?.({ doc: {}, req } as never);
+    await del?.({ doc: {}, req } as never);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    for (const call of fetchMock.mock.calls) expect(JSON.parse(call[1].body)).toEqual({ targets: ['pin', 'snapshot'] });
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
   });
 });

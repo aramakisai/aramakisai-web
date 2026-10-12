@@ -39,8 +39,6 @@ interface Polled {
   readonly offsetMs: number | null;
 }
 
-const fetchSnapshot = () => fetchSnapshotFrom('/api/signage');
-
 async function fetchSnapshotFrom(url: string): Promise<Polled> {
   const sentAt = Date.now();
   const res = await fetch(url, { cache: 'no-store' });
@@ -54,8 +52,15 @@ async function fetchSnapshotFrom(url: string): Promise<Polled> {
 }
 
 export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
+  const handledVersion = useRef<number | undefined>(undefined);
   const { data: polled, refresh } = usePolling<Polled>({
-    fetcher: fetchSnapshot,
+    // 版なしの通常キーは TTL 最大60秒の古い内容を返し得るので、版を受けた後は版付きで取る
+    fetcher: () =>
+      fetchSnapshotFrom(
+        handledVersion.current === undefined
+          ? '/api/signage'
+          : `/api/signage?v=${handledVersion.current}`,
+      ),
     intervalMs: POLL_INTERVAL_MS,
     immediate: true,
     initial: initial && { snapshot: initial, offsetMs: null },
@@ -63,7 +68,6 @@ export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
   const channel = useSignageChannel();
   const snapshot = polled?.snapshot ?? null;
   const data = snapshot && withPin(snapshot, channel.pin);
-  const handledVersion = useRef<number | undefined>(undefined);
   const { snapshotVersion } = channel;
   useEffect(() => {
     if (

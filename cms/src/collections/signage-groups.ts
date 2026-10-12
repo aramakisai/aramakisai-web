@@ -22,14 +22,14 @@ export const SignageGroups: CollectionConfig = {
         if (changed) await releasePinIfHidden(req.payload, req);
         return doc;
       },
-      signageNotifyHook(['pin']),
+      signageNotifyHook(['pin', 'snapshot']),
     ],
     afterDelete: [
       async ({ doc, req }) => {
         await releasePinIfHidden(req.payload, req);
         return doc;
       },
-      signageNotifyHook(['pin']),
+      signageNotifyHook(['pin', 'snapshot']),
     ],
   },
   fields: [

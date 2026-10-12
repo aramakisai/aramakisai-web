@@ -290,7 +290,10 @@ describe('cms version', () => {
     await cms.findMany('signage_slides', {}, opts);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(
-      put.mock.calls.map(([k, res]) => [k.url, res.headers.get('Cache-Control')]),
+      put.mock.calls.map(([k, res]) => [
+        k.url,
+        res.headers.get('Cache-Control'),
+      ]),
     ).toEqual([[expect.stringContaining('__v=123'), 's-maxage=15']]);
     expect(match.mock.calls.map(([k]) => k.url).join()).not.toContain(
       '__cache_ttl',

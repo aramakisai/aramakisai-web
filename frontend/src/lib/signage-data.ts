@@ -92,11 +92,7 @@ export async function getSignageSnapshot({
   ] = await Promise.all([
     cms.findGlobal('festival_meta', {}, OPTIONS),
     cms.findGlobal('signage_settings', { depth: 0 }, OPTIONS),
-    cms.findMany(
-      'signage_slides',
-      { ...ORDERED, depth: 1 },
-      OPTIONS,
-    ),
+    cms.findMany('signage_slides', { ...ORDERED, depth: 1 }, OPTIONS),
     cms.findMany('telops', ORDERED, OPTIONS),
     cms.findMany('lost_items', { ...ALL, depth: 1 }, OPTIONS),
     cms.findMany('stages', { ...ALL, depth: 0 }, OPTIONS),
