@@ -8,7 +8,7 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
 
 開発サーバーは`make dev`・`make cms`・`make signage-dev`(タスク9.1で追加)経由でだけ起動し、`pnpm dev`や`wrangler dev`を直接実行しない。Claudeが起動するときは`run_in_background`を使い、他のセッションや人間が立てたサーバーを止めない。端末の挙動を変えるコード(タスク6〜8)のコミットは、タスク9.2の実ブラウザでの確認の後に行う。実ブラウザでの確認の後は必ずブラウザを閉じ、判断に使ったスクリーンショットのパスを揃える。
 
-- [ ] 1. aramakisai-web: 設計の前提を実測する
+- [x] 1. aramakisai-web: 設計の前提を実測する
 - [x] 1.1 最小のハブで、`script_name`だけのDOのbindingを持つサイトのWorkerにPRプレビューのURLが出るかを確かめる
   - 受け入れたWebSocketに`ping`が来たら`pong`を返すだけの最小のハブを、`aramakisai-signage-hub`の名前・`new_sqlite_classes = ["SignageHub"]`のmigration・`workers_dev = false`・`preview_urls = false`で、Infisical経由の資格情報を使って`wrangler deploy`する
   - マージしない検証用のブランチで、サイトのWorkerに`script_name = "aramakisai-signage-hub"`だけのDOのbindingと、`/api/signage/ws`だけをハブへ渡す最小の入口を足し、devへのPRを作る
@@ -16,7 +16,7 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
   - PRプレビューのURLが出てe2eが通ったことを記録している。出なかった場合は、design.mdとresearch.mdを先に直してユーザーの確認を得てから、以降のタスクを直す
   - _Requirements: 3.3, 7.3_
 
-- [ ] 1.2 Accessの背後でWebSocketのupgradeが通るかを確かめる
+- [x] 1.2 Accessの背後でWebSocketのupgradeが通るかを確かめる
   - 1.1のPRプレビューのURLで、Accessにログインしたブラウザから`/api/signage/ws`へ接続し、DevToolsのNetworkで101になり`ping`に`pong`が返ること、ログインしていないブラウザでは接続できないことを確かめる
   - PRプレビューのURLで403になり通らない場合は、ホスト名単位のAccessで守られた`dev.aramakisai.com`へ同じ最小の入口を一時的に出して同じことを確かめ、測定後にdev環境の版を元に戻す
   - 本番のパス指定のAccess(`aramakisai.com/api/signage`配下)での確認は10.1で行う
