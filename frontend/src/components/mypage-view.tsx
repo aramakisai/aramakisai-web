@@ -174,7 +174,7 @@ export function MypageView({
         width={174}
         height={174}
         unoptimized
-        className="hidden size-[174px] pc-input:block"
+        className="mx-auto hidden size-[174px] pc-input:block"
       />
 
       <section className="flex flex-col gap-4 pc-input:hidden">
