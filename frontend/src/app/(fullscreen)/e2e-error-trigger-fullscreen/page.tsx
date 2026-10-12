@@ -7,6 +7,9 @@ import { DEV_OVERRIDE_ENABLED } from '@/lib/phase';
 // 本番非到達の保証は (site)/e2e-error-trigger と同じ (DEV_OVERRIDE_ENABLED 参照)。
 // generateMetadata でも同じ条件で notFound() を呼ばないと、本番の 404 なのに
 // サイト既定メタデータ (robots: index,follow を含む) のまま出てしまう
+// 静的生成されると意図的な例外でビルドが落ちる
+export const dynamic = 'force-dynamic';
+
 export function generateMetadata(): Metadata {
   if (!DEV_OVERRIDE_ENABLED) {
     notFound();
