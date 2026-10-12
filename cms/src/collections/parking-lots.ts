@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload';
 
+import { signageNotifyHook } from '../lib/signage-notify';
+
 export const ParkingLots: CollectionConfig = {
   slug: 'parking_lots',
   labels: { singular: '駐車場', plural: '駐車場' },
@@ -20,7 +22,9 @@ export const ParkingLots: CollectionConfig = {
           req,
         });
       },
+      signageNotifyHook(['snapshot']),
     ],
+    afterDelete: [signageNotifyHook(['snapshot'])],
     beforeDelete: [
       async ({ req, id }) => {
         // 参照先を失った空き状況が公開 API に残らないようにする

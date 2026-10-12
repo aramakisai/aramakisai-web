@@ -64,7 +64,7 @@ describe('SignageGroups', () => {
   });
 
   it('固定の自動解除を afterChange・afterDelete に持つ', () => {
-    expect(SignageGroups.hooks?.afterChange).toHaveLength(1);
-    expect(SignageGroups.hooks?.afterDelete).toHaveLength(1);
+    expect(SignageGroups.hooks?.afterChange).toHaveLength(2);
+    expect(SignageGroups.hooks?.afterDelete).toHaveLength(2);
   });
 });

@@ -7,7 +7,30 @@ vi.mock('@/env', () => ({
 }));
 
 import type { SignageSnapshot } from '@/lib/signage';
+import type { SignageChannelState } from '@/lib/use-signage-channel';
 import { SignageScreen } from './signage-screen';
+
+const CHANNEL_IDLE: SignageChannelState = {
+  pin: undefined,
+  snapshotVersion: undefined,
+  offsetMs: null,
+  latest: {},
+};
+let channel: SignageChannelState = CHANNEL_IDLE;
+const correctedNow = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/signage-time', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/signage-time')>();
+  return {
+    ...actual,
+    useCorrectedNow: (...args: Parameters<typeof actual.useCorrectedNow>) => {
+      correctedNow(...args);
+      return actual.useCorrectedNow(...args);
+    },
+  };
+});
+vi.mock('@/lib/use-signage-channel', () => ({
+  useSignageChannel: () => channel,
+}));
 
 let viewport = { width: 500, height: 1330 };
 
@@ -22,6 +45,7 @@ describe('SignageScreen', () => {
       },
     );
     viewport = { width: 500, height: 1330 };
+    channel = CHANNEL_IDLE;
     vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(
       () => viewport.width,
     );
@@ -79,9 +103,9 @@ describe('SignageScreen', () => {
     expect(container.textContent).not.toContain('いまのステージ');
   });
 
-  it('20秒ごとに集約APIを読み、失敗しても画面は落ちない', async () => {
+  it('2分ごとに集約APIを読み、失敗しても画面は落ちない', async () => {
     render(<SignageScreen initial={null} renderedAt="2026-11-14T00:00:00Z" />);
-    await act(() => vi.advanceTimersByTimeAsync(20_000));
+    await act(() => vi.advanceTimersByTimeAsync(120_000));
     expect(fetch).toHaveBeenCalledWith('/api/signage', { cache: 'no-store' });
   });
 
@@ -104,17 +128,24 @@ describe('SignageScreen', () => {
     expect(urls.filter((u) => u === '/api/signage')).toHaveLength(1);
   });
 
-  it('固定状態を3秒ごとに確認する', async () => {
+  it('配信経路の時計のずれがあればポーリングや初期値より優先して使う', async () => {
+    channel = { ...CHANNEL_IDLE, offsetMs: 4321 };
     render(<SignageScreen initial={null} renderedAt="2026-11-14T00:00:00Z" />);
-    await act(() => vi.advanceTimersByTimeAsync(6_000));
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    expect(correctedNow.mock.calls.at(-1)?.[0]).toBe(4321);
+  });
+
+  it('固定状態を3秒ごとに確認しない(配信経路で受ける)', async () => {
+    render(<SignageScreen initial={null} renderedAt="2026-11-14T00:00:00Z" />);
+    await act(() => vi.advanceTimersByTimeAsync(10_000));
     const pins = vi
       .mocked(fetch)
       .mock.calls.filter(([u]) => u === '/api/signage/pin');
-    expect(pins.length).toBeGreaterThanOrEqual(3);
+    expect(pins).toHaveLength(0);
   });
 
-  describe('表示対象の取り直し', () => {
-    const initial: SignageSnapshot = {
+  describe('スナップショットの版', () => {
+    const snapshot: SignageSnapshot = {
       fetchedAt: '',
       serverNow: '2026-11-14T00:00:00Z',
       pinnedSlideId: null,
@@ -126,47 +157,66 @@ describe('SignageScreen', () => {
       lostItems: [],
       parking: { isEventDay: false, fetchedAt: '', lots: [] },
     };
-    const json = (body: unknown) =>
-      new Response(JSON.stringify(body), { status: 200 });
-    const freshCalls = () =>
-      vi.mocked(fetch).mock.calls.filter(([u]) => u === '/api/signage?fresh=1');
+    const versioned = () =>
+      vi
+        .mocked(fetch)
+        .mock.calls.map(([u]) => u)
+        .filter((u) => String(u).startsWith('/api/signage?v='));
 
-    function mockFetch(freshDelayMs = 0) {
-      vi.mocked(fetch).mockImplementation(async (u) => {
-        if (u === '/api/signage/pin') {
-          return json({
-            serverNow: initial.serverNow,
-            slide: null,
-            visibleSlideIds: [5],
-          });
-        }
-        if (u === '/api/signage?fresh=1' && freshDelayMs) {
-          await new Promise((r) => setTimeout(r, freshDelayMs));
-        }
-        return json(initial);
-      });
-    }
-
-    it('スナップショットに無い表示対象のIDがあれば fresh=1 で取り直す', async () => {
-      mockFetch();
-      render(
-        <SignageScreen initial={initial} renderedAt={initial.serverNow} />,
+    beforeEach(() => {
+      vi.mocked(fetch).mockImplementation(
+        async () => new Response(JSON.stringify(snapshot), { status: 200 }),
       );
-      await act(() => vi.advanceTimersByTimeAsync(100));
-      expect(freshCalls()).toHaveLength(1);
+      vi.spyOn(Math, 'random').mockReturnValue(0.5);
     });
 
-    it('取り直し中は重ねず、完了後も10秒に1回までにする', async () => {
-      mockFetch(5_000);
+    const renderScreen = () =>
       render(
-        <SignageScreen initial={initial} renderedAt={initial.serverNow} />,
+        <SignageScreen initial={snapshot} renderedAt={snapshot.serverNow} />,
       );
-      await act(() => vi.advanceTimersByTimeAsync(4_000));
-      expect(freshCalls()).toHaveLength(1);
-      await act(() => vi.advanceTimersByTimeAsync(4_000));
-      expect(freshCalls()).toHaveLength(1);
-      await act(() => vi.advanceTimersByTimeAsync(8_000));
-      expect(freshCalls()).toHaveLength(2);
+
+    it('初回の版は乱数の待ちの後に取り直す', async () => {
+      channel = { ...CHANNEL_IDLE, snapshotVersion: 100 };
+      renderScreen();
+      await act(() => vi.advanceTimersByTimeAsync(499));
+      expect(versioned()).toHaveLength(0);
+      await act(() => vi.advanceTimersByTimeAsync(2));
+      expect(versioned()).toEqual(['/api/signage?v=100']);
+    });
+
+    it('同じ版では取り直さず、版が変われば取り直す', async () => {
+      channel = { ...CHANNEL_IDLE, snapshotVersion: 100 };
+      const { rerender } = renderScreen();
+      await act(() => vi.advanceTimersByTimeAsync(1_000));
+      channel = { ...CHANNEL_IDLE, snapshotVersion: 100, offsetMs: 5 };
+      rerender(
+        <SignageScreen initial={snapshot} renderedAt={snapshot.serverNow} />,
+      );
+      await act(() => vi.advanceTimersByTimeAsync(1_000));
+      expect(versioned()).toHaveLength(1);
+      channel = { ...CHANNEL_IDLE, snapshotVersion: 200 };
+      rerender(
+        <SignageScreen initial={snapshot} renderedAt={snapshot.serverNow} />,
+      );
+      await act(() => vi.advanceTimersByTimeAsync(1_000));
+      expect(versioned()).toEqual(['/api/signage?v=100', '/api/signage?v=200']);
+    });
+
+    it('版を受けた後の2分ポーリングも版付きで取る', async () => {
+      channel = { ...CHANNEL_IDLE, snapshotVersion: 100 };
+      renderScreen();
+      await act(() => vi.advanceTimersByTimeAsync(1_000));
+      vi.mocked(fetch).mockClear();
+      await act(() => vi.advanceTimersByTimeAsync(120_000));
+      expect(vi.mocked(fetch).mock.calls.map(([u]) => u)).toEqual([
+        '/api/signage?v=100',
+      ]);
+    });
+
+    it('版が無い間は取り直さない', async () => {
+      renderScreen();
+      await act(() => vi.advanceTimersByTimeAsync(1_000));
+      expect(versioned()).toHaveLength(0);
     });
   });
 });

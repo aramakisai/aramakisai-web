@@ -1,6 +1,6 @@
 KUBECTL_CONF := /tmp/kubeconfig-aramakisai
 
-.PHONY: kubectl dev dev-ps dev-stop preview cms cms-worktree
+.PHONY: kubectl dev signage-dev dev-ps dev-stop preview cms cms-worktree
 
 kubectl: ## kubectl を Infisical 経由で実行 (例: make kubectl ARGS="get pods -A")
 	@infisical run --env=prod -- bash -c \
@@ -8,6 +8,9 @@ kubectl: ## kubectl を Infisical 経由で実行 (例: make kubectl ARGS="get p
 
 dev: ## frontend の開発サーバーを起動 (ポートは worktree ごとに自動決定。CMS=worktree で cms-worktree を参照)
 	@scripts/dev.sh dev $(CMS)
+
+signage-dev: ## サイトとサイネージのハブをまとめて起動 (ポートは dev と同じ。CMS=worktree で cms-worktree を参照)
+	@scripts/dev.sh signage-dev $(CMS)
 
 dev-ps: ## 3000-4999 で listen 中の開発サーバー一覧 (ポート/役割/worktree/ブランチ/pid)
 	@scripts/dev.sh dev-ps

@@ -2,6 +2,7 @@ import { lexicalHTMLField } from '@payloadcms/richtext-lexical';
 import type { CollectionConfig, Validate } from 'payload';
 
 import { richTextHTMLConverters } from '../lib/rich-text-html-converters';
+import { signageNotifyHook } from '../lib/signage-notify';
 
 const kindIs =
   (...kinds: string[]) =>
@@ -48,7 +49,9 @@ export const SignageSlides: CollectionConfig = {
         }
         return doc;
       },
+      signageNotifyHook(['pin', 'snapshot']),
     ],
+    afterDelete: [signageNotifyHook(['pin', 'snapshot'])],
   },
   fields: [
     {

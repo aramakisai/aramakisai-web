@@ -249,7 +249,7 @@ describe('cms キャッシュ', () => {
   });
 });
 
-describe('cms refreshIntervalSeconds', () => {
+describe('cms version', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     delete (globalThis as Record<symbol, unknown>)[
@@ -259,14 +259,14 @@ describe('cms refreshIntervalSeconds', () => {
 
   const okResponse = (body = { docs: [], totalDocs: 0 }) =>
     new Response(JSON.stringify(body), { status: 200 });
-  const opts = { ttlSeconds: 15, refreshIntervalSeconds: 5 };
+  const opts = { ttlSeconds: 15, version: 123 };
 
-  it('取り直し用のキーがあればそれを返し、CMS へも通常のキーへも行かない', async () => {
+  it('版付きのキーがあればそれを返し、CMS へも通常のキーへも行かない', async () => {
     const fetchMock = vi.fn();
     const match = vi
       .fn()
       .mockImplementation(async (req: Request) =>
-        req.url.includes('__refresh=5')
+        req.url.includes('__v=123')
           ? okResponse({ docs: [{ id: 1 }] } as never)
           : undefined,
       );
@@ -278,7 +278,7 @@ describe('cms refreshIntervalSeconds', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('無ければ CMS から取得し、取り直し用のキー(5秒)と通常のキー(15秒)を置き換える', async () => {
+  it('無ければ CMS から取得し、版付きのキーだけに TTL つきで保存する', async () => {
     const put = vi.fn().mockResolvedValue(undefined);
     const match = vi.fn().mockResolvedValue(undefined);
     const fetchMock = vi.fn().mockImplementation(async () => okResponse());
@@ -289,18 +289,12 @@ describe('cms refreshIntervalSeconds', () => {
     ] = { ctx: { waitUntil: vi.fn() } };
     await cms.findMany('signage_slides', {}, opts);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    const stored = put.mock.calls.map(([k, res]) => [
-      k.url,
-      res.headers.get('Cache-Control'),
-    ]);
-    expect(stored).toContainEqual([
-      expect.stringContaining('__refresh=5'),
-      's-maxage=5',
-    ]);
-    expect(stored).toContainEqual([
-      expect.stringContaining('__cache_ttl=15'),
-      's-maxage=15',
-    ]);
+    expect(
+      put.mock.calls.map(([k, res]) => [
+        k.url,
+        res.headers.get('Cache-Control'),
+      ]),
+    ).toEqual([[expect.stringContaining('__v=123'), 's-maxage=15']]);
     expect(match.mock.calls.map(([k]) => k.url).join()).not.toContain(
       '__cache_ttl',
     );

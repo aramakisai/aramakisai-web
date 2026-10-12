@@ -1,8 +1,11 @@
 import type { CollectionConfig } from 'payload';
 
+import { signageNotifyHook } from '../lib/signage-notify';
+
 export const ParkingStatuses: CollectionConfig = {
   slug: 'parking_statuses',
   labels: { singular: '空き状況', plural: '空き状況' },
+  hooks: { afterChange: [signageNotifyHook(['snapshot'])], afterDelete: [signageNotifyHook(['snapshot'])] },
   admin: {
     defaultColumns: ['lot', 'status', 'updatedAt'],
   },

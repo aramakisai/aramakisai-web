@@ -91,6 +91,7 @@ S3 の接続情報 (`S3_BUCKET` 等) が未設定の場合はディスク保存�
 | `S3_BUCKET` / `S3_ENDPOINT` / `S3_REGION` / `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | メディア保存先 | 本番 |
 | `S3_PREFIX` | メディアのキー接頭辞 (既定 `payload-uploads`) | 任意 |
 | `CLOUDFLARE_ZONE_ID` / `CLOUDFLARE_PURGE_TOKEN` | 画像の非公開化・削除・差し替え時に `cms.aramakisai.com` のエッジキャッシュを purge する (zone の Cache Purge 権限だけのトークン)。`CMS_PUBLIC_URL` と合わせて 3 つ揃わないと purge せず、起動時に警告を 1 回出す | 本番 |
+| `SIGNAGE_NOTIFY_URL` / `SIGNAGE_NOTIFY_ACCESS_CLIENT_ID` / `SIGNAGE_NOTIFY_ACCESS_CLIENT_SECRET` | サイネージのデータを保存したときに、サイトのWorkerの`/api/signage/notify`へ通知する。3つ揃わないと送らず、起動後の最初の保存で警告を1回出す。送信の失敗は保存を妨げない | 本番 |
 | `AUTHENTIK_ISSUER_URL` / `AUTHENTIK_CLIENT_ID` / `AUTHENTIK_CLIENT_SECRET` | Authentik OIDC | 本番 |
 | `CMS_CORS_ORIGINS` | CORS 許可オリジン (カンマ区切り) | 本番 |
 | `SMTP_HOST` | 招待メール送信先 (docker-mailserver)。設定時だけ SMTP アダプタを有効化する | 任意 (本番のみ設定) |
@@ -183,6 +184,10 @@ Directus 撤去 (タスク 9.1) 完了済み。`db-cluster.yaml` と `payload` �
 | `CMS_PROD_OIDC_CLIENT_SECRET` | Authentik `cms-prod` プロバイダのクライアントシークレット |
 | `TF_VAR_cms_prod_oidc_client_secret` | 同じ値。Terraform が Authentik 側の定義に使う |
 | `NOREPLY_SMTP_PASSWORD` | 送信専用アカウント `noreply@aramakisai.com` の SMTP パスワード |
+| `SIGNAGE_NOTIFY_ACCESS_CLIENT_ID` | サイネージ通知用Access Service Tokenの`client_id`(`aramakisai-infra`の`terraform output`) |
+| `SIGNAGE_NOTIFY_ACCESS_CLIENT_SECRET` | 同じ`client_secret`(sensitive) |
+
+`SIGNAGE_NOTIFY_URL`(`https://aramakisai.com/api/signage/notify`)は秘密ではないため、Infisicalには登録せず、CMSのDeploymentのenvに直接書く。
 
 `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` は既存の `HETZNER_OS_*` を再利用する。
 `SMTP_HOST` は Infisical に登録せず、`cms-secrets` の ExternalSecret に固定値
@@ -433,3 +438,23 @@ Local API から行う場合は `payload.create({ collection: 'student_exhibitio
 ### 開催前日の再ログイン
 
 セッションの期限を開催期間の後にするため、開催前日に全端末・配信PCでログインし直す。ログイン済みの端末は一度ログアウトするか、cookieを消してから上記の手順でログインする。ログイン画面で期限が730hに更新される。
+
+### 保存時通知の環境変数とService Tokenの更新
+
+CMSはサイネージが参照するデータ(設定・グループ・スライド・テロップ・落とし物・協賛・ステージ・出演枠・駐車場・祭の基本情報)を保存すると、サイトのWorkerへ通知してハブに取り直しを促す。通知はCloudflare AccessのService Tokenで認証する。
+
+| 値 | 置き場 |
+|---|---|
+| `SIGNAGE_NOTIFY_ACCESS_CLIENT_ID` / `SIGNAGE_NOTIFY_ACCESS_CLIENT_SECRET` | Infisical prod → ExternalSecret → `cms-secrets` → CMSのDeployment |
+| `SIGNAGE_NOTIFY_URL` | CMSのDeploymentのenv(`aramakisai-infra`の`gitops/manifests/prod/cms/`) |
+
+Service Tokenの更新手順(有効期間は8760h、期限の30日前以降の`terraform apply`で作り直される):
+
+1. `aramakisai-infra`の`terraform`で、期限の30日前以降に通知用トークンを`-target`で絞って`terraform apply`する
+2. `terraform output`の新しい`client_id`・`client_secret`で、Infisical prodの`SIGNAGE_NOTIFY_ACCESS_CLIENT_ID`・`SIGNAGE_NOTIFY_ACCESS_CLIENT_SECRET`を差し替える
+3. ExternalSecretの同期を待ち、`cms-secrets`が更新されたことを確かめてから、CMSのDeploymentを再起動する(環境変数はPodの起動時にしか読まれない)
+4. `gitops/manifests/prod/ops-dashboard/collector/dashboard.toml`の通知用トークンの期限日を更新する
+
+差し替えが遅れて通知が拒否されても、固定はハブの60秒ごとの取り直し、表示内容は端末の2分ごとのポーリングで反映され続ける。
+
+開催中(11/14〜15)はハブのWorker(`aramakisai-signage-hub`)をデプロイしない。デプロイでDurableObjectが再起動し、全端末のWebSocketが切れるため。
