@@ -30,25 +30,18 @@ describe('Telops', () => {
     expect(a.options.map((o) => o.value)).toEqual(['visitor', 'group']);
   });
 
-  it('文面は200字まで必須、対象は20字まで', () => {
+  it('文面は200字まで必須、ラベルは20字まで', () => {
     expect(f(Telops, 'body').maxLength).toBe(200);
     expect(f(Telops, 'body').required).toBe(true);
     expect(f(Telops, 'target').maxLength).toBe(20);
   });
 
-  it('対象は参加団体向けのときだけ表示する', () => {
-    const c = f(Telops, 'target').admin!.condition!;
-    expect(c({ audience: 'group' })).toBe(true);
-    expect(c({ audience: 'visitor' })).toBe(false);
-  });
-
-  it('参加団体向けで対象が空だと保存できない', async () => {
-    const v = f(Telops, 'target').validate!;
-    expect(await v('', { siblingData: { audience: 'group' } })).not.toBe(true);
-    expect(await v(null, { siblingData: { audience: 'group' } })).not.toBe(true);
-    expect(await v('  ', { siblingData: { audience: 'group' } })).not.toBe(true);
-    expect(await v('出店団体へ', { siblingData: { audience: 'group' } })).toBe(true);
-    expect(await v('', { siblingData: { audience: 'visitor' } })).toBe(true);
+  it('ラベルは全区分で必須、既定は来場者向けの文言', () => {
+    const t = f(Telops, 'target');
+    expect(t.required).toBe(true);
+    expect(t.defaultValue).toBe('ご来場のみなさまへ');
+    expect(t.validate).toBeUndefined();
+    expect(t.admin?.condition).toBeUndefined();
   });
 
   it('有効の既定は true', () => {

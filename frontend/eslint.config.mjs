@@ -14,6 +14,7 @@ const config = [
       '.wrangler/**',
       'node_modules/**',
       'next-env.d.ts',
+      'workers/worker-configuration.d.ts',
     ],
   },
   ...compat.extends('next/core-web-vitals', 'next/typescript'),

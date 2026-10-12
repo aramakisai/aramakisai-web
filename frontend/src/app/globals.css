@@ -84,6 +84,17 @@
 }
 
 /*
+ * マイページをスマートフォン専用にする判別。大画面でもタッチ主体の端末 (タブレット) は
+ * 対象外にするため、幅だけでなく hover / pointer も見る。User-Agent 判別は ISR を
+ * 壊すので使わない
+ */
+@custom-variant pc-input {
+  @media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+    @slot;
+  }
+}
+
+/*
  * サイネージの縦型配置は、ビューポートのメディアクエリではなく画面の実寸から決めた
  * キャンバスの data-orientation で切り替える (signage-viewport.ts)。
  * メディアクエリのままだと、キャンバスの向き・倍率と配置が食い違いうる。
@@ -601,26 +612,20 @@
 
 @layer utilities {
   /*
-   * 企画カードの背景。sRGB 補間を先に宣言してから @supports 内で OKLCH 補間に差し替える。
-   * in oklch 未対応ブラウザは宣言全体をパース不能として捨てるため、単一宣言にすると
-   * 背景が消える。2 段のカスケードは意図的な必須構成 (design.md 参照)。
+   * 企画カードの背景: from の単色地に to の楕円を重ねる水彩の溜まり。色同士を補間せず
+   * アルファで薄めるだけなので、パレット外の色相 (隣接しない色の中間色) が出ない。
+   * 最前面の白 35% でパステル寄りにする。
    */
   .exhibition-gradient-bg {
-    background-image: linear-gradient(
-      var(--exhibition-gradient-angle),
-      var(--exhibition-gradient-from),
-      var(--exhibition-gradient-to)
-    );
-  }
-
-  @supports (background-image: linear-gradient(in oklch, red, blue)) {
-    .exhibition-gradient-bg {
-      background-image: linear-gradient(
-        in oklch var(--exhibition-gradient-angle),
-        var(--exhibition-gradient-from),
-        var(--exhibition-gradient-to)
+    background-color: var(--exhibition-gradient-from);
+    background-image:
+      linear-gradient(rgb(255 255 255 / 0.35), rgb(255 255 255 / 0.35)),
+      radial-gradient(
+        ellipse 126% 210% at var(--exhibition-pool-x) var(--exhibition-pool-y),
+        var(--exhibition-gradient-to) 0 25%,
+        var(--exhibition-gradient-to-half) 50%,
+        var(--exhibition-gradient-to-clear) 75%
       );
-    }
   }
 
   /*
@@ -634,6 +639,12 @@
     inset: 0;
     background-image: var(--exhibition-texture, none);
     background-size: cover;
+    /* 質感画像は全カード共通の 1 枚なので、切り出し位置と反転を企画ごとに変えて同じ模様の繰り返しに見せない */
+    background-position: center var(--exhibition-texture-y, 50%);
+    transform: scale(
+      var(--exhibition-texture-sx, 1),
+      var(--exhibition-texture-sy, 1)
+    );
     /* 質感画像は中間グレー中心の無彩色なので、overlay で重ねて地のグラデーションの色を残す */
     mix-blend-mode: overlay;
   }

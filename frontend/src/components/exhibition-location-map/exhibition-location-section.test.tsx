@@ -81,6 +81,17 @@ describe('ExhibitionLocationSection', () => {
     expect(container).not.toBeEmptyDOMElement();
   });
 
+  it('z-[1000] のリンクを地図ブロック内に閉じ込め、下部ナビより前に出さない', () => {
+    render(
+      <ExhibitionLocationSection exhibition={exhibition()} areas={[area()]} />,
+    );
+
+    const wrapper = screen.getByRole('link', {
+      name: '構内マップで見る',
+    }).parentElement!;
+    expect(wrapper.className).toMatch(/\bisolate\b/);
+  });
+
   it('所在地表記が得られない場合、キャプションに対象エリア名を用いる (要件 1.8)', () => {
     render(
       <ExhibitionLocationSection

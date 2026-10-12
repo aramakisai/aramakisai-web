@@ -31,3 +31,7 @@ frontend/playwright/.cache/
 temp/
 .playwright-mcp/
 /*.png
+frontend/workers/worker-configuration.d.ts
+
+# QR 出力スクリプトの既定出力先
+frontend/qr-output/

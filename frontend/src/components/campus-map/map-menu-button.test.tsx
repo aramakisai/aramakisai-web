@@ -45,6 +45,24 @@ describe('MapMenuButton', () => {
     }
   });
 
+  it('liveのときだけ末尾にマイページへのリンクを出す', () => {
+    const { unmount } = render(<MapMenuButton phase="live" />);
+    fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
+    const links = within(screen.getByRole('dialog')).getAllByRole('link');
+    const last = links[links.length - 1];
+    expect(last).toHaveTextContent('マイページ');
+    expect(last).toHaveAttribute('href', '/mypage');
+    unmount();
+
+    render(<MapMenuButton phase="pre_event" />);
+    fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
+    expect(
+      within(screen.getByRole('dialog')).queryByRole('link', {
+        name: 'マイページ',
+      }),
+    ).not.toBeInTheDocument();
+  });
+
   it('子項目を持つ行を開くとハンバーガーメニューと同じ行部品でその遷移先が現れる', () => {
     render(<MapMenuButton phase="pre_event" />);
     fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));

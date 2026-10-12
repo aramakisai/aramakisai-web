@@ -25,13 +25,13 @@ describe('BottomNavigation', () => {
     expect(nav).toHaveClass('lg:hidden');
   });
 
-  test('ホームを中央に、design.md の表のとおり 5 項目を順に描画する (要件 8.8)', () => {
+  test('マイページを中央に、design.md の表のとおり 5 項目を順に描画する (要件 8.8)', () => {
     render(<BottomNavigation phase="live" />);
     const links = screen.getAllByRole('link');
     const expected = [
       { label: '企画', href: '/exhibitions' },
       { label: 'マップ', href: '/map' },
-      { label: 'ホーム', href: '/' },
+      { label: 'マイページ', href: '/mypage' },
       { label: 'タイムテーブル', href: '/timetable' },
       { label: '駐車場', href: '/parking' },
     ];
@@ -57,12 +57,23 @@ describe('BottomNavigation', () => {
     expect(inactiveLink).not.toHaveAttribute('aria-current');
   });
 
+  test('/mypage で選択中の表示にする', () => {
+    mockedUsePathname.mockReturnValue('/mypage');
+    render(<BottomNavigation phase="live" />);
+    const link = screen.getByRole('link', { name: /マイページ/ });
+    expect(link).toHaveAttribute('aria-current', 'page');
+    expect(link.querySelector('[aria-hidden="true"]')).toHaveClass(
+      'bg-accent-alt',
+      'opacity-100',
+    );
+  });
+
   test('項目ごとに固定の色をインジケーターへ割り当てる (要件 8.10)', () => {
     render(<BottomNavigation phase="live" />);
     const expected: Record<string, string> = {
       企画: 'bg-primary',
       マップ: 'bg-secondary',
-      ホーム: 'bg-accent-alt',
+      マイページ: 'bg-accent-alt',
       タイムテーブル: 'bg-info',
       駐車場: 'bg-accent',
     };
@@ -78,5 +89,6 @@ describe('BottomNavigation', () => {
   test('アイコンは Material Symbols Sharp のリガチャで描画する (要件 21.9)', () => {
     render(<BottomNavigation phase="live" />);
     expect(screen.getByText('festival')).toHaveClass('material-symbols-sharp');
+    expect(screen.getByText('person')).toHaveClass('material-symbols-sharp');
   });
 });

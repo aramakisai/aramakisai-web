@@ -134,7 +134,7 @@ export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
             offsetMs={offsetMs}
           />
         </div>
-        <div className="absolute top-[912px] left-[1200px] portrait:top-[1389px] portrait:left-6">
+        <div className="absolute top-[912px] left-[1368px] portrait:top-[1389px] portrait:left-6">
           <SignageBusInfo boards={boards} />
         </div>
         <SignageMain
