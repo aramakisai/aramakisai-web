@@ -401,6 +401,11 @@ jobs:
             --plain --silent)" >> "$GITHUB_ENV"
           echo "INFISICAL_PROJECT_ID=$(python3 -c "import json;print(json.load(open('.infisical.json'))['workspaceId'])")" >> "$GITHUB_ENV"
 
+      # サイトの Worker が script_name で参照するため、ハブを先に出す。
+      # DO のクラスを含む版は versions upload で出せないので wrangler deploy を使う。
+      - name: Deploy signage hub to Cloudflare Workers (prod)
+        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod -- pnpm exec wrangler deploy -c workers/signage-hub/wrangler.toml
+
       - name: Build (prod env, inlined by Infisical)
         run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod -- pnpm exec opennextjs-cloudflare build
 

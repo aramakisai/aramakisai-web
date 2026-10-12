@@ -31,3 +31,4 @@ frontend/playwright/.cache/
 temp/
 .playwright-mcp/
 /*.png
+frontend/workers/worker-configuration.d.ts

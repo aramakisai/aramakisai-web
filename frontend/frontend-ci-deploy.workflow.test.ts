@@ -149,6 +149,30 @@ describe('.github/workflows/frontend-ci.yml — deploy-prod job', () => {
   });
 });
 
+describe('.github/workflows/frontend-ci.yml — signage hub deploy', () => {
+  const HUB_DEPLOY =
+    'infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod -- pnpm exec wrangler deploy -c workers/signage-hub/wrangler.toml';
+
+  it('deploy-prod deploys the hub with the Infisical prod env before the site', () => {
+    const commands = runCommands(loadWorkflow().jobs['deploy-prod']);
+    const hubIdx = commands.findIndex((c) => c.includes(HUB_DEPLOY));
+    const siteIdx = commands.findIndex((c) =>
+      c.includes('pnpm exec opennextjs-cloudflare deploy'),
+    );
+
+    expect(hubIdx).toBeGreaterThanOrEqual(0);
+    expect(siteIdx).toBeGreaterThan(hubIdx);
+  });
+
+  it('deploy-dev and deploy-preview never deploy the hub', () => {
+    const workflow = loadWorkflow();
+    for (const name of ['deploy-dev', 'deploy-preview']) {
+      const commands = runCommands(workflow.jobs[name]).join('\n');
+      expect(commands).not.toMatch(/signage-hub/);
+    }
+  });
+});
+
 describe('.github/workflows/frontend-ci.yml — secret exposure', () => {
   it('only ever references the two Infisical machine-identity GH secrets', () => {
     const raw = readFileSync(WORKFLOW_PATH, 'utf-8');

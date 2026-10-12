@@ -6,3 +6,4 @@ pnpm-lock.yaml
 next-env.d.ts
 tsconfig.tsbuildinfo
 src/cms-types.ts
+workers/worker-configuration.d.ts
