@@ -45,6 +45,9 @@ export interface NavigationMenuRowsProps {
  *
  * 子項目はそれぞれ独立して開閉できるため、単一の文字列ではなく Set で開状態を持つ。
  */
+// Figma の罫線は INSIDE ストロークで行の高さ 48px に含まれる。border だと行送りが 49px にずれる
+const DIVIDER_CLASS = 'shadow-[inset_0_-1px_0_theme(colors.gray.200)]';
+
 export function NavigationMenuRows({
   items,
   pathname,
@@ -73,11 +76,11 @@ export function NavigationMenuRows({
         const active = isItemActive(item, pathname);
         const colorClass = underlineColorClassFor(item.label);
         const open = Boolean(item.children) && openLabels.has(item.label);
-        // Figma (256:256 の 協賛・234:138 の ご案内) では、開いた親の行と
-        // 最後の行 (パネル外周の border-b と重なる) にだけ区切り線がない。
-        // それ以外の行 (閉じた親・子項目のない行) には区切り線がある
-        const showBottomBorder = index !== items.length - 1 && !open;
-        const borderClass = showBottomBorder ? 'border-b border-gray-200' : '';
+        const isLast = index === items.length - 1;
+        // Figma (234:138・256:256): 開いた親の行自体には線がなく、区切りは最後の子行の
+        // 下に出る。パネル末尾の項目はパネル外周の border-b と重なるため線を引かない
+        const borderClass = !isLast && !open ? DIVIDER_CLASS : '';
+        const lastChildBorderClass = isLast ? '' : DIVIDER_CLASS;
 
         if (!item.children) {
           return (
@@ -138,9 +141,20 @@ export function NavigationMenuRows({
             </button>
 
             {open && (
-              <ul id={submenuId} aria-label={`${item.label}のサブメニュー`}>
-                {linkableChildren(item).map((child) => (
-                  <li key={child.href} className="border-l border-gray-200">
+              <ul
+                id={submenuId}
+                aria-label={`${item.label}のサブメニュー`}
+                className="shadow-[inset_1px_0_0_theme(colors.gray.200)]"
+              >
+                {linkableChildren(item).map((child, childIndex, children) => (
+                  <li
+                    key={child.href}
+                    className={
+                      childIndex === children.length - 1
+                        ? lastChildBorderClass
+                        : undefined
+                    }
+                  >
                     <Link
                       href={child.href}
                       onClick={onNavigate}

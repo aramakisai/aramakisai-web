@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 import type { FestivalPhase } from '@/lib/phase';
 import {
   navigationItemsByPhase,
+  mobileMenuItemsFor,
   linkableChildren,
   isItemActive,
   underlineColorClassFor,
@@ -307,7 +308,7 @@ export function Header({ phase }: HeaderProps) {
           }`}
         >
           <NavigationMenuRows
-            items={items}
+            items={mobileMenuItemsFor(phase)}
             pathname={pathname}
             idPrefix="mobile"
             onNavigate={closeMobileMenu}
