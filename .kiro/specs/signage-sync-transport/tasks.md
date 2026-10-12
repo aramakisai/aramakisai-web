@@ -24,7 +24,7 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
   - 測定が終わったら検証用のPRを閉じてブランチを消す。最小のハブはタスク5で同じ名前のまま置き換える
   - _Requirements: 5.2, 7.5_
 
-- [ ] 2. aramakisai-infra: 通知用のService TokenとCMSの環境変数
+- [x] 2. aramakisai-infra: 通知用のService TokenとCMSの環境変数
 - [x] 2.1 (P) 通知専用のService Tokenとポリシーを足す
   - `terraform/access.tf`に、既存のE2E用(`e2e_ci`)と同じ形で通知用の`cloudflare_zero_trust_access_service_token`(`duration = "8760h"`・`min_days_for_renewal = 30`・`create_before_destroy`)と、サイネージのアプリケーション(`aramakisai_signage`)への`decision = "non_identity"`の独立したポリシーを足す。`terraform/outputs.tf`にトークンの`client_id`と`client_secret`(sensitive)を足す
   - 既存のドリフトがあるため、`terraform apply`は`-target`で今回のリソースだけに絞る
@@ -73,7 +73,7 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
   - 期限の判定(期限なし・境界)と、不正な入力・未知の機能の解釈の単体テストが通る
   - _Requirements: 1.4, 5.1, 7.2, 7.6_
 
-- [ ] 5. aramakisai-web: ハブのWorkerを作り、本番まで出す(段1)
+- [x] 5. aramakisai-web: ハブのWorkerを作り、本番まで出す(段1)
 - [x] 5.1 ハブの状態の遷移を純粋関数で作る
   - 通知の後のalarmの時刻(500ms後、既に早いalarmがあれば延ばさない)、alarmの後の次のalarm(通知の直後は5秒後の確かめを1回、その後は接続があれば60秒後の保険、接続が無ければ設定しない)、確かめで`snapshot`を含むなら版をもう一度進めることを決める
   - 固定と表示対象は取り直した値が保持と違うときだけ配る。版は保持より大きくなるように進め、単調増加にする
@@ -95,7 +95,7 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
   - `frontend-ci-deploy.workflow.test.ts`で、`deploy-prod`がハブを先に出し、`deploy-dev`とPRプレビューがハブを出さないことのテストが通る
   - _Requirements: 7.1, 7.3_
 
-- [ ] 5.4 ハブを本番まで出す
+- [x] 5.4 ハブを本番まで出す
   - ハブには実ブラウザで確かめる画面が無いので、単体テスト・型チェック・ビルドが通った後にコミットし、devへのPRを経てmainまで出す
   - 本番のデプロイの後、Cloudflareのダッシュボードで`aramakisai-signage-hub`に`SignageHub`のDOがあり、公開のURLを持たず、サイトのWorkerの表示とe2eに影響が無いことを確かめる
   - 9.2でハブの不具合が見つかった場合は、ハブを直して段2より先にこの手順で出し直す
