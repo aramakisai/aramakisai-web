@@ -9,7 +9,7 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
 開発サーバーは`make dev`・`make cms`・`make signage-dev`(タスク9.1で追加)経由でだけ起動し、`pnpm dev`や`wrangler dev`を直接実行しない。Claudeが起動するときは`run_in_background`を使い、他のセッションや人間が立てたサーバーを止めない。端末の挙動を変えるコード(タスク6〜8)のコミットは、タスク9.2の実ブラウザでの確認の後に行う。実ブラウザでの確認の後は必ずブラウザを閉じ、判断に使ったスクリーンショットのパスを揃える。
 
 - [ ] 1. aramakisai-web: 設計の前提を実測する
-- [ ] 1.1 最小のハブで、`script_name`だけのDOのbindingを持つサイトのWorkerにPRプレビューのURLが出るかを確かめる
+- [x] 1.1 最小のハブで、`script_name`だけのDOのbindingを持つサイトのWorkerにPRプレビューのURLが出るかを確かめる
   - 受け入れたWebSocketに`ping`が来たら`pong`を返すだけの最小のハブを、`aramakisai-signage-hub`の名前・`new_sqlite_classes = ["SignageHub"]`のmigration・`workers_dev = false`・`preview_urls = false`で、Infisical経由の資格情報を使って`wrangler deploy`する
   - マージしない検証用のブランチで、サイトのWorkerに`script_name = "aramakisai-signage-hub"`だけのDOのbindingと、`/api/signage/ws`だけをハブへ渡す最小の入口を足し、devへのPRを作る
   - PRのCIで`wrangler versions upload`がバージョンのURLを出し、既存のe2eがそのURLで通ることを確かめる
@@ -39,7 +39,7 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
   - _Requirements: 1.1, 5.2_
 
 - [ ] 3. aramakisai-infra: 運用ダッシュボードにCloudflareの利用量を足す
-- [ ] 3.1 (P) GraphQLのスキーマでフィールドの名前と単位を確かめる
+- [x] 3.1 (P) GraphQLのスキーマでフィールドの名前と単位を確かめる
   - 既存の`OPS_CLOUDFLARE_READ_TOKEN`でGraphQL Analytics APIのintrospectionを行い、`workersInvocationsAdaptive`の`sum.cpuTimeUs`、`durableObjectsInvocationsAdaptiveGroups`の`sum.requests`、`durableObjectsPeriodicGroups`の`sum.duration`(GB-s)と`sum.inboundWebsocketMsgCount`の名前・単位と、`durableObjectsPeriodicGroups`を絞れる日時の項目(`date`・`datetimeHour`等)を確かめる
   - hibernation中のWebSocketの受信が`durableObjectsInvocationsAdaptiveGroups`の`requests`に1件ずつ数えられているかを、1.1の最小のハブの実績で確かめる
   - 確かめた名前・単位・絞り込みの項目を記録している。designの名前と違う場合は、design.mdを先に直してから3.3に進む
@@ -54,7 +54,7 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
   - _Depends: 2.1_
   - _Requirements: 8.1, 8.3_
 
-- [ ] 3.3 WorkersのCPU時間とDOの利用量を集計して表示する
+- [x] 3.3 WorkersのCPU時間とDOの利用量を集計して表示する
   - `billing_cloudflare.py`の1回の問い合わせに、3.1で確かめた項目を足し、プランの`limits`にあるキーだけ`quota_item`を作る(`quota.workers_cpu_month`・`quota.do_requests_day`・`quota.do_requests_month`・`quota.do_gbs_day`・`quota.do_gbs_month`)
   - DOのリクエスト数は`requests`から`inboundWebsocketMsgCount`×19/20を差し引く。Freeの日次はUTCの0時から、Paidはプランの`from`の0時(UTC)から集計する(暦の月初にしない)。範囲が問い合わせの期間の上限を超える場合は日ごとに分けて足す
   - `labels.py`に5つの項目の表示名を足す
@@ -66,7 +66,7 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
   - 2026-10-23以降に、プランがPaidに切り替わり、CPU時間と月の項目が表示されることを確かめる
   - _Requirements: 8.1, 8.2, 8.3_
 
-- [ ] 4. aramakisai-web: 端末とハブと他機能が共有するメッセージの型と期限の判定を作る
+- [x] 4. aramakisai-web: 端末とハブと他機能が共有するメッセージの型と期限の判定を作る
   - 固定と表示対象(`serverNow`を除く)、スナップショットの版、機能名ごとのpayloadの型、他機能がハブへ渡す形、ハブが配る形(`sentAt`付き)、端末とハブのあいだの`ping`・`pong`、ping間隔とpongの待ち(各5秒)を定める
   - 補正済みの現在時刻で期限を判定する関数と、受信した文字列を`any`を経由せずに解釈する関数(サーバーからとクライアントから)を作る。未知の機能のbroadcastは捨てずに返す
   - 型のimport以外で`@/`の別モジュールに依存しない(ハブのWorkerからも読む)
@@ -74,7 +74,7 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
   - _Requirements: 1.4, 5.1, 7.2, 7.6_
 
 - [ ] 5. aramakisai-web: ハブのWorkerを作り、本番まで出す(段1)
-- [ ] 5.1 ハブの状態の遷移を純粋関数で作る
+- [x] 5.1 ハブの状態の遷移を純粋関数で作る
   - 通知の後のalarmの時刻(500ms後、既に早いalarmがあれば延ばさない)、alarmの後の次のalarm(通知の直後は5秒後の確かめを1回、その後は接続があれば60秒後の保険、接続が無ければ設定しない)、確かめで`snapshot`を含むなら版をもう一度進めることを決める
   - 固定と表示対象は取り直した値が保持と違うときだけ配る。版は保持より大きくなるように進め、単調増加にする
   - 他機能のメッセージで保持を機能ごとに置き換え、期限切れは保持から捨てて送らない。接続の直後に送る一覧を、期限内の保持から作る
@@ -82,7 +82,7 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
   - designのTesting Strategyに挙げた`hub-core`の単体テストが通る
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 2.3, 2.4, 3.1, 3.4, 6.1, 7.1, 7.2, 7.3, 7.6_
 
-- [ ] 5.2 ハブのDOとWorkerの設定を作る
+- [x] 5.2 ハブのDOとWorkerの設定を作る
   - 固定名の1インスタンスのDOで、WebSocketをHibernation APIで受け、`ping`だけに`pong`(その時点の時刻)を返し、他の受信は捨てる。`setTimeout`・`setInterval`を使わず、遅延はすべてalarmで行う
   - 接続の直後に期限内の保持を全部送り、固定と表示対象の保持が無ければすぐ取り直す。`notify`と`publish`(固定と版は受け付けない)をRPCとして公開し、保持と保留はストレージに変化時だけ書く
   - 取り直しはサイトのWorkerへのService bindingで`/api/signage/pin`を取得し、応答の形を検査する。失敗は`console.warn`だけ残す
@@ -90,7 +90,7 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
   - フロントの型チェック・テストが通り、`wrangler deploy --dry-run`でハブのWorkerがビルドできる
   - _Requirements: 1.5, 2.2, 2.4, 3.1, 3.3, 5.1, 7.1, 7.2, 7.3_
 
-- [ ] 5.3 本番のデプロイでハブをサイトより先に出す
+- [x] 5.3 本番のデプロイでハブをサイトより先に出す
   - `frontend-ci.yml`の`deploy-prod`で、サイトのデプロイの前にハブを`wrangler deploy`で出す。`deploy-dev`とPRプレビューではハブを出さない。必須のチェックのジョブ名を変える場合は`frontend-ci-dummy.yml`の名前も揃える
   - `frontend-ci-deploy.workflow.test.ts`で、`deploy-prod`がハブを先に出し、`deploy-dev`とPRプレビューがハブを出さないことのテストが通る
   - _Requirements: 7.1, 7.3_
@@ -102,7 +102,7 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
   - _Requirements: 7.1, 7.3_
 
 - [ ] 6. aramakisai-web: サイトのWorkerの入口と版付きのスナップショット(段2)
-- [ ] 6.1 サイトのWorkerの入口で、配信経路だけをハブへ振り分ける
+- [x] 6.1 サイトのWorkerの入口で、配信経路だけをハブへ振り分ける
   - `/api/signage/ws`は、upgradeでなければ426、`Origin`がホストと違えば403を返し、それ以外はハブへそのまま渡して101を返す
   - `/api/signage/notify`はPOSTだけを受け(他は405)、本文の`targets`を検査して(不正なら400)ハブの`notify`を呼び204を返す。認証はAccessに任せる
   - 他のパスはOpenNextの生成したハンドラへそのまま渡し、OpenNextのDOのクラスは再exportしない。Workerの`main`を入口に向け、本番と`[env.dev]`にハブへのDOのbinding(`script_name`付き、サイト側にmigrationは書かない)を足す
@@ -110,7 +110,7 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
   - _Depends: 5.4_
   - _Requirements: 1.1, 5.2, 7.5_
 
-- [ ] 6.2 (P) 版付きでスナップショットを取り直せるようにする
+- [x] 6.2 (P) 版付きでスナップショットを取り直せるようにする
   - `GET /api/signage?v=<版>`を受け、版が正の整数なら全取得を通常のキーを読まず版付きの共有キーで行う(TTLは既存のスナップショットと同じ)。版の形が不正なら版なしとして扱う
   - 駐車場と協賛の取得にも版を渡す。版なしの通常の取得は既存のキーとTTLのまま
   - 版があるときは通常のキーを読まず版付きのキーで保存することの単体テスト(`cms.test.ts`・`signage-data.test.ts`)が通る
@@ -118,7 +118,7 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
   - _Boundary: SnapshotVersionFetch_
 
 - [ ] 7. aramakisai-web: 端末をポーリングから配信経路へ切り替える(段2)
-- [ ] 7.1 (P) 端末のWebSocketクライアントを作る
+- [x] 7.1 (P) 端末のWebSocketクライアントを作る
   - 同じホストの`/api/signage/ws`へ1本だけ接続し、開いた直後と5秒ごとに`ping`を送り、`pong`からRTT/2で補正した時刻のずれを更新する
   - `pong`が5秒以内に来なければ切断して接続し直す。再接続の待ちは1秒から倍々に最大30秒(±20%の乱数)、`pong`を1回受けたら1秒に戻し、`online`イベントでは待ちを打ち切る。画面が非表示になったら閉じ、表示に戻ったらすぐ接続する
   - 機能ごとに最後のbroadcastを保持し、期限切れは受信時と表示時に捨てる。切断中も最後の固定・表示対象・ずれ・版を返し続け、画面にエラーを出さない
@@ -128,7 +128,7 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
   - _Requirements: 1.5, 2.1, 2.2, 2.4, 3.4, 4.1, 4.2, 4.3, 6.3, 7.4, 7.6_
   - _Boundary: SignageChannelClient_
 
-- [ ] 7.2 サイネージ画面を配信経路の固定・表示対象・時刻・版で動かす
+- [x] 7.2 サイネージ画面を配信経路の固定・表示対象・時刻・版で動かす
   - 固定と表示対象を配信経路から受け取り、これまでどおり重ねる。時刻のずれは配信経路の値を優先し、無ければスナップショットの値、さらに無ければ表示開始時の値を使う
   - 版が手元と違えば0〜1,000msの乱数で待ってから`/api/signage?v=<版>`を取り直し、成功したらその版を手元の版にする。同じ版では取り直さない。初回の版は必ず取り直す
   - スナップショットのポーリングを20秒から2分にする
@@ -138,7 +138,7 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
   - _Requirements: 1.1, 1.2, 1.4, 2.1, 2.3, 3.1, 3.2, 4.1, 6.1, 6.2, 6.3_
 
 - [ ] 8. aramakisai-web: CMSの保存時通知(段2)
-- [ ] 8.1 (P) CMSからサイトのWorkerへ通知を送る仕組みを作る
+- [x] 8.1 (P) CMSからサイトのWorkerへ通知を送る仕組みを作る
   - 通知のURLとService Tokenの2つの値が揃っているときだけ、Accessのヘッダと`targets`の本文でPOSTする。揃っていなければ何もせず、プロセスにつき1回だけ警告する
   - 送信は待たずにすぐ戻り、3秒でタイムアウトし、失敗はロガーに警告として残して例外を出さない
   - コレクション用(`afterChange`・`afterDelete`共用)とグローバル用のフックを作る
@@ -146,14 +146,14 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
   - _Requirements: 1.1, 6.1_
   - _Boundary: SignageNotify_
 
-- [ ] 8.2 サイネージが参照するコレクションとグローバルに通知のフックを付ける
+- [x] 8.2 サイネージが参照するコレクションとグローバルに通知のフックを付ける
   - designの対象表のとおり、サイネージ設定(固定)・グループ(固定)・スライド(固定と版)・テロップ・落とし物・協賛・ステージ・出演枠・駐車場の状況・駐車場・祭のメタ情報(版)に付ける。既存のフック(固定の自動解除等)の後ろに足す
   - 項目は変えないので、マイグレーションと型の再生成は行わない。`cms-schema-check`が破壊的変更を検出しないことを確かめる
   - 実行委員の操作の手順と画面は変えない
   - CMSの型チェック・テスト・ビルドが通る
   - _Requirements: 1.1, 1.2, 1.3, 5.3, 6.1_
 
-- [ ] 8.3 (P) 通知の環境変数とService Tokenの更新の手順を書く
+- [x] 8.3 (P) 通知の環境変数とService Tokenの更新の手順を書く
   - `docs/cms-operations.md`に、通知の3つの環境変数の置き場(Infisical prodと`cms-secrets`、CMSのDeployment)と、Service Tokenの更新の手順(期限の30日前以降の`terraform apply`で作り直されること、新しい値でInfisical prodを差し替え、ExternalSecretの同期を待ってCMSのDeploymentを再起動すること、`dashboard.toml`の期限日の更新、差し替えまでは60秒・2分のポーリングで反映が続くこと)を書く
   - 開催中(11/14〜15)はハブのWorkerをデプロイしないことを書く
   - 手順の文書が`docs/cms-operations.md`にある
@@ -162,12 +162,12 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
   - _Boundary: docs/cms-operations.md_
 
 - [ ] 9. aramakisai-web: ローカルでの結合の確認と、段2の本番への反映
-- [ ] 9.1 ハブとサイトをまとめて起動する`make signage-dev`を足す
+- [x] 9.1 ハブとサイトをまとめて起動する`make signage-dev`を足す
   - サイトを`opennextjs-cloudflare build`した後、サイトとハブの2つの設定で`wrangler dev`を起動する。ポートは`make dev`と同じくworktree名から決め、`make dev-ps`・`make dev-stop`で扱えるようにする
   - `run_in_background`で`make signage-dev`を起動し、表示されたポートで`/signage`が開ける
   - _Requirements: 1.1, 6.1, 7.1_
 
-- [ ] 9.2 ローカルで端末の反映を実ブラウザで確かめてからコミットする
+- [x] 9.2 ローカルで端末の反映を実ブラウザで確かめてからコミットする
   - `make signage-dev`でブラウザの`/signage`を大きさの違う2枚で開き、`curl`で`/api/signage/notify`へ`pin`・`snapshot`を送って両方の表示が変わること、DevToolsでping/pongが5秒ごとに流れること、不正な本文で400が返ることを確かめる
   - 通知の環境変数をローカルの入口に向けたCMSを`make cms`で起動し、固定の選択・解除、グループの表示の切り替えと所属の変更・削除、スライドの無効化による固定の自動解除、テロップの保存のそれぞれで、両方の端末が数秒以内に同じ表示へ切り替わることを確かめる。既に他のセッションが共有のCMSを起動していて環境変数を与えられない場合は、ユーザーに確認せず`make cms-worktree`と`make dev CMS=worktree`で自分専用のCMSを立てて確かめる
   - DevToolsのオフラインと復帰、タブの非表示と表示で、切断中も直前の表示のまま続き、復帰から数秒以内に最新の状態に追いつくことを確かめる

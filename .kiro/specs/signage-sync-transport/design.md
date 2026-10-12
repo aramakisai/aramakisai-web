@@ -184,7 +184,7 @@ sequenceDiagram
 | Requirement | Summary | Components | Interfaces | Flows |
 |-------------|---------|------------|------------|-------|
 | 1.1 | 固定の選択・解除をおよそ3秒で反映 | SignageNotify、SiteEntry、SignageHub、SignageChannelClient | `SignageHubRpc.notify`、`pin`メッセージ | System Flows(保存から約1.5〜2秒) |
-| 1.2 | グループの切替を反映 | 同上、スナップショットの版 | `pin`・`snapshot`メッセージ | 外すのはpinで、加わる中身は版の取り直しで |
+| 1.2 | グループの切替を反映 | 同上、スナップショットの版 | `pin`・`snapshot`メッセージ | 外すのはpinで、加わる中身は版の取り直しで(グループの保存は両方を通知する) |
 | 1.3 | 自動解除も同じ時間で反映 | SignageNotify(自動解除が書く`signage_settings`の`afterChange`) | — | 1.1と同じ |
 | 1.4 | 他データの更新を待たない | SignageHub(pinと版を別のメッセージで配る) | `SignageBroadcast` | — |
 | 1.5 | 非表示からの復帰・通信回復で追いつく | SignageChannelClient、SignageHub(接続直後の送信) | `SignageServerMessage` | 再接続と保持の送信 |
@@ -349,7 +349,7 @@ export function useSignageFeature<F extends SignageFeature>(
 - Concurrency strategy: 接続は常に1本。新しい接続を張る前に古い接続のハンドラを外し、古い接続からの受信を捨てる
 
 **Implementation Notes**
-- Integration: `SignageScreen`は`offsetMs`を`channel.offsetMs ?? polled.offsetMs ?? mountOffsetMs`の順に使う。`withPin(snapshot, channel.pin)`はこれまでどおり。`snapshotVersion`が手元の版と違えば、0〜1,000msの乱数で待ってから`refresh(() => fetchSnapshotFrom('/api/signage?v=' + version))`を呼び、成功したらその版を手元の版とする。初回の`snapshotVersion`は手元の版が無いので必ず取り直す
+- Integration: `SignageScreen`は`offsetMs`を`channel.offsetMs ?? polled.offsetMs ?? mountOffsetMs`の順に使う。`withPin(snapshot, channel.pin)`はこれまでどおり。`snapshotVersion`が手元の版と違えば、0〜1,000msの乱数で待ってから`refresh(() => fetchSnapshotFrom('/api/signage?v=' + version))`を呼び、成功したらその版を手元の版とする。初回の`snapshotVersion`は手元の版が無いので必ず取り直す。手元の版を受け取った後は2分のポーリングも`/api/signage?v=<手元の版>`で取り、TTL最大60秒の版なしの通常キーへ戻って古い内容を表示しないようにする。版付きの取得が失敗しても、手元の版は進めず、2分のポーリング(版付き)で回復する(新しい再試行の仕組みは持たない)
 - Validation: `parseServerMessage`が`null`を返した受信は捨てる
 - Risks: 半開きの接続はpongの待ちで検出するため、検出まで最大約10秒かかる
 
@@ -476,7 +476,7 @@ export interface SiteEntryEnv {
 | 対象 | フック | targets |
 |------|--------|---------|
 | `signage_settings`(グローバル) | afterChange | pin |
-| `signage_groups` | afterChange、afterDelete | pin |
+| `signage_groups` | afterChange、afterDelete | pin, snapshot |
 | `signage_slides` | afterChange、afterDelete | pin, snapshot |
 | `telops`・`lost_items`・`sponsors`・`stages`・`performance_slots`・`parking_statuses`・`parking_lots` | afterChange、afterDelete | snapshot |
 | `festival_meta`(グローバル) | afterChange | snapshot |
@@ -548,9 +548,9 @@ export function signageNotifyGlobalHook(targets: readonly NotifyTarget[]): Globa
 - Idempotency & recovery: 毎回、範囲の累計を取り直すので再実行してよい
 
 **Implementation Notes**
-- Integration: `durableObjectsPeriodicGroups`は`datetime`ではなく`date`・`datetimeHour`等で絞る。問い合わせの前にスキーマのintrospectionで、`cpuTimeUs`・`duration`・`inboundWebsocketMsgCount`の名前と単位、hibernation中の受信が`durableObjectsInvocationsAdaptiveGroups`の`requests`に数えられているかを確かめる
+- Integration: introspectionで確かめた。名前はそのまま存在する: `workersInvocationsAdaptive`の`sum.cpuTimeUs`(us)、`durableObjectsInvocationsAdaptiveGroups`の`sum.requests`、`durableObjectsPeriodicGroups`の`sum.duration`(GB-s)・`sum.inboundWebsocketMsgCount`。`durableObjectsPeriodicGroups`は`date`・`datetime`・`datetimeHour`等のどれでも絞れる(`date_geq`・`date_leq`は`Date`型)。collectorは日単位の起点に揃えるため`date`で絞り、`durableObjectsInvocationsAdaptiveGroups`と`workersInvocationsAdaptive`は`datetime_geq`・`datetime_lt`で絞る。hibernation中の受信が`requests`に1件ずつ数えられているかは、本番にDOの実績がまだ無く(応答が空)確かめられていない。10.4の照合で確かめる
 - Validation: DOのリクエスト数の換算は、実装後にCloudflareのダッシュボードのDurable Objectsの請求の使用量と1日分を比べて確かめる。合わなければ換算をやめ、`requests`をそのまま上限側に寄せた値として出す
-- Risks: 31日の範囲が問い合わせの期間の上限を超える場合は、日ごとに分けて足す
+- Risks: 1回の問い合わせの時間範囲は32日(4w4d)までなので、collectorは範囲を30日の窓に分けて足す(45日の範囲で実測し通ることを確かめた)
 
 ## Data Models
 
