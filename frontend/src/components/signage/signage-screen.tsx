@@ -10,9 +10,10 @@ import {
   stageNow,
   type SignageSnapshot,
 } from '@/lib/signage';
-import { missingSlideIds, withPin, usePinnedSlide } from '@/lib/signage-pin';
+import { withPin } from '@/lib/signage-pin';
 import { clockOffsetMs, useCorrectedNow } from '@/lib/signage-time';
 import { useCanvasLayout } from '@/lib/signage-viewport';
+import { useSignageChannel } from '@/lib/use-signage-channel';
 import { usePolling } from '@/lib/use-polling';
 import { SignageBusInfo } from './signage-bus-info';
 import { SignageLeftColumn } from './signage-left-column';
@@ -27,9 +28,10 @@ export interface SignageScreenProps {
   readonly renderedAt: string;
 }
 
-const POLL_INTERVAL_MS = 20_000;
-// 取り直しても確認結果のIDが揃わない(別拠点の古いキャッシュ等)場合に要求が続かないようにする
-const REFRESH_MIN_GAP_MS = 10_000;
+// 通知が届かなかったときの保険。通常の反映は配信経路の版の知らせで行う
+const POLL_INTERVAL_MS = 120_000;
+// 全端末が同じ版の知らせを同時に受けるので、取得を散らして共有キャッシュの初回取得を1回に近づける
+const REFETCH_JITTER_MS = 1_000;
 
 interface Polled {
   readonly snapshot: SignageSnapshot;
@@ -38,7 +40,6 @@ interface Polled {
 }
 
 const fetchSnapshot = () => fetchSnapshotFrom('/api/signage');
-const fetchFreshSnapshot = () => fetchSnapshotFrom('/api/signage?fresh=1');
 
 async function fetchSnapshotFrom(url: string): Promise<Polled> {
   const sentAt = Date.now();
@@ -59,35 +60,35 @@ export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
     immediate: true,
     initial: initial && { snapshot: initial, offsetMs: null },
   });
-  const [pinOffsetMs, setPinOffsetMs] = useState<number | null>(null);
-  const pin = usePinnedSlide((serverNow, sentAt, receivedAt) =>
-    setPinOffsetMs(clockOffsetMs(serverNow, sentAt, receivedAt)),
-  );
+  const channel = useSignageChannel();
   const snapshot = polled?.snapshot ?? null;
-  const data = snapshot && withPin(snapshot, pin);
-  const missing = snapshot ? missingSlideIds(snapshot, pin) : [];
-  const refreshing = useRef(false);
-  const lastRefreshAt = useRef(-Infinity);
-  const missingKey = missing.join();
+  const data = snapshot && withPin(snapshot, channel.pin);
+  const handledVersion = useRef<number | undefined>(undefined);
+  const { snapshotVersion } = channel;
   useEffect(() => {
-    // 確認結果(3秒ごと)の更新のたびに再評価するので、間隔を空けた再試行も同じ経路になる
-    if (!missingKey || refreshing.current) return;
-    if (Date.now() - lastRefreshAt.current < REFRESH_MIN_GAP_MS) return;
-    refreshing.current = true;
-    lastRefreshAt.current = Date.now();
-    refresh(fetchFreshSnapshot)
-      .catch(() => {})
-      .finally(() => {
-        refreshing.current = false;
+    if (
+      snapshotVersion === undefined ||
+      snapshotVersion === handledVersion.current
+    )
+      return;
+    const timer = setTimeout(() => {
+      void refresh(async () => {
+        const result = await fetchSnapshotFrom(
+          `/api/signage?v=${snapshotVersion}`,
+        );
+        handledVersion.current = snapshotVersion;
+        return result;
       });
-  }, [missingKey, refresh, pin]);
+    }, Math.random() * REFETCH_JITTER_MS);
+    return () => clearTimeout(timer);
+  }, [snapshotVersion, refresh]);
   const serverIso = initial?.serverNow ?? renderedAt;
   // マウント直後の最初の取得が終わるまでは SSR 時のサーバー時刻を基準にする (配送遅延ぶん遅れる)
   const [mountOffsetMs, setMountOffsetMs] = useState<number | null>(null);
   useEffect(() => {
     setMountOffsetMs(Date.parse(serverIso) - Date.now());
   }, [serverIso]);
-  const offsetMs = pinOffsetMs ?? polled?.offsetMs ?? mountOffsetMs;
+  const offsetMs = channel.offsetMs ?? polled?.offsetMs ?? mountOffsetMs;
   const now = useCorrectedNow(offsetMs, serverIso);
   const rootRef = useRef<HTMLDivElement>(null);
   const layout = useCanvasLayout(rootRef);

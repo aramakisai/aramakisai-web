@@ -1,9 +1,12 @@
 import type { CollectionConfig } from 'payload';
 
+import { signageNotifyHook } from '../lib/signage-notify';
+
 export const Telops: CollectionConfig = {
   slug: 'telops',
   labels: { singular: 'サイネージ テロップ', plural: 'サイネージ テロップ' },
   orderable: true,
+  hooks: { afterChange: [signageNotifyHook(['snapshot'])], afterDelete: [signageNotifyHook(['snapshot'])] },
   admin: {
     useAsTitle: 'body',
     defaultColumns: ['body', 'audience', 'enabled'],

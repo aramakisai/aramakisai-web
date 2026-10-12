@@ -1,5 +1,6 @@
 import type { GlobalConfig } from 'payload';
 
+import { signageNotifyGlobalHook } from '../lib/signage-notify';
 import { visibleSlideFilter } from '../lib/signage-visibility';
 
 export const SignageSettings: GlobalConfig = {
@@ -7,6 +8,7 @@ export const SignageSettings: GlobalConfig = {
   label: 'サイネージ設定',
   // 固定の操作はサイネージ スライドの画面で行う。保存先としてだけ残す
   admin: { hidden: true },
+  hooks: { afterChange: [signageNotifyGlobalHook(['pin'])] },
   fields: [
     {
       name: 'pinned_slide',

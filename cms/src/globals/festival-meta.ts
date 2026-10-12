@@ -1,9 +1,12 @@
 import { lexicalHTMLField } from '@payloadcms/richtext-lexical';
 import type { GlobalConfig } from 'payload';
 
+import { signageNotifyGlobalHook } from '../lib/signage-notify';
+
 export const FestivalMeta: GlobalConfig = {
   slug: 'festival_meta',
   label: '祭基本情報',
+  hooks: { afterChange: [signageNotifyGlobalHook(['snapshot'])] },
   fields: [
     {
       name: 'name',

@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload';
 
 import { releasePinIfHidden } from '../lib/signage-pin-release';
+import { signageNotifyHook } from '../lib/signage-notify';
 
 const slideIds = (value: unknown): number[] =>
   (Array.isArray(value) ? value : []).map((s) => (typeof s === 'object' && s !== null ? (s as { id: number }).id : s));
@@ -21,12 +22,14 @@ export const SignageGroups: CollectionConfig = {
         if (changed) await releasePinIfHidden(req.payload, req);
         return doc;
       },
+      signageNotifyHook(['pin']),
     ],
     afterDelete: [
       async ({ doc, req }) => {
         await releasePinIfHidden(req.payload, req);
         return doc;
       },
+      signageNotifyHook(['pin']),
     ],
   },
   fields: [

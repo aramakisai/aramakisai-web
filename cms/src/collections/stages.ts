@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload';
 
+import { signageNotifyHook } from '../lib/signage-notify';
+
 export const Stages: CollectionConfig = {
   slug: 'stages',
   labels: { singular: 'ステージ', plural: 'ステージ' },
@@ -7,6 +9,7 @@ export const Stages: CollectionConfig = {
     useAsTitle: 'name',
   },
   defaultSort: 'sort',
+  hooks: { afterChange: [signageNotifyHook(['snapshot'])], afterDelete: [signageNotifyHook(['snapshot'])] },
   fields: [
     {
       name: 'name',

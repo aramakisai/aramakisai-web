@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload';
 
 import { sponsorBoothPlacementConstraint } from '../hooks/payload-constraints';
+import { signageNotifyHook } from '../lib/signage-notify';
 
 export const Sponsors: CollectionConfig = {
   slug: 'sponsors',
@@ -9,7 +10,11 @@ export const Sponsors: CollectionConfig = {
     useAsTitle: 'name',
   },
   defaultSort: 'sort',
-  hooks: { beforeValidate: [sponsorBoothPlacementConstraint] },
+  hooks: {
+    beforeValidate: [sponsorBoothPlacementConstraint],
+    afterChange: [signageNotifyHook(['snapshot'])],
+    afterDelete: [signageNotifyHook(['snapshot'])],
+  },
   fields: [
     {
       name: 'type',

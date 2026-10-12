@@ -1,10 +1,13 @@
 import type { CollectionConfig } from 'payload';
 
+import { signageNotifyHook } from '../lib/signage-notify';
+
 export const LostItems: CollectionConfig = {
   slug: 'lost_items',
   labels: { singular: '落とし物', plural: '落とし物' },
   admin: { useAsTitle: 'name', defaultColumns: ['name', 'found_place', 'found_at', 'returned'] },
   defaultSort: '-found_at',
+  hooks: { afterChange: [signageNotifyHook(['snapshot'])], afterDelete: [signageNotifyHook(['snapshot'])] },
   fields: [
     { name: 'name', type: 'text', required: true, maxLength: 50, label: '品名' },
     { name: 'found_place', type: 'text', required: true, maxLength: 30, label: '拾得場所' },

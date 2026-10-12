@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { SignageSlide, SignageSnapshot } from './signage';
-import { missingSlideIds, withPin } from './signage-pin';
+import { withPin } from './signage-pin';
 
 const slide = (id: number, title = 't'): SignageSlide => ({
   id,
@@ -22,7 +22,7 @@ const snapshot = (pinnedSlideId: number | null): SignageSnapshot =>
 const pin = (
   slideValue: SignageSlide | null,
   visibleSlideIds: readonly number[],
-) => ({ serverNow: 'x', slide: slideValue, visibleSlideIds });
+) => ({ slide: slideValue, visibleSlideIds });
 
 describe('withPin', () => {
   it('確認前(undefined)はスナップショットのまま', () => {
@@ -58,21 +58,5 @@ describe('withPin', () => {
 
   it('表示対象が空なら slides も空になる', () => {
     expect(withPin(snapshot(null), pin(null, [])).slides).toEqual([]);
-  });
-});
-
-describe('missingSlideIds', () => {
-  it('確認前は空', () => {
-    expect(missingSlideIds(snapshot(null), undefined)).toEqual([]);
-  });
-
-  it('スナップショットに無い表示対象のIDだけを返す', () => {
-    expect(missingSlideIds(snapshot(null), pin(null, [1, 5, 2, 7]))).toEqual([
-      5, 7,
-    ]);
-  });
-
-  it('すべてあれば空', () => {
-    expect(missingSlideIds(snapshot(null), pin(null, [2]))).toEqual([]);
   });
 });
