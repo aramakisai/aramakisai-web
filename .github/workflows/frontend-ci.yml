@@ -174,10 +174,15 @@ jobs:
         # PR プレビューはアクセス制御されたプレビュー環境として扱い、開発用フェーズ切替 UI (要件 7-5) を有効にする。
         run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- env NEXT_PUBLIC_CMS_URL=https://cms.aramakisai.com NEXT_PUBLIC_ENABLE_PHASE_OVERRIDE=true pnpm exec opennextjs-cloudflare build
 
+      - name: Write Workers secrets file (staging)
+        # 値は echo しない。未設定なら KeyError でステップを失敗させてデプロイを止める。
+        run: |
+          infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- python3 -c 'import json,os; json.dump({"STAMP_SIGNING_SECRET": os.environ["STAMP_SIGNING_SECRET"]}, open(os.environ["RUNNER_TEMP"] + "/workers-secrets.json", "w"))'
+
       - name: Upload Cloudflare Workers preview version
         id: upload_preview
         run: |
-          OUTPUT=$(infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec wrangler versions upload)
+          OUTPUT=$(infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec wrangler versions upload --secrets-file "$RUNNER_TEMP/workers-secrets.json")
           echo "$OUTPUT"
           # wrangler はバージョンのプレビュー URL を出力しないため、バージョン ID から組み立てる。
           # 形式は https://<バージョン ID の先頭 8 文字>-<worker 名>.<アカウントのサブドメイン>.workers.dev
@@ -187,6 +192,10 @@ jobs:
             exit 1
           fi
           echo "url=https://${VERSION_ID:0:8}-aramakisai-web.aramakisai.workers.dev" >> "$GITHUB_OUTPUT"
+
+      - name: Remove Workers secrets file
+        if: always()
+        run: rm -f "$RUNNER_TEMP/workers-secrets.json"
 
       - name: Find existing preview comment
         uses: peter-evans/find-comment@v3
@@ -350,8 +359,17 @@ jobs:
           # deploy-preview にも同フラグを付与している (要件 7-5)。deploy-prod には付与しない。
           NEXT_PUBLIC_ENABLE_PHASE_OVERRIDE: 'true'
 
+      - name: Write Workers secrets file (staging)
+        # 値は echo しない。未設定なら KeyError でステップを失敗させてデプロイを止める。
+        run: |
+          infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- python3 -c 'import json,os; json.dump({"STAMP_SIGNING_SECRET": os.environ["STAMP_SIGNING_SECRET"]}, open(os.environ["RUNNER_TEMP"] + "/workers-secrets.json", "w"))'
+
       - name: Deploy to Cloudflare Workers (dev)
-        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec wrangler deploy --env=dev
+        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec wrangler deploy --env=dev --secrets-file "$RUNNER_TEMP/workers-secrets.json"
+
+      - name: Remove Workers secrets file
+        if: always()
+        run: rm -f "$RUNNER_TEMP/workers-secrets.json"
 
   deploy-prod:
     name: deploy prod (Workers)
@@ -409,5 +427,15 @@ jobs:
       - name: Build (prod env, inlined by Infisical)
         run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod -- pnpm exec opennextjs-cloudflare build
 
+      - name: Write Workers secrets file (prod)
+        # プレビューは本番と同じ Worker に staging の値を積む。本番デプロイでも明示しないとプレビューの値が引き継がれうる。
+        # 値は echo しない。未設定なら KeyError でステップを失敗させてデプロイを止める。
+        run: |
+          infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod -- python3 -c 'import json,os; json.dump({"STAMP_SIGNING_SECRET": os.environ["STAMP_SIGNING_SECRET"]}, open(os.environ["RUNNER_TEMP"] + "/workers-secrets.json", "w"))'
+
       - name: Deploy to Cloudflare Workers (prod)
-        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod -- pnpm exec opennextjs-cloudflare deploy
+        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod -- pnpm exec opennextjs-cloudflare deploy --secrets-file "$RUNNER_TEMP/workers-secrets.json"
+
+      - name: Remove Workers secrets file
+        if: always()
+        run: rm -f "$RUNNER_TEMP/workers-secrets.json"

@@ -3,6 +3,9 @@ import { describe, expect, test, vi } from 'vitest';
 import { NavigationMenuRows } from './navigation-menu-rows';
 import { navigationItemsByPhase } from '@/lib/navigation';
 
+const DIVIDER = 'shadow-[inset_0_-1px_0_theme(colors.gray.200)]';
+const LEFT_LINE = 'shadow-[inset_1px_0_0_theme(colors.gray.200)]';
+
 describe('NavigationMenuRows', () => {
   test('行の高さは 48px で、閉じた行の下に区切り線を持つ', () => {
     render(
@@ -16,7 +19,7 @@ describe('NavigationMenuRows', () => {
 
     const link = screen.getByRole('link', { name: '企画一覧' });
     expect(link).toHaveClass('min-h-12');
-    expect(link.closest('li')).toHaveClass('border-b', 'border-gray-200');
+    expect(link.closest('li')).toHaveClass(DIVIDER);
   });
 
   test('最後の行には区切り線を持たない (パネル外周の border-b と重なるため)', () => {
@@ -32,7 +35,7 @@ describe('NavigationMenuRows', () => {
     const lastRow = screen
       .getByRole('button', { name: /ご案内/ })
       .closest('li');
-    expect(lastRow).not.toHaveClass('border-b');
+    expect(lastRow).not.toHaveClass(DIVIDER);
   });
 
   test('開いた親の子項目一覧の後に続く行との間に区切り線がない', () => {
@@ -49,7 +52,7 @@ describe('NavigationMenuRows', () => {
     const guidanceRowBeforeOpen = screen
       .getByRole('button', { name: /ご案内/ })
       .closest('li');
-    expect(guidanceRowBeforeOpen).toHaveClass('border-b');
+    expect(guidanceRowBeforeOpen).toHaveClass(DIVIDER);
 
     fireEvent.click(screen.getByRole('button', { name: /ご案内/ }));
 
@@ -57,13 +60,13 @@ describe('NavigationMenuRows', () => {
     const guidanceRow = screen
       .getByRole('button', { name: /ご案内/ })
       .closest('li');
-    expect(guidanceRow).not.toHaveClass('border-b');
+    expect(guidanceRow).not.toHaveClass(DIVIDER);
 
     // 開いた子項目一覧のすぐ後に続く行 (協賛) の上にも区切り線が出ない
     const sponsorRow = screen
       .getByRole('button', { name: /協賛/ })
       .closest('li');
-    expect(sponsorRow).not.toHaveClass('border-b');
+    expect(sponsorRow).not.toHaveClass(DIVIDER);
   });
 
   test('子項目は 16px の追加インデントと左の縦線を持つ', () => {
@@ -79,7 +82,7 @@ describe('NavigationMenuRows', () => {
     fireEvent.click(screen.getByRole('button', { name: /ご案内/ }));
     const childLink = screen.getByRole('link', { name: 'アクセス' });
     expect(childLink).toHaveClass('pl-8', 'text-sm', 'leading-[1.6]');
-    expect(childLink.parentElement).toHaveClass('border-l', 'border-gray-200');
+    expect(childLink.closest('ul')).toHaveClass(LEFT_LINE);
   });
 
   test('複数の親項目をそれぞれ独立して同時に開ける', () => {

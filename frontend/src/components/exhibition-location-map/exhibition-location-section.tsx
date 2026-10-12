@@ -39,7 +39,9 @@ export function ExhibitionLocationSection({
       <h2 className="py-0 text-[20px] leading-[140%] text-text lg:text-[24px] lg:leading-[130%]">
         場所
       </h2>
-      <div className="relative">
+      {/* isolate: リンクの z-[1000] をこのブロック内に閉じ込める。無いとルートの積層に漏れ、
+          スクロールで下部ナビ (z-40) の上に重なる */}
+      <div className="relative isolate">
         <ExhibitionLocationMap
           areas={areas}
           targetAreas={target.areas}

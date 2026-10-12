@@ -84,6 +84,17 @@
 }
 
 /*
+ * マイページをスマートフォン専用にする判別。大画面でもタッチ主体の端末 (タブレット) は
+ * 対象外にするため、幅だけでなく hover / pointer も見る。User-Agent 判別は ISR を
+ * 壊すので使わない
+ */
+@custom-variant pc-input {
+  @media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+    @slot;
+  }
+}
+
+/*
  * サイネージの縦型配置は、ビューポートのメディアクエリではなく画面の実寸から決めた
  * キャンバスの data-orientation で切り替える (signage-viewport.ts)。
  * メディアクエリのままだと、キャンバスの向き・倍率と配置が食い違いうる。

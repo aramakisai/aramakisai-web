@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   navigationItemsByPhase,
   bottomNavigationItems,
+  mobileMenuItemsFor,
   type NavigationItem,
 } from './navigation';
 
@@ -93,11 +94,11 @@ describe('navigationItemsByPhase', () => {
 });
 
 describe('bottomNavigationItems', () => {
-  it('ホームを含む 5 項目を表のとおりの順序・アイコンで持つ', () => {
+  it('マイページを含む 5 項目を表のとおりの順序・アイコンで持つ', () => {
     expect(bottomNavigationItems).toEqual([
       { label: '企画', href: '/exhibitions', icon: 'festival' },
       { label: 'マップ', href: '/map', icon: 'map' },
-      { label: 'ホーム', href: '/', icon: 'home' },
+      { label: 'マイページ', href: '/mypage', icon: 'person' },
       { label: 'タイムテーブル', href: '/timetable', icon: 'calendar_clock' },
       { label: '駐車場', href: '/parking', icon: 'parking_sign' },
     ]);
@@ -124,5 +125,25 @@ describe('lib/navigation.ts は表示部品を参照しない (要件 19.4)', ()
   it('react や components を import しない', () => {
     expect(source).not.toMatch(/from ['"]react['"]/);
     expect(source).not.toMatch(/from ['"]@\/components/);
+  });
+});
+
+describe('mobileMenuItemsFor', () => {
+  it('live はハンバーガーメニュー用に末尾へマイページを足す', () => {
+    const items = mobileMenuItemsFor('live');
+    expect(items.slice(0, -1)).toEqual(navigationItemsByPhase.live);
+    expect(items.at(-1)).toEqual({ label: 'マイページ', href: '/mypage' });
+  });
+
+  it('pre_event は変えない', () => {
+    expect(mobileMenuItemsFor('pre_event')).toEqual(
+      navigationItemsByPhase.pre_event,
+    );
+  });
+
+  it('PC の横並びナビが読む navigationItemsByPhase.live にはマイページを含めない', () => {
+    expect(
+      navigationItemsByPhase.live.some((item) => item.href === '/mypage'),
+    ).toBe(false);
   });
 });
