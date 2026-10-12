@@ -1,0 +1,13 @@
+name = "aramakisai-signage-hub"
+main = "index.ts"
+compatibility_date = "2024-12-30"
+workers_dev = false
+preview_urls = false
+
+[[durable_objects.bindings]]
+name = "SIGNAGE_HUB"
+class_name = "SignageHub"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["SignageHub"]
