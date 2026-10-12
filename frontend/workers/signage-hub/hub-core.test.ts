@@ -383,7 +383,11 @@ describe('planConnect', () => {
   it('期限内の保持を全部返す', () => {
     const pin = pinBroadcast(pinPayload([1]));
     const snap = snapshotBroadcast(3);
-    const r = planConnect(state({ retained: { pin, snapshot: snap } }), NOW, NOW + 1);
+    const r = planConnect(
+      state({ retained: { pin, snapshot: snap } }),
+      NOW,
+      NOW + 1,
+    );
     expect(r.messages).toEqual([pin, snap]);
     expect(r.alarmAt).toBeNull();
   });
@@ -419,11 +423,7 @@ describe('planConnect', () => {
   });
 
   it('保持が空の接続でも、既存の保留 targets は残す', () => {
-    const r = planConnect(
-      state({ pendingTargets: ['snapshot'] }),
-      NOW,
-      null,
-    );
+    const r = planConnect(state({ pendingTargets: ['snapshot'] }), NOW, null);
     expect(r.state.pendingTargets).toEqual(['snapshot', 'pin']);
   });
 });

@@ -67,9 +67,7 @@ describe('SignageHub の alarm の扱い', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (ctx as any).getWebSockets = () => [];
     await hub
-      .fetch(
-        new Request('https://x/', { headers: { Upgrade: 'websocket' } }),
-      )
+      .fetch(new Request('https://x/', { headers: { Upgrade: 'websocket' } }))
       .catch(() => {});
     expect(ctx.alarm).not.toBeNull();
   });
