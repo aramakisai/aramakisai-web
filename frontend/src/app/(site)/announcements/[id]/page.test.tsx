@@ -1,6 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import AnnouncementPage, { generateMetadata } from './page';
+import AnnouncementPage, {
+  generateMetadata,
+  generateStaticParams,
+} from './page';
 import { notFound } from 'next/navigation';
 import { getAnnouncementById } from '@/lib/announcements';
 
@@ -230,5 +233,11 @@ describe('generateMetadata', () => {
     ).rejects.toThrow('NEXT_NOT_FOUND');
     expect(notFound).toHaveBeenCalled();
     expect(getAnnouncementById).not.toHaveBeenCalled();
+  });
+});
+
+describe('generateStaticParams', () => {
+  it('ビルド時には何も生成しない', () => {
+    expect(generateStaticParams()).toEqual([]);
   });
 });
