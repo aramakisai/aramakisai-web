@@ -1,6 +1,6 @@
 import type { SignageQuakeStage } from '../../src/lib/signage-quake';
 import type { ChannelName } from './relay-config';
-import type { QuakeNotice } from './relay-core';
+import type { EewKey, QuakeNotice } from './relay-core';
 import type { EewArea, EewReport, ObservationReport } from './upstream';
 
 export interface WebhookBody {
@@ -174,4 +174,205 @@ export function formatNotice(notice: QuakeNotice): WebhookBody {
     // 受信した文字列でメンションを起こさない
     allowed_mentions: { parse: [] },
   };
+}
+
+export interface DiscordStatus {
+  readonly configured: boolean;
+  /** 401・403・404を受けて、再起動まで投稿を止めている */
+  readonly disabled: boolean;
+  readonly lastSuccessAt: string | null;
+  readonly lastFailureAt: string | null;
+  /** 'http_429'・'http_500'・'network'・'timeout'等。URLは含めない */
+  readonly lastFailure: string | null;
+}
+
+export interface DiscordQueueDeps {
+  readonly webhookUrl: string | null;
+  readonly fetch: typeof fetch;
+  readonly sleep: (ms: number) => Promise<void>;
+  readonly now: () => number;
+  /** 編集の直前に、その報の記録のメッセージIDを読む。記録が別の報に進んでいればundefined */
+  readonly messageIdFor: (key: EewKey) => string | null | undefined;
+  /** 投稿の応答のメッセージIDを保存する */
+  readonly saveMessageId: (key: EewKey, messageId: string) => Promise<void>;
+}
+
+const QUEUE_LIMIT = 100;
+const MAX_ATTEMPTS = 3;
+const RETRY_WAITS_MS = [2000, 5000];
+const MAX_RATE_LIMIT_WAIT_MS = 30_000;
+const REQUEST_TIMEOUT_MS = 10_000;
+
+const keyOf = (n: QuakeNotice): EewKey | null =>
+  n.kind === 'eew'
+    ? {
+        eventId: n.report.eventId,
+        serial: n.report.serial,
+        cancelled: n.report.cancelled,
+      }
+    : null;
+
+/** 実行委員用チャンネルのWebhookへ1件ずつ投稿・編集する。呼び出し側を待たせない */
+export class DiscordQueue {
+  readonly #deps: DiscordQueueDeps;
+  readonly #queue: QuakeNotice[] = [];
+  #running = false;
+  #disabled = false;
+  /** 応答のヘッダが示す、次の要求を送ってよい時刻 */
+  #notBefore = 0;
+  #lastSuccessAt: string | null = null;
+  #lastFailureAt: string | null = null;
+  #lastFailure: string | null = null;
+
+  constructor(deps: DiscordQueueDeps) {
+    this.#deps = deps;
+  }
+
+  /** 待ち行列に足すだけで待たない */
+  enqueue(notice: QuakeNotice): void {
+    if (this.#deps.webhookUrl === null || this.#disabled) return;
+    if (this.#queue.length >= QUEUE_LIMIT) {
+      console.warn(`discord queue full: dropped ${notice.kind}`);
+      return;
+    }
+    this.#queue.push(notice);
+    if (!this.#running) void this.#drain();
+  }
+
+  status(): DiscordStatus {
+    return {
+      configured: this.#deps.webhookUrl !== null,
+      disabled: this.#disabled,
+      lastSuccessAt: this.#lastSuccessAt,
+      lastFailureAt: this.#lastFailureAt,
+      lastFailure: this.#lastFailure,
+    };
+  }
+
+  async #drain(): Promise<void> {
+    this.#running = true;
+    try {
+      while (this.#queue.length > 0 && !this.#disabled) {
+        const notice = this.#queue.shift()!;
+        try {
+          await this.#deliver(notice);
+        } catch {
+          this.#fail(notice.kind, 'internal');
+        }
+      }
+    } finally {
+      this.#running = false;
+    }
+  }
+
+  async #deliver(notice: QuakeNotice): Promise<void> {
+    const base = this.#deps.webhookUrl!;
+    const key = keyOf(notice);
+    let method = 'POST';
+    let url = `${base}?wait=true`;
+    if (notice.kind === 'eew' && notice.op === 'edit' && key) {
+      const id = this.#deps.messageIdFor(key);
+      if (id === undefined) return;
+      if (id !== null) {
+        method = 'PATCH';
+        url = `${base}/messages/${id}`;
+      }
+    }
+    const res = await this.#send(
+      method,
+      url,
+      JSON.stringify(formatNotice(notice)),
+      notice.kind,
+    );
+    if (!res || method !== 'POST' || !key) return;
+    const body: unknown = await res.json().catch(() => null);
+    const id = (body as { id?: unknown } | null)?.id;
+    if (typeof id !== 'string') return;
+    await this.#deps.saveMessageId(key, id).catch(() => {
+      console.warn('discord message id not saved');
+    });
+  }
+
+  async #send(
+    method: string,
+    url: string,
+    body: string,
+    kind: string,
+  ): Promise<Response | null> {
+    const { sleep, now } = this.#deps;
+    for (let attempt = 1; ; attempt++) {
+      const wait = this.#notBefore - now();
+      if (wait > 0) await sleep(wait);
+
+      let res: Response;
+      try {
+        res = await this.#deps.fetch(url, {
+          method,
+          headers: { 'content-type': 'application/json' },
+          body,
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        });
+      } catch (e) {
+        const timedOut =
+          e instanceof Error &&
+          (e.name === 'TimeoutError' || e.name === 'AbortError');
+        if (attempt >= MAX_ATTEMPTS)
+          return this.#fail(kind, timedOut ? 'timeout' : 'network');
+        await sleep(RETRY_WAITS_MS[attempt - 1]!);
+        continue;
+      }
+
+      if (res.ok) {
+        this.#noteRateLimit(res);
+        this.#lastSuccessAt = new Date(now()).toISOString();
+        return res;
+      }
+      if (res.status === 429) {
+        const waitMs = await retryAfterMs(res);
+        if (waitMs > MAX_RATE_LIMIT_WAIT_MS || attempt >= MAX_ATTEMPTS)
+          return this.#fail(kind, 'http_429');
+        await sleep(waitMs);
+        continue;
+      }
+      this.#noteRateLimit(res);
+      if (res.status >= 500) {
+        if (attempt >= MAX_ATTEMPTS)
+          return this.#fail(kind, `http_${res.status}`);
+        await sleep(RETRY_WAITS_MS[attempt - 1]!);
+        continue;
+      }
+      // 無効な要求を重ねるとIPごと制限されるため、Webhookが使えないときは再起動まで止める
+      if ([401, 403, 404].includes(res.status)) {
+        this.#disabled = true;
+        this.#queue.length = 0;
+      }
+      return this.#fail(kind, `http_${res.status}`);
+    }
+  }
+
+  #noteRateLimit(res: Response): void {
+    if (res.headers.get('x-ratelimit-remaining') !== '0') return;
+    const after = Number(res.headers.get('x-ratelimit-reset-after'));
+    if (Number.isFinite(after) && after > 0)
+      this.#notBefore = this.#deps.now() + after * 1000;
+  }
+
+  /** URL・本文は出さない */
+  #fail(kind: string, failure: string): null {
+    this.#lastFailureAt = new Date(this.#deps.now()).toISOString();
+    this.#lastFailure = failure;
+    console.warn(`discord ${kind} failed: ${failure}`);
+    return null;
+  }
+}
+
+/** 本文のretry_after(秒、小数)、無ければRetry-Afterヘッダ(秒)。どちらも無ければ1秒 */
+async function retryAfterMs(res: Response): Promise<number> {
+  const body: unknown = await res.json().catch(() => null);
+  const fromBody = (body as { retry_after?: unknown } | null)?.retry_after;
+  const secs =
+    typeof fromBody === 'number'
+      ? fromBody
+      : Number(res.headers.get('retry-after'));
+  return Number.isFinite(secs) && secs > 0 ? secs * 1000 : 1000;
 }
