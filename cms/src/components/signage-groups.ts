@@ -1,16 +1,17 @@
 import { visibleSlideIds } from '../lib/signage-visibility';
 
-export type SignageGroup = { id: number; name: string; visible: boolean; is_all: boolean; slides: number[] };
+export type SignageGroup = { id: number; name: string; visible: boolean; is_all: boolean; is_quake: boolean; slides: number[] };
 
 const JSON_HEADERS = { 'content-type': 'application/json' };
 
-type GroupDoc = { id: number; name: string; visible?: boolean | null; is_all?: boolean | null; slides?: unknown[] | null };
+type GroupDoc = { id: number; name: string; visible?: boolean | null; is_all?: boolean | null; is_quake?: boolean | null; slides?: unknown[] | null };
 
 const toGroup = (doc: GroupDoc): SignageGroup => ({
   id: doc.id,
   name: doc.name,
   visible: Boolean(doc.visible),
   is_all: Boolean(doc.is_all),
+  is_quake: Boolean(doc.is_quake),
   slides: ((doc.slides ?? []) as unknown[]).map((s) => (typeof s === 'object' && s !== null ? (s as { id: number }).id : (s as number))),
 });
 
