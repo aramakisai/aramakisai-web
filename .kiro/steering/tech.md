@@ -80,6 +80,7 @@ make kubectl ARGS="get pods -A"   # kubectl 直実行不可、Infisical 経由 K
 ## CI/CD (`.github/workflows/`)
 
 - **`frontend-ci.yml`**: `frontend/**` 変更 PR/push で発火。`type-check` → `lint` → `format:check` → `test` → `build` (ダミー env 値でビルド)。PR では `deploy-preview` job が staging env で `wrangler versions upload` を実行し、PR コメントに URL を記録。`main` push では `deploy-prod` job が `opennextjs-cloudflare deploy` (= `wrangler deploy`) で本番反映。fork PR は secrets 不要なジョブのみ実行 (least-privilege)。
+  - サイトの Worker は `frontend/wrangler.toml` の `[limits] cpu_ms = 5000` で CPU 課金に上限を持つ。Free プランは cpu_ms 付きのデプロイを API が拒否する (code 100328) ため、3 つのデプロイ (preview の `wrangler versions upload`、dev の `wrangler deploy --env=dev`、prod の `opennextjs-cloudflare deploy`) は `frontend/scripts/deploy-with-cpu-limit-fallback.ts` で包み、100328 で失敗したときだけ `[limits]` を除いた一時設定 (`--config`、元の設定と同じディレクトリ) で 1 回再実行する。再実行時は `::warning::` を出す。それ以外の失敗はそのまま失敗。`env.dev` は limits を継承するため再掲しない。
   - プレビュー URL は `https://<version-hash>-aramakisai-web.<subdomain>.workers.dev` 形式。`wrangler versions upload` は本番トラフィックに影響しないバージョンを作るだけなので、複数 PR が同時に開いていても PR ごとに URL が独立し衝突しない。push のたびに hash は変わるが PR コメント自体は上書き更新される。
   - `aramakisai-web.aramakisai.workers.dev` (hash 無し) は `deploy-prod` が書き込む本番固定 URL であり、上記プレビュー URL とは別物。
 - **`frontend-ci-dummy.yml`**: `frontend/**` を触らない PR でのみ発火し、`frontend-ci.yml` と同名の required status check を常に成功報告する。branch protection の path-filter 既知の制約 (対象外 PR ではチェックが永久に "Expected" のまま完了せず admin でもマージ不能になる) の回避策。**`frontend-ci.yml` のジョブ名を変更したら、このダミー側の `name:` も揃える。**

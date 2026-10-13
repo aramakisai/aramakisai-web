@@ -18,6 +18,12 @@ preview_urls = true
 enabled = true
 head_sampling_rate = 0.1
 
+# Worker の暴走による CPU 課金の歯止め。Free プランでは cpu_ms を付けると Cloudflare API が
+# 100328 で拒否するため、CI は失敗時に [limits] を外した一時設定で 1 回だけ再実行する
+# (scripts/deploy-with-cpu-limit-fallback.ts)。env.dev には継承されるので再掲しない。
+[limits]
+cpu_ms = 5000
+
 [assets]
 directory = ".open-next/assets"
 

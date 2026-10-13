@@ -140,7 +140,7 @@ describe('.github/workflows/frontend-ci.yml — deploy-prod job', () => {
     );
     const deployIdx = commands.findIndex((c) =>
       c.includes(
-        'infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod -- pnpm exec opennextjs-cloudflare deploy',
+        'infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod -- pnpm exec tsx scripts/deploy-with-cpu-limit-fallback.ts pnpm exec opennextjs-cloudflare deploy',
       ),
     );
 
@@ -191,6 +191,30 @@ describe('.github/workflows/frontend-ci.yml — secret exposure', () => {
       const usesSecrets = JSON.stringify(job).includes('secrets.INFISICAL_');
       if (usesSecrets && name !== 'deploy-prod' && name !== 'deploy-dev') {
         expect(job.if).toMatch(/head\.repo\.fork == false/);
+      }
+    }
+  });
+});
+
+describe('.github/workflows/frontend-ci.yml — CPU limit fallback', () => {
+  const WRAPPER = 'pnpm exec tsx scripts/deploy-with-cpu-limit-fallback.ts ';
+
+  it.each([
+    ['deploy-preview', 'pnpm exec wrangler versions upload'],
+    ['deploy-dev', 'pnpm exec wrangler deploy --env=dev'],
+    ['deploy-prod', 'pnpm exec opennextjs-cloudflare deploy'],
+  ])('%s runs the site deploy through the fallback wrapper', (job, deploy) => {
+    const commands = runCommands(loadWorkflow().jobs[job]);
+    expect(commands.some((c) => c.includes(WRAPPER + deploy))).toBe(true);
+  });
+
+  it('never runs the site deploy commands without the wrapper', () => {
+    const workflow = loadWorkflow();
+    for (const name of ['deploy-preview', 'deploy-dev', 'deploy-prod']) {
+      for (const c of runCommands(workflow.jobs[name])) {
+        expect(c).not.toMatch(
+          /(?<!deploy-with-cpu-limit-fallback\.ts )pnpm exec (wrangler versions upload|wrangler deploy --env|opennextjs-cloudflare deploy)/,
+        );
       }
     }
   });
