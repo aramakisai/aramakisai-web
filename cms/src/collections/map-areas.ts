@@ -90,7 +90,7 @@ export const MapAreas: CollectionConfig = {
   admin: {
     useAsTitle: 'name',
   },
-  defaultSort: 'sort',
+  orderable: true,
   fields: [
     {
       name: 'name',
@@ -128,6 +128,7 @@ export const MapAreas: CollectionConfig = {
       name: 'sort',
       type: 'number',
       label: '表示順',
+      admin: { hidden: true },
     },
   ],
 };

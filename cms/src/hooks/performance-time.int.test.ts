@@ -42,10 +42,10 @@ describe.skipIf(!hasDatabase)('出演枠の時刻検証 (performanceTimeConstrai
     const config = (await import('../payload.config')).default
     payload = await getPayload({ config })
 
-    const meta = await payload.findGlobal({ slug: 'festival_meta', depth: 0 })
+    const meta = await payload.findGlobal({ slug: 'site_settings', depth: 0 })
     originalEventDays = meta.event_days
     await payload.updateGlobal({
-      slug: 'festival_meta',
+      slug: 'site_settings',
       data: {
         name: meta.name || 'test',
         event_days: [
@@ -80,7 +80,7 @@ describe.skipIf(!hasDatabase)('出演枠の時刻検証 (performanceTimeConstrai
     }
     await payload
       .updateGlobal({
-        slug: 'festival_meta',
+        slug: 'site_settings',
         data: { event_days: originalEventDays as never },
         overrideAccess: true,
       })

@@ -239,7 +239,8 @@ const menu = fieldOf(vendorFields, 'menu');
     );
     expect(name.type).toBe('text');
     expect(name.required).toBe(true);
-    expect(price.type).toBe('text');
+    expect(price.type).toBe('number');
+    expect(price.min).toBe(0);
     expect(price.required).toBeUndefined();
   });
 
@@ -296,5 +297,31 @@ describe('カテゴリ別の配置フィールド', () => {
 
   it('出店日の必須判定は validateCategoryContents に任せ、フィールド自体は必須にしない', () => {
     expect(fieldOf(exhibitFields, 'open_days').required).toBeUndefined();
+  });
+});
+
+describe('booth_number フィールド', () => {
+  it.each(['exhibit', 'vendor', 'other'])('%s は最大 20 文字のテキストで、空白のみは null で保存する', (key) => {
+    const f = fieldOf(groupFields(key), 'booth_number');
+    expect(f.type).toBe('text');
+    expect(f.maxLength).toBe(20);
+    const [hook] = (f.hooks as { beforeValidate: ((a: { value: unknown }) => unknown)[] }).beforeValidate;
+    expect(hook({ value: '' })).toBeNull();
+    expect(hook({ value: 'GB155' })).toBe('GB155');
+  });
+});
+
+describe('menu の price 検証', () => {
+  const price = fieldOf(
+    fieldOf(groupFields('vendor'), 'menu').fields as readonly unknown[],
+    'price',
+  );
+  const v = (x: unknown) => (price.validate as (v: unknown, o: unknown) => true | string)(x, {});
+  it('0 以上の整数だけ受け付け、空は許す', () => {
+    expect(v(0)).toBe(true);
+    expect(v(300)).toBe(true);
+    expect(v(null)).toBe(true);
+    expect(v(-1)).not.toBe(true);
+    expect(v(1.5)).not.toBe(true);
   });
 });

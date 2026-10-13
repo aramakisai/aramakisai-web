@@ -1,6 +1,7 @@
 import type { CollectionConfig, Field, GroupField } from 'payload';
 
 import { executiveOnlyField } from '../access/payload-access';
+import { blankToNull } from '../hooks/constraints';
 import {
   exhibitionBoothPlacementConstraint,
   categoryContentsConstraint,
@@ -27,9 +28,13 @@ const MENU_FIELD: Field = {
     { name: 'name', type: 'text', required: true, maxLength: 255, label: '品名' },
     {
       name: 'price',
-      type: 'text',
-      maxLength: 255,
+      type: 'number',
+      min: 0,
       label: '価格',
+      validate: (value: unknown) =>
+        value == null || (typeof value === 'number' && Number.isInteger(value) && value >= 0)
+          ? true
+          : '価格は 0 以上の整数で入力してください',
       hooks: {
         // Payload は text の空値を補正せず、未入力は NULL・入力後に消すと '' で保存される
         beforeValidate: [
@@ -68,7 +73,10 @@ const PLACEMENT_FIELDS: Field[] = [
   },
   {
     name: 'booth_number',
-    type: 'number',
+    type: 'text',
+    maxLength: 20,
+    // 重複判定 (collection の beforeValidate) より先に正規化するため field の beforeValidate に置く
+    hooks: { beforeValidate: [({ value }) => blankToNull(value)] },
     label: 'ブース番号',
     admin: { description: '割り当てられた出店グループ内の番号もしくは教室番号' },
     access: { create: executiveOnlyField, update: executiveOnlyField },

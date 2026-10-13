@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  blankToNull,
   newImageIds,
   validateBoothPlacement,
   validateCategoryBoothPlacements,
@@ -537,5 +538,32 @@ describe('validatePerformanceOverlap', () => {
 
   it('対象が枠でなければ判定しない', () => {
     expect(validatePerformanceOverlap(null, { others: [other('a', 0, 1439)] })).toEqual([]);
+  });
+});
+
+describe('blankToNull', () => {
+  it('空白のみ・空文字を null にし、それ以外は前後の空白を除く', () => {
+    expect(blankToNull('')).toBeNull();
+    expect(blankToNull('  ')).toBeNull();
+    expect(blankToNull(' GB155 ')).toBe('GB155');
+    expect(blankToNull(null)).toBeNull();
+  });
+});
+
+describe('ブース番号は文字列の完全一致で比べる', () => {
+  it('空文字は未設定として重複判定の対象外', () => {
+    expect(validateBoothPlacement({ area_id: 1, booth_number: '' }, { duplicateExists: true })).toEqual([]);
+  });
+  it('同一企画内で 5 と 05 は共存し、5 同士は衝突する', () => {
+    const at = (a: string, b: string) =>
+      validateCategoryBoothPlacements(
+        [
+          { key: 'exhibit', value: { area_id: 1, booth_number: a } },
+          { key: 'vendor', value: { area_id: 1, booth_number: b } },
+        ],
+        { duplicateKeys: new Set() },
+      );
+    expect(at('5', '05')).toEqual([]);
+    expect(at('5', '5')).toHaveLength(1);
   });
 });

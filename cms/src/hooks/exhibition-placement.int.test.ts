@@ -96,7 +96,7 @@ describe.skipIf(!hasDatabase)('学生企画のカテゴリ別配置・出店日'
     await make('student_exhibitions', {
       owner: a.id,
       categories: ['vendor'],
-      vendor: { area_id: areaId, booth_number: 1, open_days: OPEN_DAYS },
+      vendor: { area_id: areaId, booth_number: '1', open_days: OPEN_DAYS },
     })
     const errors = await errorsOf(
       payload.create({
@@ -104,7 +104,7 @@ describe.skipIf(!hasDatabase)('学生企画のカテゴリ別配置・出店日'
         data: {
           owner: b.id,
           categories: ['vendor'],
-          vendor: { area_id: areaId, booth_number: 1, open_days: OPEN_DAYS },
+          vendor: { area_id: areaId, booth_number: '1', open_days: OPEN_DAYS },
         } as never,
         overrideAccess: true,
       }),
@@ -120,8 +120,8 @@ describe.skipIf(!hasDatabase)('学生企画のカテゴリ別配置・出店日'
         data: {
           owner: owner.id,
           categories: ['exhibit', 'other'],
-          exhibit: { area_id: areaId, booth_number: 2, open_days: OPEN_DAYS },
-          other: { area_id: areaId, booth_number: 2, open_days: OPEN_DAYS },
+          exhibit: { area_id: areaId, booth_number: '2', open_days: OPEN_DAYS },
+          other: { area_id: areaId, booth_number: '2', open_days: OPEN_DAYS },
         } as never,
         overrideAccess: true,
       }),
@@ -134,8 +134,83 @@ describe.skipIf(!hasDatabase)('学生企画のカテゴリ別配置・出店日'
     await make('student_exhibitions', {
       owner: owner.id,
       categories: ['exhibit', 'other'],
-      exhibit: { area_id: areaId, booth_number: 3, open_days: OPEN_DAYS },
-      other: { area_id: areaId, booth_number: 4, open_days: OPEN_DAYS },
+      exhibit: { area_id: areaId, booth_number: '3', open_days: OPEN_DAYS },
+      other: { area_id: areaId, booth_number: '4', open_days: OPEN_DAYS },
     })
+  })
+
+  it('英字を含むブース番号を保存でき、同一エリアの同じ番号は拒否し、05と5は共存できる', async () => {
+    const a = await makeOwner('gb-a')
+    const b = await makeOwner('gb-b')
+    const saved = (await make('student_exhibitions', {
+      owner: a.id,
+      categories: ['exhibit'],
+      exhibit: { area_id: areaId, booth_number: 'GB155', open_days: OPEN_DAYS },
+    })) as { id: number }
+    const read = (await payload.findByID({ collection: 'student_exhibitions', id: saved.id, overrideAccess: true })) as {
+      exhibit?: { booth_number?: string }
+    }
+    expect(read.exhibit?.booth_number).toBe('GB155')
+    const errors = await errorsOf(
+      payload.create({
+        collection: 'student_exhibitions',
+        data: {
+          owner: b.id,
+          categories: ['exhibit'],
+          exhibit: { area_id: areaId, booth_number: 'GB155', open_days: OPEN_DAYS },
+        } as never,
+        overrideAccess: true,
+      }),
+    )
+    expect(errors).toEqual(['exhibit.booth_number'])
+    const padded = await errorsOf(
+      payload.create({
+        collection: 'student_exhibitions',
+        data: {
+          owner: b.id,
+          categories: ['exhibit'],
+          exhibit: { area_id: areaId, booth_number: ' GB155 ', open_days: OPEN_DAYS },
+        } as never,
+        overrideAccess: true,
+      }),
+    )
+    expect(padded).toEqual(['exhibit.booth_number'])
+    await make('student_exhibitions', {
+      owner: b.id,
+      categories: ['exhibit'],
+      exhibit: { area_id: areaId, booth_number: '5', open_days: OPEN_DAYS },
+    })
+    const c = await makeOwner('gb-c')
+    await make('student_exhibitions', {
+      owner: c.id,
+      categories: ['exhibit'],
+      exhibit: { area_id: areaId, booth_number: '05', open_days: OPEN_DAYS },
+    })
+  })
+
+  it('同一エリアの2件のブース番号を空にしても、どちらも保存できる', async () => {
+    const a = await makeOwner('clr-a')
+    const b = await makeOwner('clr-b')
+    const docs = [
+      await make('student_exhibitions', {
+        owner: a.id,
+        categories: ['exhibit'],
+        exhibit: { area_id: areaId, booth_number: 'CL1', open_days: OPEN_DAYS },
+      }),
+      await make('student_exhibitions', {
+        owner: b.id,
+        categories: ['exhibit'],
+        exhibit: { area_id: areaId, booth_number: 'CL2', open_days: OPEN_DAYS },
+      }),
+    ]
+    for (const doc of docs) {
+      const updated = (await payload.update({
+        collection: 'student_exhibitions',
+        id: doc.id,
+        data: { exhibit: { area_id: areaId, booth_number: '', open_days: OPEN_DAYS } } as never,
+        overrideAccess: true,
+      })) as { exhibit?: { booth_number?: string | null } }
+      expect(updated.exhibit?.booth_number ?? null).toBeNull()
+    }
   })
 })

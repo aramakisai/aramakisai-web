@@ -7,9 +7,9 @@ export const ParkingLots: CollectionConfig = {
   labels: { singular: '駐車場', plural: '駐車場' },
   admin: {
     useAsTitle: 'name',
-    defaultColumns: ['name', 'sort'],
+    defaultColumns: ['name'],
   },
-  defaultSort: 'sort',
+  orderable: true,
   hooks: {
     afterChange: [
       async ({ req, doc, operation }) => {
@@ -49,6 +49,7 @@ export const ParkingLots: CollectionConfig = {
       name: 'sort',
       type: 'number',
       label: '表示順',
+      admin: { hidden: true },
     },
   ],
 };

@@ -45,7 +45,29 @@ export const SignageGroups: CollectionConfig = {
       access: { update: ({ doc }) => !doc?.is_all },
       admin: {
         condition: (data) => !data?.is_all,
-        components: { Field: './components/SignageGroupSlidesField.tsx' },
+        components: {
+          Field: {
+            path: './components/SignageGroupMembersField.tsx',
+            clientProps: { collection: 'signage_slides', titleField: 'title', groupField: 'slides' },
+          },
+        },
+      },
+    },
+    {
+      name: 'telops',
+      type: 'relationship',
+      relationTo: 'telops',
+      hasMany: true,
+      label: '所属テロップ',
+      access: { update: ({ doc }) => !doc?.is_all },
+      admin: {
+        condition: (data) => !data?.is_all,
+        components: {
+          Field: {
+            path: './components/SignageGroupMembersField.tsx',
+            clientProps: { collection: 'telops', titleField: 'body', groupField: 'telops' },
+          },
+        },
       },
     },
     {

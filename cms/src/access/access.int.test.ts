@@ -221,7 +221,7 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
         collection: 'student_exhibitions',
         id: ownRecord.id,
         data: {
-          other: { booth_number: 999, booth_label: '書き換え後' },
+          other: { booth_number: '999', booth_label: '書き換え後' },
           status: 'published',
         } as never,
         overrideAccess: false,
@@ -272,13 +272,13 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
           other: {
             name: `assign1-${suffix}`,
             open_days: ['2026-11-01T12:00:00.000Z'],
-            booth_number: 101,
+            booth_number: '101',
             booth_label: `label1-${suffix}`,
           },
           status: 'draft',
         },
         overrideAccess: true,
-      })) as { id: number; owner: unknown; other: { booth_number: number; booth_label: string } };
+      })) as { id: number; owner: unknown; other: { booth_number: string; booth_label: string } };
       assign1Record = created1.id;
 
       const created2 = (await payload.create({
@@ -290,14 +290,14 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
           other: {
             name: `assign2-${suffix}`,
             open_days: ['2026-11-01T12:00:00.000Z'],
-            booth_number: 101,
+            booth_number: '101',
             booth_label: `label1-${suffix}`,
           },
           status: 'draft',
         } as never,
         overrideAccess: false,
         user: executiveUser,
-      })) as { id: number; owner: unknown; other: { booth_number: number; booth_label: string } };
+      })) as { id: number; owner: unknown; other: { booth_number: string; booth_label: string } };
       assign2Record = created2.id;
 
       // 同じ値で保存される (owner はそれぞれの指定どおり、他の指定値は経路によらず同じ)
@@ -747,6 +747,47 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
         expect(await publicIds()).toEqual([]);
       } finally {
         await cleanup([a, b, c], [g, h]);
+      }
+    });
+
+    it('未認証のテロップ読み取りは表示対象だけを返し、実行委員は全件を読める', async () => {
+      const telop = (name: string, enabled = true) =>
+        payload.create({
+          collection: 'telops',
+          data: { audience: 'visitor', target: 'ご来場のみなさまへ', body: `${name}-${suffix}`, enabled },
+          ...ov,
+        });
+      const t1 = await telop('tv-1');
+      const t2 = await telop('tv-2');
+      const t3 = await telop('tv-3');
+      const t4 = await telop('tv-4', false);
+      const g = await payload.create({ collection: 'signage_groups', data: { name: `tv-${suffix}`, visible: true, telops: [t1.id, t4.id] }, ...ov });
+      const h = await payload.create({ collection: 'signage_groups', data: { name: `tv-hidden-${suffix}`, visible: false, telops: [t2.id] }, ...ov });
+      const publicTelops = async () =>
+        (await payload.find({ collection: 'telops', overrideAccess: false, pagination: false, depth: 0 })).docs.map((d) => d.id);
+      try {
+        // 「すべて」が表示中なら有効なテロップは未所属も含めて全部出る
+        let ids = await publicTelops();
+        expect(ids).toEqual(expect.arrayContaining([t1.id, t2.id, t3.id]));
+        expect(ids).not.toContain(t4.id);
+
+        await setAllVisible(false);
+        ids = await publicTelops();
+        expect(ids).toContain(t1.id);
+        expect(ids).not.toContain(t2.id);
+        expect(ids).not.toContain(t3.id);
+        expect(ids).not.toContain(t4.id);
+
+        const exec = await asUser(executive.id);
+        const all = await payload.find({ collection: 'telops', overrideAccess: false, user: exec, pagination: false, depth: 0 });
+        expect(all.docs.map((d) => d.id)).toEqual(expect.arrayContaining([t1.id, t2.id, t3.id, t4.id]));
+
+        // 表示対象が無いときは 0 件 (403 ではない)
+        await payload.update({ collection: 'signage_groups', id: g.id, data: { visible: false }, ...ov });
+        expect(await publicTelops()).toEqual([]);
+      } finally {
+        await cleanup([], [g, h]);
+        await Promise.all([t1, t2, t3, t4].map((t) => payload.delete({ collection: 'telops', id: t.id, ...ov }).catch(() => null)));
       }
     });
 

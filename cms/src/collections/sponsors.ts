@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload';
 
+import { blankToNull } from '../hooks/constraints';
 import { sponsorBoothPlacementConstraint } from '../hooks/payload-constraints';
 import { signageNotifyHook } from '../lib/signage-notify';
 
@@ -9,7 +10,7 @@ export const Sponsors: CollectionConfig = {
   admin: {
     useAsTitle: 'name',
   },
-  defaultSort: 'sort',
+  orderable: true,
   hooks: {
     beforeValidate: [sponsorBoothPlacementConstraint],
     afterChange: [signageNotifyHook(['snapshot'])],
@@ -101,7 +102,10 @@ export const Sponsors: CollectionConfig = {
     },
     {
       name: 'booth_number',
-      type: 'number',
+      type: 'text',
+      maxLength: 20,
+      // 重複判定 (collection の beforeValidate) より先に正規化するため field の beforeValidate に置く
+      hooks: { beforeValidate: [({ value }) => blankToNull(value)] },
       label: 'ブース番号',
       admin: {
         description: 'エリア内番号 (area_id+booth_number UNIQUE)。出店協賛のみ',
@@ -122,6 +126,7 @@ export const Sponsors: CollectionConfig = {
       name: 'sort',
       type: 'number',
       label: '表示順',
+      admin: { hidden: true },
     },
   ],
 };

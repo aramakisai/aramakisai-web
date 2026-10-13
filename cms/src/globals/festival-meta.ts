@@ -6,6 +6,7 @@ import { signageNotifyGlobalHook } from '../lib/signage-notify';
 export const FestivalMeta: GlobalConfig = {
   slug: 'festival_meta',
   label: '祭基本情報',
+  admin: { hidden: true },
   hooks: { afterChange: [signageNotifyGlobalHook(['snapshot'])] },
   fields: [
     {

@@ -27,11 +27,11 @@ describe.skipIf(!hasDatabase)(
       const config = (await import('../payload.config')).default
       payload = await getPayload({ config })
 
-      // 出演枠の開催日は祭基本情報の開催日程に含まれている必要がある
-      const meta = await payload.findGlobal({ slug: 'festival_meta', depth: 0 })
+      // 出演枠の開催日はサイト設定の開催日程に含まれている必要がある
+      const meta = await payload.findGlobal({ slug: 'site_settings', depth: 0 })
     originalEventDays = meta.event_days
       await payload.updateGlobal({
-        slug: 'festival_meta',
+        slug: 'site_settings',
         data: {
           name: meta.name || 'test',
           event_days: [
@@ -86,7 +86,7 @@ describe.skipIf(!hasDatabase)(
       if (!payload) return
       await payload
         .updateGlobal({
-          slug: 'festival_meta',
+          slug: 'site_settings',
           data: { event_days: originalEventDays as never },
           overrideAccess: true,
         })

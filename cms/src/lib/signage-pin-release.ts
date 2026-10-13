@@ -1,6 +1,6 @@
 import type { Payload, PayloadRequest } from 'payload';
 
-import { loadVisibleSlideIds } from './signage-visibility';
+import { loadVisibleIds } from './signage-visibility';
 
 /**
  * 固定中のスライドが表示対象から外れたら固定を外す。
@@ -11,6 +11,6 @@ export async function releasePinIfHidden(payload: Payload, req: PayloadRequest):
   const pinned = settings.pinned_slide;
   if (pinned === null || pinned === undefined) return;
   const pinnedId = typeof pinned === 'object' ? pinned.id : pinned;
-  if ((await loadVisibleSlideIds(payload, req)).includes(pinnedId)) return;
+  if ((await loadVisibleIds(payload, 'signage_slides', req)).includes(pinnedId)) return;
   await payload.updateGlobal({ slug: 'signage_settings', data: { pinned_slide: null }, overrideAccess: true, req });
 }

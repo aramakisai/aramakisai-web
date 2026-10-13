@@ -6,7 +6,7 @@ export const FaqItems: CollectionConfig = {
   admin: {
     useAsTitle: 'question',
   },
-  defaultSort: 'sort',
+  orderable: true,
   fields: [
     {
       name: 'question',
@@ -25,6 +25,7 @@ export const FaqItems: CollectionConfig = {
       name: 'sort',
       type: 'number',
       label: '表示順',
+      admin: { hidden: true },
     },
   ],
 };

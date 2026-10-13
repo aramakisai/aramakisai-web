@@ -1,21 +1,38 @@
 import type { Payload, PayloadRequest, Where } from 'payload';
 
-export type VisibilityGroup = { is_all?: boolean | null; visible?: boolean | null; slides: number[] };
+type MemberKey = 'slides' | 'telops';
+type MemberCollection = 'signage_slides' | 'telops';
 
-/** 有効で、かつ「すべて」が表示中か表示中の通常のグループに属するスライドだけを、元の並びのまま返す */
-export function visibleSlideIds(enabledSlideIds: number[], groups: VisibilityGroup[]): number[] {
-  if (groups.some((g) => g.is_all && g.visible)) return enabledSlideIds;
-  const members = new Set(groups.filter((g) => !g.is_all && g.visible).flatMap((g) => g.slides));
-  return enabledSlideIds.filter((id) => members.has(id));
+export type VisibilityGroup = {
+  is_all?: boolean | null;
+  visible?: boolean | null;
+  slides: number[];
+  telops: number[];
+};
+
+const KEY: Record<MemberCollection, MemberKey> = { signage_slides: 'slides', telops: 'telops' };
+
+/** 「すべて」が表示中なら有効な全件、そうでなければ表示中の通常グループの所属だけを、元の並びのまま返す */
+export function visibleMemberIds(enabledIds: number[], groups: VisibilityGroup[], key: MemberKey): number[] {
+  if (groups.some((g) => g.is_all && g.visible)) return enabledIds;
+  const members = new Set(groups.filter((g) => !g.is_all && g.visible).flatMap((g) => g[key]));
+  return enabledIds.filter((id) => members.has(id));
 }
 
 type Reader = Pick<Payload, 'find'>;
 
-/** 公開判定・固定の選択肢・自動解除が同じ結果を使うよう、DB から表示対象のスライド ID を計算する */
-export async function loadVisibleSlideIds(payload: Reader, req?: Partial<PayloadRequest>): Promise<number[]> {
-  const [slides, groups] = await Promise.all([
+const idsOf = (refs: unknown): number[] =>
+  (Array.isArray(refs) ? refs : []).map((r) => (typeof r === 'object' && r !== null ? (r as { id: number }).id : r));
+
+/** 公開判定・固定の選択肢・自動解除が同じ結果を使うよう、DB から表示対象のIDを計算する */
+export async function loadVisibleIds(
+  payload: Reader,
+  collection: MemberCollection,
+  req?: Partial<PayloadRequest>,
+): Promise<number[]> {
+  const [members, groups] = await Promise.all([
     payload.find({
-      collection: 'signage_slides',
+      collection,
       where: { enabled: { equals: true } },
       sort: '_order',
       pagination: false,
@@ -32,13 +49,15 @@ export async function loadVisibleSlideIds(payload: Reader, req?: Partial<Payload
       req,
     }),
   ]);
-  return visibleSlideIds(
-    slides.docs.map((s) => s.id),
+  return visibleMemberIds(
+    members.docs.map((m) => m.id),
     groups.docs.map((g) => ({
       is_all: g.is_all,
       visible: g.visible,
-      slides: (g.slides ?? []).map((s) => (typeof s === 'object' ? s.id : s)),
+      slides: idsOf(g.slides),
+      telops: idsOf(g.telops),
     })),
+    KEY[collection],
   );
 }
 
@@ -46,7 +65,11 @@ export async function loadVisibleSlideIds(payload: Reader, req?: Partial<Payload
  * policy.ts は同期でDBを読めないため、公開判定に重ねる表示対象の条件はここで作る。
  * 一致なしは false ではなく存在しない列の条件で表す (false を返すと読み取りが 403 になる)
  */
-export async function visibleSlideFilter(payload: Reader, req?: Partial<PayloadRequest>): Promise<Where> {
-  const ids = await loadVisibleSlideIds(payload, req);
+export async function visibleFilter(
+  payload: Reader,
+  collection: MemberCollection,
+  req?: Partial<PayloadRequest>,
+): Promise<Where> {
+  const ids = await loadVisibleIds(payload, collection, req);
   return ids.length > 0 ? { id: { in: ids } } : { id: { exists: false } };
 }

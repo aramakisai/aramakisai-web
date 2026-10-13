@@ -19,7 +19,7 @@ const DISABLED_FEATURE_KEYS = new Set([
 
 /**
  * announcements.body / topics.body / pages.content と、buildConfig の editor が
- * 単一設定であることに伴い festival_meta / page_home の richText フィールドにも適用される。
+ * 単一設定であることに伴い site_settings の richText フィールドにも適用される。
  */
 export const richTextEditorFeatures = ({
   defaultFeatures,

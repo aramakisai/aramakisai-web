@@ -3,6 +3,7 @@ import type { CollectionConfig } from 'payload';
 import { accessFor } from '../access/payload-access';
 import { isHiddenInAdmin } from '../access/policy';
 import { toCmsUser } from '../access/roles';
+import { NAV_GROUPS } from '../nav-groups';
 
 import { Announcements } from './announcements';
 import { FaqItems } from './faq-items';
@@ -32,6 +33,7 @@ const withAccess = (collection: CollectionConfig): CollectionConfig => ({
   access: accessFor(collection.slug),
   admin: {
     ...collection.admin,
+    group: NAV_GROUPS[collection.slug],
     hidden: ({ user }) => isHiddenInAdmin(toCmsUser(user), collection.slug),
   },
 });
