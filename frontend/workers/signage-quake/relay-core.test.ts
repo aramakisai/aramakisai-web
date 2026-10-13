@@ -3,14 +3,20 @@ import { describe, expect, it } from 'vitest';
 import {
   DISMISSED_LIMIT,
   EEW_RECORD_LIMIT,
+  SEEN_OBSERVATION_LIMIT,
+  SILENCE_LIMIT_MS,
   acceptReport,
   applyDismiss,
   eewPrecedence,
   emptyRelayState,
+  isReceiving,
+  isReceptionLost,
   processReport,
   putRecord,
+  recordDiscordMessage,
   toPayload,
   type EewRecord,
+  type QuakeNotice,
   type RelayState,
 } from './relay-core';
 import {
@@ -508,5 +514,300 @@ describe('段階の遷移', () => {
         observation: { source: 'p2p', maebashiIntensity: '震度4' },
       });
     });
+  });
+});
+
+describe('通知の判定', () => {
+  const at = (r: QuakeReport) =>
+    (r.kind === 'eqlist' ? r.originTime : r.issuedAt) + 5000;
+  const run = (s: RelayState, r: QuakeReport, test = false) =>
+    processReport(s, r, at(r), test);
+  const kinds = (o: { notices: readonly QuakeNotice[] }) =>
+    o.notices.map((n) => (n.kind === 'eew' ? `eew:${n.op}` : n.kind));
+  const NO_GUNMA = eew('p2p', 'hand-p2p-556-no-gunma.json');
+  const CANCEL = eew('p2p', 'hand-p2p-556-gunma-cancel.json');
+  const HI = obs('hand-p2p-551-maebashi-5strong.json');
+  const LOW = obs('hand-p2p-551-maebashi-4.json');
+  const eqlist = normalizeMessage(
+    'wolfxEqlist',
+    fx('hand-wolfx-eqlist-shindo-4.json'),
+    { test: false },
+  ) as EqlistReport;
+
+  it('群馬県を含む新しい警報は投稿し、段階1の通知が続く', () => {
+    const o = run(emptyRelayState(), P2P_WARN);
+    expect(kinds(o)).toEqual(['eew:post', 'stage']);
+    expect(o.notices[0]).toMatchObject({ receivedAt: at(P2P_WARN) });
+    expect(o.state.eew[0]?.notify).toBe(true);
+  });
+
+  it('群馬県を含まない警報は、試験モード以外では投稿しない', () => {
+    const o = run(emptyRelayState(), NO_GUNMA);
+    expect(o.notices).toEqual([]);
+    expect(o.state.eew[0]?.notify).toBe(false);
+    expect(kinds(run(emptyRelayState(), NO_GUNMA, true))).toEqual([
+      'eew:post',
+      'stage',
+    ]);
+  });
+
+  it('投稿した地震の続報・取消は群馬県外でも投稿する', () => {
+    const s = run(emptyRelayState(), P2P_WARN).state;
+    const nonGunmaFollow: EewReport = { ...P2P_WARN, serial: 2, gunma: false };
+    expect(kinds(run(s, nonGunmaFollow))).toEqual(['eew:post']);
+    expect(kinds(run(s, CANCEL))).toEqual(['eew:post', 'stage']);
+  });
+
+  it('投稿していない地震の群馬県外の続報は投稿しない', () => {
+    const s = run(emptyRelayState(), NO_GUNMA).state;
+    expect(run(s, { ...NO_GUNMA, serial: 2 }).notices).toEqual([]);
+  });
+
+  it('置き換えは先の投稿の編集。段階の通知は出さない', () => {
+    const s = run(emptyRelayState(), WOLFX_WARN).state;
+    const o = run(s, P2P_WARN);
+    expect(kinds(o)).toEqual(['eew:edit']);
+    expect(o.notices[0]).toMatchObject({ report: { source: 'p2p' } });
+  });
+
+  it('投稿していない地震の置き換えは編集も投稿もしない', () => {
+    const w = eew('wolfxEew', 'hand-wolfx-eew-no-gunma.json');
+    const s = run(emptyRelayState(), w).state;
+    expect(run(s, NO_GUNMA).notices).toEqual([]);
+  });
+
+  it('捨てた報は通知も状態の変化も出さない', () => {
+    const s = run(emptyRelayState(), P2P_WARN).state;
+    const o = run(s, WOLFX_WARN);
+    expect(o.notices).toEqual([]);
+    expect(o.state).toBe(s);
+  });
+
+  it('選別を通らない報は投稿しない', () => {
+    const o = processReport(
+      emptyRelayState(),
+      P2P_WARN,
+      P2P_WARN.issuedAt + 200_000,
+      false,
+    );
+    expect(o.notices).toEqual([]);
+  });
+
+  it('解除済みの地震の続報・取消も投稿する(表示は出さない)', () => {
+    const s = applyDismiss(
+      run(emptyRelayState(), P2P_WARN).state,
+      0,
+      'a@example.com',
+    ).state;
+    const o = run(s, { ...P2P_WARN, serial: 2 });
+    expect(kinds(o)).toEqual(['eew:post']);
+    expect(o.state.alert).toBeNull();
+  });
+
+  describe('地震情報', () => {
+    it('群馬県の観測点を含むP2Pの地震情報を、同じIDで1回だけ投稿する', () => {
+      const o1 = run(emptyRelayState(), LOW);
+      expect(kinds(o1)).toEqual(['observation']);
+      const o2 = run(o1.state, LOW);
+      expect(o2.notices).toEqual([]);
+      expect(o2.state.seenObservation).toEqual([LOW.id]);
+    });
+
+    it('5強以上なら地震情報の投稿に段階3の通知が続く', () => {
+      expect(kinds(run(emptyRelayState(), HI))).toEqual([
+        'observation',
+        'stage',
+      ]);
+    });
+
+    it('群馬県の観測点が無い地震情報は投稿しない', () => {
+      const o = run(emptyRelayState(), { ...LOW, gunmaStations: false });
+      expect(o.notices).toEqual([]);
+    });
+
+    it('Wolfxの地震情報は投稿しない(段階2への通知だけ)', () => {
+      const s = run(emptyRelayState(), P2P_WARN).state;
+      expect(kinds(run(s, eqlist))).toEqual(['stage']);
+    });
+
+    it('解除済みの地震の地震情報も投稿する', () => {
+      const s = applyDismiss(
+        run(emptyRelayState(), P2P_WARN).state,
+        0,
+        'a@example.com',
+      ).state;
+      expect(kinds(run(s, LOW))).toEqual(['observation']);
+    });
+
+    it('投稿済みのIDは上限を超えたら古いものから捨てる', () => {
+      let s = emptyRelayState();
+      for (let i = 0; i < SEEN_OBSERVATION_LIMIT + 2; i++)
+        s = run(s, { ...LOW, id: `id${i}` }).state;
+      expect(s.seenObservation).toHaveLength(SEEN_OBSERVATION_LIMIT);
+      expect(s.seenObservation[0]).toBe('id2');
+    });
+  });
+
+  describe('段階の通知', () => {
+    it('表示の有無・段階・訓練が変わったときだけ出す', () => {
+      let o = run(emptyRelayState(), P2P_WARN);
+      o = run(o.state, LOW);
+      expect(o.notices.at(-1)).toMatchObject({
+        kind: 'stage',
+        payload: { active: true, stage: 'calm' },
+      });
+      // 受信値だけの変化では出さない
+      const est = run(o.state, obs('hand-p2p-551-maebashi-46.json'));
+      expect(kinds(est)).toEqual(['observation']);
+    });
+
+    it('続報では出さない', () => {
+      const s = run(emptyRelayState(), P2P_WARN).state;
+      expect(kinds(run(s, { ...P2P_WARN, serial: 2 }))).toEqual(['eew:post']);
+    });
+
+    it('訓練から本物へ変わるときは出す', () => {
+      const train = run(
+        emptyRelayState(),
+        eew('p2p', 'hand-p2p-556-gunma-training.json'),
+      );
+      expect(train.notices.at(-1)).toMatchObject({
+        payload: { training: true },
+      });
+      const other: EewReport = { ...P2P_WARN, eventId: '20261023100099' };
+      expect(run(train.state, other).notices.at(-1)).toMatchObject({
+        kind: 'stage',
+        payload: { training: false },
+      });
+    });
+
+    it('通知の訓練の別は報に従う(試験モードの報を含む)', () => {
+      const o = run(emptyRelayState(), P2P_WARN, true);
+      expect(o.notices[0]).toMatchObject({ report: { training: false } });
+      const t = normalizeMessage('p2p', fx('hand-p2p-556-gunma-warning.json'), {
+        test: true,
+      }) as EewReport;
+      const o2 = run(emptyRelayState(), t, true);
+      expect(o2.notices[0]).toMatchObject({ report: { training: true } });
+      expect(o2.notices[1]).toMatchObject({ payload: { training: true } });
+    });
+  });
+
+  describe('解除の通知', () => {
+    it('表示中だけ、解除した実行委員を載せて出す', () => {
+      const s = run(emptyRelayState(), P2P_WARN).state;
+      const o = applyDismiss(s, 1234, 'a@example.com');
+      expect(o.notices).toEqual([
+        { kind: 'dismissed', by: 'a@example.com', training: false, at: 1234 },
+      ]);
+      expect(applyDismiss(o.state, 1, 'b@example.com').notices).toEqual([]);
+    });
+
+    it('訓練の表示の解除は訓練として通知する', () => {
+      const s = run(
+        emptyRelayState(),
+        eew('p2p', 'hand-p2p-556-gunma-training.json'),
+      ).state;
+      expect(applyDismiss(s, 0, 'a').notices[0]).toMatchObject({
+        training: true,
+      });
+    });
+  });
+});
+
+describe('メッセージIDの保存', () => {
+  const key = (r: EewReport) => ({
+    eventId: r.eventId,
+    serial: r.serial,
+    cancelled: r.cancelled,
+  });
+  const s1 = processReport(
+    emptyRelayState(),
+    P2P_WARN,
+    P2P_WARN.issuedAt + 1000,
+    false,
+  ).state;
+
+  it('同じ報の記録に保存する', () => {
+    const s = recordDiscordMessage(s1, key(P2P_WARN), 'm1');
+    expect(s.eew[0]?.discordMessageId).toBe('m1');
+  });
+
+  it('記録が新しい報に進んでいれば書き換えない', () => {
+    const s2 = processReport(
+      s1,
+      { ...P2P_WARN, serial: 2 },
+      P2P_WARN.issuedAt + 2000,
+      false,
+    ).state;
+    expect(recordDiscordMessage(s2, key(P2P_WARN), 'm1')).toBe(s2);
+    const c = processReport(
+      s2,
+      { ...P2P_WARN, serial: 2, cancelled: true },
+      P2P_WARN.issuedAt + 3000,
+      false,
+    ).state;
+    expect(recordDiscordMessage(c, { ...key(P2P_WARN), serial: 2 }, 'm')).toBe(
+      c,
+    );
+  });
+
+  it('記録の無い地震には何もしない', () => {
+    expect(
+      recordDiscordMessage(
+        s1,
+        { eventId: 'x', serial: 1, cancelled: false },
+        'm',
+      ),
+    ).toBe(s1);
+  });
+});
+
+describe('受信状態', () => {
+  const T0 = 1_000_000_000_000;
+  const input = (lastReceivedAt: number | null, bootedAt = T0) => ({
+    connected: true,
+    lastReceivedAt,
+    bootedAt,
+  });
+
+  it('閾値はP2P 12分、Wolfx 3分', () => {
+    expect(SILENCE_LIMIT_MS).toEqual({
+      p2p: 720_000,
+      wolfxEew: 180_000,
+      wolfxEqlist: 180_000,
+    });
+    expect(isReceiving('p2p', input(T0), T0 + 720_000)).toBe(true);
+    expect(isReceiving('p2p', input(T0), T0 + 720_001)).toBe(false);
+    expect(isReceiving('wolfxEew', input(T0), T0 + 180_000)).toBe(true);
+    expect(isReceiving('wolfxEew', input(T0), T0 + 180_001)).toBe(false);
+  });
+
+  it('起動直後は未受信でも、閾値まで受信できているとみなす', () => {
+    expect(isReceiving('wolfxEew', input(null), T0 + 179_000)).toBe(true);
+    expect(isReceiving('wolfxEew', input(null), T0 + 181_000)).toBe(false);
+  });
+
+  it('起動より前の受信時刻は猶予の基準にしない', () => {
+    expect(isReceiving('wolfxEew', input(T0 - 600_000), T0 + 1000)).toBe(true);
+  });
+
+  it('受信すると戻る', () => {
+    expect(
+      isReceiving('p2p', input(T0 + 1_000_000), T0 + 1_000_000 + 1000),
+    ).toBe(true);
+  });
+
+  it('P2PとWolfx(緊急地震速報)がともに受信できないときだけ受信不能', () => {
+    const r = (p2p: boolean, wolfxEew: boolean, wolfxEqlist = true) => ({
+      p2p,
+      wolfxEew,
+      wolfxEqlist,
+    });
+    expect(isReceptionLost(r(false, false))).toBe(true);
+    expect(isReceptionLost(r(false, true))).toBe(false);
+    expect(isReceptionLost(r(true, false))).toBe(false);
+    expect(isReceptionLost(r(false, true, false))).toBe(false);
+    expect(isReceptionLost(r(true, true, false))).toBe(false);
   });
 });

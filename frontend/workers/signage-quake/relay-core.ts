@@ -326,6 +326,28 @@ function stepEqlist(
   });
 }
 
+/** 遷移の前後でpayloadの表示の有無・段階・訓練が変わったときだけ段階の通知を足す */
+function withStageNotice(
+  prev: RelayState,
+  state: RelayState,
+  notices: readonly QuakeNotice[],
+  now: number,
+): Outcome {
+  const a = toPayload(prev);
+  const b = toPayload(state);
+  const changed =
+    a.active !== b.active ||
+    (a.active &&
+      b.active &&
+      (a.stage !== b.stage || a.training !== b.training));
+  return {
+    state,
+    notices: changed
+      ? [...notices, { kind: 'stage', payload: b, at: now }]
+      : notices,
+  };
+}
+
 /** 報の選別を通ったものだけを遷移の入力にし、新しい状態と通知を返す */
 export function processReport(
   state: RelayState,
@@ -339,6 +361,7 @@ export function processReport(
       const rec = state.eew.find((r) => r.eventId === report.eventId);
       const prec = eewPrecedence(rec, report);
       if (prec === 'drop') return { state, notices: [] };
+      const notify = report.gunma || test || (rec?.notify ?? false);
       const record: EewRecord =
         prec === 'new'
           ? {
@@ -346,19 +369,24 @@ export function processReport(
               serial: report.serial,
               cancelled: report.cancelled,
               source: report.source,
-              notify: report.gunma || test || (rec?.notify ?? false),
+              notify,
               discordMessageId: null,
             }
           : { ...rec!, source: 'p2p' };
       const eew = putRecord(state.eew, record);
-      return {
-        state: {
-          ...state,
-          eew,
-          alert: stepEew(state, report, prec, eew, now, test),
-        },
-        notices: [],
+      const next = {
+        ...state,
+        eew,
+        alert: stepEew(state, report, prec, eew, now, test),
       };
+      // 解除済みの地震の続報・取消も投稿する(表示の抑止はサイネージだけに効く)
+      const notices: QuakeNotice[] =
+        prec === 'new' && notify
+          ? [{ kind: 'eew', op: 'post', report, receivedAt: now }]
+          : prec === 'replace' && rec?.notify
+            ? [{ kind: 'eew', op: 'edit', report, receivedAt: now }]
+            : [];
+      return withStageNotice(state, next, notices, now);
     }
     case 'observation': {
       const dis = state.dismissed.find((d) =>
@@ -368,27 +396,36 @@ export function processReport(
         report.maebashiMaxScale !== null &&
         report.maebashiMaxScale >= THRESHOLD_SCALE;
       // 解除した地震は、段階3に達していなかったときに5強以上と分かった場合だけ再表示する
-      if (dis && !(hi && !dis.reachedEvacuate)) return { state, notices: [] };
+      const suppressed = dis && !(hi && !dis.reachedEvacuate);
       const event = dis?.event ?? {
         eventId: null,
         originTime: report.originTime,
       };
-      return {
-        state: {
-          ...state,
-          dismissed: dis
+      const post =
+        report.gunmaStations && !state.seenObservation.includes(report.id);
+      const next: RelayState = {
+        ...state,
+        dismissed:
+          dis && !suppressed
             ? state.dismissed.filter((d) => d !== dis)
             : state.dismissed,
-          alert: stepObservation(state, report, now, event),
-        },
-        notices: [],
+        alert: suppressed
+          ? state.alert
+          : stepObservation(state, report, now, event),
+        seenObservation: post
+          ? [...state.seenObservation, report.id].slice(-SEEN_OBSERVATION_LIMIT)
+          : state.seenObservation,
       };
+      const notices: QuakeNotice[] = post
+        ? [{ kind: 'observation', report, receivedAt: now }]
+        : [];
+      return withStageNotice(state, next, notices, now);
     }
-    case 'eqlist':
-      return {
-        state: { ...state, alert: stepEqlist(state, report, now) },
-        notices: [],
-      };
+    case 'eqlist': {
+      // 観測点を持たず群馬県に関係するかを決められないため投稿しない
+      const next = { ...state, alert: stepEqlist(state, report, now) };
+      return withStageNotice(state, next, [], now);
+    }
   }
 }
 
@@ -398,13 +435,72 @@ export function applyDismiss(
   now: number,
   by: string,
 ): Outcome {
-  void by;
   const a = state.alert;
   if (!a) return { state, notices: [] };
   const dismissed = [
     ...state.dismissed,
     ...a.events.map((event) => ({ event, reachedEvacuate: a.reachedEvacuate })),
   ].slice(-DISMISSED_LIMIT);
-  void now;
-  return { state: { ...state, alert: null, dismissed }, notices: [] };
+  return {
+    state: { ...state, alert: null, dismissed },
+    notices: [{ kind: 'dismissed', by, training: a.training, at: now }],
+  };
+}
+
+/** 投稿の応答のメッセージIDを、同じ報の記録にだけ保存する(記録が新しい報に進んでいれば何もしない) */
+export function recordDiscordMessage(
+  state: RelayState,
+  key: EewKey,
+  messageId: string,
+): RelayState {
+  const i = state.eew.findIndex(
+    (r) =>
+      r.eventId === key.eventId &&
+      r.serial === key.serial &&
+      r.cancelled === key.cancelled,
+  );
+  if (i < 0) return state;
+  return {
+    ...state,
+    eew: state.eew.map((r, n) =>
+      n === i ? { ...r, discordMessageId: messageId } : r,
+    ),
+  };
+}
+
+/** 無受信の閾値。P2Pは静かな時間が長いため長い */
+export const SILENCE_LIMIT_MS: Readonly<Record<ChannelName, number>> = {
+  p2p: 12 * 60_000,
+  wolfxEew: 3 * 60_000,
+  wolfxEqlist: 3 * 60_000,
+};
+
+export interface ChannelHealthInput {
+  readonly connected: boolean;
+  readonly lastReceivedAt: number | null;
+  /** DOが起動した時刻。再起動の直後に受信不能と誤判定しないための基準 */
+  readonly bootedAt: number;
+}
+
+/**
+ * 接続の有無は見ない。再接続の一瞬の切れで受信状態の通知が往復しないよう、
+ * 最後の受信(未受信なら起動)からの無受信の長さだけで決める
+ */
+export function isReceiving(
+  channel: ChannelName,
+  input: ChannelHealthInput,
+  now: number,
+): boolean {
+  const since = Math.max(
+    input.lastReceivedAt ?? input.bootedAt,
+    input.bootedAt,
+  );
+  return now - since <= SILENCE_LIMIT_MS[channel];
+}
+
+/** P2PとWolfx(緊急地震速報)がともに受信できない */
+export function isReceptionLost(
+  receiving: Readonly<Record<ChannelName, boolean>>,
+): boolean {
+  return !receiving.p2p && !receiving.wolfxEew;
 }
