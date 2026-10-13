@@ -215,7 +215,7 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
   - _Depends: 11.2_
   - _Requirements: 1.1, 2.1, 2.2, 4.2, 7.4_
 
-- [ ] 11.4 devへのPRから本番まで出す
+- [x] 11.4 devへのPRから本番まで出す
   - devへのPRで既存のe2eとPRプレビューを確かめ、devへマージし、`dev.aramakisai.com`で確かめてからmainまで出す。deploy-prodはハブ→サイトの順のまま。旧形式との互換は持たず一度に切り替え、出した後に端末と配信PCを再読み込みする
   - _Depends: 11.3_
   - _Requirements: 2.2, 3.2, 5.2_
