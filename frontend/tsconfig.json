@@ -27,6 +27,8 @@
     "node_modules",
     "workers/worker-configuration.d.ts",
     "workers/signage-hub/index.ts",
-    "workers/signage-hub/index.test.ts"
+    "workers/signage-hub/index.test.ts",
+    "workers/signage-quake/index.ts",
+    "workers/signage-quake/index.test.ts"
   ]
 }
