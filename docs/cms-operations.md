@@ -92,6 +92,7 @@ S3 の接続情報 (`S3_BUCKET` 等) が未設定の場合はディスク保存�
 | `S3_PREFIX` | メディアのキー接頭辞 (既定 `payload-uploads`) | 任意 |
 | `CLOUDFLARE_ZONE_ID` / `CLOUDFLARE_PURGE_TOKEN` | 画像の非公開化・削除・差し替え時に `cms.aramakisai.com` のエッジキャッシュを purge する (zone の Cache Purge 権限だけのトークン)。`CMS_PUBLIC_URL` と合わせて 3 つ揃わないと purge せず、起動時に警告を 1 回出す | 本番 |
 | `SIGNAGE_NOTIFY_URL` / `SIGNAGE_NOTIFY_ACCESS_CLIENT_ID` / `SIGNAGE_NOTIFY_ACCESS_CLIENT_SECRET` | サイネージのデータを保存したときに、サイトのWorkerの`/api/signage/notify`へ通知する。3つ揃わないと送らず、起動後の最初の保存で警告を1回出す。送信の失敗は保存を妨げない | 本番 |
+| `SIGNAGE_QUAKE_URL` / `SIGNAGE_QUAKE_TOKEN` | 緊急地震速報のリレー(Worker `aramakisai-signage-quake`)のURLと、リレーのHTTPの口へのBearerの共有秘密。管理画面のパネルの状態表示と解除が、CMSのエンドポイントを経由してリレーを呼ぶ。どちらかが欠けるとパネルは「未設定」を出す | 本番 |
 | `AUTHENTIK_ISSUER_URL` / `AUTHENTIK_CLIENT_ID` / `AUTHENTIK_CLIENT_SECRET` | Authentik OIDC | 本番 |
 | `CMS_CORS_ORIGINS` | CORS 許可オリジン (カンマ区切り) | 本番 |
 | `SMTP_HOST` | 招待メール送信先 (docker-mailserver)。設定時だけ SMTP アダプタを有効化する | 任意 (本番のみ設定) |
@@ -209,6 +210,46 @@ Falco の許可リストには Payload 用のエントリを追加しない。�
 `/etc` への書き込み・k8s API への定常アクセス・標準ストリームの張り替えを行う
 ワークロードだけを対象にしており、Payload はいずれにも該当しないため。
 実際に発報が出た時点で、鳴っているルール名を根拠に追加する。
+
+## 緊急地震速報の運用
+
+緊急地震速報のリレー(`frontend/workers/signage-quake/`)は、稼働期間の 2026-10-23 9:00〜2026-11-22 0:00 (日本時間、終端を含まない) に Cron (5 分ごと) で上流へ自動接続する。期間外は接続せず、パネルは「停止中(稼働期間: 10/23 9:00〜11/22 0:00)」を出す。
+
+### 管理画面のパネル
+
+スライドの一覧の上に出る。
+
+- 表示中は段階 (訓練なら「(訓練)」付き)・表示開始・最終更新を出す。「解除」を押して確認すると、全端末の速報の表示が消える。解除した実行委員は Discord の通知に載る
+- 稼働期間内は系統 (P2P地震情報・Wolfx の緊急地震速報・Wolfx の地震情報) ごとに「接続中 / 未接続」と最終受信の時刻を出す。受信できていない系統は赤字になる。「緊急地震速報を受信できていません」はどの系統も受信できていないとき
+- 「緊急地震速報のリレーに届きません」はリレーの停止か `SIGNAGE_QUAKE_URL` の誤り。「未設定」は環境変数の欠け
+
+### Discord 通知
+
+リレーの Worker の秘密 `DISCORD_QUAKE_WEBHOOK_URL` (Infisical `prod`) の Webhook へ、受信・段階の移行・解除・系統の受信状態を投稿する。「公式の警報ではない」旨は付けない。試験の投稿も同じチャンネルへ出て、先頭行の【訓練】で本番と区別する。未登録なら通知なしで動き、パネルに「Discord通知: 未設定」を出す。
+
+### 開催前の試験
+
+ローカルで次の順に起動する。
+
+```bash
+make signage-dev      # サイネージ(ハブ込み)
+make quake-dev        # リレー。ポートは signage-dev+2000。Infisical prod から SIGNAGE_QUAKE_TOKEN と DISCORD_QUAKE_WEBHOOK_URL を取得する
+make cms-worktree     # CMS。SIGNAGE_QUAKE_URL を quake-dev へ向けて起動する
+```
+
+`quake-dev` は稼働期間を現在の前後 1 日にし (`QUAKE_DEV_FROM` / `QUAKE_DEV_UNTIL` で上書き)、P2P はサンドボックスへ接続する。保存した JSON は `frontend/scripts/quake-inject.ts` で投入する。
+
+```bash
+cd frontend
+infisical run --env=prod -- pnpm exec tsx scripts/quake-inject.ts \
+  --url http://localhost:<quake-dev のポート> --channel <p2p|wolfxEew|wolfxEqlist> [--interval 秒] <JSONファイル>...
+```
+
+投入口は `QUAKE_DEV_INJECT` を持つ `quake-dev` だけにあり、本番には存在しない。
+
+### デプロイ
+
+リレーは `frontend-ci.yml` の `deploy-prod` が、`frontend/workers/signage-quake/` に差分があるときだけ、サイトの後に `wrangler deploy` で出す。デプロイのたびに上流の接続が最大 30 秒切れるため、稼働期間中は `frontend/workers/signage-quake/`・`frontend/src/lib/signage-quake.ts`・`frontend/src/lib/signage-channel.ts` を変える PR を main へマージしない。
 
 ## ロールごとの見え方
 
