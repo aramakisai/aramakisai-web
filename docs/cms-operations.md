@@ -187,8 +187,10 @@ Directus 撤去 (タスク 9.1) 完了済み。`db-cluster.yaml` と `payload` �
 | `NOREPLY_SMTP_PASSWORD` | 送信専用アカウント `noreply@aramakisai.com` の SMTP パスワード |
 | `SIGNAGE_NOTIFY_ACCESS_CLIENT_ID` | サイネージ通知用Access Service Tokenの`client_id`(`aramakisai-infra`の`terraform output`) |
 | `SIGNAGE_NOTIFY_ACCESS_CLIENT_SECRET` | 同じ`client_secret`(sensitive) |
+| `SIGNAGE_QUAKE_TOKEN` | 緊急地震速報のリレーの`/status`・`/dismiss`のBearerトークン。リレーのデプロイ(`frontend-ci.yml`)とCMSの`cms-secrets`が同じ値を使う |
+| `DISCORD_QUAKE_WEBHOOK_URL` | 緊急地震速報の通知先(実行委員用チャンネル)のDiscord Webhook。リレーのデプロイだけが使う |
 
-`SIGNAGE_NOTIFY_URL`(`https://aramakisai.com/api/signage/notify`)は秘密ではないため、Infisicalには登録せず、CMSのDeploymentのenvに直接書く。
+`SIGNAGE_NOTIFY_URL`(`https://aramakisai.com/api/signage/notify`)と`SIGNAGE_QUAKE_URL`(`https://aramakisai-signage-quake.aramakisai.workers.dev`)は秘密ではないため、Infisicalには登録せず、CMSのDeploymentのenvに直接書く。
 
 `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` は既存の `HETZNER_OS_*` を再利用する。
 `SMTP_HOST` は Infisical に登録せず、`cms-secrets` の ExternalSecret に固定値
