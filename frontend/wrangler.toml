@@ -13,6 +13,11 @@ workers_dev = false
 # プレビュー URL だけを有効にするため、workers_dev とは独立に true を指定する。
 preview_urls = true
 
+# ログ量を抑えるため 10% サンプリングで Workers Logs を有効にする。
+[observability]
+enabled = true
+head_sampling_rate = 0.1
+
 [assets]
 directory = ".open-next/assets"
 
@@ -42,6 +47,11 @@ service = "aramakisai-web"
 #  先にこのenvironmentをデプロイしておく必要がある)
 [env.dev]
 name = "aramakisai-web-dev"
+
+# observability は env に継承されないため再掲する。
+[env.dev.observability]
+enabled = true
+head_sampling_rate = 0.1
 
 [env.dev.assets]
 directory = ".open-next/assets"
