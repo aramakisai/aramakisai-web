@@ -28,6 +28,12 @@ async function resolveAnnouncement(id: string) {
   return getAnnouncementById(announcementId);
 }
 
+// ビルド時には何も生成せず、初回アクセスで生成して以後キャッシュする
+// (generateStaticParams が無いと revalidate が効かず毎回 SSR になる)
+export function generateStaticParams() {
+  return [];
+}
+
 export async function generateMetadata({
   params,
 }: AnnouncementPageProps): Promise<Metadata> {

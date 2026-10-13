@@ -87,6 +87,7 @@ export function NavigationMenuRows({
             <li key={item.label} className={borderClass}>
               <Link
                 href={item.href as string}
+                prefetch={false}
                 onClick={onNavigate}
                 aria-current={active ? 'page' : undefined}
                 className="group flex min-h-12 flex-col items-start justify-center px-4 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
@@ -157,6 +158,7 @@ export function NavigationMenuRows({
                   >
                     <Link
                       href={child.href}
+                      prefetch={false}
                       onClick={onNavigate}
                       className="flex min-h-12 items-center pr-4 pl-8 text-sm leading-[1.6] text-text focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
                     >

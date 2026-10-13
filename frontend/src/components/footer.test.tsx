@@ -2,6 +2,13 @@ import { join } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { PHASE_OVERRIDE_COOKIE } from '@/lib/phase';
+
+// resolvePhase は DEV_OVERRIDE_ENABLED が偽だと Cookie を無視するため、import より前に真にする
+vi.hoisted(() => {
+  process.env.NEXT_PUBLIC_ENABLE_PHASE_OVERRIDE = 'true';
+});
+
 import { Footer } from './footer';
 import * as snsLinksModule from '@/lib/sns-links';
 import * as festivalMetaModule from '@/lib/festival-meta';
@@ -35,7 +42,12 @@ const contactFormUrl = 'https://forms.example.com/contact';
 
 describe('Footer', () => {
   async function renderFooter(phase: 'pre_event' | 'live' = 'pre_event') {
-    return render(await Footer({ phase }));
+    // フェーズはクライアントが上書き Cookie から解決する
+    document.cookie =
+      phase === 'live'
+        ? `${PHASE_OVERRIDE_COOKIE}=live; path=/`
+        : `${PHASE_OVERRIDE_COOKIE}=; path=/; max-age=0`;
+    return render(await Footer());
   }
 
   beforeEach(() => {

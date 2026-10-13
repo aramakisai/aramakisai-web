@@ -4,6 +4,11 @@ import { useRouter } from 'next/navigation';
 import { PhaseToggle } from './phase-toggle';
 import { PHASE_OVERRIDE_COOKIE } from '@/lib/phase';
 
+// resolvePhase は DEV_OVERRIDE_ENABLED が偽だと Cookie を無視するため、import より前に真にする
+vi.hoisted(() => {
+  process.env.NEXT_PUBLIC_ENABLE_PHASE_OVERRIDE = 'true';
+});
+
 vi.mock('next/navigation', () => ({
   useRouter: vi.fn(),
 }));
@@ -26,24 +31,21 @@ describe('PhaseToggle', () => {
   });
 
   it('現在のフェーズと適用元 (定数) を表示する', () => {
-    render(
-      <PhaseToggle resolved={{ phase: 'pre_event', source: 'constant' }} />,
-    );
+    render(<PhaseToggle />);
     expect(screen.getByText('開催前')).toBeInTheDocument();
     expect(screen.getByText(/定数/)).toBeInTheDocument();
     expect(screen.queryByText(/オーバーライド/)).not.toBeInTheDocument();
   });
 
   it('適用元がオーバーライドのとき、その旨を表示する', () => {
-    render(<PhaseToggle resolved={{ phase: 'live', source: 'override' }} />);
+    document.cookie = `${PHASE_OVERRIDE_COOKIE}=live; path=/`;
+    render(<PhaseToggle />);
     expect(screen.getByText('開催中')).toBeInTheDocument();
     expect(screen.getByText(/オーバーライド/)).toBeInTheDocument();
   });
 
   it('操作要素を開くと切り替えボタンが現れ、押すとオーバーライド Cookie を書き込みページを再取得する', () => {
-    render(
-      <PhaseToggle resolved={{ phase: 'pre_event', source: 'constant' }} />,
-    );
+    render(<PhaseToggle />);
 
     fireEvent.click(screen.getByRole('button', { name: /開催前/ }));
     fireEvent.click(screen.getByRole('button', { name: '開催中に切り替える' }));
@@ -53,9 +55,7 @@ describe('PhaseToggle', () => {
   });
 
   it('適用元が定数のとき、解除ボタンは表示されない', () => {
-    render(
-      <PhaseToggle resolved={{ phase: 'pre_event', source: 'constant' }} />,
-    );
+    render(<PhaseToggle />);
     fireEvent.click(screen.getByRole('button', { name: /開催前/ }));
     expect(
       screen.queryByRole('button', { name: 'オーバーライドを解除する' }),
@@ -64,7 +64,7 @@ describe('PhaseToggle', () => {
 
   it('適用元がオーバーライドのとき、解除ボタンで Cookie を削除しページを再取得する', () => {
     document.cookie = `${PHASE_OVERRIDE_COOKIE}=live; path=/`;
-    render(<PhaseToggle resolved={{ phase: 'live', source: 'override' }} />);
+    render(<PhaseToggle />);
 
     fireEvent.click(screen.getByRole('button', { name: /開催中/ }));
     fireEvent.click(
@@ -76,18 +76,15 @@ describe('PhaseToggle', () => {
   });
 
   it('開催中フェーズでは 1024px 未満で下部ナビゲーションの上へずらす', () => {
-    const { container } = render(
-      <PhaseToggle resolved={{ phase: 'live', source: 'constant' }} />,
-    );
+    document.cookie = `${PHASE_OVERRIDE_COOKIE}=live; path=/`;
+    const { container } = render(<PhaseToggle />);
     expect(container.firstChild).toHaveClass(
       'max-lg:bottom-[calc(4rem+1rem+env(safe-area-inset-bottom))]',
     );
   });
 
   it('開催前フェーズでは下部ナビゲーションが出ないため、ずらさない', () => {
-    const { container } = render(
-      <PhaseToggle resolved={{ phase: 'pre_event', source: 'constant' }} />,
-    );
+    const { container } = render(<PhaseToggle />);
     expect(container.firstChild).not.toHaveClass(
       'max-lg:bottom-[calc(4rem+1rem+env(safe-area-inset-bottom))]',
     );

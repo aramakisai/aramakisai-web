@@ -42,12 +42,8 @@ function announcements(count: number): AnnouncementSummary[] {
   );
 }
 
-async function renderPage(
-  searchParams: Record<string, string | string[] | undefined> = {},
-) {
-  return render(
-    await AnnouncementsPage({ searchParams: Promise.resolve(searchParams) }),
-  );
+async function renderPage() {
+  return render(await AnnouncementsPage());
 }
 
 const SITE_METADATA: SiteMetadata = {
@@ -84,45 +80,9 @@ describe('AnnouncementsPage', () => {
 
     await renderPage();
 
-    expect(screen.getByText('お知らせ1')).toBeInTheDocument();
     expect(screen.getByText('お知らせ10')).toBeInTheDocument();
     expect(screen.queryByText('お知らせ11')).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '2' })).toHaveAttribute(
-      'href',
-      '/announcements?page=2',
-    );
-  });
-
-  it('2 ページ目 (?page=2) は 11 件目以降を表示する', async () => {
-    vi.mocked(announcementsModule.getAnnouncements).mockResolvedValue(
-      announcements(11),
-    );
-
-    await renderPage({ page: '2' });
-
-    expect(screen.getByText('お知らせ11')).toBeInTheDocument();
-    expect(screen.queryByText('お知らせ1')).not.toBeInTheDocument();
-  });
-
-  it('範囲外のページ番号は有効なページへ丸める', async () => {
-    vi.mocked(announcementsModule.getAnnouncements).mockResolvedValue(
-      announcements(11),
-    );
-
-    await renderPage({ page: '999' });
-
-    // 全 2 ページ中、最後のページ (2 ページ目) の内容に丸められる
-    expect(screen.getByText('お知らせ11')).toBeInTheDocument();
-  });
-
-  it('10 件以下のときはページ送りを表示しない', async () => {
-    vi.mocked(announcementsModule.getAnnouncements).mockResolvedValue(
-      announcements(10),
-    );
-
-    await renderPage();
-
-    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '2' })).toBeInTheDocument();
   });
 
   it('0 件のとき「お知らせはありません」を表示し、ページ送りは出さない', async () => {

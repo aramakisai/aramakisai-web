@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import StaticPage, { generateMetadata } from './page';
+import StaticPage, { generateMetadata, generateStaticParams } from './page';
 import { getPageBySlug } from '@/lib/static-page';
 import { notFound } from 'next/navigation';
 
@@ -151,5 +151,11 @@ describe('StaticPage', () => {
       'NEXT_NOT_FOUND',
     );
     expect(notFound).toHaveBeenCalled();
+  });
+});
+
+describe('generateStaticParams', () => {
+  it('ビルド時には何も生成しない', () => {
+    expect(generateStaticParams()).toEqual([]);
   });
 });
