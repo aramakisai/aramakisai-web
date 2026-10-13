@@ -90,8 +90,8 @@ frontendはグループが無くても既定の文言で動き、CMSのパネル
   - `fetch`と`sleep`を差し替えた単体テストで、上の各規則が通る
   - _Requirements: 12.11, 12.13, 12.14, 13.2_
 
-- [ ] 4. aramakisai-web: リレーのDurable ObjectとWorkerを作る
-- [ ] 4.1 上流の接続・再接続・稼働期間をDOに作る
+- [x] 4. aramakisai-web: リレーのDurable ObjectとWorkerを作る
+- [x] 4.1 上流の接続・再接続・稼働期間をDOに作る
   - 固定名`signage-quake`の1インスタンス(`locationHint: 'apac'`)で、3系統に1本ずつ外向きのWebSocketを張り、系統の失敗が他の系統に影響しないようにする
   - 再試行は1秒から倍々・上限60秒・±20%の揺らぎで、受信したら戻す。無受信の接続は閉じて再接続の待ちに入れる
   - alarmは期間内は30秒ごとに接続を確かめ、期間外なら全接続を閉じてalarmを消す。設定が不正なら接続しない
@@ -101,7 +101,7 @@ frontendはグループが無くても既定の文言で動き、CMSのパネル
   - 稼働期間を現在に設定した`make quake-dev`で3系統が接続し、期間外の設定では接続しないことをログで確かめている
   - _Requirements: 1.1, 1.2, 9.1, 9.2, 9.3, 9.4, 9.8, 10.1, 10.2, 10.3, 10.4, 11.3, 12.14_
 
-- [ ] 4.2 受信から配信・通知までと、状態の取得・解除・投入をDOに作る
+- [x] 4.2 受信から配信・通知までと、状態の取得・解除・投入をDOに作る
   - 受信のたびに最終受信時刻を更新し、正規化→判定→保存→(payloadが変わったら)ハブの`publish`→Discordの待ち行列の順に処理し、`publish`を投稿で待たせない
   - `publish`に失敗したら状態を保存したまま次のalarmで再送する。解除は`publish`に失敗したら失敗を返し、解除済みの状態は保つ
   - alarmごとに系統ごとの受信状態の変化を通知する。状態の取得は期間・速報のpayload・系統ごとの接続と最終受信時刻・試験モード・受信不能・Discordの状態を返し、受信状態を端末へ送らない
@@ -116,15 +116,15 @@ frontendはグループが無くても既定の文言で動き、CMSのパネル
   - トークン無し・誤りで401、`by`が無いと400、投入口が404、Cronが期間外でDOを呼ばない単体テストが通る
   - _Requirements: 6.4, 8.5, 10.2, 10.6, 11.3, 12.5_
 
-- [ ] 4.4 (P) 保存したJSONを投入口へ流すスクリプトを作る
+- [x] 4.4 (P) 保存したJSONを投入口へ流すスクリプトを作る
   - 接続先のURL・系統・間隔とfixturesのファイルを受け、各ファイルのJSONを順に投入口へ送る。トークンは環境変数から読む
   - `make quake-dev`へ向けて、Wolfxの`jma_eew`の訓練・取消を手で作ったJSONを流すと、リレーの状態の取得に段階が反映される
   - _Requirements: 11.3, 11.7_
   - _Boundary: QuakeInjectScript_
   - _Depends: 4.3_
 
-- [ ] 5. aramakisai-web: CMSに緊急地震速報のグループ・解除・受信状態を足す
-- [ ] 5.1 緊急地震速報のグループと段階→スライドの対応付けを足し、マイグレーションと型を生成する
+- [x] 5. aramakisai-web: CMSに緊急地震速報のグループ・解除・受信状態を足す
+- [x] 5.1 緊急地震速報のグループと段階→スライドの対応付けを足し、マイグレーションと型を生成する
   - `signage_groups`に、APIから付け外しできない隠しのフラグと、段階1・段階2・段階3・取消の4つのスライドの参照(そのグループの所属のスライドに限る)を足す。緊急地震速報のグループでは表示の切り替えの項目を隠す
   - 緊急地震速報のグループの削除を禁じる
   - `pnpm migrate:create`で、列の追加(既存の列は変えない)と「緊急地震速報」のグループ1件の作成(`visible = false`)を持つマイグレーションを生成して登録し、`down`で列と行を消す。`pnpm generate:types`で`cms/src/payload-types.ts`と`frontend/src/cms-types.ts`を再生成する
@@ -146,7 +146,7 @@ frontendはグループが無くても既定の文言で動き、CMSのパネル
   - _Boundary: SignageQuakeEndpoints_
   - _Depends: 4.3_
 
-- [ ] 5.4 スライドの一覧の上部に速報の状態・受信状態・解除を出す
+- [x] 5.4 スライドの一覧の上部に速報の状態・受信状態・解除を出す
   - `signage_slides`の一覧の上部の先頭(固定の帯の上)に置き、表示中のタブで10秒ごとに状態を読む
   - 速報の表示中か・段階・訓練か取消かの別・表示を始めた時刻と最後に変わった時刻、系統ごとの接続中か・最後の受信時刻・試験モードか、受信不能の強調、期間外の「停止中(稼働期間: 10/23 9:00〜11/22 0:00)」、未設定・届かないこと、Discord通知の未設定・停止中・失敗を出す
   - 解除ボタンは表示中だけ出し、確認の後に送る。保存中は無効、失敗は「解除できませんでした」
@@ -183,7 +183,7 @@ frontendはグループが無くても既定の文言で動き、CMSのパネル
   - _Requirements: 8.2, 8.3, 10.4, 12.14_
   - _Depends: 4.3_
 
-- [ ] 8. aramakisai-infra: CMSにリレーのURLとトークンを渡す
+- [x] 8. aramakisai-infra: CMSにリレーのURLとトークンを渡す
   - CMSのDeployment(`gitops/manifests/prod/cms/deployment.yaml`)のenvに`SIGNAGE_QUAKE_URL`(`https://aramakisai-signage-quake.<subdomain>.workers.dev`)を、ExternalSecret(`gitops/manifests/prod/cms-secrets/external-secret.yaml`)に`SIGNAGE_QUAKE_TOKEN`を足し、mainへのPRを作る
   - ExternalSecretの配列の変更は、ArgoCDの同期の表示だけでなく、反映後に`make kubectl`で`cms-secrets`のキーとPodのenvに`SIGNAGE_QUAKE_URL`・`SIGNAGE_QUAKE_TOKEN`があることを(値を表示せずに)実測する
   - PRがマージされ、PodのenvにSecretとenvの2つのキーがあることを実測している
@@ -191,7 +191,7 @@ frontendはグループが無くても既定の文言で動き、CMSのパネル
   - _Depends: 1_
 
 - [ ] 9. aramakisai-web: 開催前の試験(サンドボックスと保存したJSON)を実ブラウザで行う
-- [ ] 9.1 サンドボックスと保存したJSONで、全段階を横長・縦長で確かめる
+- [x] 9.1 サンドボックスと保存したJSONで、全段階を横長・縦長で確かめる
   - `make signage-dev CMS=worktree`・`make quake-dev`・`make cms-worktree`を`run_in_background`で起動し、CMSの緊急地震速報のグループにスライドを作って4つの段階に対応付ける
   - P2Pのサンドボックスの訓練の報で段階1→段階2を、`quake-inject`で段階3・取消・訓練・Wolfxの系統(手で作った訓練・取消のJSON)・同じ報のWolfx版→P2P版の置き換えを再現する
   - 実ブラウザで1920×1080と1080×1920の両方で、各段階・取消・訓練の帯・スライドの枠・注記の寸法を測り、Figma(横長`1032:1583`・`1032:1614`・`1032:1665`・`1032:1746`・`1032:1777`、縦長`1032:1599`・`1032:1640`・`1032:1706`・`1032:1762`・`1032:1795`)の実測値と一致し、文言が切れず、テロップ・左カラム・バス案内が隠れていることを確かめる
