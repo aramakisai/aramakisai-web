@@ -169,8 +169,8 @@ cmd_quake_dev() {
     echo "SIGNAGE_QUAKE_TOKEN が Infisical prod に未設定です。登録してから再実行してください" >&2
     exit 1
   fi
-  # 本番の Webhook は渡さない。試験用が未登録なら Discord 通知なしで起動する
-  test_webhook=$(infisical secrets get DISCORD_QUAKE_TEST_WEBHOOK_URL --env=prod --plain 2>/dev/null | tail -n 1 || true)
+  # 試験の投稿も本番と同じチャンネルに出る(試験モードの文面は先頭に【訓練】が付く)。未登録なら Discord 通知なしで起動する
+  webhook=$(infisical secrets get DISCORD_QUAKE_WEBHOOK_URL --env=prod --plain 2>/dev/null | tail -n 1 || true)
 
   # 稼働期間は既定で現在を含む範囲。期間外の挙動の確認は QUAKE_DEV_FROM / QUAKE_DEV_UNTIL で上書きする
   from="${QUAKE_DEV_FROM:-$(date -u -d '-1 day' +%Y-%m-%dT%H:%M:%SZ)}"
@@ -183,7 +183,7 @@ cmd_quake_dev() {
     --var "QUAKE_DEV_INJECT:true"
     --var "QUAKE_P2P_URL:wss://api-realtime-sandbox.p2pquake.net/v2/ws"
   )
-  [[ -n "$test_webhook" ]] && vars+=(--var "DISCORD_QUAKE_WEBHOOK_URL:${test_webhook}")
+  [[ -n "$webhook" ]] && vars+=(--var "DISCORD_QUAKE_WEBHOOK_URL:${webhook}")
 
   echo "起動: http://localhost:${port} (worktree: ${name}, リレー単体。ハブは make signage-dev を先に起動)"
   cd "${root}/frontend"

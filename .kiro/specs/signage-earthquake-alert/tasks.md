@@ -17,7 +17,7 @@ frontendはグループが無くても既定の文言で動き、CMSのパネル
 
 - [x] 1. Infisical: リレーとCMSが使う秘密をprodに登録する
   - このリポジトリのInfisical prodに`SIGNAGE_QUAKE_TOKEN`(十分な長さの乱数)を足す
-  - 実行委員用のチャンネルのWebhook(`DISCORD_QUAKE_WEBHOOK_URL`、既存の`DISCORD_OPS_WEBHOOK_URL`とは別のチャンネル)と`DISCORD_QUAKE_TEST_WEBHOOK_URL`には、ユーザーから受けた同じURLを登録する(試験の投稿は同じチャンネルに出て、「【訓練】」の印で区別する)
+  - 実行委員用のチャンネルのWebhook(`DISCORD_QUAKE_WEBHOOK_URL`、既存の`DISCORD_OPS_WEBHOOK_URL`とは別のチャンネル)には、ユーザーから受けたURLを登録する(試験の投稿も同じチャンネルに出て、「【訓練】」の印で区別する)
   - `infisical secrets get`で3つのキーがprodにあることを(値を表示せずに)確かめている
   - _Requirements: 12.14, 12.17_
 
@@ -97,7 +97,7 @@ frontendはグループが無くても既定の文言で動き、CMSのパネル
   - alarmは期間内は30秒ごとに接続を確かめ、期間外なら全接続を閉じてalarmを消す。設定が不正なら接続しない
   - 状態はストレージの1キーに保存し、起動時に読み込む
   - リレーの`wrangler.toml`(DO `QuakeRelay`、`new_sqlite_classes = ["QuakeRelay"]`のmigration、ハブへのDO binding `SIGNAGE_HUB`・`class_name = "SignageHub"`・`script_name = "aramakisai-signage-hub"`でハブのmigrationは書かない、`workers_dev = true`・`preview_urls = false`)を作る
-  - `Makefile`と`scripts/dev.sh`に`quake-dev`を足す。ハブ(`make signage-dev`)を先に起動し、その後にworktreeのポート+2000で単体の`wrangler dev`を別プロセスで起動する。`--port`と`--inspector-port`は`make signage-dev`と重ならない値にする。Infisical prodから`SIGNAGE_QUAKE_TOKEN`を受け、`--var`で稼働期間を現在を含む範囲に、`QUAKE_DEV_INJECT=1`に、P2Pの接続先をサンドボックスにする。Discordは`DISCORD_QUAKE_TEST_WEBHOOK_URL`の値を`DISCORD_QUAKE_WEBHOOK_URL`として渡し、本番のWebhookは渡さない。試験用のキーが無ければ渡さない
+  - `Makefile`と`scripts/dev.sh`に`quake-dev`を足す。ハブ(`make signage-dev`)を先に起動し、その後にworktreeのポート+2000で単体の`wrangler dev`を別プロセスで起動する。`--port`と`--inspector-port`は`make signage-dev`と重ならない値にする。Infisical prodから`SIGNAGE_QUAKE_TOKEN`を受け、`--var`で稼働期間を現在を含む範囲に、`QUAKE_DEV_INJECT=1`に、P2Pの接続先をサンドボックスにする。Discordは`DISCORD_QUAKE_WEBHOOK_URL`をそのまま渡す(試験の投稿は「【訓練】」で区別する)。キーが無ければ渡さない
   - 稼働期間を現在に設定した`make quake-dev`で3系統が接続し、期間外の設定では接続しないことをログで確かめている
   - _Requirements: 1.1, 1.2, 9.1, 9.2, 9.3, 9.4, 9.8, 10.1, 10.2, 10.3, 10.4, 11.3, 12.14_
 

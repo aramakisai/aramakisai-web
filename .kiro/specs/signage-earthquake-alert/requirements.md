@@ -207,7 +207,7 @@
 14. The Earthquake Alert Relay shall 投稿先を既存の運用通知とは別の実行委員用のチャンネルとし、WebhookのURLを秘密として扱い、端末・CMS管理画面・ログに出さない
 15. While 稼働期間(Requirement 10)の外である, the Earthquake Alert Relay shall 報と受信状態を投稿しない
 16. When 訓練またはテストの報、または試験モードの系統(11.5)の報を投稿する, the Earthquake Alert Relay shall 投稿に「訓練」であることを本物の報と見分けられる形で明示する
-17. The Earthquake Alert Relay shall 試験のときに、投稿先を本番のチャンネルから試験用のWebhookに差し替えられるようにする
+17. The Earthquake Alert Relay shall 試験のときの投稿を、本番と同じチャンネルで本番の投稿と区別できる文面にする
 
 ### Requirement 13: 情報源の優先と置き換え
 **Objective:** As a 実行委員, I want 情報の粒度が細かいP2P地震情報の内容を優先して見たい, so that 先に届いたWolfxの内容のままにならず、より詳しい内容で状況を判断できる

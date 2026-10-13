@@ -126,7 +126,7 @@ graph TB
 | Data / Storage | DOのストレージ(KV API) | `RelayState`の永続化 | 1キー |
 | Messaging / Events | 既存のハブの`publish`/broadcast | 機能`quake`の配信 | `expiresAt: null` |
 | Notification | Discord Webhook(実行委員用のチャンネル) | 報・段階・解除・受信状態の投稿と、P2P地震情報の内容への編集 | 新規の依存なし(`fetch`) |
-| Infrastructure / Runtime | Infisical prod、`aramakisai-infra`のCMSのDeployment | `SIGNAGE_QUAKE_TOKEN`、`SIGNAGE_QUAKE_URL`、`DISCORD_QUAKE_WEBHOOK_URL`、`DISCORD_QUAKE_TEST_WEBHOOK_URL` | infra側の変更を伴う(CMSの2キー) |
+| Infrastructure / Runtime | Infisical prod、`aramakisai-infra`のCMSのDeployment | `SIGNAGE_QUAKE_TOKEN`、`SIGNAGE_QUAKE_URL`、`DISCORD_QUAKE_WEBHOOK_URL` | infra側の変更を伴う(CMSの2キー) |
 
 ## File Structure Plan
 
@@ -457,7 +457,7 @@ export function isInPeriod(config: RelayConfig, now: number): boolean;
 
 - vars: `QUAKE_P2P_URL`・`QUAKE_WOLFX_EEW_URL`・`QUAKE_WOLFX_EQLIST_URL`(未設定なら本番のURL)、`QUAKE_ACTIVE_FROM = "2026-10-23T09:00:00+09:00"`、`QUAKE_ACTIVE_UNTIL = "2026-11-22T00:00:00+09:00"`、`QUAKE_DEV_INJECT`(本番の設定に書かない)。秘密: `SIGNAGE_QUAKE_TOKEN`、`DISCORD_QUAKE_WEBHOOK_URL`。
 - `DISCORD_QUAKE_WEBHOOK_URL`は`https://discord.com/api/webhooks/`で始まる値だけを使い、それ以外は`null`にして`console.warn`に「Webhookの設定が不正」とだけ出す(値は出さない)。Webhookの不備は速報の表示を止めないため`ok: false`にしない。
-- 試験用のWebhookへの差し替え(12.17)は、同じ`DISCORD_QUAKE_WEBHOOK_URL`に試験用の値を渡して行う(Migration Strategyのローカル)。設定値で投稿先を切り替える口は持たない。
+- 試験の投稿(12.17)は本番と同じ`DISCORD_QUAKE_WEBHOOK_URL`へ送り、試験モードの報の先頭行の「【訓練】」で本番の投稿と区別する。設定値で投稿先を切り替える口は持たない。
 - 期間・トークンが解釈できない設定は`ok: false`。そのときDOは接続せず、HTTPは503を返す。
 - 試験モードを直接オンにする設定は持たない(11.6: 本番の接続先で試験モードにならない)。
 
@@ -1032,7 +1032,7 @@ export async function publicSlideFilter(payload: Reader, req?: Partial<PayloadRe
 - 単体(frontend): `signage-data`で緊急地震速報のスライドが`slides`から除かれ`quakeSlides`に入る、グループ無しで全段階null。オーバーレイの各段階と既定の文言、訓練の印、公式でない旨が常に出る、予想値を出さない。`signage-screen`で`quake.active`のときだけ最前面に出る、未知の形で出ない
 - 単体・統合(CMS): `visibleSlideIds`で「すべて」表示中でも緊急地震速報のスライドが除かれる、未認証の読み取りで緊急地震速報のスライドが読める、固定の選択肢に出ない、緊急地震速報のグループを削除できない・`is_quake`を付け外しできない(`access.int.test.ts`)、エンドポイントの403・503・中継
 - ワークフロー: `frontend-ci.workflow.test.ts`でリレーのデプロイの手順、秘密のファイルの扱い、リレーのパスに変更が無いときにリレーのデプロイの手順が飛ぶ条件を検証
-- 手動(開催前、開発環境): `make signage-dev`と`make quake-dev`(P2Pはサンドボックス)で、訓練の段階1→段階2(2023/05/05等の再生)を実ブラウザで横長・縦長とも確認。`quake-inject.ts`で段階3・取消・Wolfxの系統(訓練・取消を手で作ったJSON)を確認。CMSの解除で3秒以内に戻ること、警報の受信から2秒以内に出ることを測る。Discordは試験用のWebhookだけに投稿し、各通知の文面、訓練の印、同じ報のWolfx版→P2P版の投入で投稿が編集されることを確かめる
+- 手動(開催前、開発環境): `make signage-dev`と`make quake-dev`(P2Pはサンドボックス)で、訓練の段階1→段階2(2023/05/05等の再生)を実ブラウザで横長・縦長とも確認。`quake-inject.ts`で段階3・取消・Wolfxの系統(訓練・取消を手で作ったJSON)を確認。CMSの解除で3秒以内に戻ること、警報の受信から2秒以内に出ることを測る。Discordは試験の投稿がすべて「【訓練】」付きで出ること、各通知の文面、同じ報のWolfx版→P2P版の投入で投稿が編集されることを確かめる
 
 ## Security Considerations
 - リレーのHTTPの口はBearerの共有秘密で守り、定数時間で比較する。投入口は`QUAKE_DEV_INJECT`の無い本番では存在しない。
@@ -1051,6 +1051,6 @@ export async function publicSlideFilter(payload: Reader, req?: Partial<PayloadRe
 - リレーのデプロイは`deploy-prod`でサイトの後に`wrangler deploy -c workers/signage-quake/wrangler.toml --secrets-file`(Infisical prodの`SIGNAGE_QUAKE_TOKEN`・`DISCORD_QUAKE_WEBHOOK_URL`を書いた一時ファイル。未設定ならKeyErrorでデプロイを止め、ファイルは`if: always()`で消す)。`--secrets-file`はファイルにあるキーを追加・上書きし、無いキーは削除しない。秘密を削除するときは`wrangler secret bulk`でJSONの値を`null`にする。DOクラスを含むため`versions upload`は使わない。デプロイのたびに上流が最大30秒切れる。
 - パスの絞り込み: `deploy-prod`は`actions/checkout`を`fetch-depth: 0`にし、`git diff --name-only ${{ github.event.before }} ${{ github.sha }}`に`frontend/workers/signage-quake/`・`frontend/src/lib/signage-quake.ts`・`frontend/src/lib/signage-channel.ts`の変更があるときだけ、リレーの秘密のファイルの作成とデプロイの手順を動かす。`before`が全0、または差分を取れないときはデプロイする。ハブとサイトのデプロイは従来どおり毎回動く。
 - 開催期間中の運用: 稼働期間(10/23 9:00〜11/22 0:00)はリレーのパスを変えるPRをmainへマージしない。緊急で必要なときは開催時間外にマージし、CMSの管理画面で全系統が受信中に戻ったことを確かめる。
-- Infisical prod(このリポジトリのproject)に足すキー: `SIGNAGE_QUAKE_TOKEN`、`DISCORD_QUAKE_WEBHOOK_URL`(実行委員用のチャンネルのWebhook。既存の`DISCORD_OPS_WEBHOOK_URL`とは別のチャンネル)、`DISCORD_QUAKE_TEST_WEBHOOK_URL`(`DISCORD_QUAKE_WEBHOOK_URL`と同じ値。試験の投稿は同じチャンネルに出て、先頭行の「【訓練】」で本番の投稿と区別する)。
+- Infisical prod(このリポジトリのproject)に足すキー: `SIGNAGE_QUAKE_TOKEN`、`DISCORD_QUAKE_WEBHOOK_URL`(実行委員用のチャンネルのWebhook。既存の`DISCORD_OPS_WEBHOOK_URL`とは別のチャンネル)。試験(`make quake-dev`)も同じWebhookへ投稿し、先頭行の「【訓練】」で本番の投稿と区別する。
 - infra: `aramakisai-infra`でCMSのDeploymentのenvに`SIGNAGE_QUAKE_URL`、ExternalSecretに`SIGNAGE_QUAKE_TOKEN`を足し、反映後にPodのenvにキーがあることを実測する。
-- ローカル: `make quake-dev`はリレーを単体の`wrangler dev`で、worktreeのポート+2000で起動する。`script_name = "aramakisai-signage-hub"`付きのDO bindingで、別プロセスの`make signage-dev`のハブのDOをRPCで呼ぶ。ハブを先に起動し、`--port`と`--inspector-port`は`make signage-dev`と重ならない値にする。Infisical prodで`SIGNAGE_QUAKE_TOKEN`を受け、`--var`で稼働期間を現在を含む範囲に、`QUAKE_DEV_INJECT=1`に、P2Pの接続先をサンドボックスにする(Wolfxは本番のまま)。Discordは`DISCORD_QUAKE_TEST_WEBHOOK_URL`の値を`DISCORD_QUAKE_WEBHOOK_URL`として渡し、本番のWebhookは渡さない(12.17)。試験用のキーが無ければ投稿しない。`make cms-worktree`はローカルのリレーのURLを`SIGNAGE_QUAKE_URL`に渡す。共有の`make cms`は渡さない(本番のリレーを叩かない)。
+- ローカル: `make quake-dev`はリレーを単体の`wrangler dev`で、worktreeのポート+2000で起動する。`script_name = "aramakisai-signage-hub"`付きのDO bindingで、別プロセスの`make signage-dev`のハブのDOをRPCで呼ぶ。ハブを先に起動し、`--port`と`--inspector-port`は`make signage-dev`と重ならない値にする。Infisical prodで`SIGNAGE_QUAKE_TOKEN`を受け、`--var`で稼働期間を現在を含む範囲に、`QUAKE_DEV_INJECT=1`に、P2Pの接続先をサンドボックスにする(Wolfxは本番のまま)。Discordは`DISCORD_QUAKE_WEBHOOK_URL`をそのまま渡す(試験の投稿は「【訓練】」で区別する、12.17)。キーが無ければ投稿しない。`make cms-worktree`はローカルのリレーのURLを`SIGNAGE_QUAKE_URL`に渡す。共有の`make cms`は渡さない(本番のリレーを叩かない)。
