@@ -1,10 +1,8 @@
-KUBECTL_CONF := /tmp/kubeconfig-aramakisai
 
 .PHONY: kubectl dev signage-dev dev-ps dev-stop preview cms cms-worktree
 
-kubectl: ## kubectl を Infisical 経由で実行 (例: make kubectl ARGS="get pods -A")
-	@infisical run --env=prod -- bash -c \
-		'echo "$$KUBECONFIG" > $(KUBECTL_CONF) && chmod 600 $(KUBECTL_CONF) && kubectl --kubeconfig=$(KUBECTL_CONF) $(ARGS)'
+kubectl: ## kubectl を手元のコンテキスト aramakisai-prod で実行 (例: make kubectl ARGS="get pods -A")。事前に aramakisai-infra で make kube-login
+	@kubectl --context aramakisai-prod $(ARGS)
 
 dev: ## frontend の開発サーバーを起動 (ポートは worktree ごとに自動決定。CMS=worktree で cms-worktree を参照)
 	@scripts/dev.sh dev $(CMS)
