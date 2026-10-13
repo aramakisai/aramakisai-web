@@ -594,6 +594,8 @@ const IMAGE_FILES = [
   { id: '7dcb31b7-1d26-459b-a4d2-dc387c66a314', name: 'seed-photo-3.png', alt: 'シード用写真3' },
 ] as const
 
+const KARAAGE_IMAGE_FILE = 'seed-photo-karaage.webp'
+
 type Category = 'stage' | 'exhibit' | 'vendor' | 'other'
 type LocationKind = 'area-label' | 'area-only' | 'stage-only' | 'none'
 
@@ -895,6 +897,67 @@ function categoryContent(e: ExhibitionSeed, category: Category, imageId: number 
   }
 }
 
+// 本番 CMS 相当の出店エントリ (画像・メニュー・リンク・ブース番号が揃った実データ形)。
+// エリアは MAP_AREAS の並びが変わっても追従できるよう名前で引く。
+async function createKaraageExhibition(payload: Payload): Promise<void> {
+  const area = await payload.find({
+    collection: 'map_areas',
+    where: { name: { equals: 'Bグループ' } },
+    limit: 1,
+  })
+  const areaId = area.docs[0]?.id
+  if (areaId === undefined) throw new Error('map_areas に「Bグループ」が無い')
+
+  const buffer = fs.readFileSync(path.join(seedFilesDir, KARAAGE_IMAGE_FILE))
+  const media = await payload.create({
+    collection: 'media',
+    data: { alt: 'シード用写真からあげ' },
+    file: { data: buffer, mimetype: 'image/webp', name: KARAAGE_IMAGE_FILE, size: buffer.length },
+    user: FAKE_EXECUTIVE,
+  })
+
+  const owner = await payload.create({
+    collection: 'users',
+    data: {
+      email: `${SEED_EMAIL_PREFIX}karaage@example.invalid`,
+      password: 'seed-dev-password-1234',
+      role: 'student_exhibitor',
+    },
+    user: FAKE_EXECUTIVE,
+  })
+
+  await payload.create({
+    collection: 'student_exhibitions',
+    data: {
+      owner: owner.id,
+      status: 'published',
+      organization_name: '荒牧祭実行委員会企画部',
+      categories: ['vendor'],
+      links: [
+        { platform: 'instagram', url: 'https://www.instagram.com/aramakisai_' },
+        { platform: 'x', url: 'https://x.com/aramakisai_' },
+        { platform: 'youtube', url: 'https://www.youtube.com/@aramakisai' },
+        { platform: 'website', url: 'https://aramakisai.com/' },
+      ],
+      vendor: {
+        name: '荒牧祭実行委員会のからあげ',
+        description:
+          '外はカリッと香ばしく、中はジューシー。 一口食べれば、思わず笑顔になるおいしさです。 毎年多くの方にご好評をいただいている名物メニュー。 学園祭ならではの熱気と一緒に、できたてをお楽しみください！',
+        images: [media.id],
+        open_days: ['2026-11-11T12:00:00.000Z', '2026-11-12T12:00:00.000Z'],
+        area_id: areaId,
+        booth_number: 8,
+        menu: [
+          { name: '唐揚げ中', price: '400' },
+          { name: '唐揚げ大', price: '600' },
+        ],
+      },
+    },
+    user: FAKE_EXECUTIVE,
+  })
+  console.log('student_exhibitions: からあげ出店 1 件追加')
+}
+
 async function main() {
   assertLocalDatabase()
 
@@ -1040,6 +1103,8 @@ async function main() {
     }
   }
   console.log(`student_exhibitions: ${EXHIBITIONS.length} 件作成 (owner ユーザーも同数作成)`)
+
+  await createKaraageExhibition(payload)
   console.log(`performance_slots: ${performanceSlotCount} 件作成`)
 
   const publishedCount = await payload.count({
