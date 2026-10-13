@@ -13,7 +13,8 @@ const fx = (name: string) =>
 const live = { test: false };
 const sandbox = { test: true };
 
-const p2p = (name: string, ctx = live) => normalizeMessage('p2p', fx(name), ctx);
+const p2p = (name: string, ctx = live) =>
+  normalizeMessage('p2p', fx(name), ctx);
 const eew = (name: string, ctx = live) =>
   normalizeMessage('wolfxEew', fx(name), ctx);
 const eqlist = (name: string, ctx = live) =>
@@ -51,12 +52,16 @@ describe('parseJstTime', () => {
       Date.parse('2026-10-13T15:02:34.333Z'),
     );
   });
-  it.each(['', 'あした', '2026/13/45 25:00:00', '2026-10-23 10:00:00', undefined, 5])(
-    '解釈できなければ null: %s',
-    (v) => {
-      expect(parseJstTime(v)).toBeNull();
-    },
-  );
+  it.each([
+    '',
+    'あした',
+    '2026/13/45 25:00:00',
+    '2026-10-23 10:00:00',
+    undefined,
+    5,
+  ])('解釈できなければ null: %s', (v) => {
+    expect(parseJstTime(v)).toBeNull();
+  });
 });
 
 describe('P2P 556(警報)', () => {
@@ -132,9 +137,9 @@ describe('P2P 556(警報)', () => {
   });
 
   it('試験モードの系統は訓練にする', () => {
-    expect(asEew(p2p('hand-p2p-556-gunma-warning.json', sandbox)).training).toBe(
-      true,
-    );
+    expect(
+      asEew(p2p('hand-p2p-556-gunma-warning.json', sandbox)).training,
+    ).toBe(true);
   });
 
   it('サンドボックスの実データ(WS の形、id なし)を読む', () => {
@@ -356,7 +361,9 @@ describe('Wolfx jma_eew', () => {
   });
 
   it('isTraining は訓練', () => {
-    expect(asEew(eew('hand-wolfx-eew-gunma-training.json')).training).toBe(true);
+    expect(asEew(eew('hand-wolfx-eew-gunma-training.json')).training).toBe(
+      true,
+    );
   });
 
   it('試験モードの系統は訓練にする', () => {
@@ -377,11 +384,18 @@ describe('Wolfx jma_eew', () => {
   it('警報の報で群馬県が Forecast の区域だけなら gunma が偽', () => {
     const o = JSON.parse(fx('hand-wolfx-eew-gunma-warning.json'));
     o.WarnArea = [
-      { Chiiki: '群馬県南部', Shindo1: '3', Shindo2: '4', Time: '', Type: 'Forecast', Arrive: false },
+      {
+        Chiiki: '群馬県南部',
+        Shindo1: '3',
+        Shindo2: '4',
+        Time: '',
+        Type: 'Forecast',
+        Arrive: false,
+      },
     ];
-    expect(asEew(normalizeMessage('wolfxEew', JSON.stringify(o), live)).gunma).toBe(
-      false,
-    );
+    expect(
+      asEew(normalizeMessage('wolfxEew', JSON.stringify(o), live)).gunma,
+    ).toBe(false);
   });
 
   it('実データの予報は捨てる', () => {

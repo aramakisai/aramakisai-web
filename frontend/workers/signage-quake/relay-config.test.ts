@@ -68,10 +68,7 @@ describe('readRelayConfig', () => {
     ['期間の終端が無い', { QUAKE_ACTIVE_UNTIL: undefined }],
     ['期間の開始が解釈できない', { QUAKE_ACTIVE_FROM: 'あした' }],
     ['期間の終端が解釈できない', { QUAKE_ACTIVE_UNTIL: '2026-13-45' }],
-    [
-      '終端が開始以前',
-      { QUAKE_ACTIVE_UNTIL: '2026-10-23T09:00:00+09:00' },
-    ],
+    ['終端が開始以前', { QUAKE_ACTIVE_UNTIL: '2026-10-23T09:00:00+09:00' }],
     ['トークンが無い', { SIGNAGE_QUAKE_TOKEN: undefined }],
     ['トークンが空', { SIGNAGE_QUAKE_TOKEN: '' }],
   ])('設定が不正: %s', (_name, patch) => {
@@ -92,7 +89,9 @@ describe('readRelayConfig', () => {
 
     it('未設定なら null で警告しない', () => {
       const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      expect(read({ DISCORD_QUAKE_WEBHOOK_URL: undefined }).discordWebhookUrl).toBeNull();
+      expect(
+        read({ DISCORD_QUAKE_WEBHOOK_URL: undefined }).discordWebhookUrl,
+      ).toBeNull();
       expect(warn).not.toHaveBeenCalled();
     });
 
@@ -103,7 +102,9 @@ describe('readRelayConfig', () => {
       expect(c.discordWebhookUrl).toBeNull();
       expect(warn).toHaveBeenCalledTimes(1);
       expect(String(warn.mock.calls[0]!.join(' '))).not.toContain('secretpart');
-      expect(String(warn.mock.calls[0]!.join(' '))).toContain('Webhookの設定が不正');
+      expect(String(warn.mock.calls[0]!.join(' '))).toContain(
+        'Webhookの設定が不正',
+      );
     });
 
     it('接頭辞だけで中身が空のURLも不正', () => {

@@ -86,7 +86,8 @@ export type QuakeReport = EewReport | ObservationReport | EqlistReport;
 
 type Obj = Record<string, unknown>;
 
-const TIME_RE = /^(\d{4})\/(\d{2})\/(\d{2}) (\d{2}):(\d{2})(?::(\d{2})(\.\d+)?)?$/;
+const TIME_RE =
+  /^(\d{4})\/(\d{2})\/(\d{2}) (\d{2}):(\d{2})(?::(\d{2})(\.\d+)?)?$/;
 
 /** `YYYY/MM/DD HH:mm[:ss[.SSS]]` を日本時間として解釈する。解釈できなければ null */
 export function parseJstTime(text: unknown): number | null {

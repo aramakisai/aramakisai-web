@@ -7,6 +7,10 @@
     "incremental": false,
     "noEmit": true
   },
-  "include": ["./**/*.ts", "../src/lib/signage-channel.ts", "../src/lib/signage-quake.ts"],
+  "include": [
+    "./**/*.ts",
+    "../src/lib/signage-channel.ts",
+    "../src/lib/signage-quake.ts"
+  ],
   "exclude": ["node_modules", "./**/*.test.ts"]
 }

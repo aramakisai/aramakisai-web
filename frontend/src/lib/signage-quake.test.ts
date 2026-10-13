@@ -40,7 +40,11 @@ describe('parseQuakePayload', () => {
   it('震度が null の observation を通す', () => {
     const p = {
       ...active,
-      observation: { ...observation, maebashiIntensity: null, maxIntensity: null },
+      observation: {
+        ...observation,
+        maebashiIntensity: null,
+        maxIntensity: null,
+      },
     };
     expect(parseQuakePayload(p)).toEqual(p);
   });
@@ -57,9 +61,18 @@ describe('parseQuakePayload', () => {
     ['startedAt が日時でない', { ...active, startedAt: 'あした' }],
     ['updatedAt が数値', { ...active, updatedAt: 1 }],
     ['observation が無い', { ...active, observation: undefined }],
-    ['observation の震源が数値', { ...active, observation: { ...observation, hypocenter: 1 } }],
-    ['observation の情報源が不正', { ...active, observation: { ...observation, source: 'x' } }],
-    ['observation の震度が数値', { ...active, observation: { ...observation, maxIntensity: 4 } }],
+    [
+      'observation の震源が数値',
+      { ...active, observation: { ...observation, hypocenter: 1 } },
+    ],
+    [
+      'observation の情報源が不正',
+      { ...active, observation: { ...observation, source: 'x' } },
+    ],
+    [
+      'observation の震度が数値',
+      { ...active, observation: { ...observation, maxIntensity: 4 } },
+    ],
   ])('形が合わなければ null: %s', (_name, value) => {
     expect(parseQuakePayload(value)).toBeNull();
   });

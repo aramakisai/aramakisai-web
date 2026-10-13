@@ -60,7 +60,10 @@ export function readRelayConfig(env: QuakeEnv): ConfigResult {
   const webhook = env.DISCORD_QUAKE_WEBHOOK_URL;
   let discordWebhookUrl: string | null = null;
   if (webhook) {
-    if (webhook.startsWith(WEBHOOK_PREFIX) && webhook.length > WEBHOOK_PREFIX.length)
+    if (
+      webhook.startsWith(WEBHOOK_PREFIX) &&
+      webhook.length > WEBHOOK_PREFIX.length
+    )
       discordWebhookUrl = webhook;
     else console.warn('Webhookの設定が不正');
   }

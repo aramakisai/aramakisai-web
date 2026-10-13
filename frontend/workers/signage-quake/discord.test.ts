@@ -240,9 +240,7 @@ describe('段階・解除', () => {
         training: false,
         at: RECEIVED,
       }),
-    ).toEqual([
-      '【サイネージ】速報の表示を解除しました(解除: a@example.com)',
-    ]);
+    ).toEqual(['【サイネージ】速報の表示を解除しました(解除: a@example.com)']);
   });
 
   it('訓練の解除は先頭行に【訓練】', () => {
