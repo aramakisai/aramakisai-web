@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# make dev / signage-dev / dev-ps / dev-stop / preview / cms / cms-worktree のロジック本体。
+# make dev / signage-dev / quake-dev / dev-ps / dev-stop / preview / cms / cms-worktree のロジック本体。
 set -euo pipefail
 
 PORT_MIN=3200
@@ -144,6 +144,50 @@ cmd_signage_dev() {
   node_modules/.bin/opennextjs-cloudflare build
   # 先頭の -c がプライマリ(HTTP を受ける側)。ハブは同じセッションの DO / service binding として解決される
   exec node_modules/.bin/wrangler dev -c wrangler.toml -c workers/signage-hub/wrangler.toml --port "${port}"
+}
+
+cmd_quake_dev() {
+  local root name port owner token test_webhook from until
+  root=$(worktree_root)
+  name=$(basename "$root")
+  # signage-dev(+0)・cms-worktree(+1000)と重ならない
+  port=$(($(port_for_name "$name") + 2000))
+
+  owner=$(owner_desc "$port")
+  if [[ -n "$owner" ]]; then
+    echo "${port} は ${owner} が使用中です" >&2
+    exit 1
+  fi
+
+  if [[ ! -d "${root}/frontend/node_modules" ]]; then
+    (cd "${root}/frontend" && pnpm install --frozen-lockfile)
+  fi
+
+  # 更新案内等が stdout に混ざるため、末尾 1 行だけを値として採る
+  token=$(infisical secrets get SIGNAGE_QUAKE_TOKEN --env=prod --plain 2>/dev/null | tail -n 1 || true)
+  if [[ -z "$token" ]]; then
+    echo "SIGNAGE_QUAKE_TOKEN が Infisical prod に未設定です。登録してから再実行してください" >&2
+    exit 1
+  fi
+  # 本番の Webhook は渡さない。試験用が未登録なら Discord 通知なしで起動する
+  test_webhook=$(infisical secrets get DISCORD_QUAKE_TEST_WEBHOOK_URL --env=prod --plain 2>/dev/null | tail -n 1 || true)
+
+  # 稼働期間は既定で現在を含む範囲。期間外の挙動の確認は QUAKE_DEV_FROM / QUAKE_DEV_UNTIL で上書きする
+  from="${QUAKE_DEV_FROM:-$(date -u -d '-1 day' +%Y-%m-%dT%H:%M:%SZ)}"
+  until="${QUAKE_DEV_UNTIL:-$(date -u -d '+1 day' +%Y-%m-%dT%H:%M:%SZ)}"
+
+  local -a vars=(
+    --var "SIGNAGE_QUAKE_TOKEN:${token}"
+    --var "QUAKE_ACTIVE_FROM:${from}"
+    --var "QUAKE_ACTIVE_UNTIL:${until}"
+    --var "QUAKE_DEV_INJECT:true"
+    --var "QUAKE_P2P_URL:wss://api-realtime-sandbox.p2pquake.net/v2/ws"
+  )
+  [[ -n "$test_webhook" ]] && vars+=(--var "DISCORD_QUAKE_WEBHOOK_URL:${test_webhook}")
+
+  echo "起動: http://localhost:${port} (worktree: ${name}, リレー単体。ハブは make signage-dev を先に起動)"
+  cd "${root}/frontend"
+  exec node_modules/.bin/wrangler dev -c workers/signage-quake/wrangler.toml --port "${port}" --inspector-port "$((port + 1000))" "${vars[@]}"
 }
 
 cmd_dev_ps() {
@@ -319,13 +363,14 @@ shift || true
 case "$sub" in
   dev) cmd_dev "$@" ;;
   signage-dev) cmd_signage_dev "$@" ;;
+  quake-dev) cmd_quake_dev "$@" ;;
   dev-ps) cmd_dev_ps "$@" ;;
   dev-stop) cmd_dev_stop "$@" ;;
   preview) cmd_preview "$@" ;;
   cms) cmd_cms "$@" ;;
   cms-worktree) cmd_cms_worktree "$@" ;;
   *)
-    echo "使い方: scripts/dev.sh {dev|signage-dev|dev-ps|dev-stop|preview|cms|cms-worktree}" >&2
+    echo "使い方: scripts/dev.sh {dev|signage-dev|quake-dev|dev-ps|dev-stop|preview|cms|cms-worktree}" >&2
     exit 1
     ;;
 esac
