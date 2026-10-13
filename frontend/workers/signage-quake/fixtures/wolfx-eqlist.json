@@ -1,0 +1,42 @@
+{
+  "No1": {
+    "Title": "震源・震度情報",
+    "EventID": "20261013220530",
+    "time": "2026/10/13 22:05",
+    "time_full": "2026/10/13 22:05:00",
+    "location": "宮城県沖",
+    "magnitude": "3.5",
+    "shindo": "1",
+    "depth": "60km",
+    "latitude": "38.5",
+    "longitude": "141.7",
+    "info": "この地震による津波の心配はありません。"
+  },
+  "No2": {
+    "Title": "震源・震度情報",
+    "EventID": "20261013205314",
+    "time": "2026/10/13 20:53",
+    "time_full": "2026/10/13 20:53:00",
+    "location": "熊本県天草・芦北地方",
+    "magnitude": "2.7",
+    "shindo": "1",
+    "depth": "10km",
+    "latitude": "32.5",
+    "longitude": "130.5",
+    "info": ""
+  },
+  "No3": {
+    "Title": "震源・震度情報",
+    "EventID": "20261013204422",
+    "time": "2026/10/13 20:44",
+    "time_full": "2026/10/13 20:44:00",
+    "location": "紀伊水道",
+    "magnitude": "3.8",
+    "shindo": "2",
+    "depth": "40km",
+    "latitude": "33.8",
+    "longitude": "134.7",
+    "info": ""
+  },
+  "md5": "b2268fb268d09d243c1b36ede4e00071"
+}

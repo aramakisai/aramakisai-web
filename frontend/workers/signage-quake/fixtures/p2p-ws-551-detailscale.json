@@ -1,0 +1,37 @@
+{
+  "_id": "6ace480ae72797fa8afb919a",
+  "code": 551,
+  "comments": {
+    "freeFormComment": ""
+  },
+  "earthquake": {
+    "domesticTsunami": "None",
+    "foreignTsunami": "Unknown",
+    "hypocenter": {
+      "depth": 10,
+      "latitude": 37.6,
+      "longitude": 137.3,
+      "magnitude": 3.1,
+      "name": "能登半島沖"
+    },
+    "maxScale": 10,
+    "time": "2023/05/08 12:16:00"
+  },
+  "issue": {
+    "correct": "None",
+    "source": "気象庁",
+    "time": "2023/05/08 12:19:16",
+    "type": "DetailScale"
+  },
+  "points": [
+    {
+      "addr": "珠洲市正院町",
+      "isArea": false,
+      "pref": "石川県",
+      "scale": 10
+    }
+  ],
+  "time": "2026/10/14 00:02:34.333",
+  "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+  "ver": "20220813"
+}

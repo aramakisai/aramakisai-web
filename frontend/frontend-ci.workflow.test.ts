@@ -188,4 +188,48 @@ describe('.github/workflows/frontend-ci.yml', () => {
       expect(line).not.toMatch(/secrets\./);
     }
   });
+
+  describe('deploy-prod signage relay', () => {
+    const steps = () => loadWorkflow().jobs['deploy-prod'].steps;
+    const idx = (name: string) => steps().findIndex((s) => s.name === name);
+
+    it('checks out full history for the path diff', () => {
+      const checkout = steps().find((s) =>
+        s.uses?.startsWith('actions/checkout'),
+      );
+      expect(checkout?.with?.['fetch-depth']).toBe(0);
+    });
+
+    it('deploys the relay after the site, only when relay paths changed', () => {
+      const i = idx('Deploy signage relay to Cloudflare Workers (prod)');
+      expect(i).toBeGreaterThan(idx('Deploy to Cloudflare Workers (prod)'));
+      const step = steps()[i] as Step & { if?: string };
+      expect(step.if).toContain("steps.relay.outputs.changed == 'true'");
+      expect(step.run).toContain('-c workers/signage-quake/wrangler.toml');
+      expect(step.run).toContain(
+        '--secrets-file "$RUNNER_TEMP/quake-secrets.json"',
+      );
+    });
+
+    it('treats zero/unavailable previous commit as changed', () => {
+      const detect = steps().find(
+        (s) => s.name === 'Detect signage relay changes',
+      );
+      expect(detect?.run).toContain('0000000000000000000000000000000000000000');
+      expect(detect?.run).toContain('frontend/workers/signage-quake');
+      expect(detect?.run).toMatch(/\|\| ! git diff/);
+    });
+
+    it('writes the secrets file from Infisical and always removes it', () => {
+      const write = steps()[idx('Write signage relay secrets file (prod)')];
+      expect(write.run).toContain('SIGNAGE_QUAKE_TOKEN');
+      expect(write.run).toContain('DISCORD_QUAKE_WEBHOOK_URL');
+      expect(write.run).toContain('--env=prod');
+      const rm = steps()[idx('Remove signage relay secrets file')] as Step & {
+        if?: string;
+      };
+      expect(rm.if).toBe('always()');
+      expect(rm.run).toContain('quake-secrets.json');
+    });
+  });
 });

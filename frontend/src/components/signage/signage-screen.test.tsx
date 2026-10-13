@@ -27,7 +27,8 @@ vi.mock('@/lib/signage-time', async (importOriginal) => {
     },
   };
 });
-vi.mock('@/lib/use-signage-channel', () => ({
+vi.mock('@/lib/use-signage-channel', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/use-signage-channel')>()),
   useSignageChannel: () => channel,
 }));
 
@@ -102,6 +103,59 @@ describe('SignageScreen', () => {
     expect(container.textContent).not.toContain('いまのステージ');
   });
 
+  describe('緊急地震速報のオーバーレイ', () => {
+    const quakeChannel = (payload: unknown): SignageChannelState => ({
+      ...CHANNEL_IDLE,
+      latest: {
+        quake: {
+          kind: 'broadcast',
+          feature: 'quake',
+          payload,
+          expiresAt: null,
+          sentAt: '2026-11-14T00:00:00Z',
+        },
+      } as unknown as SignageChannelState['latest'],
+    });
+    const active = {
+      active: true,
+      stage: 'warning',
+      training: false,
+      source: 'p2p',
+      startedAt: '2026-11-14T00:00:00Z',
+      updatedAt: '2026-11-14T00:00:00Z',
+      observation: null,
+    };
+    const renderScreen = () =>
+      render(
+        <SignageScreen initial={null} renderedAt="2026-11-14T00:00:00Z" />,
+      );
+
+    it('表示中だけ、スナップショットが無くてもキャンバスの最後の子として既定の文言で出す', () => {
+      channel = quakeChannel(active);
+      const { container } = renderScreen();
+      const canvas = container.querySelector<HTMLElement>('.signage-canvas')!;
+      const overlay = canvas.lastElementChild as HTMLElement;
+      expect(overlay.hasAttribute('data-quake-overlay')).toBe(true);
+      expect(overlay.textContent).toContain('頭を守ってください');
+    });
+
+    it('解除・形が合わない・未受信では出さない', () => {
+      for (const payload of [
+        { active: false },
+        { ...active, stage: 'unknown' },
+        'x',
+      ]) {
+        channel = quakeChannel(payload);
+        const { container, unmount } = renderScreen();
+        expect(container.querySelector('[data-quake-overlay]')).toBeNull();
+        unmount();
+      }
+      channel = CHANNEL_IDLE;
+      const { container } = renderScreen();
+      expect(container.querySelector('[data-quake-overlay]')).toBeNull();
+    });
+  });
+
   it('2分ごとに集約APIを読み、失敗しても画面は落ちない', async () => {
     render(<SignageScreen initial={null} renderedAt="2026-11-14T00:00:00Z" />);
     await act(() => vi.advanceTimersByTimeAsync(120_000));
@@ -115,6 +169,12 @@ describe('SignageScreen', () => {
       pinnedSlideId: null,
       eventDays: [],
       slides: [],
+      quakeSlides: {
+        warning: null,
+        calm: null,
+        evacuate: null,
+        cancelled: null,
+      },
       telops: [],
       timetable: { days: [], stages: [], performances: [] },
       sponsors: [],
@@ -134,6 +194,12 @@ describe('SignageScreen', () => {
       pinnedSlideId: null,
       eventDays: [],
       slides: [],
+      quakeSlides: {
+        warning: null,
+        calm: null,
+        evacuate: null,
+        cancelled: null,
+      },
       telops: [],
       timetable: { days: [], stages: [], performances: [] },
       sponsors: [],
@@ -204,6 +270,12 @@ describe('SignageScreen', () => {
       pinnedSlideId: null,
       eventDays: [],
       slides: [],
+      quakeSlides: {
+        warning: null,
+        calm: null,
+        evacuate: null,
+        cancelled: null,
+      },
       telops: [],
       timetable: { days: [], stages: [], performances: [] },
       sponsors: [],

@@ -1,0 +1,54 @@
+{
+  "_id": "6ace000000000000000000a4",
+  "uid": "u1",
+  "areas": [
+    {
+      "arrivalTime": "2026/10/23 10:00:12",
+      "kindCode": "10",
+      "name": "群馬県南部",
+      "pref": "群馬",
+      "scaleFrom": 50,
+      "scaleTo": 55
+    },
+    {
+      "arrivalTime": null,
+      "kindCode": "11",
+      "name": "埼玉県北部",
+      "pref": "埼玉",
+      "scaleFrom": 45,
+      "scaleTo": 50
+    },
+    {
+      "arrivalTime": null,
+      "kindCode": "19",
+      "name": "栃木県南部",
+      "pref": "栃木",
+      "scaleFrom": 40,
+      "scaleTo": 99
+    }
+  ],
+  "cancelled": false,
+  "code": 556,
+  "earthquake": {
+    "arrivalTime": "2026/10/23 10:00:05",
+    "condition": "",
+    "hypocenter": {
+      "depth": 10,
+      "latitude": 36.2,
+      "longitude": 139.1,
+      "magnitude": 6.1,
+      "name": "群馬県南部",
+      "reduceName": "群馬県南部"
+    },
+    "originTime": "2026/10/23 10:00:00"
+  },
+  "issue": {
+    "eventId": "20261023100005",
+    "serial": "1",
+    "time": "2026/10/23 10:00:08"
+  },
+  "time": "2026/10/23 10:00:08.500",
+  "user_agent": "hand-made",
+  "ver": "20220813",
+  "test": true
+}

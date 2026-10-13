@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { visibleSlideIds, type VisibilityGroup } from './signage-visibility';
 
 const all = (visible: boolean): VisibilityGroup => ({ is_all: true, visible, slides: [] });
+const quake = (slides: number[], visible = false): VisibilityGroup => ({ is_quake: true, visible, slides });
 const group = (visible: boolean, slides: number[]): VisibilityGroup => ({ is_all: false, visible, slides });
 
 describe('visibleSlideIds', () => {
@@ -35,5 +36,14 @@ describe('visibleSlideIds', () => {
 
   it('「すべて」の所属は参照しない', () => {
     expect(visibleSlideIds(enabled, [{ is_all: true, visible: false, slides: [1] }])).toEqual([]);
+  });
+
+  it('緊急地震速報のグループの所属は、「すべて」が表示中でも除く', () => {
+    expect(visibleSlideIds(enabled, [all(true), quake([2])])).toEqual([1, 3, 4]);
+    expect(visibleSlideIds(enabled, [all(true), quake([2], true)])).toEqual([1, 3, 4]);
+  });
+
+  it('緊急地震速報のグループは通常のグループの所属としても数えず、他のグループの所属からも除く', () => {
+    expect(visibleSlideIds(enabled, [all(false), quake([1, 2], true), group(true, [2, 3])])).toEqual([3]);
   });
 });

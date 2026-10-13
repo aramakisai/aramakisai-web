@@ -1,0 +1,37 @@
+{
+  "code": 551,
+  "comments": {
+    "freeFormComment": ""
+  },
+  "earthquake": {
+    "domesticTsunami": "None",
+    "foreignTsunami": "Unknown",
+    "hypocenter": {
+      "depth": 50,
+      "latitude": 26.4,
+      "longitude": 127.4,
+      "magnitude": 3.4,
+      "name": "沖縄本島近海"
+    },
+    "maxScale": 10,
+    "time": "2023/05/09 02:40:00"
+  },
+  "id": "6ace4882e72797fa8afb919e",
+  "issue": {
+    "correct": "None",
+    "source": "気象庁",
+    "time": "2023/05/09 02:42:56",
+    "type": "DetailScale"
+  },
+  "points": [
+    {
+      "addr": "座間味村座間味",
+      "isArea": false,
+      "pref": "沖縄県",
+      "scale": 10
+    }
+  ],
+  "time": "2026/10/14 00:04:34.569",
+  "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+  "ver": "20220813"
+}

@@ -1,29 +1,30 @@
-import { lexicalHTMLField } from '@payloadcms/richtext-lexical';
-import type { CollectionConfig, Validate } from 'payload';
+import { lexicalHTMLField } from '@payloadcms/richtext-lexical'
+import type { CollectionConfig, Validate } from 'payload'
 
-import { richTextHTMLConverters } from '../lib/rich-text-html-converters';
-import { signageNotifyHook } from '../lib/signage-notify';
+import { richTextHTMLConverters } from '../lib/rich-text-html-converters'
+import { signageNotifyHook } from '../lib/signage-notify'
 
 const kindIs =
   (...kinds: string[]) =>
   (data: Record<string, unknown>) =>
-    kinds.includes(String(data?.kind));
+    kinds.includes(String(data?.kind))
 
 /** 種別に依存する必須は全種別に required を掛けられないため、種別を見て判定する */
 const requiredWhen =
   (kinds: string[], message: string): Validate =>
   (value, { siblingData }) => {
-    if (!kindIs(...kinds)(siblingData as Record<string, unknown>)) return true;
-    const empty = value === null || value === undefined || (typeof value === 'string' && value.trim() === '');
-    return empty ? message : true;
-  };
+    if (!kindIs(...kinds)(siblingData as Record<string, unknown>)) return true
+    const empty =
+      value === null || value === undefined || (typeof value === 'string' && value.trim() === '')
+    return empty ? message : true
+  }
 
-const layoutOnly = { condition: kindIs('layout') };
+const layoutOnly = { condition: kindIs('layout') }
 
 const layoutIs =
   (...layouts: string[]) =>
   (data: Record<string, unknown>) =>
-    kindIs('layout')(data) && layouts.includes(String(data?.layout));
+    kindIs('layout')(data) && layouts.includes(String(data?.layout))
 
 export const SignageSlides: CollectionConfig = {
   slug: 'signage_slides',
@@ -33,7 +34,11 @@ export const SignageSlides: CollectionConfig = {
     useAsTitle: 'title',
     defaultColumns: ['title', 'kind', 'groups', 'enabled', 'pin'],
     components: {
-      beforeListTable: ['./components/SignagePinBanner.tsx', './components/SignageGroupSwitches.tsx'],
+      beforeListTable: [
+        './components/SignageQuakePanel.tsx',
+        './components/SignagePinBanner.tsx',
+        './components/SignageGroupSwitches.tsx',
+      ],
     },
     // ドラッグ並べ替えはページをまたげないため、全件を1ページに収める
     pagination: { defaultLimit: 100 },
@@ -42,12 +47,16 @@ export const SignageSlides: CollectionConfig = {
     afterChange: [
       // 無効なスライドは画面に出ないため、固定を残すと帯・列だけが固定中を示し、再び有効にした時に予告なく固定へ戻る
       async ({ doc, previousDoc, req }) => {
-        if (doc.enabled || !previousDoc?.enabled) return doc;
-        const settings = await req.payload.findGlobal({ slug: 'signage_settings', depth: 0, req });
+        if (doc.enabled || !previousDoc?.enabled) return doc
+        const settings = await req.payload.findGlobal({ slug: 'signage_settings', depth: 0, req })
         if (settings.pinned_slide === doc.id) {
-          await req.payload.updateGlobal({ slug: 'signage_settings', data: { pinned_slide: null }, req });
+          await req.payload.updateGlobal({
+            slug: 'signage_settings',
+            data: { pinned_slide: null },
+            req,
+          })
         }
-        return doc;
+        return doc
       },
       signageNotifyHook(['pin', 'snapshot']),
     ],
@@ -60,7 +69,10 @@ export const SignageSlides: CollectionConfig = {
       label: '固定',
       admin: {
         position: 'sidebar',
-        components: { Cell: './components/SignagePinCell.tsx', Field: './components/SignagePinButton.tsx' },
+        components: {
+          Cell: './components/SignagePinCell.tsx',
+          Field: './components/SignagePinButton.tsx',
+        },
       },
     },
     {
@@ -129,7 +141,12 @@ export const SignageSlides: CollectionConfig = {
       storeInDB: true,
       converters: richTextHTMLConverters,
     }),
-    { name: 'content2', type: 'richText', label: '本文枠 2', admin: { condition: layoutIs('two-content') } },
+    {
+      name: 'content2',
+      type: 'richText',
+      label: '本文枠 2',
+      admin: { condition: layoutIs('two-content') },
+    },
     lexicalHTMLField({
       htmlFieldName: 'content2_html',
       lexicalFieldName: 'content2',
@@ -165,4 +182,4 @@ export const SignageSlides: CollectionConfig = {
       admin: { allowCreate: false, components: { Cell: './components/SignageGroupCell.tsx' } },
     },
   ],
-};
+}

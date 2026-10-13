@@ -1,16 +1,17 @@
-KUBECTL_CONF := /tmp/kubeconfig-aramakisai
 
-.PHONY: kubectl dev signage-dev dev-ps dev-stop preview cms cms-worktree
+.PHONY: kubectl dev signage-dev quake-dev dev-ps dev-stop preview cms cms-worktree
 
-kubectl: ## kubectl を Infisical 経由で実行 (例: make kubectl ARGS="get pods -A")
-	@infisical run --env=prod -- bash -c \
-		'echo "$$KUBECONFIG" > $(KUBECTL_CONF) && chmod 600 $(KUBECTL_CONF) && kubectl --kubeconfig=$(KUBECTL_CONF) $(ARGS)'
+kubectl: ## kubectl を手元のコンテキスト aramakisai-prod で実行 (例: make kubectl ARGS="get pods -A")。事前に aramakisai-infra で make kube-login
+	@kubectl --context aramakisai-prod $(ARGS)
 
 dev: ## frontend の開発サーバーを起動 (ポートは worktree ごとに自動決定。CMS=worktree で cms-worktree を参照)
 	@scripts/dev.sh dev $(CMS)
 
 signage-dev: ## サイトとサイネージのハブをまとめて起動 (ポートは dev と同じ。CMS=worktree で cms-worktree を参照)
 	@scripts/dev.sh signage-dev $(CMS)
+
+quake-dev: ## 地震速報のリレー単体を起動 (先に make signage-dev。ポートは dev+2000。SIGNAGE_QUAKE_TOKEN を Infisical prod から取得)
+	@scripts/dev.sh quake-dev
 
 dev-ps: ## 3000-4999 で listen 中の開発サーバー一覧 (ポート/役割/worktree/ブランチ/pid)
 	@scripts/dev.sh dev-ps
