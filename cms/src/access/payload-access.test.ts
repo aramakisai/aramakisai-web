@@ -56,13 +56,34 @@ describe('accessFor の読み取り', () => {
   });
 });
 
+describe('accessFor の読み取り(緊急地震速報)', () => {
+  it('未認証のスライド読み取りは、表示対象に加えて緊急地震速報のグループの有効な所属も通す', async () => {
+    const find = vi
+      .fn()
+      .mockResolvedValueOnce({ docs: [{ id: 1 }, { id: 2 }, { id: 3 }] })
+      .mockResolvedValueOnce({
+        docs: [
+          { id: 8, is_all: true, visible: true, slides: [] },
+          { id: 9, is_quake: true, visible: false, slides: [2, 7] },
+        ],
+      });
+    const req = { user: null, payload: { find } } as unknown as PayloadRequest;
+    // 7 は無効なスライドのため有効な ID に含まれず、読めない
+    expect(await accessFor('signage_slides').read({ req } as never)).toEqual({
+      and: [{ enabled: { equals: true } }, { id: { in: [1, 3, 2] } }],
+    });
+  });
+});
+
 describe('accessFor の削除', () => {
   const del = (collection: string, user: unknown) =>
     accessFor(collection).delete({ req: reqWith(user) } as never);
   const executive = { id: 1, role: 'executive' };
 
-  it('サイネージ グループは、実行委員には「すべて」以外だけを対象にする条件を返す', async () => {
-    expect(await del('signage_groups', executive)).toEqual({ is_all: { not_equals: true } });
+  it('サイネージ グループは、実行委員には「すべて」と緊急地震速報以外だけを対象にする条件を返す', async () => {
+    expect(await del('signage_groups', executive)).toEqual({
+      and: [{ is_all: { not_equals: true } }, { is_quake: { not_equals: true } }],
+    });
   });
 
   it('サイネージ グループは、未認証・学生団体には条件ではなく false を返す', async () => {
