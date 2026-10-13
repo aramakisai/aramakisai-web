@@ -1,0 +1,51 @@
+{
+  "Title": "緊急地震速報（警報）",
+  "CodeType": "Ｍ、最大予測震度及び主要動到達予測時刻の緊急地震速報",
+  "Issue": {
+    "Source": "東京",
+    "Status": "通常"
+  },
+  "EventID": "20261023100005",
+  "Serial": 1,
+  "AnnouncedTime": "2026/10/23 10:00:08",
+  "OriginTime": "2026/10/23 10:00:00",
+  "Hypocenter": "群馬県南部",
+  "Latitude": 36.2,
+  "Longitude": 139.1,
+  "Magunitude": 6.1,
+  "Magnitude": 6.1,
+  "Depth": 10,
+  "MaxIntensity": "5+",
+  "WarnArea": [
+    {
+      "Chiiki": "群馬県南部",
+      "Shindo1": "5-",
+      "Shindo2": "5+",
+      "Time": "2026/10/23 10:00:12",
+      "Type": "Warning",
+      "Arrive": false
+    },
+    {
+      "Chiiki": "埼玉県北部",
+      "Shindo1": "4",
+      "Shindo2": "5-",
+      "Time": "2026/10/23 10:00:16",
+      "Type": "Warning",
+      "Arrive": true
+    },
+    {
+      "Chiiki": "栃木県南部",
+      "Shindo1": "3",
+      "Shindo2": "4",
+      "Time": "2026/10/23 10:00:20",
+      "Type": "Forecast",
+      "Arrive": false
+    }
+  ],
+  "isSea": false,
+  "isTraining": true,
+  "isAssumption": false,
+  "isWarn": true,
+  "isFinal": false,
+  "isCancel": false
+}

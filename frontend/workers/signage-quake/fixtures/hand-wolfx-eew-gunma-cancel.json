@@ -1,0 +1,26 @@
+{
+  "Title": "緊急地震速報（警報）",
+  "CodeType": "Ｍ、最大予測震度及び主要動到達予測時刻の緊急地震速報",
+  "Issue": {
+    "Source": "東京",
+    "Status": "通常"
+  },
+  "EventID": "20261023100005",
+  "Serial": 3,
+  "AnnouncedTime": "2026/10/23 10:00:08",
+  "OriginTime": "2026/10/23 10:00:00",
+  "Hypocenter": "",
+  "Latitude": 36.2,
+  "Longitude": 139.1,
+  "Magunitude": 6.1,
+  "Magnitude": 6.1,
+  "Depth": 10,
+  "MaxIntensity": "",
+  "WarnArea": [],
+  "isSea": false,
+  "isTraining": false,
+  "isAssumption": false,
+  "isWarn": false,
+  "isFinal": false,
+  "isCancel": true
+}

@@ -1,0 +1,29 @@
+{
+  "No1": {
+    "Title": "震源・震度情報",
+    "EventID": "20261023100005",
+    "time": "2026/10/23 10:00",
+    "time_full": "2026/10/23 10:00:00",
+    "location": "群馬県南部",
+    "magnitude": "6.1",
+    "shindo": "不明",
+    "depth": "10km",
+    "latitude": "36.2",
+    "longitude": "139.1",
+    "info": ""
+  },
+  "No2": {
+    "Title": "震源・震度情報",
+    "EventID": "20261023090000",
+    "time": "2026/10/23 09:00",
+    "time_full": "2026/10/23 09:00:00",
+    "location": "茨城県南部",
+    "magnitude": "3.0",
+    "shindo": "1",
+    "depth": "50km",
+    "latitude": "36.0",
+    "longitude": "140.0",
+    "info": ""
+  },
+  "md5": "x"
+}

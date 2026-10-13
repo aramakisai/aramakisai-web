@@ -1,0 +1,73 @@
+{
+  "code": 551,
+  "comments": {
+    "freeFormComment": ""
+  },
+  "earthquake": {
+    "domesticTsunami": "Checking",
+    "foreignTsunami": "Unknown",
+    "hypocenter": {
+      "depth": -1,
+      "latitude": -200,
+      "longitude": -200,
+      "magnitude": -1,
+      "name": ""
+    },
+    "maxScale": 40,
+    "time": "2023/05/06 02:47:00"
+  },
+  "id": "6ace4555e72797fa8afb9183",
+  "issue": {
+    "correct": "None",
+    "source": "気象庁",
+    "time": "2023/05/06 02:49:59",
+    "type": "ScalePrompt"
+  },
+  "points": [
+    {
+      "addr": "青森県下北",
+      "isArea": true,
+      "pref": "青森県",
+      "scale": 40
+    },
+    {
+      "addr": "青森県津軽北部",
+      "isArea": true,
+      "pref": "青森県",
+      "scale": 30
+    },
+    {
+      "addr": "青森県三八上北",
+      "isArea": true,
+      "pref": "青森県",
+      "scale": 30
+    },
+    {
+      "addr": "渡島地方東部",
+      "isArea": true,
+      "pref": "北海道",
+      "scale": 30
+    },
+    {
+      "addr": "渡島地方西部",
+      "isArea": true,
+      "pref": "北海道",
+      "scale": 30
+    },
+    {
+      "addr": "日高地方東部",
+      "isArea": true,
+      "pref": "北海道",
+      "scale": 30
+    },
+    {
+      "addr": "十勝地方中部",
+      "isArea": true,
+      "pref": "北海道",
+      "scale": 30
+    }
+  ],
+  "time": "2026/10/13 23:51:01.682",
+  "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+  "ver": "20220813"
+}
