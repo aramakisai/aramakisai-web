@@ -355,7 +355,8 @@ cmd_cms_worktree() {
   echo "起動: http://localhost:${port} (worktree: ${name} の cms/, マイグレーション検証用)"
   cd "${root}/cms"
   pnpm db:up
-  exec infisical run --env=prod -- env NODE_OPTIONS=--no-deprecation node_modules/.bin/next dev -p "${port}"
+  # quake-dev (同 worktree のポート+2000) へ向ける。トークンは Infisical prod の SIGNAGE_QUAKE_TOKEN が注入される
+  exec infisical run --env=prod -- env NODE_OPTIONS=--no-deprecation "SIGNAGE_QUAKE_URL=http://localhost:$((port + 1000))" node_modules/.bin/next dev -p "${port}"
 }
 
 sub="${1:-}"
