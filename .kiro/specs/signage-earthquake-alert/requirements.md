@@ -30,7 +30,7 @@
 
 ### 表示上の法的な制約
 - 受信した値を加工せずに転送して表示する。震度や到達時刻を自前で計算しない(気象業務法。予報業務許可が不要な範囲 https://www.jma.go.jp/jma/kishou/minkan/q_a_s.html )。
-- 「気象庁発表の転送・参考情報(公式の警報ではない)」を常に明示する(Wolfxの規約が公式の警報としての提示を禁止している)。
+- サイネージの表示には「気象庁発表の転送・参考情報(公式の警報ではない)」を常に明示する(Wolfxの規約が公式の警報としての提示を禁止している)。実行委員向けのDiscordの通知には付けない。
 
 ### 配信経路
 - 端末へのpushの経路(DOとWebSocket Hibernationのハブ、端末のクライアント、再接続と追いつき、時刻補正、他機能からの`publish`の口、メッセージの有効期限の仕組み)は既存のコード(`frontend/workers/signage-hub`、`frontend/src/lib/signage-channel.ts`、`frontend/src/lib/use-signage-channel.ts`)にある。本specはその上に乗り、上流のWebSocket接続と中継、速報の中身と表示を持つ(速報の表示中の状態に有効期限は持たせない)。
@@ -200,7 +200,7 @@
 7. The Earthquake Alert Relay shall 緊急地震速報の投稿に、種別(警報・続報・取消・訓練)と続報番号、震源地・マグニチュード・深さ・発生時刻・発表時刻、地域ごとの予想震度と到達予想時刻(群馬県南部を先頭)、情報源(P2P地震情報かWolfxか)と受信した時刻を載せる
 8. The Earthquake Alert Relay shall 地震情報の投稿に、震源地・マグニチュード・深さ・発生時刻・発表時刻、前橋市の観測点の実測震度、情報源と受信した時刻を載せる
 9. The Earthquake Alert Relay shall 投稿に載せる値を受信した値のまま使い、震度・到達時刻を自ら計算・推定しない
-10. The Earthquake Alert Relay shall すべての投稿に「気象庁発表の転送・参考情報(公式の警報ではない)」を明示する
+10. The Earthquake Alert Relay shall 投稿に「公式の警報ではない」旨を付けない(実行委員向けの通知であり、来場者には見せない)
 11. When 2系統から同じ報を受信する, the Earthquake Alert Relay shall その報を1回だけ投稿し、情報源の優先(Requirement 13)による置き換えは先の投稿の編集で行う
 12. If 発表から一定時間を過ぎた報、または上流への接続直後に送られてくる過去の報を受信する(1.6), then the Earthquake Alert Relay shall その報を投稿しない
 13. If Discordへの投稿に失敗する, then the Earthquake Alert Relay shall サイネージの表示と端末への配信を遅らせず止めず、限られた回数だけ投稿し直し、失敗したことをCMS管理画面で実行委員が確かめられるようにする

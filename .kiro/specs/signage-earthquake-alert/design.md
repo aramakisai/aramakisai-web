@@ -317,7 +317,7 @@ stateDiagram-v2
 | 12.1〜12.3, 12.11, 12.12 | 投稿する報、1回だけ、古い報を投稿しない | Upstream, RelayCore | `processReport`の`notices`、`EewRecord.notify`、`seenObservation` | 警報から段階1 |
 | 12.4, 12.5 | 段階の変化と解除の投稿 | RelayCore, QuakeRelay, SignageQuakeEndpoints | `applyDismiss(by)`、`stage`・`dismissed`の通知 | 解除 |
 | 12.6 | 受信状態の変化の投稿 | QuakeRelay, RelayCore | `isReceiving`、`channel`の通知 | — |
-| 12.7〜12.10, 12.16 | 文面、加工しない、公式でない旨、訓練 | DiscordNotifier | `formatNotice` | — |
+| 12.7〜12.10, 12.16 | 文面、加工しない、公式でない旨を付けない、訓練 | DiscordNotifier | `formatNotice` | — |
 | 12.13 | 失敗でサイネージを止めない、限定的な再試行、CMSで確かめる | DiscordNotifier, QuakeRelay, SignageQuakePanel | `DiscordQueue`、`QuakeRelayStatus.discord` | 警報から段階1 |
 | 12.14, 12.17 | 専用のWebhook、秘密、試験用に差し替え | RelayConfig, QuakeWorker | `DISCORD_QUAKE_WEBHOOK_URL`、`make quake-dev` | — |
 | 12.15 | 期間外は報と受信状態を投稿しない | QuakeRelay | 期間外は接続もalarmも無い | — |
@@ -750,7 +750,7 @@ export class DiscordQueue {
 }
 ```
 
-**文面**(すべての通知の最終行に「気象庁発表の転送・参考情報(公式の警報ではない)」、訓練の報・試験モードの報・訓練の表示の段階と解除は先頭行に「【訓練】」を付ける(12.10・12.16))
+**文面**(「公式の警報ではない」旨は付けない(12.10)。訓練の報・試験モードの報・訓練の表示の段階と解除は先頭行に「【訓練】」を付ける(12.10・12.16))
 
 | 通知 | 行 |
 |------|----|
@@ -1027,7 +1027,7 @@ export async function publicSlideFilter(payload: Reader, req?: Partial<PayloadRe
   - `upstream.test.ts`: fixturesのP2P 551(DetailScale・ScalePrompt・Destination)・556、Wolfx `jma_eew`(予報・警報・取消・訓練)・`jma_eqlist`・heartbeatの正規化、壊れたJSONで`null`、`id`/`_id`の両方
   - `relay-core.test.ts`: 状態遷移の全辺(表駆動)、続報で不変、`eewPrecedence`の全組(記録なし・新しい番号・古い番号・同じ番号でwolfx→p2p・p2p→wolfx・同じ系統の再送・取消)、`replace`で段階が変わらず`source`だけ変わる、Wolfxの地震情報で段階2の後にP2Pの551で置き換わる・P2Pの後のWolfxの地震情報を捨てる、P2Pが無くWolfxの最大震度5弱以上で段階1のまま、通知の判定(群馬県を含む警報だけ投稿、投稿した地震の続報・取消は群馬県外でも投稿、予報・古い報は投稿しない、`replace`で`edit`、群馬県の観測点を含む551だけ投稿・同じ`id`は1回、段階の変化・解除の通知、試験モードで訓練)、`recordDiscordMessage`が進んだ記録を書き換えない、予報・古い報・群馬県外の除外、試験モードで鮮度と群馬県を飛ばし訓練になる、46で不変、段階3から下がらない、段階3での取消で不変、解除後の続報・取消の抑止と6.7の再表示、本物の表示中の訓練の破棄、`isReceiving`の閾値と起動直後
   - `relay-config.test.ts`: 本番のURLで試験モードにならない、サンドボックスで試験モード、期間の境界(開始を含み終端を含まない)、不正な設定
-  - `discord.test.ts`: `formatNotice`の各種(群馬県南部が先頭、-1は「不明」、訓練の印、公式でない旨が常に入る、2000文字を超えると地域を省く、群馬県の地域は省かない)、待ち行列(`?wait=true`で投稿しIDを保存、`edit`はPATCH、IDがnullなら投稿、記録が進んでいれば送らない、429で`retry_after`だけ待つ・30秒超は諦める、`X-RateLimit-Remaining: 0`で待つ、5xxで3回まで、404で`disabled`、上限100件)。`fetch`と`sleep`は差し替える
+  - `discord.test.ts`: `formatNotice`の各種(群馬県南部が先頭、-1は「不明」、訓練の印、公式でない旨が入らない、2000文字を超えると地域を省く、群馬県の地域は省かない)、待ち行列(`?wait=true`で投稿しIDを保存、`edit`はPATCH、IDがnullなら投稿、記録が進んでいれば送らない、429で`retry_after`だけ待つ・30秒超は諦める、`X-RateLimit-Remaining: 0`で待つ、5xxで3回まで、404で`disabled`、上限100件)。`fetch`と`sleep`は差し替える
   - `index.test.ts`: トークン無し・誤りで401、`/dismiss`で`by`が無いと400、`QUAKE_DEV_INJECT`無しで投入口が404、Cronが期間外でDOを呼ばない
 - 単体(frontend): `signage-data`で緊急地震速報のスライドが`slides`から除かれ`quakeSlides`に入る、グループ無しで全段階null。オーバーレイの各段階と既定の文言、訓練の印、公式でない旨が常に出る、予想値を出さない。`signage-screen`で`quake.active`のときだけ最前面に出る、未知の形で出ない
 - 単体・統合(CMS): `visibleSlideIds`で「すべて」表示中でも緊急地震速報のスライドが除かれる、未認証の読み取りで緊急地震速報のスライドが読める、固定の選択肢に出ない、緊急地震速報のグループを削除できない・`is_quake`を付け外しできない(`access.int.test.ts`)、エンドポイントの403・503・中継
@@ -1038,7 +1038,7 @@ export async function publicSlideFilter(payload: Reader, req?: Partial<PayloadRe
 - リレーのHTTPの口はBearerの共有秘密で守り、定数時間で比較する。投入口は`QUAKE_DEV_INJECT`の無い本番では存在しない。
 - CMSの管理画面からリレーを直接呼ばない(秘密をブラウザに出さない)。CMSのエンドポイントが実行委員の認証を確かめて中継する。
 - 端末へ送るのは表示に使う受信値だけ。受信状態・接続先は送らない。
-- Wolfxの規約に従い、公式の警報でない旨を常に出す(5.3・12.10)。
+- Wolfxの規約に従い、サイネージには公式の警報でない旨を常に出す(5.3)。実行委員向けのDiscordの通知には付けない(12.10)。
 - WebhookのURLはトークンを含む秘密として扱う。Workersの秘密に置き、端末・CMS・ログ・`QuakeRelayStatus`に出さない(12.14)。
 - 解除した実行委員のメールアドレスは実行委員用のチャンネルにだけ載る。リレーはCMSのエンドポイントが認証したユーザーの値だけを受ける。
 

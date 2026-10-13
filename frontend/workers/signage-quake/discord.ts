@@ -10,7 +10,6 @@ export interface WebhookBody {
 
 const CONTENT_LIMIT = 2000;
 const UNKNOWN = '不明';
-const FOOTER = '気象庁発表の転送・参考情報(公式の警報ではない)';
 const TRAINING = '【訓練】';
 const GUNMA_FIRST = '群馬県南部';
 
@@ -82,7 +81,7 @@ const sourceLine = (source: 'p2p' | 'wolfx', receivedAt: number) =>
   `情報源: ${source === 'p2p' ? 'P2P地震情報' : 'Wolfx'}(受信 ${jst(receivedAt)})`;
 
 function join(training: boolean, lines: readonly string[]): string {
-  return [...(training ? [TRAINING] : []), ...lines, FOOTER].join('\n');
+  return [...(training ? [TRAINING] : []), ...lines].join('\n');
 }
 
 /** 地域の行を後ろから省いて 2000 文字に収める。群馬県の地域は省かない */

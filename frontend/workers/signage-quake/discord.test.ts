@@ -18,7 +18,6 @@ const obs = (name: string, test = false) =>
 
 // 2026-10-23 10:00:09 JST
 const RECEIVED = Date.parse('2026-10-23T01:00:09Z');
-const FOOTER = '気象庁発表の転送・参考情報(公式の警報ではない)';
 
 const eewNotice = (
   report: EewReport,
@@ -40,7 +39,6 @@ describe('警報', () => {
       '・埼玉県北部: 震度5弱〜震度5強、既に到達と予測',
       '・栃木県南部: 震度4以上、到達予想なし',
       '情報源: P2P地震情報(受信 2026/10/23 10:00:09)',
-      FOOTER,
     ]);
   });
 
@@ -71,7 +69,6 @@ describe('警報', () => {
       '震源地: 不明 / M不明 / 深さ不明',
       '発生時刻: 不明 / 発表時刻: 2026/10/23 10:00:30',
       '情報源: P2P地震情報(受信 2026/10/23 10:00:09)',
-      FOOTER,
     ]);
   });
 
@@ -139,7 +136,7 @@ describe('警報', () => {
       '・群馬県南部: 震度5強〜震度6弱、到達予想時刻 2026/10/23 10:00:12',
     );
     expect(l.some((x) => /^・ほか\d+地域$/.test(x))).toBe(true);
-    expect(l.at(-1)).toBe(FOOTER);
+    expect(l.at(-1)).toMatch(/^情報源: /);
     const shown = l.filter(
       (x) => x.startsWith('・') && !x.startsWith('・ほか'),
     );
@@ -172,7 +169,6 @@ describe('地震情報', () => {
       '発生時刻: 2026/10/23 10:00:00 / 発表時刻: 2026/10/23 10:04:00',
       '前橋市の震度: 震度5強',
       '情報源: P2P地震情報(受信 2026/10/23 10:00:09)',
-      FOOTER,
     ]);
   });
 
@@ -220,21 +216,19 @@ describe('段階・解除', () => {
     ['evacuate', '【サイネージ】段階3(スタッフの指示待ち)を表示しました'],
     ['cancelled', '【サイネージ】取消の表示にしました'],
   ] as const)('%s', (s, text) => {
-    expect(lines(stage(payload(s)))).toEqual([text, FOOTER]);
+    expect(lines(stage(payload(s)))).toEqual([text]);
   });
 
   it('訓練の表示は先頭行に【訓練】', () => {
     expect(lines(stage(payload('warning', true)))).toEqual([
       '【訓練】',
       '【サイネージ】段階1(身を守る)を表示しました',
-      FOOTER,
     ]);
   });
 
   it('表示が終わった payload', () => {
     expect(lines(stage({ active: false }))).toEqual([
       '【サイネージ】速報の表示を終了しました',
-      FOOTER,
     ]);
   });
 
@@ -248,7 +242,6 @@ describe('段階・解除', () => {
       }),
     ).toEqual([
       '【サイネージ】速報の表示を解除しました(解除: a@example.com)',
-      FOOTER,
     ]);
   });
 
@@ -281,7 +274,6 @@ describe('受信状態', () => {
     expect(lines(ch('p2p', false))).toEqual([
       '【受信状態】P2P地震情報を受信できていません(最後の受信: 2026/10/23 09:40:00)',
       '前橋市の震度による段階3の判定ができません',
-      FOOTER,
     ]);
   });
 
@@ -290,7 +282,7 @@ describe('受信状態', () => {
       '【受信状態】Wolfx緊急地震速報を受信できていません(最後の受信: 2026/10/23 09:40:00)',
     );
     expect(lines(ch('wolfxEqlist', false))[0]).toContain('Wolfx地震情報');
-    expect(lines(ch('wolfxEew', false))).toHaveLength(2);
+    expect(lines(ch('wolfxEew', false))).toHaveLength(1);
   });
 
   it('受信の記録が無いとき', () => {
@@ -302,13 +294,12 @@ describe('受信状態', () => {
   it('戻ったとき', () => {
     expect(lines(ch('p2p', true))).toEqual([
       '【受信状態】P2P地震情報の受信を再開しました',
-      FOOTER,
     ]);
   });
 });
 
 describe('すべての文面', () => {
-  it('最終行は公式でない旨、本文は 2000 文字以内', () => {
+  it('公式でない旨を付けず、本文は 2000 文字以内', () => {
     const notices: QuakeNotice[] = [
       eewNotice(eew('p2p', 'hand-p2p-556-gunma-warning.json')),
       { kind: 'stage', payload: { active: false }, at: RECEIVED },
@@ -316,7 +307,7 @@ describe('すべての文面', () => {
     ];
     for (const n of notices) {
       const { content } = formatNotice(n);
-      expect(content.endsWith(FOOTER)).toBe(true);
+      expect(content).not.toContain('公式の警報ではない');
       expect(content.length).toBeLessThanOrEqual(2000);
     }
   });
