@@ -283,4 +283,13 @@ describe('getHomePage のトピックス取得', () => {
     expect(call?.[1].sort).toEqual(['-published_at']);
     expect((call?.[1].where as PublishedWhere).published_at?.exists).toBe(true);
   });
+
+  it('topics は一覧に要る項目だけを select し depth 0 で取得する', async () => {
+    await getHomePage();
+    const call = vi
+      .mocked(cms.findMany)
+      .mock.calls.find(([collection]) => collection === 'topics');
+    expect(call?.[1].select).toEqual({ title: true, image: true });
+    expect(call?.[1].depth).toBe(0);
+  });
 });

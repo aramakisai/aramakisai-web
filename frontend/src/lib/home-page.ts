@@ -25,7 +25,10 @@ export async function getHomePage(): Promise<HomePageContent> {
         where: publishedFilter(),
         sort: ['-published_at'],
         limit: 0,
-        depth: 1,
+        // トップでは一覧カードにしか使わないため本文 HTML を取らない。
+        // image は depth 0 で id のまま返り、toMediaId がそのまま扱える
+        select: { title: true, image: true },
+        depth: 0,
       }),
       cms.findGlobal('page_home', { depth: 1 }),
     ]);
