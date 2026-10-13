@@ -1,5 +1,6 @@
 import type {
   LostItem,
+  SignageGroup,
   SignageSetting,
   SignageSlide as CmsSignageSlide,
   Telop,
@@ -17,6 +18,7 @@ import type {
   SponsorTier,
 } from './signage';
 import type { SignagePinState } from './signage-pin';
+import type { SignageQuakeStage } from './signage-quake';
 import { getSponsors, mergeSponsorLogos } from './sponsors';
 import { toTimetable } from './timetable';
 
@@ -50,6 +52,37 @@ function toSlide(doc: CmsSignageSlide): SignageSlide {
     default:
       return { ...base, kind: doc.kind };
   }
+}
+
+const QUAKE_STAGES: readonly SignageQuakeStage[] = [
+  'warning',
+  'calm',
+  'evacuate',
+  'cancelled',
+];
+
+const NO_QUAKE_SLIDES: SignageSnapshot['quakeSlides'] = {
+  warning: null,
+  calm: null,
+  evacuate: null,
+  cancelled: null,
+};
+
+function toQuakeSlides(
+  group: SignageGroup | undefined,
+): SignageSnapshot['quakeSlides'] {
+  if (!group) return NO_QUAKE_SLIDES;
+  const out = { ...NO_QUAKE_SLIDES } as Record<
+    SignageQuakeStage,
+    SignageSlide | null
+  >;
+  for (const stage of QUAKE_STAGES) {
+    const ref = group.quake_slides?.[stage];
+    // 展開されていない参照(ID)は enabled を判定できないので使わない
+    if (typeof ref === 'object' && ref !== null && ref.enabled)
+      out[stage] = toSlide(ref);
+  }
+  return out;
 }
 
 function pinnedSlideId(ref: SignageSetting['pinned_slide']): number | null {
@@ -89,6 +122,7 @@ export async function getSignageSnapshot({
     slots,
     sponsors,
     parking,
+    quakeGroup,
   ] = await Promise.all([
     cms.findGlobal('festival_meta', {}, OPTIONS),
     cms.findGlobal('signage_settings', { depth: 0 }, OPTIONS),
@@ -99,6 +133,11 @@ export async function getSignageSnapshot({
     cms.findMany('performance_slots', { ...ALL, depth: 1 }, OPTIONS),
     getSponsors(OPTIONS),
     getParkingResponse({ version }),
+    cms.findMany(
+      'signage_groups',
+      { where: { is_quake: { equals: true } }, depth: 1, limit: 1 },
+      OPTIONS,
+    ),
   ]);
   if (!meta.ok) return meta;
   if (!settings.ok) return settings;
@@ -109,6 +148,12 @@ export async function getSignageSnapshot({
   if (!slots.ok) return slots;
   if (!parking.ok) return parking;
   if (!sponsors.ok) return { ok: false, error: { kind: 'network', status: 0 } };
+
+  // 速報グループの取得失敗は全段階を既定の文言にするだけで、スナップショット全体は失敗させない
+  const quake = quakeGroup?.ok ? quakeGroup.value.docs[0] : undefined;
+  const quakeSlideIds = new Set(
+    (quake?.slides ?? []).map((r) => (typeof r === 'object' ? r.id : r)),
+  );
 
   const sponsorItems: SignageSponsor[] = mergeSponsorLogos(sponsors.value).map(
     (s) => ({
@@ -126,7 +171,10 @@ export async function getSignageSnapshot({
       serverNow: new Date().toISOString(),
       pinnedSlideId: pinnedSlideId(settings.value.pinned_slide),
       eventDays: toEventDays(meta.value.event_days),
-      slides: slides.value.docs.map(toSlide),
+      slides: slides.value.docs
+        .filter((d) => !quakeSlideIds.has(d.id))
+        .map(toSlide),
+      quakeSlides: toQuakeSlides(quake),
       telops: telops.value.docs.map(toTelop),
       timetable: toTimetable({
         eventDays: meta.value.event_days,

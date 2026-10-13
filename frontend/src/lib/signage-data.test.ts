@@ -342,3 +342,63 @@ describe('getPinState', () => {
 function pinnedDisabled() {
   return { ...slide(7), enabled: false };
 }
+
+describe('getSignageSnapshot の緊急地震速報', () => {
+  const group = (extra = {}) => ({
+    id: 1,
+    name: '緊急地震速報',
+    is_quake: true,
+    slides: [slide(10), slide(11)],
+    quake_slides: {
+      warning: slide(10, { enabled: true }),
+      calm: slide(11, { enabled: false }),
+      evacuate: 12,
+      cancelled: null,
+    },
+    ...base,
+    ...extra,
+  });
+
+  it('所属のスライドを巡回から除き、有効な対応付けだけ段階のスライドにする', async () => {
+    setup({
+      signage_slides: docs([slide(1), slide(10), slide(11)]),
+      signage_groups: docs([group()]),
+    });
+    const r = await getSignageSnapshot();
+    if (!r.ok) throw new Error('failed');
+    expect(r.value.slides.map((s) => s.id)).toEqual([1]);
+    expect(r.value.quakeSlides.warning?.id).toBe(10);
+    expect(r.value.quakeSlides).toMatchObject({
+      calm: null,
+      evacuate: null,
+      cancelled: null,
+    });
+  });
+
+  it('グループが無ければ全段階が空で、巡回はそのまま', async () => {
+    setup({
+      signage_slides: docs([slide(1)]),
+      signage_groups: docs([]),
+    });
+    const r = await getSignageSnapshot();
+    if (!r.ok) throw new Error('failed');
+    expect(r.value.slides.map((s) => s.id)).toEqual([1]);
+    expect(Object.values(r.value.quakeSlides)).toEqual([
+      null,
+      null,
+      null,
+      null,
+    ]);
+  });
+
+  it('グループの取得に失敗してもスナップショットは成功し全段階が空', async () => {
+    setup({ signage_slides: docs([slide(1)]), signage_groups: fail });
+    const r = await getSignageSnapshot();
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value.slides.map((s) => s.id)).toEqual([1]);
+    expect(Object.values(r.value.quakeSlides).every((s) => s === null)).toBe(
+      true,
+    );
+  });
+});

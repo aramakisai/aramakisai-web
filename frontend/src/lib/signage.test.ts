@@ -82,6 +82,7 @@ function snapshot(over: Partial<SignageSnapshot> = {}): SignageSnapshot {
     pinnedSlideId: null,
     eventDays: DAYS,
     slides: [],
+    quakeSlides: { warning: null, calm: null, evacuate: null, cancelled: null },
     telops: [],
     timetable: {
       days: [],
