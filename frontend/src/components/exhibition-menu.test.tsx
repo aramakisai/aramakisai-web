@@ -12,8 +12,8 @@ describe('ExhibitionMenu', () => {
     render(
       <ExhibitionMenu
         items={[
-          { name: '焼きそば', price: '¥400' },
-          { name: 'ラムネ', price: '150円' },
+          { name: '焼きそば', price: 400 },
+          { name: 'ラムネ', price: 0 },
         ]}
       />,
     );
@@ -24,17 +24,17 @@ describe('ExhibitionMenu', () => {
       within(rows[0])
         .getAllByRole('cell')
         .map((c) => c.textContent),
-    ).toEqual(['焼きそば', '¥400']);
+    ).toEqual(['焼きそば', '400円']);
     expect(
       within(rows[1])
         .getAllByRole('cell')
         .map((c) => c.textContent),
-    ).toEqual(['ラムネ', '150円']);
+    ).toEqual(['ラムネ', '0円']);
     expect(screen.queryByRole('columnheader')).toBeNull();
   });
 
   it('行間だけを空け、表の上下には余白を付けない', () => {
-    render(<ExhibitionMenu items={[{ name: 'a', price: '1' }]} />);
+    render(<ExhibitionMenu items={[{ name: 'a', price: 1 }]} />);
     const table = screen.getByRole('table');
     expect(table).not.toHaveClass('border-separate');
     expect(table.className).toContain('[&_tr+tr>td]:pt-1');

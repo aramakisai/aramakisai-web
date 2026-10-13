@@ -129,11 +129,13 @@ export interface Config {
   };
   fallbackLocale: null;
   globals: {
+    site_settings: SiteSetting;
     festival_meta: FestivalMeta;
     page_home: PageHome;
     signage_settings: SignageSetting;
   };
   globalsSelect: {
+    site_settings: SiteSettingsSelect<false> | SiteSettingsSelect<true>;
     festival_meta: FestivalMetaSelect<false> | FestivalMetaSelect<true>;
     page_home: PageHomeSelect<false> | PageHomeSelect<true>;
     signage_settings: SignageSettingsSelect<false> | SignageSettingsSelect<true>;
@@ -399,6 +401,7 @@ export interface Page {
  */
 export interface Sponsor {
   id: number;
+  _order?: string | null;
   type: ('ad' | 'local' | 'vendor' | 'other')[];
   name: string;
   logo?: (number | null) | Media;
@@ -423,7 +426,7 @@ export interface Sponsor {
   /**
    * エリア内番号 (area_id+booth_number UNIQUE)。出店協賛のみ
    */
-  booth_number?: number | null;
+  booth_number?: string | null;
   /**
    * 出店協賛のみ
    */
@@ -438,6 +441,7 @@ export interface Sponsor {
  */
 export interface MapArea {
   id: number;
+  _order?: string | null;
   /**
    * 例: "Aゾーン"
    */
@@ -470,6 +474,7 @@ export interface MapArea {
  */
 export interface FaqItem {
   id: number;
+  _order?: string | null;
   question: string;
   answer: string;
   sort?: number | null;
@@ -494,6 +499,7 @@ export interface MapPoint {
  */
 export interface Stage {
   id: number;
+  _order?: string | null;
   name: string;
   /**
    * OSM Polygon
@@ -603,7 +609,7 @@ export interface StudentExhibition {
     /**
      * 割り当てられた出店グループ内の番号もしくは教室番号
      */
-    booth_number?: number | null;
+    booth_number?: string | null;
     /**
      * 割り当てられた出店エリア名
      */
@@ -627,7 +633,7 @@ export interface StudentExhibition {
     /**
      * 割り当てられた出店グループ内の番号もしくは教室番号
      */
-    booth_number?: number | null;
+    booth_number?: string | null;
     /**
      * 割り当てられた出店エリア名
      */
@@ -638,7 +644,7 @@ export interface StudentExhibition {
     menu?:
       | {
           name: string;
-          price?: string | null;
+          price?: number | null;
           id?: string | null;
         }[]
       | null;
@@ -661,7 +667,7 @@ export interface StudentExhibition {
     /**
      * 割り当てられた出店グループ内の番号もしくは教室番号
      */
-    booth_number?: number | null;
+    booth_number?: string | null;
     /**
      * 割り当てられた出店エリア名
      */
@@ -676,6 +682,7 @@ export interface StudentExhibition {
  */
 export interface ParkingLot {
   id: number;
+  _order?: string | null;
   name: string;
   sort?: number | null;
   updatedAt: string;
@@ -762,6 +769,7 @@ export interface SignageGroup {
   name: string;
   visible?: boolean | null;
   slides?: (number | SignageSlide)[] | null;
+  telops?: (number | Telop)[] | null;
   is_all?: boolean | null;
   updatedAt: string;
   createdAt: string;
@@ -1158,6 +1166,7 @@ export interface PagesSelect<T extends boolean = true> {
  * via the `definition` "sponsors_select".
  */
 export interface SponsorsSelect<T extends boolean = true> {
+  _order?: T;
   type?: T;
   name?: T;
   logo?: T;
@@ -1178,6 +1187,7 @@ export interface SponsorsSelect<T extends boolean = true> {
  * via the `definition` "faq_items_select".
  */
 export interface FaqItemsSelect<T extends boolean = true> {
+  _order?: T;
   question?: T;
   answer?: T;
   sort?: T;
@@ -1189,6 +1199,7 @@ export interface FaqItemsSelect<T extends boolean = true> {
  * via the `definition` "map_areas_select".
  */
 export interface MapAreasSelect<T extends boolean = true> {
+  _order?: T;
   name?: T;
   geometry?: T;
   color?: T;
@@ -1214,6 +1225,7 @@ export interface MapPointsSelect<T extends boolean = true> {
  * via the `definition` "stages_select".
  */
 export interface StagesSelect<T extends boolean = true> {
+  _order?: T;
   name?: T;
   area_id?: T;
   sort?: T;
@@ -1307,6 +1319,7 @@ export interface StudentExhibitionsSelect<T extends boolean = true> {
  * via the `definition` "parking_lots_select".
  */
 export interface ParkingLotsSelect<T extends boolean = true> {
+  _order?: T;
   name?: T;
   sort?: T;
   updatedAt?: T;
@@ -1352,6 +1365,7 @@ export interface SignageGroupsSelect<T extends boolean = true> {
   name?: T;
   visible?: T;
   slides?: T;
+  telops?: T;
   is_all?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -1452,6 +1466,85 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site_settings".
+ */
+export interface SiteSetting {
+  id: number;
+  name: string;
+  event_days?:
+    | {
+        start_at: string;
+        end_at: string;
+        /**
+         * 例: 1日目。未入力時は開場日時から生成する
+         */
+        label?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * 例: 万彩
+   */
+  theme_word?: string | null;
+  theme_description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  theme_description_html?: string | null;
+  /**
+   * 複数枚設定可
+   */
+  hero_images?: (number | Media)[] | null;
+  overview?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  overview_html?: string | null;
+  contact_form_url?: string | null;
+  /**
+   * 学生団体への招待メールに記載されます。
+   */
+  exhibitor_contact_url?: string | null;
+  sns_links?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * SNS共有時の既定画像。未設定時はサイト同梱の既定画像を使用
+   */
+  og_image?: (number | null) | Media;
+  updatedAt?: string | null;
+  createdAt?: string | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1596,6 +1689,34 @@ export interface SignageSetting {
   pinned_slide?: (number | null) | SignageSlide;
   updatedAt?: string | null;
   createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site_settings_select".
+ */
+export interface SiteSettingsSelect<T extends boolean = true> {
+  name?: T;
+  event_days?:
+    | T
+    | {
+        start_at?: T;
+        end_at?: T;
+        label?: T;
+        id?: T;
+      };
+  theme_word?: T;
+  theme_description?: T;
+  theme_description_html?: T;
+  hero_images?: T;
+  overview?: T;
+  overview_html?: T;
+  contact_form_url?: T;
+  exhibitor_contact_url?: T;
+  sns_links?: T;
+  og_image?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
