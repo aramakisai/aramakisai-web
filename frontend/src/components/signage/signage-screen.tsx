@@ -11,15 +11,20 @@ import {
   type SignageSnapshot,
 } from '@/lib/signage';
 import { withPin } from '@/lib/signage-pin';
+import { parseQuakePayload } from '@/lib/signage-quake';
 import { clockOffsetMs, useCorrectedNow } from '@/lib/signage-time';
 import { useCanvasLayout } from '@/lib/signage-viewport';
-import { useSignageChannel } from '@/lib/use-signage-channel';
+import {
+  useSignageChannel,
+  useSignageFeature,
+} from '@/lib/use-signage-channel';
 import { usePolling } from '@/lib/use-polling';
 import { SignageBusInfo } from './signage-bus-info';
 import { SignageLeftColumn } from './signage-left-column';
 import { SignageMain } from './signage-main';
 import { SignagePortraitHeader } from './signage-portrait-header';
 import { SignagePortraitInfo } from './signage-portrait-info';
+import { SignageQuakeOverlay } from './signage-quake-overlay';
 import { SignageTelop } from './signage-telop';
 import { SLIDE_RENDERERS } from './slide-renderers';
 
@@ -98,6 +103,8 @@ export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
   const layout = useCanvasLayout(rootRef);
   const orientation = layout?.orientation ?? 'landscape';
   const fit = layout?.fit ?? { scale: 1, left: 0, top: 0 };
+  // 形が合わない payload は表示せず、通常の画面のままにする
+  const quake = parseQuakePayload(useSignageFeature(channel, 'quake', now));
   const entries = data ? buildPlaylist(data, now) : [];
   const entry = slideAt(entries, now.getTime())?.entry ?? null;
   const canvas = CANVAS_SIZE[orientation];
@@ -148,6 +155,15 @@ export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
           now={now}
           renderers={SLIDE_RENDERERS}
         />
+        {quake?.active && (
+          <SignageQuakeOverlay
+            quake={quake}
+            slide={data?.quakeSlides[quake.stage] ?? null}
+            snapshot={data}
+            now={now}
+            renderers={SLIDE_RENDERERS}
+          />
+        )}
       </div>
     </div>
   );

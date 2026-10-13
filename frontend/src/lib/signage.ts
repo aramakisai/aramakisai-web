@@ -203,7 +203,7 @@ export function eventDayIndex(
   return i < 0 ? null : i + 1;
 }
 
-function pageCount(
+export function pageCount(
   slide: SignageSlide,
   snapshot: SignageSnapshot,
   now: Date,
