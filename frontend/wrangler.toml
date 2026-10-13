@@ -13,6 +13,17 @@ workers_dev = false
 # プレビュー URL だけを有効にするため、workers_dev とは独立に true を指定する。
 preview_urls = true
 
+# ログ量を抑えるため 10% サンプリングで Workers Logs を有効にする。
+[observability]
+enabled = true
+head_sampling_rate = 0.1
+
+# Worker の暴走による CPU 課金の歯止め。Free プランでは cpu_ms を付けると Cloudflare API が
+# 100328 で拒否するため、CI は失敗時に [limits] を外した一時設定で 1 回だけ再実行する
+# (scripts/deploy-with-cpu-limit-fallback.ts)。env.dev には継承されるので再掲しない。
+[limits]
+cpu_ms = 5000
+
 [assets]
 directory = ".open-next/assets"
 
@@ -42,6 +53,11 @@ service = "aramakisai-web"
 #  先にこのenvironmentをデプロイしておく必要がある)
 [env.dev]
 name = "aramakisai-web-dev"
+
+# observability は env に継承されないため再掲する。
+[env.dev.observability]
+enabled = true
+head_sampling_rate = 0.1
 
 [env.dev.assets]
 directory = ".open-next/assets"

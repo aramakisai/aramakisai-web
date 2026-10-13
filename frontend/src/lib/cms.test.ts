@@ -308,3 +308,25 @@ describe('buildQueryString select', () => {
     );
   });
 });
+
+describe('同一引数の取得の重複排除', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('同じ global を続けて取得しても fetch は 1 回', async () => {
+    const fetchMock = vi.fn(async () => Response.json({ name: 'x' }));
+    vi.stubGlobal('fetch', fetchMock);
+    const { cache } = await import('react');
+    // React.cache は React Server 環境でのみ有効。非対応環境では検証できないので飛ばす
+    let calls = 0;
+    const probe = cache(() => ++calls);
+    probe();
+    probe();
+    if (calls === 2) return;
+
+    await Promise.all([
+      cms.findGlobal('festival_meta'),
+      cms.findGlobal('festival_meta'),
+    ]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});

@@ -251,6 +251,7 @@ export function Header({ phase }: HeaderProps) {
                           <li key={child.href}>
                             <Link
                               href={child.href}
+                              prefetch={false}
                               className="block px-4 py-3 text-sm leading-[1.6] whitespace-nowrap text-text focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
                             >
                               {child.label}
