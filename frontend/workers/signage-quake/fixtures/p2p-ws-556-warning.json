@@ -1,0 +1,36 @@
+{
+  "_id": "6ace48a0e72797fa8afb919f",
+  "areas": [
+    {
+      "arrivalTime": null,
+      "kindCode": "11",
+      "name": "石川県能登",
+      "pref": "石川",
+      "scaleFrom": 45,
+      "scaleTo": 99
+    }
+  ],
+  "cancelled": false,
+  "code": 556,
+  "earthquake": {
+    "arrivalTime": "2023/05/09 05:14:22",
+    "condition": "",
+    "hypocenter": {
+      "depth": 10,
+      "latitude": 37.6,
+      "longitude": 137.4,
+      "magnitude": 5.7,
+      "name": "能登半島沖",
+      "reduceName": "能登半島沖"
+    },
+    "originTime": "2023/05/09 05:14:19"
+  },
+  "issue": {
+    "eventId": "20230509051422",
+    "serial": "1",
+    "time": "2023/05/09 05:14:30"
+  },
+  "time": "2026/10/14 00:05:04.701",
+  "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+  "ver": "20220813"
+}

@@ -1,4 +1,5 @@
 import type { SignageSlide } from './signage';
+import type { SignageQuakePayload } from './signage-quake';
 
 /** ハブが配る固定と表示対象 */
 // 型の正本はここ。signage-pin.ts は React に依存し、ハブの Worker(DOM の型が無い)の型検査に
@@ -18,6 +19,7 @@ export interface SignageSnapshotPayload {
 export interface SignageFeaturePayloads {
   readonly pin: SignagePinPayload;
   readonly snapshot: SignageSnapshotPayload;
+  readonly quake: SignageQuakePayload;
 }
 
 export type SignageFeature = keyof SignageFeaturePayloads;

@@ -11,6 +11,7 @@ import type {
   TimetableStage,
 } from '@/lib/timetable';
 import { isPerformanceActive } from '@/lib/timetable';
+import type { SignageQuakeStage } from './signage-quake';
 import { getDaysUntilEventDay, toJstDateKey, toJstParts } from './event-day';
 
 /** 向きで変わるのはキャンバス寸法だけで、ページ分割・時間窓の定数は向きに依らない */
@@ -86,6 +87,10 @@ export interface SignageSnapshot {
   readonly pinnedSlideId: number | null;
   readonly eventDays: readonly EventDay[];
   readonly slides: readonly SignageSlide[];
+  /** 緊急地震速報の段階ごとのスライド。巡回(slides)には含めない */
+  readonly quakeSlides: Readonly<
+    Record<SignageQuakeStage, SignageSlide | null>
+  >;
   readonly telops: readonly SignageTelopItem[];
   readonly timetable: Timetable;
   readonly sponsors: readonly SignageSponsor[];
@@ -198,7 +203,7 @@ export function eventDayIndex(
   return i < 0 ? null : i + 1;
 }
 
-function pageCount(
+export function pageCount(
   slide: SignageSlide,
   snapshot: SignageSnapshot,
   now: Date,

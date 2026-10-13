@@ -1,0 +1,34 @@
+{
+  "Title": "緊急地震速報（予報）",
+  "CodeType": "Ｍ、最大予測震度及び主要動到達予測時刻の緊急地震速報",
+  "Issue": { "Source": "東京", "Status": "通常" },
+  "EventID": "20261013220530",
+  "Serial": 4,
+  "AnnouncedTime": "2026/10/13 22:06:09",
+  "OriginTime": "2026/10/13 22:05:20",
+  "Hypocenter": "宮城県沖",
+  "Latitude": 38.5,
+  "Longitude": 141.7,
+  "Magunitude": 3.5,
+  "Magnitude": 3.5,
+  "Depth": 60,
+  "MaxIntensity": "2",
+  "Accuracy": {
+    "Epicenter": "IPF 法（5 点以上）",
+    "Depth": "IPF 法（5 点以上）",
+    "Magnitude": "防災科研システム"
+  },
+  "MaxIntChange": {
+    "String": "ほとんど変化なし",
+    "Reason": "不明、未設定時、キャンセル時"
+  },
+  "WarnArea": [],
+  "isSea": true,
+  "isTraining": false,
+  "isAssumption": false,
+  "isWarn": false,
+  "isFinal": true,
+  "isCancel": false,
+  "OriginalText": "37 03 00 261013220609 C11 261013220520 ND20261013220530 NCN904 JD////////////// JN/// 287 N385 E1417 060 35 02 RK44209 RT10/// RC0//// 9999=",
+  "Pond": "0729"
+}
