@@ -11,45 +11,57 @@ import {
   useField,
 } from '@payloadcms/ui';
 import type { RelationshipFieldClientComponent } from 'payload';
+
 import { useEffect, useState, type ChangeEvent } from 'react';
 
-import { addSlideToGroup } from './signage-groups';
+import { addMemberToGroup } from './signage-groups';
 import {
-  fetchAllSlides,
+  fetchAllMembers,
   movableIds,
   moveValue,
   selectAllIds,
   split,
   withoutMoved,
   type Queries,
-  type SlideRow,
-} from './signage-group-slides';
+  type MemberRow,
+} from './signage-group-members';
 
 const BORDER = '1px solid var(--theme-elevation-150)';
 
 const SAVE_FAILED = '所属を保存できませんでした。グループを保存してください';
 
-const SignageGroupSlidesField: RelationshipFieldClientComponent = ({ path, field, readOnly }) => {
+type MembersFieldProps = {
+  collection: 'signage_slides' | 'telops';
+  titleField: 'title' | 'body';
+  groupField: 'slides' | 'telops';
+};
+
+const NOUN = { signage_slides: 'スライド', telops: 'テロップ' } as const;
+
+const SignageGroupMembersField: RelationshipFieldClientComponent = (props) => {
+  const { path, field, readOnly } = props;
+  const { collection, titleField, groupField } = props as typeof props & MembersFieldProps;
+  const noun = NOUN[collection];
   const { value, setValue } = useField<number[]>({ path });
   const { id: groupId } = useDocumentInfo();
   const { permissions } = useAuth();
-  const [all, setAll] = useState<SlideRow[] | null>(null);
+  const [all, setAll] = useState<MemberRow[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [queries, setQueries] = useState<Queries>({ left: '', right: '' });
   const [leftSel, setLeftSel] = useState<Set<number>>(new Set());
   const [rightSel, setRightSel] = useState<Set<number>>(new Set());
   const [createError, setCreateError] = useState(false);
-  const [DocumentDrawer, , { openDrawer, closeDrawer }] = useDocumentDrawer({ collectionSlug: 'signage_slides' });
+  const [DocumentDrawer, , { openDrawer, closeDrawer }] = useDocumentDrawer({ collectionSlug: collection });
 
   useEffect(() => {
     let alive = true;
-    fetchAllSlides()
+    fetchAllMembers(collection, titleField)
       .then((rows) => alive && setAll(rows))
       .catch(() => alive && setFailed(true));
     return () => {
       alive = false;
     };
-  }, []);
+  }, [collection, titleField]);
 
   const label = <FieldLabel label={field.label} path={path} />;
   if (failed) {
@@ -57,7 +69,7 @@ const SignageGroupSlidesField: RelationshipFieldClientComponent = ({ path, field
     return (
       <div className="field-type">
         {label}
-        <p>スライドを読み込めませんでした</p>
+        <p>{noun}を読み込めませんでした</p>
       </div>
     );
   }
@@ -73,7 +85,7 @@ const SignageGroupSlidesField: RelationshipFieldClientComponent = ({ path, field
   const current = value ?? [];
   const { unregistered, registered, unregisteredTotal, registeredTotal } = split(all, current, queries);
   const locked = Boolean(readOnly);
-  const canCreate = !locked && Boolean(permissions?.collections?.signage_slides?.create);
+  const canCreate = !locked && Boolean(permissions?.collections?.[collection]?.create);
   const left = movableIds(leftSel, unregistered);
   const right = movableIds(rightSel, registered);
 
@@ -85,21 +97,21 @@ const SignageGroupSlidesField: RelationshipFieldClientComponent = ({ path, field
 
   const onCreated = async ({ doc, operation }: { doc: unknown; operation?: string }) => {
     if (operation !== 'create') return;
-    const d = doc as { id: number; title: string; enabled?: boolean | null };
-    const created: SlideRow = { id: d.id, title: d.title, enabled: Boolean(d.enabled) };
+    const d = doc as { id: number; enabled?: boolean | null } & Record<string, unknown>;
+    const created: MemberRow = { id: d.id, title: String(d[titleField] ?? ''), enabled: Boolean(d.enabled) };
     setAll([...all, created]);
     // PATCH で保存済みのため、フォームを未保存扱いにしない(既に未保存なら、その状態はそのまま残る)
     setValue(moveValue([...all, created], current, [created.id], 'add'), true);
     closeDrawer();
     setCreateError(false);
     // 標準の関連項目と違い、保存ボタンを待たずに所属を保存して、グループの保存忘れで孤立するのを防ぐ
-    if (groupId) await addSlideToGroup(Number(groupId), created.id).catch(() => setCreateError(true));
+    if (groupId) await addMemberToGroup(Number(groupId), groupField, created.id).catch(() => setCreateError(true));
   };
 
   const column = (
     side: keyof Queries,
     title: string,
-    visible: SlideRow[],
+    visible: MemberRow[],
     total: number,
     selected: Set<number>,
     setSelected: (s: Set<number>) => void,
@@ -127,14 +139,14 @@ const SignageGroupSlidesField: RelationshipFieldClientComponent = ({ path, field
           </strong>
           {canCreate && (
             <Button buttonStyle="secondary" size="small" margin={false} disabled={!groupId} onClick={openDrawer}>
-              スライドを新規作成
+              {noun}を新規作成
             </Button>
           )}
         </div>
         <div style={{ padding: 'calc(var(--base) / 2) var(--base)', borderBottom: BORDER }}>
           <TextInput
             path={`${path}-filter-${side}`}
-            placeholder="題名で絞り込む"
+            placeholder={titleField === 'title' ? '題名で絞り込む' : '文面で絞り込む'}
             value={queries[side]}
             readOnly={locked}
             onChange={(e: ChangeEvent<HTMLInputElement>) => setQueries((q) => ({ ...q, [side]: e.target.value }))}
@@ -143,7 +155,7 @@ const SignageGroupSlidesField: RelationshipFieldClientComponent = ({ path, field
         <ul style={{ listStyle: 'none', padding: 0, margin: 0, maxHeight: 400, overflowY: 'auto' }}>
           {visible.length === 0 && (
             <li style={{ padding: 'calc(var(--base) / 2) var(--base)', color: 'var(--theme-elevation-500)' }}>
-              スライドはありません
+              {noun}はありません
             </li>
           )}
           {visible.map((r) => (
@@ -181,7 +193,7 @@ const SignageGroupSlidesField: RelationshipFieldClientComponent = ({ path, field
     <div className="field-type">
       {label}
       {canCreate && !groupId && (
-        <p style={{ color: 'var(--theme-elevation-500)' }}>グループを保存すると、ここからスライドを作成できます</p>
+        <p style={{ color: 'var(--theme-elevation-500)' }}>グループを保存すると、ここから{noun}を作成できます</p>
       )}
       <div style={{ display: 'flex', gap: 'var(--base)', alignItems: 'stretch', marginTop: 'var(--base)' }}>
         {column('left', '未登録', unregistered, unregisteredTotal, leftSel, setLeftSel)}
@@ -213,4 +225,4 @@ const SignageGroupSlidesField: RelationshipFieldClientComponent = ({ path, field
   );
 };
 
-export default SignageGroupSlidesField;
+export default SignageGroupMembersField;

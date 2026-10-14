@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  addSlideToGroup,
+  addMemberToGroup,
   fetchGroups,
   fetchSlideCount,
   isSlideVisible,
@@ -18,18 +18,19 @@ const g = (id: number, is_all: boolean, visible = true, slides: number[] = []): 
   is_all,
   is_quake: false,
   slides,
+  telops: [],
 });
 
 describe('fetchGroups', () => {
   it('作成順で取得し、所属はIDの配列に正規化する', async () => {
     const f = vi.fn().mockResolvedValue(
-      res({ docs: [{ id: 2, name: 'a', visible: true, is_all: false, slides: [{ id: 5 }, 6] }, { id: 1, name: 'b', visible: false, is_all: null }] }),
+      res({ docs: [{ id: 2, name: 'a', visible: true, is_all: false, slides: [{ id: 5 }, 6], telops: [{ id: 7 }] }, { id: 1, name: 'b', visible: false, is_all: null }] }),
     );
     const groups = await fetchGroups(f);
     expect(f).toHaveBeenCalledWith('/api/signage_groups?limit=0&depth=0&sort=createdAt', { credentials: 'include' });
     expect(groups).toEqual([
-      { id: 2, name: 'a', visible: true, is_all: false, is_quake: false, slides: [5, 6] },
-      { id: 1, name: 'b', visible: false, is_all: false, is_quake: false, slides: [] },
+      { id: 2, name: 'a', visible: true, is_all: false, is_quake: false, slides: [5, 6], telops: [7] },
+      { id: 1, name: 'b', visible: false, is_all: false, is_quake: false, slides: [], telops: [] },
     ]);
   });
 
@@ -62,7 +63,7 @@ describe('setGroupVisible', () => {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ visible: false }),
     });
-    expect(out).toEqual({ id: 4, name: 'x', visible: false, is_all: false, is_quake: false, slides: [1] });
+    expect(out).toEqual({ id: 4, name: 'x', visible: false, is_all: false, is_quake: false, slides: [1], telops: [] });
   });
 
   it('失敗したら投げる', async () => {
@@ -70,13 +71,13 @@ describe('setGroupVisible', () => {
   });
 });
 
-describe('addSlideToGroup', () => {
+describe('addMemberToGroup', () => {
   it('保存済みの所属に新しいIDを足して、所属だけを PATCH する', async () => {
     const f = vi
       .fn()
       .mockResolvedValueOnce(res({ id: 3, slides: [1, { id: 2 }] }))
       .mockResolvedValueOnce(res({}));
-    await addSlideToGroup(3, 9, f);
+    await addMemberToGroup(3, 'slides', 9, f);
     expect(f).toHaveBeenNthCalledWith(1, '/api/signage_groups/3?depth=0', { credentials: 'include' });
     expect(f).toHaveBeenNthCalledWith(2, '/api/signage_groups/3?depth=0', {
       method: 'PATCH',
@@ -91,14 +92,23 @@ describe('addSlideToGroup', () => {
       .fn()
       .mockResolvedValueOnce(res({ id: 3, slides: [1, 9, 2] }))
       .mockResolvedValueOnce(res({}));
-    await addSlideToGroup(3, 9, f);
+    await addMemberToGroup(3, 'slides', 9, f);
     expect(f).toHaveBeenNthCalledWith(2, '/api/signage_groups/3?depth=0', expect.objectContaining({ body: JSON.stringify({ slides: [1, 9, 2] }) }));
   });
 
+  it('テロップ所属はtelopsだけを PATCH する', async () => {
+    const f = vi
+      .fn()
+      .mockResolvedValueOnce(res({ id: 3, slides: [1], telops: [4] }))
+      .mockResolvedValueOnce(res({}));
+    await addMemberToGroup(3, 'telops', 9, f);
+    expect(f).toHaveBeenNthCalledWith(2, '/api/signage_groups/3?depth=0', expect.objectContaining({ body: JSON.stringify({ telops: [4, 9] }) }));
+  });
+
   it('取得・保存のどちらの失敗でも投げる', async () => {
-    await expect(addSlideToGroup(3, 9, vi.fn().mockResolvedValue(res({}, false)))).rejects.toThrow();
+    await expect(addMemberToGroup(3, 'slides', 9, vi.fn().mockResolvedValue(res({}, false)))).rejects.toThrow();
     const f = vi.fn().mockResolvedValueOnce(res({ slides: [] })).mockResolvedValueOnce(res({}, false));
-    await expect(addSlideToGroup(3, 9, f)).rejects.toThrow();
+    await expect(addMemberToGroup(3, 'slides', 9, f)).rejects.toThrow();
   });
 });
 

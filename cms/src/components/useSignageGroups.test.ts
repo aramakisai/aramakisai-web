@@ -9,6 +9,7 @@ const doc = (id: number, is_all: boolean, visible: boolean, slides: number[] = [
   visible,
   is_all,
   slides,
+  telops: [] as number[],
 });
 
 /** URL ごとに応答を返す fetch。PATCH は更新後のドキュメントを返す */

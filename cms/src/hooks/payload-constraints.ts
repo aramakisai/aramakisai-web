@@ -100,7 +100,7 @@ export const sponsorBoothPlacementConstraint: CollectionBeforeValidateHook = asy
 }) => {
   const areaId = data?.area_id
   const boothNumber = data?.booth_number
-  if (areaId == null || boothNumber == null) return data
+  if (areaId == null || boothNumber == null || boothNumber === '') return data
 
   const duplicates = await req.payload.find({
     collection: 'sponsors',
@@ -139,7 +139,7 @@ export const exhibitionBoothPlacementConstraint: CollectionBeforeValidateHook = 
 
   const duplicateKeys = new Set<string>()
   for (const { key, value } of placements) {
-    if (value?.area_id == null || value?.booth_number == null) continue
+    if (value?.area_id == null || value?.booth_number == null || value.booth_number === '') continue
     const duplicates = await req.payload.find({
       collection: 'student_exhibitions',
       depth: 0,
@@ -300,7 +300,7 @@ export const performanceTimeConstraint: CollectionBeforeValidateHook = async ({
     return data
   }
 
-  const meta = await req.payload.findGlobal({ slug: 'festival_meta', depth: 0, req })
+  const meta = await req.payload.findGlobal({ slug: 'site_settings', depth: 0, req })
   const eventDayKeys = (meta.event_days ?? []).flatMap((d) => toJstDateKey(d.start_at) ?? [])
   const dateViolations = validateSlotEventDate(merged, { eventDayKeys })
   if (dateViolations.length > 0) {

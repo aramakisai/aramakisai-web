@@ -4,11 +4,11 @@ import { useEffect, useState } from 'react';
 
 import type { EventDay } from './event-day-options';
 
-// 一覧の全行が同じ祭基本情報を読むため、取得は1回にまとめる
+// 一覧の全行が同じサイト設定を読むため、取得は1回にまとめる
 let cache: Promise<EventDay[]> | null = null;
 
 function load(): Promise<EventDay[]> {
-  cache ??= fetch('/api/globals/festival_meta?depth=0', { credentials: 'include' })
+  cache ??= fetch('/api/globals/site_settings?depth=0', { credentials: 'include' })
     .then((res) => (res.ok ? res.json() : { event_days: [] }))
     .then((json) => (Array.isArray(json.event_days) ? json.event_days : []))
     .catch(() => {

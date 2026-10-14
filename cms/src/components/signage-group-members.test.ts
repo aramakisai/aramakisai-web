@@ -1,17 +1,17 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  fetchAllSlides,
+  fetchAllMembers,
   filterRows,
   movableIds,
   moveValue,
   selectAllIds,
   split,
   withoutMoved,
-  type SlideRow,
-} from './signage-group-slides';
+  type MemberRow,
+} from './signage-group-members';
 
-const s = (id: number, title: string, enabled = true): SlideRow => ({ id, title, enabled });
+const s = (id: number, title: string, enabled = true): MemberRow => ({ id, title, enabled });
 const all = [s(1, 'Opening'), s(2, 'Sponsors'), s(3, 'opening Map'), s(4, 'Parking', false)];
 
 describe('split', () => {
@@ -72,19 +72,27 @@ describe('withoutMoved', () => {
   });
 });
 
-describe('fetchAllSlides', () => {
+describe('fetchAllMembers', () => {
   it('全スライドの題名と有効を _order 順で取る', async () => {
     const f = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ docs: [{ id: 1, title: 'a', enabled: true }, { id: 2, title: 'b' }] }),
     });
-    expect(await fetchAllSlides(f)).toEqual([s(1, 'a'), s(2, 'b', false)]);
+    expect(await fetchAllMembers('signage_slides', 'title', f)).toEqual([s(1, 'a'), s(2, 'b', false)]);
     expect(f).toHaveBeenCalledWith(
       '/api/signage_slides?limit=0&depth=0&sort=_order&select[title]=true&select[enabled]=true',
       { credentials: 'include' },
     );
   });
+  it('テロップは文面を題名として取る', async () => {
+    const f = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ docs: [{ id: 1, body: 'x', enabled: true }] }) });
+    expect(await fetchAllMembers('telops', 'body', f)).toEqual([s(1, 'x')]);
+    expect(f).toHaveBeenCalledWith(
+      '/api/telops?limit=0&depth=0&sort=_order&select[body]=true&select[enabled]=true',
+      { credentials: 'include' },
+    );
+  });
   it('失敗したら投げる', async () => {
-    await expect(fetchAllSlides(vi.fn().mockResolvedValue({ ok: false }))).rejects.toThrow();
+    await expect(fetchAllMembers('signage_slides', 'title', vi.fn().mockResolvedValue({ ok: false }))).rejects.toThrow();
   });
 });

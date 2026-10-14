@@ -56,7 +56,7 @@ export interface ExhibitionCardSummary {
 
 export interface ExhibitionMenuItem {
   readonly name: string;
-  readonly price: string;
+  readonly price: number;
 }
 
 export interface ExhibitionDetail extends ExhibitionCardSummary {

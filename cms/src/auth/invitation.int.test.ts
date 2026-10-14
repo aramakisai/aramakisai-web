@@ -13,11 +13,11 @@ describe.skipIf(!hasDatabase)('招待メールの送信', () => {
 
   let executive: { id: number };
 
-  // CI の空 DB には festival_meta の行が無く、必須の祭名を欠いた更新は検証で落ちる
+  // CI の空 DB には site_settings の行が無く、必須の祭名を欠いた更新は検証で落ちる
   const setContactUrl = async (url: string | null) => {
-    const current = await payload.findGlobal({ slug: 'festival_meta', overrideAccess: true });
+    const current = await payload.findGlobal({ slug: 'site_settings', overrideAccess: true });
     await payload.updateGlobal({
-      slug: 'festival_meta',
+      slug: 'site_settings',
       data: { name: current.name || 'テスト祭', exhibitor_contact_url: url },
       overrideAccess: true,
     });
