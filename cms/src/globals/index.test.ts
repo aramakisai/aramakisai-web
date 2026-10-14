@@ -12,9 +12,8 @@ describe('globals 登録口', () => {
   it('サイト設定は実行委員に見せる', () => {
     expect(hiddenFor('site_settings')({ user: { id: 1, role: 'executive' } })).toBe(false);
   });
-  it('祭基本情報・トップページは管理画面で隠す', () => {
-    for (const slug of ['festival_meta', 'page_home']) {
-      expect(hiddenFor(slug)({ user: { id: 1, role: 'executive' } })).toBe(true);
-    }
+  it('祭基本情報・トップページは登録しない', () => {
+    expect(globals.map((g) => g.slug)).not.toContain('festival_meta');
+    expect(globals.map((g) => g.slug)).not.toContain('page_home');
   });
 });

@@ -60,7 +60,7 @@ async function main() {
   });
   console.log(`announcement created: ${createdAnnouncement.id}`);
 
-  // 3. festival_meta global
+  // 3. site_settings global (旧 festival_meta・page_home を統合)
   type JsonValue = string | number | boolean | JsonValue[] | { [x: string]: JsonValue } | null;
   const festivalMeta = readJson<{
     data: {
@@ -69,14 +69,16 @@ async function main() {
       overview: string;
       theme_word: string | null;
       theme_description: string;
-      venue_name: string | null;
-      campus_map_url: string | null;
       contact_form_url: string | null;
-      theme_image: string | null;
     };
   }>('festival_meta.json').data;
+  const pageHomeFiles = readJson<{
+    data: { page_home_id: number; directus_files_id: string; sort: number }[];
+  }>('page_home_files.json')
+    .data.sort((a, b) => a.sort - b.sort)
+    .map((r) => idMap[r.directus_files_id]);
   await payload.updateGlobal({
-    slug: 'festival_meta',
+    slug: 'site_settings',
     data: {
       name: festivalMeta.name,
       // 旧形式は年情報を持たない {label, open, close} の JSON で新しい開場/終了日時と互換がないため、
@@ -85,31 +87,11 @@ async function main() {
       overview: toLexical(festivalMeta.overview),
       theme_word: festivalMeta.theme_word,
       theme_description: toLexical(festivalMeta.theme_description),
-      venue_name: festivalMeta.venue_name,
-      campus_map_url: festivalMeta.campus_map_url,
       contact_form_url: festivalMeta.contact_form_url,
-      theme_image: festivalMeta.theme_image ? idMap[festivalMeta.theme_image] : undefined,
-    },
-  });
-  console.log('festival_meta updated');
-
-  // 4. page_home global
-  const pageHome = readJson<{ data: { hero_message: string | null; hero_images: number[] } }>(
-    'page_home.json',
-  ).data;
-  const pageHomeFiles = readJson<{
-    data: { page_home_id: number; directus_files_id: string; sort: number }[];
-  }>('page_home_files.json')
-    .data.sort((a, b) => a.sort - b.sort)
-    .map((r) => idMap[r.directus_files_id]);
-  await payload.updateGlobal({
-    slug: 'page_home',
-    data: {
-      hero_message: pageHome.hero_message ? toLexical(pageHome.hero_message) : undefined,
       hero_images: pageHomeFiles,
     },
   });
-  console.log('page_home updated');
+  console.log('site_settings updated');
 
   // 5. pages
   const pages = readJson<{
@@ -119,7 +101,6 @@ async function main() {
       content: string;
       embed_url: string | null;
       embed_height: number | null;
-      sort: number | null;
     }[];
   }>('pages.json').data;
   for (const p of pages) {
@@ -131,7 +112,6 @@ async function main() {
         content: toLexical(p.content),
         embed_url: p.embed_url,
         embed_height: p.embed_height,
-        sort: p.sort,
       },
     });
     console.log(`page created: ${p.slug} -> ${created.id}`);

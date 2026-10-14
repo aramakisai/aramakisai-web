@@ -25,11 +25,5 @@ export const Stages: CollectionConfig = {
       label: '出演場所エリア',
       admin: { description: 'OSM Polygon' },
     },
-    {
-      name: 'sort',
-      type: 'number',
-      label: '表示順',
-      admin: { hidden: true },
-    },
   ],
 };

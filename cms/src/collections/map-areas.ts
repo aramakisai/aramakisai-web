@@ -124,11 +124,5 @@ export const MapAreas: CollectionConfig = {
     },
     { name: 'hasAed', type: 'checkbox', label: 'AED', defaultValue: false },
     { name: 'hasToilet', type: 'checkbox', label: 'トイレ', defaultValue: false },
-    {
-      name: 'sort',
-      type: 'number',
-      label: '表示順',
-      admin: { hidden: true },
-    },
   ],
 };

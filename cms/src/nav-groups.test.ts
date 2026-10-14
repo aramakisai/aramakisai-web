@@ -4,7 +4,7 @@ import { collections } from './collections';
 import { globals } from './globals';
 import { NAV_GROUPS } from './nav-groups';
 
-const HIDDEN = ['signage_settings', 'festival_meta', 'page_home'];
+const HIDDEN = ['signage_settings'];
 
 describe('NAV_GROUPS', () => {
   it('非表示の定義を除く全 slug を分類する', () => {
