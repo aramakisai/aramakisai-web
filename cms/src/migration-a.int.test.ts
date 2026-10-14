@@ -165,10 +165,11 @@ describe.skipIf(!hasDatabase)('マイグレーションA', () => {
       await q(sql`INSERT INTO "users" ("id", "email") VALUES (1, 'migration-a@example.invalid')`);
       await q(sql`INSERT INTO "student_exhibitions" ("id", "owner_id") VALUES (1, 1)`);
       await q(sql`INSERT INTO "student_exhibitions_vendor_menu" ("_order", "_parent_id", "id", "name", "price")
-        VALUES (1, 1, 'm1', 'x', '300'), (2, 1, 'm2', 'y', NULL), (3, 1, 'm3', 'z', ''), (4, 1, 'm4', 'w', ' 150 ')`);
+        VALUES (1, 1, 'm1', 'x', '300'), (2, 1, 'm2', 'y', NULL), (3, 1, 'm3', 'z', ''), (4, 1, 'm4', 'w', ' 150 '),
+        (5, 1, 'm5', 'a', '400円'), (6, 1, 'm6', 'b', '¥1,000'), (7, 1, 'm7', 'c', '４００円'), (8, 1, 'm8', 'd', '無料')`);
       await up();
       const rows = await q(sql`SELECT "price" FROM "student_exhibitions_vendor_menu" ORDER BY "_order"`);
-      expect(rows.map((r) => (r.price === null ? null : Number(r.price)))).toEqual([300, null, null, 150]);
+      expect(rows.map((r) => (r.price === null ? null : Number(r.price)))).toEqual([300, null, null, 150, 400, 1000, 400, null]);
     });
   });
 });

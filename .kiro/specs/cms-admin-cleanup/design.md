@@ -244,7 +244,7 @@ flowchart TB
 | 9.4 | フロントエンドの並び | FE並び替え箇所 | sort `_order` | デプロイ順序 |
 | 10.1 | 価格は0以上の整数 | MenuPrice | number min 0 | — |
 | 10.2 | 「円」を付けて表示 | ExhibitionMenu | formatPrice | — |
-| 10.3 | 既存の価格の保持 | MigrationA | `USING price::numeric` | デプロイ順序 |
+| 10.3 | 既存の価格の保持 | MigrationA | `USING`で数値を取り出す | デプロイ順序 |
 | 10.4 | 空の価格の行を出さない | exhibitions.ts | menu写像 | — |
 | 11.1–11.3 | 学生団体のログイン後の遷移 | StudentExhibitorRedirect | beforeDashboard、findOwnExhibitionPath | 学生団体のログイン後の遷移 |
 
@@ -423,7 +423,7 @@ type MembersFieldProps = {
   3. `site_settings_rels`へ`page_home_rels`の`path = 'hero_images'`の行を`site_settings`の`id`へ付け替えてINSERT…SELECT
   4. `signage_groups_rels`へ、`is_all IS NOT TRUE`の全グループ×全テロップを、グループごとに`telops._order`順の`order`でINSERT(「すべて」は所属行を持たない規則のため対象外)
   5. 5テーブル(`faq_items`・`map_areas`・`parking_lots`・`sponsors`・`stages`)の`_order`を、行番号`r`(0始まり)から`r < 36`なら`'a' || 桁(r)`、それ以外は`'b' || 桁(r / 36) || 桁(r % 36)`(桁は`0-9a-z`)で更新する。並びは`stages`が`COALESCE(sort, 0)`昇順→`id`昇順、ほかが`sort`昇順(null末尾)→`created_at`降順→`id`降順
-  6. `student_exhibitions_vendor_menu.price`の`SET DATA TYPE numeric`に`USING "price"::numeric`を付ける。生成差分のままでは`cannot be cast automatically`で失敗する(実測)。本番は未入力のため値の変換は起きず、10.3は既存値なしで満たされる
+  6. `student_exhibitions_vendor_menu.price`の`SET DATA TYPE numeric`に`USING`句を付ける。生成差分のままでは`cannot be cast automatically`で失敗する(実測)。`USING`は全角数字を半角にし、桁区切りのカンマ(`,` `，`)を除いたうえで、最初に現れる数字の連続を整数として取る。数字が無い値と空は`NULL`になる(`400円`→400、`¥1,000`→1000、`４００円`→400、`無料`→`NULL`)
   7. downの`booth_number`4列の`SET DATA TYPE numeric`に`USING <列>::numeric`を付ける。downの`price`(`numeric`→`varchar`)は生成差分のままでよい
 - 生成差分そのもの: `site_settings`・`site_settings_event_days`・`site_settings_rels`のCREATE、`booth_number`4列の`SET DATA TYPE varchar`、`signage_groups_rels.telops_id`の追加とFK・インデックス、5テーブルの`_order`列とインデックス、`price`の`SET DATA TYPE numeric`
 - Idempotency & recovery: Payloadのマイグレーション管理で1回だけ適用される。空DB(CI)ではINSERT…SELECT・UPDATEが0件で成功する
@@ -615,7 +615,7 @@ erDiagram
 | 5テーブル | `_order varchar`とインデックスを追加し初期化 | A |
 | `festival_meta`・`festival_meta_event_days`・`page_home`・`page_home_rels` | 削除 | C |
 | 7テーブルの`sort` | 削除 | C |
-| `student_exhibitions_vendor_menu.price` | `varchar`→`numeric`(`USING price::numeric`、本番は未入力) | A |
+| `student_exhibitions_vendor_menu.price` | `varchar`→`numeric`(数字を取り出す`USING`。`400円`→400、`¥1,000`→1000、`４００円`→400、数字が無い値と空は`NULL`) | A |
 
 **Consistency & Integrity**
 - Payloadは各マイグレーションを1トランザクションで適用する(`@payloadcms/drizzle`の`migrate`)ため、コピー・所属付与・初期化が途中で止まった状態は残らない

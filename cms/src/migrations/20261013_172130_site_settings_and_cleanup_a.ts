@@ -36,7 +36,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   );
   
   ALTER TABLE "sponsors" ALTER COLUMN "booth_number" SET DATA TYPE varchar;
-  ALTER TABLE "student_exhibitions_vendor_menu" ALTER COLUMN "price" SET DATA TYPE numeric USING NULLIF(btrim("price"), '')::numeric;
+  ALTER TABLE "student_exhibitions_vendor_menu" ALTER COLUMN "price" SET DATA TYPE numeric USING substring(replace(replace(translate("price", '０１２３４５６７８９', '0123456789'), ',', ''), '，', '') from '[0-9]+')::numeric;
   ALTER TABLE "student_exhibitions" ALTER COLUMN "exhibit_booth_number" SET DATA TYPE varchar;
   ALTER TABLE "student_exhibitions" ALTER COLUMN "vendor_booth_number" SET DATA TYPE varchar;
   ALTER TABLE "student_exhibitions" ALTER COLUMN "other_booth_number" SET DATA TYPE varchar;
