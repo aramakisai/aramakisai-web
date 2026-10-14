@@ -846,18 +846,16 @@ describe('getExhibitionDetail', () => {
           '2026-11-14T12:00:00.000Z',
         ],
         menu: [
-          { name: 'B', price: '¥300' },
+          { name: 'B', price: 300 },
           { name: 'A', price: null },
-          { name: 'C', price: '' },
-          { name: 'D', price: '時価' },
+          { name: 'C', price: 0 },
         ],
       },
     };
     const expected = {
       menu: [
-        { name: 'B', price: '¥300' },
-        { name: 'C', price: '' },
-        { name: 'D', price: '時価' },
+        { name: 'B', price: 300 },
+        { name: 'C', price: 0 },
       ],
       openDayKeys: ['2026-11-15', '2026-11-14'],
     };

@@ -35,14 +35,12 @@ export default buildConfig({
   admin: {
     user: 'users',
     importMap: { baseDir: path.resolve(dirname) },
-    // OIDC 一次経路化により通常ログインはここから遷移する (endpoints は authentikEndpoints 参照)。
     // components: undefined を明示的に渡すと Payload が admin.components.views を読めず
-    // 管理画面全体が落ちるため、無効時はキーごと省く。
-    ...(optionalEnv('AUTHENTIK_ISSUER_URL')
-      ? {
-          components: { afterLogin: ['./components/ZitadelLoginButton.tsx'] },
-        }
-      : {}),
+    // 管理画面全体が落ちるため、beforeDashboard を常に持つオブジェクトにする。
+    components: {
+      beforeDashboard: ['./components/StudentExhibitorRedirect.tsx'],
+      ...(optionalEnv('AUTHENTIK_ISSUER_URL') ? { afterLogin: ['./components/ZitadelLoginButton.tsx'] } : {}),
+    },
   },
   collections,
   globals,

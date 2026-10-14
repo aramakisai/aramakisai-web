@@ -13,7 +13,11 @@ type F = {
   access?: { create?: () => boolean; update?: (a: { doc?: { is_all?: boolean } }) => boolean };
   fields?: F[];
   filterOptions?: (a: { data: Record<string, unknown> }) => unknown;
-  admin?: { hidden?: boolean; condition?: (d: Record<string, unknown>) => boolean; components?: Record<string, string> };
+  admin?: {
+    hidden?: boolean;
+    condition?: (d: Record<string, unknown>) => boolean;
+    components?: { Field?: { path: string; clientProps: Record<string, string> } };
+  };
 };
 const f = (name: string) => SignageGroups.fields.find((x) => (x as F).name === name) as F;
 
@@ -40,11 +44,25 @@ describe('SignageGroups', () => {
     expect(s.type).toBe('relationship');
     expect(s.relationTo).toBe('signage_slides');
     expect(s.hasMany).toBe(true);
-    expect(s.admin?.components?.Field).toBe('./components/SignageGroupSlidesField.tsx');
+    expect(s.admin?.components?.Field).toEqual({
+      path: './components/SignageGroupMembersField.tsx',
+      clientProps: { collection: 'signage_slides', titleField: 'title', groupField: 'slides' },
+    });
   });
 
-  it('「すべて」では所属を書き込めず編集画面にも出さない', () => {
-    const s = f('slides');
+  it('所属テロップは telops への hasMany で、スライドと同じ部品を使う', () => {
+    const t = f('telops');
+    expect(t.type).toBe('relationship');
+    expect(t.relationTo).toBe('telops');
+    expect(t.hasMany).toBe(true);
+    expect(t.admin?.components?.Field).toEqual({
+      path: './components/SignageGroupMembersField.tsx',
+      clientProps: { collection: 'telops', titleField: 'body', groupField: 'telops' },
+    });
+  });
+
+  it.each(['slides', 'telops'])('「すべて」では%sの所属を書き込めず編集画面にも出さない', (name) => {
+    const s = f(name);
     expect(s.access!.update!({ doc: { is_all: true } })).toBe(false);
     expect(s.access!.update!({ doc: { is_all: false } })).toBe(true);
     expect(s.access!.update!({})).toBe(true);

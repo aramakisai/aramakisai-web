@@ -4,6 +4,7 @@ import type { GlobalConfig } from 'payload';
 export const PageHome: GlobalConfig = {
   slug: 'page_home',
   label: 'トップページ',
+  admin: { hidden: true },
   fields: [
     {
       name: 'hero_message',

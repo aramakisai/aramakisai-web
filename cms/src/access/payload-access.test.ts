@@ -48,6 +48,13 @@ describe('accessFor の読み取り', () => {
     });
   });
 
+  it('未認証のテロップ読み取りも、表示対象のIDの条件を重ねる', async () => {
+    find
+      .mockResolvedValueOnce({ docs: [{ id: 5 }, { id: 6 }] })
+      .mockResolvedValueOnce({ docs: [{ id: 9, is_all: false, visible: true, telops: [6] }] });
+    expect(await read('telops', null)).toEqual({ and: [{ enabled: { equals: true } }, { id: { in: [6] } }] });
+  });
+
   it('実行委員の読み取りは絞らず、グループも絞らない', async () => {
     const before = find.mock.calls.length;
     expect(await read('signage_slides', { id: 1, role: 'executive' })).toBe(true);

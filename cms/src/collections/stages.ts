@@ -8,7 +8,7 @@ export const Stages: CollectionConfig = {
   admin: {
     useAsTitle: 'name',
   },
-  defaultSort: 'sort',
+  orderable: true,
   hooks: { afterChange: [signageNotifyHook(['snapshot'])], afterDelete: [signageNotifyHook(['snapshot'])] },
   fields: [
     {
@@ -29,6 +29,7 @@ export const Stages: CollectionConfig = {
       name: 'sort',
       type: 'number',
       label: '表示順',
+      admin: { hidden: true },
     },
   ],
 };

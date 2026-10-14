@@ -9,7 +9,12 @@ describe('globals 登録口', () => {
   it('admin.hidden: true のグローバルは実行委員にも隠す', () => {
     expect(hiddenFor('signage_settings')({ user: { id: 1, role: 'executive' } })).toBe(true);
   });
-  it('それ以外は実行委員に見せる', () => {
-    expect(hiddenFor('festival_meta')({ user: { id: 1, role: 'executive' } })).toBe(false);
+  it('サイト設定は実行委員に見せる', () => {
+    expect(hiddenFor('site_settings')({ user: { id: 1, role: 'executive' } })).toBe(false);
+  });
+  it('祭基本情報・トップページは管理画面で隠す', () => {
+    for (const slug of ['festival_meta', 'page_home']) {
+      expect(hiddenFor(slug)({ user: { id: 1, role: 'executive' } })).toBe(true);
+    }
   });
 });

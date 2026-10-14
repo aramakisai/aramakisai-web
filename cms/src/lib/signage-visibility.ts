@@ -1,21 +1,30 @@
 import type { Payload, PayloadRequest, Where } from 'payload';
 
+type MemberKey = 'slides' | 'telops';
+type MemberCollection = 'signage_slides' | 'telops';
+
 export type VisibilityGroup = {
   is_all?: boolean | null;
   is_quake?: boolean | null;
   visible?: boolean | null;
   slides: number[];
+  telops: number[];
 };
 
+const KEY: Record<MemberCollection, MemberKey> = { signage_slides: 'slides', telops: 'telops' };
+
+const quakeMembers = (groups: VisibilityGroup[], key: MemberKey): Set<number> =>
+  new Set(groups.filter((g) => g.is_quake).flatMap((g) => g[key]));
+
 /**
- * 有効で、かつ「すべて」が表示中か表示中の通常のグループに属するスライドだけを、元の並びのまま返す。
+ * 有効で、かつ「すべて」が表示中か表示中の通常のグループに属するものだけを、元の並びのまま返す。
  * 緊急地震速報のグループの所属は巡回・固定に混ぜないため、「すべて」が表示中でも除く
  */
-export function visibleSlideIds(enabledSlideIds: number[], groups: VisibilityGroup[]): number[] {
-  const quake = new Set(groups.filter((g) => g.is_quake).flatMap((g) => g.slides));
-  const candidates = enabledSlideIds.filter((id) => !quake.has(id));
+export function visibleMemberIds(enabledIds: number[], groups: VisibilityGroup[], key: MemberKey): number[] {
+  const quake = quakeMembers(groups, key);
+  const candidates = enabledIds.filter((id) => !quake.has(id));
   if (groups.some((g) => g.is_all && g.visible)) return candidates;
-  const members = new Set(groups.filter((g) => !g.is_all && !g.is_quake && g.visible).flatMap((g) => g.slides));
+  const members = new Set(groups.filter((g) => !g.is_all && !g.is_quake && g.visible).flatMap((g) => g[key]));
   return candidates.filter((id) => members.has(id));
 }
 
@@ -23,10 +32,17 @@ type Reader = Pick<Payload, 'find'>;
 
 type Loaded = { enabledIds: number[]; groups: VisibilityGroup[] };
 
-async function loadSlidesAndGroups(payload: Reader, req?: Partial<PayloadRequest>): Promise<Loaded> {
-  const [slides, groups] = await Promise.all([
+const idsOf = (refs: unknown): number[] =>
+  (Array.isArray(refs) ? refs : []).map((r) => (typeof r === 'object' && r !== null ? (r as { id: number }).id : r));
+
+async function loadMembersAndGroups(
+  payload: Reader,
+  collection: MemberCollection,
+  req?: Partial<PayloadRequest>,
+): Promise<Loaded> {
+  const [members, groups] = await Promise.all([
     payload.find({
-      collection: 'signage_slides',
+      collection,
       where: { enabled: { equals: true } },
       sort: '_order',
       pagination: false,
@@ -44,43 +60,55 @@ async function loadSlidesAndGroups(payload: Reader, req?: Partial<PayloadRequest
     }),
   ]);
   return {
-    enabledIds: slides.docs.map((s) => s.id),
+    enabledIds: members.docs.map((m) => m.id),
     groups: groups.docs.map((g) => ({
       is_all: g.is_all,
       is_quake: g.is_quake,
       visible: g.visible,
-      slides: (g.slides ?? []).map((s) => (typeof s === 'object' ? s.id : s)),
+      slides: idsOf(g.slides),
+      telops: idsOf(g.telops),
     })),
   };
 }
 
-/** 公開判定・固定の選択肢・自動解除が同じ結果を使うよう、DB から表示対象のスライド ID を計算する */
-export async function loadVisibleSlideIds(payload: Reader, req?: Partial<PayloadRequest>): Promise<number[]> {
-  const { enabledIds, groups } = await loadSlidesAndGroups(payload, req);
-  return visibleSlideIds(enabledIds, groups);
+/** 公開判定・固定の選択肢・自動解除が同じ結果を使うよう、DB から表示対象のIDを計算する */
+export async function loadVisibleIds(
+  payload: Reader,
+  collection: MemberCollection,
+  req?: Partial<PayloadRequest>,
+): Promise<number[]> {
+  const { enabledIds, groups } = await loadMembersAndGroups(payload, collection, req);
+  return visibleMemberIds(enabledIds, groups, KEY[collection]);
 }
 
-const noMatch: Where = { id: { exists: false } };
-
 function idsFilter(ids: number[]): Where {
-  return ids.length > 0 ? { id: { in: ids } } : noMatch;
+  return ids.length > 0 ? { id: { in: ids } } : { id: { exists: false } };
 }
 
 /**
  * policy.ts は同期でDBを読めないため、公開判定に重ねる表示対象の条件はここで作る。
  * 一致なしは false ではなく存在しない列の条件で表す (false を返すと読み取りが 403 になる)
  */
-export async function visibleSlideFilter(payload: Reader, req?: Partial<PayloadRequest>): Promise<Where> {
-  return idsFilter(await loadVisibleSlideIds(payload, req));
+export async function visibleFilter(
+  payload: Reader,
+  collection: MemberCollection,
+  req?: Partial<PayloadRequest>,
+): Promise<Where> {
+  return idsFilter(await loadVisibleIds(payload, collection, req));
 }
 
 /**
- * 未認証の読み取りの条件。表示対象に加え、緊急地震速報のグループの所属(有効なもの)も読める。
+ * 未認証・学生団体の読み取りの条件。表示対象に加え、緊急地震速報のグループの所属(有効なもの)も読める。
  * スナップショットが段階のスライドを取得するのに必要で、巡回の一覧からはフロント側で除く
  */
-export async function publicSlideFilter(payload: Reader, req?: Partial<PayloadRequest>): Promise<Where> {
-  const { enabledIds, groups } = await loadSlidesAndGroups(payload, req);
-  const quake = new Set(groups.filter((g) => g.is_quake).flatMap((g) => g.slides));
-  const readable = new Set([...visibleSlideIds(enabledIds, groups), ...enabledIds.filter((id) => quake.has(id))]);
+export async function publicFilter(
+  payload: Reader,
+  collection: MemberCollection,
+  req?: Partial<PayloadRequest>,
+): Promise<Where> {
+  const key = KEY[collection];
+  const { enabledIds, groups } = await loadMembersAndGroups(payload, collection, req);
+  const quake = quakeMembers(groups, key);
+  const readable = new Set([...visibleMemberIds(enabledIds, groups, key), ...enabledIds.filter((id) => quake.has(id))]);
   return idsFilter([...readable]);
 }

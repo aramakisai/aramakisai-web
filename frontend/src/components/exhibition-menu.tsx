@@ -4,6 +4,11 @@ export interface ExhibitionMenuProps {
   readonly items: readonly ExhibitionMenuItem[];
 }
 
+/** 桁区切りは付けない。サイト内の既存の価格表記 (1200円) に合わせる */
+export function formatPrice(price: number): string {
+  return `${price}円`;
+}
+
 export function ExhibitionMenu({ items }: ExhibitionMenuProps) {
   if (items.length === 0) {
     return null;
@@ -17,7 +22,9 @@ export function ExhibitionMenu({ items }: ExhibitionMenuProps) {
           {items.map((item, index) => (
             <tr key={index}>
               <td className="p-0 text-left">{item.name}</td>
-              <td className="p-0 text-right tabular-nums">{item.price}</td>
+              <td className="p-0 text-right tabular-nums">
+                {formatPrice(item.price)}
+              </td>
             </tr>
           ))}
         </tbody>

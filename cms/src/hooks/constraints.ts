@@ -44,6 +44,12 @@ function hasValue(value: unknown): boolean {
   return value !== null && value !== undefined && value !== '';
 }
 
+/** テキスト入力は消去時に '' を保存するが、部分 UNIQUE INDEX は NULL だけを対象外にするため null へ揃える。 */
+export function blankToNull(value: unknown): unknown {
+  if (typeof value !== 'string') return value;
+  return value.trim() === '' ? null : value.trim();
+}
+
 /** 現行 custom migration の CHECK 制約 (exhibition_id IS NOT NULL OR title IS NOT NULL) と同等。 */
 export function validatePerformanceSlot(
   doc: PerformanceSlotDoc,

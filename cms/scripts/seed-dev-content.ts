@@ -1,5 +1,5 @@
 /**
- * ローカル開発用シード: announcements / topics / sponsors / festival_meta / page_home / pages / faq_items に
+ * ローカル開発用シード: announcements / topics / sponsors / site_settings / pages / faq_items に
  * フロントエンドのデザイン確認に足る件数・バリエーションを投入する。
  *
  * 実行例:
@@ -257,7 +257,7 @@ async function main() {
   }
   console.log(`sponsors: ${SPONSORS.length} 件作成`);
 
-  // 5. festival_meta (カウントダウン表示のため常に未来日になるよう実行時刻起点で算出する)
+  // 5. site_settings (カウントダウン表示のため常に未来日になるよう実行時刻起点で算出する)
   // event_days は開場〜終了の実開催時間帯 (JST) を表すため、24時間経過ではなく
   // 同一日の朝開場・夕方終了という形にする (hero-section.tsx の表示例と同じ形)。
   const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
@@ -272,23 +272,18 @@ async function main() {
     );
     return new Date(utcMs).toISOString();
   }
-  // name は required のため、初期状態 (未設定) のローカル DB では event_days/access_summary
-  // だけの部分更新がバリデーションで弾かれる。既に値がある場合は上書きしない。
-  const currentFestivalMeta = await payload.findGlobal({ slug: 'festival_meta' });
+  // name は required のため、初期状態 (未設定) のローカル DB では部分更新がバリデーションで弾かれる。
+  // 既に値がある場合は上書きしない。
+  const currentSiteSettings = await payload.findGlobal({ slug: 'site_settings' });
   await payload.updateGlobal({
-    slug: 'festival_meta',
+    slug: 'site_settings',
     data: {
-      name: currentFestivalMeta.name ?? '荒牧祭',
+      name: currentSiteSettings.name ?? '荒牧祭',
       event_days: [
         { start_at: jstDateTimeIso(30, 10, 0), end_at: jstDateTimeIso(30, 17, 30), label: '1日目' },
         { start_at: jstDateTimeIso(31, 10, 0), end_at: jstDateTimeIso(31, 16, 30), label: '2日目' },
       ],
-      access_summary:
-        '群馬大学荒牧キャンパスまでは、JR前橋駅からバスで約20分、上毛電鉄中央前橋駅から徒歩約25分です。当日は臨時駐車場もご利用いただけます。',
       theme_word: '万彩',
-      venue_name: '群馬大学 荒牧キャンパス',
-      campus_map_url:
-        'https://www.google.com/maps/embed?origin=mfe&pb=!1m2!2m1!1z576k6aas5aSn5a2mIOiNkueJp-OCreODo-ODs-ODkeOCuSDjgJIzNzEtODUxMCDnvqTppqznnIzliY3mqYvluILojZLniafnlLo05LiB55uuMg',
       contact_form_url:
         'https://docs.google.com/forms/d/e/1FAIpQLSdfNRBPktNU8u_YTWarZUiIW-rhusE9hG_7dqyQHKEq4Vxlpg/viewform?usp=sharing&ouid=103248927242052693439',
       sns_links: [
@@ -299,18 +294,11 @@ async function main() {
       overview: toLexical(
         '<p>荒牧祭は群馬大学荒牧キャンパスで開催される学園祭です。学生団体による模擬店や展示、ステージ企画など、多彩な催しを2日間にわたってお届けします (シードデータ)。</p>',
       ),
-    },
-  });
-  console.log('festival_meta 更新');
-
-  // 6. page_home (トップページのヒーロー画像。既存の投入済み画像を流用する)
-  await payload.updateGlobal({
-    slug: 'page_home',
-    data: {
+      // 既存の投入済み画像を流用する
       hero_images: imageMediaIds.slice(0, 3),
     },
   });
-  console.log('page_home 更新');
+  console.log('site_settings 更新');
 
   // 7. pages (既存分はスキップし、不足分のみ最小構成で作成する)
   const PAGES = [

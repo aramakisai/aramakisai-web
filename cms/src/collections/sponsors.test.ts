@@ -57,3 +57,13 @@ describe('種別ごとの入力項目の出し分け', () => {
     expect(conditionOf(boothLabel)({ type: ['ad'] })).toBe(false);
   });
 });
+
+describe('booth_number フィールド', () => {
+  it('最大 20 文字のテキストで、空白のみの値は null で保存する', () => {
+    expect(boothNumber.type).toBe('text');
+    expect(boothNumber.maxLength).toBe(20);
+    const [hook] = (boothNumber.hooks as { beforeValidate: ((a: { value: unknown }) => unknown)[] }).beforeValidate;
+    expect(hook({ value: ' ' })).toBeNull();
+    expect(hook({ value: 'GB155' })).toBe('GB155');
+  });
+});

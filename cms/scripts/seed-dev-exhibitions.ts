@@ -574,7 +574,7 @@ const JST_OFFSET_MS = 9 * 60 * 60 * 1000
 
 // 開催日程が無いと出演枠の開催日を決められないため、何も作る前に中断する。
 async function readEventDayKeys(payload: Payload): Promise<string[]> {
-  const meta = await payload.findGlobal({ slug: 'festival_meta' })
+  const meta = await payload.findGlobal({ slug: 'site_settings' })
   const keys = [
     ...new Set(
       (meta.event_days ?? []).map((d) =>
@@ -583,7 +583,7 @@ async function readEventDayKeys(payload: Payload): Promise<string[]> {
     ),
   ].sort()
   if (keys.length === 0) {
-    throw new Error('祭基本情報の開催日程が空。管理画面で登録してから再実行する。')
+    throw new Error('サイト設定の開催日程が空。管理画面で登録してから再実行する。')
   }
   return keys
 }
@@ -946,10 +946,10 @@ async function createKaraageExhibition(payload: Payload): Promise<void> {
         images: [media.id],
         open_days: ['2026-11-11T12:00:00.000Z', '2026-11-12T12:00:00.000Z'],
         area_id: areaId,
-        booth_number: 8,
+        booth_number: '8',
         menu: [
-          { name: '唐揚げ中', price: '400' },
-          { name: '唐揚げ大', price: '600' },
+          { name: '唐揚げ中', price: 400 },
+          { name: '唐揚げ大', price: 600 },
         ],
       },
     },
@@ -1055,7 +1055,7 @@ async function main() {
                 ...(c === placementCategory && wantsArea
                   ? {
                       area_id: areaIds[areaIndex],
-                      booth_number: boothNumber,
+                      booth_number: String(boothNumber),
                       booth_label:
                         e.locationKind === 'area-label' ? `${boothNumber}番ブース` : undefined,
                     }

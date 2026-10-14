@@ -12,8 +12,7 @@ describe('ParkingLots', () => {
   it('slug・タイトル・一覧列・既定の並びを持つ', () => {
     expect(ParkingLots.slug).toBe('parking_lots');
     expect(ParkingLots.admin?.useAsTitle).toBe('name');
-    expect(ParkingLots.admin?.defaultColumns).toEqual(['name', 'sort']);
-    expect(ParkingLots.defaultSort).toBe('sort');
+    expect(ParkingLots.admin?.defaultColumns).toEqual(['name']);
   });
 
   it('name は必須で最大 255', () => {

@@ -142,7 +142,7 @@ describe('ExhibitionPage', () => {
       category: 'vendor' as const,
       categories: ['vendor' as const],
       openDayKeys: ['2026-10-25', '2026-10-24'],
-      menu: [{ name: '焼きそば', price: '¥400' }],
+      menu: [{ name: '焼きそば', price: 400 }],
     };
     const renderVendor = async (value = vendor) => {
       mockResult({ kind: 'found', value });

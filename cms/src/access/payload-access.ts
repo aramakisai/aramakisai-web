@@ -1,6 +1,6 @@
 import type { Access, FieldAccess } from 'payload';
 
-import { publicSlideFilter } from '../lib/signage-visibility';
+import { publicFilter } from '../lib/signage-visibility';
 
 import { canCreate, canDelete, canRead, canUpdate } from './policy';
 import { isExecutive, toCmsUser } from './roles';
@@ -18,9 +18,9 @@ export function accessFor(collection: string): {
   return {
     read: async ({ req }) => {
       const result = canRead(toCmsUser(req.user), collection);
-      // 公開判定が条件を返すとき(未認証・学生団体)だけ、非表示グループのスライドを配らないよう絞る
-      if (collection === 'signage_slides' && typeof result === 'object') {
-        return { and: [result, await publicSlideFilter(req.payload, req)] };
+      // 公開判定が条件を返すとき(未認証・学生団体)だけ、非表示グループのスライド・テロップを配らないよう絞る
+      if ((collection === 'signage_slides' || collection === 'telops') && typeof result === 'object') {
+        return { and: [result, await publicFilter(req.payload, collection, req)] };
       }
       return result;
     },

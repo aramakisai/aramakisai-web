@@ -27,7 +27,7 @@ async function attemptSend(req: PayloadRequest, userId: number): Promise<Exclude
     });
     // 問い合わせ先は送信を試みるたびに読む。未設定でも送信は続行し、本文の
     // 問い合わせ先部分は invitationHtml 側で省く。
-    const meta = await req.payload.findGlobal({ slug: 'festival_meta', overrideAccess: true, req });
+    const meta = await req.payload.findGlobal({ slug: 'site_settings', overrideAccess: true, req });
     const contactUrl = meta.exhibitor_contact_url ?? undefined;
     const token = await req.payload.forgotPassword({
       collection: 'users',
