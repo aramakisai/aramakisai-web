@@ -2,6 +2,9 @@
 # make dev / signage-dev / quake-dev / dev-ps / dev-stop / preview / cms / cms-worktree のロジック本体。
 set -euo pipefail
 
+# システムに libvips があると sharp の install が prebuilt でなくソースビルドに切り替わり、node-gyp 不在で失敗する
+export SHARP_IGNORE_GLOBAL_LIBVIPS=1
+
 PORT_MIN=3200
 PORT_RANGE=800
 CMS_PORT=3100
