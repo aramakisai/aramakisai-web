@@ -1,3 +1,4 @@
+import { sql } from '@payloadcms/db-postgres';
 import type { PayloadRequest } from 'payload';
 
 import { optionalEnv } from '../env';
@@ -10,6 +11,22 @@ export type InvitationResult =
   | { readonly kind: 'sent'; readonly expiresAt: Date }
   | { readonly kind: 'failed'; readonly reason: string }
   | { readonly kind: 'skipped' };
+
+/**
+ * このジョブがこの招待の送信権を取ったことを users に記録する。取れたら true。
+ * Payload 3.x のジョブ取得には排他がなく、複数レプリカが同じジョブを同時に実行しうる。
+ * 条件付き UPDATE は DB 側で直列化されるため、同じジョブ ID の 2 回目以降は 0 行になる。
+ * 管理画面の再送や失敗後の再投入は別ジョブ (別 ID) なので常に取れる。
+ * ジョブのトランザクションに乗せると commit まで他 Pod から見えないため、別接続で即 commit する。
+ * 取得後に落ちても印はそのジョブ ID にしか効かず、再送を妨げない。
+ */
+async function claimSend(req: PayloadRequest, userId: number, jobId: number | string): Promise<boolean> {
+  const result = await req.payload.db.drizzle.execute(sql`
+    UPDATE "users" SET "invite_claimed_job" = ${Number(jobId)}
+    WHERE "id" = ${userId} AND "invite_claimed_job" IS DISTINCT FROM ${Number(jobId)}
+    RETURNING "id"`);
+  return result.rows.length > 0;
+}
 
 async function attemptSend(req: PayloadRequest, userId: number): Promise<Exclude<InvitationResult, { kind: 'skipped' }>> {
   try {
@@ -67,9 +84,11 @@ async function attemptSend(req: PayloadRequest, userId: number): Promise<Exclude
 export async function sendInvitation({
   req,
   userId,
+  jobId,
 }: {
   readonly req: PayloadRequest;
   readonly userId: number;
+  readonly jobId: number | string;
 }): Promise<InvitationResult> {
   const user = await req.payload.findByID({
     collection: 'users',
@@ -80,6 +99,9 @@ export async function sendInvitation({
   // 設定済みの人にトークンを再発行すると、本人のパスワードとは無関係に設定リンクが出回るため
   // 何も変更せず終える (invite_* も触らない)。
   if (user.activated_at) return { kind: 'skipped' };
+
+  // 同じジョブの重複実行は送信も記録もしない。後続の失敗が先行の sent を上書きするのを防ぐ。
+  if (!(await claimSend(req, userId, jobId))) return { kind: 'skipped' };
 
   const result = await attemptSend(req, userId);
 

@@ -17,6 +17,7 @@ import { createPgWithPoolErrorHandler, resolveReadReplicaUrl } from './db/read-r
 import { optionalEnv, requireEnv } from './env'
 import { signageQuakeEndpoints } from './endpoints/signage-quake'
 import { globals } from './globals'
+import { shouldAutoRun } from './lib/jobs-autorun'
 import { purgeEdgeCache, readPurgeConfig, warnIfPurgeUnconfigured } from './lib/edge-purge'
 import { richTextEditorFeatures } from './lib/rich-text-editor'
 
@@ -67,6 +68,9 @@ export default buildConfig({
           auth: { user: 'noreply@aramakisai.com', pass: requireEnv('NOREPLY_SMTP_PASSWORD') },
           // 証明書のホスト名は Service 名 (smtpHost) と別のため明示する
           tls: { servername: 'mail.aramakisai.com' },
+          // 1 通ごとの AUTH を避け、接続を使い回す。直列で足りる量なので 1 接続にする
+          pool: true,
+          maxConnections: 1,
           connectionTimeout: 10_000,
           greetingTimeout: 10_000,
           socketTimeout: 10_000,
@@ -79,8 +83,8 @@ export default buildConfig({
         slug: 'sendInvitation',
         retries: 2,
         inputSchema: [{ name: 'userId', type: 'number', required: true }],
-        handler: async ({ input, req }) => {
-          await sendInvitation({ req, userId: input.userId })
+        handler: async ({ input, job, req }) => {
+          await sendInvitation({ req, userId: input.userId, jobId: job.id })
           return { output: {} }
         },
       },
@@ -101,7 +105,7 @@ export default buildConfig({
     ],
     autoRun: [{ cron: '*/10 * * * * *' }],
     // vitest はプロセス全体に VITEST=true を設定する。テストは payload.jobs.run() を明示的に呼ぶ
-    shouldAutoRun: () => !process.env.VITEST,
+    shouldAutoRun,
     jobsCollectionOverrides: ({ defaultJobsCollection }) => ({
       ...defaultJobsCollection,
       access: {
