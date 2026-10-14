@@ -54,7 +54,6 @@ function area(overrides: Partial<CampusMapArea> = {}): CampusMapArea {
     id: 1,
     name: '中央エリア',
     color: 'primary',
-    sort: 0,
     geometry: {
       type: 'MultiPolygon',
       coordinates: [

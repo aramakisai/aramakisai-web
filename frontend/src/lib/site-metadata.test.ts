@@ -16,12 +16,7 @@ const BASE_FESTIVAL: FestivalMeta = {
   name: '荒牧祭',
   eventDays: [],
   overviewHtml: null,
-  heroImageId: null,
-  siteTitle: null,
-  metaDescription: null,
   ogImageId: null,
-  venueName: null,
-  venueAddress: null,
   snsLinks: [],
 };
 
@@ -41,25 +36,11 @@ afterEach(() => {
 });
 
 describe('getSiteMetadata', () => {
-  it('site_title があればそれをタイトルに使う', async () => {
+  it('祭名をタイトルに使う', async () => {
     setNodeEnv('production');
     vi.mocked(getFestivalMeta).mockResolvedValue({
       ...BASE_FESTIVAL,
       name: '荒牧祭本祭',
-      siteTitle: '荒牧祭 公式サイト',
-    });
-
-    const result = await getSiteMetadata();
-
-    expect(result.siteTitle).toBe('荒牧祭 公式サイト');
-  });
-
-  it('site_title が無ければ祭名を使う', async () => {
-    setNodeEnv('production');
-    vi.mocked(getFestivalMeta).mockResolvedValue({
-      ...BASE_FESTIVAL,
-      name: '荒牧祭本祭',
-      siteTitle: null,
     });
 
     const result = await getSiteMetadata();
@@ -67,12 +48,11 @@ describe('getSiteMetadata', () => {
     expect(result.siteTitle).toBe('荒牧祭本祭');
   });
 
-  it('site_title も祭名も無ければ固定値「荒牧祭」を使う', async () => {
+  it('祭名が無ければ固定値「荒牧祭」を使う', async () => {
     setNodeEnv('production');
     vi.mocked(getFestivalMeta).mockResolvedValue({
       ...BASE_FESTIVAL,
       name: '',
-      siteTitle: null,
     });
 
     const result = await getSiteMetadata();
@@ -85,7 +65,6 @@ describe('getSiteMetadata', () => {
     vi.mocked(getFestivalMeta).mockResolvedValue({
       ...BASE_FESTIVAL,
       name: '荒牧祭本祭',
-      siteTitle: null,
     });
 
     const result = await getSiteMetadata();
@@ -105,22 +84,9 @@ describe('getSiteMetadata', () => {
     expect(result.siteTitle.startsWith('【開発環境】')).toBe(false);
   });
 
-  it('meta_description があればそれを説明文に使う', async () => {
+  it('祭概要だけから説明文を作る', async () => {
     vi.mocked(getFestivalMeta).mockResolvedValue({
       ...BASE_FESTIVAL,
-      metaDescription: 'CMS で設定した説明文',
-      overviewHtml: '<p>概要文</p>',
-    });
-
-    const result = await getSiteMetadata();
-
-    expect(result.description).toBe('CMS で設定した説明文');
-  });
-
-  it('meta_description が無ければ祭概要を正規化して使う', async () => {
-    vi.mocked(getFestivalMeta).mockResolvedValue({
-      ...BASE_FESTIVAL,
-      metaDescription: null,
       overviewHtml: '<p>祭の概要です</p>',
     });
 
@@ -129,10 +95,9 @@ describe('getSiteMetadata', () => {
     expect(result.description).toBe('祭の概要です');
   });
 
-  it('meta_description も祭概要も無ければ固定値を使う', async () => {
+  it('祭概要が無ければ固定値を使う', async () => {
     vi.mocked(getFestivalMeta).mockResolvedValue({
       ...BASE_FESTIVAL,
-      metaDescription: null,
       overviewHtml: null,
     });
 

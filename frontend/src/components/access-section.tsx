@@ -2,58 +2,35 @@ import Link from 'next/link';
 import { ChevronRightIcon } from './icons';
 import { SandboxedEmbed } from './sandboxed-embed';
 import { SectionHeading } from './section-heading';
+import { ACCESS_SUMMARY, CAMPUS_MAP_EMBED_URL, VENUE_NAME } from '@/lib/venue';
 
-export interface AccessSectionProps {
-  readonly venueName: string | null;
-  readonly accessSummary: string | null;
-  readonly campusMapUrl: string | null;
-}
-
-export function AccessSection({
-  venueName,
-  accessSummary,
-  campusMapUrl,
-}: AccessSectionProps) {
-  // 空白のみの入力も未設定として扱う (要件 3.11)
-  const venue = venueName?.trim() || null;
-  const summary = accessSummary?.trim() || null;
-
+export function AccessSection() {
   return (
     <section className="mx-auto w-full max-w-[1440px] px-4 py-8 lg:px-20 lg:py-12">
       <SectionHeading level="h2">アクセス</SectionHeading>
       <div className="flex flex-col gap-4 lg:gap-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:gap-6">
           <div className="flex h-[200px] w-full shrink-0 items-center justify-center bg-gray-200 lg:h-[320px] lg:w-[720px]">
-            {campusMapUrl ? (
-              <SandboxedEmbed
-                url={campusMapUrl}
-                title="会場周辺の地図"
-                className="h-full w-full border-0"
-              />
-            ) : (
-              <span className="text-sm text-gray-600">地図 (placeholder)</span>
-            )}
+            <SandboxedEmbed
+              url={CAMPUS_MAP_EMBED_URL}
+              title="会場周辺の地図"
+              className="h-full w-full border-0"
+            />
           </div>
-          {(venue || summary) && (
-            <div className="flex min-w-0 flex-1 flex-col gap-2">
-              {venue && (
-                <p
-                  data-testid="access-venue-name"
-                  className="text-base leading-[170%] text-text"
-                >
-                  会場：{venue}
-                </p>
-              )}
-              {summary && (
-                <p
-                  data-testid="access-summary"
-                  className="text-sm leading-[160%] whitespace-pre-wrap text-text"
-                >
-                  {summary}
-                </p>
-              )}
-            </div>
-          )}
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <p
+              data-testid="access-venue-name"
+              className="text-base leading-[170%] text-text"
+            >
+              会場：{VENUE_NAME}
+            </p>
+            <p
+              data-testid="access-summary"
+              className="text-sm leading-[160%] whitespace-pre-wrap text-text"
+            >
+              {ACCESS_SUMMARY}
+            </p>
+          </div>
         </div>
         <div className="flex justify-end">
           <Link

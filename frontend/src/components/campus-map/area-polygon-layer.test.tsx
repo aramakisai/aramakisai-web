@@ -62,7 +62,6 @@ function area(overrides: Partial<CampusMapArea>): CampusMapArea {
     id: 1,
     name: 'Aゾーン',
     color: DEFAULT_COLOR,
-    sort: 0,
     geometry: {
       type: 'MultiPolygon',
       coordinates: [

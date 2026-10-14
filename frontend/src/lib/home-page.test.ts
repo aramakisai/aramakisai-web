@@ -8,7 +8,7 @@ vi.mock('./cms', () => ({
 
 type PublishedWhere = { published_at?: { exists?: boolean } };
 
-const META = {
+const SETTINGS = {
   name: '荒牧祭',
   sns_links: [{ platform: 'twitter', url: 'https://twitter.com' }],
   event_days: [
@@ -19,18 +19,9 @@ const META = {
     },
   ],
   overview_html: '<p>Overview</p>',
-  hero_image: { id: 91, filename: 'meta_hero1.webp', mimeType: 'image/webp' },
   theme_word: '万彩',
-  theme_image: { id: 92, filename: 'theme.webp', mimeType: 'image/webp' },
   theme_description_html: '<p>Theme description</p>',
-  venue_name: '荒牧キャンパス',
-  campus_map_url: 'https://www.google.com/maps/embed?pb=xxx',
   contact_form_url: 'https://forms.example.com/contact',
-  access_summary: '最寄駅から徒歩10分',
-};
-
-const PAGE_HOME = {
-  hero_message_html: '<p>Hello</p>',
   hero_images: [
     { id: 1, filename: 'hero1.jpg', mimeType: 'image/jpeg' },
     { id: 2, filename: 'hero2.jpg', mimeType: 'image/jpeg' },
@@ -62,9 +53,9 @@ const LISTS: Record<string, unknown[]> = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(cms.findGlobal).mockImplementation((async (slug: string) => ({
+  vi.mocked(cms.findGlobal).mockImplementation((async () => ({
     ok: true,
-    value: slug === 'festival_meta' ? META : PAGE_HOME,
+    value: SETTINGS,
   })) as never);
   vi.mocked(cms.findMany).mockImplementation((async (collection: string) => ({
     ok: true,
@@ -79,7 +70,6 @@ describe('getHomePage', () => {
   it('トップページのコンテンツを組み立てる', async () => {
     const result = await getHomePage();
 
-    expect(result.heroMessageHtml).toBe('<p>Hello</p>');
     expect(result.heroImages).toEqual([
       {
         id: '1',
@@ -107,19 +97,12 @@ describe('getHomePage', () => {
         },
       ],
       overviewHtml: '<p>Overview</p>',
-      heroImageId: '91',
     });
     expect(result.theme).toEqual({
       word: '万彩',
-      imageId: '92',
       descriptionHtml: '<p>Theme description</p>',
     });
-    expect(result.venueName).toBe('荒牧キャンパス');
-    expect(result.campusMapUrl).toBe(
-      'https://www.google.com/maps/embed?pb=xxx',
-    );
     expect(result.contactFormUrl).toBe('https://forms.example.com/contact');
-    expect(result.accessSummary).toBe('最寄駅から徒歩10分');
     expect(result.announcements).toEqual([
       {
         id: 1,
@@ -152,27 +135,20 @@ describe('getHomePage', () => {
     ]);
   });
 
-  it('festival_meta と page_home が null 値でも既定値へ落とす', async () => {
-    vi.mocked(cms.findGlobal).mockImplementation((async (slug: string) => ({
+  it('site_settings が null 値でも既定値へ落とす', async () => {
+    vi.mocked(cms.findGlobal).mockResolvedValue({
       ok: true,
-      value:
-        slug === 'festival_meta'
-          ? {
-              name: null,
-              sns_links: null,
-              event_days: null,
-              overview_html: null,
-              hero_image: null,
-              theme_word: null,
-              theme_image: null,
-              theme_description_html: null,
-              venue_name: null,
-              campus_map_url: null,
-              contact_form_url: null,
-              access_summary: null,
-            }
-          : { hero_message_html: null, hero_images: [] },
-    })) as never);
+      value: {
+        name: null,
+        sns_links: null,
+        event_days: null,
+        overview_html: null,
+        theme_word: null,
+        theme_description_html: null,
+        contact_form_url: null,
+        hero_images: [],
+      },
+    } as never);
     vi.mocked(cms.findMany).mockResolvedValue({
       ok: true,
       value: { docs: [], totalDocs: 0 },
@@ -180,20 +156,19 @@ describe('getHomePage', () => {
 
     const result = await getHomePage();
 
-    expect(result.heroMessageHtml).toBeNull();
     expect(result.heroImages).toEqual([]);
     expect(result.snsLinks).toEqual([]);
     expect(result.announcements).toEqual([]);
     expect(result.topics).toEqual([]);
-    expect(result.theme).toEqual({
-      word: null,
-      imageId: null,
-      descriptionHtml: null,
-    });
-    expect(result.venueName).toBeNull();
-    expect(result.campusMapUrl).toBeNull();
+    expect(result.theme).toEqual({ word: null, descriptionHtml: null });
     expect(result.contactFormUrl).toBeNull();
-    expect(result.accessSummary).toBeNull();
+  });
+
+  it('祭情報・テーマ・ヒーロー画像を site_settings の 1 回の取得で得る', async () => {
+    await getHomePage();
+
+    expect(cms.findGlobal).toHaveBeenCalledTimes(1);
+    expect(cms.findGlobal).toHaveBeenCalledWith('site_settings', { depth: 1 });
   });
 
   it('announcements は公開済みを新着順に 10 件まで引く', async () => {
@@ -217,49 +192,10 @@ describe('getHomePage', () => {
 
     expect(result.announcements).toEqual([]);
     expect(result.topics).toEqual([]);
-    expect(result.heroMessageHtml).toBe('<p>Hello</p>');
+    expect(result.heroImages).toHaveLength(2);
   });
 
-  it('festival_meta の取得に失敗しても例外を投げず、festival 由来の領域だけが欠落する', async () => {
-    vi.mocked(cms.findGlobal).mockImplementation((async (slug: string) => ({
-      ok: slug !== 'festival_meta',
-      ...(slug === 'festival_meta'
-        ? { error: { kind: 'network', status: 500 } }
-        : { value: PAGE_HOME }),
-    })) as never);
-
-    const result = await getHomePage();
-
-    expect(result.festival).toBeNull();
-    expect(result.theme).toBeNull();
-    expect(result.snsLinks).toEqual([]);
-    expect(result.venueName).toBeNull();
-    expect(result.campusMapUrl).toBeNull();
-    expect(result.contactFormUrl).toBeNull();
-    expect(result.accessSummary).toBeNull();
-    // festival_meta とは無関係な領域は取得できたとおりに残る
-    expect(result.heroMessageHtml).toBe('<p>Hello</p>');
-    expect(result.announcements).toHaveLength(1);
-  });
-
-  it('page_home の取得に失敗しても例外を投げず、hero 由来の領域だけが欠落する', async () => {
-    vi.mocked(cms.findGlobal).mockImplementation((async (slug: string) => ({
-      ok: slug !== 'page_home',
-      ...(slug === 'page_home'
-        ? { error: { kind: 'network', status: 500 } }
-        : { value: META }),
-    })) as never);
-
-    const result = await getHomePage();
-
-    expect(result.heroImages).toEqual([]);
-    expect(result.heroMessageHtml).toBeNull();
-    // page_home とは無関係な領域は取得できたとおりに残る
-    expect(result.festival).not.toBeNull();
-    expect(result.venueName).toBe('荒牧キャンパス');
-  });
-
-  it('festival_meta と page_home の両方が失敗しても例外を投げない', async () => {
+  it('site_settings の取得に失敗しても例外を投げず、設定由来の領域だけが欠落する', async () => {
     vi.mocked(cms.findGlobal).mockResolvedValue({
       ok: false,
       error: { kind: 'network', status: 500 },
@@ -269,8 +205,11 @@ describe('getHomePage', () => {
       festival: null,
       theme: null,
       heroImages: [],
-      heroMessageHtml: null,
+      snsLinks: [],
+      contactFormUrl: null,
     });
+    // 設定とは無関係な領域は取得できたとおりに残る
+    expect((await getHomePage()).announcements).toHaveLength(1);
   });
 });
 

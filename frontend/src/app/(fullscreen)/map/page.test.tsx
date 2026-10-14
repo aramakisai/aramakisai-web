@@ -61,7 +61,6 @@ function area(overrides: Partial<CampusMapArea>): CampusMapArea {
       ],
     },
     color: 'secondary',
-    sort: null,
     ...overrides,
     hasAed: false,
     hasToilet: false,

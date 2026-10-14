@@ -168,7 +168,7 @@ describe('Footer', () => {
     ).toBeInTheDocument();
   });
 
-  test('festival_meta の取得失敗時もお問い合わせを省略して残りを表示する', async () => {
+  test('site_settings の取得失敗時もお問い合わせを省略して残りを表示する', async () => {
     vi.mocked(festivalMetaModule.getContactFormUrl).mockRejectedValue(
       new Error('Directus Error'),
     );

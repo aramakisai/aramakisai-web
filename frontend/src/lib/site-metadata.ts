@@ -31,10 +31,9 @@ export async function getSiteMetadata(): Promise<SiteMetadata> {
     festival = null;
   }
 
-  const titleBase =
-    festival?.siteTitle || festival?.name || FALLBACK_SITE_TITLE;
+  const titleBase = festival?.name || FALLBACK_SITE_TITLE;
   const description = toMetaDescription(
-    [festival?.metaDescription, festival?.overviewHtml],
+    [festival?.overviewHtml],
     FALLBACK_SITE_DESCRIPTION,
   );
   const ogImageUrl = festival ? toAssetUrl(festival.ogImageId, 960) : null;

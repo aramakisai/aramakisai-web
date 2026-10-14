@@ -14,7 +14,7 @@ CMS (Payload) からデータを取得する画面のE2Eテストを作成する
 
 1. **依存コレクションの明記**:
    - テストファイルの冒頭にコメントで依存するCMSのコレクション名を明記してください。
-   - 例: `// Depends on CMS collections: festival_meta, page_home`
+   - 例: `// Depends on CMS collections: site_settings`
 2. **読み取り専用 (Read Only)**:
    - テスト内ではデータの書き込み（作成・更新・削除）操作は行わず、読み取り（GET相当の表示確認）のみに限定してください。
 3. **DOMへの反映確認**:

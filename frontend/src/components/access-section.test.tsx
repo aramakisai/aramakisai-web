@@ -1,16 +1,11 @@
 import { render, screen } from '@testing-library/react';
 import { expect, test, describe } from 'vitest';
 import { AccessSection } from './access-section';
+import { ACCESS_SUMMARY, CAMPUS_MAP_EMBED_URL, VENUE_NAME } from '@/lib/venue';
 
 describe('AccessSection', () => {
-  test('見出しと導線を常に表示する', () => {
-    render(
-      <AccessSection
-        venueName={null}
-        accessSummary={null}
-        campusMapUrl={null}
-      />,
-    );
+  test('見出しと導線を表示する', () => {
+    render(<AccessSection />);
 
     expect(
       screen.getByRole('heading', { level: 2, name: 'アクセス' }),
@@ -20,98 +15,23 @@ describe('AccessSection', () => {
     ).toHaveAttribute('href', '/access');
   });
 
-  test('会場名・文言がともに未設定のときはどちらも出さず導線のみ表示する', () => {
-    render(
-      <AccessSection
-        venueName={null}
-        accessSummary={null}
-        campusMapUrl={null}
-      />,
+  test('会場名とアクセス文言を固定値から表示する', () => {
+    render(<AccessSection />);
+
+    expect(screen.getByTestId('access-venue-name')).toHaveTextContent(
+      `会場：${VENUE_NAME}`,
     );
-
-    expect(screen.queryByTestId('access-venue-name')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('access-summary')).not.toBeInTheDocument();
-  });
-
-  test('文言が空白のみのときも未設定として扱う', () => {
-    render(
-      <AccessSection
-        venueName={null}
-        accessSummary="   "
-        campusMapUrl={null}
-      />,
-    );
-
-    expect(screen.queryByTestId('access-summary')).not.toBeInTheDocument();
-  });
-
-  test('文言があるときは改行を保って表示する', () => {
-    render(
-      <AccessSection
-        venueName={null}
-        accessSummary={'1行目\n2行目'}
-        campusMapUrl={null}
-      />,
-    );
-
-    const summary = screen.getByTestId('access-summary');
-    expect(summary).toHaveClass('whitespace-pre-wrap');
-    expect(summary.textContent).toBe('1行目\n2行目');
-  });
-
-  test('会場名は「会場：」を付けて文言より上に表示する', () => {
-    render(
-      <AccessSection
-        venueName="群馬大学 荒牧キャンパス"
-        accessSummary="最寄駅から徒歩10分"
-        campusMapUrl={null}
-      />,
-    );
-
-    expect(screen.getByTestId('access-venue-name').textContent).toBe(
-      '会場：群馬大学 荒牧キャンパス',
+    expect(screen.getByTestId('access-summary')).toHaveTextContent(
+      ACCESS_SUMMARY,
     );
   });
 
-  test('会場名のみ設定のときは会場名だけ表示する', () => {
-    render(
-      <AccessSection
-        venueName="群馬大学 荒牧キャンパス"
-        accessSummary={null}
-        campusMapUrl={null}
-      />,
+  test('地図を固定の埋め込みURLでiframeに埋め込む', () => {
+    const { container } = render(<AccessSection />);
+
+    expect(container.querySelector('iframe')).toHaveAttribute(
+      'src',
+      CAMPUS_MAP_EMBED_URL,
     );
-
-    expect(screen.getByTestId('access-venue-name').textContent).toBe(
-      '会場：群馬大学 荒牧キャンパス',
-    );
-    expect(screen.queryByTestId('access-summary')).not.toBeInTheDocument();
-  });
-
-  test('campusMapUrl があれば地図をiframeで埋め込む', () => {
-    const url = 'https://www.google.com/maps/embed?pb=abc';
-    const { container } = render(
-      <AccessSection
-        venueName={null}
-        accessSummary={null}
-        campusMapUrl={url}
-      />,
-    );
-
-    expect(container.querySelector('iframe')).toHaveAttribute('src', url);
-    expect(screen.queryByText('地図 (placeholder)')).not.toBeInTheDocument();
-  });
-
-  test('会場名が空白のみのときも未設定として扱う', () => {
-    render(
-      <AccessSection
-        venueName="   "
-        accessSummary="最寄駅から徒歩10分"
-        campusMapUrl={null}
-      />,
-    );
-
-    expect(screen.queryByTestId('access-venue-name')).not.toBeInTheDocument();
-    expect(screen.getByTestId('access-summary')).toBeInTheDocument();
   });
 });

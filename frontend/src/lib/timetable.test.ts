@@ -20,8 +20,8 @@ vi.mock('./cms', () => ({
 
 beforeEach(() => vi.clearAllMocks());
 
-const stage = (id: number, sort: number | null, name = `S${id}`) =>
-  ({ id, name, sort }) as Stage;
+const stage = (id: number, _order: string | null, name = `S${id}`) =>
+  ({ id, name, _order }) as Stage;
 // 開催日は JST 暦日の UTC 正午、時刻は JST 時刻のみ意味を持つ
 const slot = (
   id: number,
@@ -54,7 +54,7 @@ const pub = (id: number, name: string | null) =>
   ({ id, status: 'published', organization_name: name }) as never;
 
 describe('toTimetable', () => {
-  const build = (slots: PerformanceSlot[], stages = [stage(1, 0)]) =>
+  const build = (slots: PerformanceSlot[], stages = [stage(1, 'a0')]) =>
     toTimetable({ eventDays, stages, performanceSlots: slots });
 
   it('開催日を日順に並べ、ラベル未入力は日付から作る', () => {
@@ -64,9 +64,12 @@ describe('toTimetable', () => {
     ]);
   });
 
-  it('ステージは sort 昇順・同値は id 昇順', () => {
-    const r = build([], [stage(3, 1), stage(2, 1), stage(1, 5)]);
-    expect(r.stages.map((s) => s.id)).toEqual([2, 3, 1]);
+  it('ステージは _order の文字列昇順 (未設定は末尾)・同値は id 昇順', () => {
+    const r = build(
+      [],
+      [stage(4, null), stage(3, 'a1'), stage(2, 'a1'), stage(1, 'b00')],
+    );
+    expect(r.stages.map((s) => s.id)).toEqual([2, 3, 1, 4]);
   });
 
   it('出演枠は開始時刻昇順で、時刻は自身の開催日から合成する', () => {
@@ -118,7 +121,7 @@ describe('toTimetable', () => {
 
   it('stage_id が展開済みオブジェクトでも扱える', () => {
     expect(
-      build([slot(1, { stage: stage(1, 0) })]).performances[0].stageId,
+      build([slot(1, { stage: stage(1, 'a0') })]).performances[0].stageId,
     ).toBe(1);
   });
 });
@@ -127,7 +130,7 @@ describe('findActivePerformances', () => {
   it('現在出演中の枠をステージ順に返す', () => {
     const tt = toTimetable({
       eventDays,
-      stages: [stage(1, 2), stage(2, 1)],
+      stages: [stage(1, 'a2'), stage(2, 'a1')],
       performanceSlots: [
         slot(1, { stage: 1 }),
         slot(2, { stage: 2 }),
@@ -173,15 +176,15 @@ describe('getExhibitionPerformances', () => {
   it('開催日・開始時刻の昇順で、開催日程外の日付は日付ラベルで表す', async () => {
     setup([
       slot(1, {
-        stage: stage(1, 0, '野外'),
+        stage: stage(1, 'a0', '野外'),
         event_date: '2026-11-15T03:00:00.000Z',
       }),
       slot(2, {
-        stage: stage(1, 0, '野外'),
+        stage: stage(1, 'a0', '野外'),
         event_date: '2026-11-20T03:00:00.000Z',
       }),
       slot(3, {
-        stage: stage(2, 0, '体育館'),
+        stage: stage(2, 'a0', '体育館'),
         event_date: '2026-11-14T03:00:00.000Z',
       }),
     ]);

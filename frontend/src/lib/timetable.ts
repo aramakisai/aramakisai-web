@@ -1,6 +1,7 @@
-import type { FestivalMeta, PerformanceSlot, Stage } from '@/cms-types';
+import type { SiteSetting, PerformanceSlot, Stage } from '@/cms-types';
 import { cms, type CmsFetchError } from './cms';
 import { formatEventDayLabel, toJstDateKey } from './event-day';
+import { compareOrderKey } from './order-key';
 
 const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -85,7 +86,7 @@ function isValidIso(v: string | null | undefined): v is string {
   return !!v && !Number.isNaN(Date.parse(v));
 }
 
-function toDays(eventDays: FestivalMeta['event_days']): TimetableDay[] {
+function toDays(eventDays: SiteSetting['event_days']): TimetableDay[] {
   const byKey = new Map<string, TimetableDay>();
   for (const d of eventDays ?? []) {
     if (!isValidIso(d.start_at)) continue;
@@ -134,12 +135,12 @@ function idOf(v: number | { id: number }): number {
 }
 
 export function toTimetable(sources: {
-  readonly eventDays: FestivalMeta['event_days'];
+  readonly eventDays: SiteSetting['event_days'];
   readonly stages: readonly Stage[];
   readonly performanceSlots: readonly PerformanceSlot[];
 }): Timetable {
   const stages = [...sources.stages]
-    .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0) || a.id - b.id)
+    .sort((a, b) => compareOrderKey(a._order, b._order) || a.id - b.id)
     .map((s) => ({ id: s.id, name: s.name }));
   const stageIds = new Set(stages.map((s) => s.id));
 
@@ -161,7 +162,7 @@ export function toTimetable(sources: {
 /** 取得失敗時は例外を投げる (一覧系の既存規約) */
 export async function getTimetable(): Promise<Timetable> {
   const [meta, stages, slots] = await Promise.all([
-    cms.findGlobal('festival_meta'),
+    cms.findGlobal('site_settings'),
     cms.findMany('stages', { limit: 0, depth: 0 }),
     cms.findMany('performance_slots', { limit: 0, depth: 1 }),
   ]);
@@ -192,7 +193,7 @@ export async function getExhibitionPerformances(
   exhibitionId: number,
 ): Promise<ExhibitionPerformancesResult> {
   const [meta, slots] = await Promise.all([
-    cms.findGlobal('festival_meta'),
+    cms.findGlobal('site_settings'),
     cms.findMany('performance_slots', {
       where: { exhibition_id: { equals: exhibitionId } },
       limit: 0,
@@ -233,7 +234,7 @@ export async function getExhibitionPerformances(
 export async function getEventDayList(): Promise<
   readonly TimetableDay[] | null
 > {
-  const meta = await cms.findGlobal('festival_meta');
+  const meta = await cms.findGlobal('site_settings');
   return meta.ok ? toDays(meta.value.event_days) : null;
 }
 
