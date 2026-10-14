@@ -6,7 +6,7 @@ import { richTextHTMLConverters } from '../lib/rich-text-html-converters';
 export const Topics: CollectionConfig = {
   slug: 'topics',
   labels: { singular: 'トピック', plural: 'トピック' },
-  admin: { useAsTitle: 'title', defaultColumns: ['title', 'sort', 'published_at'] },
+  admin: { useAsTitle: 'title', defaultColumns: ['title', 'published_at'] },
   fields: [
     { name: 'title', type: 'text', required: true, maxLength: 255, label: 'タイトル' },
     { name: 'body', type: 'richText', label: '本文' },
@@ -38,7 +38,6 @@ export const Topics: CollectionConfig = {
       label: 'PDF 添付',
       admin: { description: 'デジタルパンフ等' },
     },
-    { name: 'sort', type: 'number', label: '表示順' },
     {
       name: 'attachments',
       type: 'upload',

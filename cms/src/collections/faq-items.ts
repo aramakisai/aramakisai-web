@@ -21,11 +21,5 @@ export const FaqItems: CollectionConfig = {
       required: true,
       label: '回答',
     },
-    {
-      name: 'sort',
-      type: 'number',
-      label: '表示順',
-      admin: { hidden: true },
-    },
   ],
 };

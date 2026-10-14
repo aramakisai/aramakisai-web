@@ -1,6 +1,6 @@
 type NavGroup = 'サイト掲載' | '企画・ステージ' | '会場・マップ' | '当日運営' | 'サイネージ' | '管理';
 
-/** admin.hidden の定義 (signage_settings・festival_meta・page_home) は分類せず含めない。 */
+/** admin.hidden の定義 (signage_settings) は分類せず含めない。 */
 export const NAV_GROUPS: Readonly<Record<string, NavGroup>> = {
   announcements: 'サイト掲載',
   topics: 'サイト掲載',

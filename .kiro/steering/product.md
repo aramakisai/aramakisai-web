@@ -9,7 +9,7 @@
 - `map_areas` — 会場マップ区画のマスタ
 - `announcements` / `faq_items` / `topics` — 告知・FAQ・トピック
 - `pages` — 固定ページ (アクセス・お問い合わせ・プライバシー・協賛案内等) を `slug` で束ねる単一コレクション
-- `festival_meta` / `page_home` — 祭全体メタ情報・トップページ用の単一レコード global
+- `site_settings` — 祭名・開催日程・テーマ・ヒーロー画像・概要・問い合わせ先・SNS・OG 画像など祭全体の設定を持つ単一レコード global
 - `media` — アップロード。用途別サイズを WebP で生成し S3 互換ストレージに保存
 
 ## RBAC (Payload access control)
