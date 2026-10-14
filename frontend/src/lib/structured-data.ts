@@ -1,5 +1,6 @@
 import type { JsonLdObject } from '@/components/json-ld';
 import type { SiteMetadata } from './site-metadata';
+import { VENUE_ADDRESS, VENUE_NAME } from './venue';
 
 export interface BreadcrumbItem {
   readonly name: string;
@@ -37,7 +38,7 @@ export function buildEventJsonLd(
   const festival = input.site.festival;
   if (!festival || festival.eventDays.length === 0) return null;
 
-  const { eventDays, venueName, venueAddress } = festival;
+  const { eventDays } = festival;
 
   return {
     '@type': 'Event',
@@ -47,15 +48,7 @@ export function buildEventJsonLd(
     endDate: eventDays[eventDays.length - 1].endAt,
     eventStatus: 'https://schema.org/EventScheduled',
     eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
-    ...(venueName
-      ? {
-          location: {
-            '@type': 'Place',
-            name: venueName,
-            ...(venueAddress ? { address: venueAddress } : {}),
-          },
-        }
-      : {}),
+    location: { '@type': 'Place', name: VENUE_NAME, address: VENUE_ADDRESS },
     ...(input.site.ogImageUrl ? { image: input.site.ogImageUrl } : {}),
     url: input.siteUrl,
     organizer: buildOrganizationJsonLd(input),

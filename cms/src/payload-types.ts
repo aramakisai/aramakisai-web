@@ -192,6 +192,7 @@ export interface User {
   invite_status?: ('sent' | 'failed') | null;
   invite_sent_at?: string | null;
   invite_error?: string | null;
+  invite_claimed_job?: number | null;
   /**
    * パスワード設定またはログインを初めて確認した日時。入ると招待メールは送信されない
    */
@@ -1055,6 +1056,7 @@ export interface UsersSelect<T extends boolean = true> {
   invite_status?: T;
   invite_sent_at?: T;
   invite_error?: T;
+  invite_claimed_job?: T;
   activated_at?: T;
   resend_invite?: T;
   updatedAt?: T;

@@ -124,7 +124,7 @@ export async function getSignageSnapshot({
     parking,
     quakeGroup,
   ] = await Promise.all([
-    cms.findGlobal('festival_meta', {}, OPTIONS),
+    cms.findGlobal('site_settings', {}, OPTIONS),
     cms.findGlobal('signage_settings', { depth: 0 }, OPTIONS),
     cms.findMany('signage_slides', { ...ORDERED, depth: 1 }, OPTIONS),
     cms.findMany('telops', ORDERED, OPTIONS),

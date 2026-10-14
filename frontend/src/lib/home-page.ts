@@ -12,38 +12,35 @@ import {
 } from './home-page-types';
 
 export async function getHomePage(): Promise<HomePageContent> {
-  const [metaResult, announcementsResult, topicsResult, pageHomeResult] =
-    await Promise.all([
-      cms.findGlobal('festival_meta'),
-      cms.findMany('announcements', {
-        where: publishedFilter(),
-        sort: ['-published_at'],
-        limit: 10,
-        depth: 1,
-      }),
-      cms.findMany('topics', {
-        where: publishedFilter(),
-        sort: ['-published_at'],
-        limit: 0,
-        // トップでは一覧カードにしか使わないため本文 HTML を取らない。
-        // image は depth 0 で id のまま返り、toMediaId がそのまま扱える
-        select: { title: true, image: true },
-        depth: 0,
-      }),
-      cms.findGlobal('page_home', { depth: 1 }),
-    ]);
+  const [metaResult, announcementsResult, topicsResult] = await Promise.all([
+    // ヒーロー画像を Attachment にするため depth 1 で 1 回だけ取る
+    cms.findGlobal('site_settings', { depth: 1 }),
+    cms.findMany('announcements', {
+      where: publishedFilter(),
+      sort: ['-published_at'],
+      limit: 10,
+      depth: 1,
+    }),
+    cms.findMany('topics', {
+      where: publishedFilter(),
+      sort: ['-published_at'],
+      limit: 0,
+      // トップでは一覧カードにしか使わないため本文 HTML を取らない。
+      // image は depth 0 で id のまま返り、toMediaId がそのまま扱える
+      select: { title: true, image: true },
+      depth: 0,
+    }),
+  ]);
   const meta = metaResult.ok ? metaResult.value : null;
 
   const festival: FestivalOverview | null = meta && {
     name: meta.name || '',
     eventDays: toEventDays(meta.event_days),
     overviewHtml: meta.overview_html || null,
-    heroImageId: toMediaId(meta.hero_image),
   };
 
   const theme: FestivalTheme | null = meta && {
     word: meta.theme_word || null,
-    imageId: toMediaId(meta.theme_image),
     descriptionHtml: meta.theme_description_html || null,
   };
 
@@ -66,18 +63,12 @@ export async function getHomePage(): Promise<HomePageContent> {
     imageId: toMediaId(t.image),
   }));
 
-  const pageHome = pageHomeResult.ok ? pageHomeResult.value : null;
-
   return {
-    heroImages: pageHome ? toAttachments(pageHome.hero_images) : [],
-    heroMessageHtml: pageHome ? pageHome.hero_message_html || null : null,
+    heroImages: meta ? toAttachments(meta.hero_images) : [],
     snsLinks: (meta?.sns_links as SnsLink[] | undefined) || [],
     festival,
     theme,
-    venueName: meta?.venue_name || null,
-    campusMapUrl: meta?.campus_map_url || null,
     contactFormUrl: meta?.contact_form_url || null,
-    accessSummary: meta?.access_summary || null,
     announcements,
     topics,
   };

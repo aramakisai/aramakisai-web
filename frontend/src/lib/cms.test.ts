@@ -97,9 +97,9 @@ describe('cms.findGlobal', () => {
       json: async () => ({ id: 1 }),
     });
     vi.stubGlobal('fetch', fetchMock);
-    await cms.findGlobal('festival_meta', { depth: 1 });
+    await cms.findGlobal('site_settings', { depth: 1 });
     expect(fetchMock.mock.calls[0][0]).toBe(
-      'http://localhost:3100/api/globals/festival_meta?depth=1',
+      'http://localhost:3100/api/globals/site_settings?depth=1',
     );
   });
 
@@ -110,9 +110,9 @@ describe('cms.findGlobal', () => {
       json: async () => ({ id: 1 }),
     });
     vi.stubGlobal('fetch', fetchMock);
-    await cms.findGlobal('festival_meta');
+    await cms.findGlobal('site_settings');
     expect(fetchMock.mock.calls[0][0]).toBe(
-      'http://localhost:3100/api/globals/festival_meta?depth=0',
+      'http://localhost:3100/api/globals/site_settings?depth=0',
     );
   });
 });
@@ -221,8 +221,8 @@ describe('cms キャッシュ', () => {
     (globalThis as Record<symbol, unknown>)[
       Symbol.for('__cloudflare-context__')
     ] = { ctx: { waitUntil: vi.fn() } };
-    await cms.findGlobal('festival_meta', {}, { ttlSeconds: 15 });
-    await cms.findGlobal('festival_meta');
+    await cms.findGlobal('site_settings', {}, { ttlSeconds: 15 });
+    await cms.findGlobal('site_settings');
     expect(put.mock.calls[0][1].headers.get('Cache-Control')).toBe(
       's-maxage=15',
     );
@@ -324,8 +324,8 @@ describe('同一引数の取得の重複排除', () => {
     if (calls === 2) return;
 
     await Promise.all([
-      cms.findGlobal('festival_meta'),
-      cms.findGlobal('festival_meta'),
+      cms.findGlobal('site_settings'),
+      cms.findGlobal('site_settings'),
     ]);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });

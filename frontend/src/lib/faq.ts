@@ -19,7 +19,7 @@ function formatFaqItem(item: FaqItem): FaqEntry {
 
 export async function getFaqItems(): Promise<FaqEntry[]> {
   const result = await cms.findMany('faq_items', {
-    sort: ['sort'],
+    sort: ['_order'],
     limit: 0,
     depth: 0,
   });

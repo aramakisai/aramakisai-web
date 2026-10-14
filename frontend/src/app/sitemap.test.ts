@@ -62,7 +62,7 @@ describe('sitemap (pre_event)', () => {
     await setPhase('pre_event');
   });
 
-  it('トップページを festival_meta.updatedAt で収録する', async () => {
+  it('トップページを site_settings.updatedAt で収録する', async () => {
     const result = await sitemap();
     const home = result.find((e) => e.url === `${SITE_URL}/`);
 

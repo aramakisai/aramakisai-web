@@ -41,7 +41,7 @@ function maxUpdatedAt(
 }
 
 async function getHomeLastModified(): Promise<string | undefined> {
-  const result = await cms.findGlobal('festival_meta', { depth: 0 });
+  const result = await cms.findGlobal('site_settings', { depth: 0 });
   return result.ok ? (result.value.updatedAt ?? undefined) : undefined;
 }
 

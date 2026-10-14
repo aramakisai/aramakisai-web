@@ -9,7 +9,7 @@ vi.mock('./cms', () => ({
 beforeEach(() => vi.clearAllMocks());
 
 describe('getFaqItems', () => {
-  it('faq_items を表示順 (sort) 昇順・全件・関連展開なしで取得し、順序を保って整形する', async () => {
+  it('faq_items を並びキー (_order) 順・全件・関連展開なしで取得し、順序を保って整形する', async () => {
     vi.mocked(cms.findMany).mockResolvedValue({
       ok: true,
       value: {
@@ -19,7 +19,7 @@ describe('getFaqItems', () => {
             id: 1,
             question: '質問1',
             answer: '回答1',
-            sort: 1,
+            _order: 'a0',
             updatedAt: '2026-01-02T00:00:00.000Z',
             createdAt: '2026-01-01T00:00:00.000Z',
           },
@@ -27,7 +27,7 @@ describe('getFaqItems', () => {
             id: 2,
             question: '質問2',
             answer: '回答2',
-            sort: null,
+            _order: 'a1',
             updatedAt: '2026-01-03T00:00:00.000Z',
             createdAt: '2026-01-01T00:00:00.000Z',
           },
@@ -54,7 +54,7 @@ describe('getFaqItems', () => {
 
     const [collection, query] = vi.mocked(cms.findMany).mock.calls[0];
     expect(collection).toBe('faq_items');
-    expect(query.sort).toEqual(['sort']);
+    expect(query.sort).toEqual(['_order']);
     expect(query.limit).toBe(0);
     expect(query.depth).toBe(0);
   });

@@ -253,7 +253,7 @@ describe('getSignageSnapshot', () => {
     const opts = { ttlSeconds: SIGNAGE_TTL_SECONDS, version: 123 };
     for (const c of ['signage_slides', 'telops', 'lost_items', 'stages'])
       expect(findMany).toHaveBeenCalledWith(c, expect.anything(), opts);
-    expect(findGlobal).toHaveBeenCalledWith('festival_meta', {}, opts);
+    expect(findGlobal).toHaveBeenCalledWith('site_settings', {}, opts);
     expect(getSponsors).toHaveBeenCalledWith(opts);
     expect(getParkingResponse).toHaveBeenCalledWith({ version: 123 });
   });
@@ -278,7 +278,7 @@ describe('getSignageSnapshot', () => {
     expect((await getSignageSnapshot()).ok).toBe(false);
   });
 
-  it('festival_meta・協賛・駐車場の取得失敗は全体の失敗', async () => {
+  it('site_settings・協賛・駐車場の取得失敗は全体の失敗', async () => {
     setup();
     findGlobal.mockResolvedValue(fail);
     expect((await getSignageSnapshot()).ok).toBe(false);

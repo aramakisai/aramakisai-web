@@ -26,7 +26,7 @@ describe('GET /api/parking', () => {
     },
   );
 
-  it('CMS 取得失敗(festival_meta 含む)は 502', async () => {
+  it('CMS 取得失敗(site_settings 含む)は 502', async () => {
     mocked.mockResolvedValue({
       ok: false,
       error: { kind: 'network' } as never,
