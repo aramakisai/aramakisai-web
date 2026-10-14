@@ -559,8 +559,8 @@ const MAP_AREAS: {
 ]
 
 const STAGES = [
-  { name: 'メインステージ', areaIndex: 10, sort: 1 },
-  { name: 'サブステージ', areaIndex: 3, sort: 2 },
+  { name: 'メインステージ', areaIndex: 10 },
+  { name: 'サブステージ', areaIndex: 3 },
 ] as const
 
 const PERFORMANCE_TIMES = [
@@ -1013,7 +1013,7 @@ async function main() {
   for (const s of STAGES) {
     const created = await payload.create({
       collection: 'stages',
-      data: { name: s.name, area_id: areaIds[s.areaIndex]!, sort: s.sort },
+      data: { name: s.name, area_id: areaIds[s.areaIndex]! },
       user: FAKE_EXECUTIVE,
     })
     stageIds.push(created.id as number)

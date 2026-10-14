@@ -23,7 +23,7 @@ describe('ParkingLots', () => {
   });
 
   it('空き状況は持たず、access は登録口に任せる', () => {
-    expect(ParkingLots.fields.map((f) => (f as NamedField).name)).toEqual(['name', 'sort']);
+    expect(ParkingLots.fields.map((f) => (f as NamedField).name)).toEqual(['name']);
     expect(ParkingLots.access).toBeUndefined();
   });
 });

@@ -122,11 +122,5 @@ export const Sponsors: CollectionConfig = {
         condition: (data) => Array.isArray(data?.type) && data.type.includes('vendor'),
       },
     },
-    {
-      name: 'sort',
-      type: 'number',
-      label: '表示順',
-      admin: { hidden: true },
-    },
   ],
 };

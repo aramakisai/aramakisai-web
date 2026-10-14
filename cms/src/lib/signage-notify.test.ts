@@ -114,7 +114,6 @@ describe('対象の配線', () => {
     const { SignageSlides } = await import('../collections/signage-slides');
     const { Telops } = await import('../collections/telops');
     const { SignageSettings } = await import('../globals/signage-settings');
-    const { FestivalMeta } = await import('../globals/festival-meta');
     const { SiteSettings } = await import('../globals/site-settings');
     expect(SignageGroups.hooks?.afterChange).toHaveLength(2);
     expect(SignageSlides.hooks?.afterChange).toHaveLength(2);
@@ -122,7 +121,6 @@ describe('対象の配線', () => {
     expect(Telops.hooks?.afterChange).toHaveLength(1);
     expect(Telops.hooks?.afterDelete).toHaveLength(1);
     expect(SignageSettings.hooks?.afterChange).toHaveLength(1);
-    expect(FestivalMeta.hooks?.afterChange).toHaveLength(1);
     expect(SiteSettings.hooks?.afterChange).toHaveLength(1);
   });
 

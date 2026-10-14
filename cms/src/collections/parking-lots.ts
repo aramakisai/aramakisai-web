@@ -45,11 +45,5 @@ export const ParkingLots: CollectionConfig = {
       maxLength: 255,
       label: '名称',
     },
-    {
-      name: 'sort',
-      type: 'number',
-      label: '表示順',
-      admin: { hidden: true },
-    },
   ],
 };

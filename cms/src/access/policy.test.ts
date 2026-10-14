@@ -188,7 +188,7 @@ describe('isHiddenInAdmin', () => {
     }
     expect(isHiddenInAdmin(exhibitor, 'users')).toBe(true);
     expect(isHiddenInAdmin(exhibitor, 'announcements')).toBe(true);
-    expect(isHiddenInAdmin(exhibitor, 'festival_meta')).toBe(true);
+    expect(isHiddenInAdmin(exhibitor, 'site_settings')).toBe(true);
   });
 
   it('駐車場は学生団体には隠し、実行委員には表示する', () => {

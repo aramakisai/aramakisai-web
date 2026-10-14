@@ -9,7 +9,6 @@ export const Pages: CollectionConfig = {
   admin: {
     useAsTitle: 'title',
   },
-  defaultSort: 'sort',
   fields: [
     {
       name: 'slug',
@@ -51,11 +50,6 @@ export const Pages: CollectionConfig = {
       type: 'number',
       label: '埋め込み高さ',
       admin: { description: 'embed_urlのiframe高さ(px)。未指定時は16:9のデフォルト比率' },
-    },
-    {
-      name: 'sort',
-      type: 'number',
-      label: '表示順',
     },
     {
       name: 'meta_description',

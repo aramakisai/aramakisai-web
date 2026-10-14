@@ -30,7 +30,7 @@
 ### コレクション / グローバル定義 (cms)
 **場所**: `cms/src/collections/`, `cms/src/globals/`
 **用途**: Payload のコンテンツモデル定義。1 ファイル 1 コレクション/グローバル。コード変更 → `pnpm migrate:create` でマイグレーション生成、が唯一の変更経路 ([[tech]] 参照)。
-**例**: `collections/student-exhibitions.ts` (所有者フィールドと自動設定 hook を持つ)、`globals/page-home.ts` (単一レコード)
+**例**: `collections/student-exhibitions.ts` (所有者フィールドと自動設定 hook を持つ)、`globals/site-settings.ts` (単一レコード)
 
 ### 認可 (cms)
 **場所**: `cms/src/access/`
