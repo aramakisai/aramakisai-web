@@ -244,3 +244,13 @@
   - alarmが休止中のDOを起こすと明記した箇所(Lifecycleは「アクティブでないオブジェクトに最初に来るリクエストまたはイベント(alarmなど)でコンストラクタが走る」とする)
   - 休止に入るまでの10秒の待ちが課金対象か(課金対象の状態の一覧に休止できる待機は無いが、明記は無い)
 - **Implications**: 5秒ごとの時刻付きpongはDOを起こすので休止できない。固定文字列の自動応答にすればDOは休止でき、時刻はスナップショットの`serverNow`から求める。GB-sの見積もりは、休止に入るまでの10秒を課金されるものとして計算する
+
+## 自動応答への切替後の本番実測
+- **方法**: Cloudflare GraphQL Analyticsの`durableObjectsInvocationsAdaptiveGroups`(`requests`)と`durableObjectsPeriodicGroups`(`duration`・`activeTime`・`inboundWebsocketMsgCount`・`outboundWebsocketMsgCount`)を`datetimeHour`で集計。本番`/signage`を1台つないだ2026-10-13T20:00Z〜10-14T03:00Z台(JST 05時〜12時台)の8時間分
+- **結果**
+  - GB-s: 1時間あたり5.4〜7.5、8時間で53.3。24時間に換算して約160GB-s/日。見積もりの上限(約3,200GB-s/日)の約5%、常時稼働(約10,800GB-s/日)の約1.5%で、DOは休止できている
+  - `activeTime`: 1時間あたり約42〜58秒
+  - DOの要求数: 1時間あたり約121。ハブのalarm(1分に1回)が約60、サイトのWorkerの名前空間側が約60。pingは1時間に720回送られているが、要求数に入っていない
+  - `inboundWebsocketMsgCount`は全時間帯で0。自動応答の受信は受信WebSocketメッセージにも数えられない
+  - 運用ダッシュボードの「本日」(UTC0時から)のDOの値はGraphQLの集計と一致する(取得周期1時間ぶんの遅れを除く)
+- **Implications**: 自動応答の受信は要求数にも課金時間にも入らない。DOの費用はalarmと版の配信が中心になる
