@@ -189,7 +189,7 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
   - 全端末と配信PCを再読み込みして新しいJSにし、全端末が配信経路に繋がっていることを確かめる
   - _Requirements: 1.1, 1.3, 5.3, 6.1_
 
-- [ ] 10. aramakisai-infra: 運用ダッシュボードのDOのリクエスト数をCloudflareの請求と見比べる
+- [x] 10. aramakisai-infra: 運用ダッシュボードのDOのリクエスト数をCloudflareの請求と見比べる
   - 本番のハブが使われた1日分について、運用ダッシュボードのDOのリクエスト数を、Cloudflareのダッシュボードの請求の使用量と見比べる
   - 合わない場合は、collectorでWebSocketの受信の換算をやめ、`requests`をそのまま出す形に直して出し直す
   - 見比べた結果を記録し、WBS(GitHub Projects #1)の進捗とtasks.mdのチェックを更新している
