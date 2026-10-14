@@ -771,6 +771,13 @@ export interface SignageGroup {
   slides?: (number | SignageSlide)[] | null;
   telops?: (number | Telop)[] | null;
   is_all?: boolean | null;
+  is_quake?: boolean | null;
+  quake_slides?: {
+    warning?: (number | null) | SignageSlide;
+    calm?: (number | null) | SignageSlide;
+    evacuate?: (number | null) | SignageSlide;
+    cancelled?: (number | null) | SignageSlide;
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -1367,6 +1374,15 @@ export interface SignageGroupsSelect<T extends boolean = true> {
   slides?: T;
   telops?: T;
   is_all?: T;
+  is_quake?: T;
+  quake_slides?:
+    | T
+    | {
+        warning?: T;
+        calm?: T;
+        evacuate?: T;
+        cancelled?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }

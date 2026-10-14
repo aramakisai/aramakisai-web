@@ -25,6 +25,7 @@ describe('SignageSlides', () => {
     expect(pin.admin.components.Field).toBe('./components/SignagePinButton.tsx');
     expect(SignageSlides.admin?.defaultColumns).toContain('pin');
     expect(SignageSlides.admin?.components?.beforeListTable).toEqual([
+      './components/SignageQuakePanel.tsx',
       './components/SignagePinBanner.tsx',
       './components/SignageGroupSwitches.tsx',
     ]);

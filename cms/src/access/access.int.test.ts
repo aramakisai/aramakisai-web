@@ -686,6 +686,91 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
       }
     });
 
+    it('緊急地震速報のグループが1件あり、削除と is_quake の付け外しができず、段階の対応付けは所属のスライドに限る', async () => {
+      const user = await asUser(executive.id);
+      const inGroup = await slide('quake-in');
+      const outside = await slide('quake-out');
+      const normal = await group('quake-normal', []);
+      const quakeGroups = async () =>
+        (await payload.find({ collection: 'signage_groups', where: { is_quake: { equals: true } }, depth: 0, ...ov })).docs;
+      const [q] = await quakeGroups();
+      try {
+        expect(await quakeGroups()).toHaveLength(1);
+        expect(q.name).toBe('緊急地震速報');
+        expect(q.visible).toBe(false);
+        await expect(payload.delete({ collection: 'signage_groups', id: q.id, overrideAccess: false, user })).rejects.toThrow();
+        await expect(payload.delete({ collection: 'signage_groups', id: q.id, overrideAccess: false })).rejects.toThrow();
+        expect(await quakeGroups()).toHaveLength(1);
+
+        const cleared = await payload.update({ collection: 'signage_groups', id: q.id, data: { is_quake: false }, overrideAccess: false, user });
+        expect(cleared.is_quake).toBe(true);
+        const forged = await payload.update({ collection: 'signage_groups', id: normal.id, data: { is_quake: true }, overrideAccess: false, user });
+        expect(forged.is_quake).toBe(false);
+
+        await payload.update({ collection: 'signage_groups', id: q.id, data: { slides: [inGroup.id] }, overrideAccess: false, user });
+        const mapped = await payload.update({
+          collection: 'signage_groups',
+          id: q.id,
+          data: { quake_slides: { warning: inGroup.id, calm: inGroup.id, evacuate: inGroup.id, cancelled: inGroup.id } },
+          overrideAccess: false,
+          user,
+          depth: 0,
+        });
+        expect(mapped.quake_slides).toEqual({ warning: inGroup.id, calm: inGroup.id, evacuate: inGroup.id, cancelled: inGroup.id });
+        await expect(
+          payload.update({ collection: 'signage_groups', id: q.id, data: { quake_slides: { warning: outside.id } }, overrideAccess: false, user }),
+        ).rejects.toThrow();
+        await expect(
+          payload.update({ collection: 'signage_groups', id: q.id, data: { quake_slides: { warning: inGroup.id } }, overrideAccess: false, user: await asOwner() }),
+        ).rejects.toThrow();
+
+        // スライドを消すと対応付けは外れる(ON DELETE SET NULL)
+        await payload.delete({ collection: 'signage_slides', id: inGroup.id, ...ov });
+        const after = await payload.findByID({ collection: 'signage_groups', id: q.id, depth: 0, ...ov });
+        expect(after.quake_slides?.warning ?? null).toBeNull();
+      } finally {
+        await payload.update({
+          collection: 'signage_groups',
+          id: q.id,
+          data: { slides: [], quake_slides: { warning: null, calm: null, evacuate: null, cancelled: null } },
+          ...ov,
+        }).catch(() => null);
+        await cleanup([inGroup, outside], [normal]);
+      }
+    });
+
+    it('緊急地震速報のスライドは巡回・固定に出ず、未認証でも読める', async () => {
+      const a = await slide('quake-vis-a');
+      const q = await slide('quake-vis-q');
+      const [qg] = (await payload.find({ collection: 'signage_groups', where: { is_quake: { equals: true } }, depth: 0, ...ov })).docs;
+      try {
+        await payload.update({ collection: 'signage_groups', id: qg.id, data: { slides: [q.id] }, ...ov });
+        // 「すべて」が表示中でも、段階のスライドは取得できる(巡回の一覧からの除外はフロントが行う)
+        expect(await publicIds()).toEqual(expect.arrayContaining([a.id, q.id]));
+        await setAllVisible(false);
+        expect(await publicIds()).toContain(q.id);
+        expect(await publicIds()).not.toContain(a.id);
+
+        const exec = await asUser(executive.id);
+        await setAllVisible(true);
+        await expect(
+          payload.updateGlobal({ slug: 'signage_settings', data: { pinned_slide: q.id }, overrideAccess: false, user: exec }),
+        ).rejects.toThrow();
+        await payload.updateGlobal({ slug: 'signage_settings', data: { pinned_slide: a.id }, overrideAccess: false, user: exec });
+
+        // 固定中のスライドを緊急地震速報のグループに足すと固定が外れる
+        await payload.update({ collection: 'signage_groups', id: qg.id, data: { slides: [q.id, a.id] }, ...ov });
+        expect(await pinned()).toBeNull();
+
+        // 無効なスライドは緊急地震速報の所属でも読めない
+        await payload.update({ collection: 'signage_slides', id: q.id, data: { enabled: false }, ...ov });
+        expect(await publicIds()).not.toContain(q.id);
+      } finally {
+        await payload.update({ collection: 'signage_groups', id: qg.id, data: { slides: [] }, ...ov }).catch(() => null);
+        await cleanup([a, q], []);
+      }
+    });
+
     it('通常のグループは実行委員が削除でき、学生団体は削除できない', async () => {
       const g = await group('del-normal', []);
       const keep = await group('del-denied', []);

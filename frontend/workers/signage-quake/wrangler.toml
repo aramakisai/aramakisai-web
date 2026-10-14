@@ -1,0 +1,32 @@
+name = "aramakisai-signage-quake"
+main = "index.ts"
+compatibility_date = "2024-12-30"
+
+# CMS とスクリプトが Bearer 付きで呼ぶため workers.dev に出す。PR のバージョン URL は不要。
+workers_dev = true
+preview_urls = false
+
+[observability]
+enabled = true
+
+# 稼働期間(日本時間、終端を含まない)。Workers Paid の契約期間の内側。
+[vars]
+QUAKE_ACTIVE_FROM = "2026-10-23T09:00:00+09:00"
+QUAKE_ACTIVE_UNTIL = "2026-11-22T00:00:00+09:00"
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+[[durable_objects.bindings]]
+name = "QUAKE_RELAY"
+class_name = "QuakeRelay"
+
+# ハブのクラスはハブの Worker が持つ。ここは参照だけで、ハブの migration は書かない。
+[[durable_objects.bindings]]
+name = "SIGNAGE_HUB"
+class_name = "SignageHub"
+script_name = "aramakisai-signage-hub"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["QuakeRelay"]

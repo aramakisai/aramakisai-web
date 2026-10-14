@@ -24,6 +24,7 @@ import { default as default_42b4dc53b2f2e15edc073b0f303c1d16 } from '../../../co
 import { default as default_94d312732a635f395da61fd489cd8943 } from '../../../components/SignagePinCell.tsx'
 import { default as default_b8239a33d555f0c0b19f6fed8046038f } from '../../../components/SignagePinButton.tsx'
 import { default as default_f0a6d4414df0f9e6937e37bf1c269a0e } from '../../../components/SignageGroupCell.tsx'
+import { default as default_89f7a8f8aa91e1d435080a03be49030f } from '../../../components/SignageQuakePanel.tsx'
 import { default as default_504d5e68a80296875d878bfb87ddfa84 } from '../../../components/SignagePinBanner.tsx'
 import { default as default_99060507d390123bc3ddd0e8ff97228f } from '../../../components/SignageGroupSwitches.tsx'
 import { default as default_357e2953c117d36a408dd8339cc3d62b } from '../../../components/SignageGroupMembersField.tsx'
@@ -60,6 +61,7 @@ export const importMap = {
   "./components/SignagePinCell.tsx#default": default_94d312732a635f395da61fd489cd8943,
   "./components/SignagePinButton.tsx#default": default_b8239a33d555f0c0b19f6fed8046038f,
   "./components/SignageGroupCell.tsx#default": default_f0a6d4414df0f9e6937e37bf1c269a0e,
+  "./components/SignageQuakePanel.tsx#default": default_89f7a8f8aa91e1d435080a03be49030f,
   "./components/SignagePinBanner.tsx#default": default_504d5e68a80296875d878bfb87ddfa84,
   "./components/SignageGroupSwitches.tsx#default": default_99060507d390123bc3ddd0e8ff97228f,
   "./components/SignageGroupMembersField.tsx#default": default_357e2953c117d36a408dd8339cc3d62b,

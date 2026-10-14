@@ -1,0 +1,36 @@
+{
+  "areas": [
+    {
+      "arrivalTime": "2023/05/05 21:58:11",
+      "kindCode": "19",
+      "name": "石川県能登",
+      "pref": "石川",
+      "scaleFrom": 55,
+      "scaleTo": 99
+    }
+  ],
+  "cancelled": false,
+  "code": 556,
+  "earthquake": {
+    "arrivalTime": "2023/05/05 21:57:18",
+    "condition": "仮定震源要素",
+    "hypocenter": {
+      "depth": 10,
+      "latitude": 37.4,
+      "longitude": 137.4,
+      "magnitude": 1,
+      "name": "富山湾",
+      "reduceName": "富山湾"
+    },
+    "originTime": "2023/05/05 21:58:08"
+  },
+  "id": "6ace4174e72797fa8afb9161",
+  "issue": {
+    "eventId": "20230505215718",
+    "serial": "1",
+    "time": "2023/05/05 21:58:16"
+  },
+  "time": "2026/10/13 23:34:28.642",
+  "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+  "ver": "20220813"
+}

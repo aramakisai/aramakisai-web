@@ -11,6 +11,8 @@ type F = {
   maxLength?: number;
   defaultValue?: unknown;
   access?: { create?: () => boolean; update?: (a: { doc?: { is_all?: boolean } }) => boolean };
+  fields?: F[];
+  filterOptions?: (a: { data: Record<string, unknown> }) => unknown;
   admin?: {
     hidden?: boolean;
     condition?: (d: Record<string, unknown>) => boolean;
@@ -84,5 +86,31 @@ describe('SignageGroups', () => {
   it('固定の自動解除を afterChange・afterDelete に持つ', () => {
     expect(SignageGroups.hooks?.afterChange).toHaveLength(2);
     expect(SignageGroups.hooks?.afterDelete).toHaveLength(2);
+  });
+
+  it('is_quake は作成も更新もできず、管理画面でも隠す', () => {
+    const a = f('is_quake');
+    expect(a.type).toBe('checkbox');
+    expect(a.defaultValue).toBe(false);
+    expect(a.access!.create!()).toBe(false);
+    expect(a.access!.update!({})).toBe(false);
+    expect(a.admin?.hidden).toBe(true);
+  });
+
+  it('緊急地震速報のグループでだけ4つの段階のスライドを出し、表示の切り替えを隠す', () => {
+    const q = f('quake_slides');
+    expect(q.type).toBe('group');
+    expect(q.admin!.condition!({ is_quake: true })).toBe(true);
+    expect(q.admin!.condition!({ is_quake: false })).toBe(false);
+    expect(q.fields!.map((x) => x.name)).toEqual(['warning', 'calm', 'evacuate', 'cancelled']);
+    expect(q.fields!.every((x) => x.type === 'relationship' && x.relationTo === 'signage_slides' && !x.required)).toBe(true);
+    expect(f('visible').admin!.condition!({ is_quake: true })).toBe(false);
+    expect(f('visible').admin!.condition!({ is_quake: false })).toBe(true);
+  });
+
+  it('段階のスライドの選択肢は、そのグループの所属のスライドに限る', () => {
+    const opts = f('quake_slides').fields![0].filterOptions!;
+    expect(opts({ data: { slides: [3, { id: 4 }] } })).toEqual({ id: { in: [3, 4] } });
+    expect(opts({ data: { slides: [] } })).toEqual({ id: { exists: false } });
   });
 });

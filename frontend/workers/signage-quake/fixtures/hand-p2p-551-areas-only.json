@@ -1,0 +1,37 @@
+{
+  "_id": "6ace000000000000000000b5",
+  "code": 551,
+  "comments": {
+    "freeFormComment": ""
+  },
+  "earthquake": {
+    "domesticTsunami": "None",
+    "foreignTsunami": "Unknown",
+    "hypocenter": {
+      "depth": 10,
+      "latitude": 36.2,
+      "longitude": 139.1,
+      "magnitude": 6.1,
+      "name": "群馬県南部"
+    },
+    "maxScale": 40,
+    "time": "2026/10/23 10:00:00"
+  },
+  "issue": {
+    "correct": "None",
+    "source": "気象庁",
+    "time": "2026/10/23 10:02:00",
+    "type": "ScalePrompt"
+  },
+  "points": [
+    {
+      "addr": "群馬県南部",
+      "isArea": true,
+      "pref": "群馬県",
+      "scale": 40
+    }
+  ],
+  "time": "2026/10/23 10:04:01.000",
+  "user_agent": "hand-made",
+  "ver": "20220813"
+}

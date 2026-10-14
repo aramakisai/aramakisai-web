@@ -3361,6 +3361,37 @@
           "notNull": false,
           "default": false
         },
+        "is_quake": {
+          "name": "is_quake",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "quake_slides_warning_id": {
+          "name": "quake_slides_warning_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "quake_slides_calm_id": {
+          "name": "quake_slides_calm_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "quake_slides_evacuate_id": {
+          "name": "quake_slides_evacuate_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "quake_slides_cancelled_id": {
+          "name": "quake_slides_cancelled_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "updated_at": {
           "name": "updated_at",
           "type": "timestamp(3) with time zone",
@@ -3377,6 +3408,66 @@
         }
       },
       "indexes": {
+        "signage_groups_quake_slides_quake_slides_warning_idx": {
+          "name": "signage_groups_quake_slides_quake_slides_warning_idx",
+          "columns": [
+            {
+              "expression": "quake_slides_warning_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "signage_groups_quake_slides_quake_slides_calm_idx": {
+          "name": "signage_groups_quake_slides_quake_slides_calm_idx",
+          "columns": [
+            {
+              "expression": "quake_slides_calm_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "signage_groups_quake_slides_quake_slides_evacuate_idx": {
+          "name": "signage_groups_quake_slides_quake_slides_evacuate_idx",
+          "columns": [
+            {
+              "expression": "quake_slides_evacuate_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "signage_groups_quake_slides_quake_slides_cancelled_idx": {
+          "name": "signage_groups_quake_slides_quake_slides_cancelled_idx",
+          "columns": [
+            {
+              "expression": "quake_slides_cancelled_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "signage_groups_updated_at_idx": {
           "name": "signage_groups_updated_at_idx",
           "columns": [
@@ -3408,7 +3499,60 @@
           "with": {}
         }
       },
-      "foreignKeys": {},
+      "foreignKeys": {
+        "signage_groups_quake_slides_warning_id_signage_slides_id_fk": {
+          "name": "signage_groups_quake_slides_warning_id_signage_slides_id_fk",
+          "tableFrom": "signage_groups",
+          "tableTo": "signage_slides",
+          "columnsFrom": [
+            "quake_slides_warning_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "signage_groups_quake_slides_calm_id_signage_slides_id_fk": {
+          "name": "signage_groups_quake_slides_calm_id_signage_slides_id_fk",
+          "tableFrom": "signage_groups",
+          "tableTo": "signage_slides",
+          "columnsFrom": [
+            "quake_slides_calm_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "signage_groups_quake_slides_evacuate_id_signage_slides_id_fk": {
+          "name": "signage_groups_quake_slides_evacuate_id_signage_slides_id_fk",
+          "tableFrom": "signage_groups",
+          "tableTo": "signage_slides",
+          "columnsFrom": [
+            "quake_slides_evacuate_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "signage_groups_quake_slides_cancelled_id_signage_slides_id_fk": {
+          "name": "signage_groups_quake_slides_cancelled_id_signage_slides_id_fk",
+          "tableFrom": "signage_groups",
+          "tableTo": "signage_slides",
+          "columnsFrom": [
+            "quake_slides_cancelled_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},

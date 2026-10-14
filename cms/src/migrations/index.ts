@@ -26,6 +26,7 @@ import * as migration_20261009_100051_media_public_null from './20261009_100051_
 import * as migration_20261009_110654_purge_media_edge_cache from './20261009_110654_purge_media_edge_cache';
 import * as migration_20261010_004355_signage from './20261010_004355_signage';
 import * as migration_20261010_150844_telop_label_free_text from './20261010_150844_telop_label_free_text';
+import * as migration_20261013_150312_signage_quake from './20261013_150312_signage_quake';
 import * as migration_20261013_172130_site_settings_and_cleanup_a from './20261013_172130_site_settings_and_cleanup_a';
 
 export const migrations = [
@@ -170,8 +171,13 @@ export const migrations = [
     name: '20261010_150844_telop_label_free_text',
   },
   {
+    up: migration_20261013_150312_signage_quake.up,
+    down: migration_20261013_150312_signage_quake.down,
+    name: '20261013_150312_signage_quake',
+  },
+  {
     up: migration_20261013_172130_site_settings_and_cleanup_a.up,
     down: migration_20261013_172130_site_settings_and_cleanup_a.down,
-    name: '20261013_172130_site_settings_and_cleanup_a'
+    name: '20261013_172130_site_settings_and_cleanup_a',
   },
 ];

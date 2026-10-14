@@ -1,0 +1,49 @@
+{
+  "_id": "6ace000000000000000000b3",
+  "code": 551,
+  "comments": {
+    "freeFormComment": ""
+  },
+  "earthquake": {
+    "domesticTsunami": "None",
+    "foreignTsunami": "Unknown",
+    "hypocenter": {
+      "depth": 10,
+      "latitude": 36.2,
+      "longitude": 139.1,
+      "magnitude": 6.1,
+      "name": "群馬県南部"
+    },
+    "maxScale": 46,
+    "time": "2026/10/23 10:00:00"
+  },
+  "issue": {
+    "correct": "None",
+    "source": "気象庁",
+    "time": "2026/10/23 10:04:00",
+    "type": "DetailScale"
+  },
+  "points": [
+    {
+      "addr": "前橋市昭和町",
+      "isArea": false,
+      "pref": "群馬県",
+      "scale": 46
+    },
+    {
+      "addr": "前橋市大手町",
+      "isArea": false,
+      "pref": "群馬県",
+      "scale": 40
+    },
+    {
+      "addr": "高崎市高松町",
+      "isArea": false,
+      "pref": "群馬県",
+      "scale": 45
+    }
+  ],
+  "time": "2026/10/23 10:04:01.000",
+  "user_agent": "hand-made",
+  "ver": "20220813"
+}

@@ -11,7 +11,7 @@ export default function SignageGroupSwitches() {
 
   return (
     <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 var(--base)' }}>
-      {groups.map((g) => (
+      {groups.filter((g) => !g.is_quake).map((g) => (
         <li
           key={g.id}
           style={{ display: 'flex', alignItems: 'center', gap: 'var(--base)', padding: 'calc(var(--base) / 4) 0' }}

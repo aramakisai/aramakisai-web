@@ -1,10 +1,10 @@
 import { visibleMemberIds } from '../lib/signage-visibility';
 
-export type SignageGroup = { id: number; name: string; visible: boolean; is_all: boolean; slides: number[]; telops: number[] };
+export type SignageGroup = { id: number; name: string; visible: boolean; is_all: boolean; is_quake: boolean; slides: number[]; telops: number[] };
 
 const JSON_HEADERS = { 'content-type': 'application/json' };
 
-type GroupDoc = { id: number; name: string; visible?: boolean | null; is_all?: boolean | null; slides?: unknown[] | null; telops?: unknown[] | null };
+type GroupDoc = { id: number; name: string; visible?: boolean | null; is_all?: boolean | null; is_quake?: boolean | null; slides?: unknown[] | null; telops?: unknown[] | null };
 
 const idsOf = (refs: unknown[] | null | undefined): number[] =>
   (refs ?? []).map((r) => (typeof r === 'object' && r !== null ? (r as { id: number }).id : (r as number)));
@@ -14,6 +14,7 @@ const toGroup = (doc: GroupDoc): SignageGroup => ({
   name: doc.name,
   visible: Boolean(doc.visible),
   is_all: Boolean(doc.is_all),
+  is_quake: Boolean(doc.is_quake),
   slides: idsOf(doc.slides),
   telops: idsOf(doc.telops),
 });

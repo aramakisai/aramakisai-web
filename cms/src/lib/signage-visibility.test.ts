@@ -9,6 +9,7 @@ const group = (visible: boolean, slides: number[], telops: number[] = []): Visib
   slides,
   telops,
 });
+const quake = (slides: number[], visible = false): VisibilityGroup => ({ is_quake: true, visible, slides, telops: [] });
 
 describe('visibleMemberIds (slides)', () => {
   const enabled = [1, 2, 3, 4];
@@ -40,6 +41,15 @@ describe('visibleMemberIds (slides)', () => {
 
   it('「すべて」の所属は参照しない', () => {
     expect(visibleMemberIds(enabled, [{ is_all: true, visible: false, slides: [1], telops: [] }], 'slides')).toEqual([]);
+  });
+
+  it('緊急地震速報のグループの所属は、「すべて」が表示中でも除く', () => {
+    expect(visibleMemberIds(enabled, [all(true), quake([2])], 'slides')).toEqual([1, 3, 4]);
+    expect(visibleMemberIds(enabled, [all(true), quake([2], true)], 'slides')).toEqual([1, 3, 4]);
+  });
+
+  it('緊急地震速報のグループは通常のグループの所属としても数えず、他のグループの所属からも除く', () => {
+    expect(visibleMemberIds(enabled, [all(false), quake([1, 2], true), group(true, [2, 3])], 'slides')).toEqual([3]);
   });
 });
 

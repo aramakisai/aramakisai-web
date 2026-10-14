@@ -384,6 +384,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # リレーのパス差分を前のコミットと比べるため。
+          fetch-depth: 0
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -439,3 +442,34 @@ jobs:
       - name: Remove Workers secrets file
         if: always()
         run: rm -f "$RUNNER_TEMP/workers-secrets.json"
+
+      # 差分を取れない(前のコミットが全0・履歴に無い)ときは出す側に倒す。
+      - name: Detect signage relay changes
+        id: relay
+        working-directory: .
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          if [ -z "$BEFORE_SHA" ] || [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ] \
+            || ! git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA" -- frontend/workers/signage-quake > "$RUNNER_TEMP/relay-diff.txt"; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          elif [ -s "$RUNNER_TEMP/relay-diff.txt" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Write signage relay secrets file (prod)
+        if: steps.relay.outputs.changed == 'true'
+        # 値は echo しない。未設定なら KeyError でステップを失敗させてデプロイを止める。
+        run: |
+          infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod -- python3 -c 'import json,os; json.dump({k: os.environ[k] for k in ("SIGNAGE_QUAKE_TOKEN", "DISCORD_QUAKE_WEBHOOK_URL")}, open(os.environ["RUNNER_TEMP"] + "/quake-secrets.json", "w"))'
+
+      # ハブが先に出ている前提。ファイルに無いキーは削除されない。
+      - name: Deploy signage relay to Cloudflare Workers (prod)
+        if: steps.relay.outputs.changed == 'true'
+        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod -- pnpm exec wrangler deploy -c workers/signage-quake/wrangler.toml --secrets-file "$RUNNER_TEMP/quake-secrets.json"
+
+      - name: Remove signage relay secrets file
+        if: always()
+        run: rm -f "$RUNNER_TEMP/quake-secrets.json"

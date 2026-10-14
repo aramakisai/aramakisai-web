@@ -1,0 +1,30 @@
+{
+  "code": 551,
+  "comments": {
+    "freeFormComment": ""
+  },
+  "earthquake": {
+    "domesticTsunami": "None",
+    "foreignTsunami": "Unknown",
+    "hypocenter": {
+      "depth": 70,
+      "latitude": 41.5,
+      "longitude": 142.1,
+      "magnitude": 5.5,
+      "name": "青森県東方沖"
+    },
+    "maxScale": -1,
+    "time": "2023/05/06 02:47:00"
+  },
+  "id": "6ace4573e72797fa8afb9184",
+  "issue": {
+    "correct": "None",
+    "source": "気象庁",
+    "time": "2023/05/06 02:50:54",
+    "type": "Destination"
+  },
+  "points": [],
+  "time": "2026/10/13 23:51:31.739",
+  "user_agent": "jmaxml-seis-parser-go, relay, register-api",
+  "ver": "20220813"
+}

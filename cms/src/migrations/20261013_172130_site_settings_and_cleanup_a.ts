@@ -72,7 +72,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   INSERT INTO "site_settings_rels" ("order", "parent_id", "path", "media_id")
     SELECT r."order", s."id", r."path", r."media_id" FROM "page_home_rels" r CROSS JOIN (SELECT "id" FROM "site_settings" LIMIT 1) s WHERE r."path" = 'hero_images' AND r."media_id" IS NOT NULL;
   INSERT INTO "signage_groups_rels" ("order", "parent_id", "path", "telops_id")
-    SELECT row_number() OVER (PARTITION BY g."id" ORDER BY t."_order", t."id"), g."id", 'telops', t."id" FROM "signage_groups" g CROSS JOIN "telops" t WHERE g."is_all" IS NOT TRUE;`)
+    SELECT row_number() OVER (PARTITION BY g."id" ORDER BY t."_order", t."id"), g."id", 'telops', t."id" FROM "signage_groups" g CROSS JOIN "telops" t WHERE g."is_all" IS NOT TRUE AND g."is_quake" IS NOT TRUE;`)
 
   // 並び替えキーは0-9a-zの2桁(36件まで)または3桁。Payloadのorderableは文字列の大小比較で並べる
   const digit = (n: string) => `substr('0123456789abcdefghijklmnopqrstuvwxyz', (${n}) + 1, 1)`

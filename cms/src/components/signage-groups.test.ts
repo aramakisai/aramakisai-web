@@ -16,6 +16,7 @@ const g = (id: number, is_all: boolean, visible = true, slides: number[] = []): 
   name: `g${id}`,
   visible,
   is_all,
+  is_quake: false,
   slides,
   telops: [],
 });
@@ -28,8 +29,8 @@ describe('fetchGroups', () => {
     const groups = await fetchGroups(f);
     expect(f).toHaveBeenCalledWith('/api/signage_groups?limit=0&depth=0&sort=createdAt', { credentials: 'include' });
     expect(groups).toEqual([
-      { id: 2, name: 'a', visible: true, is_all: false, slides: [5, 6], telops: [7] },
-      { id: 1, name: 'b', visible: false, is_all: false, slides: [], telops: [] },
+      { id: 2, name: 'a', visible: true, is_all: false, is_quake: false, slides: [5, 6], telops: [7] },
+      { id: 1, name: 'b', visible: false, is_all: false, is_quake: false, slides: [], telops: [] },
     ]);
   });
 
@@ -62,7 +63,7 @@ describe('setGroupVisible', () => {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ visible: false }),
     });
-    expect(out).toEqual({ id: 4, name: 'x', visible: false, is_all: false, slides: [1], telops: [] });
+    expect(out).toEqual({ id: 4, name: 'x', visible: false, is_all: false, is_quake: false, slides: [1], telops: [] });
   });
 
   it('失敗したら投げる', async () => {

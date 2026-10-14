@@ -28,8 +28,8 @@ pnpm migrate:create <name>      # 差分マイグレーションを生成し src
 pnpm generate:types             # 型を再生成 (frontend/src/cms-types.ts も同時に更新)
 
 bash# K8s クラスタ状態確認
-# kubectl を直接実行してはならない (kubeconfig 未設定でネットワーク到達不可)。
-# 必ず make kubectl 経由で実行すること (Infisical から KUBECONFIG を注入)
+# kubectl は必ず make kubectl 経由で実行する (コンテキスト aramakisai-prod を指定する)。
+# コンテキストは aramakisai-infra の make kube-login で作成・更新する (短命証明書のため期限切れ時も再実行)
 make kubectl ARGS="get pods -A"
 
 開発サーバー
