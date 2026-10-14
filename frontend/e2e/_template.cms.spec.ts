@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { checkCmsReachable } from '../scripts/cms-check';
 
-// Depends on CMS collections: festival_meta, page_home
+// Depends on CMS collections: site_settings
 // 規約: テストファイル冒頭で依存するコレクションを明記する
 
 // テンプレートのためスキップする（Playwrightの実行対象外とするため）
@@ -12,7 +12,7 @@ test.describe.skip('CMS 連携画面のE2Eテストテンプレート', () => {
     // CMS のダウンなど環境依存のエラーとフロントエンドのバグを切り分ける
     const baseUrl = process.env.NEXT_PUBLIC_CMS_URL || 'http://localhost:3000';
     // 依存するコレクションに対して読み取り確認を行う
-    const checkResult = await checkCmsReachable(baseUrl, 'festival_meta');
+    const checkResult = await checkCmsReachable(baseUrl, 'site_settings');
 
     if (checkResult.status === 'cms-dependency-error') {
       throw new Error(`CMS dependency error: ${checkResult.detail}`);

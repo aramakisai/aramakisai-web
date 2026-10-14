@@ -133,7 +133,7 @@ async function cachedFetch(
 }
 
 // 引数がすべてプリミティブなので React.cache のキーが一致する。
-// 1 描画内で同じ URL の取得 (generateMetadata・本体・footer の festival_meta 等) を
+// 1 描画内で同じ URL の取得 (generateMetadata・本体・footer の site_settings 等) を
 // 1 回にまとめ、Cache API の照会と JSON パースの重複を避ける。ttl・version が違う呼び出しは別キー
 const request = cache(requestUncached) as typeof requestUncached;
 

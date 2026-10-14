@@ -24,6 +24,7 @@ import { getSponsors, mergeSponsorLogos } from '@/lib/sponsors';
 import { getSiteMetadata } from '@/lib/site-metadata';
 import { buildPageMetadata } from '@/lib/page-metadata';
 import { ROUTE_METADATA } from '@/lib/route-metadata';
+import { VENUE_NAME } from '@/lib/venue';
 import {
   buildEventJsonLd,
   buildOrganizationJsonLd,
@@ -47,14 +48,10 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const EMPTY_CONTENT: HomePageContent = {
   heroImages: [],
-  heroMessageHtml: null,
   snsLinks: [],
   festival: null,
   theme: null,
-  venueName: null,
-  campusMapUrl: null,
   contactFormUrl: null,
-  accessSummary: null,
   announcements: [],
   topics: [],
 };
@@ -150,7 +147,7 @@ export default async function Page() {
             imageUrls={heroImageUrls}
             imageSrcSets={heroImageSrcSets}
             eventDaysSummary={eventDaysSummary}
-            venueName={content.venueName}
+            venueName={VENUE_NAME}
             themeWord={content.theme?.word ?? null}
             countdownDays={countdownDays}
             phase="live"
@@ -183,11 +180,7 @@ export default async function Page() {
           descriptionHtml={content.theme?.descriptionHtml ?? null}
         />
 
-        <AccessSection
-          venueName={content.venueName}
-          accessSummary={content.accessSummary}
-          campusMapUrl={content.campusMapUrl}
-        />
+        <AccessSection />
 
         <SponsorsList sponsors={sponsors} />
       </div>
@@ -204,7 +197,7 @@ export default async function Page() {
           imageUrls={heroImageUrls}
           imageSrcSets={heroImageSrcSets}
           eventDaysSummary={eventDaysSummary}
-          venueName={content.venueName}
+          venueName={VENUE_NAME}
           themeWord={content.theme?.word ?? null}
           countdownDays={countdownDays}
         />

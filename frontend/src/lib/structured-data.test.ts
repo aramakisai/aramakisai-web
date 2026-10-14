@@ -13,12 +13,7 @@ const BASE_FESTIVAL: FestivalMeta = {
   name: '荒牧祭',
   eventDays: [],
   overviewHtml: null,
-  heroImageId: null,
-  siteTitle: null,
-  metaDescription: null,
   ogImageId: null,
-  venueName: null,
-  venueAddress: null,
   snsLinks: [],
 };
 
@@ -77,7 +72,7 @@ describe('buildEventJsonLd', () => {
     expect(result!.url).toBe(SITE_URL);
   });
 
-  it('会場住所が未設定なら location から address を省略する', () => {
+  it('会場名と住所を固定値から出力する', () => {
     const result = buildEventJsonLd({
       site: {
         ...BASE_SITE,
@@ -90,8 +85,6 @@ describe('buildEventJsonLd', () => {
               endAt: '2026-10-10T17:00:00+09:00',
             },
           ],
-          venueName: '荒牧キャンパス',
-          venueAddress: null,
         },
       },
       siteUrl: SITE_URL,
@@ -99,31 +92,9 @@ describe('buildEventJsonLd', () => {
 
     expect(result!.location).toEqual({
       '@type': 'Place',
-      name: '荒牧キャンパス',
+      name: '群馬大学 荒牧キャンパス',
+      address: '371-8510 群馬県前橋市荒牧町4-2',
     });
-  });
-
-  it('会場名も未設定なら location 自体を省略する', () => {
-    const result = buildEventJsonLd({
-      site: {
-        ...BASE_SITE,
-        festival: {
-          ...BASE_FESTIVAL,
-          eventDays: [
-            {
-              label: null,
-              startAt: '2026-10-10T09:00:00+09:00',
-              endAt: '2026-10-10T17:00:00+09:00',
-            },
-          ],
-          venueName: null,
-          venueAddress: '群馬県前橋市',
-        },
-      },
-      siteUrl: SITE_URL,
-    });
-
-    expect(result!.location).toBeUndefined();
   });
 
   it('サイトの OG 画像が無ければ image を省略する', () => {

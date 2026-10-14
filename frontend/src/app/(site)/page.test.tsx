@@ -1,4 +1,5 @@
 import { render, screen, within } from '@testing-library/react';
+import { ACCESS_SUMMARY, CAMPUS_MAP_EMBED_URL, VENUE_NAME } from '@/lib/venue';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Page, { generateMetadata } from './page';
 import * as homePageModule from '@/lib/home-page';
@@ -60,7 +61,6 @@ const content: HomePageContent = {
       filesize: null,
     },
   ],
-  heroMessageHtml: '<p>ようこそ</p>',
   snsLinks: [{ platform: 'X', url: 'https://x.com' }],
   festival: {
     name: '荒牧祭',
@@ -72,17 +72,12 @@ const content: HomePageContent = {
       },
     ],
     overviewHtml: '<p>CMS祭概要</p>',
-    heroImageId: null,
   },
   theme: {
     word: '万彩',
-    imageId: 'theme-file-id',
     descriptionHtml: '<p>今年のテーマは万彩です。</p>',
   },
-  venueName: '群馬大学 荒牧キャンパス',
-  campusMapUrl: 'https://www.google.com/maps/embed?pb=!1m2!2m1!1zsomething',
   contactFormUrl: 'https://forms.example.com/contact',
-  accessSummary: '最寄駅から徒歩10分',
   announcements: [
     {
       id: 1,
@@ -170,20 +165,19 @@ describe('Page (開催前フェーズ)', () => {
     expect(screen.getByText('トピック1')).toBeInTheDocument();
   });
 
-  it('page_home.hero_message_html と festival_meta.name を本文に表示しない (要件1.7, 1.8)', async () => {
+  it('site_settings.name を本文に表示しない (要件1.7, 1.8)', async () => {
     vi.mocked(homePageModule.getHomePage).mockResolvedValue(content);
 
     const ui = await Page();
     render(ui);
 
-    expect(screen.queryByText('ようこそ')).not.toBeInTheDocument();
-    // festival_meta.name はページ主見出し (読み上げ専用) にのみ許容され、本文には出ない
+    // site_settings.name はページ主見出し (読み上げ専用) にのみ許容され、本文には出ない
     expect(
       screen.getByRole('heading', { level: 1, name: '荒牧祭' }),
     ).toHaveClass('sr-only');
   });
 
-  it('festival_meta.name が本文に出ない (ページ主見出しにのみ許容、要件1.8)', async () => {
+  it('site_settings.name が本文に出ない (ページ主見出しにのみ許容、要件1.8)', async () => {
     vi.mocked(homePageModule.getHomePage).mockResolvedValue({
       ...content,
       festival: {
@@ -270,8 +264,6 @@ describe('Page (開催前フェーズ)', () => {
       ...content,
       festival: null,
       theme: null,
-      venueName: null,
-      campusMapUrl: null,
     });
 
     const ui = await Page();
@@ -393,9 +385,9 @@ describe('Page (開催中フェーズ)', () => {
     expect(positions).toEqual([...positions].sort((a, b) => a - b));
   });
 
-  it('festival_meta.name を本文に表示しない (要件3.10)', async () => {
+  it('site_settings.name を本文に表示しない (要件3.10)', async () => {
     // ヒーローの固定ブランド文言 (CMS 非依存、開催前後で共通) と衝突しないよう、
-    // festival_meta.name には区別できる値を与えて検証する (開催前フェーズのテストと同じ手法)
+    // site_settings.name には区別できる値を与えて検証する (開催前フェーズのテストと同じ手法)
     vi.mocked(homePageModule.getHomePage).mockResolvedValue({
       ...content,
       festival: {
@@ -492,23 +484,18 @@ describe('Page (開催中フェーズ)', () => {
     ]);
   });
 
-  it('アクセスに festival_meta.access_summary を表示する (要件3.11)', async () => {
-    const ui = await Page();
-    render(ui);
-
-    expect(screen.getByTestId('access-summary')).toHaveTextContent(
-      '最寄駅から徒歩10分',
-    );
-  });
-
-  it('アクセスに festival_meta.campus_map_url の地図を埋め込む', async () => {
+  it('アクセスの会場名・文言・地図をCMSの値に依らず固定値で表示する', async () => {
     const ui = await Page();
     const { container } = render(ui);
 
+    expect(screen.getByTestId('access-venue-name')).toHaveTextContent(
+      VENUE_NAME,
+    );
+    expect(screen.getByTestId('access-summary')).toHaveTextContent(
+      ACCESS_SUMMARY,
+    );
     expect(
-      container.querySelector(
-        'iframe[src="https://www.google.com/maps/embed?pb=!1m2!2m1!1zsomething"]',
-      ),
+      container.querySelector(`iframe[src="${CAMPUS_MAP_EMBED_URL}"]`),
     ).not.toBeNull();
   });
 
@@ -585,12 +572,7 @@ describe('トップページの JSON-LD (要件5.1, 5.5)', () => {
           },
         ],
         overviewHtml: null,
-        heroImageId: null,
-        siteTitle: null,
-        metaDescription: null,
         ogImageId: null,
-        venueName: '群馬大学 荒牧キャンパス',
-        venueAddress: null,
         snsLinks: [],
       },
     });

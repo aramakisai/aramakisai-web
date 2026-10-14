@@ -16,7 +16,6 @@ describe('FestivalOverview', () => {
             },
           ],
           overviewHtml: null,
-          heroImageId: null,
         }}
       />,
     );
@@ -38,7 +37,6 @@ describe('FestivalOverview', () => {
             },
           ],
           overviewHtml: null,
-          heroImageId: null,
         }}
       />,
     );
@@ -53,7 +51,6 @@ describe('FestivalOverview', () => {
           name: '荒牧祭',
           eventDays: [],
           overviewHtml: null,
-          heroImageId: null,
         }}
       />,
     );

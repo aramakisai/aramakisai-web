@@ -462,7 +462,7 @@ async function fetchJoinSources(exhibitionId?: number) {
       depth: 0,
     }),
     cms.findMany('stages', { limit: 0, depth: 0 }),
-    cms.findMany('map_areas', { sort: ['sort'], limit: 0, depth: 0 }),
+    cms.findMany('map_areas', { sort: ['_order'], limit: 0, depth: 0 }),
   ]);
 }
 

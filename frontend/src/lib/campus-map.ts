@@ -91,8 +91,6 @@ export interface CampusMapArea {
   readonly geometry: MultiPolygonGeometry;
   /** 解決済みの CSS 色値 (Hex)。resolveAreaColor 済みでそのまま描画に使える */
   readonly color: string;
-  /** CMS 側が nullable。未設定のエリアは描画順の末尾に置く */
-  readonly sort: number | null;
   readonly hasAed: boolean;
   readonly hasToilet: boolean;
 }
@@ -131,7 +129,6 @@ export function toCampusMapArea(area: MapArea): CampusMapArea | null {
     name: area.name,
     geometry: parsed.value,
     color: resolveAreaColor(area.color),
-    sort: area.sort ?? null,
     hasAed: area.hasAed === true,
     hasToilet: area.hasToilet === true,
   };
@@ -159,13 +156,6 @@ export function toCampusMapPoint(point: MapPoint): CampusMapPoint | null {
   return { id: point.id, kind, latitude, longitude };
 }
 
-/** sort 昇順。未設定 (null) は末尾に置く */
-function sortCampusMapAreas(
-  areas: readonly CampusMapArea[],
-): readonly CampusMapArea[] {
-  return [...areas].sort((a, b) => (a.sort ?? Infinity) - (b.sort ?? Infinity));
-}
-
 function firstError(results: readonly CmsResult<unknown>[]): CmsFetchError {
   const failed = results.find(
     (r): r is { ok: false; error: CmsFetchError } => !r.ok,
@@ -175,13 +165,13 @@ function firstError(results: readonly CmsResult<unknown>[]): CmsFetchError {
 }
 
 function fetchMapAreasDocs() {
-  return cms.findMany('map_areas', { sort: ['sort'], limit: 0, depth: 0 });
+  return cms.findMany('map_areas', { sort: ['_order'], limit: 0, depth: 0 });
 }
 
 function convertMapAreas(docs: readonly MapArea[]): readonly CampusMapArea[] {
-  return sortCampusMapAreas(
-    docs.map(toCampusMapArea).filter((a): a is CampusMapArea => a !== null),
-  );
+  return docs
+    .map(toCampusMapArea)
+    .filter((a): a is CampusMapArea => a !== null);
 }
 
 /** エリアのみを取得する。出展物・ステージ・上演枠は取得しない */

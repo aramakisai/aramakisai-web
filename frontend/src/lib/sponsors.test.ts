@@ -60,7 +60,7 @@ describe('getSponsors', () => {
     });
   });
 
-  it('sort 順で取得し、一覧内の並び順を保つ', async () => {
+  it('_order 順で取得し、一覧内の並び順を保つ', async () => {
     vi.mocked(cms.findMany).mockResolvedValue({
       ok: true,
       value: { totalDocs: 0, docs: [] },
@@ -70,7 +70,7 @@ describe('getSponsors', () => {
 
     const [collection, query] = vi.mocked(cms.findMany).mock.calls[0];
     expect(collection).toBe('sponsors');
-    expect(query.sort).toEqual(['sort']);
+    expect(query.sort).toEqual(['_order']);
     expect(query.limit).toBe(0);
     expect(query.depth).toBe(0);
   });

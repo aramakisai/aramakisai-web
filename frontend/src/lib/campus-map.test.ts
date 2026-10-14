@@ -282,20 +282,24 @@ describe('getCampusMapData', () => {
     });
   });
 
-  it('sort 昇順に並び、未設定 (null) は末尾に置かれる', async () => {
+  it('_order 順で取得し、取得順をそのまま使う', async () => {
     mockCmsCollections({
       areas: [
-        { id: 1, name: 'Bゾーン', geometry: VALID_POLYGON, sort: null },
-        { id: 2, name: 'Aゾーン', geometry: VALID_POLYGON, sort: 2 },
-        { id: 3, name: 'Cゾーン', geometry: VALID_POLYGON, sort: 1 },
+        { id: 3, name: 'Cゾーン', geometry: VALID_POLYGON },
+        { id: 1, name: 'Bゾーン', geometry: VALID_POLYGON },
+        { id: 2, name: 'Aゾーン', geometry: VALID_POLYGON },
       ],
     });
 
     const result = await getCampusMapData();
     expect(result.areas.kind).toBe('loaded');
     if (result.areas.kind === 'loaded') {
-      expect(result.areas.value.map((a) => a.id)).toEqual([3, 2, 1]);
+      expect(result.areas.value.map((a) => a.id)).toEqual([3, 1, 2]);
     }
+    const areaCall = vi
+      .mocked(cms.findMany)
+      .mock.calls.find((c) => c[0] === 'map_areas');
+    expect(areaCall?.[1]?.sort).toEqual(['_order']);
   });
 
   it('geometry の検証に失敗したエリアは除外し、残りを返す', async () => {
@@ -305,11 +309,10 @@ describe('getCampusMapData', () => {
           id: 1,
           name: '不正',
           geometry: { type: 'Polygon', coordinates: [] },
-          sort: 1,
           hasAed: false,
           hasToilet: false,
         },
-        { id: 2, name: '正常', geometry: VALID_POLYGON, sort: 2 },
+        { id: 2, name: '正常', geometry: VALID_POLYGON },
       ],
     });
 
@@ -323,15 +326,14 @@ describe('getCampusMapData', () => {
   it('表示色が未設定・未知の値のエリアは既定色 (secondary) に解決する', async () => {
     mockCmsCollections({
       areas: [
-        { id: 1, name: 'A', geometry: VALID_POLYGON, color: null, sort: 1 },
+        { id: 1, name: 'A', geometry: VALID_POLYGON, color: null },
         {
           id: 2,
           name: 'B',
           geometry: VALID_POLYGON,
           color: 'not-a-token',
-          sort: 2,
         },
-        { id: 3, name: 'C', geometry: VALID_POLYGON, color: 'accent', sort: 3 },
+        { id: 3, name: 'C', geometry: VALID_POLYGON, color: 'accent' },
       ],
     });
 
@@ -400,7 +402,7 @@ describe('getCampusMapData', () => {
 describe('getCampusMapAreas', () => {
   it('エリアのみを要求し、出展物・ステージ・上演枠は取得しない', async () => {
     mockCmsCollections({
-      areas: [{ id: 1, name: 'Aゾーン', geometry: VALID_POLYGON, sort: 1 }],
+      areas: [{ id: 1, name: 'Aゾーン', geometry: VALID_POLYGON }],
     });
 
     await getCampusMapAreas();
@@ -414,8 +416,8 @@ describe('getCampusMapAreas', () => {
   it('取得に成功した場合は getCampusMapData と同じ変換規則でエリアを返す', async () => {
     mockCmsCollections({
       areas: [
-        { id: 1, name: 'Bゾーン', geometry: VALID_POLYGON, sort: null },
-        { id: 2, name: 'Aゾーン', geometry: VALID_POLYGON, sort: 1 },
+        { id: 2, name: 'Aゾーン', geometry: VALID_POLYGON },
+        { id: 1, name: 'Bゾーン', geometry: VALID_POLYGON },
       ],
     });
 
@@ -428,7 +430,6 @@ describe('getCampusMapAreas', () => {
           name: 'Aゾーン',
           geometry: NORMALIZED_POLYGON,
           color: THEME_COLORS.secondary,
-          sort: 1,
           hasAed: false,
           hasToilet: false,
         },
@@ -437,7 +438,6 @@ describe('getCampusMapAreas', () => {
           name: 'Bゾーン',
           geometry: NORMALIZED_POLYGON,
           color: THEME_COLORS.secondary,
-          sort: null,
           hasAed: false,
           hasToilet: false,
         },

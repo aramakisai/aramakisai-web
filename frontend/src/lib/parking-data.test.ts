@@ -14,7 +14,7 @@ import { getParkingResponse } from './parking-data';
 
 const statusDoc = (
   id: number,
-  lot: { id: number; name: string; sort?: number | null } | number | null,
+  lot: { id: number; name: string; _order?: string | null } | number | null,
   status: string | null = 'available',
 ) => ({
   id,
@@ -23,7 +23,7 @@ const statusDoc = (
   updatedAt: '2026-10-02T00:00:00.000Z',
   createdAt: '2026-10-02T00:00:00.000Z',
 });
-const lot = statusDoc(1, { id: 10, name: '第1駐車場', sort: 0 });
+const lot = statusDoc(1, { id: 10, name: '第1駐車場', _order: 'a0' });
 const networkError: CmsResult<never> = {
   ok: false,
   error: { kind: 'network', status: 500 },
@@ -98,15 +98,15 @@ describe('getParkingResponse', () => {
     expect(result.ok && result.value.lots[0].status).toBe('available');
   });
 
-  it('lot.sort 昇順 (null は末尾) に並べ、lot が null のものは除く', async () => {
+  it('lot._order 文字列昇順 (null は末尾) に並べ、lot が null のものは除く', async () => {
     findMany.mockResolvedValue({
       ok: true,
       value: {
         docs: [
-          statusDoc(1, { id: 10, name: 'C', sort: null }),
-          statusDoc(2, { id: 11, name: 'B', sort: 2 }),
+          statusDoc(1, { id: 10, name: 'C', _order: null }),
+          statusDoc(2, { id: 11, name: 'B', _order: 'b00' }),
           statusDoc(3, null),
-          statusDoc(4, { id: 12, name: 'A', sort: 1 }),
+          statusDoc(4, { id: 12, name: 'A', _order: 'a1' }),
           statusDoc(5, 13),
         ],
         totalDocs: 5,
@@ -124,7 +124,10 @@ describe('getParkingResponse', () => {
     findMany.mockResolvedValue({
       ok: true,
       value: {
-        docs: [lot, statusDoc(2, { id: 11, name: '第2駐車場', sort: 1 }, null)],
+        docs: [
+          lot,
+          statusDoc(2, { id: 11, name: '第2駐車場', _order: 'a1' }, null),
+        ],
         totalDocs: 2,
       },
     });
@@ -137,7 +140,7 @@ describe('getParkingResponse', () => {
     });
   });
 
-  it('festival_meta の取得失敗は失敗として返す', async () => {
+  it('site_settings の取得失敗は失敗として返す', async () => {
     findGlobal.mockResolvedValue(networkError);
     expect(await getParkingResponse()).toEqual(networkError);
     expect(findMany).not.toHaveBeenCalled();

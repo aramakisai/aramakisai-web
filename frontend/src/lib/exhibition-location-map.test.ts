@@ -54,7 +54,6 @@ function makeArea(
     name: `エリア${id}`,
     geometry: squareGeometry(139.0 + id, 35.0 + id),
     color: 'accent',
-    sort: id,
     ...overrides,
     hasAed: false,
     hasToilet: false,

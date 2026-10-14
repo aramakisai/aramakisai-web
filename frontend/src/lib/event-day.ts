@@ -1,4 +1,4 @@
-import type { FestivalMeta } from '../cms-types';
+import type { SiteSetting } from '../cms-types';
 import { EventDay } from './home-page-types';
 
 const WEEKDAY_LABELS = ['日', '月', '火', '水', '木', '金', '土'] as const;
@@ -83,7 +83,7 @@ export function formatCountdownLabel(days: number): string {
 }
 
 export function toEventDays(
-  rawEventDays: FestivalMeta['event_days'],
+  rawEventDays: SiteSetting['event_days'],
 ): EventDay[] {
   return (rawEventDays ?? []).map((day) => ({
     // 管理画面でラベルを空にすると '' で保存されるため、代替文言 (formatEventDayLabel) に

@@ -1,6 +1,7 @@
 import { cms, type CmsResult } from './cms';
 import { isEventDay, toEventDays } from './event-day';
 import type { ParkingLot, ParkingResponse } from './parking';
+import { compareOrderKey } from './order-key';
 import { getRequestPhase } from './request-phase';
 
 const PARKING_TTL_SECONDS = 20;
@@ -10,8 +11,8 @@ const PARKING_LIMIT = 100;
 export async function getParkingResponse({
   version,
 }: { readonly version?: number } = {}): Promise<CmsResult<ParkingResponse>> {
-  // 上書きで当日扱いにする場合も festival_meta の失敗は握りつぶさず失敗として返す
-  const meta = await cms.findGlobal('festival_meta', {}, { version });
+  // 上書きで当日扱いにする場合も site_settings の失敗は握りつぶさず失敗として返す
+  const meta = await cms.findGlobal('site_settings', {}, { version });
   if (!meta.ok) return meta;
   const phase = await getRequestPhase();
   const eventDay =
@@ -30,12 +31,9 @@ export async function getParkingResponse({
       ? [{ doc, lot: doc.lot }]
       : [],
   );
-  // sort は関連先のフィールドなので REST の sort では並べられない
-  rows.sort(
-    (a, b) =>
-      (a.lot.sort ?? Number.POSITIVE_INFINITY) -
-        (b.lot.sort ?? Number.POSITIVE_INFINITY) || 0,
-  );
+  // _order は関連先のフィールドなので REST の sort では並べられない。
+  // localeCompare は使わず大小比較にして Postgres の並びと一致させる
+  rows.sort((a, b) => compareOrderKey(a.lot._order, b.lot._order));
   // 当日以外は古いテストデータ等を外へ出さないため、サーバー側で落とす
   const lots: ParkingLot[] = rows.map(({ doc, lot }) => ({
     id: doc.id,
