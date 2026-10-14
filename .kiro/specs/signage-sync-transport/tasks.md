@@ -195,7 +195,7 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
   - 見比べた結果を記録し、WBS(GitHub Projects #1)の進捗とtasks.mdのチェックを更新している
   - _Requirements: 8.1_
 
-- [ ] 11. ハブのDOが休止できるように、ping/pongを自動応答に切り替える
+- [x] 11. ハブのDOが休止できるように、ping/pongを自動応答に切り替える
 - [x] 11.1 共有型とハブをテスト駆動で切り替える
   - 先に失敗するテストを書く: `SignageClientMessage`と`pong`の型・`parseClientMessage`を使わないこと、`parseServerMessage`が`pong`を`null`にすること、ハブのコンストラクタが`ping`→`pong`の自動応答を設定すること
   - `signage-channel.ts`の`ping`をリテラル文字列`'ping'`・`'pong'`の定数にし、`serverNow`付きの`pong`の型と`parseClientMessage`を消す。ハブは`ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'))`をコンストラクタで設定し、`webSocketMessage`は届いたものを捨てる。`pin`の`serverNow`の扱いは変えない
@@ -220,7 +220,7 @@ CMSのコレクション・グローバルの定義は、`afterChange`・`afterD
   - _Depends: 11.3_
   - _Requirements: 2.2, 3.2, 5.2_
 
-- [ ] 11.5 本番で端末を数時間つないでGB-sを見積もりと比べる
+- [x] 11.5 本番で端末を数時間つないでGB-sを見積もりと比べる
   - 本番で端末(`/signage`)を数時間つないだ状態にし、運用ダッシュボードの`quota.do_gbs_day`が、design.mdのPerformance & Scalabilityの見積もり(約3,200GB-s/日以下)の範囲に収まることを確かめる。常時稼働の約10,800GB-s/日に近ければ、休止できていないので原因を調べる
   - 自動応答の受信がDOの要求数に数えられるかも、DOの要求数の値から読み、結果をresearch.mdに記録する。WBS(GitHub Projects #1)の進捗とチェックを更新する
   - _Depends: 11.4_
