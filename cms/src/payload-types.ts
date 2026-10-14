@@ -130,14 +130,10 @@ export interface Config {
   fallbackLocale: null;
   globals: {
     site_settings: SiteSetting;
-    festival_meta: FestivalMeta;
-    page_home: PageHome;
     signage_settings: SignageSetting;
   };
   globalsSelect: {
     site_settings: SiteSettingsSelect<false> | SiteSettingsSelect<true>;
-    festival_meta: FestivalMetaSelect<false> | FestivalMetaSelect<true>;
-    page_home: PageHomeSelect<false> | PageHomeSelect<true>;
     signage_settings: SignageSettingsSelect<false> | SignageSettingsSelect<true>;
   };
   locale: null;
@@ -334,7 +330,6 @@ export interface Topic {
    * デジタルパンフ等
    */
   attachment?: (number | null) | Media;
-  sort?: number | null;
   /**
    * 複数添付ファイル
    */
@@ -384,7 +379,6 @@ export interface Page {
    * embed_urlのiframe高さ(px)。未指定時は16:9のデフォルト比率
    */
   embed_height?: number | null;
-  sort?: number | null;
   /**
    * 未入力時は本文冒頭から自動生成
    */
@@ -432,7 +426,6 @@ export interface Sponsor {
    * 出店協賛のみ
    */
   booth_label?: string | null;
-  sort?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -465,7 +458,6 @@ export interface MapArea {
   color?: string | null;
   hasAed?: boolean | null;
   hasToilet?: boolean | null;
-  sort?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -478,7 +470,6 @@ export interface FaqItem {
   _order?: string | null;
   question: string;
   answer: string;
-  sort?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -506,7 +497,6 @@ export interface Stage {
    * OSM Polygon
    */
   area_id?: (number | null) | MapArea;
-  sort?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -685,7 +675,6 @@ export interface ParkingLot {
   id: number;
   _order?: string | null;
   name: string;
-  sort?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1147,7 +1136,6 @@ export interface TopicsSelect<T extends boolean = true> {
   image?: T;
   published_at?: T;
   attachment?: T;
-  sort?: T;
   attachments?: T;
   meta_description?: T;
   updatedAt?: T;
@@ -1164,7 +1152,6 @@ export interface PagesSelect<T extends boolean = true> {
   content_html?: T;
   embed_url?: T;
   embed_height?: T;
-  sort?: T;
   meta_description?: T;
   og_image?: T;
   updatedAt?: T;
@@ -1187,7 +1174,6 @@ export interface SponsorsSelect<T extends boolean = true> {
   area_id?: T;
   booth_number?: T;
   booth_label?: T;
-  sort?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1199,7 +1185,6 @@ export interface FaqItemsSelect<T extends boolean = true> {
   _order?: T;
   question?: T;
   answer?: T;
-  sort?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1214,7 +1199,6 @@ export interface MapAreasSelect<T extends boolean = true> {
   color?: T;
   hasAed?: T;
   hasToilet?: T;
-  sort?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1237,7 +1221,6 @@ export interface StagesSelect<T extends boolean = true> {
   _order?: T;
   name?: T;
   area_id?: T;
-  sort?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1330,7 +1313,6 @@ export interface StudentExhibitionsSelect<T extends boolean = true> {
 export interface ParkingLotsSelect<T extends boolean = true> {
   _order?: T;
   name?: T;
-  sort?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1566,137 +1548,6 @@ export interface SiteSetting {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "festival_meta".
- */
-export interface FestivalMeta {
-  id: number;
-  name: string;
-  event_days?:
-    | {
-        start_at: string;
-        end_at: string;
-        /**
-         * 例: 1日目。未入力時は開場日時から生成する
-         */
-        label?: string | null;
-        id?: string | null;
-      }[]
-    | null;
-  parking_map?: (number | null) | Media;
-  sns_links?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  overview?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  overview_html?: string | null;
-  /**
-   * Aboutページ用
-   */
-  hero_image?: (number | null) | Media;
-  /**
-   * 例: 万彩
-   */
-  theme_word?: string | null;
-  theme_description?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  theme_description_html?: string | null;
-  venue_name?: string | null;
-  campus_map_url?: string | null;
-  contact_form_url?: string | null;
-  theme_image?: (number | null) | Media;
-  /**
-   * HTMLのtitleタグ用
-   */
-  site_title?: string | null;
-  /**
-   * 最寄り駅・バス等からの行き方を数行で。詳細はアクセスページが担う
-   */
-  access_summary?: string | null;
-  /**
-   * 検索結果・SNS共有時のサイト説明文。未入力時は祭概要から自動生成
-   */
-  meta_description?: string | null;
-  /**
-   * SNS共有時の既定画像。未設定時はサイト同梱の既定画像を使用
-   */
-  og_image?: (number | null) | Media;
-  /**
-   * 構造化データ用の会場住所(郵便番号から)
-   */
-  venue_address?: string | null;
-  /**
-   * 学生団体への招待メールに記載されます。
-   */
-  exhibitor_contact_url?: string | null;
-  updatedAt?: string | null;
-  createdAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "page_home".
- */
-export interface PageHome {
-  id: number;
-  /**
-   * 開催前に表示
-   */
-  hero_message?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  hero_message_html?: string | null;
-  /**
-   * 複数枚設定可
-   */
-  hero_images?: (number | Media)[] | null;
-  updatedAt?: string | null;
-  createdAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "signage_settings".
  */
 export interface SignageSetting {
@@ -1732,54 +1583,6 @@ export interface SiteSettingsSelect<T extends boolean = true> {
   exhibitor_contact_url?: T;
   sns_links?: T;
   og_image?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  globalType?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "festival_meta_select".
- */
-export interface FestivalMetaSelect<T extends boolean = true> {
-  name?: T;
-  event_days?:
-    | T
-    | {
-        start_at?: T;
-        end_at?: T;
-        label?: T;
-        id?: T;
-      };
-  parking_map?: T;
-  sns_links?: T;
-  overview?: T;
-  overview_html?: T;
-  hero_image?: T;
-  theme_word?: T;
-  theme_description?: T;
-  theme_description_html?: T;
-  venue_name?: T;
-  campus_map_url?: T;
-  contact_form_url?: T;
-  theme_image?: T;
-  site_title?: T;
-  access_summary?: T;
-  meta_description?: T;
-  og_image?: T;
-  venue_address?: T;
-  exhibitor_contact_url?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  globalType?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "page_home_select".
- */
-export interface PageHomeSelect<T extends boolean = true> {
-  hero_message?: T;
-  hero_message_html?: T;
-  hero_images?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

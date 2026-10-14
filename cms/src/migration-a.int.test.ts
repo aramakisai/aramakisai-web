@@ -20,6 +20,7 @@ async function withOldSchema(
   const config = (await import('./payload.config')).default;
   const payload = await getPayload({ config });
   const mig = await import('./migrations/20261013_172130_site_settings_and_cleanup_a');
+  const migC = await import('./migrations/20261014_073409_drop_legacy_globals_and_sort');
   const txId = (await payload.db.beginTransaction()) as string | number;
   const db = (payload.db as unknown as { sessions: Record<string, { db: any }> }).sessions[txId].db;
   const req = { transactionID: txId };
@@ -30,6 +31,8 @@ async function withOldSchema(
       DELETE FROM "sponsors"; DELETE FROM "student_exhibitions";
       DELETE FROM "faq_items"; DELETE FROM "map_areas"; DELETE FROM "parking_lots"; DELETE FROM "stages";
       DELETE FROM "telops"; DELETE FROM "signage_groups";`);
+    // マイグレーションCが旧グローバルと sort を削除済みのため、先にCを戻してからAを戻す
+    await migC.down(args);
     await mig.down(args);
     await db.execute(sql`DELETE FROM "festival_meta"; DELETE FROM "page_home";`);
     await run({
