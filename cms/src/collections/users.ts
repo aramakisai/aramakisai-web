@@ -198,6 +198,13 @@ export const Users: CollectionConfig = {
       access: { read: executiveOnlyField, create: denyField, update: denyField },
     },
     {
+      // 送信権を取った sendInvitation ジョブの ID。同じジョブの重複実行を弾くための内部値
+      name: 'invite_claimed_job',
+      type: 'number',
+      admin: { hidden: true },
+      access: { read: executiveOnlyField, create: denyField, update: denyField },
+    },
+    {
       name: 'activated_at',
       type: 'date',
       label: 'アカウント設定日時',

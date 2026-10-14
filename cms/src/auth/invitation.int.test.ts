@@ -308,6 +308,66 @@ describe.skipIf(!hasDatabase)('招待メールの送信', () => {
     expect(sendEmail).not.toHaveBeenCalled();
   });
 
+  describe('同じジョブの重複実行', () => {
+    // 複数レプリカが同じジョブを同時に取った状態を、同一 jobId での直接呼び出しで再現する
+    async function callSend(userId: number, jobId: number) {
+      const { sendInvitation } = await import('./invitation');
+      return sendInvitation({ req: { payload } as never, userId, jobId });
+    }
+    const nextJobId = () => 900_000_000 + Math.floor(Math.random() * 1_000_000);
+
+    it('同時に 2 回実行しても送信は 1 回で、片方は skipped になる', async () => {
+      const user = await createExhibitor(nextEmail(), false);
+      const sendEmail = vi.spyOn(payload, 'sendEmail');
+      const jobId = nextJobId();
+
+      const results = await Promise.all([callSend(user.id, jobId), callSend(user.id, jobId)]);
+
+      expect(sendEmail).toHaveBeenCalledTimes(1);
+      expect(results.map((r) => r.kind).sort()).toEqual(['sent', 'skipped']);
+    });
+
+    it('成功した後の重複実行が失敗しても sent を failed に上書きしない', async () => {
+      const user = await createExhibitor(nextEmail(), false);
+      const jobId = nextJobId();
+      await callSend(user.id, jobId);
+      const sendEmail = vi.spyOn(payload, 'sendEmail').mockRejectedValue(new Error('auth failed'));
+
+      const second = await callSend(user.id, jobId);
+
+      expect(second.kind).toBe('skipped');
+      expect(sendEmail).not.toHaveBeenCalled();
+      const after = await payload.findByID({ collection: 'users', id: user.id, overrideAccess: true });
+      expect(after.invite_status).toBe('sent');
+      expect(after.invite_error).toBeFalsy();
+    });
+
+    it('別ジョブ (再送・失敗後の再投入) は送信される', async () => {
+      const user = await createExhibitor(nextEmail(), false);
+      const sendEmail = vi.spyOn(payload, 'sendEmail');
+      const first = nextJobId();
+      await callSend(user.id, first);
+
+      const resent = await callSend(user.id, first + 1);
+
+      expect(resent.kind).toBe('sent');
+      expect(sendEmail).toHaveBeenCalledTimes(2);
+    });
+
+    it('送信権を取ったまま落ちたジョブがあっても、別ジョブで送信できる', async () => {
+      const user = await createExhibitor(nextEmail(), false);
+      const { sql } = await import('@payloadcms/db-postgres');
+      const crashed = nextJobId();
+      await payload.db.drizzle.execute(
+        sql`UPDATE "users" SET "invite_claimed_job" = ${crashed} WHERE "id" = ${user.id}`,
+      );
+      const sendEmail = vi.spyOn(payload, 'sendEmail');
+
+      expect((await callSend(user.id, crashed + 1)).kind).toBe('sent');
+      expect(sendEmail).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('設定済みアカウント', () => {
     async function activatedExhibitor() {
       const user = await createExhibitor(nextEmail(), false);
@@ -337,7 +397,7 @@ describe.skipIf(!hasDatabase)('招待メールの送信', () => {
       const sendEmail = vi.spyOn(payload, 'sendEmail');
       const { sendInvitation } = await import('./invitation');
 
-      const result = await sendInvitation({ req: { payload } as never, userId: user.id });
+      const result = await sendInvitation({ req: { payload } as never, userId: user.id, jobId: 1 });
 
       expect(result.kind).toBe('skipped');
       expect(sendEmail).not.toHaveBeenCalled();
