@@ -48,6 +48,30 @@ describe('SignageMain', () => {
   });
 });
 
+describe('SignageMain transition', () => {
+  const renderers = { parking: () => <div data-testid="parking" /> };
+  const wrapper = (transition?: boolean) => {
+    const { getByTestId } = render(
+      <SignageMain
+        entry={entry}
+        snapshot={snapshot}
+        now={now}
+        renderers={renderers}
+        transition={transition}
+      />,
+    );
+    return getByTestId('parking').parentElement!;
+  };
+
+  it('既定ではフェードインの wrapper で包む', () => {
+    expect(wrapper().classList.contains('fade-in')).toBe(true);
+  });
+
+  it('transition=false ではアニメーションを付けない', () => {
+    expect(wrapper(false).classList.contains('fade-in')).toBe(false);
+  });
+});
+
 describe('SignageHeadingChip', () => {
   it('アイコンと文字を出す', () => {
     render(<SignageHeadingChip icon="handshake" label="ご協賛" />);

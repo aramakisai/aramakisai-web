@@ -47,6 +47,10 @@ vi.mock('@/lib/timetable', async () => {
   };
 });
 
+vi.mock('@/lib/use-motion-preference', () => ({
+  useMotionPreference: () => ({ reduced: false, toggle: vi.fn() }),
+}));
+
 vi.mock('@/lib/cms-asset-url', () => ({
   toAssetUrl: (id: string | null, width?: number) =>
     id ? `https://cms.example.com/assets/${id}/${width}` : null,

@@ -1,9 +1,10 @@
 'use client';
 
 /* eslint-disable @next/next/no-img-element */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toAssetUrl } from '@/lib/cms-asset-url';
 import type { ExhibitionImage } from '@/lib/exhibitions';
+import { useMotionPreference } from '@/lib/use-motion-preference';
 import { HideImageIcon } from './icons';
 
 export interface ExhibitionGalleryProps {
@@ -11,11 +12,26 @@ export interface ExhibitionGalleryProps {
   readonly fallbackAlt: string;
 }
 
+const AUTO_ADVANCE_MS = 5000;
+
 export function ExhibitionGallery({
   images,
   fallbackAlt,
 }: ExhibitionGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const { reduced } = useMotionPreference();
+  const count = images.length;
+
+  // selectedIndex を依存に含めるため、手動選択でも次回切替が 5 秒後に仕切り直される
+  useEffect(() => {
+    if (count < 2 || paused || reduced) return;
+    const timer = setTimeout(
+      () => setSelectedIndex((i) => (i + 1) % count),
+      AUTO_ADVANCE_MS,
+    );
+    return () => clearTimeout(timer);
+  }, [count, paused, reduced, selectedIndex]);
 
   if (images.length === 0) {
     return (
@@ -29,14 +45,23 @@ export function ExhibitionGallery({
   const selected = images[selectedIndex] ?? images[0]!;
 
   return (
-    <div className="flex flex-col gap-3">
+    <div
+      className="flex flex-col gap-3"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) setPaused(false);
+      }}
+    >
       {/* aspect-ratio の箱は自動最小高さが中身の高さになり、縦長画像で枠が伸びる。
           img を absolute にして中身の高さを枠の計算から外す */}
       <div className="relative aspect-[4/3] w-full overflow-clip rounded-xl bg-gray-200">
         <img
+          key={selected.id}
           src={toAssetUrl(selected.id, 1920) ?? undefined}
           alt={selected.alt || fallbackAlt}
-          className="absolute inset-0 h-full w-full object-contain"
+          className="absolute inset-0 h-full w-full animate-[fade-in_600ms_ease-out] object-contain motion-reduce:animate-none"
         />
       </div>
       {images.length > 1 && (

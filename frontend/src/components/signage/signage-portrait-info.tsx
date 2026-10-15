@@ -29,7 +29,10 @@ export function SignagePortraitInfo({ rows }: SignagePortraitInfoProps) {
                       name={stage.name}
                     />
                   </div>
-                  <div className="flex min-w-px flex-1 flex-col gap-1">
+                  <div
+                    key={performance?.id ?? 'none'}
+                    className="fade-in flex min-w-px flex-1 flex-col gap-1"
+                  >
                     {performance ? (
                       <>
                         <p className="line-clamp-2 text-[36px] leading-[48px] font-bold text-text">

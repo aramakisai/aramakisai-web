@@ -26,14 +26,18 @@ export function SignageDayDate({
   readonly now: Date;
 }) {
   const day = eventDayIndex(eventDays, now);
+  const date = formatSignageDate(now);
   return (
-    <div className="flex items-center gap-3 font-display text-[28px] leading-none font-bold text-text">
+    <div
+      key={date}
+      className="fade-in flex items-center gap-3 font-display text-[28px] leading-none font-bold text-text"
+    >
       {day !== null && (
         <span className="whitespace-nowrap rounded-[8px] bg-primary px-4 py-2">
           DAY {day}
         </span>
       )}
-      <span className="whitespace-nowrap">{formatSignageDate(now)}</span>
+      <span className="whitespace-nowrap">{date}</span>
     </div>
   );
 }

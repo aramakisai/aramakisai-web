@@ -260,6 +260,7 @@ export function SignageQuakeOverlay({
           snapshot={snapshot}
           now={now}
           renderers={renderers}
+          transition={false}
         />
       ) : (
         <div className="signage-main-frame">

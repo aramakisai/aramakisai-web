@@ -43,20 +43,25 @@ export function SignageLeftColumn({
                   className="flex w-full flex-col items-start gap-1"
                 >
                   <SignageStageChip colorIndex={colorIndex} name={stage.name} />
-                  {performance ? (
-                    <>
-                      <p className="line-clamp-2 w-full text-[30px] leading-[1.25] font-bold text-text">
-                        {performance.name}
+                  <div
+                    key={performance?.id ?? 'none'}
+                    className="fade-in flex w-full flex-col gap-1"
+                  >
+                    {performance ? (
+                      <>
+                        <p className="line-clamp-2 w-full text-[30px] leading-[1.25] font-bold text-text">
+                          {performance.name}
+                        </p>
+                        <p className="text-[24px] leading-[1.25] whitespace-nowrap text-gray-600">
+                          {formatPerformanceRange(performance)}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-[30px] leading-[1.25] font-bold text-gray-600">
+                        公演なし
                       </p>
-                      <p className="text-[24px] leading-[1.25] whitespace-nowrap text-gray-600">
-                        {formatPerformanceRange(performance)}
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-[30px] leading-[1.25] font-bold text-gray-600">
-                      公演なし
-                    </p>
-                  )}
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
