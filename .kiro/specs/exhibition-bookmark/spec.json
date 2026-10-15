@@ -1,0 +1,22 @@
+{
+  "feature_name": "exhibition-bookmark",
+  "created_at": "2026-10-13T17:37:16Z",
+  "updated_at": "2026-10-14T04:39:43Z",
+  "language": "ja",
+  "phase": "tasks-generated",
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": true
+    },
+    "design": {
+      "generated": true,
+      "approved": true
+    },
+    "tasks": {
+      "generated": true,
+      "approved": true
+    }
+  },
+  "ready_for_implementation": true
+}

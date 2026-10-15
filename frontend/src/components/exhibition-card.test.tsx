@@ -18,6 +18,10 @@ vi.mock('@/lib/exhibition-color', async (importOriginal) => {
   };
 });
 
+vi.mock('./bookmark-button', () => ({
+  BookmarkButton: () => <button type="button">bookmark</button>,
+}));
+
 const baseExhibition: ExhibitionCardSummary = {
   id: 1,
   category: 'exhibit',
@@ -120,5 +124,25 @@ describe('ExhibitionCard', () => {
       expect((bgWith as HTMLElement).style.getPropertyValue(v)).not.toBe('');
       expect((bgWithout as HTMLElement).style.getPropertyValue(v)).toBe('');
     }
+  });
+
+  it('renders no bookmark button by default and links to the detail page', () => {
+    render(<ExhibitionCard exhibition={baseExhibition} />);
+
+    expect(screen.queryByRole('button')).toBeNull();
+    expect(screen.getByRole('link')).toHaveAttribute(
+      'href',
+      '/exhibitions/1/exhibit',
+    );
+  });
+
+  it('renders the bookmark button as a sibling of the link when bookmarkable', () => {
+    render(<ExhibitionCard exhibition={baseExhibition} bookmarkable />);
+
+    const link = screen.getByRole('link');
+    const button = screen.getByRole('button');
+    expect(link.contains(button)).toBe(false);
+    expect(link.parentElement).toBe(button.parentElement);
+    expect(link).toHaveAttribute('href', '/exhibitions/1/exhibit');
   });
 });

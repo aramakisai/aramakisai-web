@@ -1,13 +1,16 @@
 'use client';
 
 import { useState } from 'react';
+import { useMypageData } from '@/lib/use-mypage-data';
 import { ShareIcon } from './icons';
 
 export interface ShareButtonProps {
   readonly title: string;
   /** 絶対 URL。サーバー側で組み立てて渡す */
   readonly url: string;
-  /** ボタンの右に同じ行で並べる要素 */
+  /** 共有の前に同じ行で並べるアクション */
+  readonly leading?: React.ReactNode;
+  /** アクション行の次(PC・保存不可の1行の形では共有の右)に並べるリンク群 */
   readonly children?: React.ReactNode;
 }
 
@@ -18,7 +21,14 @@ type Notice =
 
 const NOTICE_DURATION_MS = 3000;
 
-export function ShareButton({ title, url, children }: ShareButtonProps) {
+export function ShareButton({
+  title,
+  url,
+  leading,
+  children,
+}: ShareButtonProps) {
+  // 保存できない端末ではブックマークを出さず1行の形にする。PC は CSS 側で1行にする
+  const inline = useMypageData() === 'unavailable';
   const [notice, setNotice] = useState<Notice>({ kind: 'idle' });
 
   const copyToClipboard = async () => {
@@ -55,15 +65,21 @@ export function ShareButton({ title, url, children }: ShareButtonProps) {
 
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={handleClick}
-          className="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-background px-4 py-2 text-sm leading-[140%] font-medium text-text hover:text-text"
-        >
-          <ShareIcon size={20} />
-          共有
-        </button>
+      <div
+        data-form={inline ? 'inline' : 'stacked'}
+        className="group flex flex-col gap-3 data-[form=inline]:-ml-3 data-[form=inline]:flex-row data-[form=inline]:items-center data-[form=inline]:gap-2 lg:gap-4 pc-input:-ml-3 pc-input:flex-row pc-input:items-center pc-input:gap-2"
+      >
+        <div className="flex items-center">
+          {leading}
+          <button
+            type="button"
+            onClick={handleClick}
+            className="flex h-12 flex-1 flex-col items-center justify-center gap-0.5 text-text group-data-[form=inline]:w-12 group-data-[form=inline]:flex-none pc-input:w-12 pc-input:flex-none"
+          >
+            <ShareIcon size={24} />
+            <span className="font-display text-body-xs">共有</span>
+          </button>
+        </div>
         {children}
       </div>
       {notice.kind === 'copied' && (

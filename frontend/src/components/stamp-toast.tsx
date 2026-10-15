@@ -3,11 +3,18 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
-export type StampToastKind = 'added' | 'exists';
+export type StampToastKind = 'added' | 'exists' | 'bookmarked';
 
 const MESSAGES: Readonly<Record<StampToastKind, string>> = {
   added: 'スタンプを取得しました',
   exists: '取得済みのスタンプです',
+  bookmarked: 'ブックマークしました',
+};
+
+const LINK_HREFS: Readonly<Record<StampToastKind, string>> = {
+  added: '/mypage',
+  exists: '/mypage',
+  bookmarked: '/mypage#bookmarks',
 };
 
 const DISPLAY_MS = 3000;
@@ -52,7 +59,7 @@ export function StampToast({ kind }: { readonly kind: StampToastKind }) {
         {MESSAGES[kind]}
       </span>
       <Link
-        href="/mypage"
+        href={LINK_HREFS[kind]}
         className="text-sm leading-[1.6] font-bold text-background underline"
       >
         マイページ
