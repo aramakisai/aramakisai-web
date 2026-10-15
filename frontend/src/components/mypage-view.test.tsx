@@ -1,11 +1,20 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MypageView } from './mypage-view';
 import type {
   ExhibitionCardSummary,
   ExhibitionCategory,
 } from '@/lib/exhibitions';
 import type { MypageStampTarget } from '@/lib/stamp-progress';
+
+vi.mock('@/env', () => ({
+  env: { NEXT_PUBLIC_CMS_URL: 'http://localhost:8055' },
+}));
+
+vi.mock('@/lib/cms-asset-url', () => ({
+  toAssetUrl: (id: string | null) =>
+    id ? `https://example.com/assets/${id}` : null,
+}));
 
 const AREAS = [
   { id: 1, name: '中央エリア' },
