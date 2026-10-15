@@ -7,7 +7,7 @@ import {
 // AreaLabelMarker の背景 (通常時: 白 / 選択時: primary) はエリア自身の表示色を
 // 一切使わない設計であるため、コントラストはどのエリア色でも不変になる。
 // それでも要件 6.6 が求める「7 色すべてに対する検証」を満たす形で明示的に列挙する。
-const TEXT_COLOR = '#231815';
+const TEXT_COLOR = '#202020';
 const DEFAULT_LABEL_BACKGROUND = '#ffffff';
 const SELECTED_LABEL_BACKGROUND = '#ebb03c'; // primary
 
