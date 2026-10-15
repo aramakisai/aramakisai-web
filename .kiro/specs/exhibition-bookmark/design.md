@@ -311,8 +311,8 @@ export function sendGaEvent(
 
 | 対象 | Figma node | 実測値 |
 |------|-----------|--------|
-| BookmarkButton(detail) | `1098:1355`(未保存`1098:1341`/保存済み`1098:1345`) | 96×48、縦積み・中央揃え、間隔2px、アイコン24px(FILL 0/1、`text`)、ラベル「ブックマーク」LINE Seed JP Regular 10px/行高1.6、`text`、枠・背景なし |
-| BookmarkButton(card) | `1098:1355`(未保存`1098:1349`/保存済み`1098:1352`) | 48×48、アイコン24pxのみ中央、枠・背景・影なし |
+| BookmarkButton(detail) | `1098:1355`(未保存`1098:1341`/保存済み`1098:1345`) | 96×48、縦積み・中央揃え、間隔2px、アイコン24px(FILL 0/1、`secondary`)、ラベル「ブックマーク」LINE Seed JP Regular 10px/行高1.6、`text`、枠・背景なし |
+| BookmarkButton(card) | `1098:1355`(未保存`1098:1349`/保存済み`1098:1352`) | 48×48、アイコン24px(`secondary`)のみ中央、枠・背景・影なし |
 | ShareButton | `2:112` | 96×48、縦積み・中央揃え、間隔2px、アイコン`share`24px、ラベル「共有」LINE Seed JP Regular 10px/1.6、枠・背景なし |
 | ExhibitionCard | `2:139`/`2:152`/`22:66`/`22:74` | Body の余白 上16・左16・下16・**右56**。BookmarkButton(card)を Body の右8・下8に絶対配置 |
 | MypageTabs | `1098:6985`(スタンプ選択`1098:6963`/ブックマーク選択`1098:6974`) | 列幅いっぱい×64、下に1px`gray-200`の線。各タブは等分・高さいっぱい・縦積み中央・間隔2px、アイコン24px(`approval`/`bookmark` FILL 0)、ラベル LINE Seed JP Regular 10px/1.6。インジケータはタブ下端・左右いっぱい・高さ2px・`accent-alt`、非選択は不透明度0 |
@@ -325,8 +325,8 @@ export function sendGaEvent(
 
 **コードでの再現(共通)**
 - ラベルの書体:Figma は LINE Seed JP Regular。`text-body-xs`(`tailwind.config.ts`で 10px/行高1.6/400)は書体を指定せず、`body`の`font-sans`(端末のフォント)で描画されるため、`font-display text-body-xs`と書く(`font-display`は LINE Seed JP。400 は`layout.tsx`で読み込み済み)
-- アイコン:`BookmarkIcon`/`MaterialIcon`/`ShareIcon`の`size={24}`(`text-text`)
-- 色:`text-text`・`border-gray-200`・`bg-accent-alt`・`text-gray-600`(既存トークン)
+- アイコン:`BookmarkIcon`/`MaterialIcon`/`ShareIcon`の`size={24}`(`text-text`。ブックマークボタンのアイコンだけ`text-secondary`)
+- 色:`text-text`・`text-secondary`・`border-gray-200`・`bg-accent-alt`・`text-gray-600`(既存トークン)
 
 #### BookmarkIcon(`frontend/src/components/icons.tsx`)
 ```typescript
@@ -354,8 +354,8 @@ export interface BookmarkButtonProps {
 }
 ```
 - クラス
-  - detail:`flex h-12 w-24 flex-col items-center justify-center gap-0.5 text-text`、中身は`BookmarkIcon size={24}`と`<span class="font-display text-body-xs">ブックマーク</span>`。アクション行では`className="flex-1"`で`w-24`を上書きして等分にする
-  - card:`flex size-12 items-center justify-center text-text`、中身は`BookmarkIcon size={24}`だけ
+  - detail:`flex h-12 w-24 flex-col items-center justify-center gap-0.5 text-text`、中身は`BookmarkIcon size={24} className="text-secondary"`と`<span class="font-display text-body-xs">ブックマーク</span>`。アクション行では`className="flex-1"`で`w-24`を上書きして等分にする
+  - card:`flex size-12 items-center justify-center text-text`、中身は`BookmarkIcon size={24} className="text-secondary"`だけ
   - 共通:`pc-input:hidden`、フォーカス枠`focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary`(`campus-map/map-menu-button.tsx`と同じ)
 - 状態ごとの描画
   - 未確定(`null`):`invisible`で同じ大きさを描き、場所を確保する(支援技術にも出ない)

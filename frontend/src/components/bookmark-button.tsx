@@ -44,7 +44,7 @@ export function BookmarkButton({
   const classes = `${BASE} ${SIZE[variant]} ${className}`.trim();
   const content = (
     <>
-      <BookmarkIcon size={24} filled={saved} />
+      <BookmarkIcon size={24} filled={saved} className="text-secondary" />
       {variant === 'detail' && (
         <span className="font-display text-body-xs">ブックマーク</span>
       )}
