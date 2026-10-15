@@ -7,13 +7,18 @@ import {
 } from '@/lib/exhibition-color';
 import { toAssetUrl } from '@/lib/cms-asset-url';
 import type { ExhibitionCardSummary } from '@/lib/exhibitions';
+import { BookmarkButton } from './bookmark-button';
 import { ImageIcon, PlaceIcon } from './icons';
 
 export interface ExhibitionCardProps {
   readonly exhibition: ExhibitionCardSummary;
+  readonly bookmarkable?: boolean;
 }
 
-export function ExhibitionCard({ exhibition }: ExhibitionCardProps) {
+export function ExhibitionCard({
+  exhibition,
+  bookmarkable = false,
+}: ExhibitionCardProps) {
   const gradient = getExhibitionGradient(exhibition.displayName);
   const { texture, texturePositionY, textureFlipX, textureFlipY } =
     getExhibitionAppearance(exhibition.displayName);
@@ -40,37 +45,48 @@ export function ExhibitionCard({ exhibition }: ExhibitionCardProps) {
     : null;
 
   return (
-    <Link
-      href={`/exhibitions/${exhibition.id}/${exhibition.category}`}
-      className="flex flex-col overflow-clip rounded-xl transition-shadow hover:shadow-lg"
-    >
-      <div className="relative flex aspect-[300/225] w-full shrink-0 items-center justify-center overflow-clip bg-gray-200">
-        {thumbnailUrl ? (
-          <img
-            src={thumbnailUrl}
-            alt={exhibition.thumbnail!.alt}
-            className="absolute inset-0 h-full w-full object-contain"
-          />
-        ) : (
-          <ImageIcon size={40} className="text-gray-400" />
-        )}
-      </div>
-      <div
-        style={gradientStyle}
-        className="exhibition-gradient-bg relative flex flex-col gap-1 p-4"
+    <div className="relative flex flex-col overflow-clip rounded-xl transition-shadow hover:shadow-lg">
+      <Link
+        href={`/exhibitions/${exhibition.id}/${exhibition.category}`}
+        className="flex flex-col focus-visible:outline-offset-[-2px]"
       >
-        {/* ::before の白オーバーレイは absolute のため通常フローの兄弟より先に描画される。
-            z-10 で明示的に重ねないとテキストがオーバーレイの下に隠れる。 */}
-        <div className="relative z-10 flex flex-col gap-1">
-          {exhibition.location && (
-            <span className="flex items-center gap-1 text-xs leading-[1.4] font-medium text-text">
-              <PlaceIcon size={16} />
-              {exhibition.location}
-            </span>
+        <div className="relative flex aspect-[300/225] w-full shrink-0 items-center justify-center overflow-clip bg-gray-200">
+          {thumbnailUrl ? (
+            <img
+              src={thumbnailUrl}
+              alt={exhibition.thumbnail!.alt}
+              className="absolute inset-0 h-full w-full object-contain"
+            />
+          ) : (
+            <ImageIcon size={40} className="text-gray-400" />
           )}
-          <h4 className="text-text">{exhibition.displayName}</h4>
         </div>
-      </div>
-    </Link>
+        <div
+          style={gradientStyle}
+          className={`exhibition-gradient-bg relative flex flex-col gap-1 p-4 ${bookmarkable ? 'pr-14' : ''}`}
+        >
+          {/* ::before の白オーバーレイは absolute のため通常フローの兄弟より先に描画される。
+            z-10 で明示的に重ねないとテキストがオーバーレイの下に隠れる。 */}
+          <div className="relative z-10 flex flex-col gap-1">
+            {exhibition.location && (
+              <span className="flex items-center gap-1 text-xs leading-[1.4] font-medium text-text">
+                <PlaceIcon size={16} />
+                {exhibition.location}
+              </span>
+            )}
+            <h4 className="text-text">{exhibition.displayName}</h4>
+          </div>
+        </div>
+      </Link>
+      {bookmarkable && (
+        <BookmarkButton
+          exhibitionId={exhibition.id}
+          category={exhibition.category}
+          displayName={exhibition.displayName}
+          variant="card"
+          className="absolute right-2 bottom-2 z-20"
+        />
+      )}
+    </div>
   );
 }

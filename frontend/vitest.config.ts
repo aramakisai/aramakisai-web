@@ -24,6 +24,7 @@ export default defineConfig({
       ['src/lib/use-motion-preference.test.ts', 'jsdom'],
       ['src/lib/use-now.test.ts', 'jsdom'],
       ['src/lib/mypage-storage.test.ts', 'jsdom'],
+      ['src/lib/use-mypage-data.test.ts', 'jsdom'],
       ['src/lib/analytics.test.ts', 'jsdom'],
       ['src/lib/background-shapes/obstacles.test.ts', 'jsdom'],
     ],

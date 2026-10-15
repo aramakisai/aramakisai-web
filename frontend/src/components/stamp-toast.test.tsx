@@ -7,15 +7,16 @@ describe('StampToast', () => {
   afterEach(() => vi.useRealTimers());
 
   it.each([
-    ['added', 'スタンプを取得しました'],
-    ['exists', '取得済みのスタンプです'],
-  ] as const)('%s の文言とマイページへのリンクを出す', (kind, text) => {
+    ['added', 'スタンプを取得しました', '/mypage'],
+    ['exists', '取得済みのスタンプです', '/mypage'],
+    ['bookmarked', 'ブックマークしました', '/mypage#bookmarks'],
+  ] as const)('%s の文言とマイページへのリンクを出す', (kind, text, href) => {
     render(<StampToast kind={kind} />);
     const status = screen.getByRole('status');
     expect(status).toHaveTextContent(text);
     expect(screen.getByRole('link', { name: 'マイページ' })).toHaveAttribute(
       'href',
-      '/mypage',
+      href,
     );
   });
 

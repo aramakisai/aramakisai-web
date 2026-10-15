@@ -4,6 +4,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import {
   ArrowBackIcon,
+  BookmarkIcon,
   CalendarMonthIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -88,5 +89,26 @@ describe('icons', () => {
       fontVariationSettings: "'FILL' 1",
     });
     expect(PlaceIcon).not.toBe(LocationPinIcon);
+  });
+
+  it('BookmarkIcon は filled に応じて FILL を 1/0 で切り替える', () => {
+    const { rerender } = render(<BookmarkIcon filled={false} />);
+    expect(screen.getByTestId('icon-bookmark')).toHaveTextContent('bookmark');
+    expect(screen.getByTestId('icon-bookmark')).toHaveStyle({
+      fontVariationSettings: "'FILL' 0",
+    });
+    rerender(<BookmarkIcon filled />);
+    expect(screen.getByTestId('icon-bookmark')).toHaveStyle({
+      fontVariationSettings: "'FILL' 1",
+    });
+  });
+
+  it('フォントのサブセット一覧にブックマークとスタンプのタブのグリフが含まれる', () => {
+    const layout = readFileSync(
+      resolve(__dirname, '../app/layout.tsx'),
+      'utf8',
+    );
+    expect(layout).toContain("'bookmark'");
+    expect(layout).toContain("'approval'");
   });
 });

@@ -107,6 +107,7 @@ export function ExhibitionList({ cards, areas }: ExhibitionListProps) {
               <ExhibitionCard
                 key={`${exhibition.id}-${exhibition.category}`}
                 exhibition={exhibition}
+                bookmarkable
               />
             ))}
           </div>

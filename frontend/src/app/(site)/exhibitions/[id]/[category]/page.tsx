@@ -19,6 +19,7 @@ import {
 import { ExhibitionMenu } from '@/components/exhibition-menu';
 import { ExhibitionLinks } from '@/components/exhibition-links';
 import { ExhibitionLocationSection } from '@/components/exhibition-location-map/exhibition-location-section';
+import { BookmarkButton } from '@/components/bookmark-button';
 import { ShareButton } from '@/components/share-button';
 import { CalendarMonthIcon, PlaceIcon } from '@/components/icons';
 import { BackLink } from '@/components/detail-column';
@@ -206,7 +207,18 @@ export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
             <ExhibitionMenu items={exhibition.menu} />
           )}
 
-          <ShareButton title={exhibition.displayName} url={shareUrl}>
+          <ShareButton
+            title={exhibition.displayName}
+            url={shareUrl}
+            leading={
+              <BookmarkButton
+                exhibitionId={exhibition.id}
+                category={exhibition.category}
+                displayName={exhibition.displayName}
+                variant="detail"
+              />
+            }
+          >
             <ExhibitionLinks links={exhibition.links} />
           </ShareButton>
         </div>

@@ -2,6 +2,11 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { ShareButton } from './share-button';
 
+const mocked = vi.hoisted(() => ({ value: null as unknown }));
+vi.mock('@/lib/use-mypage-data', () => ({
+  useMypageData: () => mocked.value,
+}));
+
 const title = '企画名';
 const url = 'https://aramakisai.com/exhibitions/1';
 
@@ -73,7 +78,7 @@ describe('ShareButton', () => {
     expect(screen.getByDisplayValue(url)).toBeInTheDocument();
   });
 
-  it('renders children in the same row after the button, notice outside the row', async () => {
+  it('places children after the actions row and the notice outside the form block', async () => {
     vi.stubGlobal('navigator', {
       ...navigator,
       share: undefined,
@@ -86,11 +91,47 @@ describe('ShareButton', () => {
     );
     const button = screen.getByRole('button', { name: '共有' });
     const link = screen.getByRole('link', { name: 'X' });
-    expect(link.parentElement).toBe(button.parentElement);
-    expect(button.nextElementSibling).toBe(link);
+    const actions = button.parentElement as HTMLElement;
+    expect(actions.nextElementSibling).toBe(link);
 
     fireEvent.click(button);
     const alert = await screen.findByRole('alert');
-    expect(button.parentElement?.contains(alert)).toBe(false);
+    const form = actions.parentElement as HTMLElement;
+    expect(form.contains(alert)).toBe(false);
+  });
+
+  it('puts leading before the share button in the same row', () => {
+    render(
+      <ShareButton title={title} url={url} leading={<button>前置き</button>} />,
+    );
+    const lead = screen.getByRole('button', { name: '前置き' });
+    const button = screen.getByRole('button', { name: '共有' });
+    expect(lead.parentElement).toBe(button.parentElement);
+    expect(lead.nextElementSibling).toBe(button);
+  });
+
+  it('has no border classes on the button', () => {
+    render(<ShareButton title={title} url={url} />);
+    expect(screen.getByRole('button', { name: '共有' }).className).not.toMatch(
+      /border/,
+    );
+  });
+
+  it('uses the inline form when storage is unavailable, stacked otherwise', () => {
+    mocked.value = null;
+    const { container, rerender } = render(
+      <ShareButton title={title} url={url} />,
+    );
+    expect(container.querySelector('[data-form]')).toHaveAttribute(
+      'data-form',
+      'stacked',
+    );
+    mocked.value = 'unavailable';
+    rerender(<ShareButton title={title} url={url} />);
+    expect(container.querySelector('[data-form]')).toHaveAttribute(
+      'data-form',
+      'inline',
+    );
+    mocked.value = null;
   });
 });
