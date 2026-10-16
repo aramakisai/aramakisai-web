@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react';
+import { CrossFade } from '../cross-fade';
 import type {
   PlaylistEntry,
   SignageSlide,
@@ -37,12 +38,14 @@ export function SignageMain({
     <div className="signage-main-frame">
       <div className="signage-main">
         {entry && snapshot && Slide ? (
-          <div
-            key={entry.key}
-            className={transition ? 'fade-in h-full w-full' : 'h-full w-full'}
+          <CrossFade
+            transitionKey={entry.key}
+            enabled={transition}
+            className="h-full w-full"
+            layerClassName="bg-white"
           >
             <Slide entry={entry} snapshot={snapshot} now={now} />
-          </div>
+          </CrossFade>
         ) : null}
       </div>
     </div>

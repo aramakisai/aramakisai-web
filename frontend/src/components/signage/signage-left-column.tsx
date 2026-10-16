@@ -1,3 +1,4 @@
+import { CrossFade } from '../cross-fade';
 import type { EventDay } from '@/lib/home-page-types';
 import type { StageNowRow } from '@/lib/signage';
 import { SignageClock } from './signage-clock';
@@ -43,9 +44,10 @@ export function SignageLeftColumn({
                   className="flex w-full flex-col items-start gap-1"
                 >
                   <SignageStageChip colorIndex={colorIndex} name={stage.name} />
-                  <div
-                    key={performance?.id ?? 'none'}
-                    className="fade-in flex w-full flex-col gap-1"
+                  <CrossFade
+                    transitionKey={String(performance?.id ?? 'none')}
+                    className="w-full"
+                    layerClassName="flex flex-col gap-1 bg-background"
                   >
                     {performance ? (
                       <>
@@ -61,7 +63,7 @@ export function SignageLeftColumn({
                         公演なし
                       </p>
                     )}
-                  </div>
+                  </CrossFade>
                 </div>
               ))}
             </div>

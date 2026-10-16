@@ -32,9 +32,8 @@ describe('ExhibitionGallery', () => {
     fireEvent.click(screen.getByRole('button', { name: '写真3' }));
 
     expect(screen.getByRole('img', { name: '写真3' })).toBeInTheDocument();
-    expect(
-      screen.queryByRole('img', { name: '写真1' }),
-    ).not.toBeInTheDocument();
+    // 旧画像はフェード完了まで残る
+    expect(screen.getByRole('img', { name: '写真1' })).toBeInTheDocument();
   });
 
   it('shows a no-image placeholder and no thumbnail row when there are no images', () => {
@@ -58,7 +57,8 @@ describe('ExhibitionGallery', () => {
     const main = () =>
       screen
         .getAllByRole('img')
-        .find((el) => el.className.includes('absolute'));
+        .filter((el) => el.className.includes('object-contain'))
+        .at(-1);
 
     it('5秒ごとに次へ進み、末尾から先頭に戻る', () => {
       render(<ExhibitionGallery images={images} fallbackAlt="企画名" />);

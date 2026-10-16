@@ -1,3 +1,4 @@
+import { CrossFade } from '../cross-fade';
 import { formatEventDayTime } from '@/lib/event-day';
 import type { EventDay } from '@/lib/home-page-types';
 import { eventDayIndex } from '@/lib/signage';
@@ -28,9 +29,9 @@ export function SignageDayDate({
   const day = eventDayIndex(eventDays, now);
   const date = formatSignageDate(now);
   return (
-    <div
-      key={date}
-      className="fade-in flex items-center gap-3 font-display text-[28px] leading-none font-bold text-text"
+    <CrossFade
+      transitionKey={date}
+      layerClassName="flex items-center gap-3 bg-background font-display text-[28px] leading-none font-bold text-text"
     >
       {day !== null && (
         <span className="whitespace-nowrap rounded-[8px] bg-primary px-4 py-2">
@@ -38,7 +39,7 @@ export function SignageDayDate({
         </span>
       )}
       <span className="whitespace-nowrap">{date}</span>
-    </div>
+    </CrossFade>
   );
 }
 

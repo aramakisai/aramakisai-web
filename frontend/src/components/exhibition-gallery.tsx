@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { toAssetUrl } from '@/lib/cms-asset-url';
 import type { ExhibitionImage } from '@/lib/exhibitions';
 import { useMotionPreference } from '@/lib/use-motion-preference';
+import { CrossFade } from './cross-fade';
 import { HideImageIcon } from './icons';
 
 export interface ExhibitionGalleryProps {
@@ -57,12 +58,18 @@ export function ExhibitionGallery({
       {/* aspect-ratio の箱は自動最小高さが中身の高さになり、縦長画像で枠が伸びる。
           img を absolute にして中身の高さを枠の計算から外す */}
       <div className="relative aspect-[4/3] w-full overflow-clip rounded-xl bg-gray-200">
-        <img
-          key={selected.id}
-          src={toAssetUrl(selected.id, 1920) ?? undefined}
-          alt={selected.alt || fallbackAlt}
-          className="absolute inset-0 h-full w-full animate-[fade-in_600ms_ease-out] object-contain motion-reduce:animate-none"
-        />
+        <CrossFade
+          transitionKey={selected.id}
+          enabled={!reduced}
+          className="absolute inset-0"
+          layerClassName="bg-gray-200"
+        >
+          <img
+            src={toAssetUrl(selected.id, 1920) ?? undefined}
+            alt={selected.alt || fallbackAlt}
+            className="h-full w-full object-contain"
+          />
+        </CrossFade>
       </div>
       {images.length > 1 && (
         <div className="flex gap-2 overflow-x-auto">

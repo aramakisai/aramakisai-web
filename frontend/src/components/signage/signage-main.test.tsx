@@ -50,7 +50,7 @@ describe('SignageMain', () => {
 
 describe('SignageMain transition', () => {
   const renderers = { parking: () => <div data-testid="parking" /> };
-  const wrapper = (transition?: boolean) => {
+  const layer = (transition?: boolean) => {
     const { getByTestId } = render(
       <SignageMain
         entry={entry}
@@ -63,12 +63,31 @@ describe('SignageMain transition', () => {
     return getByTestId('parking').parentElement!;
   };
 
-  it('既定ではフェードインの wrapper で包む', () => {
-    expect(wrapper().classList.contains('fade-in')).toBe(true);
+  it('既定ではフェードインのレイヤーで包む', () => {
+    expect(layer().classList.contains('fade-in')).toBe(true);
   });
 
   it('transition=false ではアニメーションを付けない', () => {
-    expect(wrapper(false).classList.contains('fade-in')).toBe(false);
+    expect(layer(false).classList.contains('fade-in')).toBe(false);
+  });
+
+  it('スライドが切り替わると旧スライドを残して重ね、transition=false では残さない', () => {
+    const next: PlaylistEntry = { ...entry, key: '2:0' };
+    const ui = (e: PlaylistEntry, transition: boolean) => (
+      <SignageMain
+        entry={e}
+        snapshot={snapshot}
+        now={now}
+        renderers={{ parking: (p) => <div>{p.entry.key}</div> }}
+        transition={transition}
+      />
+    );
+    const { rerender, queryByText } = render(ui(entry, true));
+    rerender(ui(next, true));
+    expect(queryByText('1:0')).toBeTruthy();
+    expect(queryByText('2:0')).toBeTruthy();
+    rerender(ui(entry, false));
+    expect(queryByText('2:0')).toBeNull();
   });
 });
 

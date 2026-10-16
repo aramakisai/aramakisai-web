@@ -1,3 +1,4 @@
+import { CrossFade } from '../cross-fade';
 import type { StageNowRow } from '@/lib/signage';
 import {
   SignageIcon,
@@ -29,9 +30,10 @@ export function SignagePortraitInfo({ rows }: SignagePortraitInfoProps) {
                       name={stage.name}
                     />
                   </div>
-                  <div
-                    key={performance?.id ?? 'none'}
-                    className="fade-in flex min-w-px flex-1 flex-col gap-1"
+                  <CrossFade
+                    transitionKey={String(performance?.id ?? 'none')}
+                    className="min-w-px flex-1"
+                    layerClassName="flex flex-col gap-1 bg-background"
                   >
                     {performance ? (
                       <>
@@ -47,7 +49,7 @@ export function SignagePortraitInfo({ rows }: SignagePortraitInfoProps) {
                         公演なし
                       </p>
                     )}
-                  </div>
+                  </CrossFade>
                 </div>
               ))}
             </div>
