@@ -735,3 +735,16 @@ html[data-pl] .exhibition-gradient-bg::before {
   transform: scale(0.671875);
   transform-origin: top left;
 }
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.fade-in {
+  animation: fade-in 600ms ease-out;
+}

@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react';
+import { CrossFade } from '../cross-fade';
 import type {
   PlaylistEntry,
   SignageSlide,
@@ -21,6 +22,8 @@ interface SignageMainProps {
   readonly snapshot: SignageSnapshot | null;
   readonly now: Date;
   readonly renderers: SlideRenderers;
+  /** 緊急地震速報は即時に切り替えるため false で止める */
+  readonly transition?: boolean;
 }
 
 export function SignageMain({
@@ -28,13 +31,21 @@ export function SignageMain({
   snapshot,
   now,
   renderers,
+  transition = true,
 }: SignageMainProps) {
   const Slide = entry ? renderers[entry.slide.kind] : undefined;
   return (
     <div className="signage-main-frame">
       <div className="signage-main">
         {entry && snapshot && Slide ? (
-          <Slide entry={entry} snapshot={snapshot} now={now} />
+          <CrossFade
+            transitionKey={entry.key}
+            enabled={transition}
+            className="h-full w-full"
+            layerClassName="bg-white"
+          >
+            <Slide entry={entry} snapshot={snapshot} now={now} />
+          </CrossFade>
         ) : null}
       </div>
     </div>
