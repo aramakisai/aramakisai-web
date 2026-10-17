@@ -37,6 +37,9 @@ export function buildRobotsPlan(phase: FestivalPhase): RobotsPlan {
       ...RENDER_ASSET_PREFIXES,
       // Disallow: / が最長一致で sitemap を塞ぐため明示的に許可する
       '/sitemap.xml$',
+      // 旧サイトは noindex 付きで配信する。Disallow だとクローラが noindex を読めず
+      // 検索評価が新サイトへ移らない
+      '/2025',
     ],
     disallow: ['/', ...GATED_REWRITE_TARGETS],
   };

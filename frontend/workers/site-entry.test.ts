@@ -141,6 +141,9 @@ describe('site-entry /2025 プロキシ', () => {
       ).toBe('next');
     }
     expect(upstream).toHaveBeenCalledTimes(3);
+    const proxied = await call(new Request('https://aramakisai.com/2025'));
+    expect(proxied.headers.get('X-Robots-Tag')).toBe('noindex');
+    expect(proxied.status).toBe(200);
     vi.unstubAllGlobals();
   });
 });

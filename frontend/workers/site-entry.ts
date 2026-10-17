@@ -93,7 +93,12 @@ const siteEntry = {
       const init: RequestInit & { cf: { resolveOverride: string } } = {
         cf: { resolveOverride: ARCHIVE_2025_ORIGIN },
       };
-      return fetch(request, init);
+      const res = await fetch(request, init);
+      // 旧サイトは閲覧可能にしつつ検索結果からは外す。fetch の Response は
+      // ヘッダが immutable なので作り直す
+      const out = new Response(res.body, res);
+      out.headers.set('X-Robots-Tag', 'noindex');
+      return out;
     }
     if (pathname === '/api/signage/ws' || pathname === '/api/signage/notify') {
       const hub = env.SIGNAGE_HUB.get(env.SIGNAGE_HUB.idFromName(HUB_NAME));
