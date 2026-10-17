@@ -37,12 +37,14 @@ export function useFocusTrap({
   useEffect(() => {
     if (!active) return;
 
+    // 閉じたアコーディオンは DOM に残り inert になる。Tab の対象にならない要素を
+    // 末尾と誤認しないよう除外する
     const queryFocusables = (): HTMLElement[] =>
       Array.from(
         containerRef.current?.querySelectorAll<HTMLElement>(
           focusableSelector,
         ) ?? [],
-      );
+      ).filter((el) => !el.closest('[inert]'));
 
     queryFocusables()[0]?.focus();
 

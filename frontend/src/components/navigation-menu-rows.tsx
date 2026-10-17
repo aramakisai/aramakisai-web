@@ -141,11 +141,17 @@ export function NavigationMenuRows({
               />
             </button>
 
-            {open && (
+            <div
+              className={`grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none ${
+                open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+              }`}
+              aria-hidden={!open}
+              inert={!open ? true : undefined}
+            >
               <ul
                 id={submenuId}
                 aria-label={`${item.label}のサブメニュー`}
-                className="shadow-[inset_1px_0_0_theme(colors.gray.200)]"
+                className="min-h-0 overflow-hidden shadow-[inset_1px_0_0_theme(colors.gray.200)]"
               >
                 {linkableChildren(item).map((child, childIndex, children) => (
                   <li
@@ -167,7 +173,7 @@ export function NavigationMenuRows({
                   </li>
                 ))}
               </ul>
-            )}
+            </div>
           </li>
         );
       })}
