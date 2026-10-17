@@ -80,9 +80,10 @@ describe('MapMenuButton', () => {
 
   it('開いている間は地図へのポインタ操作を遮るオーバーレイを敷く', () => {
     render(<MapMenuButton phase="pre_event" />);
-    expect(screen.queryByTestId('map-menu-overlay')).not.toBeInTheDocument();
+    const overlay = screen.getByTestId('map-menu-overlay');
+    expect(overlay).toHaveClass('pointer-events-none');
     fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
-    expect(screen.getByTestId('map-menu-overlay')).toBeInTheDocument();
+    expect(overlay).not.toHaveClass('pointer-events-none');
   });
 
   it('開くとメニュー内の最初の遷移先へフォーカスを移す', () => {
@@ -101,7 +102,7 @@ describe('MapMenuButton', () => {
     const dialog = screen.getByRole('dialog');
     const focusables = Array.from(
       dialog.querySelectorAll<HTMLElement>('a[href], button'),
-    );
+    ).filter((el) => !el.closest('[inert]'));
     const last = focusables[focusables.length - 1];
     const first = focusables[0];
 
@@ -112,6 +113,16 @@ describe('MapMenuButton', () => {
     first.focus();
     fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
     expect(document.activeElement).toBe(last);
+  });
+
+  it('開いている間はボタンが閉じるボタンになり、押すとメニューを閉じる', () => {
+    render(<MapMenuButton phase="pre_event" />);
+    fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
+    fireEvent.click(screen.getByRole('button', { name: 'メニューを閉じる' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'メニューを開く' }),
+    ).toBeInTheDocument();
   });
 
   it('検索ボックスと縦中心を揃えるための共有トークンでサイズ・位置を指定している', () => {
