@@ -119,3 +119,28 @@ describe('site-entry その他のパス', () => {
     expect(stub.fetch).not.toHaveBeenCalled();
   });
 });
+
+describe('site-entry /2025 プロキシ', () => {
+  it('/2025 と /2025/ 配下だけ旧サーバーへ転送し、/20250 は Next に流す', async () => {
+    const upstream = vi.fn(async () => new Response('old', { status: 200 }));
+    vi.stubGlobal('fetch', upstream);
+    const { call } = setup();
+    for (const p of ['/2025', '/2025/', '/2025/about?x=1']) {
+      expect(
+        await (await call(new Request(`https://aramakisai.com${p}`))).text(),
+      ).toBe('old');
+    }
+    expect(upstream).toHaveBeenCalledTimes(3);
+    expect(upstream.mock.calls[0]).toMatchObject([
+      expect.any(Request),
+      { cf: { resolveOverride: 'origin-2025.aramakisai.com' } },
+    ]);
+    for (const p of ['/20250', '/2025x', '/x/2025']) {
+      expect(
+        await (await call(new Request(`https://aramakisai.com${p}`))).text(),
+      ).toBe('next');
+    }
+    expect(upstream).toHaveBeenCalledTimes(3);
+    vi.unstubAllGlobals();
+  });
+});
