@@ -47,6 +47,7 @@ export default async function MypagePage() {
       targets={targets}
       areas={areas}
       categoryLabels={CATEGORY_LABELS}
+      cards={cards}
     />
   );
 }

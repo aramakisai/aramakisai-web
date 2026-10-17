@@ -61,6 +61,6 @@ export const ROUTE_METADATA: Readonly<
   '/mypage': {
     title: 'マイページ',
     description:
-      'QRコードで集めたスタンプをエリアごとに振り返れます。スマートフォンでご利用ください。',
+      'QRコードで集めたスタンプとブックマークした企画を確認できます。スマートフォンでご利用ください。',
   },
 };

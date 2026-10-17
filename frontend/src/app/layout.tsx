@@ -16,7 +16,9 @@ import { env } from '@/env';
 // weight/FILL は固定値のみ使うため wght は 300 で固定し、FILL だけ 0..1 の範囲を残して
 // アイコンごとに塗りつぶし版 (位置ピン) と線画版を出し分ける
 const MATERIAL_SYMBOLS_ICON_NAMES = [
+  'approval',
   'arrow_back',
+  'bookmark',
   'calendar_clock',
   'calendar_month',
   'chevron_left',

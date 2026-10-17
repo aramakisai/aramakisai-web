@@ -1,12 +1,15 @@
 import { env } from '@/env';
-import type { StampCategory } from './stamp-signature';
+import type { ExhibitionCategory } from './exhibitions';
 
-export interface QrStampParams {
+export interface ExhibitionEventParams {
   readonly exhibition_id: number;
-  readonly exhibition_category: StampCategory;
+  readonly exhibition_category: ExhibitionCategory;
 }
 
-export function sendGaEvent(name: 'qr_stamp', params: QrStampParams): void {
+export function sendGaEvent(
+  name: 'qr_stamp' | 'bookmark_add' | 'bookmark_remove',
+  params: ExhibitionEventParams,
+): void {
   if (
     process.env.NODE_ENV !== 'production' ||
     !env.NEXT_PUBLIC_GA_MEASUREMENT_ID

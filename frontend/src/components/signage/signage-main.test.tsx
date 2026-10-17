@@ -48,6 +48,49 @@ describe('SignageMain', () => {
   });
 });
 
+describe('SignageMain transition', () => {
+  const renderers = { parking: () => <div data-testid="parking" /> };
+  const layer = (transition?: boolean) => {
+    const { getByTestId } = render(
+      <SignageMain
+        entry={entry}
+        snapshot={snapshot}
+        now={now}
+        renderers={renderers}
+        transition={transition}
+      />,
+    );
+    return getByTestId('parking').parentElement!;
+  };
+
+  it('既定ではフェードインのレイヤーで包む', () => {
+    expect(layer().classList.contains('fade-in')).toBe(true);
+  });
+
+  it('transition=false ではアニメーションを付けない', () => {
+    expect(layer(false).classList.contains('fade-in')).toBe(false);
+  });
+
+  it('スライドが切り替わると旧スライドを残して重ね、transition=false では残さない', () => {
+    const next: PlaylistEntry = { ...entry, key: '2:0' };
+    const ui = (e: PlaylistEntry, transition: boolean) => (
+      <SignageMain
+        entry={e}
+        snapshot={snapshot}
+        now={now}
+        renderers={{ parking: (p) => <div>{p.entry.key}</div> }}
+        transition={transition}
+      />
+    );
+    const { rerender, queryByText } = render(ui(entry, true));
+    rerender(ui(next, true));
+    expect(queryByText('1:0')).toBeTruthy();
+    expect(queryByText('2:0')).toBeTruthy();
+    rerender(ui(entry, false));
+    expect(queryByText('2:0')).toBeNull();
+  });
+});
+
 describe('SignageHeadingChip', () => {
   it('アイコンと文字を出す', () => {
     render(<SignageHeadingChip icon="handshake" label="ご協賛" />);

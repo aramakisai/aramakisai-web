@@ -90,3 +90,10 @@ export const LocationPinIcon = createIcon(
   'location_on',
   1,
 );
+
+export function BookmarkIcon({
+  filled,
+  ...props
+}: IconProps & { readonly filled: boolean }) {
+  return renderIcon('bookmark', filled ? 1 : 0, 'icon-bookmark', props);
+}

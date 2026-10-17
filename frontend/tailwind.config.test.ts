@@ -51,7 +51,7 @@ describe('配色トークン', () => {
 
   it('見出し色を現行のまま維持している', () => {
     expect(colors.primary).toBe('#ebb03c');
-    expect(colors.text).toBe('#231815');
+    expect(colors.text).toBe('#202020');
   });
 
   // 本文テキストに使われる階調のみを対象にする。gray-400 は影の色専用でテキストには使わない

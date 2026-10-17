@@ -22,6 +22,8 @@ async function withOldSchema(
   const mig = await import('./migrations/20261013_172130_site_settings_and_cleanup_a');
   const migC = await import('./migrations/20261014_073409_drop_legacy_globals_and_sort');
   const txId = (await payload.db.beginTransaction()) as string | number;
+  // drizzle の db は型を公開しておらず、トランザクション内の sql 実行に any が要る
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = (payload.db as unknown as { sessions: Record<string, { db: any }> }).sessions[txId].db;
   const req = { transactionID: txId };
   const args = { db, payload, req } as never;

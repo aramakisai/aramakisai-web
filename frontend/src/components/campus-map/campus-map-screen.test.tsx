@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CampusMapArea, CampusMapDataResult } from '@/lib/campus-map';
 import type { ExhibitionCardSummary } from '@/lib/exhibitions';
 
+vi.mock('next/navigation', () => ({ usePathname: () => '/map' }));
+
 vi.mock('@/env', () => ({
   env: {
     NEXT_PUBLIC_CMS_URL: 'http://localhost:8055',

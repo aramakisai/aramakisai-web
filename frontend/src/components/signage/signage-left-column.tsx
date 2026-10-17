@@ -1,3 +1,4 @@
+import { CrossFade } from '../cross-fade';
 import type { EventDay } from '@/lib/home-page-types';
 import type { StageNowRow } from '@/lib/signage';
 import { SignageClock } from './signage-clock';
@@ -43,20 +44,26 @@ export function SignageLeftColumn({
                   className="flex w-full flex-col items-start gap-1"
                 >
                   <SignageStageChip colorIndex={colorIndex} name={stage.name} />
-                  {performance ? (
-                    <>
-                      <p className="line-clamp-2 w-full text-[30px] leading-[1.25] font-bold text-text">
-                        {performance.name}
+                  <CrossFade
+                    transitionKey={String(performance?.id ?? 'none')}
+                    className="w-full"
+                    layerClassName="flex flex-col gap-1 bg-background"
+                  >
+                    {performance ? (
+                      <>
+                        <p className="line-clamp-2 w-full text-[30px] leading-[1.25] font-bold text-text">
+                          {performance.name}
+                        </p>
+                        <p className="text-[24px] leading-[1.25] whitespace-nowrap text-gray-600">
+                          {formatPerformanceRange(performance)}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-[30px] leading-[1.25] font-bold text-gray-600">
+                        公演なし
                       </p>
-                      <p className="text-[24px] leading-[1.25] whitespace-nowrap text-gray-600">
-                        {formatPerformanceRange(performance)}
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-[30px] leading-[1.25] font-bold text-gray-600">
-                      公演なし
-                    </p>
-                  )}
+                    )}
+                  </CrossFade>
                 </div>
               ))}
             </div>

@@ -47,6 +47,10 @@ vi.mock('@/lib/timetable', async () => {
   };
 });
 
+vi.mock('@/lib/use-motion-preference', () => ({
+  useMotionPreference: () => ({ reduced: false, toggle: vi.fn() }),
+}));
+
 vi.mock('@/lib/cms-asset-url', () => ({
   toAssetUrl: (id: string | null, width?: number) =>
     id ? `https://cms.example.com/assets/${id}/${width}` : null,
@@ -199,6 +203,35 @@ describe('ExhibitionPage', () => {
       expect(before(loc, perf)).toBeTruthy();
       expect(before(perf, share)).toBeTruthy();
       expect(screen.queryByText('メニュー')).toBeNull();
+    });
+
+    it('ブックマークボタンが共有の前に描画される', async () => {
+      await renderVendor();
+      const bookmark = screen.getByRole('button', { name: /ブックマーク/ });
+      const share = screen.getByRole('button', { name: /共有/ });
+      expect(
+        bookmark.compareDocumentPosition(share) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
+    it('ステージでもブックマークボタンが描画される', async () => {
+      mockResult({
+        kind: 'found',
+        value: { ...vendor, category: 'stage', openDayKeys: [] },
+      });
+      vi.mocked(getExhibitionPerformances).mockResolvedValue({
+        kind: 'loaded',
+        value: [],
+      } as never);
+      render(
+        await ExhibitionPage({
+          params: Promise.resolve({ id: '1', category: 'stage' }),
+        }),
+      );
+      expect(
+        screen.getByRole('button', { name: /ブックマーク/ }),
+      ).toBeInTheDocument();
     });
 
     it('ステージ以外では出演時間を取得しない', async () => {

@@ -1,25 +1,37 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore, type KeyboardEvent } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronRightIcon, ExpandMoreIcon } from '@/components/icons';
+import {
+  BookmarkIcon,
+  ChevronRightIcon,
+  ExpandMoreIcon,
+  MaterialIcon,
+} from '@/components/icons';
 import { DetailColumn } from '@/components/detail-column';
 import { SectionHeading } from '@/components/section-heading';
-import type { AreaOption } from '@/lib/exhibitions';
-import { readMypageData, type SavedExhibitionRef } from '@/lib/mypage-storage';
+import { ExhibitionCard } from '@/components/exhibition-card';
+import type {
+  AreaOption,
+  ExhibitionCardSummary,
+  ExhibitionCategory,
+} from '@/lib/exhibitions';
+import { useMypageData } from '@/lib/use-mypage-data';
 import {
   groupStampsByArea,
   type CollectedStamp,
   type MypageStampTarget,
 } from '@/lib/stamp-progress';
+import type { SavedBookmarkRef } from '@/lib/mypage-storage';
 import type { StampCategory } from '@/lib/stamp-signature';
 
 export interface MypageViewProps {
   readonly targets: readonly MypageStampTarget[];
   readonly areas: readonly AreaOption[];
   // exhibitions.ts の実行時 import は CMS クライアントをクライアントバンドルへ引き込むため、サーバー側から受け取る
-  readonly categoryLabels: Readonly<Record<StampCategory, string>>;
+  readonly categoryLabels: Readonly<Record<ExhibitionCategory, string>>;
+  readonly cards: readonly ExhibitionCardSummary[];
 }
 
 const BADGE_COLORS: Readonly<Record<StampCategory, string>> = {
@@ -136,18 +148,94 @@ function StampArea({
   );
 }
 
+type TabId = 'stamps' | 'bookmarks';
+const TABS: readonly { id: TabId; label: string }[] = [
+  { id: 'stamps', label: 'スタンプ' },
+  { id: 'bookmarks', label: 'ブックマーク' },
+];
+
+function subscribeHash(onChange: () => void): () => void {
+  window.addEventListener('hashchange', onChange);
+  return () => window.removeEventListener('hashchange', onChange);
+}
+
+function useSelectedTab(): TabId {
+  const hash = useSyncExternalStore(
+    subscribeHash,
+    () => window.location.hash,
+    () => '',
+  );
+  return hash === '#bookmarks' ? 'bookmarks' : 'stamps';
+}
+
+function BookmarkList({
+  cards,
+  bookmarks,
+}: {
+  readonly cards: readonly ExhibitionCardSummary[];
+  readonly bookmarks: readonly SavedBookmarkRef[];
+}) {
+  const byKey = new Map(cards.map((c) => [`${c.id}:${c.category}`, c]));
+  const items = [...bookmarks]
+    .sort((a, b) =>
+      a.savedAt < b.savedAt ? 1 : a.savedAt > b.savedAt ? -1 : 0,
+    )
+    .flatMap((b) => byKey.get(`${b.id}:${b.category}`) ?? []);
+  if (items.length === 0) {
+    return (
+      <p className="text-base leading-[1.7] text-gray-600">
+        ブックマークはありません
+      </p>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-6">
+      {items.map((c) => (
+        <ExhibitionCard
+          key={`${c.id}:${c.category}`}
+          exhibition={c}
+          bookmarkable
+        />
+      ))}
+    </div>
+  );
+}
+
+function selectTab(id: TabId) {
+  const hash = id === 'bookmarks' ? '#bookmarks' : '';
+  const url = `${window.location.pathname}${window.location.search}${hash}`;
+  // replaceState は hashchange を発火しないため、購読側へ手で伝える
+  window.history.replaceState(null, '', url);
+  window.dispatchEvent(new Event('hashchange'));
+}
+
+function onTabKeyDown(e: KeyboardEvent<HTMLElement>, current: TabId) {
+  const i = TABS.findIndex((t) => t.id === current);
+  let next: number;
+  if (e.key === 'ArrowRight') next = (i + 1) % TABS.length;
+  else if (e.key === 'ArrowLeft') next = (i - 1 + TABS.length) % TABS.length;
+  else if (e.key === 'Home') next = 0;
+  else if (e.key === 'End') next = TABS.length - 1;
+  else return;
+  e.preventDefault();
+  const id = TABS[next].id;
+  selectTab(id);
+  document.getElementById(`mypage-tab-${id}`)?.focus();
+}
+
 export function MypageView({
   targets,
   areas,
   categoryLabels,
+  cards,
 }: MypageViewProps) {
   // localStorage は hydration 後にしか読めず、読み込み前に空表示を出すと再訪者に誤表示が一瞬出る
-  const [saved, setSaved] = useState<readonly SavedExhibitionRef[] | null>(
-    null,
-  );
-  useEffect(() => {
-    setSaved(readMypageData()?.lists.stamps ?? []);
-  }, []);
+  const data = useMypageData();
+  const saved =
+    data === null ? null : data === 'unavailable' ? [] : data.lists.stamps;
+  const bookmarks =
+    data === null ? null : data === 'unavailable' ? [] : data.lists.bookmarks;
+  const tab = useSelectedTab();
 
   const { areas: groups, others } = groupStampsByArea(
     targets,
@@ -177,38 +265,84 @@ export function MypageView({
         className="mx-auto hidden size-[174px] pc-input:block"
       />
 
-      <section className="flex flex-col gap-4 pc-input:hidden">
-        <SectionHeading
-          level="h2"
-          className="mb-0! text-[20px] leading-[1.3] text-text"
+      <div className="flex flex-col gap-6 pc-input:hidden">
+        <div
+          role="tablist"
+          aria-label="マイページ"
+          className="flex h-16 border-b border-gray-200"
         >
-          スタンプ
-        </SectionHeading>
-        {saved !== null && !hasStamps && (
-          <p className="text-base leading-[1.7] text-gray-600">
-            スタンプはありません
-          </p>
-        )}
-        <div>
-          {groups.map((g) => (
-            <StampArea
-              key={g.areaId}
-              name={g.areaName}
-              percent={g.percent}
-              stamps={g.stamps}
-              categoryLabels={categoryLabels}
-            />
-          ))}
-          {others.length > 0 && (
-            <StampArea
-              name="その他"
-              percent={null}
-              stamps={others}
-              categoryLabels={categoryLabels}
-            />
+          {TABS.map((t) => {
+            const selected = t.id === tab;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                id={`mypage-tab-${t.id}`}
+                aria-selected={selected}
+                aria-controls={`mypage-panel-${t.id}`}
+                tabIndex={selected ? 0 : -1}
+                onClick={() => selectTab(t.id)}
+                onKeyDown={(e) => onTabKeyDown(e, tab)}
+                className="relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 overflow-clip text-text"
+              >
+                {t.id === 'bookmarks' ? (
+                  <BookmarkIcon filled={false} />
+                ) : (
+                  <MaterialIcon name="approval" />
+                )}
+                <span className="text-[10px] leading-[1.6]">{t.label}</span>
+                <span
+                  aria-hidden="true"
+                  className={`absolute inset-x-0 bottom-0 h-0.5 bg-accent-alt ${selected ? '' : 'opacity-0'}`}
+                />
+              </button>
+            );
+          })}
+        </div>
+        <div
+          role="tabpanel"
+          id="mypage-panel-stamps"
+          aria-labelledby="mypage-tab-stamps"
+          hidden={tab !== 'stamps'}
+          className="flex flex-col gap-4"
+        >
+          {saved !== null && !hasStamps && (
+            <p className="text-base leading-[1.7] text-gray-600">
+              スタンプはありません
+            </p>
+          )}
+          <div>
+            {groups.map((g) => (
+              <StampArea
+                key={g.areaId}
+                name={g.areaName}
+                percent={g.percent}
+                stamps={g.stamps}
+                categoryLabels={categoryLabels}
+              />
+            ))}
+            {others.length > 0 && (
+              <StampArea
+                name="その他"
+                percent={null}
+                stamps={others}
+                categoryLabels={categoryLabels}
+              />
+            )}
+          </div>
+        </div>
+        <div
+          role="tabpanel"
+          id="mypage-panel-bookmarks"
+          aria-labelledby="mypage-tab-bookmarks"
+          hidden={tab !== 'bookmarks'}
+        >
+          {bookmarks !== null && (
+            <BookmarkList cards={cards} bookmarks={bookmarks} />
           )}
         </div>
-      </section>
+      </div>
     </DetailColumn>
   );
 }

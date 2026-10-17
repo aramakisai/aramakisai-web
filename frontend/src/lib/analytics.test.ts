@@ -52,4 +52,33 @@ describe('sendGaEvent', () => {
     sendGaEvent('qr_stamp', { exhibition_id: 1, exhibition_category: 'other' });
     expect((window as W).dataLayer).toBeUndefined();
   });
+
+  it.each(['bookmark_add', 'bookmark_remove'] as const)(
+    '%s は stage を含め2項目だけを積む',
+    (name) => {
+      vi.stubEnv('NODE_ENV', 'production');
+      sendGaEvent(name, { exhibition_id: 7, exhibition_category: 'stage' });
+      const entry = (window as W).dataLayer![0] as ArrayLike<unknown>;
+      expect(Array.from(entry)).toEqual([
+        'event',
+        name,
+        { exhibition_id: 7, exhibition_category: 'stage' },
+      ]);
+    },
+  );
+
+  it('bookmark_add は本番以外・測定IDなしでは送らない', () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    sendGaEvent('bookmark_add', {
+      exhibition_id: 1,
+      exhibition_category: 'stage',
+    });
+    vi.stubEnv('NODE_ENV', 'production');
+    envMock.env.NEXT_PUBLIC_GA_MEASUREMENT_ID = undefined;
+    sendGaEvent('bookmark_remove', {
+      exhibition_id: 1,
+      exhibition_category: 'stage',
+    });
+    expect((window as W).dataLayer).toBeUndefined();
+  });
 });
