@@ -68,7 +68,8 @@ const guardResetToken: CollectionBeforeOperationHook = async (arg) => {
 const captureResendInvite: CollectionBeforeChangeHook = ({ data, operation, originalDoc, req }) => {
   if (data?.resend_invite === true && isExecutive(toCmsUser(req.user))) {
     if (operation === 'create') req.context.sendInviteOnCreate = true;
-    else req.context.resendInviteFor = originalDoc?.id;
+    // 一括更新は複数文書が同じ req.context を共有して並行に走るため、単一値でなく集合で持つ
+    else ((req.context.resendInviteFor ??= new Set<number | string>()) as Set<number | string>).add(originalDoc?.id);
     delete data.resend_invite;
   }
   return data;
@@ -98,10 +99,10 @@ const markActivatedOnLogin: CollectionAfterLoginHook = async ({ user, req }) => 
 };
 
 const queueInvitationEmail: CollectionAfterChangeHook = async ({ doc, operation, req }) => {
-  const isResendTarget =
-    operation === 'create' ? req.context.sendInviteOnCreate === true : req.context.resendInviteFor === doc.id;
+  const targets = req.context.resendInviteFor as Set<number | string> | undefined;
+  const isResendTarget = operation === 'create' ? req.context.sendInviteOnCreate === true : !!targets?.has(doc.id);
   delete req.context.sendInviteOnCreate;
-  if (isResendTarget) delete req.context.resendInviteFor;
+  if (isResendTarget && operation !== 'create') targets?.delete(doc.id);
 
   // 設定済みの人へ送るとパスワード設定リンクの再発行になるため、ここでも積まない。
   // 最終判定は sendInvitation 側にもある。
@@ -134,7 +135,11 @@ const detachMediaOnRoleChange: CollectionAfterChangeHook = async ({ doc, previou
 export const Users: CollectionConfig = {
   slug: 'users',
   labels: { singular: 'ユーザー', plural: 'ユーザー' },
-  admin: { useAsTitle: 'email', defaultColumns: ['email', 'role', 'invite_status'] },
+  admin: {
+    useAsTitle: 'email',
+    defaultColumns: ['email', 'role', 'invite_status'],
+    components: { beforeListTable: ['./components/SendInviteBulkButton.tsx'] },
+  },
   // ローカル認証は実行委員の緊急用。通常経路は Authentik OIDC (auth/strategy.ts)。
   auth: true,
   hooks: {
