@@ -4,8 +4,11 @@ import type { PayloadRequest } from 'payload';
 import { optionalEnv } from '../env';
 import { invitationHtml, invitationSubject } from './email-templates';
 
-/** 招待リンクの有効期限。発行 (再送を含む) から 72 時間の固定値 */
-export const INVITATION_EXPIRATION_MS = 72 * 60 * 60 * 1000;
+/**
+ * 招待リンクは実質無期限。reset_password_expiration の NULL は期限切れ扱いになるため、
+ * 十分先の日時を入れる (100 年。JS Date と timestamp(3) の範囲内)。
+ */
+export const INVITATION_EXPIRATION_MS = 100 * 365 * 24 * 60 * 60 * 1000;
 
 export type InvitationResult =
   | { readonly kind: 'sent'; readonly expiresAt: Date }
