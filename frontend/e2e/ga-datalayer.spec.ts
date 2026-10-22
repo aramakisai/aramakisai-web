@@ -55,9 +55,9 @@ test.describe('GA4 の dataLayer', () => {
     await page.goto('/map');
     await expect.poll(() => pageViewCount(page)).toBe(1);
 
-    const polygon = page
-      .locator('path.leaflet-interactive[aria-label]')
-      .first();
+    await expect(page.getByRole('status')).toHaveCount(0, { timeout: 15000 });
+
+    const polygon = page.locator('svg path[role="button"]').first();
     test.skip(
       (await polygon.count()) === 0,
       '有効な図形を持つエリアが登録されていないため検証できません',
@@ -109,12 +109,16 @@ test.describe('GA4 の dataLayer', () => {
     await page.goto('/exhibitions');
     await expect.poll(() => pageViewCount(page)).toBe(1);
 
-    await page.locator('a[href^="/exhibitions/"]').first().click();
+    const card = page.locator('main a[href^="/exhibitions/"]').first();
+    test.skip((await card.count()) === 0, '企画が未登録のため検証できません');
+    await card.click();
     await expect(page).toHaveURL(/\/exhibitions\/[^/?#]+/);
     await expect.poll(() => pageViewCount(page)).toBe(2);
   });
 
   test('マイページのタブ切替では page_view が増えない', async ({ page }) => {
+    // タブはスマートフォン幅 (1024px 未満) でしか表示されない
+    await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/mypage');
     await expect.poll(() => pageViewCount(page)).toBe(1);
 
