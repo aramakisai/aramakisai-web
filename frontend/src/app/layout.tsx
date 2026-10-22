@@ -109,7 +109,7 @@ export default function RootLayout({
   const phaseToggle = DEV_OVERRIDE_ENABLED ? <PhaseToggle /> : null;
 
   return (
-    <html lang="ja" suppressHydrationWarning>
+    <html lang="ja" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link

@@ -1,10 +1,6 @@
-import { dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { FlatCompat } from '@eslint/eslintrc';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-const compat = new FlatCompat({ baseDirectory: __dirname });
+import coreWebVitals from 'eslint-config-next/core-web-vitals';
+import nextTypescript from 'eslint-config-next/typescript';
+import prettier from 'eslint-config-prettier/flat';
 
 const config = [
   {
@@ -17,8 +13,18 @@ const config = [
       'workers/worker-configuration.d.ts',
     ],
   },
-  ...compat.extends('next/core-web-vitals', 'next/typescript'),
-  ...compat.extends('prettier'),
+  ...coreWebVitals,
+  ...nextTypescript,
+  prettier,
+  {
+    // eslint-config-next 16 が新規に有効化した React Compiler 系ルール。
+    // 既存コードの挙動変更を伴う書き換えが必要なため、アップグレードとは切り離して無効化している
+    rules: {
+      'react-hooks/set-state-in-effect': 'off',
+      'react-hooks/refs': 'off',
+      'react-hooks/purity': 'off',
+    },
+  },
 ];
 
 export default config;
