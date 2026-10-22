@@ -47,6 +47,14 @@ describe('RootLayout', () => {
   });
 });
 
+describe('RootLayout - Material Symbols', () => {
+  it('現在地ボタン用の my_location を読み込み対象に含む', () => {
+    const html = renderToStaticMarkup(RootLayout({ children: <div /> }));
+
+    expect(html).toMatch(/icon_names=[^"&]*\bmy_location\b/);
+  });
+});
+
 describe('RootLayout - モーション抑制の初期反映 (要件 21.7, 21.8)', () => {
   it('hydration 前に停止指定を判定するスクリプトを <head> に埋め込む', async () => {
     const ui = RootLayout({ children: <div>content</div> });

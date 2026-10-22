@@ -42,6 +42,7 @@ const MATERIAL_SYMBOLS_ICON_NAMES = [
   'map',
   'menu',
   'mic',
+  'my_location',
   'open_in_new',
   'parking_sign',
   'person',
