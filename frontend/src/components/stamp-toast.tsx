@@ -23,7 +23,15 @@ const TRANSITION_MS = 200;
 
 type ToastState = 'entering' | 'open' | 'leaving' | 'gone';
 
-export function StampToast({ kind }: { readonly kind: StampToastKind }) {
+export function StampToast({
+  kind,
+  message,
+  showLink = true,
+}: {
+  readonly kind: StampToastKind;
+  readonly message?: string;
+  readonly showLink?: boolean;
+}) {
   const [state, setState] = useState<ToastState>('entering');
 
   useEffect(() => {
@@ -56,14 +64,16 @@ export function StampToast({ kind }: { readonly kind: StampToastKind }) {
       }`}
     >
       <span className="text-sm leading-[1.6] text-background">
-        {MESSAGES[kind]}
+        {message ?? MESSAGES[kind]}
       </span>
-      <Link
-        href={LINK_HREFS[kind]}
-        className="text-sm leading-[1.6] font-bold text-background underline"
-      >
-        マイページ
-      </Link>
+      {showLink && (
+        <Link
+          href={LINK_HREFS[kind]}
+          className="text-sm leading-[1.6] font-bold text-background underline"
+        >
+          マイページ
+        </Link>
+      )}
     </div>
   );
 }

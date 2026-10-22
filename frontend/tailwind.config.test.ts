@@ -89,6 +89,13 @@ describe('背景装飾専用の色トークン (bansai-*)', () => {
   );
 });
 
+describe('現在地の色トークン', () => {
+  it('location / location-accuracy が Figma 変数と一致する', () => {
+    expect(colors.location).toBe('#1a73e8');
+    expect(colors['location-accuracy']).toBe('#1a73e826');
+  });
+});
+
 describe('下部ナビゲーション用の文字サイズトークン (body-xs)', () => {
   it('10px・行高 1.6・weight 400 を持つ (Figma body/xs 実測値)', () => {
     const [size, options] = fontSize['body-xs'];

@@ -48,6 +48,10 @@ vi.mock('./map-zoom-control', () => ({
   },
 }));
 
+vi.mock('./map-user-location', () => ({
+  MapUserLocation: () => <div data-testid="map-user-location" />,
+}));
+
 import { CampusMapView } from './campus-map-view';
 
 function mockMatchMedia(matches: boolean) {
@@ -293,5 +297,21 @@ describe('CampusMapView', () => {
     );
     expect(attributionControlProps.length).toBeGreaterThan(0);
     expect(mapZoomControlRenderCount).toBeGreaterThan(0);
+  });
+
+  it('現在地をズームコントロールより後にマウントし、ズームの真上に積む', () => {
+    const { container } = render(
+      <CampusMapView
+        areas={[]}
+        selectedAreaId={null}
+        onSelectArea={() => {}}
+      />,
+    );
+    const testIds = Array.from(container.querySelectorAll('[data-testid]')).map(
+      (el) => el.getAttribute('data-testid'),
+    );
+    expect(testIds.indexOf('map-zoom-control')).toBeLessThan(
+      testIds.indexOf('map-user-location'),
+    );
   });
 });

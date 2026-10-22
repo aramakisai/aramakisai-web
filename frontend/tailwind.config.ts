@@ -28,6 +28,8 @@ const config: Config = {
           800: '#292524',
         },
         text: '#202020',
+        location: '#1a73e8',
+        'location-accuracy': '#1a73e826',
         primary: '#ebb03c',
         secondary: '#7fc8ad',
         accent: '#ee7e84',

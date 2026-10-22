@@ -20,6 +20,19 @@ describe('StampToast', () => {
     );
   });
 
+  it('message を渡すと kind の既定文言の代わりに出す', () => {
+    render(<StampToast kind="added" message="現在地を取得できませんでした" />);
+    const status = screen.getByRole('status');
+    expect(status).toHaveTextContent('現在地を取得できませんでした');
+    expect(status).not.toHaveTextContent('スタンプを取得しました');
+  });
+
+  it('showLink={false} でマイページのリンクを描かず role=status は保つ', () => {
+    render(<StampToast kind="added" showLink={false} />);
+    expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+
   it('固定幅 358px で右下に出す。下部ナビがある幅ではナビの上、lg 以上では画面下端から', () => {
     render(<StampToast kind="added" />);
     expect(screen.getByRole('status')).toHaveClass(

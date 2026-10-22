@@ -7,6 +7,7 @@ import { CAMPUS_MAP_CONFIG, MAP_ATTRIBUTION } from '@/lib/campus-map-config';
 import type { CampusMapArea, CampusMapPoint } from '@/lib/campus-map';
 import { AreaPolygonLayer } from './area-polygon-layer';
 import { MapPointMarker } from './map-point-marker';
+import { MapUserLocation } from './map-user-location';
 import { MapViewportSync } from './map-viewport-sync';
 import { MapZoomControl } from './map-zoom-control';
 import { useIsAboveMapBreakpoint } from './use-is-above-map-breakpoint';
@@ -90,6 +91,7 @@ export function CampusMapView({
         prefix={false}
       />
       <MapZoomControl />
+      <MapUserLocation />
     </MapContainer>
   );
 }
