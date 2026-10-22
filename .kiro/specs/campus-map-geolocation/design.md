@@ -138,6 +138,7 @@ stateDiagram-v2
 | 2.3 | 位置の更新 | useUserLocation, UserLocationMarker | `UserLocation` | 状態図 |
 | 2.4 | 初回だけ中心移動 | MapUserLocation | `onFirstLocation` → `map.panTo` | 状態図 |
 | 2.5 | 取得中の押下で現在地へ移動 | MapUserLocation | `map.panTo` | 状態図 |
+| 2.8 | 動きの停止設定では動かさない | MapUserLocation | `useMotionPreference().reduced` | — |
 | 2.6 | 離脱時の停止 | useUserLocation | effectの後始末 | 状態図 |
 | 2.7 | サーバーへ送らない | useUserLocation | 外部送信を持たない | — |
 | 3.1 | 範囲内で表示 | useUserLocation, UserLocationMarker | `isWithinCampus` | 状態図 |
@@ -239,8 +240,8 @@ export function isWithinCampus(
 | Requirements | 1.1〜1.8, 2.4, 3.1〜3.6, 4.6, 4.7, 4.8 |
 
 **Responsibilities & Constraints**
-- `useMap()`で地図を得て、`onFirstLocation`で`map.panTo([lat, lng], { animate: false })`を呼ぶ。ズームは変えない(R2.4)。`maxBounds`の補正で端の近くでは完全な中央にならないことがある
-- ボタン押下の振り分け: idleなら`start()`、watchingでlocationがあれば同じ`map.panTo([lat, lng], { animate: false })`で現在地へ移す(R2.5)、watchingでlocationがnullなら何もしない
+- `useMap()`で地図を得て、`onFirstLocation`で`map.panTo([lat, lng], { animate: !reduced })`を呼ぶ。`reduced`は`useMotionPreference()`の値で、OSの設定とフッターの切り替えの両方を反映する(R2.8)。所要時間・緩急はLeafletの`panTo`の既定(0.25秒)に任せる。`animate: true`を明示すると、移動量が地図の表示範囲を超える場合もLeafletは瞬間移動にせずアニメーションで移す。ズームは変えない(R2.4)。`maxBounds`の補正で端の近くでは完全な中央にならないことがある
+- ボタン押下の振り分け: idleなら`start()`、watchingでlocationがあれば同じ`map.panTo([lat, lng], { animate: !reduced })`で現在地へ移す(R2.5)、watchingでlocationがnullなら何もしない
 - `<CampusMapView>`の中で`<MapZoomControl />`の直後にマウントする。これでズームより後にaddToされ、ズームの真上に積まれる
 - `failureCount > 0`のとき、`document.body`へportalした`<div className="relative z-[1060]">`の中に`<StampToast key={failureCount} kind="added" message="現在地を取得できませんでした" showLink={false} />`を描く
   - `key`の変更で再マウントし、2回目以降の失敗でも出し直す(StampToastのタイマーはマウント時の1回だけ)

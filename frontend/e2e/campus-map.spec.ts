@@ -330,9 +330,12 @@ test.describe('現在地の表示', () => {
     await expect(userDot(page)).toHaveCount(1);
 
     const mapCenter = await center(page.locator('.leaflet-container'));
-    const dot = await center(userDot(page));
-    expect(Math.abs(dot.x - mapCenter.x)).toBeLessThan(40);
-    expect(Math.abs(dot.y - mapCenter.y)).toBeLessThan(40);
+    await expect
+      .poll(async () => {
+        const d = await center(userDot(page));
+        return Math.hypot(d.x - mapCenter.x, d.y - mapCenter.y);
+      })
+      .toBeLessThan(40);
   });
 
   test('地図をずらして現在地が離れても、もう一度押すと縮尺を変えず中央付近に戻る', async ({

@@ -10,6 +10,7 @@ const hook = vi.hoisted(() => ({
   result: null as unknown as UseUserLocationResult,
   options: null as unknown as UseUserLocationOptions,
 }));
+const motion = vi.hoisted(() => ({ reduced: false }));
 const mapRef = vi.hoisted(() => ({ current: null as unknown }));
 const paneProps: Record<string, unknown>[] = [];
 const circleProps: Record<string, unknown>[] = [];
@@ -20,6 +21,10 @@ vi.mock('./use-user-location', () => ({
     hook.options = options;
     return hook.result;
   },
+}));
+
+vi.mock('@/lib/use-motion-preference', () => ({
+  useMotionPreference: () => ({ reduced: motion.reduced, toggle: vi.fn() }),
 }));
 
 vi.mock('react-leaflet', () => ({
@@ -56,6 +61,7 @@ function setHook(partial: Partial<UseUserLocationResult>) {
 describe('MapUserLocation', () => {
   beforeEach(() => {
     start.mockClear();
+    motion.reduced = false;
     paneProps.length = 0;
     circleProps.length = 0;
     markerProps.length = 0;
@@ -109,7 +115,7 @@ describe('MapUserLocation', () => {
     const zoom = map.getZoom();
     render(<MapUserLocation />);
     fireEvent.click(screen.getByRole('button', { name: '現在地を表示' }));
-    expect(panTo).toHaveBeenCalledWith([36.43, 139.0], { animate: false });
+    expect(panTo).toHaveBeenCalledWith([36.43, 139.0], { animate: true });
     expect(map.getZoom()).toBe(zoom);
     expect(start).not.toHaveBeenCalled();
   });
@@ -127,7 +133,22 @@ describe('MapUserLocation', () => {
     const panTo = vi.spyOn(map, 'panTo');
     render(<MapUserLocation />);
     hook.options.onFirstLocation(LOCATION);
-    expect(panTo).toHaveBeenCalledWith([36.43, 139.0], { animate: false });
+    expect(panTo).toHaveBeenCalledWith([36.43, 139.0], { animate: true });
+  });
+
+  it.each([
+    [false, true],
+    [true, false],
+  ])('停止設定 %s のとき中心移動の animate は %s', (reduced, animate) => {
+    motion.reduced = reduced;
+    setHook({ state: { kind: 'watching', location: LOCATION } });
+    const panTo = vi.spyOn(map, 'panTo');
+    render(<MapUserLocation />);
+    hook.options.onFirstLocation(LOCATION);
+    fireEvent.click(screen.getByRole('button', { name: '現在地を表示' }));
+    expect(panTo).toHaveBeenCalledTimes(2);
+    expect(panTo).toHaveBeenNthCalledWith(1, [36.43, 139.0], { animate });
+    expect(panTo).toHaveBeenNthCalledWith(2, [36.43, 139.0], { animate });
   });
 
   it('現在地が無いときはマーカーを描かない', () => {

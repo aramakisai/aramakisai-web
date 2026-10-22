@@ -6,6 +6,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { Control, DomEvent, DomUtil, divIcon } from 'leaflet';
 import { Circle, Marker, Pane, useMap } from 'react-leaflet';
 import { MaterialIcon } from '@/components/icons';
+import { useMotionPreference } from '@/lib/use-motion-preference';
 import { StampToast } from '@/components/stamp-toast';
 import tailwindConfig from '../../../tailwind.config';
 import { useUserLocation, type UserLocation } from './use-user-location';
@@ -39,10 +40,11 @@ const PANE_STYLE = { zIndex: 625 };
 
 export function MapUserLocation() {
   const map = useMap();
+  const { reduced } = useMotionPreference();
   const [container, setContainer] = useState<HTMLElement | null>(null);
 
   const panToLocation = ({ latitude, longitude }: UserLocation) =>
-    map.panTo([latitude, longitude], { animate: false });
+    map.panTo([latitude, longitude], { animate: !reduced });
   const { state, failureCount, start } = useUserLocation({
     onFirstLocation: panToLocation,
   });

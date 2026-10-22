@@ -90,10 +90,10 @@
 - **Selected Approach**: 3。既定値は従来どおりなので`StampCollector`は変更しない
 - **Trade-offs**: `z-40`はそのままにして、構内マップ側で`relative z-[1060]`のラッパーをbodyへportalする。他ページの重なり順は変えない
 
-### Decision: 中心移動はアニメーションなしの`panTo`
-- **Context**: R2.4(縮尺を変えずに中心を移す、初回だけ)
-- **Selected Approach**: `map.panTo(latlng, { animate: false })`
-- **Rationale**: ズームを変えない。既存の`MapViewportSync`も`animate: false`で、動きの停止設定(`data-motion`)を扱う必要が生じない
+### Decision: 中心移動は動きの停止設定に従うアニメーション付きの`panTo`
+- **Context**: R2.4, R2.5(縮尺を変えずに中心を滑らかに移す)、R2.8(動きの停止設定)
+- **Selected Approach**: `map.panTo(latlng, { animate: !useMotionPreference().reduced })`。所要時間はLeaflet既定の0.25秒
+- **Rationale**: ズームを変えない。`flyTo`はズームアウト・インを挟むため使わない。Leafletは`animate`が未指定だと移動量が表示範囲を超えるとき瞬間移動にするため、`true`を明示して常に滑らかに移す。動きの停止はサイト共通の`useMotionPreference`に揃える
 
 ### Decision: 色トークンは`tailwind.config.ts`へ追加する
 - **Selected Approach**: `theme.extend.colors`に`location: '#1a73e8'`と`'location-accuracy': '#1a73e826'`を追加する。点はTailwindクラス(`bg-location`)、精度円のJSのpathOptionsは`lib/campus-map.ts`と同じく`tailwind.config`のimportで値を読む
