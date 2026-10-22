@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { DomEvent } from 'leaflet';
 import type { LatLngBoundsExpression } from 'leaflet';
 import { useMap } from 'react-leaflet';
+import { sendGaEvent } from '@/lib/analytics';
 
 // lib/exhibition-location-map の AreaBounds と同じ形にしている。同モジュールは
 // 未実装のため、実装後はそちらの型を import する形に差し替えられる
@@ -36,6 +37,7 @@ export function RecenterButton({ bounds }: RecenterButtonProps) {
       bounds.northEast,
     ] as unknown as LatLngBoundsExpression;
     map.fitBounds(latLngBounds);
+    sendGaEvent('location_map', { result: 'recenter' });
   };
 
   return (

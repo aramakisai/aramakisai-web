@@ -1,14 +1,17 @@
 'use client';
 
+import { Suspense } from 'react';
 import './globals.css';
+import { GoogleAnalytics } from '@/components/google-analytics';
 import { ErrorPageContent } from '@/components/error-page-content';
 import { FALLBACK_SITE_TITLE } from '@/lib/site-metadata';
 
 export default function GlobalError({
-  reset,
+  error,
+  retry,
 }: {
-  error: Error;
-  reset: () => void;
+  error: Error & { digest?: string };
+  retry: () => void;
 }) {
   return (
     <html lang="ja">
@@ -18,9 +21,14 @@ export default function GlobalError({
           <ErrorPageContent
             variant="error"
             pageTitle={`エラーが発生しました | ${FALLBACK_SITE_TITLE}`}
-            onReset={reset}
+            onRetry={retry}
+            digest={error.digest}
+            scope="global"
           />
         </main>
+        <Suspense fallback={null}>
+          <GoogleAnalytics />
+        </Suspense>
       </body>
     </html>
   );

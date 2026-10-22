@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, type ReactNode } from 'react';
+import { sendGaEvent } from '@/lib/analytics';
 import { toAssetUrl } from '@/lib/cms-asset-url';
 import { CloseIcon } from './icons';
 
@@ -50,6 +51,7 @@ export function RichTextImageViewer({ children }: RichTextImageViewerProps) {
     triggerRef.current = trigger;
     // showModal() 中は背面の操作不能化・フォーカスの閉じ込めをブラウザ既定に任せる (design.md)
     dialogRef.current?.showModal();
+    sendGaEvent('image_viewer', { result: 'open' });
     previousBodyOverflowRef.current = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
   }

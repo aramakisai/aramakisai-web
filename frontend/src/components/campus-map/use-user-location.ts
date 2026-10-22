@@ -19,9 +19,25 @@ export interface UseUserLocationOptions {
   readonly onFirstLocation: (location: UserLocation) => void;
 }
 
+export type UserLocationFailureReason =
+  'out_of_campus' | 'denied' | 'unavailable' | 'timeout' | 'unsupported';
+
+interface UserLocationFailure {
+  readonly reason: UserLocationFailureReason;
+  /** 失敗のたびに増える。同じ理由が続いても変化を検知できる */
+  readonly seq: number;
+}
+
+// GeolocationPositionError.code: 1=PERMISSION_DENIED, 2=POSITION_UNAVAILABLE, 3=TIMEOUT
+const ERROR_CODE_REASON: Record<number, UserLocationFailureReason> = {
+  1: 'denied',
+  2: 'unavailable',
+  3: 'timeout',
+};
+
 export interface UseUserLocationResult {
   readonly state: UserLocationState;
-  readonly failureCount: number;
+  readonly lastFailure: UserLocationFailure | null;
   readonly start: () => void;
 }
 
@@ -39,7 +55,9 @@ export function useUserLocation({
   onFirstLocation,
 }: UseUserLocationOptions): UseUserLocationResult {
   const [state, setState] = useState<UserLocationState>({ kind: 'idle' });
-  const [failureCount, setFailureCount] = useState(0);
+  const [lastFailure, setLastFailure] = useState<UserLocationFailure | null>(
+    null,
+  );
   const onFirstRef = useRef(onFirstLocation);
   onFirstRef.current = onFirstLocation;
   // 現在の監視の watch ID とセッション ID。clearWatch 前にキューへ積まれた
@@ -55,16 +73,23 @@ export function useUserLocation({
     }
   }, []);
 
-  const fail = useCallback(() => {
-    stop();
-    setState({ kind: 'idle' });
-    setFailureCount((n) => n + 1);
-  }, [stop]);
+  const recordFailure = useCallback((reason: UserLocationFailureReason) => {
+    setLastFailure((prev) => ({ reason, seq: (prev?.seq ?? 0) + 1 }));
+  }, []);
+
+  const fail = useCallback(
+    (reason: UserLocationFailureReason) => {
+      stop();
+      setState({ kind: 'idle' });
+      recordFailure(reason);
+    },
+    [stop, recordFailure],
+  );
 
   const start = useCallback(() => {
     if (watchIdRef.current !== null) return;
     if (!('geolocation' in navigator)) {
-      setFailureCount((n) => n + 1);
+      recordFailure('unsupported');
       return;
     }
     const session = ++sessionRef.current;
@@ -74,7 +99,7 @@ export function useUserLocation({
       ({ coords }) => {
         if (session !== sessionRef.current) return;
         if (!isWithinCampus(coords.latitude, coords.longitude)) {
-          fail();
+          fail('out_of_campus');
           return;
         }
         const location = {
@@ -88,15 +113,15 @@ export function useUserLocation({
           onFirstRef.current(location);
         }
       },
-      () => {
+      (error) => {
         if (session !== sessionRef.current) return;
-        fail();
+        fail(ERROR_CODE_REASON[error.code] ?? 'unavailable');
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
     );
-  }, [fail]);
+  }, [fail, recordFailure]);
 
   useEffect(() => stop, [stop]);
 
-  return { state, failureCount, start };
+  return { state, lastFailure, start };
 }

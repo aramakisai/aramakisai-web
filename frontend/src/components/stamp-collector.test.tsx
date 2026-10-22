@@ -71,21 +71,24 @@ describe('StampCollector', () => {
     expect(ga).toHaveBeenCalledWith('qr_stamp', {
       exhibition_id: 3,
       exhibition_category: 'exhibit',
+      result: 'added',
     });
-    expect(ga.mock.invocationCallOrder[0]).toBeLessThan(
-      add.mock.invocationCallOrder[0],
-    );
+    expect(add).toHaveBeenCalledTimes(1);
   });
 
   it('取得済みなら取得済みのトーストを出す', async () => {
     storage.addStamp(3, 'exhibit');
     window.location.hash = `#s=${SIG}`;
     mockVerify(true);
-    vi.mocked(analytics.sendGaEvent);
     render(<StampCollector exhibitionId={3} category="exhibit" />);
     expect(await screen.findByRole('status')).toHaveTextContent(
       '取得済みのスタンプです',
     );
+    expect(analytics.sendGaEvent).toHaveBeenCalledWith('qr_stamp', {
+      exhibition_id: 3,
+      exhibition_category: 'exhibit',
+      result: 'exists',
+    });
   });
 
   it('不一致では記録せず何も表示しないが、フラグメントは消す', async () => {
@@ -98,6 +101,11 @@ describe('StampCollector', () => {
     expect(window.location.hash).toBe('');
     expect(add).not.toHaveBeenCalled();
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(analytics.sendGaEvent).toHaveBeenCalledWith('qr_stamp', {
+      exhibition_id: 3,
+      exhibition_category: 'exhibit',
+      result: 'invalid',
+    });
   });
 
   it('通信失敗では何も表示しない', async () => {
@@ -108,6 +116,29 @@ describe('StampCollector', () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
     await Promise.resolve();
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(analytics.sendGaEvent).toHaveBeenCalledWith('qr_stamp', {
+      exhibition_id: 3,
+      exhibition_category: 'exhibit',
+      result: 'network_error',
+    });
+  });
+
+  it('失敗応答(!ok)は network_error', async () => {
+    window.location.hash = `#s=${SIG}`;
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
+    render(<StampCollector exhibitionId={3} category="exhibit" />);
+    await waitFor(() =>
+      expect(analytics.sendGaEvent).toHaveBeenCalledWith(
+        'qr_stamp',
+        expect.objectContaining({ result: 'network_error' }),
+      ),
+    );
+  });
+
+  it('フラグメントが無ければ送信しない', () => {
+    mockVerify(true);
+    render(<StampCollector exhibitionId={3} category="exhibit" />);
+    expect(analytics.sendGaEvent).not.toHaveBeenCalled();
   });
 
   it('保存不可では何も表示しない', async () => {
@@ -118,5 +149,9 @@ describe('StampCollector', () => {
     render(<StampCollector exhibitionId={3} category="exhibit" />);
     await waitFor(() => expect(storage.addStamp).toHaveBeenCalled());
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(analytics.sendGaEvent).toHaveBeenCalledWith(
+      'qr_stamp',
+      expect.objectContaining({ result: 'unavailable' }),
+    );
   });
 });

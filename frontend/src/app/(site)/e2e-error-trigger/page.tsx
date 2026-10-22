@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import { createElement } from 'react';
+import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { DEV_OVERRIDE_ENABLED } from '@/lib/phase';
 
@@ -17,9 +19,14 @@ export function generateMetadata(): Metadata {
   return {};
 }
 
-export default function E2EErrorTriggerPage() {
+// 回復条件はサーバーのメモリではなくリクエストの Cookie に持たせる。
+// Workers はリクエストごとに isolate が異なり得て、カウンタでは初回だけ失敗を再現できない
+export default async function E2EErrorTriggerPage() {
   if (!DEV_OVERRIDE_ENABLED) {
     notFound();
+  }
+  if ((await cookies()).get('e2e_retry_ok')) {
+    return createElement('p', null, '回復しました');
   }
   throw new Error(
     'e2e-error-trigger: (site)/error.tsx のE2E検証用の意図的な例外',

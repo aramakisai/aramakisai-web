@@ -3,8 +3,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useMotionPreference } from '@/lib/use-motion-preference';
 import { MotionToggle } from './motion-toggle';
 
+vi.mock('@/lib/analytics', () => ({ sendGaEvent: vi.fn() }));
+
 vi.mock('@/lib/use-motion-preference', () => ({
   useMotionPreference: vi.fn(),
+  prefersReducedMotion: () => false,
 }));
 
 const mockUseMotionPreference = vi.mocked(useMotionPreference);

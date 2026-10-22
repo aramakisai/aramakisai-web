@@ -125,3 +125,16 @@ describe('RootLayout - 切替UIの結線', () => {
     expect(html).not.toContain('開催中');
   });
 });
+
+vi.mock('@/components/google-analytics', () => ({
+  GoogleAnalytics: () => <i data-testid="ga" />,
+}));
+
+describe('RootLayout - GA4', () => {
+  it('旧 gtag スクリプトを持たず GoogleAnalytics を置く', () => {
+    const html = renderToStaticMarkup(RootLayout({ children: <div /> }));
+    expect(html).not.toContain('googletagmanager');
+    expect(html).not.toContain('gtag-init');
+    expect(html).toContain('data-testid="ga"');
+  });
+});

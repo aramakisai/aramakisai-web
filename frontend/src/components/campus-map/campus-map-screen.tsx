@@ -1,9 +1,10 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { CampusMapArea, CampusMapDataResult } from '@/lib/campus-map';
+import { sendGaEvent } from '@/lib/analytics';
 import { filterExhibitions } from '@/lib/exhibitions';
 import { BUILD_PHASE, type FestivalPhase } from '@/lib/phase';
 import type { AreaExhibitionListState } from './area-exhibition-list';
@@ -56,8 +57,20 @@ export function CampusMapScreen({
   // BUILD_PHASE を使うことで、フェーズ結線に関与しない既存呼び出し元を壊さない
   phase = BUILD_PHASE,
 }: CampusMapScreenProps) {
-  const { filters, keywordInput, setKeywordInput, setCategories, selectArea } =
-    useMapFilters();
+  const {
+    filters,
+    keywordInput,
+    setKeywordInput,
+    setCategories,
+    selectArea: commitArea,
+  } = useMapFilters();
+  const selectArea = useCallback(
+    (areaId: number | null) => {
+      if (areaId !== null) sendGaEvent('campus_map', { result: 'area_select' });
+      commitArea(areaId);
+    },
+    [commitArea],
+  );
   const [bottomInset, setBottomInset] = useState(0);
   const handleSheetHeightChange = useCallback((height: number) => {
     setBottomInset(
@@ -112,6 +125,26 @@ export function CampusMapScreen({
       items,
     };
   }, [data.exhibitions, data.areas, areas, filters]);
+
+  // エリア選択は area_select で送るため、絞り込みイベントのキーには含めない
+  const filterKey = JSON.stringify([filters.q, filters.categories]);
+  const lastFilterKeyRef = useRef(filterKey);
+  const settledRef = useRef(false);
+  // URL からの条件復元は初回描画と同じ同期処理内で終わるため、マイクロタスク後を「ユーザー操作の開始」とみなす
+  useEffect(() => {
+    queueMicrotask(() => {
+      settledRef.current = true;
+    });
+  }, []);
+  useEffect(() => {
+    if (lastFilterKeyRef.current === filterKey) return;
+    lastFilterKeyRef.current = filterKey;
+    if (!settledRef.current || listState.kind !== 'filtered') return;
+    sendGaEvent('campus_map', {
+      result: 'filter',
+      item_count: listState.items.length,
+    });
+  }, [filterKey, listState]);
 
   const areaNotice = data.areas.kind === 'error' ? AREAS_ERROR_NOTICE : null;
 

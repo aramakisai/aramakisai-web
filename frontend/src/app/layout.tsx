@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Script from 'next/script';
+import { Suspense } from 'react';
 import '@fontsource/line-seed-jp/100.css';
 import '@fontsource/line-seed-jp/400.css';
 import '@fontsource/line-seed-jp/700.css';
@@ -8,6 +8,7 @@ import './globals.css';
 import { getSiteMetadata } from '@/lib/site-metadata';
 import { buildPageMetadata } from '@/lib/page-metadata';
 import { DEV_OVERRIDE_ENABLED } from '@/lib/phase';
+import { GoogleAnalytics } from '@/components/google-analytics';
 import { PhaseToggle } from '@/components/phase-toggle';
 import { env } from '@/env';
 
@@ -102,7 +103,6 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const gaMeasurementId = env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
   const cmsOrigin = new URL(env.NEXT_PUBLIC_CMS_URL).origin;
 
   // DEV_OVERRIDE_ENABLED はビルド時に真偽リテラルへ畳み込まれる。この分岐に
@@ -125,18 +125,10 @@ export default function RootLayout({
       <body className="flex min-h-screen min-h-dvh min-w-0 flex-col font-sans">
         {children}
         {phaseToggle}
+        <Suspense fallback={null}>
+          <GoogleAnalytics />
+        </Suspense>
       </body>
-      {process.env.NODE_ENV === 'production' && gaMeasurementId && (
-        <>
-          <Script
-            src={`https://www.googletagmanager.com/gtag/js?id=${gaMeasurementId}`}
-            strategy="lazyOnload"
-          />
-          <Script id="gtag-init" strategy="lazyOnload">
-            {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config',${JSON.stringify(gaMeasurementId)});`}
-          </Script>
-        </>
-      )}
     </html>
   );
 }

@@ -30,22 +30,34 @@ export function StampCollector({
     );
 
     let cancelled = false;
+    const params = {
+      exhibition_id: exhibitionId,
+      exhibition_category: category,
+    };
     fetch('/api/stamps/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: exhibitionId, category, signature }),
     })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((body: { valid?: unknown } | null) => {
-        if (cancelled || body?.valid !== true) return;
-        sendGaEvent('qr_stamp', {
-          exhibition_id: exhibitionId,
-          exhibition_category: category,
-        });
+      .then((res) => {
+        if (!res.ok) throw new Error('verify failed');
+        return res.json() as Promise<{ valid?: unknown } | null>;
+      })
+      .then((body) => {
+        if (cancelled) return;
+        if (body?.valid !== true) {
+          sendGaEvent('qr_stamp', { ...params, result: 'invalid' });
+          return;
+        }
         const result = addStamp(exhibitionId, category);
+        sendGaEvent('qr_stamp', { ...params, result });
         if (result !== 'unavailable') setKind(result);
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!cancelled) {
+          sendGaEvent('qr_stamp', { ...params, result: 'network_error' });
+        }
+      });
     return () => {
       cancelled = true;
     };

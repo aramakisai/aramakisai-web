@@ -3,6 +3,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { expect, test, describe, vi, beforeAll } from 'vitest';
 import { RichTextImageViewer } from './rich-text-image-viewer';
 
+vi.mock('@/lib/analytics', () => ({ sendGaEvent: vi.fn() }));
+
 vi.mock('@/lib/cms-asset-url', () => ({
   toAssetUrl: (id: string | null, width?: number) =>
     id ? `https://example.com/assets/${id}/${width ?? 'original'}` : null,
