@@ -63,7 +63,7 @@ describe('useUserLocation', () => {
     );
     expect(watchPosition).not.toHaveBeenCalled();
     expect(result.current.state).toEqual({ kind: 'idle' });
-    expect(result.current.failureCount).toBe(0);
+    expect(result.current.lastFailure).toBeNull();
   });
 
   test('start で開始し、範囲内の位置で更新、初回通知は1回だけ', () => {
@@ -91,39 +91,46 @@ describe('useUserLocation', () => {
     expect(onFirstLocation).toHaveBeenCalledTimes(1);
   });
 
-  test('範囲外の位置で停止し failureCount が増える', () => {
+  test('範囲外の位置で停止し out_of_campus が記録される', () => {
     const onFirstLocation = vi.fn();
     const { result } = renderHook(() => useUserLocation({ onFirstLocation }));
     act(() => result.current.start());
     emit(1, OUTSIDE.lat, OUTSIDE.lng);
     expect(clearWatch).toHaveBeenCalledWith(1);
     expect(result.current.state).toEqual({ kind: 'idle' });
-    expect(result.current.failureCount).toBe(1);
+    expect(result.current.lastFailure).toEqual({
+      reason: 'out_of_campus',
+      seq: 1,
+    });
     expect(onFirstLocation).not.toHaveBeenCalled();
   });
 
-  test.each([1, 2, 3])(
-    'エラー code %i で停止し failureCount が増える',
-    (code) => {
-      const { result } = renderHook(() =>
-        useUserLocation({ onFirstLocation: vi.fn() }),
-      );
-      act(() => result.current.start());
-      fail(1, code);
-      expect(clearWatch).toHaveBeenCalledWith(1);
-      expect(result.current.state).toEqual({ kind: 'idle' });
-      expect(result.current.failureCount).toBe(1);
-    },
-  );
+  test.each([
+    [1, 'denied'],
+    [2, 'unavailable'],
+    [3, 'timeout'],
+  ])('エラー code %i は %s として記録され停止する', (code, reason) => {
+    const { result } = renderHook(() =>
+      useUserLocation({ onFirstLocation: vi.fn() }),
+    );
+    act(() => result.current.start());
+    fail(1, code);
+    expect(clearWatch).toHaveBeenCalledWith(1);
+    expect(result.current.state).toEqual({ kind: 'idle' });
+    expect(result.current.lastFailure).toEqual({ reason, seq: 1 });
+  });
 
-  test('geolocation 非対応なら watch せず failureCount が増える', () => {
+  test('geolocation 非対応なら watch せず unsupported が記録される', () => {
     delete (navigator as unknown as Record<string, unknown>).geolocation;
     const { result } = renderHook(() =>
       useUserLocation({ onFirstLocation: vi.fn() }),
     );
     act(() => result.current.start());
     expect(result.current.state).toEqual({ kind: 'idle' });
-    expect(result.current.failureCount).toBe(1);
+    expect(result.current.lastFailure).toEqual({
+      reason: 'unsupported',
+      seq: 1,
+    });
   });
 
   test('watching 中の start では再登録しない', () => {
@@ -149,12 +156,12 @@ describe('useUserLocation', () => {
     const { result } = renderHook(() => useUserLocation({ onFirstLocation }));
     act(() => result.current.start());
     fail(1);
-    expect(result.current.failureCount).toBe(1);
+    expect(result.current.lastFailure?.seq).toBe(1);
 
     emit(1, INSIDE.lat, INSIDE.lng);
     fail(1);
     expect(result.current.state).toEqual({ kind: 'idle' });
-    expect(result.current.failureCount).toBe(1);
+    expect(result.current.lastFailure?.seq).toBe(1);
     expect(onFirstLocation).not.toHaveBeenCalled();
 
     // 再開した新セッションでは初回通知が再び呼ばれる

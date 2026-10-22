@@ -1,8 +1,10 @@
 'use client';
 
 import 'leaflet/dist/leaflet.css';
+import { useEffect, useMemo, useRef } from 'react';
 import { AttributionControl, MapContainer, TileLayer } from 'react-leaflet';
 import type { LatLngBoundsExpression } from 'leaflet';
+import { sendGaEvent } from '@/lib/analytics';
 import { CAMPUS_MAP_CONFIG, MAP_ATTRIBUTION } from '@/lib/campus-map-config';
 import type { CampusMapArea, CampusMapPoint } from '@/lib/campus-map';
 import { AreaPolygonLayer } from './area-polygon-layer';
@@ -28,6 +30,31 @@ export interface CampusMapViewProps {
   readonly onSelectArea: (areaId: number | null) => void;
 }
 
+// navigation entry はドキュメントの最初の URL のまま変わらないため、/map 直接表示後に別ページから
+// クライアント遷移で戻った場合も entry だけでは判別できない。ドキュメント内で最初の whenReady だけを
+// 直接表示の候補にし、時間(performance.now())は直接表示のときだけ意味を持つので soft には付けない
+let firstReadyPending = true;
+
+function sendMapReady() {
+  const first = firstReadyPending;
+  firstReadyPending = false;
+  const entry = performance.getEntriesByType('navigation')[0];
+  let hard = false;
+  try {
+    hard = first && !!entry && new URL(entry.name).pathname === '/map';
+  } catch {}
+  sendGaEvent(
+    'campus_map',
+    hard
+      ? {
+          result: 'ready',
+          method: 'hard',
+          duration_ms: Math.round(performance.now()),
+        }
+      : { result: 'ready', method: 'soft' },
+  );
+}
+
 export function CampusMapView({
   areas,
   points = [],
@@ -37,6 +64,38 @@ export function CampusMapView({
   const { minZoom, maxZoom, minNativeZoom, maxNativeZoom, tileUrlTemplate } =
     CAMPUS_MAP_CONFIG;
   const isAboveBreakpoint = useIsAboveMapBreakpoint();
+  const tileErrors = useRef(0);
+  const tileEventHandlers = useMemo(
+    () => ({
+      tileerror: () => {
+        tileErrors.current += 1;
+      },
+    }),
+    [],
+  );
+
+  // 離脱時に送るため、タイル失敗はその都度ではなく集計して最初の1回だけ送る
+  useEffect(() => {
+    let sent = false;
+    const flush = () => {
+      if (sent || tileErrors.current === 0) return;
+      sent = true;
+      sendGaEvent('campus_map', {
+        result: 'tile_error',
+        item_count: tileErrors.current,
+      });
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') flush();
+    };
+    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      document.removeEventListener('visibilitychange', onVisibility);
+      flush();
+    };
+  }, []);
 
   // 選択中のエリアの再選択は解除として扱う (要件 2.6)。URL の書き換えは呼び出し元に委ねる
   const handleAreaClick = (areaId: number) => {
@@ -58,6 +117,7 @@ export function CampusMapView({
       zoomControl={false}
       // 既定の帰属表示コントロールは Leaflet の旗ロゴが付くため、prefix なしのものに差し替える
       attributionControl={false}
+      whenReady={sendMapReady}
       className="h-full w-full"
     >
       <TileLayer
@@ -69,6 +129,7 @@ export function CampusMapView({
         maxNativeZoom={maxNativeZoom}
         attribution={MAP_ATTRIBUTION}
         errorTileUrl={TRANSPARENT_TILE_URL}
+        eventHandlers={tileEventHandlers}
       />
       <MapViewportSync fitBounds={CAMPUS_BOUNDS} />
       <AreaPolygonLayer

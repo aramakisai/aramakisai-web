@@ -31,6 +31,8 @@ vi.mock('next/dynamic', () => ({
 
 import { ExhibitionLocationMap } from './exhibition-location-map';
 
+vi.mock('@/lib/analytics', () => ({ sendGaEvent: vi.fn() }));
+
 function area(overrides: Partial<CampusMapArea> = {}): CampusMapArea {
   return {
     id: 1,

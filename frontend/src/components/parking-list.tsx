@@ -1,9 +1,11 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
+import { sendGaEvent } from '@/lib/analytics';
 import { SectionHeading } from '@/components/section-heading';
 import { ParkingRow } from '@/components/parking-row';
 import { formatEventDayTime } from '@/lib/event-day';
-import type { ParkingResponse } from '@/lib/parking';
+import { isStale, type ParkingResponse } from '@/lib/parking';
 import { usePolling } from '@/lib/use-polling';
 import { useNow } from '@/lib/use-now';
 
@@ -30,6 +32,34 @@ export function ParkingList({ initial, renderedAt }: ParkingListProps) {
     initial,
     shouldContinue: continuePolling,
   });
+
+  const staleCount = data?.isEventDay
+    ? data.lots.filter(
+        (l) => l.status && l.updatedAt && isStale(l.updatedAt, now),
+      ).length
+    : 0;
+
+  useEffect(() => {
+    if (initial === null) sendGaEvent('parking', { result: 'initial_missing' });
+    // マウント時の1回だけ送る
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const prevError = useRef(false);
+  useEffect(() => {
+    if (error && !prevError.current) {
+      sendGaEvent('parking', { result: 'poll_fail' });
+    }
+    prevError.current = error;
+  }, [error]);
+
+  const staleSent = useRef(false);
+  useEffect(() => {
+    if (staleCount >= 1 && !staleSent.current) {
+      staleSent.current = true;
+      sendGaEvent('parking', { result: 'stale', item_count: staleCount });
+    }
+  }, [staleCount]);
 
   return (
     <div className="flex flex-col gap-6">

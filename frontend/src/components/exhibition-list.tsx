@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import { sendGaEvent, trackPageView } from '@/lib/analytics';
 import {
   buildExhibitionsHref,
   filterExhibitions,
@@ -61,6 +62,9 @@ export function ExhibitionList({ cards, areas }: ExhibitionListProps) {
 
   const applyFilters = (next: ExhibitionFilterValues) => {
     const nextQuery = { ...next, page: 1 };
+    sendGaEvent('exhibition_search', {
+      item_count: filterExhibitions(cards, nextQuery).length,
+    });
     setQuery(nextQuery);
     window.history.replaceState(null, '', buildExhibitionsHref(nextQuery));
   };
@@ -69,6 +73,8 @@ export function ExhibitionList({ cards, areas }: ExhibitionListProps) {
     const nextQuery = { ...query, page };
     setQuery(nextQuery);
     window.history.pushState(null, '', buildExhibitionsHref(nextQuery));
+    // パス不変の URL 更新は GoogleAnalytics から見えないため、ページ送りはここで計測する
+    trackPageView();
     window.scrollTo(0, 0);
   };
 

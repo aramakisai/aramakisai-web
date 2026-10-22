@@ -1,6 +1,10 @@
 'use client';
 
-import { useMotionPreference } from '@/lib/use-motion-preference';
+import {
+  prefersReducedMotion,
+  useMotionPreference,
+} from '@/lib/use-motion-preference';
+import { sendGaEvent } from '@/lib/analytics';
 import { PauseIcon, PlayArrowIcon } from './icons';
 
 /**
@@ -16,7 +20,14 @@ export function MotionToggle() {
     <button
       type="button"
       aria-pressed={!reduced}
-      onClick={toggle}
+      onClick={() => {
+        toggle();
+        // OS が reduce を要求している間は切替後も reduced のまま (use-motion-preference と同じ規則)
+        const osReduce = prefersReducedMotion();
+        sendGaEvent('motion', {
+          result: !reduced || osReduce ? 'reduce' : 'full',
+        });
+      }}
       className="relative inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-gray-500 bg-background px-3 py-1 text-sm leading-[1.6] text-text transition-colors before:absolute before:inset-x-0 before:-inset-y-[6px] before:content-[''] hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary motion-reduce:transition-none"
     >
       <Icon size={16} className="text-gray-600" />

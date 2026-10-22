@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { notFound } from 'next/navigation';
 
+const cookieGet = vi.fn();
+vi.mock('next/headers', () => ({
+  cookies: vi.fn(async () => ({ get: cookieGet })),
+}));
 vi.mock('next/navigation', () => ({
   notFound: vi.fn().mockImplementation(() => {
     throw new Error('NEXT_NOT_FOUND');
@@ -23,7 +27,7 @@ describe('E2EErrorTriggerPage', () => {
     vi.stubEnv('NEXT_PUBLIC_ENABLE_PHASE_OVERRIDE', '');
     const { default: E2EErrorTriggerPage } = await import('./page');
 
-    expect(() => E2EErrorTriggerPage()).toThrow('NEXT_NOT_FOUND');
+    await expect(E2EErrorTriggerPage()).rejects.toThrow('NEXT_NOT_FOUND');
     expect(notFound).toHaveBeenCalledOnce();
   });
 
@@ -32,7 +36,21 @@ describe('E2EErrorTriggerPage', () => {
     vi.stubEnv('NEXT_PUBLIC_ENABLE_PHASE_OVERRIDE', '');
     const { default: E2EErrorTriggerPage } = await import('./page');
 
-    expect(() => E2EErrorTriggerPage()).toThrow('e2e-error-trigger');
+    cookieGet.mockReturnValue(undefined);
+    await expect(E2EErrorTriggerPage()).rejects.toThrow('e2e-error-trigger');
+    expect(notFound).not.toHaveBeenCalled();
+  });
+
+  it('Cookie e2e_retry_ok があれば例外を投げず回復後の本文を返す', async () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('NEXT_PUBLIC_ENABLE_PHASE_OVERRIDE', '');
+    cookieGet.mockImplementation((n: string) =>
+      n === 'e2e_retry_ok' ? { value: '1' } : undefined,
+    );
+    const { default: E2EErrorTriggerPage } = await import('./page');
+
+    const el = await E2EErrorTriggerPage();
+    expect(JSON.stringify(el)).toContain('回復しました');
     expect(notFound).not.toHaveBeenCalled();
   });
 });

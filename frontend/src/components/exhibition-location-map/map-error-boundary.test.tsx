@@ -2,6 +2,8 @@ import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { MapErrorBoundary } from './map-error-boundary';
 
+vi.mock('@/lib/analytics', () => ({ sendGaEvent: vi.fn() }));
+
 function ThrowingChild(): never {
   throw new Error('map failed to load');
 }

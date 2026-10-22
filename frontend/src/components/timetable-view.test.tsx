@@ -4,6 +4,8 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 import { TimetableView } from './timetable-view';
 import type { Timetable, TimetablePerformance } from '@/lib/timetable';
 
+vi.mock('@/lib/analytics', () => ({ sendGaEvent: vi.fn() }));
+
 // isPerformanceActive を持つ lib/timetable が cms クライアント経由で env を読み込むため
 vi.mock('@/lib/cms', () => ({ cms: {} }));
 

@@ -4,14 +4,15 @@ import ErrorPage from './error';
 
 // ErrorPage は FALLBACK_SITE_TITLE 経由で @/lib/site-metadata -> @/env を
 // 読み込むため、実行時の環境変数検証を通すためにモックする
+vi.mock('@/lib/analytics', () => ({ sendGaEvent: vi.fn() }));
 vi.mock('@/env', () => ({
   env: { NEXT_PUBLIC_CMS_URL: 'http://localhost:3100' },
 }));
 
 describe('Error', () => {
-  it('タイトルとnoindexメタタグが出力され、エラーメッセージと再読み込みボタンが表示され、押下でresetが呼ばれる', () => {
-    const reset = vi.fn();
-    render(<ErrorPage error={new Error('test')} reset={reset} />);
+  it('タイトルとnoindexメタタグが出力され、エラーメッセージと再読み込みボタンが表示され、押下でretryが呼ばれる', () => {
+    const retry = vi.fn();
+    render(<ErrorPage error={new Error('test')} retry={retry} />);
 
     expect(document.title).toBe('エラーが発生しました | 荒牧祭');
     expect(
@@ -23,6 +24,6 @@ describe('Error', () => {
     ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '再読み込み' }));
-    expect(reset).toHaveBeenCalledOnce();
+    expect(retry).toHaveBeenCalledOnce();
   });
 });

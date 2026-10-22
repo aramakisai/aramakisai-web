@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { Control, DomEvent, DomUtil, divIcon } from 'leaflet';
 import { Circle, Marker, Pane, useMap } from 'react-leaflet';
 import { MaterialIcon } from '@/components/icons';
+import { sendGaEvent } from '@/lib/analytics';
 import { useMotionPreference } from '@/lib/use-motion-preference';
 import { StampToast } from '@/components/stamp-toast';
 import tailwindConfig from '../../../tailwind.config';
@@ -38,16 +39,38 @@ const ACCURACY_STYLE = {
 // markerPane (600) のエリア名ラベル・地点マーカーより手前、tooltipPane (650) より奥
 const PANE_STYLE = { zIndex: 625 };
 
+function accuracyBucket(accuracy: number) {
+  if (accuracy < 20) return 'lt20';
+  if (accuracy < 50) return '20to50';
+  if (accuracy < 100) return '50to100';
+  return 'ge100';
+}
+
 export function MapUserLocation() {
   const map = useMap();
   const { reduced } = useMotionPreference();
   const [container, setContainer] = useState<HTMLElement | null>(null);
 
+  const startedAtRef = useRef(0);
+
   const panToLocation = ({ latitude, longitude }: UserLocation) =>
     map.panTo([latitude, longitude], { animate: !reduced });
-  const { state, failureCount, start } = useUserLocation({
-    onFirstLocation: panToLocation,
+  const { state, lastFailure, start } = useUserLocation({
+    onFirstLocation: (location) => {
+      panToLocation(location);
+      sendGaEvent('user_location', {
+        result: 'located',
+        accuracy_bucket: accuracyBucket(location.accuracy),
+        duration_ms: Math.round(performance.now() - startedAtRef.current),
+      });
+    },
   });
+
+  const failureSeq = lastFailure?.seq;
+  const failureReason = lastFailure?.reason;
+  useEffect(() => {
+    if (failureReason) sendGaEvent('user_location', { result: failureReason });
+  }, [failureSeq, failureReason]);
 
   useEffect(() => {
     const control = new Control({ position: 'bottomright' });
@@ -69,8 +92,11 @@ export function MapUserLocation() {
   const location = watching ? state.location : null;
 
   const handleClick = () => {
-    if (!watching) start();
-    else if (location) panToLocation(location);
+    if (!watching) {
+      startedAtRef.current = performance.now();
+      sendGaEvent('user_location', { result: 'start' });
+      start();
+    } else if (location) panToLocation(location);
   };
 
   return (
@@ -106,12 +132,12 @@ export function MapUserLocation() {
           />
         </Pane>
       )}
-      {failureCount > 0 &&
+      {lastFailure &&
         createPortal(
           // body 直下に置くのは、地図コンテナ内だと Leaflet のドラッグ・click 処理がトースト上でも走るため
           <div className="relative z-[1060]">
             <StampToast
-              key={failureCount}
+              key={lastFailure.seq}
               kind="added"
               message="現在地を取得できませんでした"
               showLink={false}

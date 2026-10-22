@@ -1,6 +1,7 @@
 'use client';
 
 import { Component, type ReactNode } from 'react';
+import { sendGaEvent } from '@/lib/analytics';
 
 export interface MapErrorBoundaryProps {
   readonly children: ReactNode;
@@ -20,6 +21,10 @@ export class MapErrorBoundary extends Component<
 
   static getDerivedStateFromError(): MapErrorBoundaryState {
     return { hasError: true };
+  }
+
+  componentDidCatch(): void {
+    sendGaEvent('location_map', { result: 'fallback' });
   }
 
   render() {

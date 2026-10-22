@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { sendGaEvent } from '@/lib/analytics';
 import { ChevronRightIcon, PlayCircleIcon } from './icons';
 import { TimetableGrid } from './timetable-grid';
 import { STAGE_BAND_CLASSES } from './timetable-stage-colors';
@@ -35,9 +36,13 @@ export function TimetableView({
   useEffect(() => {
     const current = new Date();
     if (toJstDateKey(renderedAt) !== toJstDateKey(current.toISOString())) {
-      setDayKey(resolveInitialDayKey(days, current));
+      const corrected = resolveInitialDayKey(days, current);
+      setDayKey(corrected);
+      if (corrected !== initialDayKey) {
+        sendGaEvent('timetable', { result: 'date_corrected' });
+      }
     }
-  }, [days, renderedAt]);
+  }, [days, renderedAt, initialDayKey]);
   const [stageId, setStageId] = useState(stages[0]?.id ?? null);
 
   if (days.length === 0) {

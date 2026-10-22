@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { ParkingList } from './parking-list';
 import type { ParkingResponse } from '@/lib/parking';
 
+vi.mock('@/lib/analytics', () => ({ sendGaEvent: vi.fn() }));
+
 const RENDERED_AT = '2026-11-14T04:00:00Z'; // JST 13:00
 
 const enabled = (

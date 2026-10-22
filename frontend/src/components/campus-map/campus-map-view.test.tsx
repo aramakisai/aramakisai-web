@@ -1,5 +1,6 @@
 import { render } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { sendGaEvent } from '@/lib/analytics';
 import { CAMPUS_MAP_CONFIG, MAP_ATTRIBUTION } from '@/lib/campus-map-config';
 import type { CampusMapArea } from '@/lib/campus-map';
 
@@ -29,6 +30,8 @@ vi.mock('react-leaflet', () => ({
     return <div data-testid="attribution-control" />;
   },
 }));
+
+vi.mock('@/lib/analytics', () => ({ sendGaEvent: vi.fn() }));
 
 vi.mock('./map-viewport-sync', () => ({
   MapViewportSync: () => null,
@@ -313,5 +316,83 @@ describe('CampusMapView', () => {
     expect(testIds.indexOf('map-zoom-control')).toBeLessThan(
       testIds.indexOf('map-user-location'),
     );
+  });
+
+  describe('GA', () => {
+    const renderView = () =>
+      render(
+        <CampusMapView
+          areas={[]}
+          selectedAreaId={null}
+          onSelectArea={() => {}}
+        />,
+      );
+    const mockNav = (name: string) =>
+      vi
+        .spyOn(performance, 'getEntriesByType')
+        .mockReturnValue([{ name } as PerformanceEntry]);
+
+    beforeEach(() => {
+      vi.mocked(sendGaEvent).mockClear();
+    });
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    // sendMapReady の「最初の whenReady」判定はモジュール変数のため、このファイルで最初の
+    // whenReady 呼び出しになるこのテストを先頭に置く必要がある
+    it('直接開いたときは method=hard と時間を送る', () => {
+      mockNav('https://example.com/map?x=1');
+      renderView();
+      (mapContainerProps.at(-1)!.whenReady as () => void)();
+      expect(sendGaEvent).toHaveBeenCalledWith('campus_map', {
+        result: 'ready',
+        method: 'hard',
+        duration_ms: expect.any(Number),
+      });
+    });
+
+    it('直接表示の後にクライアント遷移で戻っても method=soft で時間を付けない', () => {
+      mockNav('https://example.com/map');
+      renderView();
+      (mapContainerProps.at(-1)!.whenReady as () => void)();
+      expect(sendGaEvent).toHaveBeenCalledWith('campus_map', {
+        result: 'ready',
+        method: 'soft',
+      });
+    });
+
+    it('サイト内遷移では method=soft で時間を付けない', () => {
+      mockNav('https://example.com/');
+      renderView();
+      (mapContainerProps.at(-1)!.whenReady as () => void)();
+      expect(sendGaEvent).toHaveBeenCalledWith('campus_map', {
+        result: 'ready',
+        method: 'soft',
+      });
+    });
+
+    it('タイル失敗は件数を集計し、離脱時に1回だけ送る', () => {
+      const { unmount } = renderView();
+      const handlers = tileLayerProps.at(-1)!.eventHandlers as {
+        tileerror: () => void;
+      };
+      handlers.tileerror();
+      handlers.tileerror();
+      handlers.tileerror();
+      expect(sendGaEvent).not.toHaveBeenCalled();
+      window.dispatchEvent(new Event('pagehide'));
+      unmount();
+      expect(sendGaEvent).toHaveBeenCalledTimes(1);
+      expect(sendGaEvent).toHaveBeenCalledWith('campus_map', {
+        result: 'tile_error',
+        item_count: 3,
+      });
+    });
+
+    it('タイル失敗が無ければ送らない', () => {
+      renderView().unmount();
+      expect(sendGaEvent).not.toHaveBeenCalled();
+    });
   });
 });

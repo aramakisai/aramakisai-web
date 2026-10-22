@@ -4,6 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CampusMapArea, CampusMapDataResult } from '@/lib/campus-map';
 import type { ExhibitionCardSummary } from '@/lib/exhibitions';
 
+const sendGaEvent = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/analytics', () => ({ sendGaEvent }));
+
 vi.mock('next/navigation', () => ({ usePathname: () => '/map' }));
 
 vi.mock('@/env', () => ({
@@ -142,6 +145,7 @@ class MockResizeObserver {
 
 beforeEach(() => {
   state.mapViewProps.length = 0;
+  sendGaEvent.mockClear();
   window.history.replaceState(null, '', '/map');
 });
 
@@ -342,5 +346,41 @@ describe('CampusMapScreen', () => {
     expect(inset()).toBe('424px');
 
     vi.unstubAllGlobals();
+  });
+
+  describe('GA', () => {
+    const data = () =>
+      dataResult({
+        areas: { kind: 'loaded', value: [area({ id: 1 })] },
+        exhibitions: {
+          kind: 'loaded',
+          value: [card({ id: 1, areaIds: [1] }), card({ id: 2, areaIds: [] })],
+        },
+      });
+
+    it('エリア選択では area_select だけを送り filter は送らない', async () => {
+      stubDesktop();
+      render(<CampusMapScreen data={data()} />);
+      await act(async () => {});
+      expect(sendGaEvent).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByText('select-area-1'));
+
+      expect(sendGaEvent).toHaveBeenCalledWith('campus_map', {
+        result: 'area_select',
+      });
+      expect(sendGaEvent).not.toHaveBeenCalledWith(
+        'campus_map',
+        expect.objectContaining({ result: 'filter' }),
+      );
+    });
+
+    it('URL からの条件復元では送らない', async () => {
+      stubDesktop();
+      window.history.replaceState(null, '', '/map?area=1');
+      render(<CampusMapScreen data={data()} />);
+      await act(async () => {});
+      expect(sendGaEvent).not.toHaveBeenCalled();
+    });
   });
 });

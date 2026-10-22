@@ -16,6 +16,8 @@ import type {
 } from '@/lib/background-shapes/types';
 import * as placementLib from '@/lib/background-shapes/placement';
 
+vi.mock('@/lib/analytics', () => ({ sendGaEvent: vi.fn() }));
+
 // use-motion-preference は mock せず実フックで結線を確認する
 // (個々の停止時挙動は background-shapes-motion-runtime.test.tsx 側が担う)
 vi.mock('next/navigation', () => ({

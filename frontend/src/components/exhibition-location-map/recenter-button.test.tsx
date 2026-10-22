@@ -10,6 +10,8 @@ vi.mock('react-leaflet', () => ({
 
 import { RecenterButton } from './recenter-button';
 
+vi.mock('@/lib/analytics', () => ({ sendGaEvent: vi.fn() }));
+
 const INITIAL_BOUNDS: RecenterButtonBounds = {
   southWest: [36.43, 139.0],
   northEast: [36.431, 139.001],

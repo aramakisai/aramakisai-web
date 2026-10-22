@@ -23,6 +23,9 @@ vi.mock('./use-user-location', () => ({
   },
 }));
 
+const sendGaEvent = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/analytics', () => ({ sendGaEvent }));
+
 vi.mock('@/lib/use-motion-preference', () => ({
   useMotionPreference: () => ({ reduced: motion.reduced, toggle: vi.fn() }),
 }));
@@ -52,7 +55,7 @@ let map: LeafletMap;
 function setHook(partial: Partial<UseUserLocationResult>) {
   hook.result = {
     state: { kind: 'idle' },
-    failureCount: 0,
+    lastFailure: null,
     start,
     ...partial,
   };
@@ -61,6 +64,7 @@ function setHook(partial: Partial<UseUserLocationResult>) {
 describe('MapUserLocation', () => {
   beforeEach(() => {
     start.mockClear();
+    sendGaEvent.mockClear();
     motion.reduced = false;
     paneProps.length = 0;
     circleProps.length = 0;
@@ -184,7 +188,7 @@ describe('MapUserLocation', () => {
 
   it('失敗時は body 直下にリンク無しのトーストを出し、失敗が増えると出し直す', () => {
     vi.useFakeTimers();
-    setHook({ failureCount: 1 });
+    setHook({ lastFailure: { reason: 'denied', seq: 1 } });
     const { rerender } = render(<MapUserLocation />);
     const toast = screen.getByRole('status');
     expect(toast).toHaveTextContent('現在地を取得できませんでした');
@@ -197,11 +201,57 @@ describe('MapUserLocation', () => {
         vi.advanceTimersByTime(4000);
       });
       expect(screen.queryByRole('status')).toBeNull();
-      setHook({ failureCount: 2 });
+      setHook({ lastFailure: { reason: 'denied', seq: 2 } });
       rerender(<MapUserLocation />);
       expect(screen.getByRole('status')).toBeInTheDocument();
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('ボタン押下で start を送り、初回の位置で located を精度区分と時間付きで送る', () => {
+    render(<MapUserLocation />);
+    fireEvent.click(screen.getByRole('button', { name: '現在地を表示' }));
+    expect(sendGaEvent).toHaveBeenCalledWith('user_location', {
+      result: 'start',
+    });
+
+    act(() => hook.options.onFirstLocation({ ...LOCATION, accuracy: 60 }));
+    expect(sendGaEvent).toHaveBeenLastCalledWith('user_location', {
+      result: 'located',
+      accuracy_bucket: '50to100',
+      duration_ms: expect.any(Number),
+    });
+    expect(JSON.stringify(sendGaEvent.mock.calls)).not.toContain('36.43');
+  });
+
+  it.each([
+    [10, 'lt20'],
+    [20, '20to50'],
+    [100, 'ge100'],
+  ])('精度 %i m は %s', (accuracy, bucket) => {
+    render(<MapUserLocation />);
+    act(() => hook.options.onFirstLocation({ ...LOCATION, accuracy }));
+    expect(sendGaEvent).toHaveBeenLastCalledWith(
+      'user_location',
+      expect.objectContaining({ accuracy_bucket: bucket }),
+    );
+  });
+
+  it.each([
+    'out_of_campus',
+    'denied',
+    'unavailable',
+    'timeout',
+    'unsupported',
+  ] as const)('失敗理由 %s を送り、トースト文言は同じ', (reason) => {
+    setHook({ lastFailure: { reason, seq: 1 } });
+    render(<MapUserLocation />);
+    expect(sendGaEvent).toHaveBeenCalledWith('user_location', {
+      result: reason,
+    });
+    expect(screen.getByRole('status')).toHaveTextContent(
+      '現在地を取得できませんでした',
+    );
   });
 });
