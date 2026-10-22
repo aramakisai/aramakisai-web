@@ -19,7 +19,11 @@ function routePattern(route: Route): string {
 // slug で解決される固定ページ (pages コレクション) のルート。ルートパターン自体は
 // PRE_EVENT_PUBLIC_PATHS に載らないが、/access・/privacy という公開値をこのルートが
 // 解決するため、完全一致・ルート単位のどちらにも収まらない第三の分類を要する。
-const PARTIALLY_PUBLIC_ROUTES: readonly string[] = ['/[slug]'];
+// /sponsors/[kind] も同様に公開値 /sponsors/ad・/sponsors/local を解決する。
+const PARTIALLY_PUBLIC_ROUTES: readonly string[] = [
+  '/[slug]',
+  '/sponsors/[kind]',
+];
 
 // 新しいページを追加した際、公開対象一覧にも下のいずれにも登録しなければ
 // classifyRoute が undefined を返しテストが失敗する。
