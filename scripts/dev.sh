@@ -118,7 +118,7 @@ cmd_dev() {
   fi
   # getCloudflareContext().env にプロセス環境変数を載せるのに必要
   export CLOUDFLARE_INCLUDE_PROCESS_ENV=true
-  exec node_modules/.bin/next dev -p "${port}"
+  exec node_modules/.bin/next dev --webpack -p "${port}"
 }
 
 cmd_signage_dev() {
@@ -307,7 +307,7 @@ cmd_preview() {
   cd "${pw_root}/frontend"
   export NEXT_PUBLIC_CMS_URL="http://localhost:${CMS_PORT}"
   export NEXT_PUBLIC_SITE_URL="http://localhost:${PREVIEW_PORT}"
-  setsid nohup node_modules/.bin/next dev -p "${PREVIEW_PORT}" >>"$log_file" 2>&1 &
+  setsid nohup node_modules/.bin/next dev --webpack -p "${PREVIEW_PORT}" >>"$log_file" 2>&1 &
   disown
 
   local waited=0
