@@ -62,7 +62,8 @@ test.describe('GA4 の dataLayer', () => {
       (await polygon.count()) === 0,
       '有効な図形を持つエリアが登録されていないため検証できません',
     );
-    await polygon.click();
+    // エリア名ラベルが図形の中心に重なり実クリックを遮るため、イベントを直接送る
+    await polygon.dispatchEvent('click');
     await expect(page).toHaveURL(/[?&]area=\d+\b/);
     await settle(page);
 
