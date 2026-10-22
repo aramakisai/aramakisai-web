@@ -3,3 +3,6 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
   workerd: true
+minimumReleaseAgeExclude:
+  - '@opennextjs/aws@4.1.12'
+  - '@opennextjs/cloudflare@1.20.13'
