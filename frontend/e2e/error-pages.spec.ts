@@ -176,6 +176,12 @@ test.describe('エラー表示画面', () => {
       .poll(async () => errorPageResults(await readDataLayer(page)))
       .toEqual(['error', 'retry_fail']);
     await expect(heading).toHaveCount(1);
+    // エラー画面への遷移とその再描画で同じ URL の page_view が二重に積まれない
+    expect(
+      (await readDataLayer(page)).filter(
+        (c) => c[0] === 'event' && c[1] === 'page_view',
+      ),
+    ).toHaveLength(1);
     // アンマウント後の遅延判定が走っても retry_success は積まれない
     await page.waitForTimeout(500);
     expect(errorPageResults(await readDataLayer(page))).toEqual([
