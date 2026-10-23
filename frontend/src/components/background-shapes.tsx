@@ -62,49 +62,61 @@ const RING_BORDER_CLASS: Record<RingColor, string> = {
   aqua: 'border-bansai-aqua',
 };
 
-function textureStyle(texture: TextureId): CSSProperties {
-  return {
-    backgroundImage: `url(/images/textures/bg/${texture}.webp)`,
-    backgroundSize: 'cover',
-  };
-}
+// 原画は箱の対角線を一辺とする正方形に敷いて回し、箱で切り抜く。どの角度でも箱の隅に原画の外が出ない。
+// 背景の幅は回す前の箱の幅 × 2.5 (= 正方形の幅の 2.5/√2 倍)
+const SQRT2 = 1.4143;
 
 // geometry.ts の図形内外判定 (sampleShape) と同じ形を CSS で再現する。roundedSquare の角丸は
 // geometry.ts の SDF (半径 s*0.18 の丸め箱) と border-radius が等価なので、
 // 正方形の一辺に対する比率 (18%) をそのまま使える。quarterCircle は circle()
 // の半径 100% が箱の対角線 (幅=高さの正方形では一辺と等しい) に正規化される
-// CSS Shapes の仕様を使うと、半径 s・中心を左上角に置いた扇形に一致する
-function ShapeFill({ kind, texture }: { kind: ShapeKind; texture: TextureId }) {
-  const style = textureStyle(texture);
-  switch (kind) {
-    case 'circle':
-      return <div className="size-full rounded-full" style={style} />;
-    case 'square':
-      return <div className="size-full" style={style} />;
-    case 'roundedSquare':
-      return <div className="size-full rounded-[18%]" style={style} />;
-    case 'triangle':
-      return (
-        <div
-          className="size-full"
-          style={{ ...style, clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)' }}
-        />
-      );
-    case 'quarterCircle':
-      return (
-        <div
-          className="size-full"
-          style={{ ...style, clipPath: 'circle(100% at 0 0)' }}
-        />
-      );
-    case 'semicircle':
-      return (
-        <div
-          className="absolute inset-x-0 bottom-0 h-1/2 rounded-b-full"
-          style={style}
-        />
-      );
-  }
+// CSS Shapes の仕様を使うと、半径 s・中心を左上角に置いた扇形に一致する。
+// semicircle は箱いっぱいに塗って切り、位置の基準を一辺の箱に揃える
+const SHAPE_CLIP: Record<ShapeKind, { className: string; clipPath?: string }> =
+  {
+    circle: { className: 'rounded-full' },
+    square: { className: '' },
+    roundedSquare: { className: 'rounded-[18%]' },
+    triangle: {
+      className: '',
+      clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
+    },
+    quarterCircle: { className: '', clipPath: 'circle(100% at 0 0)' },
+    semicircle: {
+      className: '',
+      clipPath: 'inset(50% 0 0 0 round 0 0 9999px 9999px)',
+    },
+  };
+
+function ShapeFill({
+  kind,
+  texture,
+  pos,
+  rot,
+}: {
+  kind: ShapeKind;
+  texture: TextureId;
+  pos: readonly [number, number];
+  rot: number;
+}) {
+  const { className, clipPath } = SHAPE_CLIP[kind];
+  return (
+    <div
+      className={`size-full overflow-hidden ${className}`}
+      style={{ clipPath }}
+    >
+      <div
+        className="absolute top-1/2 left-1/2 aspect-square"
+        style={{
+          width: `${SQRT2 * 100}%`,
+          transform: `translate(-50%, -50%) rotate(${rot}deg)`,
+          backgroundImage: `url(/images/textures/pamphlet/${texture}.webp)`,
+          backgroundSize: `calc(250% / ${SQRT2}) auto`,
+          backgroundPosition: `${pos[0]}% ${pos[1]}%`,
+        }}
+      />
+    </div>
+  );
 }
 
 function outerStyle(
@@ -162,7 +174,12 @@ function SolidShapeView({
         hidden,
       )}
     >
-      <ShapeFill kind={shape.kind} texture={shape.texture} />
+      <ShapeFill
+        kind={shape.kind}
+        texture={shape.texture}
+        pos={shape.texturePos}
+        rot={shape.textureRot}
+      />
     </div>
   );
 }
