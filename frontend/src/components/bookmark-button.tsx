@@ -17,7 +17,7 @@ export interface BookmarkButtonProps {
 }
 
 const BASE =
-  'pc-input:hidden flex items-center justify-center text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
+  'pc-input:hidden hover-card-shadow flex items-center justify-center rounded-lg text-text hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 const SIZE = {
   detail: 'h-12 min-w-0 flex-1 flex-col gap-0.5',
   card: 'size-12',

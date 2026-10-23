@@ -10,8 +10,8 @@ import {
   FooterGuidanceLinks,
   FooterLink,
   FooterSiteGuideLinks,
-  HoverLine,
 } from './footer-phased-links';
+import { HoverLine } from './hover-line';
 
 const sectionHeadingClass =
   'bg-none bg-clip-border p-0 font-sans text-xs leading-[1.4] font-medium tracking-[0.2em] text-gray-600';
@@ -138,10 +138,13 @@ export async function Footer() {
                       target="_blank"
                       rel="noopener noreferrer"
                       aria-label={`荒牧祭公式${sns.platform}`}
-                      className="group relative inline-flex size-6 items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
+                      className="group relative isolate inline-flex size-6 items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
                     >
+                      <span
+                        aria-hidden="true"
+                        className="absolute -inset-2 -z-10 rounded-lg bg-background opacity-0 shadow-card transition-opacity duration-200 ease-out group-hover:opacity-100 group-focus-visible:opacity-100 motion-reduce:transition-none"
+                      />
                       <SnsIcon platform={sns.platform} />
-                      <HoverLine />
                     </a>
                   </li>
                 ))}

@@ -69,7 +69,7 @@ export function MapSearchOverlay({
           id="map-search-overlay-category-all"
           aria-pressed={categories.length === 0}
           onClick={() => setCategories([])}
-          className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
+          className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium whitespace-nowrap hover-card-shadow ${
             categories.length === 0
               ? 'border-primary bg-primary text-text'
               : 'border-gray-200 bg-white/95 text-text'
@@ -86,7 +86,7 @@ export function MapSearchOverlay({
               id={`map-search-overlay-category-${category}`}
               aria-pressed={pressed}
               onClick={() => toggleCategory(category)}
-              className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
+              className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium whitespace-nowrap hover-card-shadow ${
                 pressed
                   ? 'border-primary bg-primary text-text'
                   : 'border-gray-200 bg-white/95 text-text'

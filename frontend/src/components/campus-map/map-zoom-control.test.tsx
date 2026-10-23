@@ -25,10 +25,12 @@ describe('MapZoomControl', () => {
     expect(props.zoomOutTitle).toBe('縮小');
   });
 
-  it('Figma のカスタムアイコンをボタンに使う (既定の +/− テキストではない)', () => {
+  it('Material Symbols のアイコンをボタンに使う (既定の +/− テキストではない)', () => {
     render(<MapZoomControl />);
     const props = zoomControlProps.at(-1)!;
-    expect(props.zoomInText).toContain('<svg');
-    expect(props.zoomOutText).toContain('<svg');
+    expect(props.zoomInText).toContain('material-symbols-sharp');
+    expect(props.zoomOutText).toContain('material-symbols-sharp');
+    expect(props.zoomInText).toContain('>add<');
+    expect(props.zoomOutText).toContain('>remove<');
   });
 });

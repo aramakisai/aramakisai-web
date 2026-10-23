@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect } from 'react';
+import { HoverLine } from './hover-line';
 import { sendGaEvent } from '@/lib/analytics';
 
 type ErrorProps = {
@@ -40,8 +41,9 @@ function NotFoundContent({ pageTitle }: { pageTitle: string }) {
       <p className="text-gray-600">
         お探しのページは移動または削除された可能性があります。
       </p>
-      <Link href="/" className="text-text hover:underline">
+      <Link href="/" className="group relative inline-block text-text">
         トップページに戻る
+        <HoverLine />
       </Link>
     </div>
   );
@@ -83,7 +85,7 @@ function ErrorContent({ pageTitle, onRetry, digest, scope }: ErrorProps) {
           pendingRetry = true;
           onRetry();
         }}
-        className="rounded border border-gray-300 px-4 py-2 hover:bg-gray-50"
+        className="hover-card-shadow rounded-lg border border-gray-200 px-4 py-2 hover:bg-background"
       >
         再読み込み
       </button>

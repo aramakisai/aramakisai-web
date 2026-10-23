@@ -71,8 +71,9 @@ export function ExhibitionGallery({
           />
         </CrossFade>
       </div>
+      {/* overflow-x-auto は縦方向も clip するため、サムネイルの影 (下 40px・左右 20px) が収まる余白を負マージンで相殺して確保する */}
       {images.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto">
+        <div className="-mx-6 -mb-10 flex gap-2 overflow-x-auto px-6 pb-10">
           {images.map((image, index) => (
             <button
               key={image.id}
@@ -80,7 +81,7 @@ export function ExhibitionGallery({
               aria-label={image.alt || fallbackAlt}
               aria-pressed={index === selectedIndex}
               onClick={() => setSelectedIndex(index)}
-              className={`h-12 w-16 shrink-0 overflow-hidden rounded-md bg-gray-200 ${
+              className={`hover-card-shadow h-12 w-16 shrink-0 overflow-hidden rounded-md bg-gray-200 ${
                 index === selectedIndex ? 'border-[3px] border-primary' : ''
               }`}
             >

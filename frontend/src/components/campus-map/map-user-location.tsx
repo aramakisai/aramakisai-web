@@ -111,7 +111,7 @@ export function MapUserLocation() {
             // アイコンの取得中の色は Figma の color/primary。文字色トークンのクラスは禁止
             // 検査 (verify-no-legacy-text-colors) に掛かるため、テーマの値を直接当てる
             style={watching ? { color: THEME_COLORS.primary } : undefined}
-            className="flex size-[42px] items-center justify-center rounded-lg border border-gray-200 bg-white text-text shadow-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="flex size-[42px] items-center justify-center rounded-lg border border-gray-200 bg-white text-text shadow-card transition-colors duration-200 ease-out hover:bg-gray-100 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             <MaterialIcon name="my_location" size={24} />
           </button>,

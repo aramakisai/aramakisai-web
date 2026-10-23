@@ -1,5 +1,5 @@
-import Link from 'next/link';
 import { ScheduleIcon } from '@/components/icons';
+import { TextLink } from '@/components/text-link';
 import { formatEventDayTime } from '@/lib/event-day';
 import type { ExhibitionPerformance } from '@/lib/timetable';
 
@@ -19,9 +19,9 @@ export function ExhibitionPerformances({
             {formatEventDayTime(p.endAt)} {p.stageName}
           </p>
         ))}
-        <Link href="/timetable" className="underline">
+        <TextLink href="/timetable" className="self-start">
           タイムテーブルを見る
-        </Link>
+        </TextLink>
       </div>
     </div>
   );

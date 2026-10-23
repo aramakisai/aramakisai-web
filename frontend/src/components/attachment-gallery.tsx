@@ -1,5 +1,6 @@
 import { Attachment } from '../lib/home-page-types';
 import { toAssetUrl } from '../lib/cms-asset-url';
+import { HoverLineText } from './hover-line';
 import { DraftIcon } from './icons';
 
 export interface AttachmentGalleryProps {
@@ -44,12 +45,14 @@ export function AttachmentGallery({ attachments }: AttachmentGalleryProps) {
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex w-full items-start gap-4 py-3 hover:bg-gray-100/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="group/row flex w-full items-start gap-4 py-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               <span className="flex min-w-0 flex-1 items-start gap-3">
                 <DraftIcon size={24} className="shrink-0 text-gray-600" />
                 <span className="min-w-0 flex-1 text-base leading-[1.7] break-words text-text [overflow-wrap:anywhere]">
-                  {attachment.filenameDownload}
+                  <HoverLineText gap={3}>
+                    {attachment.filenameDownload}
+                  </HoverLineText>
                 </span>
               </span>
               <span className="shrink-0 text-sm leading-[1.6] whitespace-nowrap text-gray-600">
