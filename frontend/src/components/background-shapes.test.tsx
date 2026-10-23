@@ -90,6 +90,27 @@ describe('BackgroundShapes', () => {
     expect(markup).not.toContain('data-bg-shape');
   });
 
+  it('質感を敷く要素は absolute の子の包含ブロックになり、角丸・巨大半径を使わず形を切り抜く', async () => {
+    vi.spyOn(placementLib, 'placeBackgroundShapes').mockReturnValue(
+      placementResult([
+        shape({ kind: 'circle' }),
+        shape({ kind: 'semicircle' }),
+      ]),
+    );
+    const { container } = render(<Harness />);
+    await waitFor(() =>
+      expect(container.querySelectorAll('[data-shape-kind]')).toHaveLength(2),
+    );
+    const fills = [...container.querySelectorAll('[data-shape-kind]')].map(
+      (el) => el.firstElementChild as HTMLElement,
+    );
+    // relative が無いと overflow:hidden が子 (absolute) を切らず、角丸が効かず四角に見える
+    for (const f of fills) expect(f.className).toContain('relative');
+    expect(fills[0].className).toContain('rounded-full');
+    expect(fills[1].className).toContain('rounded-full');
+    expect(fills[1].style.clipPath).toBe('inset(50% 0 0 0)');
+  });
+
   it('計測後に配置結果の図形を単一の本文レイヤーへ描画する (ヘッダーには描かない)', async () => {
     const placeSpy = vi
       .spyOn(placementLib, 'placeBackgroundShapes')
