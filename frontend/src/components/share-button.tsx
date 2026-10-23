@@ -80,7 +80,7 @@ export function ShareButton({
           <button
             type="button"
             onClick={handleClick}
-            className="flex h-12 flex-1 flex-col items-center justify-center gap-0.5 text-text group-data-[form=inline]:w-12 group-data-[form=inline]:flex-none pc-input:w-12 pc-input:flex-none"
+            className="hover-card-shadow flex h-12 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg text-text hover:bg-background group-data-[form=inline]:w-12 group-data-[form=inline]:flex-none pc-input:w-12 pc-input:flex-none"
           >
             <ShareIcon size={24} />
             <span className="font-display text-body-xs">共有</span>

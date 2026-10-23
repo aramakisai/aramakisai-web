@@ -1,7 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
-import Link from 'next/link';
 import { toAssetUrl } from '@/lib/cms-asset-url';
-import { ChevronRightIcon } from './icons';
+import { TextLink } from './text-link';
 import { SectionHeading } from './section-heading';
 
 export interface SponsorLogoItem {
@@ -50,20 +49,8 @@ export function SponsorsList({ sponsors }: SponsorsListProps) {
           </ul>
         )}
         <div className="flex justify-end gap-4 lg:gap-6">
-          <Link
-            href="/sponsors/ad"
-            className="flex items-center gap-2 text-sm font-bold text-text"
-          >
-            広告協賛へ
-            <ChevronRightIcon size={20} className="text-text" />
-          </Link>
-          <Link
-            href="/sponsors/local"
-            className="flex items-center gap-2 text-sm font-bold text-text"
-          >
-            地域協賛へ
-            <ChevronRightIcon size={20} className="text-text" />
-          </Link>
+          <TextLink href="/sponsors/ad">広告協賛へ</TextLink>
+          <TextLink href="/sponsors/local">地域協賛へ</TextLink>
         </div>
       </div>
     </section>

@@ -7,15 +7,7 @@ import {
   type NavigationItem,
 } from '@/lib/navigation';
 import { usePhase } from '@/lib/use-phase';
-
-export function HoverLine() {
-  return (
-    <span
-      aria-hidden="true"
-      className="mansai-spectrum-line absolute inset-x-0 bottom-0 h-px origin-left scale-x-0 opacity-70 transition-transform duration-200 group-hover:scale-x-100 group-focus-visible:scale-x-100 motion-reduce:transition-none"
-    />
-  );
-}
+import { HoverLine } from './hover-line';
 
 export function FooterLink({
   href,

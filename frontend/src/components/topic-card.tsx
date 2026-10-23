@@ -15,7 +15,7 @@ export function TopicCard({ id, title, imageId }: TopicCardProps) {
   return (
     <Link
       href={`/topics/${id}`}
-      className="relative flex aspect-[4/3] w-full items-end overflow-clip rounded-xl px-4 pb-4 transition-shadow hover:shadow-lg"
+      className="relative flex aspect-[4/3] w-full items-end overflow-clip rounded-xl px-4 pb-4 hover-card-shadow"
     >
       <div className="absolute inset-0 flex items-center justify-center bg-gray-200">
         {thumbnailUrl ? (

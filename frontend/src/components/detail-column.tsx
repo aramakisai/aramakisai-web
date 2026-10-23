@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
+import { HoverLine } from '@/components/hover-line';
 import { ArrowBackIcon } from '@/components/icons';
 
 export interface BackLinkProps {
@@ -11,10 +12,11 @@ export function BackLink({ href, label }: BackLinkProps) {
   return (
     <Link
       href={href}
-      className="inline-flex items-center gap-1 text-sm leading-[140%] font-medium text-gray-600 hover:text-text"
+      className="group relative inline-flex w-fit items-center gap-1 text-sm leading-[140%] font-medium text-gray-600 hover:text-text"
     >
       <ArrowBackIcon size={18} className="text-text" />
       {label}
+      <HoverLine />
     </Link>
   );
 }

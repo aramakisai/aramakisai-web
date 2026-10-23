@@ -42,7 +42,7 @@ export function MapMenuButton({ phase }: MapMenuButtonProps) {
         aria-expanded={isOpen}
         aria-controls={dialogId}
         onClick={() => (isOpen ? close() : setIsOpen(true))}
-        className="map-menu-button-position fixed right-[max(1rem,env(safe-area-inset-right))] z-[1100] flex h-[var(--map-toolbar-size)] w-[var(--map-toolbar-size)] flex-col items-center justify-center gap-2 rounded-full border border-gray-200 bg-white text-text shadow-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary lg:right-[max(1.5rem,env(safe-area-inset-right))]"
+        className="map-menu-button-position fixed right-[max(1rem,env(safe-area-inset-right))] z-[1100] flex h-[var(--map-toolbar-size)] w-[var(--map-toolbar-size)] flex-col items-center justify-center gap-2 rounded-full border border-gray-200 bg-white text-text shadow-card transition-colors duration-200 ease-out hover:bg-gray-100 motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary lg:right-[max(1.5rem,env(safe-area-inset-right))]"
       >
         <span className="sr-only">
           {isOpen ? 'メニューを閉じる' : 'メニューを開く'}

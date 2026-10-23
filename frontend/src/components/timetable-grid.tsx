@@ -229,7 +229,11 @@ function SlotItem({
       }}
     >
       {p.href ? (
-        <Link href={p.href} className={`${card} pr-9`} {...current}>
+        <Link
+          href={p.href}
+          className={`${card} pr-9 hover-card-shadow hover:z-10`}
+          {...current}
+        >
           {body}
           <ChevronRightIcon
             size={20}

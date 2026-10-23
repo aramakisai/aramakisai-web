@@ -204,7 +204,7 @@ export function HeroSection({
             type="button"
             aria-label="前の画像を表示"
             onClick={showPreviousSlide}
-            className="absolute top-1/2 left-4 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-secondary text-gray-50 shadow-lg transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white motion-reduce:transition-none lg:left-10 lg:h-12 lg:w-12"
+            className="absolute top-1/2 left-4 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-secondary text-gray-50 hover-card-shadow focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white lg:left-10 lg:h-12 lg:w-12"
           >
             <ChevronLeftIcon size={24} />
           </button>
@@ -213,7 +213,7 @@ export function HeroSection({
             type="button"
             aria-label="次の画像を表示"
             onClick={showNextSlide}
-            className="absolute top-1/2 right-4 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-secondary text-gray-50 shadow-lg transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white motion-reduce:transition-none lg:right-10 lg:h-12 lg:w-12"
+            className="absolute top-1/2 right-4 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-secondary text-gray-50 hover-card-shadow focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white lg:right-10 lg:h-12 lg:w-12"
           >
             <ChevronRightIcon size={24} />
           </button>

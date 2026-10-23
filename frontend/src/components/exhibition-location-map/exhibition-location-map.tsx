@@ -58,7 +58,7 @@ export function ExhibitionLocationMap({
           </p>
           <Link
             href={mapHref}
-            className="flex items-center gap-1 rounded-full border border-gray-200 bg-background px-3 py-2 text-sm font-medium text-text"
+            className="transition-colors duration-200 ease-out hover:bg-gray-100 motion-reduce:transition-none flex items-center gap-1 rounded-full border border-gray-200 bg-background px-3 py-2 text-sm font-medium text-text"
           >
             構内マップで見る
           </Link>

@@ -12,6 +12,15 @@
     #4b946f 72%,
     #b45e8c 100%
   );
+  /* 本文リンクのホバー線 (Figma HoverLine, opacity 0.7)。背景では要素の opacity を使えないため同じ色を α 0.7 で持つ */
+  --mansai-spectrum-70: linear-gradient(
+    100deg,
+    rgb(117 87 168 / 0.7) 0%,
+    rgb(76 111 177 / 0.7) 24%,
+    rgb(58 145 168 / 0.7) 48%,
+    rgb(75 148 111 / 0.7) 72%,
+    rgb(180 94 140 / 0.7) 100%
+  );
 
   /*
    * MapMenuButton (直径) と MapSearchOverlay の検索ボックス (上下パディング/行の高さ) の
@@ -160,6 +169,20 @@
   text-indent: 0;
   color: #202020;
   border-bottom-color: #e7e5e4;
+  transition: background-color 200ms ease-out;
+}
+
+/* Leaflet 既定の #f4f4f4 (leaflet.css の a:hover) を Figma の gray-100 に置き換える */
+.leaflet-container .leaflet-bar a.leaflet-control-zoom-in:hover,
+.leaflet-container .leaflet-bar a.leaflet-control-zoom-out:hover {
+  background-color: #f5f5f4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leaflet-container .leaflet-bar a.leaflet-control-zoom-in,
+  .leaflet-container .leaflet-bar a.leaflet-control-zoom-out {
+    transition: none;
+  }
 }
 
 .leaflet-container .leaflet-control-attribution {
@@ -194,6 +217,11 @@
   h6:not(.rich-text-body *) {
     @apply text-text;
   }
+}
+
+/* 影ホバー共通 (Figma shadow/card、200ms ease-out)。塗りのないボタンは呼び出し側で hover:bg-background を足す */
+@utility hover-card-shadow {
+  @apply transition-[box-shadow,background-color] duration-200 ease-out hover:shadow-card motion-reduce:transition-none;
 }
 
 @layer utilities {
@@ -292,8 +320,32 @@
     @apply text-text text-[16px] leading-[1.8] mb-4;
   }
 
+  /*
+   * 常時の下線は text-decoration、ホバーで伸びるスペクトル線は background で描く。
+   * clone にすると折り返した行ごとに左端から伸びる (Figma HoverLine の行ごと分割)。
+   * 線は下線と同じ位置・太さ (1px) に重ねるため、下線の位置を em で固定して背景の底辺に合わせる
+   */
   .rich-text-body a {
     @apply text-text underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.275em;
+    background-image: var(--mansai-spectrum-70);
+    background-repeat: no-repeat;
+    background-position: left bottom;
+    background-size: 0% 1px;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+    transition: background-size 200ms ease-out;
+  }
+
+  .rich-text-body a:hover {
+    background-size: 100% 1px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rich-text-body a {
+      transition: none;
+    }
   }
 
   /*
@@ -419,6 +471,23 @@
     @apply w-full text-center text-[16px] font-bold leading-[1.8] text-text;
   }
 
+  /* 影を切らないよう button 自体は clip せず、ホバーした 1 枚だけに影を出す (rich-text-image-viewer が img を包む) */
+  .rich-text-body button[data-rich-text-image] {
+    display: block;
+    width: 100%;
+    transition: box-shadow 200ms ease-out;
+  }
+
+  .rich-text-body button[data-rich-text-image]:hover {
+    @apply shadow-card;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rich-text-body button[data-rich-text-image] {
+      transition: none;
+    }
+  }
+
   /* 画像は正方形枠に収める。余白は gray-200 (Figma の Placeholder と同色) */
   .rich-text-body .rt-image-row img {
     @apply m-0 aspect-square w-full bg-gray-200 object-contain;
@@ -474,8 +543,10 @@
     @apply flex;
   }
 
+  /* 本文リンク用のスペクトル線 (.rich-text-body a) はボタンには適用しない。影は Button 層だけに出す */
   .rich-text-body p.rt-button > a {
-    @apply rounded-md bg-primary px-6 py-3 text-[16px] font-bold leading-[1.5] text-text no-underline;
+    @apply rounded-md bg-primary px-6 py-3 text-[16px] font-bold leading-[1.5] text-text no-underline hover-card-shadow;
+    background-image: none;
   }
 
   /* 表だけ横スクロールさせ、ページ全体を押し広げない */

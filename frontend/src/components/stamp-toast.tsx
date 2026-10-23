@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { TextLink } from './text-link';
 
 export type StampToastKind = 'added' | 'exists' | 'bookmarked';
 
@@ -67,12 +67,9 @@ export function StampToast({
         {message ?? MESSAGES[kind]}
       </span>
       {showLink && (
-        <Link
-          href={LINK_HREFS[kind]}
-          className="text-sm leading-[1.6] font-bold text-background underline"
-        >
+        <TextLink href={LINK_HREFS[kind]} tone="inverse">
           マイページ
-        </Link>
+        </TextLink>
       )}
     </div>
   );

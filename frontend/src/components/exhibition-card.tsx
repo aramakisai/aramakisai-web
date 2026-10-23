@@ -45,7 +45,7 @@ export function ExhibitionCard({
     : null;
 
   return (
-    <div className="relative flex flex-col overflow-clip rounded-xl transition-shadow hover:shadow-lg">
+    <div className="relative flex flex-col overflow-clip rounded-xl hover-card-shadow">
       <Link
         href={`/exhibitions/${exhibition.id}/${exhibition.category}`}
         className="flex flex-col focus-visible:outline-offset-[-2px]"

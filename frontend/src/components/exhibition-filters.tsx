@@ -100,7 +100,7 @@ export function ExhibitionFilters({
                   type="button"
                   aria-pressed={pressed}
                   onClick={() => toggleCategory(category)}
-                  className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+                  className={`rounded-full border px-4 py-2 text-sm font-medium hover-card-shadow ${
                     pressed
                       ? 'border-primary bg-primary text-text'
                       : 'border-gray-200 bg-background text-text'
@@ -129,7 +129,7 @@ export function ExhibitionFilters({
                     type="button"
                     aria-pressed={pressed}
                     onClick={() => toggleArea(area.id)}
-                    className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+                    className={`rounded-full border px-4 py-2 text-sm font-medium hover-card-shadow ${
                       pressed
                         ? 'border-primary bg-primary text-text'
                         : 'border-gray-200 bg-background text-text'

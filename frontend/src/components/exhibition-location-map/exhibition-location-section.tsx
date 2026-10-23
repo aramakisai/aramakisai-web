@@ -53,7 +53,7 @@ export function ExhibitionLocationSection({
             常に到達できる遷移リンクとして、地図領域の右下へ重ねて配置する */}
         <Link
           href={mapHref}
-          className="absolute right-2 bottom-2 z-[1000] rounded-full border border-gray-200 bg-background px-3 py-2 text-sm font-medium text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600 md:right-4 md:bottom-4"
+          className="transition-colors duration-200 ease-out hover:bg-gray-100 motion-reduce:transition-none absolute right-2 bottom-2 z-[1000] rounded-full border border-gray-200 bg-background px-3 py-2 text-sm font-medium text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600 md:right-4 md:bottom-4"
         >
           構内マップで見る
         </Link>

@@ -1,6 +1,5 @@
-import Link from 'next/link';
 import { TopicCard, TopicCardProps } from './topic-card';
-import { ChevronRightIcon } from './icons';
+import { TextLink } from './text-link';
 
 const HOME_VISIBLE_COUNT = 4;
 
@@ -30,13 +29,9 @@ export function TopicsList({ topics, variant = 'grid' }: TopicsListProps) {
             </div>
           ))}
         </div>
-        <Link
-          href="/topics"
-          className="flex items-center justify-end gap-2 self-end text-sm font-bold"
-        >
-          <span className="text-text">トピック一覧へ</span>
-          <ChevronRightIcon size={20} className="text-text" />
-        </Link>
+        <TextLink href="/topics" className="self-end">
+          トピック一覧へ
+        </TextLink>
       </div>
     );
   }

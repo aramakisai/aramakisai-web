@@ -30,6 +30,8 @@ export function RichTextImageViewer({ children }: RichTextImageViewerProps) {
     if (!container) return;
 
     container.querySelectorAll('img').forEach((img) => {
+      // StrictMode は開発時に effect を 2 回走らせるため、二重にボタンで包まない
+      if (img.parentElement?.hasAttribute(IMAGE_BUTTON_ATTR)) return;
       const button = document.createElement('button');
       button.type = 'button';
       button.setAttribute(IMAGE_BUTTON_ATTR, '');
@@ -119,7 +121,7 @@ export function RichTextImageViewer({ children }: RichTextImageViewerProps) {
             type="button"
             aria-label="閉じる"
             onClick={() => dialogRef.current?.close()}
-            className="absolute right-2 top-2 flex size-12 items-center justify-center lg:right-4 lg:top-4"
+            className="absolute right-2 top-2 flex size-12 items-center justify-center rounded-lg transition-colors duration-200 ease-out hover:bg-background/20 motion-reduce:transition-none lg:right-4 lg:top-4"
           >
             <CloseIcon className="text-background" />
           </button>
