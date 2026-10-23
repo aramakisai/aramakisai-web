@@ -6,22 +6,35 @@ import {
   PRIMARY_NAV_DESTINATIONS,
   type PrimaryNavDestination,
 } from './primary-nav-card';
+import tailwindConfig from '../../tailwind.config';
+
+const THEME_COLORS = tailwindConfig.theme?.extend?.colors as Record<
+  string,
+  string
+>;
 
 const EXPECTED: Record<
   PrimaryNavDestination,
-  { href: string; label: string; icon: string }
+  { href: string; label: string; icon: string; color: string }
 > = {
-  exhibitions: { href: '/exhibitions', label: '企画一覧', icon: 'festival' },
-  map: { href: '/map', label: '構内マップ', icon: 'map' },
+  exhibitions: {
+    href: '/exhibitions',
+    label: '企画一覧',
+    icon: 'festival',
+    color: 'primary',
+  },
+  map: { href: '/map', label: '構内マップ', icon: 'map', color: 'secondary' },
   timetable: {
     href: '/timetable',
     label: 'タイムテーブル',
     icon: 'calendar_clock',
+    color: 'info',
   },
   parking: {
     href: '/parking',
     label: '駐車場空き情報',
     icon: 'parking_sign',
+    color: 'accent',
   },
 };
 
@@ -50,7 +63,7 @@ describe('PrimaryNavCard', () => {
   );
 
   it.each(PRIMARY_NAV_DESTINATIONS)(
-    'sizes the %s card 160x160 on PC / 171x171 on SP with a 12px radius and no border',
+    'sizes the %s card 160x160 on PC / 171x171 on SP with a 12px radius, 2px border and background fill',
     (destination) => {
       const expected = EXPECTED[destination];
       render(<PrimaryNavCard destination={destination} />);
@@ -62,32 +75,40 @@ describe('PrimaryNavCard', () => {
         'lg:w-[160px]',
         'lg:h-[160px]',
         'rounded-xl',
+        'border-2',
+        'bg-white',
+        'hover-card-shadow',
       );
-      expect(link.className).not.toContain('border');
+      expect(link.style.backgroundImage).toBe('');
     },
   );
 
   it.each(PRIMARY_NAV_DESTINATIONS)(
-    'sizes the %s icon 56px on PC / 48px on SP',
+    'sizes the %s icon 72px on PC / 64px on SP',
     (destination) => {
       const expected = EXPECTED[destination];
       render(<PrimaryNavCard destination={destination} />);
 
       expect(
         screen.getByTestId(`icon-${expected.icon.replace(/_/g, '-')}`),
-      ).toHaveClass('text-[48px]', 'lg:text-[56px]');
+      ).toHaveClass('text-[64px]!', 'lg:text-[72px]!');
     },
   );
 
   it.each(PRIMARY_NAV_DESTINATIONS)(
-    'uses the per-destination texture image as the card background (%s)',
+    'colors the %s border and icon with the same token',
     (destination) => {
-      render(<PrimaryNavCard destination={destination} />);
       const expected = EXPECTED[destination];
+      render(<PrimaryNavCard destination={destination} />);
+
       const link = screen.getByRole('link', { name: expected.label });
-      expect(link.style.backgroundImage).toBe(
-        `url("/images/textures/nav/${destination}.webp")`,
+      const icon = screen.getByTestId(
+        `icon-${expected.icon.replace(/_/g, '-')}`,
       );
+      expect(link).toHaveClass('border-current');
+      expect(link).toHaveStyle({ color: THEME_COLORS[expected.color] });
+      // アイコンは自前の色を持たず、リンクの色を継ぐ
+      expect(icon.className).not.toMatch(/\btext-(?!\[)/);
     },
   );
 });
