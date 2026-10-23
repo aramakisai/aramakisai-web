@@ -71,7 +71,8 @@ const SQRT2 = 1.4143;
 // 正方形の一辺に対する比率 (18%) をそのまま使える。quarterCircle は circle()
 // の半径 100% が箱の対角線 (幅=高さの正方形では一辺と等しい) に正規化される
 // CSS Shapes の仕様を使うと、半径 s・中心を左上角に置いた扇形に一致する。
-// semicircle は箱いっぱいに塗って切り、位置の基準を一辺の箱に揃える
+// semicircle は円の下半分。inset の round に巨大な半径を渡す方式は半径の縮小規則
+// (ブラウザ実装依存) に頼るため、circle と同じ rounded-full と inset の交差にする
 const SHAPE_CLIP: Record<ShapeKind, { className: string; clipPath?: string }> =
   {
     circle: { className: 'rounded-full' },
@@ -82,10 +83,7 @@ const SHAPE_CLIP: Record<ShapeKind, { className: string; clipPath?: string }> =
       clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
     },
     quarterCircle: { className: '', clipPath: 'circle(100% at 0 0)' },
-    semicircle: {
-      className: '',
-      clipPath: 'inset(50% 0 0 0 round 0 0 9999px 9999px)',
-    },
+    semicircle: { className: 'rounded-full', clipPath: 'inset(50% 0 0 0)' },
   };
 
 function ShapeFill({
@@ -102,7 +100,7 @@ function ShapeFill({
   const { className, clipPath } = SHAPE_CLIP[kind];
   return (
     <div
-      className={`size-full overflow-hidden ${className}`}
+      className={`relative size-full overflow-hidden ${className}`}
       style={{ clipPath }}
     >
       <div
