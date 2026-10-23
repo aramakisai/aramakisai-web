@@ -2,21 +2,12 @@ import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { ExhibitionCard } from './exhibition-card';
 import type { ExhibitionCardSummary } from '@/lib/exhibitions';
-import { getExhibitionGradient } from '@/lib/exhibition-color';
+import { getExhibitionTexture } from '@/lib/exhibition-color';
 
 vi.mock('@/lib/cms-asset-url', () => ({
   toAssetUrl: (id: string | null) =>
     id ? `https://example.com/assets/${id}` : null,
 }));
-
-vi.mock('@/lib/exhibition-color', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@/lib/exhibition-color')>();
-  return {
-    ...actual,
-    getExhibitionGradient: vi.fn(actual.getExhibitionGradient),
-  };
-});
 
 vi.mock('./bookmark-button', () => ({
   BookmarkButton: () => <button type="button">bookmark</button>,
@@ -77,53 +68,25 @@ describe('ExhibitionCard', () => {
     );
   });
 
-  it('derives the gradient seed from the card display name (e.g. stage.name for stage cards), not any other field', () => {
+  it('paints the lower area with the pamphlet texture chosen from the display name', () => {
+    const name = '出演用の企画名';
+    const { texture, position, rotation } = getExhibitionTexture(name);
     render(
       <ExhibitionCard
-        exhibition={{
-          ...baseExhibition,
-          category: 'stage',
-          displayName: '出演用の企画名',
-        }}
+        exhibition={{ ...baseExhibition, category: 'stage', displayName: name }}
       />,
     );
 
-    expect(getExhibitionGradient).toHaveBeenCalledWith('出演用の企画名');
-  });
-
-  it('overlays the texture image chosen for the display name (continuation of the color rng)', () => {
-    // '荒牧祭実行委員会' は既知の乱数列で texture='gradient' (質感画像なし) になる
-    const { container: withoutTexture } = render(
-      <ExhibitionCard
-        exhibition={{
-          ...baseExhibition,
-          displayName: '荒牧祭実行委員会',
-        }}
-      />,
+    const bg = screen
+      .getByRole('heading', { name })
+      .closest('a')!
+      .querySelector<HTMLElement>('[style*="/images/textures/"]')!;
+    expect(bg.style.backgroundImage).toBe(
+      `url("/images/textures/pamphlet/${texture}.webp")`,
     );
-    const bgWithout = withoutTexture.querySelector('.exhibition-gradient-bg');
-    expect(
-      (bgWithout as HTMLElement).style.getPropertyValue('--exhibition-texture'),
-    ).toBe('');
-
-    // 'アラマキ祭' は既知の乱数列で texture='watercolor' になる
-    const { container: withTexture } = render(
-      <ExhibitionCard
-        exhibition={{ ...baseExhibition, displayName: 'アラマキ祭' }}
-      />,
-    );
-    const bgWith = withTexture.querySelector('.exhibition-gradient-bg');
-    expect(
-      (bgWith as HTMLElement).style.getPropertyValue('--exhibition-texture'),
-    ).toBe('url(/images/textures/card/watercolor.webp)');
-    for (const v of [
-      '--exhibition-texture-y',
-      '--exhibition-texture-sx',
-      '--exhibition-texture-sy',
-    ]) {
-      expect((bgWith as HTMLElement).style.getPropertyValue(v)).not.toBe('');
-      expect((bgWithout as HTMLElement).style.getPropertyValue(v)).toBe('');
-    }
+    expect(bg.style.backgroundSize).toBe('125% auto');
+    expect(bg.style.transform).toContain(`rotate(${rotation}deg)`);
+    expect(bg.style.backgroundPosition).toBe(`${position[0]}% ${position[1]}%`);
   });
 
   it('renders no bookmark button by default and links to the detail page', () => {

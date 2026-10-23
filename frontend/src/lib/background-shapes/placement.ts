@@ -1,5 +1,10 @@
 import { bboxRadius, collisionOk, infRadius, shapeFits } from './geometry';
-import { fnv1a, mulberry32 } from './rng';
+import {
+  drawTexturePosition,
+  drawTextureRotation,
+  fnv1a,
+  mulberry32,
+} from './rng';
 import type {
   Platform,
   PlacedShape,
@@ -8,7 +13,6 @@ import type {
   RingColor,
   ShapeKind,
   Tier,
-  TextureFamily,
   TextureId,
 } from './types';
 
@@ -21,12 +25,10 @@ const TOKENS: readonly RingColor[] = [
   'wisteria',
   'aqua',
 ];
-const TEX: readonly TextureFamily[] = [
-  'gradient',
-  'watercolor',
-  'grainy',
-  'halftone',
-];
+// 並びを変えると質感割当の乱数消費がずれる
+const TEX: readonly TextureId[] = ['gradient', 'watercolor', 'grain', 'streak'];
+// 水彩は小さいと汚れに見えるため S では使わない
+const S_TEX: readonly TextureId[] = ['gradient', 'grain', 'streak'];
 const KINDS: readonly ShapeKind[] = [
   'circle',
   'triangle',
@@ -35,22 +37,6 @@ const KINDS: readonly ShapeKind[] = [
   'quarterCircle',
   'semicircle',
 ];
-
-// tex5 のファイル名接頭辞と質感名の対応 (同じ質感の2枚から乱数で選ぶ)
-const L_TEX_FILES: Record<TextureFamily, readonly TextureId[]> = {
-  gradient: ['L1', 'L5'],
-  watercolor: ['L2', 'L6'],
-  grainy: ['L3', 'L7'],
-  halftone: ['L4', 'L8'],
-};
-const S_TEX_FILES: Record<
-  Exclude<TextureFamily, 'watercolor'>,
-  readonly TextureId[]
-> = {
-  gradient: ['S1', 'S4'],
-  grainy: ['S2', 'S5'],
-  halftone: ['S3', 'S6'],
-};
 
 interface RangeSet {
   L: readonly [number, number];
@@ -63,9 +49,10 @@ const RANGES: Record<Platform, RangeSet> = {
   sp: { L: [150, 250], S: [50, 80], D: [80, 115] },
 };
 
-// rules.md「L の縦位置」の間隔範囲 (PC 520〜900 / SP 420〜720) の平均。
 // L の個数 = 装飾可能高をこの間隔で割った目安
-const AVG_L_GAP: Record<Platform, number> = { pc: 710, sp: 570 };
+const AVG_L_GAP: Record<Platform, number> = { pc: 546, sp: 438 };
+const S_PITCH = 308;
+const INF_PITCH = 1920;
 
 const GUTTER = 24;
 const SHRINK_FACTOR = 0.85;
@@ -121,6 +108,8 @@ interface WorkingShape {
   rotation: number;
   colors: readonly [RingColor, RingColor] | null;
   texture: TextureId | null;
+  texturePos: readonly [number, number] | null;
+  textureRot: number | null;
 }
 
 function round2(n: number): number {
@@ -159,7 +148,10 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
   const shapes: WorkingShape[] = [];
 
   // ---- ∞ ----
-  const countInf = Math.max(1, 1 + Math.floor((height - 2500) / 2500));
+  const countInf = Math.max(
+    1,
+    1 + Math.floor((height - INF_PITCH) / INF_PITCH),
+  );
   const [dLo, dHi] = R.D;
   let deficitInf = 0;
   for (let n = 0; n < countInf; n++) {
@@ -187,6 +179,8 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
         rotation: rot,
         colors: [c1, c2],
         texture: null,
+        texturePos: null,
+        textureRot: null,
       });
     } else {
       deficitInf++;
@@ -225,6 +219,8 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
         rotation: rot,
         colors: null,
         texture: null,
+        texturePos: null,
+        textureRot: null,
       };
       shapes.push(shape);
       lSlots.push(shape);
@@ -247,13 +243,17 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
       i < 4 ? perm[i] : rng.pick(TEX),
     );
     lSlots.forEach((shp, i) => {
-      shp.texture = rng.pick(L_TEX_FILES[assigned[i]]);
+      shp.texture = assigned[i];
+    });
+    lSlots.forEach((shp) => {
+      shp.texturePos = drawTexturePosition(() => rng.f());
+      shp.textureRot = drawTextureRotation(() => rng.f());
     });
   }
 
   // ---- S: 装飾範囲全体で縦位置を引く ----
   const [sLo, sHi] = R.S;
-  const countS = Math.max(Math.floor(decorHeight / 400), 4 - countL);
+  const countS = Math.max(Math.floor(decorHeight / S_PITCH), 5 - countL);
   const sShapes: WorkingShape[] = [];
   for (let i = 0; i < countS; i++) {
     const kind = rng.pick(KINDS);
@@ -279,6 +279,8 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
         rotation: rot,
         colors: null,
         texture: null,
+        texturePos: null,
+        textureRot: null,
       });
     }
   }
@@ -286,26 +288,14 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
 
   // ---- 質感割当 (S): L で使われなかった質感 (水彩以外) を先頭から、残りは3質感から乱数 ----
   if (sShapes.length > 0) {
-    const lTexNames: TextureFamily[] = [];
-    for (const shp of lSlots) {
-      for (const [name, files] of Object.entries(L_TEX_FILES) as [
-        TextureFamily,
-        readonly TextureId[],
-      ][]) {
-        if (shp.texture !== null && files.includes(shp.texture)) {
-          lTexNames.push(name);
-          break;
-        }
-      }
-    }
-    const unused = perm.filter(
-      (t): t is Exclude<TextureFamily, 'watercolor'> =>
-        t !== 'watercolor' && !lTexNames.includes(t),
-    );
-    const sTexOrder = Object.keys(S_TEX_FILES) as (keyof typeof S_TEX_FILES)[];
+    const used = lSlots.map((shp) => shp.texture);
+    const unused = perm.filter((t) => t !== 'watercolor' && !used.includes(t));
     sShapes.forEach((shp, i) => {
-      const name = i < unused.length ? unused[i] : rng.pick(sTexOrder);
-      shp.texture = rng.pick(S_TEX_FILES[name]);
+      shp.texture = i < unused.length ? unused[i] : rng.pick(S_TEX);
+    });
+    sShapes.forEach((shp) => {
+      shp.texturePos = drawTexturePosition(() => rng.f());
+      shp.textureRot = drawTextureRotation(() => rng.f());
     });
   }
 
@@ -336,6 +326,8 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
         cy,
         rot,
         texture: null,
+        texturePos: null,
+        textureRot: null,
         colors: shp.colors!,
       };
     }
@@ -347,6 +339,8 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
       cy,
       rot,
       texture: shp.texture!,
+      texturePos: shp.texturePos!,
+      textureRot: shp.textureRot!,
       colors: null,
     };
   });

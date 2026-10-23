@@ -687,46 +687,6 @@
   }
 }
 
-@layer utilities {
-  /*
-   * 企画カードの背景: from の単色地に to の楕円を重ねる水彩の溜まり。色同士を補間せず
-   * アルファで薄めるだけなので、パレット外の色相 (隣接しない色の中間色) が出ない。
-   * 最前面の白 35% でパステル寄りにする。
-   */
-  .exhibition-gradient-bg {
-    background-color: var(--exhibition-gradient-from);
-    background-image:
-      linear-gradient(rgb(255 255 255 / 0.35), rgb(255 255 255 / 0.35)),
-      radial-gradient(
-        ellipse 126% 210% at var(--exhibition-pool-x) var(--exhibition-pool-y),
-        var(--exhibition-gradient-to) 0 25%,
-        var(--exhibition-gradient-to-half) 50%,
-        var(--exhibition-gradient-to-clear) 75%
-      );
-  }
-
-  /*
-   * 企画カードに重ねる無彩色の質感 (design.md ExhibitionCard 節)。--exhibition-texture は
-   * exhibition-card.tsx が質感ごとの画像 URL を設定する (texture='gradient' のときは未設定 =
-   * 'none' で質感画像を重ねない)
-   */
-  .exhibition-gradient-bg::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image: var(--exhibition-texture, none);
-    background-size: cover;
-    /* 質感画像は全カード共通の 1 枚なので、切り出し位置と反転を企画ごとに変えて同じ模様の繰り返しに見せない */
-    background-position: center var(--exhibition-texture-y, 50%);
-    transform: scale(
-      var(--exhibition-texture-sx, 1),
-      var(--exhibition-texture-sy, 1)
-    );
-    /* 質感画像は中間グレー中心の無彩色なので、overlay で重ねて地のグラデーションの色を残す */
-    mix-blend-mode: overlay;
-  }
-}
-
 /*
  * 点マーカーの吹き出し (Figma MapTooltip)。Leaflet 既定は角丸 3px・影付き・
  * ::before の単色矢印のため、白地 + gray-200 の 1px 枠 + 枠線付きしっぽへ差し替える。
@@ -770,9 +730,6 @@
 /* 質感画像を load まで止める (layout.tsx の data-pl)。インライン style の background-image は !important で上書きする */
 html[data-pl] [style*='/images/textures/'] {
   background-image: none !important;
-}
-html[data-pl] .exhibition-gradient-bg::before {
-  background-image: none;
 }
 
 /*

@@ -69,7 +69,9 @@ function shape(overrides: Partial<PlacedShape> = {}): PlacedShape {
     cx: 200,
     cy: 300,
     rot: 0,
-    texture: 'L1',
+    texture: 'watercolor',
+    texturePos: [50, 50],
+    textureRot: 30,
     colors: null,
     ...overrides,
   } as PlacedShape;

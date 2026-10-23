@@ -32,7 +32,9 @@ function lShape(overrides: SolidOverrides = {}): PlacedShape {
     cx: 100,
     cy: 100,
     rot: 0,
-    texture: 'L1',
+    texture: 'watercolor',
+    texturePos: [50, 50],
+    textureRot: 30,
     colors: null,
     ...overrides,
   };
@@ -46,7 +48,9 @@ function sShape(overrides: SolidOverrides = {}): PlacedShape {
     cx: 100,
     cy: 100,
     rot: 0,
-    texture: 'S1',
+    texture: 'grain',
+    texturePos: [50, 50],
+    textureRot: 30,
     colors: null,
     ...overrides,
   };
@@ -61,6 +65,8 @@ function infShape(overrides: SolidOverrides = {}): PlacedShape {
     cy: 100,
     rot: 0,
     texture: null,
+    texturePos: null,
+    textureRot: null,
     colors: ['ochre', 'olive'],
     ...overrides,
   };
