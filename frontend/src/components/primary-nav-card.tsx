@@ -1,4 +1,3 @@
-import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import { MaterialIcon } from './icons';
 
@@ -9,23 +8,42 @@ interface DestinationConfig {
   readonly href: string;
   readonly icon: string;
   readonly label: string;
+  // Tailwind は静的クラス文字列しか拾わないため色ごとに完全なクラス名を持つ
+  readonly borderClass: string;
+  readonly textClass: string;
 }
 
 // href は lib/navigation.ts の bottomNavigationItems と同じパス (/timetable, /parking は
-// 別 spec が実装するまで 404)。地の画像ファイル名は destination のキーと同じ (public/images/textures/nav/)
+// 別 spec が実装するまで 404)。色は bottom-navigation.tsx の INDICATOR_COLOR_CLASS と同じ割当
 const DESTINATIONS: Readonly<Record<PrimaryNavDestination, DestinationConfig>> =
   {
-    exhibitions: { href: '/exhibitions', icon: 'festival', label: '企画一覧' },
-    map: { href: '/map', icon: 'map', label: '構内マップ' },
+    exhibitions: {
+      href: '/exhibitions',
+      icon: 'festival',
+      label: '企画一覧',
+      borderClass: 'border-primary',
+      textClass: 'text-primary',
+    },
+    map: {
+      href: '/map',
+      icon: 'map',
+      label: '構内マップ',
+      borderClass: 'border-secondary',
+      textClass: 'text-secondary',
+    },
     timetable: {
       href: '/timetable',
       icon: 'calendar_clock',
       label: 'タイムテーブル',
+      borderClass: 'border-info',
+      textClass: 'text-info',
     },
     parking: {
       href: '/parking',
       icon: 'parking_sign',
       label: '駐車場空き情報',
+      borderClass: 'border-accent',
+      textClass: 'text-accent',
     },
   };
 
@@ -41,23 +59,19 @@ export interface PrimaryNavCardProps {
 }
 
 export function PrimaryNavCard({ destination }: PrimaryNavCardProps) {
-  const { href, icon, label } = DESTINATIONS[destination];
-  const bgStyle: CSSProperties = {
-    backgroundImage: `url(/images/textures/nav/${destination}.webp)`,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-  };
+  const { href, icon, label, borderClass, textClass } =
+    DESTINATIONS[destination];
 
   return (
     <Link
       href={href}
-      style={bgStyle}
-      className="hover-card-shadow flex h-[171px] w-[171px] flex-col items-center justify-center gap-2 rounded-xl p-4 text-text lg:h-[160px] lg:w-[160px] lg:p-5"
+      className={`hover-card-shadow flex h-[171px] w-[171px] flex-col items-center justify-center gap-2 rounded-xl border-2 bg-white p-4 text-text lg:h-[160px] lg:w-[160px] lg:p-5 ${borderClass}`}
     >
+      {/* Google Fonts の CSS が非レイヤーで .material-symbols-sharp に font-size: 24px を当てるため、@layer utilities の通常クラスでは負ける */}
       <MaterialIcon
         name={icon}
-        sizeClassName="text-[48px] lg:text-[56px]"
-        className="text-text"
+        sizeClassName="text-[64px]! lg:text-[72px]!"
+        className={textClass}
       />
       {/*
         「タイムテーブル」「駐車場空き情報」(7 文字) は lg (160px 幅、余白 20px) では
