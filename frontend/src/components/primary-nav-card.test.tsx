@@ -6,6 +6,12 @@ import {
   PRIMARY_NAV_DESTINATIONS,
   type PrimaryNavDestination,
 } from './primary-nav-card';
+import tailwindConfig from '../../tailwind.config';
+
+const THEME_COLORS = tailwindConfig.theme?.extend?.colors as Record<
+  string,
+  string
+>;
 
 const EXPECTED: Record<
   PrimaryNavDestination,
@@ -99,8 +105,10 @@ describe('PrimaryNavCard', () => {
       const icon = screen.getByTestId(
         `icon-${expected.icon.replace(/_/g, '-')}`,
       );
-      expect(link).toHaveClass(`border-${expected.color}`);
-      expect(icon).toHaveClass(`text-${expected.color}`);
+      expect(link).toHaveClass('border-current');
+      expect(link).toHaveStyle({ color: THEME_COLORS[expected.color] });
+      // アイコンは自前の色を持たず、リンクの色を継ぐ
+      expect(icon.className).not.toMatch(/\btext-(?!\[)/);
     },
   );
 });
