@@ -199,7 +199,7 @@ async function capture(page: Page, testInfo: TestInfo, name: string) {
   await testInfo.attach(name, { path, contentType: 'image/png' });
 }
 
-test.describe('地域協賛マップ fixture E2E', () => {
+test.describe('地域協賛マップ fixture E2E', { tag: '@local-fixture' }, () => {
   test.describe.configure({ mode: 'serial' });
   test.setTimeout(120_000);
 

@@ -11,11 +11,21 @@ if (process.env.CF_ACCESS_CLIENT_ID && process.env.CF_ACCESS_CLIENT_SECRET) {
     process.env.CF_ACCESS_CLIENT_SECRET;
 }
 
+const useLocalApp = process.env.E2E_LOCAL_APP === '1';
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? [['html', { open: 'never' }], ['github']] : 'list',
+  webServer: useLocalApp
+    ? {
+        command: 'pnpm exec next dev --hostname 127.0.0.1 --port 3011',
+        url: 'http://127.0.0.1:3011',
+        reuseExistingServer: false,
+        timeout: 120_000,
+      }
+    : undefined,
   use: {
     // CI ではプレビュー URL、local では localhost をデフォルトにする (Requirement 1.1, 1.2)
     baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:3000',

@@ -287,8 +287,16 @@ jobs:
       - name: Wait for preview to become reachable
         run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec tsx scripts/wait-for-preview.ts
 
-      - name: Run E2E tests
-        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- env NEXT_PUBLIC_CMS_URL=https://cms.aramakisai.com pnpm test:e2e
+      - name: Run local fixture E2E tests
+        env:
+          E2E_LOCAL_APP: "1"
+          E2E_BASE_URL: http://127.0.0.1:3011
+          NEXT_PUBLIC_CMS_URL: http://127.0.0.1:18055
+          NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3011
+        run: pnpm exec playwright test --grep '@local-fixture'
+
+      - name: Run staging preview E2E tests
+        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- env NEXT_PUBLIC_CMS_URL=https://cms.aramakisai.com pnpm exec playwright test --grep-invert '@local-fixture'
 
       - name: Upload Playwright report (trace/screenshot)
         if: failure()
