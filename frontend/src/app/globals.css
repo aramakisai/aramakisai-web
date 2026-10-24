@@ -717,6 +717,62 @@
   pointer-events: none;
 }
 
+/* 地域協賛マップのピンはFigmaのPC 48px / SP 32pxをiconSizeで受ける。 */
+.regional-sponsor-pin,
+.regional-sponsor-cluster {
+  border: 0;
+  background: transparent;
+}
+
+.regional-sponsor-pin > span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 3px solid #fff;
+  border-radius: 50% 50% 50% 8%;
+  background: var(--regional-pin-color);
+  box-shadow: 0 4px 12px rgb(32 32 32 / 0.24);
+  transform: rotate(-45deg);
+}
+
+.regional-sponsor-pin--selected > span {
+  outline: 3px solid #202020;
+  outline-offset: 2px;
+}
+
+.regional-sponsor-cluster > span {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #57534e;
+  border-radius: 9999px;
+  background: #fff;
+  color: #202020;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgb(32 32 32 / 0.2);
+}
+
+.regional-sponsor-pin:focus-visible > span,
+.regional-sponsor-cluster:focus-visible > span {
+  outline: 3px solid #ebb03c;
+  outline-offset: 3px;
+}
+
+@media (max-width: 767px) {
+  .regional-sponsor-map .leaflet-bottom {
+    bottom: var(--regional-map-bottom-inset, 0px);
+    transition: bottom 300ms ease-out;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .regional-sponsor-map .leaflet-bottom {
+    transition: none;
+  }
+}
+
 .leaflet-tooltip.map-point-tooltip.leaflet-tooltip-top::before {
   bottom: -7px;
   border-top-color: #e7e5e4;

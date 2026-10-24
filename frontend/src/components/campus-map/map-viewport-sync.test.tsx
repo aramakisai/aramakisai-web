@@ -6,6 +6,7 @@ import { MapViewportSync } from './map-viewport-sync';
 const map = vi.hoisted(() => ({
   getContainer: () => document.createElement('div'),
   invalidateSize: vi.fn(),
+  setMaxBounds: vi.fn(),
   setMinZoom: vi.fn(),
   getBoundsZoom: vi.fn(),
   fitBounds: vi.fn(),

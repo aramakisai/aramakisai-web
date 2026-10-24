@@ -14,6 +14,15 @@ const address = fieldOf(Sponsors.fields, 'address');
 const areaId = fieldOf(Sponsors.fields, 'area_id');
 const boothNumber = fieldOf(Sponsors.fields, 'booth_number');
 const boothLabel = fieldOf(Sponsors.fields, 'booth_label');
+const localImportId = fieldOf(Sponsors.fields, 'local_import_id');
+const localMapCategory = fieldOf(Sponsors.fields, 'local_map_category');
+const localLatitude = fieldOf(Sponsors.fields, 'local_latitude');
+const localLongitude = fieldOf(Sponsors.fields, 'local_longitude');
+const localImage = fieldOf(Sponsors.fields, 'local_image');
+const localImageAlt = fieldOf(Sponsors.fields, 'local_image_alt');
+const localImageDecorative = fieldOf(Sponsors.fields, 'local_image_decorative');
+const localPhone = fieldOf(Sponsors.fields, 'local_phone');
+const localImageChecksum = fieldOf(Sponsors.fields, 'local_image_checksum');
 
 describe('type フィールド', () => {
   it('4 択の複数選択かつ必須で、既定値を持たない', () => {
@@ -62,8 +71,53 @@ describe('booth_number フィールド', () => {
   it('最大 20 文字のテキストで、空白のみの値は null で保存する', () => {
     expect(boothNumber.type).toBe('text');
     expect(boothNumber.maxLength).toBe(20);
-    const [hook] = (boothNumber.hooks as { beforeValidate: ((a: { value: unknown }) => unknown)[] }).beforeValidate;
+    const [hook] = (boothNumber.hooks as { beforeValidate: ((a: { value: unknown }) => unknown)[] })
+      .beforeValidate;
     expect(hook({ value: ' ' })).toBeNull();
     expect(hook({ value: 'GB155' })).toBe('GB155');
+  });
+});
+
+describe('地域協賛マップ項目', () => {
+  it('既存項目を必須化せず、地図固有項目をlocalのときだけ表示する', () => {
+    const condition = (
+      localMapCategory.admin as { condition: (data: Record<string, unknown>) => boolean }
+    ).condition;
+
+    expect(condition({ type: ['local'] })).toBe(true);
+    expect(condition({ type: ['ad'] })).toBe(false);
+    for (const field of [
+      localImportId,
+      localMapCategory,
+      localLatitude,
+      localLongitude,
+      localImage,
+      localImageAlt,
+      localImageDecorative,
+      localPhone,
+      localImageChecksum,
+    ]) {
+      expect(field.required).not.toBe(true);
+    }
+  });
+
+  it('カテゴリをcanonical 6値に限定し、電話番号はtextで保持する', () => {
+    expect(localMapCategory.type).toBe('select');
+    expect((localMapCategory.options as { value: string }[]).map(({ value }) => value)).toEqual([
+      'hospital',
+      'life',
+      'car',
+      'education',
+      'food',
+      'shop',
+    ]);
+    expect(localPhone.type).toBe('text');
+  });
+
+  it('取り込みIDを一意index、掲載画像をmedia relation、checksumをreadOnlyにする', () => {
+    expect(localImportId).toMatchObject({ type: 'text', unique: true, index: true });
+    expect(localImage).toMatchObject({ type: 'upload', relationTo: 'media' });
+    expect(localImageChecksum.type).toBe('text');
+    expect(localImageChecksum.admin).toMatchObject({ readOnly: true });
   });
 });
