@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload';
 
 import { blankToNull } from '../hooks/constraints';
+import { LOCAL_SPONSOR_CATEGORIES, localSponsorMapConstraint } from '../hooks/local-sponsor-map';
 import { sponsorBoothPlacementConstraint } from '../hooks/payload-constraints';
 import { signageNotifyHook } from '../lib/signage-notify';
 
@@ -12,7 +13,7 @@ export const Sponsors: CollectionConfig = {
   },
   orderable: true,
   hooks: {
-    beforeValidate: [sponsorBoothPlacementConstraint],
+    beforeValidate: [localSponsorMapConstraint, sponsorBoothPlacementConstraint],
     afterChange: [signageNotifyHook(['snapshot'])],
     afterDelete: [signageNotifyHook(['snapshot'])],
   },
@@ -72,6 +73,119 @@ export const Sponsors: CollectionConfig = {
       label: '住所',
       admin: {
         description: '地域協賛のみ',
+        condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
+      },
+    },
+    {
+      name: 'local_import_id',
+      type: 'text',
+      unique: true,
+      index: true,
+      maxLength: 255,
+      label: '地域協賛 取り込み識別子',
+      admin: {
+        description: '一括取り込みで同じ所在地を識別する値。手入力では任意',
+        condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
+      },
+    },
+    {
+      name: 'local_map_category',
+      type: 'select',
+      label: '地域協賛 地図カテゴリ',
+      options: LOCAL_SPONSOR_CATEGORIES.map((value) => ({
+        value,
+        label: {
+          hospital: '病院',
+          life: '生活',
+          car: '車',
+          education: '教育',
+          food: '飲食',
+          shop: 'ショップ',
+        }[value],
+      })),
+      admin: {
+        condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
+      },
+    },
+    {
+      name: 'local_latitude',
+      type: 'number',
+      min: -90,
+      max: 90,
+      label: '地域協賛 緯度',
+      admin: {
+        condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
+      },
+    },
+    {
+      name: 'local_longitude',
+      type: 'number',
+      min: -180,
+      max: 180,
+      label: '地域協賛 経度',
+      admin: {
+        condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
+      },
+    },
+    {
+      name: 'local_image',
+      type: 'upload',
+      relationTo: 'media',
+      label: '地域協賛 掲載画像',
+      admin: {
+        condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
+      },
+    },
+    {
+      name: 'local_image_alt',
+      type: 'text',
+      maxLength: 500,
+      label: '地域協賛 掲載画像の代替テキスト',
+      admin: {
+        condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
+      },
+    },
+    {
+      name: 'local_image_decorative',
+      type: 'checkbox',
+      defaultValue: false,
+      label: '地域協賛 掲載画像を装飾として扱う',
+      admin: {
+        condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
+      },
+    },
+    {
+      name: 'local_business_hours',
+      type: 'textarea',
+      label: '地域協賛 営業時間・診療時間',
+      admin: {
+        condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
+      },
+    },
+    {
+      name: 'local_closed_days',
+      type: 'textarea',
+      label: '地域協賛 定休日・休診日',
+      admin: {
+        condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
+      },
+    },
+    {
+      name: 'local_phone',
+      type: 'text',
+      maxLength: 100,
+      label: '地域協賛 電話番号',
+      admin: {
+        condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
+      },
+    },
+    {
+      name: 'local_image_checksum',
+      type: 'text',
+      maxLength: 64,
+      label: '地域協賛 掲載画像checksum',
+      admin: {
+        readOnly: true,
         condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
       },
     },

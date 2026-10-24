@@ -411,6 +411,20 @@ export interface Sponsor {
    */
   address?: string | null;
   /**
+   * 一括取り込みで同じ所在地を識別する値。手入力では任意
+   */
+  local_import_id?: string | null;
+  local_map_category?: ('hospital' | 'life' | 'car' | 'education' | 'food' | 'shop') | null;
+  local_latitude?: number | null;
+  local_longitude?: number | null;
+  local_image?: (number | null) | Media;
+  local_image_alt?: string | null;
+  local_image_decorative?: boolean | null;
+  local_business_hours?: string | null;
+  local_closed_days?: string | null;
+  local_phone?: string | null;
+  local_image_checksum?: string | null;
+  /**
    * 広告協賛のみ
    */
   tier?: ('planA' | 'planB' | 'planC' | 'planD') | null;
@@ -1170,6 +1184,17 @@ export interface SponsorsSelect<T extends boolean = true> {
   description?: T;
   business_category?: T;
   address?: T;
+  local_import_id?: T;
+  local_map_category?: T;
+  local_latitude?: T;
+  local_longitude?: T;
+  local_image?: T;
+  local_image_alt?: T;
+  local_image_decorative?: T;
+  local_business_hours?: T;
+  local_closed_days?: T;
+  local_phone?: T;
+  local_image_checksum?: T;
   tier?: T;
   area_id?: T;
   booth_number?: T;

@@ -69,5 +69,7 @@ export const SITEMAP_CODE_ROUTES: readonly string[] = [
   ...PRE_EVENT_PUBLIC_PATHS.filter(
     (path) => hasRouteEntity(path) && path !== SIGNAGE_PATH,
   ),
+  // 実体を持つ二階層route。トップページ内アンカー扱いで除外しない。
+  '/sponsors/local',
   ...LIVE_ONLY_CODE_ROUTES,
 ];

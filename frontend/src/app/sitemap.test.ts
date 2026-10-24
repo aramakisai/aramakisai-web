@@ -110,12 +110,12 @@ describe('sitemap (pre_event)', () => {
     expect(topicsModule.getTopics).toHaveBeenCalled();
   });
 
-  it('ルート実体の無い /sponsors/* を収録しない', async () => {
+  it('ルート実体の無い広告協賛は除外し、地域協賛mapを収録する', async () => {
     const result = await sitemap();
     const urls = urlsOf(result);
 
     expect(urls).not.toContain(`${SITE_URL}/sponsors/ad`);
-    expect(urls).not.toContain(`${SITE_URL}/sponsors/local`);
+    expect(urls).toContain(`${SITE_URL}/sponsors/local`);
   });
 
   it('固定ページは実在する slug のみ収録する', async () => {

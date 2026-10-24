@@ -20,6 +20,7 @@
     "migrate:create": "cross-env NODE_OPTIONS=--no-deprecation S3_BUCKET=dummy-schema-only S3_ENDPOINT=https://example.invalid S3_REGION=dummy-schema-only S3_ACCESS_KEY_ID=dummy-schema-only S3_SECRET_ACCESS_KEY=dummy-schema-only AUTHENTIK_ISSUER_URL=https://example.invalid payload migrate:create",
     "migrate": "cross-env NODE_OPTIONS=--no-deprecation payload migrate",
     "migrate:status": "cross-env NODE_OPTIONS=--no-deprecation payload migrate:status",
+    "import:local-sponsors": "cross-env NODE_OPTIONS=--import=tsx/esm node scripts/import-local-sponsors.ts",
     "db:up": "docker compose up -d db",
     "db:down": "docker compose down",
     "seed:dev:exhibitions": "cross-env NODE_OPTIONS=--import=tsx/esm node scripts/seed-dev-exhibitions.ts",

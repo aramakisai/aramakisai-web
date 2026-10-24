@@ -30,6 +30,7 @@ import * as migration_20261013_150312_signage_quake from './20261013_150312_sign
 import * as migration_20261013_172130_site_settings_and_cleanup_a from './20261013_172130_site_settings_and_cleanup_a';
 import * as migration_20261014_072436_invite_claimed_job from './20261014_072436_invite_claimed_job';
 import * as migration_20261014_073409_drop_legacy_globals_and_sort from './20261014_073409_drop_legacy_globals_and_sort';
+import * as migration_20261021_075407_regional_sponsor_map from './20261021_075407_regional_sponsor_map';
 
 export const migrations = [
   {
@@ -190,6 +191,11 @@ export const migrations = [
   {
     up: migration_20261014_073409_drop_legacy_globals_and_sort.up,
     down: migration_20261014_073409_drop_legacy_globals_and_sort.down,
-    name: '20261014_073409_drop_legacy_globals_and_sort'
+    name: '20261014_073409_drop_legacy_globals_and_sort',
+  },
+  {
+    up: migration_20261021_075407_regional_sponsor_map.up,
+    down: migration_20261021_075407_regional_sponsor_map.down,
+    name: '20261021_075407_regional_sponsor_map',
   },
 ];

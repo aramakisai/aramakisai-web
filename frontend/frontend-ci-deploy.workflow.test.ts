@@ -46,6 +46,10 @@ function needsArray(job: Job): string[] {
   return Array.isArray(job.needs) ? job.needs : [job.needs];
 }
 
+function indexOfCommand(job: Job, text: string): number {
+  return runCommands(job).findIndex((command) => command.includes(text));
+}
+
 describe('.github/workflows/frontend-ci.yml — deploy-preview job', () => {
   it('runs in parallel with validate (no needs) to shorten the critical path', () => {
     const workflow = loadWorkflow();
@@ -147,6 +151,29 @@ describe('.github/workflows/frontend-ci.yml — deploy-prod job', () => {
     expect(buildIdx).toBeGreaterThanOrEqual(0);
     expect(deployIdx).toBeGreaterThan(buildIdx);
   });
+});
+
+describe('.github/workflows/frontend-ci.yml — map tile deployment guard', () => {
+  it.each([
+    ['deploy-preview', 'wrangler versions upload'],
+    ['deploy-dev', 'wrangler deploy --env=dev'],
+    ['deploy-prod', 'opennextjs-cloudflare deploy'],
+  ])(
+    '%s verifies OpenNext assets after build and before deployment',
+    (name, deploy) => {
+      const job = loadWorkflow().jobs[name];
+      const buildIndex = indexOfCommand(job, 'opennextjs-cloudflare build');
+      const verifyIndex = indexOfCommand(
+        job,
+        'tsx scripts/verify-build-artifacts.ts',
+      );
+      const deployIndex = indexOfCommand(job, deploy);
+
+      expect(buildIndex).toBeGreaterThanOrEqual(0);
+      expect(verifyIndex).toBeGreaterThan(buildIndex);
+      expect(deployIndex).toBeGreaterThan(verifyIndex);
+    },
+  );
 });
 
 describe('.github/workflows/frontend-ci.yml — signage hub deploy', () => {

@@ -55,9 +55,9 @@ describe('buildRobotsPlan', () => {
 });
 
 describe('SITEMAP_CODE_ROUTES', () => {
-  it('ルート実体を持たない /sponsors/* を含まない', () => {
+  it('ルート実体を持たない広告協賛は除外し、実体を持つ地域協賛を含む', () => {
     expect(SITEMAP_CODE_ROUTES).not.toContain('/sponsors/ad');
-    expect(SITEMAP_CODE_ROUTES).not.toContain('/sponsors/local');
+    expect(SITEMAP_CODE_ROUTES).toContain('/sponsors/local');
   });
 
   it('サイネージ画面は検索対象のサイトマップに載せない', () => {

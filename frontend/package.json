@@ -22,9 +22,9 @@
   },
   "dependencies": {
     "@fontsource/line-seed-jp": "^5.3.1",
-    "@opennextjs/cloudflare": "^1.0.0",
+    "@opennextjs/cloudflare": "1.20.13",
     "leaflet": "1.9.4",
-    "next": "^15.0.0",
+    "next": "15.5.28",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-leaflet": "5.0.0",
@@ -46,7 +46,7 @@
     "@types/sanitize-html": "^2.16.1",
     "@vitejs/plugin-react": "^4.0.0",
     "eslint": "^9.0.0",
-    "eslint-config-next": "^15.0.0",
+    "eslint-config-next": "15.5.28",
     "eslint-config-prettier": "^10.0.0",
     "jsdom": "^25.0.0",
     "postcss": "^8.5.16",
@@ -56,7 +56,7 @@
     "tsx": "^4.0.0",
     "typescript": "^5.0.0",
     "vitest": "^3.0.0",
-    "wrangler": "^4.0.0",
+    "wrangler": "4.148.0",
     "yaml": "^2.9.0",
     "zod": "^3.0.0"
   }
