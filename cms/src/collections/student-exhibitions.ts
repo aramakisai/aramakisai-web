@@ -5,8 +5,8 @@ import { blankToNull } from '../hooks/constraints';
 import {
   exhibitionBoothPlacementConstraint,
   categoryContentsConstraint,
-  guardPublishedExhibition,
   imageConstraint,
+  keepExecutiveOnlyOnRestore,
   ownerConstraint,
   stageCategoryConstraint,
 } from '../hooks/payload-constraints';
@@ -123,13 +123,14 @@ function categoryContentGroup(name: (typeof CATEGORIES)[number]['name'], label: 
 export const StudentExhibitions: CollectionConfig = {
   slug: 'student_exhibitions',
   labels: { singular: '学生企画', plural: '学生企画' },
+  versions: true,
   admin: {
     useAsTitle: 'organization_name',
     defaultColumns: ['organization_name', 'categories', 'status'],
   },
   hooks: {
-    beforeOperation: [guardPublishedExhibition],
     beforeValidate: [
+      keepExecutiveOnlyOnRestore,
       ownerConstraint,
       exhibitionBoothPlacementConstraint,
       categoryContentsConstraint,
@@ -165,11 +166,8 @@ export const StudentExhibitions: CollectionConfig = {
         { label: '公開', value: 'published' },
         { label: '下書き', value: 'draft' },
       ],
-      admin: {
-        position: 'sidebar',
-        description: '公開は実行委員が行い、公開後は編集できません。',
-      },
-      access: { create: executiveOnlyField, update: executiveOnlyField },
+      admin: { position: 'sidebar' },
+      access: { create: executiveOnlyField },
     },
     {
       name: 'organization_name',

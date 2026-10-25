@@ -1,6 +1,7 @@
-import type { CollectionBeforeOperationHook, CollectionBeforeValidateHook } from 'payload'
-import { APIError, ValidationError } from 'payload'
+import type { CollectionBeforeOperationHook, CollectionBeforeValidateHook, Field } from 'payload'
+import { ValidationError } from 'payload'
 
+import { executiveOnlyField } from '../access/payload-access'
 import { isStudentExhibitor, toCmsUser } from '../access/roles'
 import {
   newImageIds,
@@ -29,6 +30,44 @@ function raise(collection: string, violations: readonly ConstraintViolation[]): 
     collection,
     errors: violations.map(({ field, message }) => ({ path: field, message })),
   })
+}
+
+function executiveOnlyPaths(fields: readonly Field[], prefix: string[] = []): string[][] {
+  return fields.flatMap((field) => {
+    if (!('name' in field) || !field.name) return []
+    const path = [...prefix, field.name]
+    if ((field as { access?: { update?: unknown } }).access?.update === executiveOnlyField) return [path]
+    return field.type === 'group' ? executiveOnlyPaths(field.fields, path) : []
+  })
+}
+
+function valueAt(source: unknown, path: readonly string[]): unknown {
+  return path.reduce<unknown>((v, key) => (v as Record<string, unknown> | null | undefined)?.[key], source)
+}
+
+/**
+ * 版の復元では、更新権限のない項目が復元データから除かれ、通常の更新と違って現在値での
+ * 補完も行われない。必須項目 (owner・categories) が欠けて検証に落ちるため、学生団体の復元では
+ * 実行委員専用の項目を現在のレコードの値で埋める (版が持つ割当値は反映しない)。
+ */
+export const keepExecutiveOnlyOnRestore: CollectionBeforeValidateHook = ({
+  collection,
+  context,
+  data,
+  originalDoc,
+  req,
+}) => {
+  if (!context?.isRestoringVersion || !data || !isStudentExhibitor(toCmsUser(req.user))) return data
+
+  if (!collection) return data
+  for (const path of executiveOnlyPaths(collection.fields)) {
+    const parent = path.slice(0, -1).reduce<Record<string, unknown>>((node, key) => {
+      node[key] ??= {}
+      return node[key] as Record<string, unknown>
+    }, data)
+    parent[path[path.length - 1]] = valueAt(originalDoc, path)
+  }
+  return data
 }
 
 export const performanceSlotConstraint: CollectionBeforeValidateHook = ({ data }) => {
@@ -246,36 +285,6 @@ export const imageConstraint: CollectionBeforeValidateHook = async ({ data, orig
 
   raise('student_exhibitions', violations)
   return data
-}
-
-/**
- * access 評価 (Where で published を除外) より前に案内付きで拒否するため beforeOperation に置く。
- * 本人の企画でなければ何もせず、後段の access に Forbidden を任せる (他団体の公開状態を漏らさない)。
- */
-export const guardPublishedExhibition: CollectionBeforeOperationHook = async ({
-  args,
-  operation,
-  overrideAccess,
-  req,
-}) => {
-  if (operation !== 'update' || overrideAccess === true) return
-  if (!isStudentExhibitor(toCmsUser(req.user))) return
-
-  const id = (args as { id?: string | number }).id
-  if (id == null) return
-
-  const doc = await req.payload
-    .findByID({ collection: 'student_exhibitions', id, depth: 0, overrideAccess: true, req })
-    .catch(() => null)
-  if (!doc) return
-
-  const ownerId =
-    doc.owner !== null && typeof doc.owner === 'object'
-      ? (doc.owner as { id?: unknown }).id
-      : doc.owner
-  if (String(ownerId) !== String(req.user?.id) || doc.status !== 'published') return
-
-  throw new APIError('公開中の企画のため、修正は実行委員に依頼してください。', 403, undefined, true)
 }
 
 function idOf(value: unknown): string | number | undefined {

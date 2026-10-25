@@ -90,11 +90,20 @@ export function canCreate(user: CmsUser | null, collection: string): boolean {
   return false;
 }
 
+/** 版は Payload 既定だと認証済みなら全件読めるため、所有者で絞る */
+export function canReadVersions(user: CmsUser | null, collection: string): AccessResult {
+  if (isExecutive(user)) return true;
+  if (collection === 'student_exhibitions' && isStudentExhibitor(user)) {
+    return { 'version.owner': { equals: user!.id } };
+  }
+  return false;
+}
+
 export function canUpdate(user: CmsUser | null, collection: string): AccessResult {
   if (isExecutive(user)) return true;
   if (isStudentExhibitor(user)) {
     if (collection === 'student_exhibitions') {
-      return { and: [ownerFilter(user!), { status: { equals: 'draft' } }] };
+      return ownerFilter(user!);
     }
     if (collection === 'media') {
       return { and: [ownerFilter(user!), { used_in_published: { equals: false } }] };

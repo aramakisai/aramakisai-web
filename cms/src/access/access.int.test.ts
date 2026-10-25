@@ -185,16 +185,15 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
       expect((updated.other as { description: string }).description).toBe('更新後');
     });
 
-    it('公開済みの自分のレコードを保存しようとすると M-E01 で拒否される', async () => {
-      await expect(
-        payload.update({
-          collection: 'student_exhibitions',
-          id: publishedRecord.id,
-          data: { other: { description: '侵入' } },
-          overrideAccess: false,
-          user: await asUser(publishedOwner.id),
-        }),
-      ).rejects.toThrow('公開中の企画のため、修正は実行委員に依頼してください。');
+    it('公開済みの自分のレコードを保存できる', async () => {
+      const updated = await payload.update({
+        collection: 'student_exhibitions',
+        id: publishedRecord.id,
+        data: { other: { description: '公開後の更新' } },
+        overrideAccess: false,
+        user: await asUser(publishedOwner.id),
+      });
+      expect((updated.other as { description: string }).description).toBe('公開後の更新');
     });
 
     it('他団体のレコードを更新しようとすると拒否される', async () => {
@@ -209,7 +208,7 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
       ).rejects.toThrow();
     });
 
-    it('割当 (エリア・ブース番号・マップ表示ラベル) と公開状態を変える保存は反映されない', async () => {
+    it('割当 (エリア・ブース番号・マップ表示ラベル) を変える保存は反映されず、公開状態は反映される', async () => {
       const before = await payload.findByID({
         collection: 'student_exhibitions',
         id: ownRecord.id,
@@ -230,7 +229,81 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
 
       expect(updated.other?.booth_number).toBe(before.other?.booth_number);
       expect(updated.other?.booth_label).toBe(before.other?.booth_label);
-      expect(updated.status).toBe('draft');
+      expect(updated.status).toBe('published');
+    });
+
+    describe('バージョン履歴', () => {
+      const versionsFor = async (userId: number) =>
+        (
+          await payload.findVersions({
+            collection: 'student_exhibitions',
+            overrideAccess: false,
+            user: await asUser(userId),
+            limit: 100,
+          })
+        ).docs as { parent: number | { id: number }; version: { organization_name?: string } }[];
+
+      it('学生団体は自分の企画の版だけ読める', async () => {
+        const docs = await versionsFor(owner.id);
+        expect(docs.length).toBeGreaterThan(0);
+        expect(docs.every((d) => d.version.organization_name === `own-${suffix}`)).toBe(true);
+      });
+
+      it('実行委員は他団体の版も読める', async () => {
+        const docs = await (
+          await payload.findVersions({
+            collection: 'student_exhibitions',
+            overrideAccess: false,
+            user: await asUser(executive.id),
+            limit: 100,
+          })
+        ).docs;
+        const names = new Set(docs.map((d) => (d as { version: { organization_name?: string } }).version.organization_name));
+        expect(names.has(`own-${suffix}`)).toBe(true);
+        expect(names.has(`other-${suffix}`)).toBe(true);
+      });
+
+      it('自分の版を復元でき、割当項目は変わらない', async () => {
+        await payload.update({
+          collection: 'student_exhibitions',
+          id: ownRecord.id,
+          data: { other: { booth_number: '777', booth_label: '版の作成後に割当' } } as never,
+          overrideAccess: true,
+        });
+        const before = await payload.findByID({
+          collection: 'student_exhibitions',
+          id: ownRecord.id,
+          overrideAccess: true,
+          depth: 0,
+        });
+        const oldest = (
+          await payload.findVersions({
+            collection: 'student_exhibitions',
+            where: { parent: { equals: ownRecord.id } },
+            sort: 'createdAt',
+            limit: 1,
+            overrideAccess: true,
+          })
+        ).docs[0];
+        await payload.restoreVersion({
+          collection: 'student_exhibitions',
+          id: oldest.id,
+          overrideAccess: false,
+          user: await asOwner(),
+        });
+        const after = await payload.findByID({
+          collection: 'student_exhibitions',
+          id: ownRecord.id,
+          overrideAccess: true,
+          depth: 0,
+        });
+        expect((after.other as { description: string }).description).toBe(`own-${suffix}の紹介文`);
+        expect(ownerIdOf(after.owner)).toBe(ownerIdOf(before.owner));
+        expect(after.other?.booth_number).toBe('777');
+        expect(after.other?.booth_label).toBe('版の作成後に割当');
+        expect(after.other?.booth_number).toBe(before.other?.booth_number);
+        expect(after.categories).toEqual(before.categories);
+      });
     });
 
     it('学生団体による新規作成は拒否される', async () => {

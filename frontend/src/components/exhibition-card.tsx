@@ -62,30 +62,29 @@ export function ExhibitionCard({
             className="absolute top-1/2 left-1/2 aspect-square w-[200%]"
           />
           <div className="relative flex flex-col gap-1">
-            {exhibition.location && (
-              <span
-                className={
-                  signage
-                    ? 'flex items-center gap-1 text-signage-meta text-gray-600'
-                    : 'flex items-center gap-1 text-xs leading-[1.4] font-medium text-text'
-                }
-              >
-                <PlaceIcon size={signage ? 24 : 16} />
-                {signage ? (
-                  <span className="min-w-0 flex-1 truncate">
-                    {exhibition.location}
-                  </span>
-                ) : (
-                  exhibition.location
-                )}
-              </span>
-            )}
-            <h4
-              className={
+            <span
+              aria-hidden={exhibition.location ? undefined : true}
+              className={`flex min-h-[1lh] items-center gap-1 ${
                 signage
-                  ? 'line-clamp-2 text-signage-heading leading-[35px] font-bold text-text'
+                  ? 'text-signage-meta text-gray-600'
+                  : 'text-xs leading-[1.4] font-medium text-text'
+              } ${exhibition.location ? '' : 'invisible'}`}
+            >
+              <PlaceIcon size={signage ? 24 : 16} />
+              {signage ? (
+                <span className="min-w-0 flex-1 truncate">
+                  {exhibition.location}
+                </span>
+              ) : (
+                exhibition.location
+              )}
+            </span>
+            <h4
+              className={`line-clamp-2 h-[2lh] ${
+                signage
+                  ? 'text-signage-heading leading-[35px] font-bold text-text'
                   : 'text-text'
-              }
+              }`}
             >
               {exhibition.displayName}
             </h4>
