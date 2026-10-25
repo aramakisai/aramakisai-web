@@ -1,0 +1,3 @@
+# ファイル名にハッシュが無く、タイルを作り直した時の反映遅れが max-age で決まる
+/map-tiles/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
