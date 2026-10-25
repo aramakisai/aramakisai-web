@@ -22,16 +22,19 @@ export function SignageIcon({ name }: { readonly name: string }) {
 export function SignageDayDate({
   eventDays,
   now,
+  baseClass = 'bg-background',
 }: {
   readonly eventDays: readonly EventDay[];
   readonly now: Date;
+  /** CrossFade の各レイヤーの地。置き先の背景色と揃えないと日付の裏に別色の長方形が出る */
+  readonly baseClass?: string;
 }) {
   const day = eventDayIndex(eventDays, now);
   const date = formatSignageDate(now);
   return (
     <CrossFade
       transitionKey={date}
-      layerClassName="flex items-center gap-3 bg-background font-display text-[28px] leading-none font-bold text-text"
+      layerClassName={`flex items-center gap-3 ${baseClass} font-display text-[28px] leading-none font-bold text-text`}
     >
       {day !== null && (
         <span className="whitespace-nowrap rounded-[8px] bg-primary px-4 py-2">
@@ -66,19 +69,23 @@ export function formatPerformanceRange(p: TimetablePerformance): string {
 export function SignageOfficialSite({
   labelClass,
   qrClass,
+  label = '▼公式サイト',
+  qrSrc = '/images/qr-aramakisai.svg',
 }: {
   readonly labelClass: string;
   readonly qrClass: string;
+  readonly label?: string;
+  readonly qrSrc?: string;
 }) {
   return (
     <div className="flex w-full flex-col items-center gap-2">
       <p
         className={`font-display leading-none font-bold whitespace-nowrap text-text ${labelClass}`}
       >
-        ▼公式サイト
+        {label}
       </p>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img alt="" src="/images/qr-aramakisai.svg" className={qrClass} />
+      <img alt="" src={qrSrc} className={qrClass} />
     </div>
   );
 }

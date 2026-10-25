@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { SignageScreen } from '@/components/signage/signage-screen';
 import { getSignageSnapshot } from '@/lib/signage-data';
 
@@ -9,6 +9,9 @@ export const metadata: Metadata = {
   title: 'サイネージ',
   robots: { index: false, follow: false },
 };
+
+// iframe 内のピンチが上位文書を拡大し、サイネージ表示へ戻っても残るのを防ぐ
+export const viewport: Viewport = { maximumScale: 1, userScalable: false };
 
 export default async function SignagePage() {
   const result = await getSignageSnapshot();

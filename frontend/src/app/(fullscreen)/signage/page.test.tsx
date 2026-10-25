@@ -13,7 +13,7 @@ vi.mock('@/components/signage/signage-screen', () => ({
 
 import { getSignageSnapshot } from '@/lib/signage-data';
 import { isPublicPath } from '@/lib/phase';
-import SignagePage, { metadata } from './page';
+import SignagePage, { metadata, viewport } from './page';
 
 const mocked = vi.mocked(getSignageSnapshot);
 
@@ -29,6 +29,10 @@ describe('/signage', () => {
 
   it('検索エンジンに載せない指定を出力する', () => {
     expect(metadata.robots).toEqual({ index: false, follow: false });
+  });
+
+  it('viewport で拡大を禁止する', () => {
+    expect(viewport).toEqual({ maximumScale: 1, userScalable: false });
   });
 
   it('取得したスナップショットを画面部品へ渡す', async () => {
