@@ -47,12 +47,14 @@ describe('ExhibitionCard', () => {
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });
 
-  it('omits the location when it is not set', () => {
+  it('keeps the location row hidden from view and readers when it is not set', () => {
     render(
       <ExhibitionCard exhibition={{ ...baseExhibition, location: null }} />,
     );
 
-    expect(screen.queryByTestId('icon-place')).not.toBeInTheDocument();
+    const row = screen.getByTestId('icon-place').parentElement!;
+    expect(row).toHaveClass('invisible');
+    expect(row).toHaveAttribute('aria-hidden', 'true');
   });
 
   it('links to the detail page for the card own category', () => {

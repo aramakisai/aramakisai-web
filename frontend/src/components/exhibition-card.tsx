@@ -59,13 +59,16 @@ export function ExhibitionCard({
             className="absolute top-1/2 left-1/2 aspect-square w-[200%]"
           />
           <div className="relative flex flex-col gap-1">
-            {exhibition.location && (
-              <span className="flex items-center gap-1 text-xs leading-[1.4] font-medium text-text">
-                <PlaceIcon size={16} />
-                {exhibition.location}
-              </span>
-            )}
-            <h4 className="text-text">{exhibition.displayName}</h4>
+            <span
+              aria-hidden={exhibition.location ? undefined : true}
+              className={`flex min-h-[1lh] items-center gap-1 text-xs leading-[1.4] font-medium text-text ${exhibition.location ? '' : 'invisible'}`}
+            >
+              <PlaceIcon size={16} />
+              {exhibition.location}
+            </span>
+            <h4 className="text-text line-clamp-2 h-[2lh]">
+              {exhibition.displayName}
+            </h4>
           </div>
         </div>
       </Link>
