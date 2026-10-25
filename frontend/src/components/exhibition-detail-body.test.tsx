@@ -48,19 +48,28 @@ describe('ExhibitionDetailBody signage', () => {
     view();
     expect(screen.queryByText('共有')).toBeNull();
     expect(screen.queryByRole('list', { name: 'リンク' })).toBeNull();
-    expect(screen.queryByRole('button', { name: /ブックマーク|保存/ })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: /ブックマーク|保存/ }),
+    ).toBeNull();
   });
 
   it('出店メニューは全品出し、紹介文は5行で省略する', () => {
     view();
     expect(screen.getByText('品11')).toBeInTheDocument();
-    expect(screen.getByText('長い紹介文')).toHaveClass('line-clamp-5', 'min-h-[190px]');
+    expect(screen.getByText('長い紹介文')).toHaveClass(
+      'line-clamp-5',
+      'min-h-[190px]',
+    );
   });
 
   it('h1 は 40px・紹介 h2 は 35px の行高を明示する', () => {
     view();
-    expect(screen.getByRole('heading', { level: 1 })).toHaveClass('leading-[40px]');
-    expect(screen.getByRole('heading', { name: '紹介' })).toHaveClass('leading-[35px]');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveClass(
+      'leading-[40px]',
+    );
+    expect(screen.getByRole('heading', { name: '紹介' })).toHaveClass(
+      'leading-[35px]',
+    );
   });
 
   it('3列の幅は 560・520・744', () => {

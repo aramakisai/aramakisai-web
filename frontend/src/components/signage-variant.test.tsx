@@ -29,7 +29,6 @@ const exhibition: ExhibitionCardSummary = {
   thumbnail: null,
 };
 
-
 describe('ExhibitionCard variant', () => {
   it('site は従来の文字', () => {
     render(<ExhibitionCard exhibition={exhibition} />);

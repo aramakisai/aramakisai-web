@@ -48,7 +48,5 @@ export function TopicDetailBody({
   );
 
   if (!signage) return content;
-  return (
-    <div className="mx-auto flex w-[768px] flex-col gap-8">{content}</div>
-  );
+  return <div className="mx-auto flex w-[768px] flex-col gap-8">{content}</div>;
 }
