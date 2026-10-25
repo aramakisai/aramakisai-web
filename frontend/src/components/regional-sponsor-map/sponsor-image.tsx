@@ -51,6 +51,8 @@ export function SponsorImage({
       <img
         src={url}
         alt={sponsor.imageDecorative ? '' : (sponsor.imageAlt ?? '')}
+        loading="lazy"
+        decoding="async"
         className="h-full w-full object-contain"
         onError={() => setFailed(true)}
       />

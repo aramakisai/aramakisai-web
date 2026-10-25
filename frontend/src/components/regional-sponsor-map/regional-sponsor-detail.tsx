@@ -1,10 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import {
-  REGIONAL_SPONSOR_CATEGORY_LABELS,
-  REGIONAL_SPONSOR_CATEGORY_STYLES,
-} from '@/lib/regional-sponsor-categories';
+import { getRegionalSponsorCategoryPresentation } from '@/lib/regional-sponsor-categories';
 import type { RegionalSponsor } from '@/lib/regional-sponsors';
 import { RegionalSponsorIcon } from './regional-sponsor-icon';
 import { SponsorImage } from './sponsor-image';
@@ -32,8 +29,7 @@ export function RegionalSponsorDetail({
 }: RegionalSponsorDetailProps) {
   const articleRef = useRef<HTMLElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const category = REGIONAL_SPONSOR_CATEGORY_LABELS[sponsor.category];
-  const style = REGIONAL_SPONSOR_CATEGORY_STYLES[sponsor.category];
+  const category = getRegionalSponsorCategoryPresentation(sponsor.category);
   const hoursLabel =
     sponsor.category === 'hospital' ? '診療時間・休診日' : '営業時間・定休日';
   const websiteUrl = safeWebsiteUrl(sponsor.websiteUrl);
@@ -71,19 +67,19 @@ export function RegionalSponsorDetail({
       <h1
         ref={headingRef}
         tabIndex={-1}
-        className="mt-5 font-display text-2xl font-extrabold leading-8 text-text focus:outline-none"
+        className="mt-5 font-display text-xl font-bold leading-[1.5] text-text focus:outline-none"
       >
         {sponsor.name}
       </h1>
       <p
-        className={`mt-2 inline-flex rounded-full px-3 py-1 text-sm font-bold text-text ${style.backgroundClass}`}
+        className={`mt-2 inline-flex h-8 items-center rounded-full px-3 text-sm font-medium text-white ${category.backgroundClass}`}
       >
-        {category}
+        {category.label}
       </p>
 
       {sponsor.message && (
         <section
-          className="mt-6 rounded-lg bg-gray-50 p-4"
+          className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4"
           aria-labelledby="regional-sponsor-message-title"
         >
           <h2
@@ -100,7 +96,7 @@ export function RegionalSponsorDetail({
 
       {hasInfo && (
         <section
-          className="mt-6 rounded-lg border border-gray-200 p-4"
+          className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4"
           aria-labelledby="regional-sponsor-info-title"
         >
           <h2
@@ -150,7 +146,7 @@ export function RegionalSponsorDetail({
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={`${sponsor.name}の公式Webサイト（外部サイト）`}
-                    className="inline-flex items-center gap-1 font-bold text-text underline decoration-primary decoration-2 underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    className="inline-flex items-center gap-1 font-normal text-[#356fa8] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
                     公式Webサイト
                     <RegionalSponsorIcon name="open-in-new" size={18} />

@@ -19,7 +19,7 @@ const REGIONAL_MAP_INITIAL_CENTER: [number, number] = [
     2,
 ];
 
-/** 表示側と生成側が同じ正式profileを参照し、範囲やzoomのずれを防ぐ。 */
+/** 表示側と生成側が同じ固定サービスprofileを参照し、範囲やzoomのずれを防ぐ。 */
 export const REGIONAL_MAP_CONFIG: RegionalMapConfig = {
   ...REGIONAL_MAP_TILE_PROFILE,
   // 新規座標を推測せず、既存会場マップの確定済みキャンパス範囲中央を使う。

@@ -5,23 +5,9 @@ import path from 'node:path'
 import { generateNKeysBetween } from 'payload/shared'
 
 import type { Sponsor } from '../src/payload-types'
+import { LOCAL_SPONSOR_CATEGORY_OPTIONS } from '../src/collections/sponsors'
 
-export const LOCAL_SPONSOR_IMPORT_CATEGORIES = [
-  'hospital',
-  'life',
-  'lifestyle',
-  'car',
-  'vehicle',
-  'education',
-  'food',
-  'shop',
-] as const
-
-export type LocalSponsorImportCategory = (typeof LOCAL_SPONSOR_IMPORT_CATEGORIES)[number]
-export type CanonicalLocalSponsorCategory = Exclude<
-  LocalSponsorImportCategory,
-  'lifestyle' | 'vehicle'
->
+export type CanonicalLocalSponsorCategory = NonNullable<Sponsor['local_map_category']>
 
 export interface LocalSponsorImportError {
   readonly index: number
@@ -57,11 +43,6 @@ export type LocalSponsorImportValidationResult =
   | {
       readonly ok: true
       readonly rows: readonly ValidatedLocalSponsorImportRow[]
-      readonly aliases: readonly {
-        readonly importId: string
-        readonly from: 'lifestyle' | 'vehicle'
-        readonly to: 'life' | 'car'
-      }[]
     }
   | { readonly ok: false; readonly errors: readonly LocalSponsorImportError[] }
 
@@ -106,13 +87,11 @@ function coordinate(
 function canonicalCategory(value: unknown, errors: ErrorInput[]): CanonicalLocalSponsorCategory {
   if (
     typeof value !== 'string' ||
-    !LOCAL_SPONSOR_IMPORT_CATEGORIES.includes(value as LocalSponsorImportCategory)
+    !LOCAL_SPONSOR_CATEGORY_OPTIONS.some(({ value: allowed }) => value === allowed)
   ) {
     errors.push({ field: 'category', reason: '定義済みカテゴリが必要です' })
     return 'hospital'
   }
-  if (value === 'lifestyle') return 'life'
-  if (value === 'vehicle') return 'car'
   return value as CanonicalLocalSponsorCategory
 }
 
@@ -221,7 +200,6 @@ export async function validateLocalSponsorImportBundle(
 
   const errors: LocalSponsorImportError[] = []
   const rows: ValidatedLocalSponsorImportRow[] = []
-  const aliases: Extract<LocalSponsorImportValidationResult, { ok: true }>['aliases'][number][] = []
 
   for (const [index, value] of input.entries()) {
     if (value === null || typeof value !== 'object' || Array.isArray(value)) {
@@ -241,8 +219,6 @@ export async function validateLocalSponsorImportBundle(
 
     const rawCategory = row.category
     const category = canonicalCategory(rawCategory, rowErrors)
-    if (rawCategory === 'lifestyle') aliases.push({ importId, from: 'lifestyle', to: 'life' })
-    if (rawCategory === 'vehicle') aliases.push({ importId, from: 'vehicle', to: 'car' })
     const latitude = coordinate(row, 'latitude', -90, 90, rowErrors)
     const longitude = coordinate(row, 'longitude', -180, 180, rowErrors)
     const address = optionalString(row, 'address', rowErrors)
@@ -307,7 +283,7 @@ export async function validateLocalSponsorImportBundle(
   }
 
   if (errors.length > 0) return { ok: false, errors }
-  return { ok: true, rows, aliases }
+  return { ok: true, rows }
 }
 
 export type LocalSponsorImagePlan =

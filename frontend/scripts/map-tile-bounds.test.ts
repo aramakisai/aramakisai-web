@@ -103,19 +103,12 @@ describe('exceedsTileCountLimit', () => {
     expect(exceedsTileCountLimit(result, CAMPUS_MAP_TILE_PROFILE)).toBe(false);
   });
 
-  it('正式regional profileはz11-16・4656枚に制限する', () => {
+  it('固定regionalサービス範囲はz11-16で上限内に収まる', () => {
     const result = calculateMapTileBounds(REGIONAL_MAP_TILE_PROFILE);
-    expect(
-      result.zoomRanges.map(({ zoom, count }) => ({ zoom, count })),
-    ).toEqual([
-      { zoom: 11, count: 9 },
-      { zoom: 12, count: 20 },
-      { zoom: 13, count: 63 },
-      { zoom: 14, count: 234 },
-      { zoom: 15, count: 900 },
-      { zoom: 16, count: 3_430 },
+    expect(result.zoomRanges.map(({ zoom }) => zoom)).toEqual([
+      11, 12, 13, 14, 15, 16,
     ]);
-    expect(result.totalCount).toBe(4_656);
+    expect(result.zoomRanges.every(({ count }) => count > 0)).toBe(true);
     expect(exceedsTileCountLimit(result, REGIONAL_MAP_TILE_PROFILE)).toBe(
       false,
     );

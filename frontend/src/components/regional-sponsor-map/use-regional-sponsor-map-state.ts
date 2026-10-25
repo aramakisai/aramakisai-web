@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { RegionalSponsorCategory } from '@/lib/regional-sponsor-categories';
 import {
   filterRegionalSponsors,
@@ -43,7 +43,7 @@ export function useRegionalSponsorMapState(
       selectedSponsorId !== null &&
       !filteredSponsors.some(({ id }) => id === selectedSponsorId)
     ) {
-      setReturnSponsorId(selectedSponsorId);
+      setReturnSponsorId(null);
       setSelectedSponsorId(null);
       setMobileSheetSnap('list');
     }
@@ -59,8 +59,8 @@ export function useRegionalSponsorMapState(
     );
     setSpiderfiedClusterId(null);
   };
-  const selectSponsor = (sponsorId: number, origin: 'card' | 'pin') => {
-    setReturnSponsorId(origin === 'card' ? sponsorId : null);
+  const selectSponsor = (sponsorId: number) => {
+    setReturnSponsorId(null);
     setSelectedSponsorId(sponsorId);
     setMobileSheetSnap('detail');
     setSpiderfiedClusterId(null);
@@ -69,8 +69,9 @@ export function useRegionalSponsorMapState(
     const sponsorId = selectedSponsorId;
     setSelectedSponsorId(null);
     setMobileSheetSnap('list');
-    setReturnSponsorId((current) => current ?? sponsorId);
+    setReturnSponsorId(sponsorId);
   };
+  const clearReturnSponsorId = useCallback(() => setReturnSponsorId(null), []);
 
   return {
     query,
@@ -89,6 +90,6 @@ export function useRegionalSponsorMapState(
     setListScrollTop,
     setMobileSheetSnap,
     setSpiderfiedClusterId,
-    clearReturnSponsorId: () => setReturnSponsorId(null),
+    clearReturnSponsorId,
   };
 }

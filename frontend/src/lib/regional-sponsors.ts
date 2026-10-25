@@ -3,9 +3,9 @@ import type { Sponsor } from '@/cms-types';
 import { cms, type CmsFetchOptions } from './cms';
 import { toMediaId } from './cms-media';
 import {
-  REGIONAL_SPONSOR_CATEGORIES,
-  type RegionalSponsorCategory,
-} from './regional-sponsor-categories';
+  REGIONAL_MAP_TILE_PROFILE,
+  isWithinMapTileProfile,
+} from './map-tile-profile';
 
 export {
   REGIONAL_SPONSOR_CATEGORIES,
@@ -16,7 +16,7 @@ export {
 export interface RegionalSponsor {
   readonly id: number;
   readonly name: string;
-  readonly category: RegionalSponsorCategory;
+  readonly category: string;
   readonly latitude: number;
   readonly longitude: number;
   readonly address: string | null;
@@ -71,10 +71,6 @@ function isCoordinate(
   );
 }
 
-function isCategory(value: unknown): value is RegionalSponsorCategory {
-  return REGIONAL_SPONSOR_CATEGORIES.includes(value as RegionalSponsorCategory);
-}
-
 export function toRegionalSponsor(
   sponsor: Sponsor,
   order: number,
@@ -83,14 +79,24 @@ export function toRegionalSponsor(
   if (!sponsor.type.includes('local')) reasons.push('typeにlocalがない');
   const name = optionalText(sponsor.name);
   if (name === null) reasons.push('nameが空');
-  if (!isCategory(sponsor.local_map_category)) {
-    reasons.push('local_map_categoryが不正');
-  }
+  const category = optionalText(sponsor.local_map_category);
+  if (category === null) reasons.push('local_map_categoryが空');
   if (!isCoordinate(sponsor.local_latitude, -90, 90)) {
     reasons.push('local_latitudeが不正');
   }
   if (!isCoordinate(sponsor.local_longitude, -180, 180)) {
     reasons.push('local_longitudeが不正');
+  }
+  if (
+    isCoordinate(sponsor.local_latitude, -90, 90) &&
+    isCoordinate(sponsor.local_longitude, -180, 180) &&
+    !isWithinMapTileProfile(
+      REGIONAL_MAP_TILE_PROFILE,
+      sponsor.local_latitude,
+      sponsor.local_longitude,
+    )
+  ) {
+    reasons.push('地域タイル提供範囲外');
   }
   if (reasons.length > 0) return { ok: false, reasons };
 
@@ -104,7 +110,7 @@ export function toRegionalSponsor(
     value: {
       id: sponsor.id,
       name: name!,
-      category: sponsor.local_map_category!,
+      category: category!,
       latitude: sponsor.local_latitude!,
       longitude: sponsor.local_longitude!,
       address: optionalText(sponsor.address),

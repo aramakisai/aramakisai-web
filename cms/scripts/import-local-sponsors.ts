@@ -125,11 +125,6 @@ type ImportReport =
       }
       readonly importIds: readonly string[]
       readonly missingImportIds: readonly string[]
-      readonly aliases: readonly {
-        readonly importId: string
-        readonly from: 'lifestyle' | 'vehicle'
-        readonly to: 'life' | 'car'
-      }[]
       readonly checks: {
         readonly pins: readonly string[]
         readonly images: readonly string[]
@@ -208,7 +203,6 @@ export async function runLocalSponsorImport<TransactionId>({
     },
     importIds,
     missingImportIds: plan.missingImportIds,
-    aliases: validation.aliases,
     checks: {
       pins: importIds,
       images: validation.rows.filter(({ image }) => image !== null).map(({ importId }) => importId),

@@ -55,26 +55,25 @@ export function RegionalSponsorMapScreen({
   const sponsors = data.ok ? data.sponsors : EMPTY_SPONSORS;
   const state = useRegionalSponsorMapState(sponsors);
   const [mobileBottomInset, setMobileBottomInset] = useState(0);
+  const { clearReturnSponsorId, returnSponsorId, selectedSponsorId } = state;
 
   useEffect(() => {
-    if (state.selectedSponsorId !== null || state.returnSponsorId === null)
-      return;
-    const sponsorId = state.returnSponsorId;
+    if (selectedSponsorId !== null || returnSponsorId === null) return;
+    const sponsorId = returnSponsorId;
     const frame = requestAnimationFrame(() => {
       const target = document.getElementById(
         `regional-sponsor-card-${sponsorId}`,
       );
       if (target instanceof HTMLElement) target.focus();
       else document.getElementById('regional-sponsor-list-title')?.focus();
-      state.clearReturnSponsorId();
+      clearReturnSponsorId();
     });
     return () => cancelAnimationFrame(frame);
-  }, [state]);
+  }, [clearReturnSponsorId, returnSponsorId, selectedSponsorId]);
 
   const selectFromCard = (sponsor: RegionalSponsor) =>
-    state.selectSponsor(sponsor.id, 'card');
-  const selectFromPin = (sponsorId: number) =>
-    state.selectSponsor(sponsorId, 'pin');
+    state.selectSponsor(sponsor.id);
+  const selectFromPin = (sponsorId: number) => state.selectSponsor(sponsorId);
   const onSheetHeightChange = useCallback(
     (height: number) => setMobileBottomInset(height),
     [],

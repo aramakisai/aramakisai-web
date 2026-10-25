@@ -119,5 +119,9 @@ describe('地域協賛マップ項目', () => {
     expect(localImage).toMatchObject({ type: 'upload', relationTo: 'media' });
     expect(localImageChecksum.type).toBe('text');
     expect(localImageChecksum.admin).toMatchObject({ readOnly: true });
+    expect(localLatitude.admin).toMatchObject({ readOnly: true });
+    expect(localLongitude.admin).toMatchObject({ readOnly: true });
+    expect(localImportId.access).toHaveProperty('read');
+    expect(localImageChecksum.access).toHaveProperty('read');
   });
 });

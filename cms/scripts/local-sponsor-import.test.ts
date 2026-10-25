@@ -49,13 +49,13 @@ const validRow = (overrides: Record<string, unknown> = {}) => ({
 })
 
 describe('validateLocalSponsorImportBundle', () => {
-  it('正常なJSONと画像を全件検証し、aliasとnullを正規化する', async () => {
+  it('canonicalカテゴリの正常なJSONと画像を全件検証する', async () => {
     const result = await validateLocalSponsorImportBundle(
       JSON.stringify([
-        validRow({ category: 'lifestyle' }),
+        validRow({ category: 'life' }),
         validRow({
           importId: 'fixture-002',
-          category: 'vehicle',
+          category: 'car',
           imageFile: null,
           imageAlt: null,
           phone: null,
@@ -77,10 +77,17 @@ describe('validateLocalSponsorImportBundle', () => {
       checksum: expect.stringMatching(/^[a-f0-9]{64}$/),
     })
     expect(result.rows[1]).toMatchObject({ image: null, phone: null, order: 2 })
-    expect(result.aliases).toEqual([
-      { importId: 'fixture-001', from: 'lifestyle', to: 'life' },
-      { importId: 'fixture-002', from: 'vehicle', to: 'car' },
-    ])
+  })
+
+  it.each(['lifestyle', 'vehicle'])('alias %sを受理せず入力修正を求める', async (category) => {
+    const result = await validateLocalSponsorImportBundle(
+      JSON.stringify([validRow({ category })]),
+      { imageRoot: fixtureRoot, existingImportIds: [] },
+    )
+    expect(result).toMatchObject({
+      ok: false,
+      errors: [expect.objectContaining({ field: 'category' })],
+    })
   })
 
   it('複数行・複数fieldのエラーをindex、importId、field、理由で集約する', async () => {

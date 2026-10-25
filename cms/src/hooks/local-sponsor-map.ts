@@ -3,15 +3,6 @@ import { ValidationError } from 'payload'
 
 import { blankToNull, type ConstraintViolation } from './constraints'
 
-export const LOCAL_SPONSOR_CATEGORIES = [
-  'hospital',
-  'life',
-  'car',
-  'education',
-  'food',
-  'shop',
-] as const
-
 type LocalSponsorDoc = Record<string, unknown> & {
   readonly type?: unknown
   readonly url?: unknown
@@ -21,6 +12,7 @@ type LocalSponsorDoc = Record<string, unknown> & {
   readonly local_image?: unknown
   readonly local_image_alt?: unknown
   readonly local_image_decorative?: unknown
+  readonly address?: unknown
 }
 
 const LOCAL_TEXT_FIELDS = [
@@ -43,13 +35,6 @@ function hasValue(value: unknown): boolean {
   return value !== null && value !== undefined && value !== ''
 }
 
-function invalidCoordinate(value: unknown, min: number, max: number): boolean {
-  return (
-    hasValue(value) &&
-    (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max)
-  )
-}
-
 function normalizeLocalTextFields<T extends LocalSponsorDoc>(doc: T): T {
   const normalized: Record<string, unknown> = { ...doc }
   for (const field of LOCAL_TEXT_FIELDS) {
@@ -66,29 +51,6 @@ export function validateLocalSponsorMap(doc: LocalSponsorDoc): readonly Constrai
   if (!isLocal(doc)) return []
 
   const violations: ConstraintViolation[] = []
-  if (
-    hasValue(doc.local_map_category) &&
-    !LOCAL_SPONSOR_CATEGORIES.includes(
-      doc.local_map_category as (typeof LOCAL_SPONSOR_CATEGORIES)[number],
-    )
-  ) {
-    violations.push({
-      field: 'local_map_category',
-      message: '地図カテゴリは定義済みの6カテゴリから選んでください',
-    })
-  }
-  if (invalidCoordinate(doc.local_latitude, -90, 90)) {
-    violations.push({
-      field: 'local_latitude',
-      message: '緯度は-90以上90以下の有限数にしてください',
-    })
-  }
-  if (invalidCoordinate(doc.local_longitude, -180, 180)) {
-    violations.push({
-      field: 'local_longitude',
-      message: '経度は-180以上180以下の有限数にしてください',
-    })
-  }
   if (hasValue(doc.url)) {
     try {
       const parsed = new URL(String(doc.url))
@@ -114,10 +76,97 @@ export function validateLocalSponsorMap(doc: LocalSponsorDoc): readonly Constrai
   return violations
 }
 
-export const localSponsorMapConstraint: CollectionBeforeValidateHook = ({ data, originalDoc }) => {
+function validCoordinatePair(doc: LocalSponsorDoc): boolean {
+  return (
+    typeof doc.local_latitude === 'number' &&
+    Number.isFinite(doc.local_latitude) &&
+    typeof doc.local_longitude === 'number' &&
+    Number.isFinite(doc.local_longitude)
+  )
+}
+
+export async function geocodeLocalSponsorAddress(
+  address: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<{ latitude: number; longitude: number }> {
+  const response = await fetchImpl(
+    `https://msearch.gsi.go.jp/address-search/AddressSearch?q=${encodeURIComponent(address)}`,
+    { signal: AbortSignal.timeout(5_000) },
+  )
+  if (!response.ok) throw new Error(`国土地理院住所検索API: HTTP ${response.status}`)
+  const data = (await response.json()) as unknown
+  if (!Array.isArray(data)) throw new Error('国土地理院住所検索APIの応答形式が不正です')
+  const coordinates = (data[0] as { geometry?: { coordinates?: unknown } } | undefined)?.geometry
+    ?.coordinates
+  if (
+    !Array.isArray(coordinates) ||
+    coordinates.length < 2 ||
+    typeof coordinates[0] !== 'number' ||
+    typeof coordinates[1] !== 'number' ||
+    !Number.isFinite(coordinates[0]) ||
+    !Number.isFinite(coordinates[1])
+  ) {
+    throw new Error('住所から座標を取得できませんでした')
+  }
+  return { latitude: coordinates[1], longitude: coordinates[0] }
+}
+
+function hasOwn(doc: LocalSponsorDoc, field: string): boolean {
+  return Object.prototype.hasOwnProperty.call(doc, field)
+}
+
+export const localSponsorMapConstraint: CollectionBeforeValidateHook = async ({
+  data,
+  originalDoc,
+}) => {
   const partial = (data ?? {}) as LocalSponsorDoc
   const effective = { ...(originalDoc ?? {}), ...partial }
-  const normalized = isLocal(effective) ? normalizeLocalTextFields(partial) : partial
+  let normalized = isLocal(effective) ? normalizeLocalTextFields(partial) : partial
+  let normalizedEffective = { ...(originalDoc ?? {}), ...normalized }
+
+  if (isLocal(normalizedEffective) && hasValue(normalizedEffective.local_map_category)) {
+    const address = blankToNull(normalizedEffective.address)
+    const addressChanged =
+      hasOwn(partial, 'address') && address !== blankToNull(originalDoc?.address)
+    const coordinatesExplicitlyChanged =
+      hasOwn(partial, 'local_latitude') &&
+      hasOwn(partial, 'local_longitude') &&
+      (partial.local_latitude !== originalDoc?.local_latitude ||
+        partial.local_longitude !== originalDoc?.local_longitude)
+    const needsGeocode =
+      !validCoordinatePair(normalizedEffective) || (addressChanged && !coordinatesExplicitlyChanged)
+
+    if (needsGeocode) {
+      if (typeof address !== 'string') {
+        throw new ValidationError({
+          collection: 'sponsors',
+          errors: [{ path: 'address', message: '地図掲載には住所が必要です' }],
+        })
+      }
+      try {
+        const coordinates = await geocodeLocalSponsorAddress(address)
+        normalized = {
+          ...normalized,
+          local_latitude: coordinates.latitude,
+          local_longitude: coordinates.longitude,
+        }
+        normalizedEffective = { ...(originalDoc ?? {}), ...normalized }
+      } catch (error) {
+        throw new ValidationError({
+          collection: 'sponsors',
+          errors: [
+            {
+              path: 'address',
+              message: `住所から座標を取得できませんでした: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+            },
+          ],
+        })
+      }
+    }
+  }
+
   const violations = validateLocalSponsorMap({
     ...(originalDoc ?? {}),
     ...normalized,

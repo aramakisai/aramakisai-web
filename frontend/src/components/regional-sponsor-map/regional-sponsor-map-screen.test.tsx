@@ -134,7 +134,7 @@ describe('RegionalSponsorMapScreen', () => {
       screen.getByRole('heading', { name: 'テスト専用店舗' }),
     ).toHaveFocus();
     expect(screen.getByTestId('regional-map-view')).toBe(mapView);
-    expect(screen.getByRole('searchbox')).toHaveValue('テスト');
+    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '店舗一覧に戻る' }));
     await waitFor(() =>
@@ -142,11 +142,12 @@ describe('RegionalSponsorMapScreen', () => {
         screen.getByRole('button', { name: /テスト専用店舗.*詳細/ }),
       ).toHaveFocus(),
     );
+    expect(screen.getByRole('searchbox')).toHaveValue('テスト');
     expect(screen.getByTestId('regional-map-view')).toBe(mapView);
   });
 
-  it('ピン選択もカードと同じ詳細を開き、絞り込み対象外になれば一覧へ戻る', async () => {
-    matchMedia(true);
+  it('ピン選択後に検索対象外になっても検索入力のfocusを奪わない', async () => {
+    matchMedia(false);
     render(
       <RegionalSponsorMapScreen data={{ ok: true, sponsors: [sponsor()] }} />,
     );
@@ -155,7 +156,9 @@ describe('RegionalSponsorMapScreen', () => {
       screen.getByRole('heading', { name: 'テスト専用店舗' }),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /病院/ }));
+    const searchbox = screen.getByRole('searchbox');
+    searchbox.focus();
+    fireEvent.change(searchbox, { target: { value: '該当なし' } });
     await waitFor(() =>
       expect(
         screen.queryByRole('heading', { name: 'テスト専用店舗' }),
@@ -163,7 +166,7 @@ describe('RegionalSponsorMapScreen', () => {
     );
     expect(screen.getByText('0件')).toBeInTheDocument();
     expect(screen.getByText('地図 0件')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '地域協賛' })).toHaveFocus();
+    expect(searchbox).toHaveFocus();
   });
 
   it('スマートフォンでは上部操作と45dvhの一覧sheet、詳細用snapを使う', async () => {

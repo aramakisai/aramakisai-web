@@ -3,7 +3,6 @@
 import {
   REGIONAL_SPONSOR_CATEGORIES,
   REGIONAL_SPONSOR_CATEGORY_LABELS,
-  REGIONAL_SPONSOR_CATEGORY_STYLES,
   type RegionalSponsorCategory,
 } from '@/lib/regional-sponsor-categories';
 import { RegionalSponsorIcon } from './regional-sponsor-icon';
@@ -58,19 +57,14 @@ export function RegionalSponsorSearch({
             id === 'all'
               ? selectedCategories.size === 0
               : selectedCategories.has(id);
-          const categoryClass =
-            id === 'all'
-              ? 'bg-gray-100'
-              : REGIONAL_SPONSOR_CATEGORY_STYLES[id].backgroundClass;
           return (
             <button
               key={id}
               type="button"
               aria-pressed={pressed}
               onClick={() => onCategoryToggle(id)}
-              className={`inline-flex h-8 shrink-0 items-center gap-1 rounded-full border px-3 text-xs font-bold text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${mobile ? 'h-9 text-sm' : ''} ${categoryClass} ${pressed ? 'border-text shadow-[inset_0_0_0_1px_#202020]' : 'border-transparent'}`}
+              className={`inline-flex h-8 shrink-0 items-center rounded-full border px-3 text-sm font-medium text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${mobile ? 'h-9' : ''} ${pressed ? 'border-primary bg-primary' : 'border-gray-200 bg-white'}`}
             >
-              {pressed && <span aria-hidden="true">✓</span>}
               {label}
             </button>
           );

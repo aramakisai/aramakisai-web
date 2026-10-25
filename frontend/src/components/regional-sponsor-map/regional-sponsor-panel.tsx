@@ -31,14 +31,6 @@ export function RegionalSponsorPanel(props: RegionalSponsorPanelProps) {
       className="fixed left-6 top-6 z-[1000] flex h-[calc(100dvh-48px)] w-[348px] flex-col overflow-hidden rounded-xl border border-gray-200 bg-white p-6 shadow-card"
       data-testid="regional-sponsor-desktop-panel"
     >
-      <div className="mb-1 shrink-0">
-        <RegionalSponsorSearch
-          query={props.query}
-          selectedCategories={props.selectedCategories}
-          onQueryChange={props.onQueryChange}
-          onCategoryToggle={props.onCategoryToggle}
-        />
-      </div>
       {props.selectedSponsor ? (
         <RegionalSponsorDetail
           sponsor={props.selectedSponsor}
@@ -61,14 +53,24 @@ export function RegionalSponsorPanel(props: RegionalSponsorPanelProps) {
           </button>
         </div>
       ) : (
-        <RegionalSponsorList
-          sponsors={props.sponsors}
-          selectedSponsorId={null}
-          initialScrollTop={props.listScrollTop}
-          onScrollTopChange={props.onScrollTopChange}
-          onSelect={props.onSelect}
-          emptyMessage={props.emptyMessage}
-        />
+        <>
+          <div className="mb-1 shrink-0">
+            <RegionalSponsorSearch
+              query={props.query}
+              selectedCategories={props.selectedCategories}
+              onQueryChange={props.onQueryChange}
+              onCategoryToggle={props.onCategoryToggle}
+            />
+          </div>
+          <RegionalSponsorList
+            sponsors={props.sponsors}
+            selectedSponsorId={null}
+            initialScrollTop={props.listScrollTop}
+            onScrollTopChange={props.onScrollTopChange}
+            onSelect={props.onSelect}
+            emptyMessage={props.emptyMessage}
+          />
+        </>
       )}
     </aside>
   );

@@ -9,10 +9,7 @@ import {
   createSpiderfyLayout,
   type MarkerGroup,
 } from '@/lib/regional-sponsor-clustering';
-import {
-  REGIONAL_SPONSOR_CATEGORY_LABELS,
-  REGIONAL_SPONSOR_CATEGORY_STYLES,
-} from '@/lib/regional-sponsor-categories';
+import { getRegionalSponsorCategoryPresentation } from '@/lib/regional-sponsor-categories';
 import type { RegionalMapConfig } from '@/lib/regional-map-config';
 import type { RegionalSponsor } from '@/lib/regional-sponsors';
 
@@ -28,21 +25,21 @@ interface RegionalSponsorMarkerLayerProps {
 }
 
 function pinIcon(sponsor: RegionalSponsor, size: number, selected: boolean) {
-  const color = REGIONAL_SPONSOR_CATEGORY_STYLES[sponsor.category].color;
+  const { pinAsset } = getRegionalSponsorCategoryPresentation(sponsor.category);
   return divIcon({
     className: `regional-sponsor-pin ${selected ? 'regional-sponsor-pin--selected' : ''}`,
-    html: `<span aria-hidden="true" style="--regional-pin-color:${color}"></span>`,
+    html: `<img aria-hidden="true" alt="" src="${pinAsset}">`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size],
   });
 }
 
-function clusterIcon(count: number, size: number) {
+function clusterIcon(size: number) {
   return divIcon({
     className: 'regional-sponsor-cluster',
-    html: `<span aria-hidden="true">${count}</span>`,
+    html: '<img aria-hidden="true" alt="" src="/images/regional-sponsor-map/pin-neutral.svg">',
     iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
+    iconAnchor: [size / 2, size],
   });
 }
 
@@ -125,7 +122,7 @@ export function RegionalSponsorMarkerLayer({
       {groups.map((group) => {
         if (group.kind === 'single') {
           const { sponsor } = group;
-          const label = `${sponsor.name}、${REGIONAL_SPONSOR_CATEGORY_LABELS[sponsor.category]}`;
+          const label = `${sponsor.name}、${getRegionalSponsorCategoryPresentation(sponsor.category).label}`;
           return (
             <Marker
               key={group.id}
@@ -154,7 +151,7 @@ export function RegionalSponsorMarkerLayer({
         const sponsorLabels = group.sponsors
           .map(
             (sponsor) =>
-              `${sponsor.name}（${REGIONAL_SPONSOR_CATEGORY_LABELS[sponsor.category]}）`,
+              `${sponsor.name}（${getRegionalSponsorCategoryPresentation(sponsor.category).label}）`,
           )
           .join('、');
         const label = `${group.sponsors.length}件の地域協賛：${sponsorLabels}。選択して拡大`;
@@ -165,7 +162,7 @@ export function RegionalSponsorMarkerLayer({
               if (marker) applyAccessibility(marker, label);
             }}
             position={[group.anchor.latitude, group.anchor.longitude]}
-            icon={clusterIcon(group.sponsors.length, markerSize)}
+            icon={clusterIcon(markerSize)}
             keyboard
             alt={label}
             title={label}
@@ -188,7 +185,7 @@ export function RegionalSponsorMarkerLayer({
               [anchor.x + offsetX, anchor.y + offsetY],
               zoom,
             );
-            const label = `${sponsor.name}、${REGIONAL_SPONSOR_CATEGORY_LABELS[sponsor.category]}`;
+            const label = `${sponsor.name}、${getRegionalSponsorCategoryPresentation(sponsor.category).label}`;
             return (
               <Marker
                 key={`spider:${sponsor.id}`}

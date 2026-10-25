@@ -44,6 +44,8 @@ describe('SponsorImage / RegionalSponsorCard', () => {
       'https://cms.invalid/fixture-image?width=160',
     );
     expect(screen.getByRole('img')).toHaveClass('object-contain');
+    expect(screen.getByRole('img')).toHaveAttribute('loading', 'lazy');
+    expect(screen.getByRole('img')).toHaveAttribute('decoding', 'async');
 
     rerender(<SponsorImage sponsor={sponsor()} variant="detail" />);
     expect(screen.getByRole('img')).toHaveAttribute(
@@ -98,6 +100,16 @@ describe('SponsorImage / RegionalSponsorCard', () => {
     expect(screen.getByText('テスト県テスト市1-2-3')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /詳細を表示/ }));
     expect(onSelect).toHaveBeenCalledOnce();
+  });
+
+  it('未知カテゴリを除外せず中立色の未分類として表示する', () => {
+    render(
+      <RegionalSponsorCard
+        sponsor={sponsor({ category: 'future-category' })}
+        onSelect={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('未分類')).toBeInTheDocument();
   });
 });
 
@@ -191,6 +203,15 @@ describe('RegionalSponsorSearch', () => {
     expect(screen.getByRole('button', { name: /病院/ })).toHaveAttribute(
       'aria-pressed',
       'true',
+    );
+    expect(screen.getByRole('button', { name: /病院/ })).not.toHaveTextContent(
+      '✓',
+    );
+    expect(screen.getByRole('button', { name: /病院/ })).toHaveClass(
+      'bg-primary',
+    );
+    expect(screen.getByRole('button', { name: /生活/ })).toHaveClass(
+      'bg-white',
     );
     fireEvent.change(screen.getByRole('searchbox'), {
       target: { value: 'テスト' },

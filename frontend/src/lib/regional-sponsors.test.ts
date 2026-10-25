@@ -108,11 +108,22 @@ describe('toRegionalSponsor', () => {
     });
   });
 
+  it('CMSで追加された未知カテゴリも除外せず公開する', () => {
+    expect(
+      toRegionalSponsor(
+        sponsor({ local_map_category: 'future-category' as never }),
+        0,
+      ),
+    ).toMatchObject({
+      ok: true,
+      value: { category: 'future-category' },
+    });
+  });
+
   it.each([
     ['local以外', { type: ['ad'] }],
     ['空名称', { name: ' ' }],
-    ['未知カテゴリ', { local_map_category: 'unknown' }],
-    ['緯度範囲外', { local_latitude: 90.1 }],
+    ['地域タイル提供範囲外', { local_latitude: 36 }],
     ['経度が非有限', { local_longitude: Number.NaN }],
   ])('%sを理由付きで除外する', (_label, overrides) => {
     const result = toRegionalSponsor(sponsor(overrides as Partial<Sponsor>), 0);

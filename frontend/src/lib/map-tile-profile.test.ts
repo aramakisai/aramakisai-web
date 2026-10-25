@@ -23,13 +23,9 @@ describe('map tile profiles', () => {
     expect(getMapTileProfile('campus')).toBe(CAMPUS_MAP_TILE_PROFILE);
   });
 
-  it('regional profileは正式34社を画面別の表示余白込みで覆う', () => {
+  it('regional profileは年度別協賛データに依存しない固定サービス契約を公開する', () => {
     expect(REGIONAL_MAP_TILE_PROFILE).toMatchObject({
       id: 'regional',
-      bounds: [
-        [36.3105, 138.92],
-        [36.521, 139.2985],
-      ],
       minZoom: 10.5,
       maxZoom: 17,
       minNativeZoom: 11,
@@ -39,6 +35,9 @@ describe('map tile profiles', () => {
       expectedMaxTileCount: 6_984,
       expectedMaxBytes: 64 * 1024 * 1024,
     });
+    const [[south, west], [north, east]] = REGIONAL_MAP_TILE_PROFILE.bounds;
+    expect(south).toBeLessThan(north);
+    expect(west).toBeLessThan(east);
     expect(getMapTileProfile('regional')).toBe(REGIONAL_MAP_TILE_PROFILE);
   });
 

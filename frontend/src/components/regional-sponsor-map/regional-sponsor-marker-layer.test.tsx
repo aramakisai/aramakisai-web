@@ -29,16 +29,19 @@ vi.mock('react-leaflet', () => ({
     title,
     zIndexOffset,
     eventHandlers,
+    icon,
   }: {
     title: string;
     zIndexOffset?: number;
     eventHandlers: { click: () => void };
+    icon: { options: { html?: string | HTMLElement | false } };
     children?: ReactNode;
   }) => (
     <button
       type="button"
       aria-label={title}
       aria-current={zIndexOffset === 1000 ? 'true' : undefined}
+      data-icon-html={String(icon.options.html)}
       onClick={eventHandlers.click}
     >
       {title}
@@ -119,6 +122,10 @@ describe('RegionalSponsorMarkerLayer', () => {
     );
     const pin = screen.getByRole('button', { name: 'テスト専用1、病院' });
     expect(pin).toHaveAttribute('aria-current', 'true');
+    expect(pin).toHaveAttribute(
+      'data-icon-html',
+      expect.stringContaining('pin-hospital.svg'),
+    );
     fireEvent.click(pin);
     expect(baseProps.onSelectSponsor).toHaveBeenCalledWith(1);
   });
@@ -130,11 +137,15 @@ describe('RegionalSponsorMarkerLayer', () => {
         sponsors={[sponsor(1, 36.4, 139.1), sponsor(2, 36.41, 139.11)]}
       />,
     );
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: '2件の地域協賛：テスト専用1（病院）、テスト専用2（ショップ）。選択して拡大',
-      }),
+    const cluster = screen.getByRole('button', {
+      name: '2件の地域協賛：テスト専用1（病院）、テスト専用2（ショップ）。選択して拡大',
+    });
+    expect(cluster).toHaveAttribute(
+      'data-icon-html',
+      expect.stringContaining('pin-neutral.svg'),
     );
+    expect(cluster.getAttribute('data-icon-html')).not.toContain('>2<');
+    fireEvent.click(cluster);
     expect(mocks.fitBounds).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ animate: false, maxZoom: 18 }),

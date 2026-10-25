@@ -1,5 +1,5 @@
 import {
-  REGIONAL_SPONSOR_CATEGORY_LABELS,
+  getRegionalSponsorCategoryPresentation,
   type RegionalSponsorCategory,
 } from './regional-sponsor-categories';
 import type { RegionalSponsor } from './regional-sponsors';
@@ -17,14 +17,14 @@ export function filterRegionalSponsors(
   return sponsors.filter((sponsor) => {
     if (
       selectedCategories.size > 0 &&
-      !selectedCategories.has(sponsor.category)
+      !selectedCategories.has(sponsor.category as RegionalSponsorCategory)
     ) {
       return false;
     }
     if (normalizedQuery === '') return true;
     return [
       sponsor.name,
-      REGIONAL_SPONSOR_CATEGORY_LABELS[sponsor.category],
+      getRegionalSponsorCategoryPresentation(sponsor.category).label,
       sponsor.address ?? '',
     ].some((value) =>
       normalizeRegionalSponsorSearch(value).includes(normalizedQuery),

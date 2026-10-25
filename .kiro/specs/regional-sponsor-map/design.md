@@ -28,14 +28,14 @@
 
 ### 2.1 システム境界
 
-| 境界 | 入力 | 出力 | 所有責務 |
-|---|---|---|---|
-| Payload CMS | 実行委員が管理する協賛・メディア | 既存REST APIと生成型 | 保存、検証、既存公開管理、並び順 |
-| 取り込みCLI | UTF-8 JSON、画像ディレクトリ、実行オプション | 検証報告、dry-run、冪等upsert結果 | 全件検証、transaction、重複防止 |
-| Server Component | CMS APIの `Sponsor[]` | 公開用 `RegionalSponsor[]` または取得エラー | local抽出、掲載条件判定、安全なDTO変換、60秒キャッシュ |
-| Client Screen | DTO、Figmaに対応する初期状態 | 地図、一覧、詳細、操作状態 | 検索、カテゴリ、選択、レスポンシブ表示 |
-| Map View | 絞り込み済みDTO、選択ID、タイル設定 | Leafletレイヤー、ピン、クラスタ | 地理座標の投影、表示範囲、地図操作 |
-| 自前タイル生成 | 正式座標から確定したprofile、OSM PBF | WebPタイルと検証報告 | 実行時に第三者タイルへ依存しない配信物 |
+| 境界             | 入力                                         | 出力                                        | 所有責務                                               |
+| ---------------- | -------------------------------------------- | ------------------------------------------- | ------------------------------------------------------ |
+| Payload CMS      | 実行委員が管理する協賛・メディア             | 既存REST APIと生成型                        | 保存、検証、既存公開管理、並び順                       |
+| 取り込みCLI      | UTF-8 JSON、画像ディレクトリ、実行オプション | 検証報告、dry-run、冪等upsert結果           | 全件検証、transaction、重複防止                        |
+| Server Component | CMS APIの `Sponsor[]`                        | 公開用 `RegionalSponsor[]` または取得エラー | local抽出、掲載条件判定、安全なDTO変換、60秒キャッシュ |
+| Client Screen    | DTO、Figmaに対応する初期状態                 | 地図、一覧、詳細、操作状態                  | 検索、カテゴリ、選択、レスポンシブ表示                 |
+| Map View         | 絞り込み済みDTO、選択ID、タイル設定          | Leafletレイヤー、ピン、クラスタ             | 地理座標の投影、表示範囲、地図操作                     |
+| 自前タイル生成   | 正式座標から確定したprofile、OSM PBF         | WebPタイルと検証報告                        | 実行時に第三者タイルへ依存しない配信物                 |
 
 ### 2.2 変更を許可する範囲
 
@@ -88,64 +88,64 @@ flowchart LR
 
 ### 4.1 フロントエンド
 
-| パス | 種別 | 単一責務 |
-|---|---|---|
-| `frontend/src/app/(fullscreen)/sponsors/local/page.tsx` | 新規 | CMS取得、メタデータ、Client Screen境界 |
-| `frontend/src/components/regional-sponsor-map/regional-sponsor-map-screen.tsx` | 新規 | 全クライアント状態とPC・スマートフォン構成の統合 |
-| `frontend/src/components/regional-sponsor-map/regional-sponsor-map-view.tsx` | 新規 | Leaflet MapContainer、タイル、viewport、ローディング・失敗通知 |
-| `frontend/src/components/regional-sponsor-map/regional-sponsor-marker-layer.tsx` | 新規 | 単独ピン、選択ピン、クラスタ、同一座標展開 |
-| `frontend/src/components/regional-sponsor-map/regional-sponsor-panel.tsx` | 新規 | PC用左パネルと一覧・詳細の切替 |
-| `frontend/src/components/regional-sponsor-map/regional-sponsor-bottom-sheet.tsx` | 新規 | スマートフォン用シート設定と一覧・詳細の切替 |
-| `frontend/src/components/regional-sponsor-map/regional-sponsor-search.tsx` | 新規 | 検索入力と6カテゴリ操作 |
-| `frontend/src/components/regional-sponsor-map/regional-sponsor-list.tsx` | 新規 | 見出し、件数、空状態、スクロール位置 |
-| `frontend/src/components/regional-sponsor-map/regional-sponsor-card.tsx` | 新規 | Figma準拠カード |
-| `frontend/src/components/regional-sponsor-map/regional-sponsor-detail.tsx` | 新規 | Figma準拠詳細、任意項目の省略、戻る操作 |
-| `frontend/src/components/regional-sponsor-map/sponsor-image.tsx` | 新規 | 一覧・詳細共通の画像、alt、失敗時placeholder |
-| `frontend/src/components/regional-sponsor-map/use-regional-sponsor-map-state.ts` | 新規 | 検索、カテゴリ、選択、focus、scroll、sheet状態 |
-| `frontend/src/components/map/map-bottom-sheet-shell.tsx` | 新規 | 会場・地域共通のdrag、snap、keyboard、inert機構 |
-| `frontend/src/components/map/map-viewport-controller.tsx` | 新規 | 設定注入可能なfit、maxBounds、resize制御 |
-| `frontend/src/components/campus-map/map-bottom-sheet.tsx` | 変更 | 汎用shellへ既存値を渡す薄い会場マップラッパー |
-| `frontend/src/components/campus-map/map-viewport-sync.tsx` | 変更 | 汎用controllerへ既存設定を渡し公開APIを保持 |
-| `frontend/src/lib/regional-sponsors.ts` | 新規 | CMS取得、掲載条件判定、公開DTO変換 |
-| `frontend/src/lib/regional-sponsor-search.ts` | 新規 | 正規化とAND・ORフィルタの純粋関数 |
-| `frontend/src/lib/regional-sponsor-clustering.ts` | 新規 | 画面座標クラスタと同一座標展開モデル |
-| `frontend/src/lib/regional-map-config.ts` | 新規 | 地域タイルprofile、初期範囲、zoom契約 |
-| `frontend/src/lib/phase.ts` | 変更 | 全画面公開routeの分類を明示 |
-| `frontend/src/lib/route-metadata.ts` | 変更 | `/sponsors/local` のtitle、descriptionを登録 |
-| `frontend/src/lib/crawl-targets.ts`、`frontend/src/app/sitemap.ts` | 変更 | 二階層routeを明示的にサイトマップへ含める |
-| `frontend/src/app/globals.css` | 変更 | Leafletピン、クラスタ、選択、placeholderの既存token利用スタイル |
-| 近接する `*.test.ts`、`*.test.tsx` | 新規・変更 | 各純粋関数、コンポーネント、回帰契約 |
+| パス                                                                             | 種別       | 単一責務                                                        |
+| -------------------------------------------------------------------------------- | ---------- | --------------------------------------------------------------- |
+| `frontend/src/app/(fullscreen)/sponsors/local/page.tsx`                          | 新規       | CMS取得、メタデータ、Client Screen境界                          |
+| `frontend/src/components/regional-sponsor-map/regional-sponsor-map-screen.tsx`   | 新規       | 全クライアント状態とPC・スマートフォン構成の統合                |
+| `frontend/src/components/regional-sponsor-map/regional-sponsor-map-view.tsx`     | 新規       | Leaflet MapContainer、タイル、viewport、ローディング・失敗通知  |
+| `frontend/src/components/regional-sponsor-map/regional-sponsor-marker-layer.tsx` | 新規       | 単独ピン、選択ピン、クラスタ、同一座標展開                      |
+| `frontend/src/components/regional-sponsor-map/regional-sponsor-panel.tsx`        | 新規       | PC用左パネルと一覧・詳細の切替                                  |
+| `frontend/src/components/regional-sponsor-map/regional-sponsor-bottom-sheet.tsx` | 新規       | スマートフォン用シート設定と一覧・詳細の切替                    |
+| `frontend/src/components/regional-sponsor-map/regional-sponsor-search.tsx`       | 新規       | 検索入力と6カテゴリ操作                                         |
+| `frontend/src/components/regional-sponsor-map/regional-sponsor-list.tsx`         | 新規       | 見出し、件数、空状態、スクロール位置                            |
+| `frontend/src/components/regional-sponsor-map/regional-sponsor-card.tsx`         | 新規       | Figma準拠カード                                                 |
+| `frontend/src/components/regional-sponsor-map/regional-sponsor-detail.tsx`       | 新規       | Figma準拠詳細、任意項目の省略、戻る操作                         |
+| `frontend/src/components/regional-sponsor-map/sponsor-image.tsx`                 | 新規       | 一覧・詳細共通の画像、alt、失敗時placeholder                    |
+| `frontend/src/components/regional-sponsor-map/use-regional-sponsor-map-state.ts` | 新規       | 検索、カテゴリ、選択、focus、scroll、sheet状態                  |
+| `frontend/src/components/map/map-bottom-sheet-shell.tsx`                         | 新規       | 会場・地域共通のdrag、snap、keyboard、inert機構                 |
+| `frontend/src/components/map/map-viewport-controller.tsx`                        | 新規       | 設定注入可能なfit、maxBounds、resize制御                        |
+| `frontend/src/components/campus-map/map-bottom-sheet.tsx`                        | 変更       | 汎用shellへ既存値を渡す薄い会場マップラッパー                   |
+| `frontend/src/components/campus-map/map-viewport-sync.tsx`                       | 変更       | 汎用controllerへ既存設定を渡し公開APIを保持                     |
+| `frontend/src/lib/regional-sponsors.ts`                                          | 新規       | CMS取得、掲載条件判定、公開DTO変換                              |
+| `frontend/src/lib/regional-sponsor-search.ts`                                    | 新規       | 正規化とAND・ORフィルタの純粋関数                               |
+| `frontend/src/lib/regional-sponsor-clustering.ts`                                | 新規       | 画面座標クラスタと同一座標展開モデル                            |
+| `frontend/src/lib/regional-map-config.ts`                                        | 新規       | 地域タイルprofile、初期範囲、zoom契約                           |
+| `frontend/src/lib/phase.ts`                                                      | 変更       | 全画面公開routeの分類を明示                                     |
+| `frontend/src/lib/route-metadata.ts`                                             | 変更       | `/sponsors/local` のtitle、descriptionを登録                    |
+| `frontend/src/lib/crawl-targets.ts`、`frontend/src/app/sitemap.ts`               | 変更       | 二階層routeを明示的にサイトマップへ含める                       |
+| `frontend/src/app/globals.css`                                                   | 変更       | Leafletピン、クラスタ、選択、placeholderの既存token利用スタイル |
+| 近接する `*.test.ts`、`*.test.tsx`                                               | 新規・変更 | 各純粋関数、コンポーネント、回帰契約                            |
 
 `MapMenuButton`、`MapZoomControl`、`useIsAboveMapBreakpoint` は現行パスからそのままimportし、移動しない。
 
 ### 4.2 CMSと取り込み
 
-| パス | 種別 | 単一責務 |
-|---|---|---|
-| `cms/src/collections/sponsors.ts` | 変更 | `local_*` フィールドと条件付き管理UI |
-| `cms/src/hooks/local-sponsor-map.ts` | 新規 | localレコードの条件付き正規化・整合性検証 |
-| `cms/src/hooks/local-sponsor-map.test.ts` | 新規 | 境界値、任意値、他種別の非干渉 |
-| `cms/scripts/local-sponsor-import.ts` | 新規 | JSON解析、全件検証、差分計画の純粋ロジック |
-| `cms/scripts/import-local-sponsors.ts` | 新規 | CLI、Payload接続、transaction、画像upsert、報告 |
-| `cms/scripts/local-sponsor-import.test.ts` | 新規 | dry-run、重複、rollback、冪等性、保護 |
-| `cms/package.json` | 変更 | 明示的な取り込みscript |
-| `cms/src/migrations/<timestamp>_regional_sponsor_map.*` | 新規 | 追加カラム、index、制約のschema migration |
-| `cms/src/migrations/index.ts` | 変更 | 新migration登録 |
-| `cms/src/payload-types.ts` | 生成更新 | CMSの正式生成型 |
-| `frontend/src/cms-types.ts` | 同期更新 | フロントエンドのCMS生成型 |
+| パス                                                    | 種別     | 単一責務                                        |
+| ------------------------------------------------------- | -------- | ----------------------------------------------- |
+| `cms/src/collections/sponsors.ts`                       | 変更     | `local_*` フィールドと条件付き管理UI            |
+| `cms/src/hooks/local-sponsor-map.ts`                    | 新規     | localレコードの条件付き正規化・整合性検証       |
+| `cms/src/hooks/local-sponsor-map.test.ts`               | 新規     | 境界値、任意値、他種別の非干渉                  |
+| `cms/scripts/local-sponsor-import.ts`                   | 新規     | JSON解析、全件検証、差分計画の純粋ロジック      |
+| `cms/scripts/import-local-sponsors.ts`                  | 新規     | CLI、Payload接続、transaction、画像upsert、報告 |
+| `cms/scripts/local-sponsor-import.test.ts`              | 新規     | dry-run、重複、rollback、冪等性、保護           |
+| `cms/package.json`                                      | 変更     | 明示的な取り込みscript                          |
+| `cms/src/migrations/<timestamp>_regional_sponsor_map.*` | 新規     | 追加カラム、index、制約のschema migration       |
+| `cms/src/migrations/index.ts`                           | 変更     | 新migration登録                                 |
+| `cms/src/payload-types.ts`                              | 生成更新 | CMSの正式生成型                                 |
+| `frontend/src/cms-types.ts`                             | 同期更新 | フロントエンドのCMS生成型                       |
 
 ### 4.3 タイル生成
 
-| パス | 種別 | 単一責務 |
-|---|---|---|
-| `frontend/src/lib/map-tile-profile.ts` | 新規 | `campus` と `regional` の型、境界、zoom、出力先 |
-| `frontend/src/lib/campus-map-config.ts` | 変更 | 現在値を `campus` profileとして公開 |
-| `frontend/scripts/map-tile-bounds.ts` | 変更 | profile別の範囲・枚数計算 |
-| `frontend/scripts/fetch-map-tiles.ts` | 変更 | profile別のPNG取得 |
-| `frontend/scripts/convert-map-tiles.ts` | 変更 | profile別のWebP変換 |
-| `frontend/scripts/verify-map-tiles.ts` | 変更 | profile別の欠損、形式、上限検証 |
-| `.github/workflows/generate-map-tiles.yml` | 変更 | 手動実行時にprofileを選択し、成果物名を分離 |
-| `frontend/public/regional-map-tiles/{z}/{x}/{y}.webp` | 後続生成 | 正式座標確定後の地域用静的タイル |
+| パス                                                  | 種別     | 単一責務                                        |
+| ----------------------------------------------------- | -------- | ----------------------------------------------- |
+| `frontend/src/lib/map-tile-profile.ts`                | 新規     | `campus` と `regional` の型、境界、zoom、出力先 |
+| `frontend/src/lib/campus-map-config.ts`               | 変更     | 現在値を `campus` profileとして公開             |
+| `frontend/scripts/map-tile-bounds.ts`                 | 変更     | profile別の範囲・枚数計算                       |
+| `frontend/scripts/fetch-map-tiles.ts`                 | 変更     | profile別のPNG取得                              |
+| `frontend/scripts/convert-map-tiles.ts`               | 変更     | profile別のWebP変換                             |
+| `frontend/scripts/verify-map-tiles.ts`                | 変更     | profile別の欠損、形式、上限検証                 |
+| `.github/workflows/generate-map-tiles.yml`            | 変更     | 手動実行時にprofileを選択し、成果物名を分離     |
+| `frontend/public/regional-map-tiles/{z}/{x}/{y}.webp` | 後続生成 | 正式座標確定後の地域用静的タイル                |
 
 ## 5. データモデル
 
@@ -153,30 +153,30 @@ flowchart LR
 
 `Sponsors` へ次を追加する。すべて管理UIでは `type` が `local` を含む場合だけ表示する。既存項目は削除・改名しない。
 
-| CMSフィールド | 型 | 必須条件 | 用途・検証 |
-|---|---|---|---|
-| `local_import_id` | text、unique、indexed | 取り込み時は必須、手入力では任意 | 同一所在地の冪等upsertキー。空白はnull |
-| `local_map_category` | select | local掲載時 | `hospital`、`life`、`car`、`education`、`food`、`shop` の1値 |
-| `local_latitude` | number | local掲載時 | 有限数、-90以上90以下 |
-| `local_longitude` | number | local掲載時 | 有限数、-180以上180以下 |
-| `local_image` | upload to media | 任意 | 企業指定の掲載画像1枚 |
-| `local_image_alt` | text | 情報画像のとき | 画像内容を表す代替テキスト |
-| `local_image_decorative` | checkbox | 任意、既定false | trueならaltを空にして読み上げ対象外 |
-| `local_business_hours` | textarea | 任意 | 提供された営業時間または診療時間をそのまま保存 |
-| `local_closed_days` | textarea | 任意 | 提供された定休日または休診日をそのまま保存 |
-| `local_phone` | text | 任意 | 先頭0、記号、内線を保つ。数値化しない |
-| `local_image_checksum` | text、admin readOnly | 取り込み画像があるとき | SHA-256。再取り込み時の画像重複防止 |
+| CMSフィールド            | 型                     | 必須条件                         | 用途・検証                                                   |
+| ------------------------ | ---------------------- | -------------------------------- | ------------------------------------------------------------ |
+| `local_import_id`        | text、unique、indexed  | 取り込み時は必須、手入力では任意 | 同一所在地の冪等upsertキー。空白はnull                       |
+| `local_map_category`     | select                 | local掲載時                      | `hospital`、`life`、`car`、`education`、`food`、`shop` の1値 |
+| `local_latitude`         | number、admin readOnly | local掲載時                      | 住所保存時にCMS hookで算出。有限数、-90以上90以下            |
+| `local_longitude`        | number、admin readOnly | local掲載時                      | 住所保存時にCMS hookで算出。有限数、-180以上180以下          |
+| `local_image`            | upload to media        | 任意                             | 企業指定の掲載画像1枚                                        |
+| `local_image_alt`        | text                   | 情報画像のとき                   | 画像内容を表す代替テキスト                                   |
+| `local_image_decorative` | checkbox               | 任意、既定false                  | trueならaltを空にして読み上げ対象外                          |
+| `local_business_hours`   | textarea               | 任意                             | 提供された営業時間または診療時間をそのまま保存               |
+| `local_closed_days`      | textarea               | 任意                             | 提供された定休日または休診日をそのまま保存                   |
+| `local_phone`            | text                   | 任意                             | 先頭0、記号、内線を保つ。数値化しない                        |
+| `local_image_checksum`   | text、admin readOnly   | 取り込み画像があるとき           | SHA-256。再取り込み時の画像重複防止                          |
 
 次の既存項目を地域協賛に再利用する。
 
-| 既存フィールド | 地域協賛での意味 |
-|---|---|
-| `type` | `local` を含むこと |
-| `name` | 正式な企業・店舗名 |
-| `address` | 住所 |
-| `description` | 紹介文・応援メッセージ |
-| `url` | 公式WebサイトURL |
-| `_order` | 一覧表示順 |
+| 既存フィールド | 地域協賛での意味       |
+| -------------- | ---------------------- |
+| `type`         | `local` を含むこと     |
+| `name`         | 正式な企業・店舗名     |
+| `address`      | 住所                   |
+| `description`  | 紹介文・応援メッセージ |
+| `url`          | 公式WebサイトURL       |
+| `_order`       | 一覧表示順             |
 
 `url` のlocalレコードに限り、空または `http:`、`https:` の絶対URLを許可する。`local_image` がある場合、`local_image_alt` の非空文字列または `local_image_decorative=true` のどちらか一方を要求する。管理画面の保存時検証と、公開用DTO変換時の防御的検証を両方行う。
 
@@ -185,22 +185,14 @@ flowchart LR
 ### 5.2 公開用型
 
 ```ts
-export const REGIONAL_SPONSOR_CATEGORIES = [
-  'hospital',
-  'life',
-  'car',
-  'education',
-  'food',
-  'shop',
-] as const;
-
-export type RegionalSponsorCategory =
-  (typeof REGIONAL_SPONSOR_CATEGORIES)[number];
+export type RegionalSponsorCategory = NonNullable<
+  Sponsor["local_map_category"]
+>;
 
 export interface RegionalSponsor {
   readonly id: number;
   readonly name: string;
-  readonly category: RegionalSponsorCategory;
+  readonly category: string;
   readonly latitude: number;
   readonly longitude: number;
   readonly address: string | null;
@@ -217,7 +209,7 @@ export interface RegionalSponsor {
 
 export type RegionalSponsorMapDataResult =
   | { readonly ok: true; readonly sponsors: readonly RegionalSponsor[] }
-  | { readonly ok: false; readonly error: 'unavailable' };
+  | { readonly ok: false; readonly error: "unavailable" };
 ```
 
 DTOには管理用識別子、checksum、他種別のフィールドを含めない。URLは変換時にも `URL` でparseし、`http:` と `https:` 以外は `null` にする。テキストはReactの通常のtext nodeとして描画し、HTMLとして解釈しない。
@@ -226,18 +218,18 @@ Payloadの生成型ではupload relationが `number | null | Media` となる。
 
 ### 5.3 カテゴリ定義
 
-単一の型付き定数を、CMS値の検証、表示名、Tailwind class、ピンclass、検索語へ共有する。
+カテゴリのruntime値はCMSのselect optionsを唯一の定義とし、Frontendの型はPayload生成型から得る。表示名・色・ピンassetはFrontendの表示mappingへ分離し、未知の値はレコードを除外せず中立色の「未分類」として表示する。
 
-| 値 | 表示名 | 既存トークン | HEX |
-|---|---|---|---|
-| `hospital` | 病院 | `bansai-rose` | `#e0666d` |
-| `life` | 生活 | `bansai-olive` | `#c9bf86` |
-| `car` | 車 | `bansai-aqua` | `#a2c2c6` |
-| `education` | 教育 | `bansai-wisteria` | `#d2c6da` |
-| `food` | 飲食 | `bansai-ochre` | `#e4ab53` |
-| `shop` | ショップ | `bansai-sage` | `#aeb49c` |
+| 値          | 表示名   | 既存トークン      | HEX       |
+| ----------- | -------- | ----------------- | --------- |
+| `hospital`  | 病院     | `bansai-rose`     | `#e0666d` |
+| `life`      | 生活     | `bansai-sage`     | `#aeb49c` |
+| `car`       | 車       | `bansai-aqua`     | `#a2c2c6` |
+| `education` | 教育     | `bansai-wisteria` | `#d2c6da` |
+| `food`      | 飲食     | `bansai-ochre`    | `#e4ab53` |
+| `shop`      | ショップ | `bansai-olive`    | `#c9bf86` |
 
-新しいカラートークンは作らない。ピン、カテゴリタグ、選択状態のカテゴリ面は同じmappingを使う。
+新しいカラートークンは作らない。ピン、一覧のカテゴリドット、詳細タグは同じmappingを使い、検索チップの選択状態はFigmaどおりprimary色を使う。
 
 ## 6. CMS取得と掲載条件
 
@@ -247,8 +239,9 @@ Payloadの生成型ではupload relationが `number | null | Media` となる。
 
 - `type` が `local` を含む
 - `name` が空白でない
-- `local_map_category` が6値のいずれか
+- `local_map_category` が空でない（未知の値は中立表示へフォールバック）
 - 緯度・経度が有限かつ範囲内
+- 緯度・経度が固定regionalサービス範囲内
 
 任意文字列は前後空白だけを正規化し、本文の改行や表記は変えない。CMS順を優先し、同順位はID昇順で決定的にする。返す件数、一覧、ピン、クラスタはこの掲載可能DTOの配列長から生成し、34を定数にしない。
 
@@ -311,7 +304,7 @@ interface RegionalSponsorMapState {
   readonly selectedCategories: ReadonlySet<RegionalSponsorCategory>;
   readonly selectedSponsorId: number | null;
   readonly listScrollTop: number;
-  readonly mobileSheetSnap: 'collapsed' | 'list' | 'expanded' | 'detail';
+  readonly mobileSheetSnap: "collapsed" | "list" | "expanded" | "detail";
   readonly spiderfiedClusterId: string | null;
 }
 ```
@@ -353,7 +346,7 @@ stateDiagram-v2
 - `MapViewportController` に地域profileの初期中心・zoom、選択座標、パネル余白を渡す。
 - 初回は既存会場マップの確定済みキャンパス範囲中央を、会場マップと同じ最小zoomで表示する。全有効座標への `fitBounds` は行わない。
 - カードまたはピンから店舗を選択したときは、PC左パネルまたはスマートフォンの詳細シートを除く表示領域の中央へ選択ピンを移動する。通常は短い `flyTo`、reduced motion時は非アニメーションの `setView` を使う。
-- データ0件または取得失敗時も同じ初期中心を表示する。地域profileのboundsは全所在地へpanできる正式座標由来の範囲とし、架空値を置かない。
+- データ0件または取得失敗時も同じ初期中心を表示する。地域profileのboundsは年度ごとの協賛企業に依存しない固定サービス範囲とする。
 - 初期中心は初回だけ適用し、resize、一覧・詳細切替、filter変更だけでcenter・zoomを戻さない。選択後にuserが地図操作した場合も、同じ選択へ自動追従し続けない。
 - `maxBounds`、`minZoom`、`maxZoom` は地域profileに従い、範囲外を表示しない。
 - zoom、pan、pinch、wheelと既存ズーム操作をLeaflet標準で提供する。
@@ -376,12 +369,15 @@ interface ProjectedSponsor {
 }
 
 type MarkerGroup =
-  | { readonly kind: 'single'; readonly sponsor: RegionalSponsor }
+  | { readonly kind: "single"; readonly sponsor: RegionalSponsor }
   | {
-      readonly kind: 'cluster';
+      readonly kind: "cluster";
       readonly id: string;
       readonly sponsors: readonly RegionalSponsor[];
-      readonly anchor: { readonly latitude: number; readonly longitude: number };
+      readonly anchor: {
+        readonly latitude: number;
+        readonly longitude: number;
+      };
     };
 ```
 
@@ -393,7 +389,7 @@ type MarkerGroup =
 4. ID順に並べ、単独点とクラスタを決定的に返す。
 5. `zoomend`、`moveend`、resize、絞り込み結果変更時に再計算する。
 
-選択中の店舗はクラスタ入力から除いて元座標に単独表示する。クラスタの表示件数には残りの件数だけを表示し、選択ピンと合計して全対象件数を表す。
+選択中の店舗はクラスタ入力から除いて元座標に単独表示する。クラスタはFigmaの雫型ピンを中立色で表示し、Figmaにない件数バッジは重ねない。件数と内訳はアクセシブル名で伝える。
 
 クラスタ選択時は次の分岐とする。
 
@@ -414,7 +410,7 @@ type MarkerGroup =
 
 ```ts
 interface MapTileProfile {
-  readonly id: 'campus' | 'regional';
+  readonly id: "campus" | "regional";
   readonly bounds: readonly [
     readonly [number, number],
     readonly [number, number],
@@ -434,16 +430,16 @@ interface MapTileProfile {
 
 ### 10.2 地域profile確定手順
 
-正式座標受領後、取り込み検証済みの座標集合だけから境界を求める。
+年度ごとの受領データから独立した固定の地域サービス範囲を定める。
 
-1. 最小・最大緯度経度を算出する。
-2. ピンが端に接しない表示余白とpan許容余白を加える。
+1. 前橋市街と荒牧キャンパス周辺で継続的に提供する範囲を候補にする。
+2. PC・スマートフォンのpanel/sheetを考慮したpan許容余白を加える。
 3. 各native zoomのXYZタイル範囲、枚数、推定WebP容量をdry-runする。
 4. PC・スマートフォンで地名の判読性と全店舗の包含を確認する。
 5. 採用したbounds、native zoom、最大枚数、最大容量を `regional` profileに確定する。
 6. verify scriptで欠損、範囲外タイル、形式、枚数、容量を検証する。
 
-正確な値は座標依存であるため本Designでは定めない。これは設計未完ではなく、実データ受領後に同じ手順で設定値を埋めるデータ準備工程とする。
+採用値は `map-tile-profile.ts` の固定profileを正とし、協賛企業が変わっても自動拡張しない。範囲外の企業はFrontendの公開DTO変換で除外し、レコードIDと理由を警告する。
 
 ### 10.3 生成と共存
 
@@ -459,14 +455,7 @@ workflowは手動の `profile` choiceを受け、Kanto PBFからprofile bboxを�
 
 ```ts
 type LocalSponsorImportCategory =
-  | 'hospital'
-  | 'life'
-  | 'lifestyle'
-  | 'car'
-  | 'vehicle'
-  | 'education'
-  | 'food'
-  | 'shop';
+  "hospital" | "life" | "car" | "education" | "food" | "shop";
 
 interface LocalSponsorImportRow {
   readonly importId: string;
@@ -489,7 +478,7 @@ interface LocalSponsorImportRow {
 
 任意項目の `null` はCMS上の空欄を意味する。省略値を架空値で補わない。`imageFile` は入力画像ディレクトリ直下または配下の相対パスだけを許可し、`path.resolve` 後にroot外へ出る参照を拒否する。
 
-取り込み境界で `lifestyle` を `life`、`vehicle` を `car` へ正規化する。`hospital`、`education`、`food`、`shop` と、既にcanonicalな `life`、`car` はそのまま通す。aliasは入力互換だけに限定し、CMSの `local_map_category` と公開用DTOには6つのcanonical codeだけを保存・出力する。大文字小文字の推測変換や、それ以外の未知codeの補完は行わない。
+取り込み境界ではCMS selectのcanonical 6値だけを受け付ける。別名や大文字小文字の推測変換は行わず、表記ゆれは投入前のデータ側で修正する。
 
 ### 11.2 検証
 
@@ -498,7 +487,7 @@ interface LocalSponsorImportRow {
 - JSON構造、型、空白でない `importId` と `name`
 - 入力内 `importId` の一意性
 - CMS内 `local_import_id` の一意性
-- categoryを上記alias変換後にcanonical 6値として検証し、変換内容をdry-run結果へ表示する
+- categoryをCMS selectのcanonical 6値として検証する
 - 座標の有限性と緯度経度範囲
 - websiteUrlの `http:`、`https:`
 - imageFileの存在、許可された画像MIME、root内参照
@@ -554,17 +543,17 @@ flowchart TD
 
 ## 12. エラー・空状態
 
-| 状況 | 表示・処理 |
-|---|---|
+| 状況                     | 表示・処理                                                   |
+| ------------------------ | ------------------------------------------------------------ |
 | CMSに掲載可能レコード0件 | 地図と操作枠を保持し、「掲載可能な地域協賛情報はありません」 |
-| 検索結果0件 | 件数0と条件変更を促す文言。地図ピン・クラスタは0件 |
-| CMS取得失敗 | fallback地図と操作枠を保持し、一覧領域に説明と再試行button |
-| 一部レコード不正 | 不正行だけ除外し、サーバーログへIDと理由。残りを表示 |
-| URL未登録・無効 | リンク行を作らない |
-| 画像未登録・失敗 | 共通placeholderへ切替。名称は維持 |
-| 地図tile失敗 | 透明tileと非妨害通知。一覧・詳細・検索は継続 |
-| 取り込み検証失敗 | 全理由を報告し無書込 |
-| 取り込み途中失敗 | DB rollbackと新規blob補償削除、失敗IDを報告 |
+| 検索結果0件              | 件数0と条件変更を促す文言。地図ピン・クラスタは0件           |
+| CMS取得失敗              | fallback地図と操作枠を保持し、一覧領域に説明と再試行button   |
+| 一部レコード不正         | 不正行だけ除外し、サーバーログへIDと理由。残りを表示         |
+| URL未登録・無効          | リンク行を作らない                                           |
+| 画像未登録・失敗         | 共通placeholderへ切替。名称は維持                            |
+| 地図tile失敗             | 透明tileと非妨害通知。一覧・詳細・検索は継続                 |
+| 取り込み検証失敗         | 全理由を報告し無書込                                         |
+| 取り込み途中失敗         | DB rollbackと新規blob補償削除、失敗IDを報告                  |
 
 ## 13. アクセシビリティ
 
@@ -584,10 +573,10 @@ flowchart TD
 
 ### 14.1 CMS・取り込み単体
 
-- local条件付き必須、6カテゴリ、座標境界、URL protocol、電話文字列、画像alt/decorative
+- local条件付き必須、CMS selectの6カテゴリ、住所からの座標算出、URL protocol、電話文字列、画像alt/decorative
 - local以外に新検証を適用しないこと
 - JSONの型、重複ID、画像不存在、path traversal、MIME、全件検証
-- `lifestyle → life`、`vehicle → car` の正規化と未知categoryの拒否
+- category別名と未知categoryの拒否
 - 1件の失敗でもwrite 0件であること
 - 同じ入力の再実行でSponsor・Mediaが増えないこと
 - 既存の複数typeと地域外フィールドを保持すること
@@ -634,36 +623,36 @@ Playwrightで1440×900と390×844を固定viewportとして、Figma4画面と比
 
 ## 15. 要件トレーサビリティ
 
-| Requirement | Acceptance Criteria | 設計箇所 | 主な検証 |
-|---|---|---|---|
-| 1 地域協賛マップページ | 1.1, 1.2, 1.3, 1.4, 1.5, 1.6 | 3、4、6、7 | route、local抽出、4画面、menu E2E |
-| 2 地図表示と操作 | 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8 | 9、10 | fit、bounds、zoom、出典、loading、tile profile |
-| 3 データ成立条件 | 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 3.10, 3.11 | 5、6 | CMS field validation、access、order |
-| 4 実データ検証 | 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8 | 11 | parser、dry-run、transaction、idempotency、audit |
-| 5 ピンとクラスタ | 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8, 5.9 | 5.3、9 | category mapping、cluster、spiderfy、pin選択 |
-| 6 検索と絞り込み | 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9, 6.10 | 7、8 | normalization、AND・OR、0件、同期 |
-| 7 一覧カード | 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8 | 6、7.3、7.4 | card content、image fallback、order、detail遷移 |
-| 8 詳細表示 | 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7, 8.8, 8.9, 8.10, 8.11 | 7.3、8、9.2 | conditional sections、heading、selection、state restore |
-| 9 画像品質 | 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7, 9.8 | 5、7.4 | same media、contain、16:9、alt、failure |
-| 10 レスポンシブ | 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7, 10.8, 10.9 | 7.1、7.2、13 | side panel、sheet snap、safe area、no overflow |
-| 11 アクセシビリティ | 11.1, 11.2, 11.3, 11.4, 11.5, 11.6, 11.7, 11.8 | 8、9、13 | keyboard、names、focus、live、inert |
-| 12 欠損と失敗 | 12.1, 12.2, 12.3, 12.4, 12.5, 12.6 | 6、7.4、9.4、12 | empty、retry、invalid exclusion、safe text |
-| 13 共存と品質 | 13.1, 13.2, 13.3, 13.4, 13.5, 13.6, 13.7, 13.8 | 3、4、6、10、14 | dynamic count、cache、no third party、regression |
+| Requirement            | Acceptance Criteria                                     | 設計箇所        | 主な検証                                                |
+| ---------------------- | ------------------------------------------------------- | --------------- | ------------------------------------------------------- |
+| 1 地域協賛マップページ | 1.1, 1.2, 1.3, 1.4, 1.5, 1.6                            | 3、4、6、7      | route、local抽出、4画面、menu E2E                       |
+| 2 地図表示と操作       | 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8                  | 9、10           | fit、bounds、zoom、出典、loading、tile profile          |
+| 3 データ成立条件       | 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 3.10, 3.11 | 5、6            | CMS field validation、access、order                     |
+| 4 実データ検証         | 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8                  | 11              | parser、dry-run、transaction、idempotency、audit        |
+| 5 ピンとクラスタ       | 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8, 5.9             | 5.3、9          | category mapping、cluster、spiderfy、pin選択            |
+| 6 検索と絞り込み       | 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9, 6.10       | 7、8            | normalization、AND・OR、0件、同期                       |
+| 7 一覧カード           | 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8                  | 6、7.3、7.4     | card content、image fallback、order、detail遷移         |
+| 8 詳細表示             | 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7, 8.8, 8.9, 8.10, 8.11 | 7.3、8、9.2     | conditional sections、heading、selection、state restore |
+| 9 画像品質             | 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7, 9.8                  | 5、7.4          | same media、contain、16:9、alt、failure                 |
+| 10 レスポンシブ        | 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7, 10.8, 10.9    | 7.1、7.2、13    | side panel、sheet snap、safe area、no overflow          |
+| 11 アクセシビリティ    | 11.1, 11.2, 11.3, 11.4, 11.5, 11.6, 11.7, 11.8          | 8、9、13        | keyboard、names、focus、live、inert                     |
+| 12 欠損と失敗          | 12.1, 12.2, 12.3, 12.4, 12.5, 12.6                      | 6、7.4、9.4、12 | empty、retry、invalid exclusion、safe text              |
+| 13 共存と品質          | 13.1, 13.2, 13.3, 13.4, 13.5, 13.6, 13.7, 13.8          | 3、4、6、10、14 | dynamic count、cache、no third party、regression        |
 
 ## 16. 主要な技術判断と理由
 
-| 判断 | 理由 |
-|---|---|
-| 既存 `Sponsors` を拡張 | 一元管理と既存公開方式を保ち、別コレクション同期を避ける |
-| 地図固有項目だけ `local_*` | 既存広告・出店・その他協賛への意味変更を防ぐ |
-| ServerでDTO化、Clientで操作 | CMS型と不正データを境界で閉じ、操作は再通信なしにする |
-| 新cluster依存なし | Leafletの投影APIと少数データで要件を満たし、bundleと保守対象を増やさない |
-| Bottom Sheet機構だけ共通化 | 複雑なpointer・keyboard処理を重複させず、画面固有UIは混ぜない |
-| JSON一括入力 | 改行、nullable値、電話、URLを追加parserなしで保持する |
-| import IDとchecksum | レコードと画像の再取り込みを決定的・冪等にする |
-| tile profile分離 | 生成ロジックを再利用しながら会場タイルの範囲と成果物を保護する |
-| 地域boundsを座標受領後に確定 | 架空座標や過剰なタイル生成を避け、実データに基づく正確性を保つ |
+| 判断                                   | 理由                                                                         |
+| -------------------------------------- | ---------------------------------------------------------------------------- |
+| 既存 `Sponsors` を拡張                 | 一元管理と既存公開方式を保ち、別コレクション同期を避ける                     |
+| 地図固有項目だけ `local_*`             | 既存広告・出店・その他協賛への意味変更を防ぐ                                 |
+| ServerでDTO化、Clientで操作            | CMS型と不正データを境界で閉じ、操作は再通信なしにする                        |
+| 新cluster依存なし                      | Leafletの投影APIと少数データで要件を満たし、bundleと保守対象を増やさない     |
+| Bottom Sheet機構だけ共通化             | 複雑なpointer・keyboard処理を重複させず、画面固有UIは混ぜない                |
+| JSON一括入力                           | 改行、nullable値、電話、URLを追加parserなしで保持する                        |
+| import IDとchecksum                    | レコードと画像の再取り込みを決定的・冪等にする                               |
+| tile profile分離                       | 生成ロジックを再利用しながら会場タイルの範囲と成果物を保護する               |
+| 地域boundsを固定サービス範囲として管理 | 年度ごとの協賛企業変更でタイルとテストを作り直さず、範囲外は明示的に警告する |
 
 ## 17. Designレビュー時の確認事項
 
-追加の製品判断は不要である。後続工程のデータ準備時に、正式座標から算出した `regional` profileのbounds、native zoom、想定枚数、想定容量を実行委員が確認する必要がある。これは本Designで算出手順と失敗条件まで確定しており、UIやデータモデルの再設計を要求しない。
+追加の製品判断は不要である。固定 `regional` profileのbounds、native zoom、最大枚数、最大容量はタイル生成・完全性検査で維持する。新規レコードが範囲外の場合は、タイル範囲を暗黙に変えず運用判断を求める。

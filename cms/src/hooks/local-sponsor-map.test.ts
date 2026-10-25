@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
   localSponsorMapConstraint,
@@ -14,29 +14,18 @@ const completeLocal = {
   local_longitude: 180,
 }
 
-describe('validateLocalSponsorMap', () => {
-  it('6カテゴリと座標境界を受け付ける', () => {
-    for (const category of ['hospital', 'life', 'car', 'education', 'food', 'shop']) {
-      expect(
-        validateLocalSponsorMap({
-          ...completeLocal,
-          local_map_category: category,
-          local_latitude: category === 'hospital' ? -90 : 90,
-          local_longitude: category === 'hospital' ? -180 : 180,
-        }),
-      ).toEqual([])
-    }
-  })
+afterEach(() => vi.unstubAllGlobals())
 
-  it('未知カテゴリ、非有限値、範囲外座標を拒否する', () => {
+describe('validateLocalSponsorMap', () => {
+  it('カテゴリと座標の標準検証をPayload select/number fieldへ委ねる', () => {
     expect(
       validateLocalSponsorMap({
         ...completeLocal,
         local_map_category: 'unknown',
         local_latitude: Number.NaN,
         local_longitude: 180.1,
-      }).map((error) => error.field),
-    ).toEqual(['local_map_category', 'local_latitude', 'local_longitude'])
+      }),
+    ).toEqual([])
   })
 
   it('URLはhttp/httpsだけを許可し、電話番号は文字列のまま保持する', () => {
@@ -127,5 +116,44 @@ describe('normalizeLocalSponsorMap', () => {
         originalDoc: { type: ['local'], name: '既存レコード' },
       } as never),
     ).toEqual({ local_phone: null })
+  })
+
+  it('住所から座標を自動取得する', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve([{ geometry: { coordinates: [139.044795, 36.43068] } }]),
+      }),
+    )
+
+    await expect(
+      localSponsorMapConstraint({
+        data: {
+          type: ['local'],
+          address: '群馬県前橋市荒牧町4丁目2',
+          local_map_category: 'education',
+        },
+        operation: 'create',
+      } as never),
+    ).resolves.toMatchObject({
+      local_latitude: 36.43068,
+      local_longitude: 139.044795,
+    })
+  })
+
+  it('住所検索に失敗した場合は住所fieldの検証エラーにする', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve([]) }))
+
+    await expect(
+      localSponsorMapConstraint({
+        data: {
+          type: ['local'],
+          address: '検索できないテスト住所',
+          local_map_category: 'shop',
+        },
+        operation: 'create',
+      } as never),
+    ).rejects.toMatchObject({ data: expect.objectContaining({ errors: expect.any(Array) }) })
   })
 })

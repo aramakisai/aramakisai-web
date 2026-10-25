@@ -1,9 +1,20 @@
 import type { CollectionConfig } from 'payload';
 
+import { executiveOnlyField } from '../access/payload-access';
 import { blankToNull } from '../hooks/constraints';
-import { LOCAL_SPONSOR_CATEGORIES, localSponsorMapConstraint } from '../hooks/local-sponsor-map';
+import { localSponsorMapConstraint } from '../hooks/local-sponsor-map';
 import { sponsorBoothPlacementConstraint } from '../hooks/payload-constraints';
 import { signageNotifyHook } from '../lib/signage-notify';
+
+/** 地域協賛カテゴリのruntime値はPayload selectを唯一の定義とする。 */
+export const LOCAL_SPONSOR_CATEGORY_OPTIONS = [
+  { label: '病院', value: 'hospital' },
+  { label: '生活', value: 'life' },
+  { label: '車', value: 'car' },
+  { label: '教育', value: 'education' },
+  { label: '飲食', value: 'food' },
+  { label: 'ショップ', value: 'shop' },
+] as const;
 
 export const Sponsors: CollectionConfig = {
   slug: 'sponsors',
@@ -83,6 +94,7 @@ export const Sponsors: CollectionConfig = {
       index: true,
       maxLength: 255,
       label: '地域協賛 取り込み識別子',
+      access: { read: executiveOnlyField },
       admin: {
         description: '一括取り込みで同じ所在地を識別する値。手入力では任意',
         condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
@@ -92,17 +104,7 @@ export const Sponsors: CollectionConfig = {
       name: 'local_map_category',
       type: 'select',
       label: '地域協賛 地図カテゴリ',
-      options: LOCAL_SPONSOR_CATEGORIES.map((value) => ({
-        value,
-        label: {
-          hospital: '病院',
-          life: '生活',
-          car: '車',
-          education: '教育',
-          food: '飲食',
-          shop: 'ショップ',
-        }[value],
-      })),
+      options: [...LOCAL_SPONSOR_CATEGORY_OPTIONS],
       admin: {
         condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
       },
@@ -114,6 +116,7 @@ export const Sponsors: CollectionConfig = {
       max: 90,
       label: '地域協賛 緯度',
       admin: {
+        readOnly: true,
         condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
       },
     },
@@ -124,6 +127,7 @@ export const Sponsors: CollectionConfig = {
       max: 180,
       label: '地域協賛 経度',
       admin: {
+        readOnly: true,
         condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
       },
     },
@@ -184,6 +188,7 @@ export const Sponsors: CollectionConfig = {
       type: 'text',
       maxLength: 64,
       label: '地域協賛 掲載画像checksum',
+      access: { read: executiveOnlyField },
       admin: {
         readOnly: true,
         condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
