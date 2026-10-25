@@ -33,7 +33,6 @@ describe('invitationHtml', () => {
       '2. ログイン画面で、このメールを受信したメールアドレスと設定したパスワードを入力してください。',
     );
     expect(html).toContain('3. 「学生企画」を開き、実行委員が用意した自団体の企画を編集してください。');
-    expect(html).toContain('入力した内容は、実行委員が確認したうえで公式サイトに公開します。');
     expect(html).toContain('ご不明な点は、下記のフォームからお問い合わせください。');
     expect(html).not.toContain('72時間');
     expect(html).toContain('※このメールは送信専用のアドレスから送信しています。');
@@ -57,7 +56,7 @@ describe('invitationHtml (contactUrl 未指定)', () => {
   });
 
   it('それ以外の本文は変わらない', () => {
-    expect(html).toContain('入力した内容は、実行委員が確認したうえで公式サイトに公開します。');
+    expect(html).not.toContain('実行委員が確認したうえで');
     expect(html).not.toContain('72時間');
   });
 });
