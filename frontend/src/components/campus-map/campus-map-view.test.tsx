@@ -113,6 +113,20 @@ describe('CampusMapView', () => {
     expect(props.maxBounds).toEqual(CAMPUS_MAP_CONFIG.bounds);
   });
 
+  it('エリアがあるときの初期表示範囲はエリア群の外接矩形に合わせる', () => {
+    render(
+      <CampusMapView
+        areas={[area({})]}
+        selectedAreaId={null}
+        onSelectArea={() => {}}
+      />,
+    );
+    expect(mapContainerProps.at(-1)!.bounds).toEqual([
+      [36.43, 139.0],
+      [36.431, 139.001],
+    ]);
+  });
+
   it('表示範囲の外へドラッグできないよう粘性を最大にする', () => {
     render(
       <CampusMapView
