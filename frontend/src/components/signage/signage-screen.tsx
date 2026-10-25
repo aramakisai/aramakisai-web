@@ -26,6 +26,8 @@ import { SignagePortraitHeader } from './signage-portrait-header';
 import { SignagePortraitInfo } from './signage-portrait-info';
 import { SignageQuakeOverlay } from './signage-quake-overlay';
 import { SignageTelop } from './signage-telop';
+import { SignageTouchLayer } from './signage-touch-layer';
+import { useTouchSession } from './use-touch-session';
 import { SLIDE_RENDERERS } from './slide-renderers';
 
 export interface SignageScreenProps {
@@ -105,6 +107,7 @@ export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
   const fit = layout?.fit ?? { scale: 1, left: 0, top: 0 };
   // 形が合わない payload は表示せず、通常の画面のままにする
   const quake = parseQuakePayload(useSignageFeature(channel, 'quake', now));
+  const session = useTouchSession({ quakeActive: quake?.active ?? false });
   const entries = data ? buildPlaylist(data, now) : [];
   const entry = slideAt(entries, now.getTime())?.entry ?? null;
   const canvas = CANVAS_SIZE[orientation];
@@ -117,7 +120,11 @@ export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
   );
 
   return (
-    <div ref={rootRef} className="fixed inset-0 overflow-hidden bg-background">
+    <div
+      ref={rootRef}
+      className="fixed inset-0 overflow-hidden bg-background"
+      onPointerDown={() => session.tap(orientation)}
+    >
       <div
         data-orientation={orientation}
         className="signage-canvas absolute origin-top-left"
@@ -154,6 +161,15 @@ export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
           snapshot={data}
           now={now}
           renderers={SLIDE_RENDERERS}
+        />
+        <SignageTouchLayer
+          session={session}
+          now={now}
+          eventDays={eventDays}
+          rows={rows}
+          boards={boards}
+          telops={data?.telops ?? []}
+          offsetMs={offsetMs}
         />
         {quake?.active && (
           <SignageQuakeOverlay

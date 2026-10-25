@@ -10,11 +10,13 @@ import { ImageIcon, PlaceIcon } from './icons';
 export interface ExhibitionCardProps {
   readonly exhibition: ExhibitionCardSummary;
   readonly bookmarkable?: boolean;
+  readonly variant?: 'site' | 'signage';
 }
 
 export function ExhibitionCard({
   exhibition,
   bookmarkable = false,
+  variant = 'site',
 }: ExhibitionCardProps) {
   const { texture, position, rotation } = getExhibitionTexture(
     exhibition.displayName,
@@ -29,6 +31,7 @@ export function ExhibitionCard({
     backgroundPosition: `${position[0]}% ${position[1]}%`,
   };
 
+  const signage = variant === 'signage';
   const thumbnailUrl = exhibition.thumbnail
     ? toAssetUrl(exhibition.thumbnail.id, 960)
     : null;
@@ -61,12 +64,28 @@ export function ExhibitionCard({
           <div className="relative flex flex-col gap-1">
             <span
               aria-hidden={exhibition.location ? undefined : true}
-              className={`flex min-h-[1lh] items-center gap-1 text-xs leading-[1.4] font-medium text-text ${exhibition.location ? '' : 'invisible'}`}
+              className={`flex min-h-[1lh] items-center gap-1 ${
+                signage
+                  ? 'text-signage-meta text-gray-600'
+                  : 'text-xs leading-[1.4] font-medium text-text'
+              } ${exhibition.location ? '' : 'invisible'}`}
             >
-              <PlaceIcon size={16} />
-              {exhibition.location}
+              <PlaceIcon size={signage ? 24 : 16} />
+              {signage ? (
+                <span className="min-w-0 flex-1 truncate">
+                  {exhibition.location}
+                </span>
+              ) : (
+                exhibition.location
+              )}
             </span>
-            <h4 className="text-text line-clamp-2 h-[2lh]">
+            <h4
+              className={`line-clamp-2 h-[2lh] ${
+                signage
+                  ? 'text-signage-heading leading-[35px] font-bold text-text'
+                  : 'text-text'
+              }`}
+            >
               {exhibition.displayName}
             </h4>
           </div>

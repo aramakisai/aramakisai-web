@@ -25,6 +25,7 @@ export interface ExhibitionLocationMapViewProps {
   /** 企画の所在エリア。ピンの描画対象。areas の部分集合 */
   readonly targetAreas: readonly [CampusMapArea, ...CampusMapArea[]];
   readonly bounds: AreaBounds;
+  readonly variant?: 'site' | 'signage';
 }
 
 // 埋め込み文脈は選択状態の概念を持たない。ポリゴンのクリックを遷移や選択変更に繋げないための no-op
@@ -34,6 +35,7 @@ export function ExhibitionLocationMapView({
   areas,
   targetAreas,
   bounds,
+  variant = 'site',
 }: ExhibitionLocationMapViewProps) {
   const { minZoom, maxZoom, minNativeZoom, maxNativeZoom, tileUrlTemplate } =
     CAMPUS_MAP_CONFIG;
@@ -48,7 +50,9 @@ export function ExhibitionLocationMapView({
 
   return (
     // Figma 実測: MapPreview の高さは SP (95:12 内 95:46) が 240px、PC (95:2 内 95:4) が 360px
-    <div className="relative h-[240px] w-full overflow-clip rounded-xl border border-gray-200 bg-gray-100 md:h-[360px]">
+    <div
+      className={`relative w-full overflow-clip rounded-xl border border-gray-200 bg-gray-100 ${variant === 'signage' ? 'h-[212px]' : 'h-[240px] md:h-[360px]'}`}
+    >
       <MapContainer
         bounds={initialBounds}
         minZoom={minZoom}
@@ -83,7 +87,7 @@ export function ExhibitionLocationMapView({
             <AreaPin key={`${area.id}-${index}`} polygon={polygon} />
           )),
         )}
-        <RecenterButton bounds={bounds} />
+        <RecenterButton bounds={bounds} variant={variant} />
         <GestureHandling />
       </MapContainer>
     </div>

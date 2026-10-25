@@ -249,3 +249,57 @@ describe('AreaExhibitionList facilities', () => {
     expect(screen.queryByText('AED')).not.toBeInTheDocument();
   });
 });
+
+describe('variant signage', () => {
+  it('企画カードを2列のグリッドにして、その中だけスクロールさせる', () => {
+    render(
+      <AreaExhibitionList
+        variant="signage"
+        state={{
+          kind: 'filtered',
+          areaName: '1号館',
+          keyword: '',
+          categories: [],
+          items: [card({ id: 1 }), card({ id: 2 })],
+        }}
+      />,
+    );
+    const grid = screen.getByTestId('list-cards');
+    expect(grid).toHaveClass('grid', 'grid-cols-2', 'gap-6', 'overflow-y-auto');
+  });
+
+  it('site では従来どおり1列のまま', () => {
+    render(
+      <AreaExhibitionList
+        state={{
+          kind: 'filtered',
+          areaName: '1号館',
+          keyword: '',
+          categories: [],
+          items: [card({ id: 1 })],
+        }}
+      />,
+    );
+    expect(screen.getByTestId('list-cards')).not.toHaveClass('grid-cols-2');
+  });
+
+  it('該当なしの文は本文の大きさ', () => {
+    render(
+      <AreaExhibitionList
+        variant="signage"
+        state={{
+          kind: 'filtered',
+          areaName: '1号館',
+          keyword: 'x',
+          categories: [],
+          items: [],
+        }}
+      />,
+    );
+    expect(
+      screen.getByText(
+        '条件に一致する出展物はありません。条件を変更してください',
+      ),
+    ).toHaveClass('text-signage-body');
+  });
+});

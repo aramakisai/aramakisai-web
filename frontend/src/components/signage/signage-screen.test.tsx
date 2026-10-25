@@ -3,7 +3,10 @@ import { act, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@/lib/cms', () => ({ cms: {} }));
 vi.mock('@/env', () => ({
-  env: { NEXT_PUBLIC_CMS_URL: 'http://localhost:3100' },
+  env: {
+    NEXT_PUBLIC_CMS_URL: 'http://localhost:3100',
+    NEXT_PUBLIC_SITE_URL: 'https://example.test',
+  },
 }));
 
 import type { SignageSnapshot } from '@/lib/signage';

@@ -29,6 +29,11 @@ describe('RecenterButton', () => {
     };
   });
 
+  it('leaflet-container の Helvetica を継承せず site のフォントを使う', () => {
+    render(<RecenterButton bounds={INITIAL_BOUNDS} />);
+    expect(screen.getByRole('button')).toHaveClass('font-sans');
+  });
+
   it('地図を移動させたのち操作すると初期表示範囲へ戻る', () => {
     render(<RecenterButton bounds={INITIAL_BOUNDS} />);
 

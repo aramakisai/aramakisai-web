@@ -53,6 +53,14 @@ describe('RootLayout - Material Symbols', () => {
 
     expect(html).toMatch(/icon_names=[^"&]*\bmy_location\b/);
   });
+
+  it('端末用のアイコン (newspaper・progress_activity) を読み込み対象に含む', () => {
+    const html = renderToStaticMarkup(RootLayout({ children: <div /> }));
+
+    expect(html).toMatch(/icon_names=[^"&]*\bnewspaper\b/);
+    expect(html).toMatch(/icon_names=[^"&]*\bhome\b/);
+    expect(html).toMatch(/icon_names=[^"&]*\bprogress_activity\b/);
+  });
 });
 
 describe('RootLayout - モーション抑制の初期反映 (要件 21.7, 21.8)', () => {
