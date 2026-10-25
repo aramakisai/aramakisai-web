@@ -18,7 +18,7 @@ const FIT = [
   [1, 1],
 ] as [[number, number], [number, number]];
 
-function renderWithResize() {
+function renderWithResize(bottomInset?: number) {
   let trigger = () => {};
   vi.stubGlobal(
     'ResizeObserver',
@@ -31,7 +31,7 @@ function renderWithResize() {
     },
   );
   map.fitBounds.mockClear();
-  render(<MapViewportSync fitBounds={FIT} />);
+  render(<MapViewportSync fitBounds={FIT} bottomInset={bottomInset} />);
   trigger();
 }
 
@@ -49,6 +49,13 @@ describe('MapViewportSync', () => {
     renderWithResize();
     expect(map.fitBounds.mock.calls[0][1].paddingTopLeft).toEqual([404, 32]);
     expect(map.fitBounds.mock.calls[0][1].paddingBottomRight).toEqual([32, 48]);
+  });
+
+  it('adds the bottom inset to the bottom padding', () => {
+    renderWithResize(200);
+    expect(map.fitBounds.mock.calls[0][1].paddingBottomRight).toEqual([
+      32, 248,
+    ]);
   });
 
   it('uses the base padding when there is no side panel', () => {

@@ -39,6 +39,15 @@ const INTENTIONALLY_PRIVATE_ROUTES: readonly string[] = [
   '/gated-fullscreen',
   // error.tsx の E2E 検証専用ルート。DEV_OVERRIDE_ENABLED が偽の本番ビルドでは
   // 内部の notFound() 分岐だけが残るため、非公開のままで問題ない
+  // サイネージ操作層の iframe 専用。開催前フェーズは公開しない
+  '/signage/touch/gated',
+  '/signage/touch/map',
+  '/signage/touch/exhibitions',
+  '/signage/touch/exhibitions/[id]/[category]',
+  '/signage/touch/timetable',
+  '/signage/touch/parking',
+  '/signage/touch/topics',
+  '/signage/touch/topics/[id]',
   '/e2e-error-trigger',
   '/e2e-error-trigger-fullscreen',
 ];

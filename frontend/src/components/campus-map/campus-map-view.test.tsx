@@ -409,4 +409,38 @@ describe('CampusMapView', () => {
       expect(sendGaEvent).not.toHaveBeenCalled();
     });
   });
+
+  describe('端末用の表示指定', () => {
+    const renderWith = (props: object) =>
+      render(
+        <CampusMapView
+          areas={[]}
+          selectedAreaId={null}
+          onSelectArea={() => {}}
+          {...props}
+        />,
+      );
+
+    it('既定では現在地とズームのコントロールを出す', () => {
+      const { queryByTestId } = renderWith({});
+      expect(queryByTestId('map-user-location')).toBeInTheDocument();
+      expect(queryByTestId('map-zoom-control')).toBeInTheDocument();
+    });
+
+    it('showUserLocation=false で現在地を出さない', () => {
+      expect(
+        renderWith({ showUserLocation: false }).queryByTestId(
+          'map-user-location',
+        ),
+      ).not.toBeInTheDocument();
+    });
+
+    it('showZoomControl=false でズームを出さない', () => {
+      expect(
+        renderWith({ showZoomControl: false }).queryByTestId(
+          'map-zoom-control',
+        ),
+      ).not.toBeInTheDocument();
+    });
+  });
 });

@@ -1,9 +1,9 @@
 'use client';
 
 import 'leaflet/dist/leaflet.css';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, type Ref } from 'react';
 import { AttributionControl, MapContainer, TileLayer } from 'react-leaflet';
-import type { LatLngBoundsExpression } from 'leaflet';
+import type { LatLngBoundsExpression, Map as LeafletMap } from 'leaflet';
 import { sendGaEvent } from '@/lib/analytics';
 import { CAMPUS_MAP_CONFIG, MAP_ATTRIBUTION } from '@/lib/campus-map-config';
 import type { CampusMapArea, CampusMapPoint } from '@/lib/campus-map';
@@ -29,6 +29,17 @@ export interface CampusMapViewProps {
   readonly points?: readonly CampusMapPoint[];
   readonly selectedAreaId: number | null;
   readonly onSelectArea: (areaId: number | null) => void;
+  /** 端末用は下部の操作部品に現在地を出さない */
+  readonly showUserLocation?: boolean;
+  /** 端末用は自前のボタンから mapRef 経由でズームするため、Leaflet のコントロールを出さない */
+  readonly showZoomControl?: boolean;
+  readonly mapRef?: Ref<LeafletMap>;
+  /** 端末用は下部の操作部品が地図に重なるため、その高さを避けて全エリアを収める */
+  readonly fitBottomInset?: number;
+  /** 左パネルと下部の操作部品が地図の上に浮く端末用で、可視領域の中央へ全エリアを置けるよう maxBounds を辺の長さの割合だけ広げる */
+  readonly maxBoundsPad?: number;
+  /** 表示範囲のタイルを読み終えたとき(Leaflet の GridLayer load)に呼ぶ */
+  readonly onTilesLoaded?: () => void;
 }
 
 // navigation entry はドキュメントの最初の URL のまま変わらないため、/map 直接表示後に別ページから
@@ -61,6 +72,12 @@ export function CampusMapView({
   points = [],
   selectedAreaId,
   onSelectArea,
+  showUserLocation = true,
+  showZoomControl = true,
+  mapRef,
+  fitBottomInset,
+  maxBoundsPad = 0,
+  onTilesLoaded,
 }: CampusMapViewProps) {
   const { minZoom, maxZoom, minNativeZoom, maxNativeZoom, tileUrlTemplate } =
     CAMPUS_MAP_CONFIG;
@@ -73,14 +90,24 @@ export function CampusMapView({
     );
     return [southWest, northEast] as unknown as LatLngBoundsExpression;
   }, [areas]);
+  const maxBounds = useMemo<LatLngBoundsExpression>(() => {
+    const [[s, w], [n, e]] = CAMPUS_MAP_CONFIG.bounds;
+    const dLat = (n - s) * maxBoundsPad;
+    const dLng = (e - w) * maxBoundsPad;
+    return [
+      [s - dLat, w - dLng],
+      [n + dLat, e + dLng],
+    ];
+  }, [maxBoundsPad]);
   const tileErrors = useRef(0);
   const tileEventHandlers = useMemo(
     () => ({
       tileerror: () => {
         tileErrors.current += 1;
       },
+      load: () => onTilesLoaded?.(),
     }),
-    [],
+    [onTilesLoaded],
   );
 
   // 離脱時に送るため、タイル失敗はその都度ではなく集計して最初の1回だけ送る
@@ -116,7 +143,7 @@ export function CampusMapView({
       bounds={fitBounds}
       minZoom={minZoom}
       maxZoom={maxZoom}
-      maxBounds={BOUNDS}
+      maxBounds={maxBounds}
       maxBoundsViscosity={1}
       // 整数に吸着させず、ピンチ・ホイール・ボタンで連続的に拡縮させる
       zoomSnap={0.25}
@@ -126,6 +153,7 @@ export function CampusMapView({
       zoomControl={false}
       // 既定の帰属表示コントロールは Leaflet の旗ロゴが付くため、prefix なしのものに差し替える
       attributionControl={false}
+      ref={mapRef}
       whenReady={sendMapReady}
       className="h-full w-full"
     >
@@ -140,7 +168,7 @@ export function CampusMapView({
         errorTileUrl={TRANSPARENT_TILE_URL}
         eventHandlers={tileEventHandlers}
       />
-      <MapViewportSync fitBounds={fitBounds} />
+      <MapViewportSync fitBounds={fitBounds} bottomInset={fitBottomInset} />
       <AreaPolygonLayer
         areas={areas}
         selectedAreaId={selectedAreaId}
@@ -160,8 +188,8 @@ export function CampusMapView({
         position={isAboveBreakpoint ? 'bottomright' : 'bottomleft'}
         prefix={false}
       />
-      <MapZoomControl />
-      <MapUserLocation />
+      {showZoomControl && <MapZoomControl />}
+      {showUserLocation && <MapUserLocation />}
     </MapContainer>
   );
 }

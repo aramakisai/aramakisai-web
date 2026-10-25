@@ -13,11 +13,13 @@ export interface ExhibitionLocationSectionProps {
   readonly exhibition: ExhibitionDetail;
   /** 取得済みの区画データ。取得の成否は呼び出し元が解決し、失敗時は空配列を渡す */
   readonly areas: readonly CampusMapArea[];
+  readonly variant?: 'site' | 'signage';
 }
 
 export function ExhibitionLocationSection({
   exhibition,
   areas,
+  variant = 'site',
 }: ExhibitionLocationSectionProps) {
   const target = resolveTargetAreas(exhibition.areaIds, areas);
   if (target === null) {
@@ -33,6 +35,30 @@ export function ExhibitionLocationSection({
   ];
   const mapHref = buildAreaMapHref(target.primary);
   const caption = exhibition.location ?? areaNames.join('・');
+
+  if (variant === 'signage') {
+    return (
+      <section className="flex flex-col gap-2 border-t border-gray-200 pt-8">
+        <h2 className="py-0 text-signage-heading font-extrabold text-text">
+          場所
+        </h2>
+        <p className="flex items-center gap-1 text-signage-meta text-gray-600">
+          <PlaceIcon size={24} className="text-gray-600" />
+          {caption}
+        </p>
+        <div className="relative isolate">
+          <ExhibitionLocationMap
+            areas={areas}
+            targetAreas={target.areas}
+            bounds={toAreaBounds(target.areas)}
+            mapHref={mapHref}
+            areaNames={areaNames}
+            variant="signage"
+          />
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="flex flex-col gap-2 border-t border-gray-200 pt-6 lg:pt-8">

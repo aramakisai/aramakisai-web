@@ -131,6 +131,19 @@ describe('ExhibitionLocationSection', () => {
     expect(link.tagName).toBe('A');
   });
 
+  it('端末用 (signage) では構内マップへのリンクを描画しない', () => {
+    render(
+      <ExhibitionLocationSection
+        exhibition={exhibition()}
+        areas={[area()]}
+        variant="signage"
+      />,
+    );
+
+    expect(screen.getByTestId('location-map')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '構内マップで見る' })).toBeNull();
+  });
+
   it('複数の対象エリアがある場合、すべてのエリア名を地図へ渡す (要件 1.5)', () => {
     render(
       <ExhibitionLocationSection

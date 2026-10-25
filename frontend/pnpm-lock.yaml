@@ -20,6 +20,9 @@ importers:
       next:
         specifier: 16.4.2
         version: 16.4.2(@babel/core@7.29.7)(@playwright/test@1.61.1)(@types/node@22.20.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      qrcode:
+        specifier: ^1.5.4
+        version: 1.5.4
       react:
         specifier: 19.2.7
         version: 19.2.7
@@ -90,9 +93,6 @@ importers:
       prettier:
         specifier: ^3.0.0
         version: 3.9.4
-      qrcode:
-        specifier: ^1.5.4
-        version: 1.5.4
       tailwindcss:
         specifier: ^4.3.2
         version: 4.3.2
@@ -8749,10 +8749,10 @@ snapshots:
 
   vite@7.3.6(@types/node@22.20.0)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.36.0)(tsx@4.23.0)(yaml@2.9.0):
     dependencies:
-      esbuild: 0.28.1
+      esbuild: 0.28.2
       fdir: 6.5.0(picomatch@4.0.4)
       picomatch: 4.0.4
-      postcss: 8.5.16
+      postcss: 8.5.23
       rollup: 4.62.2
       tinyglobby: 0.2.17
     optionalDependencies:

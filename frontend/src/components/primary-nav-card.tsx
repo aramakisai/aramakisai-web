@@ -2,50 +2,60 @@ import Link from 'next/link';
 import { MaterialIcon } from './icons';
 import tailwindConfig from '../../tailwind.config';
 
-const THEME_COLORS = tailwindConfig.theme?.extend?.colors as Record<
-  'primary' | 'secondary' | 'info' | 'accent',
+export const THEME_COLORS = tailwindConfig.theme?.extend?.colors as Record<
+  'primary' | 'secondary' | 'info' | 'accent' | 'warning',
   string
 >;
 
 export type PrimaryNavDestination =
   'exhibitions' | 'map' | 'timetable' | 'parking';
 
-interface DestinationConfig {
+// HP トップのカードには出さない。サイネージのタッチ操作画面だけが使う
+export type SignageNavDestination = PrimaryNavDestination | 'topics';
+
+export interface DestinationConfig {
   readonly href: string;
   readonly icon: string;
   readonly label: string;
-  readonly color: 'primary' | 'secondary' | 'info' | 'accent';
+  readonly color: 'primary' | 'secondary' | 'info' | 'accent' | 'warning';
 }
 
 // href は lib/navigation.ts の bottomNavigationItems と同じパス (/timetable, /parking は
 // 別 spec が実装するまで 404)。色は bottom-navigation.tsx の INDICATOR_COLOR_CLASS と同じ割当
-const DESTINATIONS: Readonly<Record<PrimaryNavDestination, DestinationConfig>> =
-  {
-    exhibitions: {
-      href: '/exhibitions',
-      icon: 'festival',
-      label: '企画一覧',
-      color: 'primary',
-    },
-    map: {
-      href: '/map',
-      icon: 'map',
-      label: '構内マップ',
-      color: 'secondary',
-    },
-    timetable: {
-      href: '/timetable',
-      icon: 'calendar_clock',
-      label: 'タイムテーブル',
-      color: 'info',
-    },
-    parking: {
-      href: '/parking',
-      icon: 'parking_sign',
-      label: '駐車場空き情報',
-      color: 'accent',
-    },
-  };
+export const DESTINATIONS: Readonly<
+  Record<SignageNavDestination, DestinationConfig>
+> = {
+  exhibitions: {
+    href: '/exhibitions',
+    icon: 'festival',
+    label: '企画一覧',
+    color: 'primary',
+  },
+  map: {
+    href: '/map',
+    icon: 'map',
+    label: '構内マップ',
+    color: 'secondary',
+  },
+  timetable: {
+    href: '/timetable',
+    icon: 'calendar_clock',
+    label: 'タイムテーブル',
+    color: 'info',
+  },
+  parking: {
+    href: '/parking',
+    icon: 'parking_sign',
+    label: '駐車場空き情報',
+    color: 'accent',
+  },
+  topics: {
+    href: '/topics',
+    icon: 'newspaper',
+    label: 'トピック',
+    color: 'warning',
+  },
+};
 
 export const PRIMARY_NAV_DESTINATIONS: readonly PrimaryNavDestination[] = [
   'exhibitions',

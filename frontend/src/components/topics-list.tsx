@@ -10,9 +10,15 @@ export interface TopicsListProps {
    * 4 枚までに絞り SP を横スクロールにし、末尾に「トピック一覧へ」を添える (design.md Requirement 3)
    */
   readonly variant?: 'grid' | 'scroll';
+  /** 各カードの文字・色。`variant` は並べ方なので別名にしている */
+  readonly cardVariant?: TopicCardProps['variant'];
 }
 
-export function TopicsList({ topics, variant = 'grid' }: TopicsListProps) {
+export function TopicsList({
+  topics,
+  variant = 'grid',
+  cardVariant,
+}: TopicsListProps) {
   if (!topics || topics.length === 0) {
     return null;
   }
@@ -25,7 +31,7 @@ export function TopicsList({ topics, variant = 'grid' }: TopicsListProps) {
         <div className="flex gap-6 overflow-x-auto lg:grid lg:grid-cols-4 lg:overflow-visible">
           {visible.map((topic) => (
             <div key={topic.id} className="w-[260px] shrink-0 lg:w-auto">
-              <TopicCard {...topic} />
+              <TopicCard {...topic} variant={cardVariant} />
             </div>
           ))}
         </div>
@@ -39,7 +45,7 @@ export function TopicsList({ topics, variant = 'grid' }: TopicsListProps) {
   return (
     <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-4">
       {topics.map((topic) => (
-        <TopicCard key={topic.id} {...topic} />
+        <TopicCard key={topic.id} {...topic} variant={cardVariant} />
       ))}
     </div>
   );

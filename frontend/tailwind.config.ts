@@ -79,6 +79,16 @@ const config: Config = {
       // 既定の `text-xs` (12px) を上書きせず、下部ナビゲーション専用の 10px を別名で追加する (要件 21.11)
       fontSize: {
         'body-xs': ['10px', { lineHeight: '1.6', fontWeight: '400' }],
+        // 待機中サイネージと操作画面の共通の文字の段階 (design.md「サイネージの文字」)。太さ・フォントは各部品が決める
+        'signage-display': ['104px', { lineHeight: '100%' }],
+        'signage-hero': ['64px', { lineHeight: '100%' }],
+        'signage-title-lg': ['44px', { lineHeight: '100%' }],
+        'signage-title': ['32px', { lineHeight: '40px' }],
+        'signage-heading': ['28px', { lineHeight: '35px' }],
+        'signage-body': ['24px', { lineHeight: '38px' }],
+        'signage-meta': ['24px', { lineHeight: '30px' }],
+        'signage-label': ['24px', { lineHeight: '100%' }],
+        'signage-caption': ['18px', { lineHeight: '100%' }],
       },
     },
   },

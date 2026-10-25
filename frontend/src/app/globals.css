@@ -782,3 +782,59 @@ html[data-pl] [style*='/images/textures/'] {
 .fade-in {
   animation: fade-in 600ms ease-out;
 }
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.fade-out {
+  animation: fade-out 600ms ease-out forwards;
+}
+
+/* TouchLinkGuard が遮断したリンクに data-touch-blocked を付ける。本文と同じ見た目にする */
+a[data-touch-blocked] {
+  color: inherit;
+  text-decoration: none;
+  cursor: default;
+  pointer-events: none;
+}
+
+/*
+ * 端末用 (variant="signage") の本文。サイネージの文字(24/38、見出し28/35)に揃える。
+ * .rich-text-body の個別指定より詳細度を上げて上書きし、先頭要素の上余白 0 は残す
+ */
+.rich-text-body[data-variant='signage']
+  :is(p, blockquote, li, figcaption, td, th, p.rt-button > a) {
+  font-size: 24px;
+  line-height: 38px;
+}
+
+.rich-text-body[data-variant='signage'] :is(h2, h3, h4) {
+  font-size: 28px;
+  line-height: 35px;
+}
+
+.rich-text-body[data-variant='signage'] h2 {
+  margin-bottom: 16px;
+}
+
+.rich-text-body[data-variant='signage'] h3 {
+  margin-bottom: 12px;
+}
+
+.rich-text-body[data-variant='signage'] h4 {
+  margin-bottom: 8px;
+}
+
+.rich-text-body[data-variant='signage'] :is(h2, h3):not(:first-child) {
+  margin-top: 32px;
+}
+
+.rich-text-body[data-variant='signage'] h4:not(:first-child) {
+  margin-top: 24px;
+}
