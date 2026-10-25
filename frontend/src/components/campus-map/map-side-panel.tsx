@@ -42,6 +42,7 @@ export function MapSidePanel({ search, listState, notice }: MapSidePanelProps) {
 
   return (
     <div
+      data-map-side-panel
       aria-hidden={!isDesktop}
       inert={!isDesktop}
       // 表示自体は CSS のブレークポイント (MAP_BREAKPOINT) に委ね、aria-hidden/inert は

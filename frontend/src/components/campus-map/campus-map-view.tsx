@@ -7,6 +7,7 @@ import type { LatLngBoundsExpression } from 'leaflet';
 import { sendGaEvent } from '@/lib/analytics';
 import { CAMPUS_MAP_CONFIG, MAP_ATTRIBUTION } from '@/lib/campus-map-config';
 import type { CampusMapArea, CampusMapPoint } from '@/lib/campus-map';
+import { toAreaBounds } from '@/lib/exhibition-location-map';
 import { AreaPolygonLayer } from './area-polygon-layer';
 import { MapPointMarker } from './map-point-marker';
 import { MapUserLocation } from './map-user-location';
@@ -64,6 +65,14 @@ export function CampusMapView({
   const { minZoom, maxZoom, minNativeZoom, maxNativeZoom, tileUrlTemplate } =
     CAMPUS_MAP_CONFIG;
   const isAboveBreakpoint = useIsAboveMapBreakpoint();
+  // 敷地の外接矩形ではなく実際のエリア群に合わせる。エリア取得失敗時だけ敷地全体へ戻す
+  const fitBounds = useMemo<LatLngBoundsExpression>(() => {
+    if (areas.length === 0) return CAMPUS_BOUNDS;
+    const { southWest, northEast } = toAreaBounds(
+      areas as [CampusMapArea, ...CampusMapArea[]],
+    );
+    return [southWest, northEast] as unknown as LatLngBoundsExpression;
+  }, [areas]);
   const tileErrors = useRef(0);
   const tileEventHandlers = useMemo(
     () => ({
@@ -104,7 +113,7 @@ export function CampusMapView({
 
   return (
     <MapContainer
-      bounds={CAMPUS_BOUNDS}
+      bounds={fitBounds}
       minZoom={minZoom}
       maxZoom={maxZoom}
       maxBounds={BOUNDS}
@@ -131,7 +140,7 @@ export function CampusMapView({
         errorTileUrl={TRANSPARENT_TILE_URL}
         eventHandlers={tileEventHandlers}
       />
-      <MapViewportSync fitBounds={CAMPUS_BOUNDS} />
+      <MapViewportSync fitBounds={fitBounds} />
       <AreaPolygonLayer
         areas={areas}
         selectedAreaId={selectedAreaId}
