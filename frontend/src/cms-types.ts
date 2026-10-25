@@ -538,9 +538,6 @@ export interface PerformanceSlot {
 export interface StudentExhibition {
   id: number;
   owner: number | User;
-  /**
-   * 公開は実行委員が行い、公開後は編集できません。
-   */
   status: 'published' | 'draft';
   /**
    * 学生団体・サークル名
