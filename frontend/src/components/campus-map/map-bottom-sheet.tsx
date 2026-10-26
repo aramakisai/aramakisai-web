@@ -38,7 +38,7 @@ const SNAP_HEIGHTS: Record<SnapIndex, string> = {
   1: 'auto',
   2: `${MID_SNAP_PX}px`,
   3: `${MAX_SNAP_VH}vh`,
-  4: 'calc(100dvh - env(safe-area-inset-top))',
+  4: 'calc(100dvh - env(safe-area-inset-top) - var(--map-nav, 0px))',
 };
 // 離す直前にこの速さ (px/ms) 以上で動いていたらフリックとして扱う
 const FLICK_VELOCITY = 0.5;
@@ -49,8 +49,10 @@ const DRAG_THRESHOLD_PX = 6;
 function largeSnapPx(): number {
   return (window.innerHeight * MAX_SNAP_VH) / 100;
 }
-function fullSnapPx(): number {
-  return window.innerHeight;
+// 外枠の bottom は下部ナビの高さ分だけ持ち上がっている。ナビの上端までが使える高さ
+function fullSnapPx(outer: HTMLElement | null): number {
+  const navPx = outer ? parseFloat(getComputedStyle(outer).bottom) || 0 : 0;
+  return window.innerHeight - navPx;
 }
 
 export function MapBottomSheet({
@@ -88,6 +90,7 @@ export function MapBottomSheet({
     }
   }, [selectedAreaId]);
 
+  const outerRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const grabberRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -118,7 +121,7 @@ export function MapBottomSheet({
     drag.fromGrabber ||
     !drag.scrollable ||
     (draggedUpBy > 0
-      ? drag.startHeight < fullSnapPx() - 1
+      ? drag.startHeight < fullSnapPx(outerRef.current) - 1
       : draggedUpBy < 0 && drag.startScrollTop <= 0);
 
   useEffect(() => {
@@ -212,7 +215,7 @@ export function MapBottomSheet({
     }
     const draggedUpBy = drag.startY - event.clientY;
     const next = Math.min(
-      fullSnapPx(),
+      fullSnapPx(outerRef.current),
       Math.max(MIN_SNAP_PX, drag.startHeight + draggedUpBy),
     );
     el.style.height = `${next}px`;
@@ -253,7 +256,7 @@ export function MapBottomSheet({
       ...(collapsed ? [[1, fitPx] as const] : []),
       [2, MID_SNAP_PX],
       [3, largeSnapPx()],
-      [4, fullSnapPx()],
+      [4, fullSnapPx(outerRef.current)],
     ];
     const now = performance.now();
     const recent = drag.samples.filter((p) => now - p.t <= FLICK_WINDOW_MS);
@@ -325,9 +328,12 @@ export function MapBottomSheet({
   return (
     // 高さが内容に応じて縮む (collapsed) 場合でも上限一杯 (expanded) の場合でも、
     // この外枠自体は下端に貼り付くだけで余白を持たないため地図を覆わない。
-    // pointer-events-none はそれでも確実にするための保険
+    // pointer-events-none はそれでも確実にするための保険。
+    // clip-path は影を下端で切る。影は下向き成分を持ち、下部ナビより前面のシートからだと
+    // ナビ上端に灰色の帯として乗ってしまう (Figma ではナビが影を覆う)。上・左右は切らない
     <div
-      className={`pointer-events-none fixed inset-x-0 bottom-0 flex justify-center md:hidden ${snapIndex === 4 || elevated ? 'z-[1100]' : 'z-[1050]'}`}
+      ref={outerRef}
+      className={`pointer-events-none fixed inset-x-0 bottom-[var(--map-nav,0px)] flex [clip-path:inset(-100px_-100px_0_-100px)] justify-center md:hidden ${snapIndex === 4 || elevated ? 'z-[1100]' : 'z-[1050]'}`}
       aria-hidden={isAboveBreakpoint}
       inert={isAboveBreakpoint}
     >
@@ -335,7 +341,7 @@ export function MapBottomSheet({
         ref={sheetRef}
         data-testid="map-bottom-sheet"
         // interpolate-size は 'auto' への/からの高さ遷移を許す (非対応ブラウザでは即時切替)
-        className={`pointer-events-auto w-full select-none max-w-2xl bg-white p-4 shadow-xl transition-[height] duration-300 ease-out [interpolate-size:allow-keywords] ${snapIndex === 4 && !elevated ? '' : 'rounded-t-2xl'} ${snapIndex <= 1 ? 'overflow-hidden' : 'overflow-y-auto'}`}
+        className={`pointer-events-auto w-full select-none max-w-2xl bg-white p-4 shadow-card transition-[height] duration-300 ease-out [interpolate-size:allow-keywords] ${snapIndex === 4 && !elevated ? '' : 'rounded-t-2xl'} ${snapIndex <= 1 ? 'overflow-hidden' : 'overflow-y-auto'}`}
         style={{ height: SNAP_HEIGHTS[snapIndex] }}
         onPointerDown={handlePointerDown}
         onClickCapture={handleClickCapture}

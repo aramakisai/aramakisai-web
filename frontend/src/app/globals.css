@@ -12,6 +12,15 @@
     #4b946f 72%,
     #b45e8c 100%
   );
+  /* 本文リンクのホバー線 (Figma HoverLine, opacity 0.7)。背景では要素の opacity を使えないため同じ色を α 0.7 で持つ */
+  --mansai-spectrum-70: linear-gradient(
+    100deg,
+    rgb(117 87 168 / 0.7) 0%,
+    rgb(76 111 177 / 0.7) 24%,
+    rgb(58 145 168 / 0.7) 48%,
+    rgb(75 148 111 / 0.7) 72%,
+    rgb(180 94 140 / 0.7) 100%
+  );
 
   /*
    * MapMenuButton (直径) と MapSearchOverlay の検索ボックス (上下パディング/行の高さ) の
@@ -115,10 +124,10 @@
  * Leaflet の Control DOM は React の外 (L.Control.onAdd) で生成されるため、
  * JSX の className がここには届かない。構内マップの MapZoomControl / 出典表記を
  * Figma のトークン (色は tailwind.config.ts の gray-200/text/gray-500 相当) に合わせるため、
- * ここだけプレーン CSS で上書きする。leaflet.css 側の同名セレクタより詳細度を必ず上回るように
+ * ここだけプレーン CSS で上書きする。leaflet.css 側の同名セレクタ (.leaflet-touch 付きを含む) より詳細度を必ず上回るように
  * クラスを重ねており、CSS の読み込み順に依存しない
  */
-.leaflet-control-zoom.leaflet-bar {
+.leaflet-container .leaflet-control-zoom.leaflet-bar {
   overflow: hidden;
   border: 1px solid #e7e5e4;
   border-radius: 8px;
@@ -142,8 +151,14 @@
   margin-left: 24px;
 }
 
-.leaflet-bar a.leaflet-control-zoom-in,
-.leaflet-bar a.leaflet-control-zoom-out {
+/* ズームと右端を揃え、ズームの真上 8px に積む。Leaflet の float は縦マージンを相殺しないため、間隔は下余白だけで決まる */
+.leaflet-bottom.leaflet-right .map-locate-control {
+  margin-right: 24px;
+  margin-bottom: 8px;
+}
+
+.leaflet-container .leaflet-bar a.leaflet-control-zoom-in,
+.leaflet-container .leaflet-bar a.leaflet-control-zoom-out {
   display: flex;
   width: 40px;
   height: 40px;
@@ -154,6 +169,20 @@
   text-indent: 0;
   color: #202020;
   border-bottom-color: #e7e5e4;
+  transition: background-color 200ms ease-out;
+}
+
+/* Leaflet 既定の #f4f4f4 (leaflet.css の a:hover) を Figma の gray-100 に置き換える */
+.leaflet-container .leaflet-bar a.leaflet-control-zoom-in:hover,
+.leaflet-container .leaflet-bar a.leaflet-control-zoom-out:hover {
+  background-color: #f5f5f4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leaflet-container .leaflet-bar a.leaflet-control-zoom-in,
+  .leaflet-container .leaflet-bar a.leaflet-control-zoom-out {
+    transition: none;
+  }
 }
 
 .leaflet-container .leaflet-control-attribution {
@@ -188,6 +217,11 @@
   h6:not(.rich-text-body *) {
     @apply text-text;
   }
+}
+
+/* 影ホバー共通 (Figma shadow/card、200ms ease-out)。塗りのないボタンは呼び出し側で hover:bg-background を足す */
+@utility hover-card-shadow {
+  @apply transition-[box-shadow,background-color] duration-200 ease-out hover:shadow-card motion-reduce:transition-none;
 }
 
 @layer utilities {
@@ -286,8 +320,32 @@
     @apply text-text text-[16px] leading-[1.8] mb-4;
   }
 
+  /*
+   * 常時の下線は text-decoration、ホバーで伸びるスペクトル線は background で描く。
+   * clone にすると折り返した行ごとに左端から伸びる (Figma HoverLine の行ごと分割)。
+   * 線は下線と同じ位置・太さ (1px) に重ねるため、下線の位置を em で固定して背景の底辺に合わせる
+   */
   .rich-text-body a {
     @apply text-text underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.275em;
+    background-image: var(--mansai-spectrum-70);
+    background-repeat: no-repeat;
+    background-position: left bottom;
+    background-size: 0% 1px;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+    transition: background-size 200ms ease-out;
+  }
+
+  .rich-text-body a:hover {
+    background-size: 100% 1px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rich-text-body a {
+      transition: none;
+    }
   }
 
   /*
@@ -413,6 +471,23 @@
     @apply w-full text-center text-[16px] font-bold leading-[1.8] text-text;
   }
 
+  /* 影を切らないよう button 自体は clip せず、ホバーした 1 枚だけに影を出す (rich-text-image-viewer が img を包む) */
+  .rich-text-body button[data-rich-text-image] {
+    display: block;
+    width: 100%;
+    transition: box-shadow 200ms ease-out;
+  }
+
+  .rich-text-body button[data-rich-text-image]:hover {
+    @apply shadow-card;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rich-text-body button[data-rich-text-image] {
+      transition: none;
+    }
+  }
+
   /* 画像は正方形枠に収める。余白は gray-200 (Figma の Placeholder と同色) */
   .rich-text-body .rt-image-row img {
     @apply m-0 aspect-square w-full bg-gray-200 object-contain;
@@ -468,8 +543,10 @@
     @apply flex;
   }
 
+  /* 本文リンク用のスペクトル線 (.rich-text-body a) はボタンには適用しない。影は Button 層だけに出す */
   .rich-text-body p.rt-button > a {
-    @apply rounded-md bg-primary px-6 py-3 text-[16px] font-bold leading-[1.5] text-text no-underline;
+    @apply rounded-md bg-primary px-6 py-3 text-[16px] font-bold leading-[1.5] text-text no-underline hover-card-shadow;
+    background-image: none;
   }
 
   /* 表だけ横スクロールさせ、ページ全体を押し広げない */
@@ -610,46 +687,6 @@
   }
 }
 
-@layer utilities {
-  /*
-   * 企画カードの背景: from の単色地に to の楕円を重ねる水彩の溜まり。色同士を補間せず
-   * アルファで薄めるだけなので、パレット外の色相 (隣接しない色の中間色) が出ない。
-   * 最前面の白 35% でパステル寄りにする。
-   */
-  .exhibition-gradient-bg {
-    background-color: var(--exhibition-gradient-from);
-    background-image:
-      linear-gradient(rgb(255 255 255 / 0.35), rgb(255 255 255 / 0.35)),
-      radial-gradient(
-        ellipse 126% 210% at var(--exhibition-pool-x) var(--exhibition-pool-y),
-        var(--exhibition-gradient-to) 0 25%,
-        var(--exhibition-gradient-to-half) 50%,
-        var(--exhibition-gradient-to-clear) 75%
-      );
-  }
-
-  /*
-   * 企画カードに重ねる無彩色の質感 (design.md ExhibitionCard 節)。--exhibition-texture は
-   * exhibition-card.tsx が質感ごとの画像 URL を設定する (texture='gradient' のときは未設定 =
-   * 'none' で質感画像を重ねない)
-   */
-  .exhibition-gradient-bg::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image: var(--exhibition-texture, none);
-    background-size: cover;
-    /* 質感画像は全カード共通の 1 枚なので、切り出し位置と反転を企画ごとに変えて同じ模様の繰り返しに見せない */
-    background-position: center var(--exhibition-texture-y, 50%);
-    transform: scale(
-      var(--exhibition-texture-sx, 1),
-      var(--exhibition-texture-sy, 1)
-    );
-    /* 質感画像は中間グレー中心の無彩色なので、overlay で重ねて地のグラデーションの色を残す */
-    mix-blend-mode: overlay;
-  }
-}
-
 /*
  * 点マーカーの吹き出し (Figma MapTooltip)。Leaflet 既定は角丸 3px・影付き・
  * ::before の単色矢印のため、白地 + gray-200 の 1px 枠 + 枠線付きしっぽへ差し替える。
@@ -693,9 +730,6 @@
 /* 質感画像を load まで止める (layout.tsx の data-pl)。インライン style の background-image は !important で上書きする */
 html[data-pl] [style*='/images/textures/'] {
   background-image: none !important;
-}
-html[data-pl] .exhibition-gradient-bg::before {
-  background-image: none;
 }
 
 /*
@@ -747,4 +781,60 @@ html[data-pl] .exhibition-gradient-bg::before {
 
 .fade-in {
   animation: fade-in 600ms ease-out;
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.fade-out {
+  animation: fade-out 600ms ease-out forwards;
+}
+
+/* TouchLinkGuard が遮断したリンクに data-touch-blocked を付ける。本文と同じ見た目にする */
+a[data-touch-blocked] {
+  color: inherit;
+  text-decoration: none;
+  cursor: default;
+  pointer-events: none;
+}
+
+/*
+ * 端末用 (variant="signage") の本文。サイネージの文字(24/38、見出し28/35)に揃える。
+ * .rich-text-body の個別指定より詳細度を上げて上書きし、先頭要素の上余白 0 は残す
+ */
+.rich-text-body[data-variant='signage']
+  :is(p, blockquote, li, figcaption, td, th, p.rt-button > a) {
+  font-size: 24px;
+  line-height: 38px;
+}
+
+.rich-text-body[data-variant='signage'] :is(h2, h3, h4) {
+  font-size: 28px;
+  line-height: 35px;
+}
+
+.rich-text-body[data-variant='signage'] h2 {
+  margin-bottom: 16px;
+}
+
+.rich-text-body[data-variant='signage'] h3 {
+  margin-bottom: 12px;
+}
+
+.rich-text-body[data-variant='signage'] h4 {
+  margin-bottom: 8px;
+}
+
+.rich-text-body[data-variant='signage'] :is(h2, h3):not(:first-child) {
+  margin-top: 32px;
+}
+
+.rich-text-body[data-variant='signage'] h4:not(:first-child) {
+  margin-top: 24px;
 }

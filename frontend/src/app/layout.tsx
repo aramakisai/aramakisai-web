@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Script from 'next/script';
+import { Suspense } from 'react';
 import '@fontsource/line-seed-jp/100.css';
 import '@fontsource/line-seed-jp/400.css';
 import '@fontsource/line-seed-jp/700.css';
@@ -8,6 +8,7 @@ import './globals.css';
 import { getSiteMetadata } from '@/lib/site-metadata';
 import { buildPageMetadata } from '@/lib/page-metadata';
 import { DEV_OVERRIDE_ENABLED } from '@/lib/phase';
+import { GoogleAnalytics } from '@/components/google-analytics';
 import { PhaseToggle } from '@/components/phase-toggle';
 import { env } from '@/env';
 
@@ -16,6 +17,7 @@ import { env } from '@/env';
 // weight/FILL は固定値のみ使うため wght は 300 で固定し、FILL だけ 0..1 の範囲を残して
 // アイコンごとに塗りつぶし版 (位置ピン) と線画版を出し分ける
 const MATERIAL_SYMBOLS_ICON_NAMES = [
+  'add',
   'approval',
   'arrow_back',
   'bookmark',
@@ -32,6 +34,7 @@ const MATERIAL_SYMBOLS_ICON_NAMES = [
   'festival',
   'handshake',
   'hide_image',
+  'home',
   'image',
   'info',
   'info_i',
@@ -42,13 +45,17 @@ const MATERIAL_SYMBOLS_ICON_NAMES = [
   'map',
   'menu',
   'mic',
+  'my_location',
+  'newspaper',
   'open_in_new',
   'parking_sign',
   'person',
+  'progress_activity',
   'history',
   'pause',
   'play_arrow',
   'play_circle',
+  'remove',
   'schedule',
   'search',
   'share',
@@ -101,7 +108,6 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const gaMeasurementId = env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
   const cmsOrigin = new URL(env.NEXT_PUBLIC_CMS_URL).origin;
 
   // DEV_OVERRIDE_ENABLED はビルド時に真偽リテラルへ畳み込まれる。この分岐に
@@ -109,7 +115,7 @@ export default function RootLayout({
   const phaseToggle = DEV_OVERRIDE_ENABLED ? <PhaseToggle /> : null;
 
   return (
-    <html lang="ja" suppressHydrationWarning>
+    <html lang="ja" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
@@ -124,18 +130,10 @@ export default function RootLayout({
       <body className="flex min-h-screen min-h-dvh min-w-0 flex-col font-sans">
         {children}
         {phaseToggle}
+        <Suspense fallback={null}>
+          <GoogleAnalytics />
+        </Suspense>
       </body>
-      {process.env.NODE_ENV === 'production' && gaMeasurementId && (
-        <>
-          <Script
-            src={`https://www.googletagmanager.com/gtag/js?id=${gaMeasurementId}`}
-            strategy="lazyOnload"
-          />
-          <Script id="gtag-init" strategy="lazyOnload">
-            {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config',${JSON.stringify(gaMeasurementId)});`}
-          </Script>
-        </>
-      )}
     </html>
   );
 }

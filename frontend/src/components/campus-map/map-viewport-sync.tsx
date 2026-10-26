@@ -5,15 +5,30 @@ import { useMap } from 'react-leaflet';
 import type { FitBoundsOptions, LatLngBoundsExpression } from 'leaflet';
 import { CAMPUS_MAP_CONFIG } from '@/lib/campus-map-config';
 
-// 下側はシートの角丸の裏に潜る 16px 分を足す
 const TILE_BOUNDS =
   CAMPUS_MAP_CONFIG.bounds as unknown as LatLngBoundsExpression;
 
-const FIT_OPTIONS: FitBoundsOptions = {
-  paddingTopLeft: [8, 8],
-  paddingBottomRight: [8, 24],
-  animate: false,
-};
+// エリアのラベルやマーカーが画面端に接しないよう取る余白
+const FIT_MARGIN = 32;
+
+// PC ではサイドパネルが地図の左に重なって浮くため、パネル右端より右を可視領域として合わせる
+function fitOptions(
+  container: HTMLElement,
+  bottomInset: number,
+): FitBoundsOptions {
+  const panel = document
+    .querySelector('[data-map-side-panel]')
+    ?.getBoundingClientRect();
+  const left = panel?.width
+    ? Math.max(0, panel.right - container.getBoundingClientRect().left)
+    : 0;
+  return {
+    paddingTopLeft: [left + FIT_MARGIN, FIT_MARGIN],
+    // 下側はシートの角丸の裏に潜る 16px 分を足す
+    paddingBottomRight: [FIT_MARGIN, FIT_MARGIN + 16 + bottomInset],
+    animate: false,
+  };
+}
 
 /**
  * 地図コンテナはボトムシートの高さに追従して伸縮する。Leaflet は window の resize しか
@@ -26,8 +41,11 @@ const FIT_OPTIONS: FitBoundsOptions = {
  */
 export function MapViewportSync({
   fitBounds,
+  bottomInset = 0,
 }: {
   readonly fitBounds: LatLngBoundsExpression;
+  /** 地図の下に重なって浮く操作部品の高さ。その分を避けて合わせる */
+  readonly bottomInset?: number;
 }) {
   const map = useMap();
 
@@ -59,7 +77,8 @@ export function MapViewportSync({
     }
     const observer = new ResizeObserver(() => {
       applyMinZoom();
-      if (!interacted) map.fitBounds(fitBounds, FIT_OPTIONS);
+      if (!interacted)
+        map.fitBounds(fitBounds, fitOptions(container, bottomInset));
     });
     observer.observe(container);
     return () => {
@@ -67,7 +86,7 @@ export function MapViewportSync({
       container.removeEventListener('pointerdown', markInteracted);
       container.removeEventListener('wheel', markInteracted);
     };
-  }, [map, fitBounds]);
+  }, [map, fitBounds, bottomInset]);
 
   return null;
 }

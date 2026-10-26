@@ -1,6 +1,9 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { ShareButton } from './share-button';
+import { sendGaEvent } from '@/lib/analytics';
+
+vi.mock('@/lib/analytics', () => ({ sendGaEvent: vi.fn() }));
 
 const mocked = vi.hoisted(() => ({ value: null as unknown }));
 vi.mock('@/lib/use-mypage-data', () => ({
@@ -13,6 +16,7 @@ const url = 'https://aramakisai.com/exhibitions/1';
 describe('ShareButton', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.clearAllMocks();
   });
 
   it('opens the native share sheet when navigator.share is available', async () => {
@@ -133,5 +137,95 @@ describe('ShareButton', () => {
       'inline',
     );
     mocked.value = null;
+  });
+
+  describe('GA events', () => {
+    const click = () =>
+      fireEvent.click(screen.getByRole('button', { name: '共有' }));
+
+    it('web_share success', async () => {
+      vi.stubGlobal('navigator', {
+        ...navigator,
+        share: vi.fn().mockResolvedValue(undefined),
+        canShare: () => true,
+      });
+      render(<ShareButton title={title} url={url} />);
+      click();
+      await waitFor(() =>
+        expect(sendGaEvent).toHaveBeenCalledWith('share', {
+          method: 'web_share',
+          result: 'success',
+        }),
+      );
+    });
+
+    it('web_share cancel', async () => {
+      vi.stubGlobal('navigator', {
+        ...navigator,
+        share: vi
+          .fn()
+          .mockRejectedValue(
+            Object.assign(new Error('c'), { name: 'AbortError' }),
+          ),
+        canShare: () => true,
+      });
+      render(<ShareButton title={title} url={url} />);
+      click();
+      await waitFor(() =>
+        expect(sendGaEvent).toHaveBeenCalledWith('share', {
+          method: 'web_share',
+          result: 'cancel',
+        }),
+      );
+      expect(sendGaEvent).toHaveBeenCalledTimes(1);
+    });
+
+    it('web_share fail then clipboard success', async () => {
+      vi.stubGlobal('navigator', {
+        ...navigator,
+        share: vi.fn().mockRejectedValue(new Error('x')),
+        canShare: () => true,
+        clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
+      });
+      render(<ShareButton title={title} url={url} />);
+      click();
+      await waitFor(() => expect(sendGaEvent).toHaveBeenCalledTimes(2));
+      expect(vi.mocked(sendGaEvent).mock.calls).toEqual([
+        ['share', { method: 'web_share', result: 'fail' }],
+        ['share', { method: 'clipboard', result: 'success' }],
+      ]);
+    });
+
+    it('clipboard success without share', async () => {
+      vi.stubGlobal('navigator', {
+        ...navigator,
+        share: undefined,
+        clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
+      });
+      render(<ShareButton title={title} url={url} />);
+      click();
+      await waitFor(() =>
+        expect(sendGaEvent).toHaveBeenCalledWith('share', {
+          method: 'clipboard',
+          result: 'success',
+        }),
+      );
+    });
+
+    it('manual fail', async () => {
+      vi.stubGlobal('navigator', {
+        ...navigator,
+        share: undefined,
+        clipboard: { writeText: vi.fn().mockRejectedValue(new Error('d')) },
+      });
+      render(<ShareButton title={title} url={url} />);
+      click();
+      await waitFor(() =>
+        expect(sendGaEvent).toHaveBeenCalledWith('share', {
+          method: 'manual',
+          result: 'fail',
+        }),
+      );
+    });
   });
 });

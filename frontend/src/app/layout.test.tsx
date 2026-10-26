@@ -47,6 +47,22 @@ describe('RootLayout', () => {
   });
 });
 
+describe('RootLayout - Material Symbols', () => {
+  it('現在地ボタン用の my_location を読み込み対象に含む', () => {
+    const html = renderToStaticMarkup(RootLayout({ children: <div /> }));
+
+    expect(html).toMatch(/icon_names=[^"&]*\bmy_location\b/);
+  });
+
+  it('端末用のアイコン (newspaper・progress_activity) を読み込み対象に含む', () => {
+    const html = renderToStaticMarkup(RootLayout({ children: <div /> }));
+
+    expect(html).toMatch(/icon_names=[^"&]*\bnewspaper\b/);
+    expect(html).toMatch(/icon_names=[^"&]*\bhome\b/);
+    expect(html).toMatch(/icon_names=[^"&]*\bprogress_activity\b/);
+  });
+});
+
 describe('RootLayout - モーション抑制の初期反映 (要件 21.7, 21.8)', () => {
   it('hydration 前に停止指定を判定するスクリプトを <head> に埋め込む', async () => {
     const ui = RootLayout({ children: <div>content</div> });
@@ -115,5 +131,18 @@ describe('RootLayout - 切替UIの結線', () => {
     expect(cookiesMock).not.toHaveBeenCalled();
     expect(html).not.toContain('開催前');
     expect(html).not.toContain('開催中');
+  });
+});
+
+vi.mock('@/components/google-analytics', () => ({
+  GoogleAnalytics: () => <i data-testid="ga" />,
+}));
+
+describe('RootLayout - GA4', () => {
+  it('旧 gtag スクリプトを持たず GoogleAnalytics を置く', () => {
+    const html = renderToStaticMarkup(RootLayout({ children: <div /> }));
+    expect(html).not.toContain('googletagmanager');
+    expect(html).not.toContain('gtag-init');
+    expect(html).toContain('data-testid="ga"');
   });
 });

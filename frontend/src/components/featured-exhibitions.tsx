@@ -1,6 +1,5 @@
-import Link from 'next/link';
 import { ExhibitionCard } from './exhibition-card';
-import { ChevronRightIcon } from './icons';
+import { TextLink } from './text-link';
 import {
   pickRandomExhibitions,
   type ExhibitionCardSummary,
@@ -30,13 +29,9 @@ export function FeaturedExhibitions({ exhibitions }: FeaturedExhibitionsProps) {
           ))}
         </div>
       )}
-      <Link
-        href="/exhibitions"
-        className="flex items-center justify-end gap-2 self-end text-sm font-bold"
-      >
-        <span className="text-text">企画一覧へ</span>
-        <ChevronRightIcon size={20} className="text-text" />
-      </Link>
+      <TextLink href="/exhibitions" className="self-end">
+        企画一覧へ
+      </TextLink>
     </div>
   );
 }

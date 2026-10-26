@@ -1,33 +1,61 @@
-import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import { MaterialIcon } from './icons';
+import tailwindConfig from '../../tailwind.config';
+
+export const THEME_COLORS = tailwindConfig.theme?.extend?.colors as Record<
+  'primary' | 'secondary' | 'info' | 'accent' | 'warning',
+  string
+>;
 
 export type PrimaryNavDestination =
   'exhibitions' | 'map' | 'timetable' | 'parking';
 
-interface DestinationConfig {
+// HP トップのカードには出さない。サイネージのタッチ操作画面だけが使う
+export type SignageNavDestination = PrimaryNavDestination | 'topics';
+
+export interface DestinationConfig {
   readonly href: string;
   readonly icon: string;
   readonly label: string;
+  readonly color: 'primary' | 'secondary' | 'info' | 'accent' | 'warning';
 }
 
 // href は lib/navigation.ts の bottomNavigationItems と同じパス (/timetable, /parking は
-// 別 spec が実装するまで 404)。地の画像ファイル名は destination のキーと同じ (public/images/textures/nav/)
-const DESTINATIONS: Readonly<Record<PrimaryNavDestination, DestinationConfig>> =
-  {
-    exhibitions: { href: '/exhibitions', icon: 'festival', label: '企画一覧' },
-    map: { href: '/map', icon: 'map', label: '構内マップ' },
-    timetable: {
-      href: '/timetable',
-      icon: 'calendar_clock',
-      label: 'タイムテーブル',
-    },
-    parking: {
-      href: '/parking',
-      icon: 'parking_sign',
-      label: '駐車場空き情報',
-    },
-  };
+// 別 spec が実装するまで 404)。色は bottom-navigation.tsx の INDICATOR_COLOR_CLASS と同じ割当
+export const DESTINATIONS: Readonly<
+  Record<SignageNavDestination, DestinationConfig>
+> = {
+  exhibitions: {
+    href: '/exhibitions',
+    icon: 'festival',
+    label: '企画一覧',
+    color: 'primary',
+  },
+  map: {
+    href: '/map',
+    icon: 'map',
+    label: '構内マップ',
+    color: 'secondary',
+  },
+  timetable: {
+    href: '/timetable',
+    icon: 'calendar_clock',
+    label: 'タイムテーブル',
+    color: 'info',
+  },
+  parking: {
+    href: '/parking',
+    icon: 'parking_sign',
+    label: '駐車場空き情報',
+    color: 'accent',
+  },
+  topics: {
+    href: '/topics',
+    icon: 'newspaper',
+    label: 'トピック',
+    color: 'warning',
+  },
+};
 
 export const PRIMARY_NAV_DESTINATIONS: readonly PrimaryNavDestination[] = [
   'exhibitions',
@@ -41,24 +69,18 @@ export interface PrimaryNavCardProps {
 }
 
 export function PrimaryNavCard({ destination }: PrimaryNavCardProps) {
-  const { href, icon, label } = DESTINATIONS[destination];
-  const bgStyle: CSSProperties = {
-    backgroundImage: `url(/images/textures/nav/${destination}.webp)`,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-  };
+  const { href, icon, label, color } = DESTINATIONS[destination];
 
   return (
     <Link
       href={href}
-      style={bgStyle}
-      className="flex h-[171px] w-[171px] flex-col items-center justify-center gap-2 rounded-xl p-4 text-text lg:h-[160px] lg:w-[160px] lg:p-5"
+      // 枠線 (border-current) とアイコンはこの色を継ぐ。文字色トークンのクラスは
+      // 禁止検査 (verify-no-legacy-text-colors) に掛かるため、テーマの値を直接当てる
+      style={{ color: THEME_COLORS[color] }}
+      className="hover-card-shadow flex h-[171px] w-[171px] flex-col items-center justify-center gap-2 rounded-xl border-2 border-current bg-white p-4 lg:h-[160px] lg:w-[160px] lg:p-5"
     >
-      <MaterialIcon
-        name={icon}
-        sizeClassName="text-[48px] lg:text-[56px]"
-        className="text-text"
-      />
+      {/* Google Fonts の CSS が非レイヤーで .material-symbols-sharp に font-size: 24px を当てるため、@layer utilities の通常クラスでは負ける */}
+      <MaterialIcon name={icon} sizeClassName="text-[64px]! lg:text-[72px]!" />
       {/*
         「タイムテーブル」「駐車場空き情報」(7 文字) は lg (160px 幅、余白 20px) では
         18px はおろか 17px でも実測の自然幅が実効幅 120px を超え折り返す。

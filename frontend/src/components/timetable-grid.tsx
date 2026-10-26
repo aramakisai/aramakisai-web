@@ -12,6 +12,9 @@ import { STAGE_BAND_CLASSES } from './timetable-stage-colors';
 const PX_PER_MINUTE = 4;
 const TIME_COL_PX = 68;
 const MIN_COL_PX = 240;
+// 端末用: 30 分で 180px、時刻の列 96。ステージ列は残りを等分する
+const SIGNAGE_PX_PER_MINUTE = 6;
+const SIGNAGE_TIME_COL_PX = 96;
 // これより短い枠は時刻と名前を1行にまとめる (2行では高さが足りない)
 const COMPACT_UNDER_MINUTES = 15;
 
@@ -31,13 +34,18 @@ export interface TimetableGridProps {
   /** 選択日の出演枠 (開始時刻順) */
   readonly performances: readonly TimetablePerformance[];
   readonly now: Date;
+  readonly variant?: 'site' | 'signage';
 }
 
 export function TimetableGrid({
   stages,
   performances,
   now,
+  variant = 'site',
 }: TimetableGridProps) {
+  const signage = variant === 'signage';
+  const pxPerMinute = signage ? SIGNAGE_PX_PER_MINUTE : PX_PER_MINUTE;
+  const timeColPx = signage ? SIGNAGE_TIME_COL_PX : TIME_COL_PX;
   const rangeStart =
     Math.floor(
       Math.min(...performances.map((p) => minuteOfDay(p.slot.startAt))) / 60,
@@ -46,7 +54,7 @@ export function TimetableGrid({
     Math.ceil(
       Math.max(...performances.map((p) => minuteOfDay(p.slot.endAt))) / 60,
     ) * 60;
-  const bodyHeight = (rangeEnd - rangeStart) * PX_PER_MINUTE;
+  const bodyHeight = (rangeEnd - rangeStart) * pxPerMinute;
   const ticks: number[] = [];
   for (let m = rangeStart; m <= rangeEnd; m += 30) ticks.push(m);
 
@@ -58,21 +66,28 @@ export function TimetableGrid({
     nowMinute <= rangeEnd;
 
   return (
-    <div data-testid="timetable-grid" className="overflow-x-auto pb-5">
+    <div
+      data-testid="timetable-grid"
+      className={signage ? undefined : 'overflow-x-auto pb-5'}
+    >
       <div
         className="relative flex"
-        style={{ minWidth: TIME_COL_PX + stages.length * MIN_COL_PX }}
+        style={
+          signage
+            ? undefined
+            : { minWidth: TIME_COL_PX + stages.length * MIN_COL_PX }
+        }
       >
         <div
           aria-hidden="true"
           className="relative shrink-0 tabular-nums"
-          style={{ width: TIME_COL_PX }}
+          style={{ width: timeColPx }}
         >
           {ticks.map((m) => (
             <span
               key={m}
-              className="absolute left-0 w-[60px] text-right text-xs leading-[1.4] text-gray-600"
-              style={{ top: 48 + (m - rangeStart) * PX_PER_MINUTE }}
+              className={`absolute left-0 text-right text-gray-600 ${signage ? 'w-[88px] text-signage-meta' : 'w-[60px] text-xs leading-[1.4]'}`}
+              style={{ top: 48 + (m - rangeStart) * pxPerMinute }}
             >
               {hhmm(m)}
             </span>
@@ -87,7 +102,11 @@ export function TimetableGrid({
               <div
                 key={m}
                 className={`absolute inset-x-0 border-t border-gray-200 ${m % 60 === 0 ? '' : 'border-dashed'}`}
-                style={{ top: (m - rangeStart) * PX_PER_MINUTE }}
+                // 端末用は最初の線 (見出しとの境) だけ時刻の列まで伸ばす
+                style={{
+                  top: (m - rangeStart) * pxPerMinute,
+                  ...(signage && m === rangeStart ? { left: -timeColPx } : {}),
+                }}
               />
             ))}
           </div>
@@ -100,6 +119,7 @@ export function TimetableGrid({
               bodyHeight={bodyHeight}
               performances={performances.filter((p) => p.stageId === stage.id)}
               now={now}
+              signage={signage}
             />
           ))}
         </div>
@@ -110,15 +130,17 @@ export function TimetableGrid({
             className="pointer-events-none absolute inset-x-0 z-10 h-[21px] tabular-nums"
             // 線 (2px) の中心を時刻の位置に合わせる
             style={{
-              top: 48 + (nowMinute - rangeStart) * PX_PER_MINUTE - 10.5,
+              top: 48 + (nowMinute - rangeStart) * pxPerMinute - 10.5,
             }}
           >
-            <span className="absolute top-0 left-[23px] rounded-full bg-text px-2 py-0.5 text-xs leading-[1.4] text-background">
+            <span
+              className={`absolute top-0 rounded-full bg-text px-2 py-0.5 text-background ${signage ? 'left-[11.5px] text-signage-label' : 'left-[23px] text-xs leading-[1.4]'}`}
+            >
               {hhmm(nowMinute)}
             </span>
             <span
               className="absolute top-[9.5px] right-0 h-0.5 bg-text"
-              style={{ left: TIME_COL_PX }}
+              style={{ left: timeColPx }}
             />
           </div>
         )}
@@ -134,7 +156,9 @@ function StageColumn({
   bodyHeight,
   performances,
   now,
+  signage,
 }: {
+  readonly signage: boolean;
   readonly now: Date;
   readonly stage: TimetableStage;
   readonly bandClass: string;
@@ -152,7 +176,7 @@ function StageColumn({
         <div className={`absolute inset-x-0 top-0 h-1 ${bandClass}`} />
         <h3
           id={headingId}
-          className="px-3 pt-4 text-sm font-bold leading-[1.4] text-text"
+          className={`px-3 pt-4 font-bold text-text ${signage ? 'text-signage-heading leading-[35px]' : 'text-sm leading-[1.4]'}`}
         >
           {stage.name}
         </h3>
@@ -164,6 +188,7 @@ function StageColumn({
             performance={p}
             rangeStart={rangeStart}
             active={isPerformanceActive(p.slot, now)}
+            signage={signage}
           />
         ))}
       </ul>
@@ -175,65 +200,107 @@ function SlotItem({
   performance: p,
   rangeStart,
   active,
+  signage,
 }: {
+  readonly signage: boolean;
   readonly performance: TimetablePerformance;
   readonly rangeStart: number;
   readonly active: boolean;
 }) {
+  const pxPerMinute = signage ? SIGNAGE_PX_PER_MINUTE : PX_PER_MINUTE;
   const start = minuteOfDay(p.slot.startAt);
   const duration = minuteOfDay(p.slot.endAt) - start;
   const compact = duration < COMPACT_UNDER_MINUTES;
   const time = `${formatEventDayTime(p.slot.startAt)}〜${formatEventDayTime(p.slot.endAt)}`;
+  // 端末用は余白を Figma の実測 (非出演は枠 1 + 7、出演中は 8) に合わせ、行間を持たせない
+  const pad = signage
+    ? active
+      ? `px-2 ${compact ? 'py-[10px]' : 'pt-3'}`
+      : `px-[7px] ${compact ? 'py-[9px]' : 'pt-[11px]'}`
+    : active
+      ? 'p-2'
+      : 'p-[6px]';
   const card = `relative block h-full overflow-hidden rounded-sm text-text ${
-    active ? 'bg-info p-2' : 'border border-gray-200 bg-gray-100 p-[6px]'
-  }`;
+    active ? 'bg-info' : 'border border-gray-200 bg-gray-100'
+  } ${pad}`;
   const live = active && (
     <>
-      <PlayCircleIcon size={14} className="mr-0.5 shrink-0" />
-      <span className="shrink-0 text-xs font-bold">出演中</span>
+      <PlayCircleIcon
+        size={signage ? 24 : 14}
+        className={`shrink-0 ${signage ? '' : 'mr-0.5'}`}
+      />
+      <span
+        className={`shrink-0 font-bold ${signage ? 'text-signage-label' : 'text-xs'}`}
+      >
+        出演中
+      </span>
     </>
   );
-  const timeClass = `text-xs ${active ? '' : 'text-gray-600'}`;
+  const timeClass = signage
+    ? 'text-signage-meta text-gray-600'
+    : `text-xs ${active ? '' : 'text-gray-600'}`;
   const body = compact ? (
-    <span className="flex items-center gap-1 leading-[1.4] tabular-nums">
+    <span
+      className={`flex items-center tabular-nums ${signage ? (active ? 'gap-2' : 'gap-1') : 'gap-1 leading-[1.4]'}`}
+    >
       {live}
       <span className={`shrink-0 ${timeClass}`}>{time}</span>
-      <span className="truncate text-sm font-bold">{p.name}</span>
+      <span
+        className={`truncate font-bold ${signage ? 'text-signage-heading' : 'text-sm'}`}
+      >
+        {p.name}
+      </span>
     </span>
   ) : (
     <>
-      <span className="flex items-center gap-1 text-xs leading-[1.4] tabular-nums">
+      <span
+        className={`flex items-center tabular-nums ${signage ? (active ? 'gap-2' : 'gap-1') : 'gap-1 text-xs leading-[1.4]'}`}
+      >
         {live}
         <span className={timeClass}>{time}</span>
       </span>
-      <span className="mt-0.5 block text-sm font-bold leading-[1.4]">
+      <span
+        className={`block font-bold ${signage ? 'text-signage-heading' : 'mt-0.5 text-sm leading-[1.4]'}`}
+      >
         {p.name}
       </span>
     </>
   );
   const current = active ? { 'aria-current': 'true' as const } : {};
-  const chevronTop = compact
-    ? active
-      ? 'top-2'
-      : 'top-[5px]'
-    : active
-      ? 'top-[26.8px]'
-      : 'top-[24px]';
+  const chevronTop = signage
+    ? compact
+      ? active
+        ? 'top-[14px] right-2'
+        : 'top-[13px] right-[7px]'
+      : active
+        ? 'top-[45px] right-2'
+        : 'top-[44px] right-[7px]'
+    : compact
+      ? active
+        ? 'top-2'
+        : 'top-[5px]'
+      : active
+        ? 'top-[26.8px]'
+        : 'top-[24px]';
   return (
     // 上下左右の余白は li の padding で取り、top/height は時間軸の目盛りそのものにする
     <li
-      className="absolute inset-x-0 px-1 py-0.5"
+      className={`absolute inset-x-0 py-0.5 ${signage ? 'pr-[6px] pl-[5px]' : 'px-1'}`}
       style={{
-        top: (start - rangeStart) * PX_PER_MINUTE,
-        height: duration * PX_PER_MINUTE,
+        top: (start - rangeStart) * pxPerMinute,
+        height: duration * pxPerMinute,
       }}
     >
       {p.href ? (
-        <Link href={p.href} className={`${card} pr-9`} {...current}>
+        <Link
+          href={p.href}
+          className={`${card} ${signage ? (active ? 'pr-11' : 'pr-[43px]') : 'pr-9'} hover-card-shadow hover:z-10`}
+          {...current}
+        >
           {body}
           <ChevronRightIcon
-            size={20}
-            className={`absolute right-2 ${chevronTop}`}
+            size={signage ? 28 : 20}
+            className={`absolute ${signage ? '' : 'right-2'} ${chevronTop}`}
           />
         </Link>
       ) : (

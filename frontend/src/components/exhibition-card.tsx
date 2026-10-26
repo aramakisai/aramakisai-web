@@ -1,10 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import type { CSSProperties } from 'react';
 import Link from 'next/link';
-import {
-  getExhibitionGradient,
-  getExhibitionAppearance,
-} from '@/lib/exhibition-color';
+import { getExhibitionTexture } from '@/lib/exhibition-color';
 import { toAssetUrl } from '@/lib/cms-asset-url';
 import type { ExhibitionCardSummary } from '@/lib/exhibitions';
 import { BookmarkButton } from './bookmark-button';
@@ -13,39 +10,34 @@ import { ImageIcon, PlaceIcon } from './icons';
 export interface ExhibitionCardProps {
   readonly exhibition: ExhibitionCardSummary;
   readonly bookmarkable?: boolean;
+  readonly variant?: 'site' | 'signage';
 }
 
 export function ExhibitionCard({
   exhibition,
   bookmarkable = false,
+  variant = 'site',
 }: ExhibitionCardProps) {
-  const gradient = getExhibitionGradient(exhibition.displayName);
-  const { texture, texturePositionY, textureFlipX, textureFlipY } =
-    getExhibitionAppearance(exhibition.displayName);
-  // globals.css の .exhibition-gradient-bg が参照する。α 付きの色は color-mix を使わず 8 桁 hex で渡す。
-  // 透明端を transparent にすると to 色との補間で灰色の縁が出るため、to 自身の α0 を使う。
-  // texture='gradient' は質感画像を重ねないので --exhibition-texture を設定しない (CSS 側の既定値 none を使う)。
-  const gradientStyle = {
-    '--exhibition-gradient-from': gradient.fromColor,
-    '--exhibition-gradient-to': gradient.toColor,
-    '--exhibition-gradient-to-half': `${gradient.toColor}80`,
-    '--exhibition-gradient-to-clear': `${gradient.toColor}00`,
-    '--exhibition-pool-x': `${gradient.poolX}%`,
-    '--exhibition-pool-y': `${gradient.poolY}%`,
-    ...(texture !== 'gradient' && {
-      '--exhibition-texture': `url(/images/textures/card/${texture}.webp)`,
-      '--exhibition-texture-y': `${texturePositionY}%`,
-      '--exhibition-texture-sx': textureFlipX ? -1 : 1,
-      '--exhibition-texture-sy': textureFlipY ? -1 : 1,
-    }),
-  } as CSSProperties;
+  const { texture, position, rotation } = getExhibitionTexture(
+    exhibition.displayName,
+  );
+  // globals.css の html[data-pl] 規則が url に含まれる /images/textures/ を目印に load まで止める。
+  // 原画は幅の 2 倍の正方形に敷いて回し、カードの地で切り抜く (縦が横の √3 倍以内なら隅が欠けない)。
+  // 背景の幅は回す前の地の幅 × 2.5 (= 正方形の幅の 125%)
+  const textureStyle: CSSProperties = {
+    transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
+    backgroundImage: `url(/images/textures/pamphlet/${texture}.webp)`,
+    backgroundSize: '125% auto',
+    backgroundPosition: `${position[0]}% ${position[1]}%`,
+  };
 
+  const signage = variant === 'signage';
   const thumbnailUrl = exhibition.thumbnail
     ? toAssetUrl(exhibition.thumbnail.id, 960)
     : null;
 
   return (
-    <div className="relative flex flex-col overflow-clip rounded-xl transition-shadow hover:shadow-lg">
+    <div className="relative flex flex-col overflow-clip rounded-xl hover-card-shadow">
       <Link
         href={`/exhibitions/${exhibition.id}/${exhibition.category}`}
         className="flex flex-col focus-visible:outline-offset-[-2px]"
@@ -62,19 +54,40 @@ export function ExhibitionCard({
           )}
         </div>
         <div
-          style={gradientStyle}
-          className={`exhibition-gradient-bg relative flex flex-col gap-1 p-4 ${bookmarkable ? 'pr-14' : ''}`}
+          className={`relative flex flex-col overflow-clip p-4 ${bookmarkable ? 'pr-14' : ''}`}
         >
-          {/* ::before の白オーバーレイは absolute のため通常フローの兄弟より先に描画される。
-            z-10 で明示的に重ねないとテキストがオーバーレイの下に隠れる。 */}
-          <div className="relative z-10 flex flex-col gap-1">
-            {exhibition.location && (
-              <span className="flex items-center gap-1 text-xs leading-[1.4] font-medium text-text">
-                <PlaceIcon size={16} />
-                {exhibition.location}
-              </span>
-            )}
-            <h4 className="text-text">{exhibition.displayName}</h4>
+          <div
+            aria-hidden
+            style={textureStyle}
+            className="absolute top-1/2 left-1/2 aspect-square w-[200%]"
+          />
+          <div className="relative flex flex-col gap-1">
+            <span
+              aria-hidden={exhibition.location ? undefined : true}
+              className={`flex min-h-[1lh] items-center gap-1 ${
+                signage
+                  ? 'text-signage-meta text-gray-600'
+                  : 'text-xs leading-[1.4] font-medium text-text'
+              } ${exhibition.location ? '' : 'invisible'}`}
+            >
+              <PlaceIcon size={signage ? 24 : 16} />
+              {signage ? (
+                <span className="min-w-0 flex-1 truncate">
+                  {exhibition.location}
+                </span>
+              ) : (
+                exhibition.location
+              )}
+            </span>
+            <h4
+              className={`line-clamp-2 h-[2lh] ${
+                signage
+                  ? 'text-signage-heading leading-[35px] font-bold text-text'
+                  : 'text-text'
+              }`}
+            >
+              {exhibition.displayName}
+            </h4>
           </div>
         </div>
       </Link>

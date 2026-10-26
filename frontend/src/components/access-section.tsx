@@ -1,5 +1,4 @@
-import Link from 'next/link';
-import { ChevronRightIcon } from './icons';
+import { TextLink } from './text-link';
 import { SandboxedEmbed } from './sandboxed-embed';
 import { SectionHeading } from './section-heading';
 import { ACCESS_SUMMARY, CAMPUS_MAP_EMBED_URL, VENUE_NAME } from '@/lib/venue';
@@ -33,13 +32,7 @@ export function AccessSection() {
           </div>
         </div>
         <div className="flex justify-end">
-          <Link
-            href="/access"
-            className="flex items-center gap-2 text-sm font-bold text-text"
-          >
-            アクセス詳細へ
-            <ChevronRightIcon size={20} className="text-text" />
-          </Link>
+          <TextLink href="/access">アクセス詳細へ</TextLink>
         </div>
       </div>
     </section>

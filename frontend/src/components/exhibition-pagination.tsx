@@ -47,7 +47,7 @@ export function ExhibitionPagination({
               href={hrefForPage(page - 1)}
               onNavigate={onPageChange && (() => onPageChange(page - 1))}
               aria-label="前のページ"
-              className="flex h-10 w-10 items-center justify-center rounded-md border border-gray-200 bg-background text-text hover:bg-gray-100"
+              className="flex h-10 w-10 items-center justify-center rounded-md border border-gray-200 bg-background text-text hover-card-shadow"
             >
               <ChevronLeftIcon size={20} />
             </PageLink>
@@ -69,7 +69,7 @@ export function ExhibitionPagination({
               className={`flex h-10 w-10 items-center justify-center rounded-md border text-sm font-medium text-text ${
                 p === page
                   ? 'border-primary bg-primary'
-                  : 'border-gray-200 bg-background hover:bg-gray-100'
+                  : 'border-gray-200 bg-background hover-card-shadow'
               }`}
             >
               {p}
@@ -82,7 +82,7 @@ export function ExhibitionPagination({
               href={hrefForPage(page + 1)}
               onNavigate={onPageChange && (() => onPageChange(page + 1))}
               aria-label="次のページ"
-              className="flex h-10 w-10 items-center justify-center rounded-md border border-gray-200 bg-background text-text hover:bg-gray-100"
+              className="flex h-10 w-10 items-center justify-center rounded-md border border-gray-200 bg-background text-text hover-card-shadow"
             >
               <ChevronRightIcon size={20} />
             </PageLink>

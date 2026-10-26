@@ -4,6 +4,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CampusMapArea, CampusMapDataResult } from '@/lib/campus-map';
 import type { ExhibitionCardSummary } from '@/lib/exhibitions';
 
+// resolvePhase は DEV_OVERRIDE_ENABLED が偽だと Cookie を無視するため、import より前に真にする
+vi.hoisted(() => {
+  process.env.NEXT_PUBLIC_ENABLE_PHASE_OVERRIDE = 'true';
+});
+
+const sendGaEvent = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/analytics', () => ({ sendGaEvent }));
+
 vi.mock('next/navigation', () => ({ usePathname: () => '/map' }));
 
 vi.mock('@/env', () => ({
@@ -49,6 +57,7 @@ vi.mock('next/dynamic', () => ({
 
 const { mapViewProps } = state;
 
+import { PHASE_OVERRIDE_COOKIE } from '@/lib/phase';
 import { CampusMapScreen } from './campus-map-screen';
 
 function area(overrides: Partial<CampusMapArea> = {}): CampusMapArea {
@@ -142,6 +151,7 @@ class MockResizeObserver {
 
 beforeEach(() => {
   state.mapViewProps.length = 0;
+  sendGaEvent.mockClear();
   window.history.replaceState(null, '', '/map');
 });
 
@@ -342,5 +352,78 @@ describe('CampusMapScreen', () => {
     expect(inset()).toBe('424px');
 
     vi.unstubAllGlobals();
+  });
+
+  describe('GA', () => {
+    const data = () =>
+      dataResult({
+        areas: { kind: 'loaded', value: [area({ id: 1 })] },
+        exhibitions: {
+          kind: 'loaded',
+          value: [card({ id: 1, areaIds: [1] }), card({ id: 2, areaIds: [] })],
+        },
+      });
+
+    it('エリア選択では area_select だけを送り filter は送らない', async () => {
+      stubDesktop();
+      render(<CampusMapScreen data={data()} />);
+      await act(async () => {});
+      expect(sendGaEvent).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByText('select-area-1'));
+
+      expect(sendGaEvent).toHaveBeenCalledWith('campus_map', {
+        result: 'area_select',
+      });
+      expect(sendGaEvent).not.toHaveBeenCalledWith(
+        'campus_map',
+        expect.objectContaining({ result: 'filter' }),
+      );
+    });
+
+    it('URL からの条件復元では送らない', async () => {
+      stubDesktop();
+      window.history.replaceState(null, '', '/map?area=1');
+      render(<CampusMapScreen data={data()} />);
+      await act(async () => {});
+      expect(sendGaEvent).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('下部ナビゲーション', () => {
+    const setPhase = (value: string) => {
+      document.cookie = `${PHASE_OVERRIDE_COOKIE}=${value}; path=/`;
+    };
+    afterEach(() => {
+      document.cookie = `${PHASE_OVERRIDE_COOKIE}=; path=/; max-age=0`;
+    });
+
+    it('live では下部ナビが出て、シートと地図は同じ余白変数で下端を空ける', () => {
+      stubMobile();
+      setPhase('live');
+      const { container } = render(<CampusMapScreen data={dataResult()} />);
+
+      expect(
+        screen.getByRole('navigation', { name: '下部ナビゲーション' }),
+      ).toBeTruthy();
+      expect((container.firstChild as HTMLElement).className).toContain(
+        '[--map-nav:calc(4rem+env(safe-area-inset-bottom))]',
+      );
+      expect(
+        screen.getByTestId('map-bottom-sheet').parentElement?.className,
+      ).toContain('bottom-[var(--map-nav,0px)]');
+    });
+
+    it('live 以外では下部ナビを出さず余白も 0', () => {
+      stubMobile();
+      const { container } = render(<CampusMapScreen data={dataResult()} />);
+
+      expect(
+        screen.queryByRole('navigation', { name: '下部ナビゲーション' }),
+      ).toBeNull();
+      expect((container.firstChild as HTMLElement).className).toContain(
+        '[--map-nav:0px]',
+      );
+    });
   });
 });

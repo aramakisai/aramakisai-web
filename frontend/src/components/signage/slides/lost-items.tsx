@@ -22,7 +22,7 @@ export function LostItemsSlide({
                   <img src={photo} alt="" className="size-full object-cover" />
                 )}
               </div>
-              <p className="truncate text-[30px] leading-[1.2] font-bold text-text">
+              <p className="truncate text-[28px] leading-[1.2] font-bold text-text">
                 {item.name}
               </p>
               <p className="truncate text-[24px] leading-[1.2] text-gray-600">

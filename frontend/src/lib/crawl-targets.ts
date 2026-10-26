@@ -19,6 +19,7 @@ export interface RobotsPlan {
 const GATED_REWRITE_TARGETS: readonly string[] = [
   '/gated',
   '/gated-fullscreen',
+  '/signage/touch/gated',
 ];
 
 // generateMetadata を持たないビルド生成物や画像配信パス。開催前でも描画に要る。

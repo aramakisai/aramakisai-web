@@ -10,6 +10,8 @@ vi.mock('react-leaflet', () => ({
 
 import { RecenterButton } from './recenter-button';
 
+vi.mock('@/lib/analytics', () => ({ sendGaEvent: vi.fn() }));
+
 const INITIAL_BOUNDS: RecenterButtonBounds = {
   southWest: [36.43, 139.0],
   northEast: [36.431, 139.001],
@@ -25,6 +27,11 @@ describe('RecenterButton', () => {
       }),
       getBounds: () => currentBounds,
     };
+  });
+
+  it('leaflet-container の Helvetica を継承せず site のフォントを使う', () => {
+    render(<RecenterButton bounds={INITIAL_BOUNDS} />);
+    expect(screen.getByRole('button')).toHaveClass('font-sans');
   });
 
   it('地図を移動させたのち操作すると初期表示範囲へ戻る', () => {

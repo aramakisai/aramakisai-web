@@ -27,8 +27,29 @@ async function expectSomeRobotsMetaNoindex(page: Page): Promise<void> {
  */
 const PHASE_OVERRIDE_COOKIE = 'aramakisai_phase_override';
 
+type GaCommand = readonly unknown[];
+
+/** dataLayer は Arguments 形式で積まれるため配列に直して読む */
+async function readDataLayer(page: Page): Promise<GaCommand[]> {
+  return page.evaluate(() =>
+    (
+      (window as unknown as { dataLayer?: ArrayLike<unknown>[] }).dataLayer ??
+      []
+    ).map((entry) => Array.from(entry)),
+  );
+}
+
+function errorPageResults(layer: GaCommand[]): string[] {
+  return layer
+    .filter((c) => c[0] === 'event' && c[1] === 'error_page')
+    .map((c) => (c[2] as { result: string }).result);
+}
+
 test.describe('エラー表示画面', () => {
-  test.beforeEach(async ({ context, baseURL }) => {
+  test.beforeEach(async ({ context, baseURL, page }) => {
+    // 検証は dataLayer の中身だけで行い、GA4 へは何も送らない
+    await page.route('**/gtag/js**', (route) => route.abort());
+    await page.route('**/g/collect**', (route) => route.abort());
     await context.addCookies([
       { name: PHASE_OVERRIDE_COOKIE, value: 'live', url: baseURL },
     ]);
@@ -113,7 +134,7 @@ test.describe('エラー表示画面', () => {
     await expect(page).toHaveTitle(/エラーが発生しました/);
 
     await page.getByRole('button', { name: '再読み込み' }).click();
-    // トリガーページは常に再度例外を投げるため、reset() 実行後も同じエラー画面が
+    // トリガーページは常に再度例外を投げるため、retry() 実行後も同じエラー画面が
     // (白画面にならず) 再表示されることを確認する
     await expect(
       page.getByRole('heading', { name: 'エラーが発生しました' }),
@@ -140,5 +161,56 @@ test.describe('エラー表示画面', () => {
     await expect(
       page.getByRole('heading', { name: 'エラーが発生しました' }),
     ).toBeVisible();
+  });
+
+  test('再試行が失敗し続けると retry_fail が1件だけ積まれ、エラー表示は重ならない', async ({
+    page,
+  }) => {
+    await page.goto('/e2e-error-trigger');
+    const heading = page.getByRole('heading', { name: 'エラーが発生しました' });
+    await expect(heading).toBeVisible();
+
+    await page.getByRole('button', { name: '再読み込み' }).click();
+
+    await expect
+      .poll(async () => errorPageResults(await readDataLayer(page)))
+      .toEqual(['error', 'retry_fail']);
+    await expect(heading).toHaveCount(1);
+    // エラー画面への遷移とその再描画で同じ URL の page_view が二重に積まれない
+    expect(
+      (await readDataLayer(page)).filter(
+        (c) => c[0] === 'event' && c[1] === 'page_view',
+      ),
+    ).toHaveLength(1);
+    // アンマウント後の遅延判定が走っても retry_success は積まれない
+    await page.waitForTimeout(500);
+    expect(errorPageResults(await readDataLayer(page))).toEqual([
+      'error',
+      'retry_fail',
+    ]);
+  });
+
+  test('Cookie を付けてから再試行すると本来の本文に戻り、retry_success が1件だけ積まれる', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await page.goto('/e2e-error-trigger');
+    await expect(
+      page.getByRole('heading', { name: 'エラーが発生しました' }),
+    ).toBeVisible();
+
+    await context.addCookies([
+      { name: 'e2e_retry_ok', value: '1', url: baseURL },
+    ]);
+    await page.getByRole('button', { name: '再読み込み' }).click();
+
+    await expect(page.getByText('回復しました')).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'エラーが発生しました' }),
+    ).toHaveCount(0);
+    await expect
+      .poll(async () => errorPageResults(await readDataLayer(page)))
+      .toEqual(['error', 'retry_success']);
   });
 });

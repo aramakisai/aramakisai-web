@@ -154,15 +154,18 @@ describe('owner フィールド', () => {
 });
 
 describe('割当・公開状態フィールド', () => {
-  it('公開状態はサイドバーに置き、説明文を付ける', () => {
+  it('公開状態はサイドバーに置き、説明文を付けない', () => {
     expect((status.admin as { position?: string }).position).toBe('sidebar');
-    expect((status.admin as { description?: string }).description).toBe(
-      '公開は実行委員が行い、公開後は編集できません。',
-    );
+    expect((status.admin as { description?: string }).description).toBeUndefined();
+  });
+
+  it('公開状態は学生団体も更新できる (作成は実行委員のみ)', () => {
+    expect(callAccess(status, 'create', 'executive')).toBe(true);
+    expect(callAccess(status, 'create', 'student_exhibitor')).toBe(false);
+    expect((status.access as { update?: unknown }).update).toBeUndefined();
   });
 
   it.each([
-    ['status', status],
     ['area_id', areaId],
     ['booth_number', boothNumber],
     ['booth_label', boothLabel],
@@ -204,12 +207,12 @@ describe('一覧の既定列', () => {
 });
 
 describe('hooks の結線', () => {
-  it('beforeOperation に guardPublishedExhibition (M-E01) を置く', () => {
-    expect(StudentExhibitions.hooks?.beforeOperation).toHaveLength(1);
+  it('バージョン履歴を有効にする', () => {
+    expect(StudentExhibitions.versions).toBeTruthy();
   });
 
   it('beforeValidate に owner・画像の検証を含む', () => {
-    expect(StudentExhibitions.hooks?.beforeValidate).toHaveLength(5);
+    expect(StudentExhibitions.hooks?.beforeValidate).toHaveLength(6);
   });
 
   it('afterChange/afterDelete にメディア使用状況の再計算 (syncMediaPublication) を置く', () => {

@@ -3,6 +3,10 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { ExhibitionList } from './exhibition-list';
 import type { ExhibitionCardSummary } from '@/lib/exhibitions';
 
+const sendGaEvent = vi.hoisted(() => vi.fn());
+const trackPageView = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/analytics', () => ({ sendGaEvent, trackPageView }));
+
 vi.mock('@/env', () => ({
   env: { NEXT_PUBLIC_CMS_URL: 'http://localhost:8055' },
 }));
@@ -32,7 +36,11 @@ function setUrl(search: string) {
 }
 
 describe('ExhibitionList', () => {
-  beforeEach(() => setUrl(''));
+  beforeEach(() => {
+    setUrl('');
+    sendGaEvent.mockClear();
+    trackPageView.mockClear();
+  });
   afterEach(() => vi.useRealTimers());
 
   test('URL クエリが無ければ全件を件数付きで表示する', () => {
@@ -98,6 +106,7 @@ describe('ExhibitionList', () => {
     expect(screen.queryByText('企画1')).not.toBeInTheDocument();
     expect(screen.getByText('企画30')).toBeInTheDocument();
     expect(window.location.search).toBe('?page=2');
+    expect(trackPageView).toHaveBeenCalledTimes(1);
   });
 
   test('戻る操作 (popstate) で URL の状態に戻る', () => {
@@ -126,5 +135,39 @@ describe('ExhibitionList', () => {
     expect(
       screen.getByText('条件に一致する企画はありません'),
     ).toBeInTheDocument();
+  });
+
+  test('条件変更時だけ件数を送り、ページ送り・復元・キーワードでは送らない', () => {
+    window.scrollTo = vi.fn();
+    const cards = [
+      ...Array.from({ length: 30 }, (_, i) => card(i + 1)),
+      card(31, { category: 'stage' }),
+    ];
+    render(<ExhibitionList cards={cards} areas={areas} />);
+    expect(sendGaEvent).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('link', { name: '2' }));
+    expect(sendGaEvent).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'ステージ' }));
+    expect(sendGaEvent).toHaveBeenCalledTimes(1);
+    expect(sendGaEvent).toHaveBeenCalledWith('exhibition_search', {
+      item_count: 1,
+    });
+  });
+
+  test('キーワードはデバウンス確定後に件数だけ送る', () => {
+    vi.useFakeTimers();
+    render(<ExhibitionList cards={[card(1), card(2)]} areas={areas} />);
+    fireEvent.change(screen.getByRole('searchbox'), {
+      target: { value: '企画1' },
+    });
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+    expect(sendGaEvent).toHaveBeenCalledWith('exhibition_search', {
+      item_count: 1,
+    });
+    expect(JSON.stringify(sendGaEvent.mock.calls)).not.toContain('企画1');
   });
 });

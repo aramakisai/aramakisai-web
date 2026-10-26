@@ -16,6 +16,8 @@ import type {
 } from '@/lib/background-shapes/types';
 import * as placementLib from '@/lib/background-shapes/placement';
 
+vi.mock('@/lib/analytics', () => ({ sendGaEvent: vi.fn() }));
+
 // use-motion-preference は mock せず実フックで結線を確認する
 // (個々の停止時挙動は background-shapes-motion-runtime.test.tsx 側が担う)
 vi.mock('next/navigation', () => ({
@@ -67,7 +69,9 @@ function shape(overrides: Partial<PlacedShape> = {}): PlacedShape {
     cx: 200,
     cy: 300,
     rot: 0,
-    texture: 'L1',
+    texture: 'watercolor',
+    texturePos: [50, 50],
+    textureRot: 30,
     colors: null,
     ...overrides,
   } as PlacedShape;

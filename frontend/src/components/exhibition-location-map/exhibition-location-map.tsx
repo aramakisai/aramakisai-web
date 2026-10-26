@@ -38,6 +38,7 @@ export interface ExhibitionLocationMapProps {
   readonly mapHref: string;
   /** フォールバック時に表示するエリア名 */
   readonly areaNames: readonly [string, ...string[]];
+  readonly variant?: 'site' | 'signage';
 }
 
 export function ExhibitionLocationMap({
@@ -46,22 +47,27 @@ export function ExhibitionLocationMap({
   bounds,
   mapHref,
   areaNames,
+  variant = 'site',
 }: ExhibitionLocationMapProps) {
   return (
     <MapErrorBoundary
       fallback={
         // dynamic の loading は読み込み失敗を捕捉しないため、失敗の検知と表示はこの境界が担う (要件 5.2)
-        <div className="flex h-[240px] w-full flex-col items-center justify-center gap-2 rounded-xl border border-gray-200 bg-gray-100 p-4 text-center md:h-[360px]">
+        <div
+          className={`flex w-full flex-col items-center justify-center gap-2 rounded-xl border border-gray-200 bg-gray-100 p-4 text-center ${variant === 'signage' ? 'h-[212px]' : 'h-[240px] md:h-[360px]'}`}
+        >
           <p className="flex items-center gap-1 text-sm font-medium text-gray-600">
             <PlaceIcon size={20} className="text-text" />
             {areaNames.join('・')}
           </p>
-          <Link
-            href={mapHref}
-            className="flex items-center gap-1 rounded-full border border-gray-200 bg-background px-3 py-2 text-sm font-medium text-text"
-          >
-            構内マップで見る
-          </Link>
+          {variant !== 'signage' && (
+            <Link
+              href={mapHref}
+              className="transition-colors duration-200 ease-out hover:bg-gray-100 motion-reduce:transition-none flex items-center gap-1 rounded-full border border-gray-200 bg-background px-3 py-2 text-sm font-medium text-text"
+            >
+              構内マップで見る
+            </Link>
+          )}
         </div>
       }
     >
@@ -69,6 +75,7 @@ export function ExhibitionLocationMap({
         areas={areas}
         targetAreas={targetAreas}
         bounds={bounds}
+        variant={variant}
       />
     </MapErrorBoundary>
   );

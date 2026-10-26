@@ -73,13 +73,12 @@ describe('AnnouncementsList', () => {
 
     const moreLink = screen.getByRole('link', { name: /お知らせ一覧へ/ });
     expect(moreLink).toHaveAttribute('href', '/announcements');
-    // ラベル・アイコンともに color/text (要件 2.1: 文字色として color/primary は使わない)
-    expect(within(moreLink).getByText('お知らせ一覧へ')).toHaveClass(
-      'text-text',
-    );
-    const icon = within(moreLink).getByTestId('icon-chevron-right');
-    expect(icon).toHaveClass('text-text');
-    expect(icon).not.toHaveClass('text-primary');
+    // ラベル・アイコンは文字色を継承する (要件 2.1: 文字色として color/primary は使わない)
+    expect(moreLink).toHaveClass('text-text');
+    expect(moreLink).not.toHaveClass('text-primary');
+    expect(
+      within(moreLink).getByTestId('icon-chevron-right'),
+    ).toBeInTheDocument();
   });
 
   test('limit 未満のときは一覧への導線を出さない', () => {

@@ -44,6 +44,14 @@ describe('middleware (開発用フラグが偽のビルド)', () => {
     );
   });
 
+  it('端末用 (/signage/touch 配下) の非公開パスはリンク無しの端末用 gated ルートへ書き換える', async () => {
+    const { middleware } = await import('./middleware');
+    const response = middleware(makeRequest('/signage/touch/map'));
+    expect(response.headers.get('x-middleware-rewrite')).toBe(
+      'https://example.com/signage/touch/gated',
+    );
+  });
+
   it('書き換え先にクエリ文字列を引き継がない', async () => {
     const { middleware } = await import('./middleware');
     const response = middleware(makeRequest('/exhibitions?foo=bar'));

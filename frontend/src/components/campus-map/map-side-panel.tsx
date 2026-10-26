@@ -42,11 +42,12 @@ export function MapSidePanel({ search, listState, notice }: MapSidePanelProps) {
 
   return (
     <div
+      data-map-side-panel
       aria-hidden={!isDesktop}
       inert={!isDesktop}
       // 表示自体は CSS のブレークポイント (MAP_BREAKPOINT) に委ね、aria-hidden/inert は
       // 支援技術とキーボードフォーカスの除外専用に JS 側で同期させる (design.md 参照)
-      className="absolute inset-y-6 left-6 z-[1000] hidden w-[348px] max-w-[calc(50%-2rem)] flex-col gap-4 overflow-visible rounded-xl border border-gray-200 bg-white p-6 shadow-card md:flex"
+      className="absolute top-6 bottom-[calc(1.5rem+var(--map-nav,0px))] left-6 z-[1000] hidden w-[348px] max-w-[calc(50%-2rem)] flex-col gap-4 overflow-visible rounded-xl border border-gray-200 bg-white p-6 shadow-card md:flex"
     >
       <MapSearchPanel {...search} />
 

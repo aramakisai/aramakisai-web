@@ -65,7 +65,7 @@ export function MapSearchPanel({
           type="button"
           aria-pressed={categories.length === 0}
           onClick={() => onCategoriesChange([])}
-          className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+          className={`rounded-full border px-3 py-1.5 text-sm font-medium hover-card-shadow ${
             categories.length === 0
               ? 'border-primary bg-primary text-text'
               : 'border-gray-200 bg-background text-text'
@@ -81,7 +81,7 @@ export function MapSearchPanel({
               type="button"
               aria-pressed={pressed}
               onClick={() => toggleCategory(category)}
-              className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+              className={`rounded-full border px-3 py-1.5 text-sm font-medium hover-card-shadow ${
                 pressed
                   ? 'border-primary bg-primary text-text'
                   : 'border-gray-200 bg-background text-text'

@@ -252,9 +252,17 @@ export function Header({ phase }: HeaderProps) {
                             <Link
                               href={child.href}
                               prefetch={false}
-                              className="block px-4 py-3 text-sm leading-[1.6] whitespace-nowrap text-text focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
+                              className="group/sub block px-4 py-3 text-sm leading-[1.6] whitespace-nowrap text-text focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
                             >
-                              {child.label}
+                              <span className="relative inline-block">
+                                {child.label}
+                                <NavIndicator
+                                  sub
+                                  colorClass={colorClass}
+                                  active={false}
+                                  className="absolute top-full left-0 mt-1"
+                                />
+                              </span>
                             </Link>
                           </li>
                         ))}
@@ -273,7 +281,7 @@ export function Header({ phase }: HeaderProps) {
             aria-expanded={mobileMenuOpen}
             aria-controls="mobile-navigation"
             onClick={toggleMobileMenu}
-            className="flex h-11 w-11 shrink-0 flex-col items-center justify-center gap-2 rounded-full text-text transition-colors hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary lg:hidden"
+            className="flex h-11 w-11 shrink-0 flex-col items-center justify-center gap-2 rounded-lg text-text hover-card-shadow hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary lg:hidden"
           >
             <span
               aria-hidden="true"

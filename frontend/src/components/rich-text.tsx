@@ -5,9 +5,10 @@ import { toAssetUrl } from '@/lib/cms-asset-url';
 export interface RichTextProps {
   html: string;
   className?: string;
+  variant?: 'site' | 'signage';
 }
 
-export function RichText({ html, className }: RichTextProps) {
+export function RichText({ html, className, variant = 'site' }: RichTextProps) {
   const sanitized = sanitizeHtml(html, {
     allowedTags: [
       'h2',
@@ -92,10 +93,12 @@ export function RichText({ html, className }: RichTextProps) {
     <div
       className={[
         'rich-text-body min-w-0 break-words [overflow-wrap:anywhere]',
+        variant === 'signage' && 'text-signage-body',
         className,
       ]
         .filter(Boolean)
         .join(' ')}
+      data-variant={variant}
       dangerouslySetInnerHTML={{ __html: sanitized }}
     />
   );

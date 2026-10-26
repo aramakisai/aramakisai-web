@@ -7,9 +7,7 @@ export type ShapeKind =
   | 'roundedSquare'
   | 'quarterCircle'
   | 'semicircle';
-export type TextureFamily = 'gradient' | 'watercolor' | 'grainy' | 'halftone';
-export type TextureId =
-  `L${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8}` | `S${1 | 2 | 3 | 4 | 5 | 6}`;
+export type TextureId = 'watercolor' | 'streak' | 'gradient' | 'grain';
 // 乱数で選ぶ候補配列の並びを変えると配置の乱数消費がずれるため、接頭辞なしの名前を使う。
 // Tailwind の bansai-* への対応は描画側で行う
 export type RingColor =
@@ -35,6 +33,8 @@ export type PlacedShape =
       cy: number;
       rot: number;
       texture: null;
+      texturePos: null;
+      textureRot: null;
       colors: readonly [RingColor, RingColor];
     }
   | {
@@ -45,6 +45,10 @@ export type PlacedShape =
       cy: number;
       rot: number;
       texture: TextureId;
+      // background-position の x, y (%)
+      texturePos: readonly [number, number];
+      // 原画を回す角度 (度、0〜360)
+      textureRot: number;
       colors: null;
     };
 

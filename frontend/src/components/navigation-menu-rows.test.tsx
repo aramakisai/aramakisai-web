@@ -150,7 +150,7 @@ describe('NavigationMenuRows', () => {
     expect(indicator).toHaveClass('bg-warning', 'opacity-100', 'scale-x-100');
   });
 
-  test('現在地でない行はインジケーターを描画せず、ラベルだけを行の縦中央に置く', () => {
+  test('現在地でない行のインジケーターは常時非表示で、ホバーで左端起点に伸び、ラベルの位置を動かさない', () => {
     render(
       <NavigationMenuRows
         items={navigationItemsByPhase.pre_event}
@@ -160,17 +160,21 @@ describe('NavigationMenuRows', () => {
       />,
     );
 
-    // お知らせ (現在地) はインジケーターを持つが、隣の荒牧祭について (現在地でない) は持たない
-    // (aria-hidden な span は開閉アイコンとも共通のため、インジケーター特有の h-[2px] クラスで絞る)
     const nonActiveLink = screen.getByRole('link', { name: '荒牧祭について' });
-    expect(nonActiveLink.querySelector('.h-\\[2px\\]')).toBeNull();
+    const indicator = nonActiveLink.querySelector('.h-\\[2px\\]');
+    expect(indicator).toHaveClass(
+      'absolute',
+      'origin-left',
+      'scale-x-0',
+      'opacity-0',
+      'group-hover:scale-x-100',
+      'group-hover:opacity-80',
+    );
 
-    // 子項目を持つ親行 (現在地でない協賛) も同様。開閉アイコン自身は残る
     const nonActiveButton = screen.getByRole('button', { name: /協賛/ });
-    expect(nonActiveButton.querySelector('.h-\\[2px\\]')).toBeNull();
-    expect(
-      nonActiveButton.querySelectorAll('span[aria-hidden="true"]'),
-    ).toHaveLength(1);
+    expect(nonActiveButton.querySelector('.h-\\[2px\\]')).toHaveClass(
+      'scale-x-0',
+    );
   });
 
   test('子項目だけを持つ親は、子項目が現在地のとき aria-current を持つ', () => {

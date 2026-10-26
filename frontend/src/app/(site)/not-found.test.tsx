@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { generateMetadata } from './not-found';
 
+vi.mock('@/lib/analytics', () => ({ sendGaEvent: vi.fn() }));
+
 vi.mock('@/lib/cms-asset-url', () => ({
   toAssetUrl: () => null,
 }));

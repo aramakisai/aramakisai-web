@@ -1,11 +1,14 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { CampusMapArea, CampusMapDataResult } from '@/lib/campus-map';
+import { sendGaEvent } from '@/lib/analytics';
 import { filterExhibitions } from '@/lib/exhibitions';
 import { BUILD_PHASE, type FestivalPhase } from '@/lib/phase';
+import { usePhase } from '@/lib/use-phase';
+import { PhasedBottomNavigation } from '@/components/phased-chrome';
 import type { AreaExhibitionListState } from './area-exhibition-list';
 import { MapBottomSheet } from './map-bottom-sheet';
 import { MapMenuButton } from './map-menu-button';
@@ -22,7 +25,7 @@ const CampusMapView = dynamic(
     loading: () => (
       <div
         role="status"
-        className="flex h-dvh w-full items-center justify-center bg-gray-100 text-text"
+        className="flex h-[calc(100dvh-var(--map-nav))] w-full items-center justify-center bg-gray-100 text-text"
       >
         地図を読み込んでいます…
       </div>
@@ -56,8 +59,26 @@ export function CampusMapScreen({
   // BUILD_PHASE を使うことで、フェーズ結線に関与しない既存呼び出し元を壊さない
   phase = BUILD_PHASE,
 }: CampusMapScreenProps) {
-  const { filters, keywordInput, setKeywordInput, setCategories, selectArea } =
-    useMapFilters();
+  // 下部ナビの表示条件 (live かつ 1024px 未満) と同じ条件で、その高さ分だけ下端を空ける。
+  // 値は PhasedBottomSpacer の h-[calc(4rem+...)] と揃える
+  const navClass =
+    usePhase().phase === 'live'
+      ? '[--map-nav:calc(4rem+env(safe-area-inset-bottom))] lg:[--map-nav:0px]'
+      : '[--map-nav:0px]';
+  const {
+    filters,
+    keywordInput,
+    setKeywordInput,
+    setCategories,
+    selectArea: commitArea,
+  } = useMapFilters();
+  const selectArea = useCallback(
+    (areaId: number | null) => {
+      if (areaId !== null) sendGaEvent('campus_map', { result: 'area_select' });
+      commitArea(areaId);
+    },
+    [commitArea],
+  );
   const [bottomInset, setBottomInset] = useState(0);
   const handleSheetHeightChange = useCallback((height: number) => {
     setBottomInset(
@@ -113,6 +134,26 @@ export function CampusMapScreen({
     };
   }, [data.exhibitions, data.areas, areas, filters]);
 
+  // エリア選択は area_select で送るため、絞り込みイベントのキーには含めない
+  const filterKey = JSON.stringify([filters.q, filters.categories]);
+  const lastFilterKeyRef = useRef(filterKey);
+  const settledRef = useRef(false);
+  // URL からの条件復元は初回描画と同じ同期処理内で終わるため、マイクロタスク後を「ユーザー操作の開始」とみなす
+  useEffect(() => {
+    queueMicrotask(() => {
+      settledRef.current = true;
+    });
+  }, []);
+  useEffect(() => {
+    if (lastFilterKeyRef.current === filterKey) return;
+    lastFilterKeyRef.current = filterKey;
+    if (!settledRef.current || listState.kind !== 'filtered') return;
+    sendGaEvent('campus_map', {
+      result: 'filter',
+      item_count: listState.items.length,
+    });
+  }, [filterKey, listState]);
+
   const areaNotice = data.areas.kind === 'error' ? AREAS_ERROR_NOTICE : null;
 
   const search = {
@@ -123,7 +164,7 @@ export function CampusMapScreen({
   };
 
   return (
-    <div className="relative h-dvh w-full">
+    <div className={`relative h-dvh w-full ${navClass}`}>
       <MapMenuButton phase={phase} />
       <MapSearchOverlay
         keywordInput={keywordInput}
@@ -144,7 +185,7 @@ export function CampusMapScreen({
        */}
       <div
         data-testid="map-viewport"
-        className="h-[calc(100dvh-var(--map-bottom-inset))] md:h-dvh max-md:[&_.leaflet-bottom]:mb-4"
+        className="h-[calc(100dvh-var(--map-nav)-var(--map-bottom-inset))] md:h-[calc(100dvh-var(--map-nav))] max-md:[&_.leaflet-bottom]:mb-4"
         style={{ '--map-bottom-inset': `${bottomInset}px` } as CSSProperties}
       >
         <CampusMapView
@@ -154,6 +195,7 @@ export function CampusMapScreen({
           onSelectArea={selectArea}
         />
       </div>
+      <PhasedBottomNavigation />
     </div>
   );
 }

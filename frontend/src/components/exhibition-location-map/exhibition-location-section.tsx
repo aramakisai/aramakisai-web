@@ -13,11 +13,13 @@ export interface ExhibitionLocationSectionProps {
   readonly exhibition: ExhibitionDetail;
   /** 取得済みの区画データ。取得の成否は呼び出し元が解決し、失敗時は空配列を渡す */
   readonly areas: readonly CampusMapArea[];
+  readonly variant?: 'site' | 'signage';
 }
 
 export function ExhibitionLocationSection({
   exhibition,
   areas,
+  variant = 'site',
 }: ExhibitionLocationSectionProps) {
   const target = resolveTargetAreas(exhibition.areaIds, areas);
   if (target === null) {
@@ -33,6 +35,30 @@ export function ExhibitionLocationSection({
   ];
   const mapHref = buildAreaMapHref(target.primary);
   const caption = exhibition.location ?? areaNames.join('・');
+
+  if (variant === 'signage') {
+    return (
+      <section className="flex flex-col gap-2 border-t border-gray-200 pt-8">
+        <h2 className="py-0 text-signage-heading font-extrabold text-text">
+          場所
+        </h2>
+        <p className="flex items-center gap-1 text-signage-meta text-gray-600">
+          <PlaceIcon size={24} className="text-gray-600" />
+          {caption}
+        </p>
+        <div className="relative isolate">
+          <ExhibitionLocationMap
+            areas={areas}
+            targetAreas={target.areas}
+            bounds={toAreaBounds(target.areas)}
+            mapHref={mapHref}
+            areaNames={areaNames}
+            variant="signage"
+          />
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="flex flex-col gap-2 border-t border-gray-200 pt-6 lg:pt-8">
@@ -53,7 +79,7 @@ export function ExhibitionLocationSection({
             常に到達できる遷移リンクとして、地図領域の右下へ重ねて配置する */}
         <Link
           href={mapHref}
-          className="absolute right-2 bottom-2 z-[1000] rounded-full border border-gray-200 bg-background px-3 py-2 text-sm font-medium text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600 md:right-4 md:bottom-4"
+          className="transition-colors duration-200 ease-out hover:bg-gray-100 motion-reduce:transition-none absolute right-2 bottom-2 z-[1000] rounded-full border border-gray-200 bg-background px-3 py-2 text-sm font-medium text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600 md:right-4 md:bottom-4"
         >
           構内マップで見る
         </Link>

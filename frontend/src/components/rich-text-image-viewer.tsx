@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, type ReactNode } from 'react';
+import { sendGaEvent } from '@/lib/analytics';
 import { toAssetUrl } from '@/lib/cms-asset-url';
 import { CloseIcon } from './icons';
 
@@ -29,6 +30,8 @@ export function RichTextImageViewer({ children }: RichTextImageViewerProps) {
     if (!container) return;
 
     container.querySelectorAll('img').forEach((img) => {
+      // StrictMode は開発時に effect を 2 回走らせるため、二重にボタンで包まない
+      if (img.parentElement?.hasAttribute(IMAGE_BUTTON_ATTR)) return;
       const button = document.createElement('button');
       button.type = 'button';
       button.setAttribute(IMAGE_BUTTON_ATTR, '');
@@ -50,6 +53,7 @@ export function RichTextImageViewer({ children }: RichTextImageViewerProps) {
     triggerRef.current = trigger;
     // showModal() 中は背面の操作不能化・フォーカスの閉じ込めをブラウザ既定に任せる (design.md)
     dialogRef.current?.showModal();
+    sendGaEvent('image_viewer', { result: 'open' });
     previousBodyOverflowRef.current = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
   }
@@ -117,7 +121,7 @@ export function RichTextImageViewer({ children }: RichTextImageViewerProps) {
             type="button"
             aria-label="閉じる"
             onClick={() => dialogRef.current?.close()}
-            className="absolute right-2 top-2 flex size-12 items-center justify-center lg:right-4 lg:top-4"
+            className="absolute right-2 top-2 flex size-12 items-center justify-center rounded-lg transition-colors duration-200 ease-out hover:bg-background/20 motion-reduce:transition-none lg:right-4 lg:top-4"
           >
             <CloseIcon className="text-background" />
           </button>

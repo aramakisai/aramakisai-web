@@ -20,9 +20,11 @@ export function middleware(request: NextRequest): NextResponse {
   const url = request.nextUrl.clone();
   // (site)/gated はヘッダー・フッター付きの 404 を返す。(fullscreen) 配下のページは
   // ヘッダー・フッターを持たない前提のため、専用の rewrite 先へ振り分ける
-  url.pathname = FULLSCREEN_PRIVATE_PATHS.includes(pathname)
-    ? '/gated-fullscreen'
-    : '/gated';
+  url.pathname = pathname.startsWith('/signage/touch/')
+    ? '/signage/touch/gated'
+    : FULLSCREEN_PRIVATE_PATHS.includes(pathname)
+      ? '/gated-fullscreen'
+      : '/gated';
   url.search = '';
   return NextResponse.rewrite(url);
 }

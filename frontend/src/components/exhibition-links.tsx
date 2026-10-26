@@ -30,7 +30,7 @@ export function ExhibitionLinks({ links }: ExhibitionLinksProps) {
             target="_blank"
             rel="noopener noreferrer"
             aria-label={PLATFORM_LABELS[link.platform]}
-            className="flex items-center justify-center rounded-full border border-gray-200 bg-background p-2"
+            className="hover-card-shadow flex items-center justify-center rounded-full border border-gray-200 bg-background p-2"
           >
             {link.platform === 'website' ? (
               <LinkIcon size={20} />

@@ -15,6 +15,8 @@ repos:
         args: [--fix=lf]
       - id: check-added-large-files
         args: [--maxkb=500]
+        # ザラザラの粒は縮小すると潰れるため、背景質感の原画だけ上限を超えてよい
+        exclude: ^frontend/public/images/textures/pamphlet/
 
   - repo: https://github.com/adrienverge/yamllint
     rev: v1.35.1

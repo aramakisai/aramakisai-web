@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { DomEvent } from 'leaflet';
 import type { LatLngBoundsExpression } from 'leaflet';
 import { useMap } from 'react-leaflet';
+import { sendGaEvent } from '@/lib/analytics';
 
 // lib/exhibition-location-map の AreaBounds と同じ形にしている。同モジュールは
 // 未実装のため、実装後はそちらの型を import する形に差し替えられる
@@ -14,9 +15,13 @@ export interface RecenterButtonBounds {
 
 export interface RecenterButtonProps {
   readonly bounds: RecenterButtonBounds;
+  readonly variant?: 'site' | 'signage';
 }
 
-export function RecenterButton({ bounds }: RecenterButtonProps) {
+export function RecenterButton({
+  bounds,
+  variant = 'site',
+}: RecenterButtonProps) {
   const map = useMap();
   const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -36,6 +41,7 @@ export function RecenterButton({ bounds }: RecenterButtonProps) {
       bounds.northEast,
     ] as unknown as LatLngBoundsExpression;
     map.fitBounds(latLngBounds);
+    sendGaEvent('location_map', { result: 'recenter' });
   };
 
   return (
@@ -43,7 +49,7 @@ export function RecenterButton({ bounds }: RecenterButtonProps) {
       ref={buttonRef}
       type="button"
       onClick={recenter}
-      className="absolute bottom-2 left-2 z-[1000] rounded-full border border-gray-200 bg-background px-3 py-2 text-sm font-medium text-gray-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600 md:bottom-4 md:left-4"
+      className={`transition-colors duration-200 ease-out hover:bg-gray-100 motion-reduce:transition-none absolute z-[1000] font-sans rounded-full border border-gray-200 bg-background px-3 py-2 text-gray-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600 ${variant === 'signage' ? 'bottom-4 left-4 text-signage-meta' : 'bottom-2 left-2 text-sm font-medium md:bottom-4 md:left-4'}`}
     >
       企画位置に戻す
     </button>

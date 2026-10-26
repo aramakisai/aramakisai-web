@@ -2,7 +2,7 @@ import type { Access, FieldAccess } from 'payload';
 
 import { publicFilter } from '../lib/signage-visibility';
 
-import { canCreate, canDelete, canRead, canUpdate } from './policy';
+import { canCreate, canDelete, canRead, canReadVersions, canUpdate } from './policy';
 import { isExecutive, toCmsUser } from './roles';
 
 /**
@@ -14,6 +14,7 @@ export function accessFor(collection: string): {
   create: Access;
   update: Access;
   delete: Access;
+  readVersions: Access;
 } {
   return {
     read: async ({ req }) => {
@@ -24,6 +25,7 @@ export function accessFor(collection: string): {
       }
       return result;
     },
+    readVersions: ({ req }) => canReadVersions(toCmsUser(req.user), collection),
     create: ({ req }) => canCreate(toCmsUser(req.user), collection),
     update: ({ req }) => canUpdate(toCmsUser(req.user), collection),
     delete: ({ req }) => {

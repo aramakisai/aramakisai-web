@@ -1,5 +1,6 @@
 import { render } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { sendGaEvent } from '@/lib/analytics';
 import { CAMPUS_MAP_CONFIG, MAP_ATTRIBUTION } from '@/lib/campus-map-config';
 import type { CampusMapArea } from '@/lib/campus-map';
 
@@ -30,6 +31,8 @@ vi.mock('react-leaflet', () => ({
   },
 }));
 
+vi.mock('@/lib/analytics', () => ({ sendGaEvent: vi.fn() }));
+
 vi.mock('./map-viewport-sync', () => ({
   MapViewportSync: () => null,
 }));
@@ -46,6 +49,10 @@ vi.mock('./map-zoom-control', () => ({
     mapZoomControlRenderCount += 1;
     return <div data-testid="map-zoom-control" />;
   },
+}));
+
+vi.mock('./map-user-location', () => ({
+  MapUserLocation: () => <div data-testid="map-user-location" />,
 }));
 
 import { CampusMapView } from './campus-map-view';
@@ -104,6 +111,20 @@ describe('CampusMapView', () => {
     expect(props.minZoom).toBe(CAMPUS_MAP_CONFIG.minZoom);
     expect(props.maxZoom).toBe(CAMPUS_MAP_CONFIG.maxZoom);
     expect(props.maxBounds).toEqual(CAMPUS_MAP_CONFIG.bounds);
+  });
+
+  it('エリアがあるときの初期表示範囲はエリア群の外接矩形に合わせる', () => {
+    render(
+      <CampusMapView
+        areas={[area({})]}
+        selectedAreaId={null}
+        onSelectArea={() => {}}
+      />,
+    );
+    expect(mapContainerProps.at(-1)!.bounds).toEqual([
+      [36.43, 139.0],
+      [36.431, 139.001],
+    ]);
   });
 
   it('表示範囲の外へドラッグできないよう粘性を最大にする', () => {
@@ -293,5 +314,133 @@ describe('CampusMapView', () => {
     );
     expect(attributionControlProps.length).toBeGreaterThan(0);
     expect(mapZoomControlRenderCount).toBeGreaterThan(0);
+  });
+
+  it('現在地をズームコントロールより後にマウントし、ズームの真上に積む', () => {
+    const { container } = render(
+      <CampusMapView
+        areas={[]}
+        selectedAreaId={null}
+        onSelectArea={() => {}}
+      />,
+    );
+    const testIds = Array.from(container.querySelectorAll('[data-testid]')).map(
+      (el) => el.getAttribute('data-testid'),
+    );
+    expect(testIds.indexOf('map-zoom-control')).toBeLessThan(
+      testIds.indexOf('map-user-location'),
+    );
+  });
+
+  describe('GA', () => {
+    const renderView = () =>
+      render(
+        <CampusMapView
+          areas={[]}
+          selectedAreaId={null}
+          onSelectArea={() => {}}
+        />,
+      );
+    const mockNav = (name: string) =>
+      vi
+        .spyOn(performance, 'getEntriesByType')
+        .mockReturnValue([{ name } as PerformanceEntry]);
+
+    beforeEach(() => {
+      vi.mocked(sendGaEvent).mockClear();
+    });
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    // sendMapReady の「最初の whenReady」判定はモジュール変数のため、このファイルで最初の
+    // whenReady 呼び出しになるこのテストを先頭に置く必要がある
+    it('直接開いたときは method=hard と時間を送る', () => {
+      mockNav('https://example.com/map?x=1');
+      renderView();
+      (mapContainerProps.at(-1)!.whenReady as () => void)();
+      expect(sendGaEvent).toHaveBeenCalledWith('campus_map', {
+        result: 'ready',
+        method: 'hard',
+        duration_ms: expect.any(Number),
+      });
+    });
+
+    it('直接表示の後にクライアント遷移で戻っても method=soft で時間を付けない', () => {
+      mockNav('https://example.com/map');
+      renderView();
+      (mapContainerProps.at(-1)!.whenReady as () => void)();
+      expect(sendGaEvent).toHaveBeenCalledWith('campus_map', {
+        result: 'ready',
+        method: 'soft',
+      });
+    });
+
+    it('サイト内遷移では method=soft で時間を付けない', () => {
+      mockNav('https://example.com/');
+      renderView();
+      (mapContainerProps.at(-1)!.whenReady as () => void)();
+      expect(sendGaEvent).toHaveBeenCalledWith('campus_map', {
+        result: 'ready',
+        method: 'soft',
+      });
+    });
+
+    it('タイル失敗は件数を集計し、離脱時に1回だけ送る', () => {
+      const { unmount } = renderView();
+      const handlers = tileLayerProps.at(-1)!.eventHandlers as {
+        tileerror: () => void;
+      };
+      handlers.tileerror();
+      handlers.tileerror();
+      handlers.tileerror();
+      expect(sendGaEvent).not.toHaveBeenCalled();
+      window.dispatchEvent(new Event('pagehide'));
+      unmount();
+      expect(sendGaEvent).toHaveBeenCalledTimes(1);
+      expect(sendGaEvent).toHaveBeenCalledWith('campus_map', {
+        result: 'tile_error',
+        item_count: 3,
+      });
+    });
+
+    it('タイル失敗が無ければ送らない', () => {
+      renderView().unmount();
+      expect(sendGaEvent).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('端末用の表示指定', () => {
+    const renderWith = (props: object) =>
+      render(
+        <CampusMapView
+          areas={[]}
+          selectedAreaId={null}
+          onSelectArea={() => {}}
+          {...props}
+        />,
+      );
+
+    it('既定では現在地とズームのコントロールを出す', () => {
+      const { queryByTestId } = renderWith({});
+      expect(queryByTestId('map-user-location')).toBeInTheDocument();
+      expect(queryByTestId('map-zoom-control')).toBeInTheDocument();
+    });
+
+    it('showUserLocation=false で現在地を出さない', () => {
+      expect(
+        renderWith({ showUserLocation: false }).queryByTestId(
+          'map-user-location',
+        ),
+      ).not.toBeInTheDocument();
+    });
+
+    it('showZoomControl=false でズームを出さない', () => {
+      expect(
+        renderWith({ showZoomControl: false }).queryByTestId(
+          'map-zoom-control',
+        ),
+      ).not.toBeInTheDocument();
+    });
   });
 });

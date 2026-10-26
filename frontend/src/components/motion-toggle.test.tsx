@@ -3,8 +3,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useMotionPreference } from '@/lib/use-motion-preference';
 import { MotionToggle } from './motion-toggle';
 
+vi.mock('@/lib/analytics', () => ({ sendGaEvent: vi.fn() }));
+
 vi.mock('@/lib/use-motion-preference', () => ({
   useMotionPreference: vi.fn(),
+  prefersReducedMotion: () => false,
 }));
 
 const mockUseMotionPreference = vi.mocked(useMotionPreference);
@@ -70,7 +73,7 @@ describe('MotionToggle', () => {
     expect(button.className).toMatch(/before:-inset-y-\[6px\]/);
   });
 
-  it('pill 型の枠付きの見た目とホバー時の地の色変化のクラスを持つ', () => {
+  it('pill 型の枠付きの見た目とホバー時の影のクラスを持つ', () => {
     mockUseMotionPreference.mockReturnValue({
       reduced: false,
       toggle: vi.fn(),
@@ -80,6 +83,6 @@ describe('MotionToggle', () => {
     const button = screen.getByRole('button', { name: 'モーション' });
     expect(button.className).toMatch(/rounded-full/);
     expect(button.className).toMatch(/border-gray-500/);
-    expect(button.className).toMatch(/hover:bg-gray-100/);
+    expect(button.className).toMatch(/hover-card-shadow/);
   });
 });

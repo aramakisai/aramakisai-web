@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { sendGaEvent } from '@/lib/analytics';
 import { useMypageData } from '@/lib/use-mypage-data';
 import { ShareIcon } from './icons';
 
@@ -34,10 +35,12 @@ export function ShareButton({
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(url);
+      sendGaEvent('share', { method: 'clipboard', result: 'success' });
       setNotice({ kind: 'copied' });
       setTimeout(() => setNotice({ kind: 'idle' }), NOTICE_DURATION_MS);
     } catch {
       // 手動コピー手段を出したままにする (要件 8.4)。自動では消さない。
+      sendGaEvent('share', { method: 'manual', result: 'fail' });
       setNotice({ kind: 'copy-failed' });
     }
   };
@@ -51,11 +54,14 @@ export function ShareButton({
     if (canUseShareSheet) {
       try {
         await navigator.share(data);
+        sendGaEvent('share', { method: 'web_share', result: 'success' });
         return;
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') {
+          sendGaEvent('share', { method: 'web_share', result: 'cancel' });
           return; // 取りやめはエラー扱いしない (要件 8.3)
         }
+        sendGaEvent('share', { method: 'web_share', result: 'fail' });
         // それ以外の失敗はコピーへフォールバック
       }
     }
@@ -74,7 +80,7 @@ export function ShareButton({
           <button
             type="button"
             onClick={handleClick}
-            className="flex h-12 flex-1 flex-col items-center justify-center gap-0.5 text-text group-data-[form=inline]:w-12 group-data-[form=inline]:flex-none pc-input:w-12 pc-input:flex-none"
+            className="hover-card-shadow flex h-12 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg text-text hover:bg-background group-data-[form=inline]:w-12 group-data-[form=inline]:flex-none pc-input:w-12 pc-input:flex-none"
           >
             <ShareIcon size={24} />
             <span className="font-display text-body-xs">共有</span>

@@ -19,7 +19,11 @@ function routePattern(route: Route): string {
 // slug で解決される固定ページ (pages コレクション) のルート。ルートパターン自体は
 // PRE_EVENT_PUBLIC_PATHS に載らないが、/access・/privacy という公開値をこのルートが
 // 解決するため、完全一致・ルート単位のどちらにも収まらない第三の分類を要する。
-const PARTIALLY_PUBLIC_ROUTES: readonly string[] = ['/[slug]'];
+// /sponsors/[kind] も同様に公開値 /sponsors/ad・/sponsors/local を解決する。
+const PARTIALLY_PUBLIC_ROUTES: readonly string[] = [
+  '/[slug]',
+  '/sponsors/[kind]',
+];
 
 // 新しいページを追加した際、公開対象一覧にも下のいずれにも登録しなければ
 // classifyRoute が undefined を返しテストが失敗する。
@@ -35,6 +39,15 @@ const INTENTIONALLY_PRIVATE_ROUTES: readonly string[] = [
   '/gated-fullscreen',
   // error.tsx の E2E 検証専用ルート。DEV_OVERRIDE_ENABLED が偽の本番ビルドでは
   // 内部の notFound() 分岐だけが残るため、非公開のままで問題ない
+  // サイネージ操作層の iframe 専用。開催前フェーズは公開しない
+  '/signage/touch/gated',
+  '/signage/touch/map',
+  '/signage/touch/exhibitions',
+  '/signage/touch/exhibitions/[id]/[category]',
+  '/signage/touch/timetable',
+  '/signage/touch/parking',
+  '/signage/touch/topics',
+  '/signage/touch/topics/[id]',
   '/e2e-error-trigger',
   '/e2e-error-trigger-fullscreen',
 ];

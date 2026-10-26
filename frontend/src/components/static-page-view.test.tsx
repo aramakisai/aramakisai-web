@@ -2,6 +2,8 @@ import { render, screen } from '@testing-library/react';
 import { expect, test, describe, vi } from 'vitest';
 import { StaticPageView } from './static-page-view';
 
+vi.mock('@/lib/analytics', () => ({ sendGaEvent: vi.fn() }));
+
 vi.mock('@/lib/cms-asset-url', () => ({
   toAssetUrl: () => null,
 }));

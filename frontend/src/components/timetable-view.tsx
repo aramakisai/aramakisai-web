@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { sendGaEvent } from '@/lib/analytics';
+import { HoverLineText } from './hover-line';
 import { ChevronRightIcon, PlayCircleIcon } from './icons';
 import { TimetableGrid } from './timetable-grid';
 import { STAGE_BAND_CLASSES } from './timetable-stage-colors';
@@ -35,9 +37,13 @@ export function TimetableView({
   useEffect(() => {
     const current = new Date();
     if (toJstDateKey(renderedAt) !== toJstDateKey(current.toISOString())) {
-      setDayKey(resolveInitialDayKey(days, current));
+      const corrected = resolveInitialDayKey(days, current);
+      setDayKey(corrected);
+      if (corrected !== initialDayKey) {
+        sendGaEvent('timetable', { result: 'date_corrected' });
+      }
     }
-  }, [days, renderedAt]);
+  }, [days, renderedAt, initialDayKey]);
   const [stageId, setStageId] = useState(stages[0]?.id ?? null);
 
   if (days.length === 0) {
@@ -158,13 +164,15 @@ function ListRow({
             出演中
           </span>
         )}
-        <span className="text-base leading-[1.6]">{p.name}</span>
+        <span className="text-base leading-[1.6]">
+          {p.href ? <HoverLineText gap={3}>{p.name}</HoverLineText> : p.name}
+        </span>
       </span>
       {p.href && <ChevronRightIcon size={20} />}
     </>
   );
   // 強調は塗りを画面幅まで広げ、その分 px を足して文字位置を他の行と揃える
-  const row = `flex items-center gap-3 p-4 text-text ${active ? 'px-8' : ''}`;
+  const row = `group/row flex items-center gap-3 p-4 text-text ${active ? 'px-8' : ''}`;
   const current = active ? { 'aria-current': 'true' as const } : {};
   return (
     <li className={`border-b border-gray-200 ${active ? '-mx-4 bg-info' : ''}`}>

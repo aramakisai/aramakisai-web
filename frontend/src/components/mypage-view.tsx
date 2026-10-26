@@ -10,6 +10,7 @@ import {
   MaterialIcon,
 } from '@/components/icons';
 import { DetailColumn } from '@/components/detail-column';
+import { HoverLineText } from '@/components/hover-line';
 import { SectionHeading } from '@/components/section-heading';
 import { ExhibitionCard } from '@/components/exhibition-card';
 import type {
@@ -50,10 +51,10 @@ function StampRow({
   return (
     <Link
       href={`/exhibitions/${stamp.id}/${stamp.category}`}
-      className="flex min-h-12 items-center gap-2 py-2.5 pl-4"
+      className="group/row flex min-h-12 items-center gap-2 py-2.5 pl-4"
     >
       <span className="min-w-0 flex-1 text-base leading-[1.7] text-text">
-        {stamp.displayName}
+        <HoverLineText gap={3}>{stamp.displayName}</HoverLineText>
       </span>
       <span
         className={`rounded-full px-3 py-1 text-xs leading-[140%] font-medium text-text ${BADGE_COLORS[stamp.category]}`}
@@ -78,7 +79,7 @@ function AreaHeader({
     <>
       <div className="flex min-h-6 items-center gap-2">
         <span className="flex-1 font-display text-base leading-[1.4] font-extrabold text-text">
-          {name}
+          <HoverLineText gap={5}>{name}</HoverLineText>
         </span>
         {percent !== null && (
           <span className="text-sm leading-[1.4] text-text">{percent}%</span>
@@ -131,7 +132,7 @@ function StampArea({
   return (
     <details className="group border-b border-gray-200">
       <summary
-        className={`${HEADER_CLASS} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}
+        className={`${HEADER_CLASS} group/row cursor-pointer list-none [&::-webkit-details-marker]:hidden`}
       >
         <AreaHeader name={name} percent={percent} expandable />
       </summary>

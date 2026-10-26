@@ -36,6 +36,7 @@ export interface AreaExhibitionListProps {
    * 表示は妨げない (要件 8.1 は地図と一覧の両方を維持したまま伝えることを求める)
    */
   readonly notice?: string | null;
+  readonly variant?: 'site' | 'signage';
 }
 
 type FilteredState = Extract<AreaExhibitionListState, { kind: 'filtered' }>;
@@ -76,27 +77,51 @@ export function buildListHeading(state: FilteredState): ListHeading {
   };
 }
 
-function FacilityItem({ icon, label }: { icon: string; label: string }) {
+function FacilityItem({
+  icon,
+  label,
+  size,
+}: {
+  icon: string;
+  label: string;
+  size: number;
+}) {
   return (
     <span className="flex items-center gap-0.5">
-      <MaterialIcon name={icon} size={14} />
+      <MaterialIcon name={icon} size={size} />
       {label}
     </span>
   );
 }
 
-export function AreaExhibitionList({ state, notice }: AreaExhibitionListProps) {
+export function AreaExhibitionList({
+  state,
+  notice,
+  variant = 'site',
+}: AreaExhibitionListProps) {
+  const signage = variant === 'signage';
   const listHeading =
     state.kind === 'filtered' ? buildListHeading(state) : null;
   return (
-    <div aria-live="polite" className="flex flex-col gap-4">
+    <div
+      aria-live="polite"
+      className={`flex flex-col gap-4 ${signage ? 'h-full min-h-0' : ''}`}
+    >
       {notice && <p>{notice}</p>}
       {state.kind === 'unselected' && (
-        <div className="flex flex-col gap-2 text-center">
-          <h2 className="text-base font-bold text-text">
+        <div
+          className={`flex flex-col gap-2 text-center ${signage ? 'py-12 font-display text-gray-600' : ''}`}
+        >
+          <h2
+            className={
+              signage
+                ? 'py-0 text-signage-body leading-[38px] font-normal text-gray-600'
+                : 'text-base font-bold text-text'
+            }
+          >
             エリアを選択してください
           </h2>
-          <p>
+          <p className={signage ? 'text-signage-meta' : undefined}>
             地図上のブロックをタップすると、そこで開催している企画が表示されます
           </p>
         </div>
@@ -106,18 +131,34 @@ export function AreaExhibitionList({ state, notice }: AreaExhibitionListProps) {
       {state.kind === 'filtered' && (
         <>
           <div className="flex flex-col gap-1">
-            <h2 className="text-2xl font-bold text-text">
+            <h2
+              className={`font-bold text-text ${signage ? 'py-0 text-signage-heading' : 'text-2xl'}`}
+            >
               {listHeading?.heading}
             </h2>
-            <p className="text-sm text-gray-600">{listHeading?.count}</p>
+            <p
+              className={`text-gray-600 ${signage ? 'text-signage-meta' : 'text-sm'}`}
+            >
+              {signage ? `${state.items.length}件` : listHeading?.count}
+            </p>
             {isAreaOnly(state) &&
               (state.facilities?.hasAed || state.facilities?.hasToilet) && (
-                <div className="flex items-center gap-3 text-xs text-gray-600">
+                <div
+                  className={`flex items-center gap-3 text-gray-600 ${signage ? 'text-signage-meta' : 'text-xs'}`}
+                >
                   {state.facilities.hasAed && (
-                    <FacilityItem icon="ecg_heart" label="AED" />
+                    <FacilityItem
+                      icon="ecg_heart"
+                      label="AED"
+                      size={signage ? 24 : 14}
+                    />
                   )}
                   {state.facilities.hasToilet && (
-                    <FacilityItem icon="wc" label="トイレ" />
+                    <FacilityItem
+                      icon="wc"
+                      label="トイレ"
+                      size={signage ? 24 : 14}
+                    />
                   )}
                 </div>
               )}
@@ -133,17 +174,25 @@ export function AreaExhibitionList({ state, notice }: AreaExhibitionListProps) {
             className="h-px w-full shrink-0 bg-gray-200"
           />
           {state.items.length === 0 ? (
-            <p>
+            <p className={signage ? 'text-signage-body text-text' : undefined}>
               {isAreaOnly(state)
                 ? 'このエリアに出展物はありません'
                 : '条件に一致する出展物はありません。条件を変更してください'}
             </p>
           ) : (
-            <div className="flex flex-col gap-4">
+            <div
+              data-testid="list-cards"
+              className={
+                signage
+                  ? 'grid min-h-0 flex-1 grid-cols-2 content-start items-start gap-6 overflow-y-auto pb-6'
+                  : 'flex flex-col gap-4'
+              }
+            >
               {state.items.map((item) => (
                 <ExhibitionCard
                   key={`${item.id}-${item.category}`}
                   exhibition={item}
+                  variant={variant}
                 />
               ))}
             </div>

@@ -2,12 +2,13 @@
 
 import { ZoomControl } from 'react-leaflet';
 
-// Leaflet の zoomInText / zoomOutText は innerHTML としてそのまま挿入される。
+// Leaflet の zoomInText / zoomOutText は innerHTML としてそのまま挿入されるため、
+// React の MaterialIcon (現在地ボタンと同じ 24px・FILL 0) と同じ指定を文字列で組み立てる。
 // aria-hidden はアイコンを装飾専用にするため (アクセシブルな名前は zoomInTitle/zoomOutTitle が担う)
-const ZOOM_IN_ICON =
-  '<svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M9.16667 10.8333H4.16667V9.16667H9.16667V4.16667H10.8333V9.16667H15.8333V10.8333H10.8333V15.8333H9.16667V10.8333Z" fill="currentColor"/></svg>';
-const ZOOM_OUT_ICON =
-  '<svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4.16667 10.8333V9.16667H15.8333V10.8333H4.16667Z" fill="currentColor"/></svg>';
+const materialIcon = (name: string) =>
+  `<span aria-hidden="true" class="material-symbols-sharp" style="font-size:24px;line-height:24px;font-variation-settings:'FILL' 0">${name}</span>`;
+const ZOOM_IN_ICON = materialIcon('add');
+const ZOOM_OUT_ICON = materialIcon('remove');
 
 /**
  * 見た目 (サイズ・枠線・角丸・影・地図端からの余白) は globals.css の

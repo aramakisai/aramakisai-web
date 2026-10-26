@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { formatFullDate } from '@/lib/format-date';
 import { AnnouncementSummary } from '@/lib/home-page-types';
-import { ChevronRightIcon } from './icons';
+import { HoverLineText } from './hover-line';
+import { TextLink } from './text-link';
 
 export interface AnnouncementsListProps {
   announcements: AnnouncementSummary[];
@@ -32,7 +33,7 @@ export function AnnouncementsList({
           <li key={announcement.id} className="border-b border-gray-200">
             <Link
               href={`/announcements/${announcement.id}`}
-              className="flex items-center gap-4 py-3 hover:bg-gray-100/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="group/row flex items-center gap-4 py-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               <time
                 dateTime={announcement.publishedAt}
@@ -41,20 +42,16 @@ export function AnnouncementsList({
                 {formatFullDate(announcement.publishedAt)}
               </time>
               <span className="min-w-0 flex-1 text-base leading-[1.7] text-text">
-                {announcement.title}
+                <HoverLineText gap={3}>{announcement.title}</HoverLineText>
               </span>
             </Link>
           </li>
         ))}
       </ul>
       {limit && announcements.length > limit && (
-        <Link
-          href="/announcements"
-          className="flex items-center justify-end gap-2 pt-6 text-sm leading-[1.4] font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        >
-          <span className="text-text">お知らせ一覧へ</span>
-          <ChevronRightIcon size={20} className="text-text" />
-        </Link>
+        <div className="flex justify-end pt-6">
+          <TextLink href="/announcements">お知らせ一覧へ</TextLink>
+        </div>
       )}
     </div>
   );

@@ -10,22 +10,56 @@ import {
 } from '@/lib/navigation';
 import { ExpandMoreIcon } from '@/components/icons';
 
+// ヘッダー行の `group` と、メニュー・ドロップダウンの子リンクの `group/sub` は祖先に重なるため、
+// 子リンク側は名前付きにして親項目のホバーで点灯しないようにする
 export function NavIndicator({
   colorClass,
   active,
+  sub = false,
+  className = '',
 }: {
+  readonly colorClass: string;
+  readonly active: boolean;
+  readonly sub?: boolean;
+  readonly className?: string;
+}) {
+  const hover = sub
+    ? 'group-hover/sub:scale-x-100 group-hover/sub:opacity-80 group-focus-visible/sub:scale-x-100 group-focus-visible/sub:opacity-80'
+    : 'group-hover:scale-x-100 group-hover:opacity-80 group-focus-within:scale-x-100 group-focus-within:opacity-80';
+  return (
+    <span
+      aria-hidden="true"
+      className={`h-[2px] w-full origin-left transition-[scale,opacity] duration-200 ease-out motion-reduce:transition-none ${colorClass} ${className} ${
+        active ? 'scale-x-100 opacity-100' : `scale-x-0 opacity-0 ${hover}`
+      }`}
+    />
+  );
+}
+
+/** 現在地の行は下線を常時出し、それ以外はホバーで同じ位置に出す */
+function RowLabel({
+  label,
+  colorClass,
+  active,
+}: {
+  readonly label: string;
   readonly colorClass: string;
   readonly active: boolean;
 }) {
   return (
-    <span
-      aria-hidden="true"
-      className={`h-[2px] w-full origin-center transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-none ${colorClass} ${
-        active
-          ? 'scale-x-100 opacity-100'
-          : 'scale-x-0 opacity-0 group-hover:scale-x-100 group-hover:opacity-80 group-focus-within:scale-x-100 group-focus-within:opacity-80'
-      }`}
-    />
+    <span className="relative flex flex-col items-start gap-1">
+      <span className="text-base leading-[1.7] text-text">{label}</span>
+      {active ? (
+        <NavIndicator colorClass={colorClass} active />
+      ) : (
+        // 非現在地の行はラベルの縦位置を現在地の行と変えないよう、流れから外して置く
+        <NavIndicator
+          colorClass={colorClass}
+          active={false}
+          className="absolute top-full left-0 mt-1"
+        />
+      )}
+    </span>
   );
 }
 
@@ -92,18 +126,11 @@ export function NavigationMenuRows({
                 aria-current={active ? 'page' : undefined}
                 className="group flex min-h-12 flex-col items-start justify-center px-4 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
               >
-                {active ? (
-                  <span className="flex flex-col items-start gap-1">
-                    <span className="text-base leading-[1.7] text-text">
-                      {item.label}
-                    </span>
-                    <NavIndicator colorClass={colorClass} active={active} />
-                  </span>
-                ) : (
-                  <span className="text-base leading-[1.7] text-text">
-                    {item.label}
-                  </span>
-                )}
+                <RowLabel
+                  label={item.label}
+                  colorClass={colorClass}
+                  active={active}
+                />
               </Link>
             </li>
           );
@@ -121,18 +148,11 @@ export function NavigationMenuRows({
               onClick={() => toggleLabel(item.label)}
               className="group flex min-h-12 w-full items-center justify-between gap-2 px-4 text-left focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
             >
-              {active ? (
-                <span className="flex flex-col items-start gap-1">
-                  <span className="text-base leading-[1.7] text-text">
-                    {item.label}
-                  </span>
-                  <NavIndicator colorClass={colorClass} active={active} />
-                </span>
-              ) : (
-                <span className="text-base leading-[1.7] text-text">
-                  {item.label}
-                </span>
-              )}
+              <RowLabel
+                label={item.label}
+                colorClass={colorClass}
+                active={active}
+              />
               <ExpandMoreIcon
                 size={16}
                 className={`shrink-0 transition-transform duration-200 ease-out motion-reduce:transition-none ${
@@ -166,9 +186,17 @@ export function NavigationMenuRows({
                       href={child.href}
                       prefetch={false}
                       onClick={onNavigate}
-                      className="flex min-h-12 items-center pr-4 pl-8 text-sm leading-[1.6] text-text focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
+                      className="group/sub flex min-h-12 items-center pr-4 pl-8 text-sm leading-[1.6] text-text focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
                     >
-                      {child.label}
+                      <span className="relative inline-block">
+                        {child.label}
+                        <NavIndicator
+                          sub
+                          colorClass={colorClass}
+                          active={false}
+                          className="absolute top-full left-0 mt-1"
+                        />
+                      </span>
                     </Link>
                   </li>
                 ))}

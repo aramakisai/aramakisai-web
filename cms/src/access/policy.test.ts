@@ -4,6 +4,7 @@ import {
   canCreate,
   canDelete,
   canRead,
+  canReadVersions,
   canUpdate,
   EXHIBITOR_VISIBLE,
   isHiddenInAdmin,
@@ -122,6 +123,22 @@ describe('canCreate', () => {
   });
 });
 
+describe('canReadVersions', () => {
+  it('実行委員は全件読める', () => {
+    expect(canReadVersions(executive, 'student_exhibitions')).toBe(true);
+  });
+
+  it('学生団体は自分の企画の版だけ読める', () => {
+    expect(canReadVersions(exhibitor, 'student_exhibitions')).toEqual({
+      'version.owner': { equals: 'user-1' },
+    });
+  });
+
+  it('未認証は読めない', () => {
+    expect(canReadVersions(null, 'student_exhibitions')).toBe(false);
+  });
+});
+
 describe('canUpdate', () => {
   it('実行委員はどのコレクションでも更新できる', () => {
     expect(canUpdate(executive, 'student_exhibitions')).toBe(true);
@@ -130,10 +147,8 @@ describe('canUpdate', () => {
     expect(canUpdate(executive, 'users')).toBe(true);
   });
 
-  it('学生団体は自分の下書きの学生企画だけ更新できる', () => {
-    expect(canUpdate(exhibitor, 'student_exhibitions')).toEqual({
-      and: [{ owner: { equals: 'user-1' } }, { status: { equals: 'draft' } }],
-    });
+  it('学生団体は自分の学生企画だけ更新できる', () => {
+    expect(canUpdate(exhibitor, 'student_exhibitions')).toEqual({ owner: { equals: 'user-1' } });
   });
 
   it('学生団体は自分が所有者かつ未使用のメディアだけ更新できる', () => {

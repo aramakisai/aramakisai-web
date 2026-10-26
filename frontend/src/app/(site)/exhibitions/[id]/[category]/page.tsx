@@ -1,28 +1,12 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import {
-  CATEGORY_LABELS,
-  CATEGORY_VALUES,
-  getExhibitionDetail,
-  type ExhibitionCategory,
-  type ExhibitionDetailResult,
-} from '@/lib/exhibitions';
 import { env } from '@/env';
-import { getCampusMapAreas, type CampusMapArea } from '@/lib/campus-map';
-import { ExhibitionGallery } from '@/components/exhibition-gallery';
-import { ExhibitionPerformances } from '@/components/exhibition-performances';
-import {
-  formatOpenDays,
-  getEventDayList,
-  getExhibitionPerformances,
-} from '@/lib/timetable';
-import { ExhibitionMenu } from '@/components/exhibition-menu';
-import { ExhibitionLinks } from '@/components/exhibition-links';
-import { ExhibitionLocationSection } from '@/components/exhibition-location-map/exhibition-location-section';
-import { BookmarkButton } from '@/components/bookmark-button';
-import { ShareButton } from '@/components/share-button';
-import { CalendarMonthIcon, PlaceIcon } from '@/components/icons';
 import { BackLink } from '@/components/detail-column';
+import { ExhibitionDetailBody } from '@/components/exhibition-detail-body';
+import {
+  loadExhibitionDetailPage,
+  resolveExhibition,
+} from '@/lib/exhibition-detail-page';
 import { getSiteMetadata } from '@/lib/site-metadata';
 import { buildPageMetadata } from '@/lib/page-metadata';
 import { toMetaDescription } from '@/lib/meta-description';
@@ -41,22 +25,6 @@ export const revalidate = 300;
 
 export interface ExhibitionPageProps {
   readonly params: Promise<{ id: string; category: string }>;
-}
-
-function isExhibitionCategory(value: string): value is ExhibitionCategory {
-  return (CATEGORY_VALUES as readonly string[]).includes(value);
-}
-
-async function resolveExhibition(
-  id: string,
-  category: string,
-): Promise<ExhibitionDetailResult> {
-  const exhibitionId = Number(id);
-  // category を先に検証することで、未知のカテゴリでは不要な取得を発生させない
-  if (!Number.isInteger(exhibitionId) || !isExhibitionCategory(category)) {
-    return { kind: 'missing' };
-  }
-  return getExhibitionDetail(exhibitionId, category);
 }
 
 export async function generateMetadata({
@@ -89,60 +57,10 @@ export async function generateMetadata({
   });
 }
 
-const CATEGORY_BADGE_COLORS: Readonly<Record<ExhibitionCategory, string>> = {
-  stage: 'bg-accent',
-  exhibit: 'bg-info',
-  vendor: 'bg-warning',
-  other: 'bg-accent-alt',
-};
-
-function CategoryBadge({
-  category,
-}: {
-  readonly category: ExhibitionCategory;
-}) {
-  return (
-    <span
-      className={`rounded-full px-3 py-1 text-xs leading-[140%] font-medium text-text ${CATEGORY_BADGE_COLORS[category]}`}
-    >
-      {CATEGORY_LABELS[category]}
-    </span>
-  );
-}
-
 export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
   const { id, category } = await params;
-  const [result, areasResult, performancesResult, eventDays] =
-    await Promise.all([
-      resolveExhibition(id, category),
-      getCampusMapAreas(),
-      category === 'stage' && Number.isInteger(Number(id))
-        ? getExhibitionPerformances(Number(id))
-        : null,
-      category === 'stage' ? null : getEventDayList(),
-    ]);
-
-  if (result.kind === 'missing') {
-    notFound();
-  }
-
-  // 取得失敗の描画は再検証までキャッシュされ古い正常なページを上書きするため、
-  // 404 にもエラー表示にもせず例外にして古いページを保つ (要件 5.9)
-  if (
-    result.kind === 'error' ||
-    areasResult.kind === 'error' ||
-    performancesResult?.kind === 'error' ||
-    (category !== 'stage' && eventDays === null)
-  ) {
-    throw new Error('企画詳細の取得に失敗しました');
-  }
-
-  const exhibition = result.value;
-  const openDays = eventDays
-    ? formatOpenDays(exhibition.openDayKeys, eventDays)
-    : null;
-  const shareUrl = `${env.NEXT_PUBLIC_SITE_URL}/exhibitions/${exhibition.id}/${exhibition.category}`;
-  const areas: readonly CampusMapArea[] = areasResult.value;
+  const { exhibition, areas, performances, openDays } =
+    await loadExhibitionDetailPage(id, category);
   const breadcrumb = buildBreadcrumbJsonLd(
     [
       { name: 'トップ', path: '/' },
@@ -166,76 +84,12 @@ export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
       )}
       <BackLink href="/exhibitions" label="企画一覧へ戻る" />
 
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-12">
-        <div className="lg:w-[640px] lg:shrink-0">
-          <ExhibitionGallery
-            images={exhibition.images}
-            fallbackAlt={exhibition.displayName}
-          />
-        </div>
-
-        <div className="flex min-w-0 flex-col gap-3 lg:flex-1 lg:gap-4">
-          <div className="flex flex-wrap gap-2">
-            {exhibition.categories.map((c) => (
-              <CategoryBadge key={c} category={c} />
-            ))}
-          </div>
-          <h1 className="py-0 text-[28px] leading-[130%] text-text lg:text-[32px] lg:leading-[125%]">
-            {exhibition.displayName}
-          </h1>
-          <p className="text-base leading-[180%] text-text">
-            {exhibition.organizationName}
-          </p>
-          {exhibition.location && (
-            <p className="flex items-center gap-1 text-sm leading-[140%] font-medium text-gray-600">
-              <PlaceIcon size={20} className="text-text" />
-              {exhibition.location}
-            </p>
-          )}
-
-          {openDays && (
-            <p className="flex items-center gap-1 text-sm leading-[140%] font-medium text-gray-600">
-              <CalendarMonthIcon size={20} className="text-text" />
-              {openDays}
-            </p>
-          )}
-          {performancesResult?.kind === 'loaded' && (
-            <ExhibitionPerformances performances={performancesResult.value} />
-          )}
-
-          {exhibition.category === 'vendor' && (
-            <ExhibitionMenu items={exhibition.menu} />
-          )}
-
-          <ShareButton
-            title={exhibition.displayName}
-            url={shareUrl}
-            leading={
-              <BookmarkButton
-                exhibitionId={exhibition.id}
-                category={exhibition.category}
-                displayName={exhibition.displayName}
-                variant="detail"
-              />
-            }
-          >
-            <ExhibitionLinks links={exhibition.links} />
-          </ShareButton>
-        </div>
-      </div>
-
-      {exhibition.description && (
-        <div className="flex flex-col gap-2 border-t border-gray-200 pt-6 lg:pt-8">
-          <h2 className="py-0 text-[20px] leading-[140%] text-text lg:text-[24px] lg:leading-[130%]">
-            紹介
-          </h2>
-          <p className="text-base leading-[180%] whitespace-pre-wrap text-text">
-            {exhibition.description}
-          </p>
-        </div>
-      )}
-
-      <ExhibitionLocationSection exhibition={exhibition} areas={areas} />
+      <ExhibitionDetailBody
+        exhibition={exhibition}
+        areas={areas}
+        performances={performances}
+        openDays={openDays}
+      />
     </div>
   );
 }
