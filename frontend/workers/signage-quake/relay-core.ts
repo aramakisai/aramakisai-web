@@ -468,9 +468,10 @@ export function recordDiscordMessage(
   };
 }
 
-/** 無受信の閾値。P2Pは静かな時間が長いため長い */
-export const SILENCE_LIMIT_MS: Readonly<Record<ChannelName, number>> = {
-  p2p: 12 * 60_000,
+/** 無受信の閾値。P2Pは含まない(isReceiving 参照) */
+export const SILENCE_LIMIT_MS: Readonly<
+  Record<Exclude<ChannelName, 'p2p'>, number>
+> = {
   wolfxEew: 3 * 60_000,
   wolfxEqlist: 3 * 60_000,
 };
@@ -480,17 +481,22 @@ export interface ChannelHealthInput {
   readonly lastReceivedAt: number | null;
   /** DOが起動した時刻。再起動の直後に受信不能と誤判定しないための基準 */
   readonly bootedAt: number;
+  /** P2Pのみ。上流にあるのに受け取っていない情報がある */
+  readonly missed: boolean;
 }
 
 /**
  * 接続の有無は見ない。再接続の一瞬の切れで受信状態の通知が往復しないよう、
- * 最後の受信(未受信なら起動)からの無受信の長さだけで決める
+ * 最後の受信(未受信なら起動)からの無受信の長さだけで決める。
+ * P2Pは配信が無い時間が1時間近く続き、ハートビートも無いので無受信の長さでは
+ * 断を判定できない。上流の履歴に受け取っていない情報があるかで決める
  */
 export function isReceiving(
   channel: ChannelName,
   input: ChannelHealthInput,
   now: number,
 ): boolean {
+  if (channel === 'p2p') return !input.missed;
   const since = Math.max(
     input.lastReceivedAt ?? input.bootedAt,
     input.bootedAt,

@@ -16,6 +16,7 @@ import {
 } from './relay-core';
 import {
   isInPeriod,
+  p2pHistoryUrl,
   readRelayConfig,
   type ChannelName,
   type QuakeEnv,
@@ -26,9 +27,10 @@ import type {
   QuakeRelayRpc,
   QuakeRelayStatus,
 } from './rpc';
-import { normalizeMessage } from './upstream';
+import { hasUnreceivedReport, normalizeMessage } from './upstream';
 
 const STATE_KEY = 'state';
+const P2P_PROBE_MS = 5 * 60_000;
 const RELAY_NAME = 'signage-quake';
 const HUB_NAME = 'signage-hub';
 const CHANNELS: readonly ChannelName[] = ['p2p', 'wolfxEew', 'wolfxEqlist'];
@@ -44,6 +46,9 @@ interface Connection {
   lastReceivedAt: number | null;
   failures: number;
   retryAt: number;
+  /** P2Pのみ: 上流にあるのに受け取っていない情報がある */
+  missed: boolean;
+  probedAt: number;
 }
 
 const newConnection = (): Connection => ({
@@ -53,6 +58,8 @@ const newConnection = (): Connection => ({
   lastReceivedAt: null,
   failures: 0,
   retryAt: 0,
+  missed: false,
+  probedAt: 0,
 });
 
 // fetch の Upgrade は http(s) スキームでしか受け付けない
@@ -175,6 +182,7 @@ export class QuakeRelay
     const conn = this.#conns[channel];
     conn.lastReceivedAt = Date.now();
     conn.failures = 0;
+    conn.missed = false;
     if (typeof data !== 'string') return;
     try {
       await this.#receive(channel, data, this.#config.test[channel]);
@@ -231,9 +239,33 @@ export class QuakeRelay
         connected: conn.ws !== null,
         lastReceivedAt: conn.lastReceivedAt,
         bootedAt: this.#bootedAt,
+        missed: conn.missed,
       },
       now,
     );
+  }
+
+  // P2P は配信が無い時間が長くハートビートも無いので、無受信の長さでは断を判定できない。
+  // 受信が途絶えたら履歴を引き、受け取っていない情報が上流にあるときだけ断とみなす
+  async #probeP2p(now: number): Promise<void> {
+    const conn = this.#conns.p2p;
+    const since = Math.max(
+      conn.lastReceivedAt ?? this.#bootedAt,
+      this.#bootedAt,
+    );
+    if (now - since < P2P_PROBE_MS || now - conn.probedAt < P2P_PROBE_MS)
+      return;
+    conn.probedAt = now;
+    try {
+      const res = await fetch(p2pHistoryUrl(this.#config.urls.p2p));
+      if (!res.ok) return;
+      if (!hasUnreceivedReport(await res.json(), since)) return;
+    } catch (error) {
+      console.warn('quake: p2p の履歴を取得できない', error);
+      return;
+    }
+    conn.missed = true;
+    this.#close('p2p', conn.ws);
   }
 
   async ensure(): Promise<void> {
@@ -250,7 +282,8 @@ export class QuakeRelay
     const toConnect: ChannelName[] = [];
     for (const channel of CHANNELS) {
       const conn = this.#conns[channel];
-      if (
+      if (channel === 'p2p') await this.#probeP2p(now);
+      else if (
         conn.ws &&
         now - staleSince(conn.lastReceivedAt, conn.openedAt) >
           SILENCE_LIMIT_MS[channel]

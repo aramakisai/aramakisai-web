@@ -272,6 +272,96 @@ describe('接続', () => {
     expect(sockets[0].ws.closed).toBe(false);
   });
 
+  describe('P2Pの取りこぼし判定', () => {
+    const history = (time: string) => ({
+      ok: true,
+      json: async () => [{ code: 555, time }],
+    });
+    const jst = (t: number) =>
+      new Date(t + 9 * 3600_000)
+        .toISOString()
+        .replace('T', ' ')
+        .replace(/-/g, '/')
+        .replace('Z', '');
+    // p2p は history の取得先、他は WebSocket
+    const stub = (respond: () => unknown) => {
+      const sockets: FakeSocket[] = [];
+      const fetchMock = vi.fn(async (url: string) => {
+        if (url.includes('/history')) return respond();
+        const ws = new FakeSocket();
+        sockets.push(ws);
+        return { status: 101, webSocket: ws };
+      });
+      vi.stubGlobal('fetch', fetchMock);
+      return { sockets, fetchMock };
+    };
+
+    it('無受信50分でも上流に新しい情報が無ければ受信中で、閉じない', async () => {
+      const { make } = setup();
+      const { sockets } = stub(() => history(jst(IN_PERIOD - 1000)));
+      const relay = make();
+      await relay.ensure();
+      await vi.advanceTimersByTimeAsync(50 * 60_000);
+      await relay.ensure();
+      expect(sockets[0].closed).toBe(false);
+      expect((await relay.status()).channels.p2p.receiving).toBe(true);
+    });
+
+    it('上流に新しい情報があれば閉じて受信断にし、受信で戻る', async () => {
+      const { make } = setup();
+      const { sockets } = stub(() =>
+        history(jst(IN_PERIOD + 6 * 60_000 - 1000)),
+      );
+      const relay = make();
+      await relay.ensure();
+      await vi.advanceTimersByTimeAsync(6 * 60_000);
+      await relay.ensure();
+      expect(sockets[0].closed).toBe(true);
+      expect((await relay.status()).channels.p2p.receiving).toBe(false);
+      await vi.advanceTimersByTimeAsync(60_000);
+      await relay.ensure();
+      for (const ws of sockets) ws.emit('message', { data: 'x' });
+      await vi.advanceTimersByTimeAsync(0);
+      expect((await relay.status()).channels.p2p.receiving).toBe(true);
+    });
+
+    it('履歴の取得に失敗しても状態を変えない', async () => {
+      for (const respond of [
+        () => {
+          throw new Error('down');
+        },
+        () => ({ ok: false }),
+        () => ({ ok: true, json: async () => 'broken' }),
+      ]) {
+        const { make } = setup();
+        const { sockets } = stub(respond);
+        const relay = make();
+        await relay.ensure();
+        await vi.advanceTimersByTimeAsync(6 * 60_000);
+        await relay.ensure();
+        expect(sockets[0].closed).toBe(false);
+        expect((await relay.status()).channels.p2p.receiving).toBe(true);
+      }
+    });
+
+    it('履歴の取得は5分以上あけ、受信直後は引かない', async () => {
+      const { make } = setup();
+      const { fetchMock } = stub(() => history('1999/01/01 00:00:00.000'));
+      const relay = make();
+      await relay.ensure();
+      await vi.advanceTimersByTimeAsync(4 * 60_000);
+      await relay.ensure();
+      const calls = () =>
+        fetchMock.mock.calls.filter(([u]) => u.includes('/history')).length;
+      expect(calls()).toBe(0);
+      await vi.advanceTimersByTimeAsync(2 * 60_000);
+      await relay.ensure();
+      await vi.advanceTimersByTimeAsync(30_000);
+      await relay.ensure();
+      expect(calls()).toBe(1);
+    });
+  });
+
   it('受信すると最終受信時刻が付く', async () => {
     const { make } = setup();
     const sockets = stubSockets();

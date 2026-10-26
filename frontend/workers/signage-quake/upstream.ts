@@ -99,6 +99,15 @@ export function parseJstTime(text: unknown): number | null {
   return Number.isNaN(ms) ? null : ms;
 }
 
+/** P2P の /history の応答(新しい順)の先頭が、lastReceivedAt より1分以上新しいか */
+export function hasUnreceivedReport(
+  body: unknown,
+  lastReceivedAt: number,
+): boolean {
+  const time = Array.isArray(body) ? parseJstTime(body[0]?.time) : null;
+  return time !== null && time - lastReceivedAt >= 60_000;
+}
+
 function asObj(v: unknown): Obj | null {
   return typeof v === 'object' && v !== null && !Array.isArray(v)
     ? (v as Obj)
