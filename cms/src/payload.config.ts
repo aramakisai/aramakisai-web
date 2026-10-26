@@ -54,6 +54,8 @@ export default buildConfig({
     supportedLanguages: { ja },
     fallbackLanguage: 'ja',
   },
+  // 未設定だと forgotPassword のメールが相対 URL になる (Host が CORS allowlist に無いと Origin が空になるため)
+  serverURL: optionalEnv('CMS_PUBLIC_URL')?.replace(/\/+$/, ''),
   cors: optionalEnv('CMS_CORS_ORIGINS')?.split(',') ?? ['*'],
   // フロントエンドは REST しか使わないため GraphQL は公開しない
   graphQL: { disable: true },
