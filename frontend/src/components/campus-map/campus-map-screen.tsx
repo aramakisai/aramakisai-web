@@ -7,6 +7,8 @@ import type { CampusMapArea, CampusMapDataResult } from '@/lib/campus-map';
 import { sendGaEvent } from '@/lib/analytics';
 import { filterExhibitions } from '@/lib/exhibitions';
 import { BUILD_PHASE, type FestivalPhase } from '@/lib/phase';
+import { usePhase } from '@/lib/use-phase';
+import { PhasedBottomNavigation } from '@/components/phased-chrome';
 import type { AreaExhibitionListState } from './area-exhibition-list';
 import { MapBottomSheet } from './map-bottom-sheet';
 import { MapMenuButton } from './map-menu-button';
@@ -23,7 +25,7 @@ const CampusMapView = dynamic(
     loading: () => (
       <div
         role="status"
-        className="flex h-dvh w-full items-center justify-center bg-gray-100 text-text"
+        className="flex h-[calc(100dvh-var(--map-nav))] w-full items-center justify-center bg-gray-100 text-text"
       >
         地図を読み込んでいます…
       </div>
@@ -57,6 +59,12 @@ export function CampusMapScreen({
   // BUILD_PHASE を使うことで、フェーズ結線に関与しない既存呼び出し元を壊さない
   phase = BUILD_PHASE,
 }: CampusMapScreenProps) {
+  // 下部ナビの表示条件 (live かつ 1024px 未満) と同じ条件で、その高さ分だけ下端を空ける。
+  // 値は PhasedBottomSpacer の h-[calc(4rem+...)] と揃える
+  const navClass =
+    usePhase().phase === 'live'
+      ? '[--map-nav:calc(4rem+env(safe-area-inset-bottom))] lg:[--map-nav:0px]'
+      : '[--map-nav:0px]';
   const {
     filters,
     keywordInput,
@@ -156,7 +164,7 @@ export function CampusMapScreen({
   };
 
   return (
-    <div className="relative h-dvh w-full">
+    <div className={`relative h-dvh w-full ${navClass}`}>
       <MapMenuButton phase={phase} />
       <MapSearchOverlay
         keywordInput={keywordInput}
@@ -177,7 +185,7 @@ export function CampusMapScreen({
        */}
       <div
         data-testid="map-viewport"
-        className="h-[calc(100dvh-var(--map-bottom-inset))] md:h-dvh max-md:[&_.leaflet-bottom]:mb-4"
+        className="h-[calc(100dvh-var(--map-nav)-var(--map-bottom-inset))] md:h-[calc(100dvh-var(--map-nav))] max-md:[&_.leaflet-bottom]:mb-4"
         style={{ '--map-bottom-inset': `${bottomInset}px` } as CSSProperties}
       >
         <CampusMapView
@@ -187,6 +195,7 @@ export function CampusMapScreen({
           onSelectArea={selectArea}
         />
       </div>
+      <PhasedBottomNavigation />
     </div>
   );
 }
