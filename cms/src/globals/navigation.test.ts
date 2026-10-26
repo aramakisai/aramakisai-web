@@ -54,9 +54,12 @@ describe('Navigation', () => {
     }
   });
 
-  it('page と path は同時に指定できない', () => {
-    expect(run(validateChildLink, { page: 1, path: '/faq' })).not.toBe(true);
-    expect(run(validateParentLink, { page: 1, path: '/faq' })).not.toBe(true);
+  it('パス欄は固定ページ未選択のときだけ表示する', () => {
+    const path = tabs[0].fields[0].fields!.find((f) => f.name === 'path') as unknown as {
+      admin: { condition: (data: unknown, sibling: unknown) => boolean };
+    };
+    expect(path.admin.condition({}, { page: 1 })).toBe(false);
+    expect(path.admin.condition({}, {})).toBe(true);
   });
 
   it('色の選択肢は現在使っている項目名で示し、値は変えない', () => {

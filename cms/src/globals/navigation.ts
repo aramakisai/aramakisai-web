@@ -14,22 +14,17 @@ const COLOR_LABELS: Record<(typeof COLORS)[number], string> = {
   'accent-alt': '荒牧祭についてと同じ',
 };
 
-const BOTH_LINKS = '固定ページかパスのどちらか一方を指定してください';
-
 const rowLabel = { RowLabel: './components/NavigationRowLabel.tsx' };
-
-const PATH_NOTE = '開催前は公開対象のパスでないと 404 になる。';
 
 /** 子項目は遷移先が必須。 */
 export const validateChildLink: Validate = (_v, { siblingData }) => {
   const s = siblingData as Sibling;
-  return Boolean(s.page) !== Boolean(s.path) ? true : BOTH_LINKS;
+  return s.page || s.path ? true : '固定ページかパスを指定してください';
 };
 
 /** 親項目はリンクか子項目のどちらか一方だけを持つ。 */
 export const validateParentLink: Validate = (_v, { siblingData }) => {
   const s = siblingData as Sibling;
-  if (s.page && s.path) return BOTH_LINKS;
   const hasLink = Boolean(s.page || s.path);
   const hasChildren = (s.children?.length ?? 0) > 0;
   if (hasLink === hasChildren) {
@@ -49,7 +44,7 @@ const linkFields = (validatePage: Validate): Field[] => [
     type: 'relationship',
     relationTo: 'pages',
     label: '固定ページ',
-    admin: { description: `項目名はページの見出しになる。${PATH_NOTE}` },
+    admin: { description: '項目名はページの見出しになる。' },
     validate: validatePage,
   },
   {
@@ -57,7 +52,7 @@ const linkFields = (validatePage: Validate): Field[] => [
     type: 'text',
     maxLength: 255,
     label: 'パス',
-    admin: { description: `固定ページ以外のリンク先。例: /exhibitions、/#about。${PATH_NOTE}` },
+    admin: { condition: (_d, s) => !s?.page, description: '例: /exhibitions、/#about' },
   },
   {
     name: 'label',
