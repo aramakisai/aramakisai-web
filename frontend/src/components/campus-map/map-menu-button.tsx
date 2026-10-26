@@ -2,18 +2,19 @@
 
 import { useId, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { mobileMenuItemsFor } from '@/lib/navigation';
+import { mobileMenuItemsFor, type NavigationByPhase } from '@/lib/navigation';
 import type { FestivalPhase } from '@/lib/phase';
 import { useFocusTrap } from '@/lib/use-focus-trap';
 import { NavigationMenuRows } from '@/components/navigation-menu-rows';
 
 export interface MapMenuButtonProps {
   readonly phase: FestivalPhase;
+  readonly navigation: NavigationByPhase;
 }
 
-export function MapMenuButton({ phase }: MapMenuButtonProps) {
+export function MapMenuButton({ phase, navigation }: MapMenuButtonProps) {
   const pathname = usePathname();
-  const items = mobileMenuItemsFor(phase);
+  const items = mobileMenuItemsFor(phase, navigation[phase]);
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);

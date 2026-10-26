@@ -31,6 +31,7 @@ import * as migration_20261013_172130_site_settings_and_cleanup_a from './202610
 import * as migration_20261014_072436_invite_claimed_job from './20261014_072436_invite_claimed_job';
 import * as migration_20261014_073409_drop_legacy_globals_and_sort from './20261014_073409_drop_legacy_globals_and_sort';
 import * as migration_20261025_082958_add_student_exhibitions_versions from './20261025_082958_add_student_exhibitions_versions';
+import * as migration_20261026_144805_navigation from './20261026_144805_navigation';
 
 export const migrations = [
   {
@@ -196,6 +197,11 @@ export const migrations = [
   {
     up: migration_20261025_082958_add_student_exhibitions_versions.up,
     down: migration_20261025_082958_add_student_exhibitions_versions.down,
-    name: '20261025_082958_add_student_exhibitions_versions'
+    name: '20261025_082958_add_student_exhibitions_versions',
+  },
+  {
+    up: migration_20261026_144805_navigation.up,
+    down: migration_20261026_144805_navigation.down,
+    name: '20261026_144805_navigation'
   },
 ];

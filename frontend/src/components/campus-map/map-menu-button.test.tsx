@@ -24,12 +24,16 @@ describe('MapMenuButton', () => {
   });
 
   it('初期状態ではメニューを閉じている', () => {
-    render(<MapMenuButton phase="pre_event" />);
+    render(
+      <MapMenuButton phase="pre_event" navigation={navigationItemsByPhase} />,
+    );
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('トリガーを押すと直下に固定幅でハンバーガーメニューと同じ項目一覧を開く', () => {
-    render(<MapMenuButton phase="pre_event" />);
+    render(
+      <MapMenuButton phase="pre_event" navigation={navigationItemsByPhase} />,
+    );
     fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
 
     const dialog = screen.getByRole('dialog');
@@ -46,7 +50,9 @@ describe('MapMenuButton', () => {
   });
 
   it('liveのときだけ末尾にマイページへのリンクを出す', () => {
-    const { unmount } = render(<MapMenuButton phase="live" />);
+    const { unmount } = render(
+      <MapMenuButton phase="live" navigation={navigationItemsByPhase} />,
+    );
     fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
     const links = within(screen.getByRole('dialog')).getAllByRole('link');
     const last = links[links.length - 1];
@@ -54,7 +60,9 @@ describe('MapMenuButton', () => {
     expect(last).toHaveAttribute('href', '/mypage');
     unmount();
 
-    render(<MapMenuButton phase="pre_event" />);
+    render(
+      <MapMenuButton phase="pre_event" navigation={navigationItemsByPhase} />,
+    );
     fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
     expect(
       within(screen.getByRole('dialog')).queryByRole('link', {
@@ -64,7 +72,9 @@ describe('MapMenuButton', () => {
   });
 
   it('子項目を持つ行を開くとハンバーガーメニューと同じ行部品でその遷移先が現れる', () => {
-    render(<MapMenuButton phase="pre_event" />);
+    render(
+      <MapMenuButton phase="pre_event" navigation={navigationItemsByPhase} />,
+    );
     fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
 
     const dialog = screen.getByRole('dialog');
@@ -79,7 +89,9 @@ describe('MapMenuButton', () => {
   });
 
   it('開いている間は地図へのポインタ操作を遮るオーバーレイを敷く', () => {
-    render(<MapMenuButton phase="pre_event" />);
+    render(
+      <MapMenuButton phase="pre_event" navigation={navigationItemsByPhase} />,
+    );
     const overlay = screen.getByTestId('map-menu-overlay');
     expect(overlay).toHaveClass('pointer-events-none');
     fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
@@ -87,7 +99,9 @@ describe('MapMenuButton', () => {
   });
 
   it('開くとメニュー内の最初の遷移先へフォーカスを移す', () => {
-    render(<MapMenuButton phase="pre_event" />);
+    render(
+      <MapMenuButton phase="pre_event" navigation={navigationItemsByPhase} />,
+    );
     fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
 
     const dialog = screen.getByRole('dialog');
@@ -96,7 +110,9 @@ describe('MapMenuButton', () => {
   });
 
   it('Tab はメニュー内のリンク・開閉ボタンを含めて循環し外へ出ない', () => {
-    render(<MapMenuButton phase="pre_event" />);
+    render(
+      <MapMenuButton phase="pre_event" navigation={navigationItemsByPhase} />,
+    );
     fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
 
     const dialog = screen.getByRole('dialog');
@@ -116,7 +132,9 @@ describe('MapMenuButton', () => {
   });
 
   it('開いている間はボタンが閉じるボタンになり、押すとメニューを閉じる', () => {
-    render(<MapMenuButton phase="pre_event" />);
+    render(
+      <MapMenuButton phase="pre_event" navigation={navigationItemsByPhase} />,
+    );
     fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
     fireEvent.click(screen.getByRole('button', { name: 'メニューを閉じる' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -126,7 +144,9 @@ describe('MapMenuButton', () => {
   });
 
   it('検索ボックスと縦中心を揃えるための共有トークンでサイズ・位置を指定している', () => {
-    render(<MapMenuButton phase="pre_event" />);
+    render(
+      <MapMenuButton phase="pre_event" navigation={navigationItemsByPhase} />,
+    );
     const trigger = screen.getByRole('button', { name: 'メニューを開く' });
     expect(trigger.className).toMatch(/map-menu-button-position/);
     expect(trigger.className).toMatch(/h-\[var\(--map-toolbar-size\)\]/);
@@ -134,7 +154,9 @@ describe('MapMenuButton', () => {
   });
 
   it('PC (lg) では右端 24px、SP では右端 16px の位置を持つ', () => {
-    render(<MapMenuButton phase="pre_event" />);
+    render(
+      <MapMenuButton phase="pre_event" navigation={navigationItemsByPhase} />,
+    );
     const trigger = screen.getByRole('button', { name: 'メニューを開く' });
     expect(trigger).toHaveClass(
       'right-[max(1rem,env(safe-area-inset-right))]',
@@ -143,7 +165,9 @@ describe('MapMenuButton', () => {
   });
 
   it('開いたメニューの直下位置も PC/SP でボタンと同じ右端に揃える', () => {
-    render(<MapMenuButton phase="pre_event" />);
+    render(
+      <MapMenuButton phase="pre_event" navigation={navigationItemsByPhase} />,
+    );
     fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
     const dialog = screen.getByRole('dialog');
     expect(dialog).toHaveClass(
@@ -153,7 +177,9 @@ describe('MapMenuButton', () => {
   });
 
   it('Esc キーで閉じてトリガーへフォーカスを戻す', () => {
-    render(<MapMenuButton phase="pre_event" />);
+    render(
+      <MapMenuButton phase="pre_event" navigation={navigationItemsByPhase} />,
+    );
     const trigger = screen.getByRole('button', { name: 'メニューを開く' });
     fireEvent.click(trigger);
     expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -165,7 +191,9 @@ describe('MapMenuButton', () => {
   });
 
   it('開催前フェーズでは開催中限定の項目 (企画一覧) を含まない', () => {
-    render(<MapMenuButton phase="pre_event" />);
+    render(
+      <MapMenuButton phase="pre_event" navigation={navigationItemsByPhase} />,
+    );
     fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
 
     const dialog = screen.getByRole('dialog');
@@ -177,7 +205,7 @@ describe('MapMenuButton', () => {
   });
 
   it('開催中フェーズでは企画一覧・構内マップを含む', () => {
-    render(<MapMenuButton phase="live" />);
+    render(<MapMenuButton phase="live" navigation={navigationItemsByPhase} />);
     fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
 
     const dialog = screen.getByRole('dialog');

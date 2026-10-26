@@ -330,3 +330,32 @@ describe('同一引数の取得の重複排除', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('cms.findGlobal の timeoutMs / retained', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('timeoutMs を超えて応答が無ければ network エラーで返す', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        (_url: string, init?: RequestInit) =>
+          new Promise((_resolve, reject) => {
+            init?.signal?.addEventListener('abort', () => reject(init.signal));
+          }),
+      ),
+    );
+    const result = await cms.findGlobal('navigation', {}, { timeoutMs: 10 });
+    expect(result).toEqual({
+      ok: false,
+      error: { kind: 'network', status: 0 },
+    });
+  });
+
+  it('retained: read は Cache API が無ければ not_found を返し、fetch しない', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const result = await cms.findGlobal('navigation', {}, { retained: 'read' });
+    expect(result).toEqual({ ok: false, error: { kind: 'not_found' } });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});

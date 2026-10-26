@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element -- ロゴは公開ディレクトリの静的画像で最適化不要 */
 import Link from 'next/link';
+import { getNavigation } from '@/lib/get-navigation';
 import { getSnsLinks } from '@/lib/sns-links';
 import { getContactFormUrl } from '@/lib/festival-meta';
 import type { SnsLink } from '@/lib/home-page-types';
@@ -17,6 +18,7 @@ const sectionHeadingClass =
   'bg-none bg-clip-border p-0 font-sans text-xs leading-[1.4] font-medium tracking-[0.2em] text-gray-600';
 
 export async function Footer() {
+  const navigation = await getNavigation();
   let snsLinks: SnsLink[] = [];
   try {
     snsLinks = await getSnsLinks();
@@ -47,7 +49,7 @@ export async function Footer() {
           >
             <h2 className={sectionHeadingClass}>サイト案内</h2>
             <ul className="flex flex-col">
-              <FooterSiteGuideLinks />
+              <FooterSiteGuideLinks navigation={navigation} />
             </ul>
           </nav>
 
@@ -57,7 +59,7 @@ export async function Footer() {
           >
             <h2 className={sectionHeadingClass}>ご案内</h2>
             <ul className="flex flex-col">
-              <FooterGuidanceLinks />
+              <FooterGuidanceLinks navigation={navigation} />
             </ul>
           </nav>
 

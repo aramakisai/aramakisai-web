@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { FestivalPhase } from '@/lib/phase';
 import {
-  navigationItemsByPhase,
+  type NavigationByPhase,
   mobileMenuItemsFor,
   linkableChildren,
   isItemActive,
@@ -26,11 +26,12 @@ const PC_DROPDOWN_WIDTH = 224;
 
 export interface HeaderProps {
   readonly phase: FestivalPhase;
+  readonly navigation: NavigationByPhase;
 }
 
-export function Header({ phase }: HeaderProps) {
+export function Header({ phase, navigation }: HeaderProps) {
   const pathname = usePathname();
-  const items = navigationItemsByPhase[phase];
+  const items = navigation[phase];
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
   const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
@@ -39,9 +40,9 @@ export function Header({ phase }: HeaderProps) {
   // PC ドロップダウンの位置補正用。コンテンツ枠はヘッダー内側の行 (px-20 の内側) と一致するため
   // その要素の bounding rect をそのまま境界として使う
   const contentRowRef = useRef<HTMLDivElement>(null);
-  const dropdownTriggerRefs = useRef<Record<string, HTMLLIElement | null>>({});
+  const dropdownTriggerRefs = useRef<Record<number, HTMLLIElement | null>>({});
   const [dropdownOffsets, setDropdownOffsets] = useState<
-    Readonly<Record<string, { left: number; top: number }>>
+    Readonly<Record<number, { left: number; top: number }>>
   >({});
 
   const closeMobileMenu = () => {
@@ -132,13 +133,13 @@ export function Header({ phase }: HeaderProps) {
         width: rowRect.width - paddingLeft - paddingRight,
       };
 
-      const next: Record<string, { left: number; top: number }> = {};
-      for (const item of items) {
+      const next: Record<number, { left: number; top: number }> = {};
+      for (const [index, item] of items.entries()) {
         if (!item.children) continue;
-        const el = dropdownTriggerRefs.current[item.label];
+        const el = dropdownTriggerRefs.current[index];
         if (!el) continue;
         const itemRect = el.getBoundingClientRect();
-        next[item.label] = {
+        next[index] = {
           left: computeDropdownOffset(
             { left: itemRect.left, width: itemRect.width },
             bounds,
@@ -190,9 +191,9 @@ export function Header({ phase }: HeaderProps) {
 
           <nav aria-label="メインナビゲーション" className="hidden lg:block">
             <ul className="flex items-center gap-8">
-              {items.map((item) => {
+              {items.map((item, index) => {
                 const active = isItemActive(item, pathname);
-                const colorClass = underlineColorClassFor(item.label);
+                const colorClass = underlineColorClassFor(item);
 
                 if (!item.children) {
                   return (
@@ -218,7 +219,7 @@ export function Header({ phase }: HeaderProps) {
                   <li
                     key={item.label}
                     ref={(el) => {
-                      dropdownTriggerRefs.current[item.label] = el;
+                      dropdownTriggerRefs.current[index] = el;
                     }}
                     className="group relative flex flex-col items-start gap-1"
                   >
@@ -234,10 +235,10 @@ export function Header({ phase }: HeaderProps) {
 
                     <div
                       style={
-                        dropdownOffsets[item.label] !== undefined
+                        dropdownOffsets[index] !== undefined
                           ? {
-                              left: dropdownOffsets[item.label].left,
-                              paddingTop: dropdownOffsets[item.label].top,
+                              left: dropdownOffsets[index].left,
+                              paddingTop: dropdownOffsets[index].top,
                             }
                           : undefined
                       }
@@ -317,7 +318,7 @@ export function Header({ phase }: HeaderProps) {
           }`}
         >
           <NavigationMenuRows
-            items={mobileMenuItemsFor(phase)}
+            items={mobileMenuItemsFor(phase, items)}
             pathname={pathname}
             idPrefix="mobile"
             onNavigate={closeMobileMenu}

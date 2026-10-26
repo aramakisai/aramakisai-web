@@ -2,94 +2,137 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   navigationItemsByPhase,
+  navigationFromCms,
   bottomNavigationItems,
   mobileMenuItemsFor,
-  type NavigationItem,
+  underlineColorClassFor,
 } from './navigation';
+import type { Navigation, Page } from '@/cms-types';
+
+type CmsItem = NonNullable<NonNullable<Navigation['live']>['items']>[number];
+
+const path = (label: string, href: string) => ({ label, path: href });
+const parent = (
+  label: string,
+  color: CmsItem['color'],
+  extra: Partial<CmsItem> = {},
+): CmsItem => ({ label, color, footer_column: 'site', ...extra });
+
+const guidanceChildren = [
+  path('アクセス', '/access'),
+  path('ご来場の際の注意点', '/guidelines'),
+  path('案内所・落とし物・迷子', '/info-desk'),
+  path('ごみの分別のお願い', '/waste'),
+  path('よくある質問', '/faq'),
+  { ...path('お問い合わせ', '/contact'), hide_in_footer: true },
+];
+
+// 現行のコード定数と同じ内容を CMS の応答形で表したもの
+const cmsFixture = {
+  id: 1,
+  live: {
+    items: [
+      parent('企画一覧', 'primary', path('企画一覧', '/exhibitions')),
+      parent('構内マップ', 'secondary', path('構内マップ', '/map')),
+      parent('タイムテーブル', 'info', path('タイムテーブル', '/timetable')),
+      parent('お知らせ', 'warning', {
+        children: [
+          path('お知らせ一覧', '/announcements'),
+          path('トピック', '/topics'),
+        ],
+      }),
+      parent('ご案内', 'success', {
+        footer_column: 'guidance',
+        children: guidanceChildren,
+      }),
+    ],
+  },
+  pre_event: {
+    items: [
+      parent('荒牧祭について', 'accent-alt', path('荒牧祭について', '/#about')),
+      parent('お知らせ', 'warning', path('お知らせ', '/announcements')),
+      parent('トピック', 'primary', path('トピック', '/topics')),
+      parent('ご案内', 'success', {
+        footer_column: 'guidance',
+        children: guidanceChildren,
+      }),
+      parent('協賛', 'accent', {
+        children: [
+          path('広告協賛', '/sponsors/ad'),
+          path('地域協賛', '/sponsors/local'),
+        ],
+      }),
+    ],
+  },
+  updatedAt: '',
+  createdAt: '',
+} as unknown as Navigation;
+
+describe('navigationFromCms', () => {
+  it('CMS の応答を現行のコード定数と同じ項目・順序・色・フッター振り分けに変換する', () => {
+    expect(navigationFromCms(cmsFixture)).toEqual(navigationItemsByPhase);
+  });
+
+  it('pages を指す項目は /slug と title を使う', () => {
+    const result = navigationFromCms({
+      id: 1,
+      live: {
+        items: [
+          parent('', 'primary', {
+            page: { id: 1, slug: 'faq', title: 'よくある質問' } as Page,
+          }),
+        ],
+      },
+    } as unknown as Navigation);
+    expect(result.live).toEqual([
+      {
+        label: 'よくある質問',
+        href: '/faq',
+        color: 'primary',
+      },
+    ]);
+  });
+
+  it('参照先が消えて path も無い項目と、子が 0 件になったグループは出さない', () => {
+    const result = navigationFromCms({
+      id: 1,
+      live: {
+        items: [
+          parent('', 'primary', { page: null }),
+          parent('グループ', 'info', {
+            children: [{ page: null }, { page: 3 }],
+          }),
+          parent('残る', 'info', path('残る', '/ok')),
+        ],
+      },
+    } as unknown as Navigation);
+    expect(result.live.map((item) => item.label)).toEqual(['残る']);
+  });
+
+  it('色は Tailwind が拾える完全なクラス名に対応する', () => {
+    expect(underlineColorClassFor({ color: 'accent-alt' })).toBe(
+      'bg-accent-alt',
+    );
+    expect(underlineColorClassFor({})).toBe('bg-primary');
+  });
+});
 
 describe('navigationItemsByPhase', () => {
-  it('live (開催中) は表のとおりの項目・順序・子項目を持つ', () => {
-    const expected: readonly NavigationItem[] = [
-      { label: '企画一覧', href: '/exhibitions' },
-      { label: '構内マップ', href: '/map' },
-      { label: 'タイムテーブル', href: '/timetable' },
-      {
-        label: 'お知らせ',
-        children: [
-          { label: 'お知らせ一覧', href: '/announcements' },
-          { label: 'トピック', href: '/topics' },
-        ],
-      },
-      {
-        label: 'ご案内',
-        children: [
-          { label: 'アクセス', href: '/access' },
-          { label: 'ご来場の際の注意点', href: '/guidelines' },
-          { label: '案内所・落とし物・迷子', href: '/info-desk' },
-          { label: 'ごみの分別のお願い', href: '/waste' },
-          { label: 'よくある質問', href: '/faq' },
-          { label: 'お問い合わせ', href: '/contact' },
-        ],
-      },
-    ];
-    expect(navigationItemsByPhase.live).toEqual(expected);
-  });
-
-  it('pre_event (開催前) は表のとおりの項目・順序・子項目を持つ', () => {
-    const expected: readonly NavigationItem[] = [
-      { label: '荒牧祭について', href: '/#about' },
-      { label: 'お知らせ', href: '/announcements' },
-      { label: 'トピック', href: '/topics' },
-      {
-        label: 'ご案内',
-        children: navigationItemsByPhase.live[4].children,
-      },
-      {
-        label: '協賛',
-        children: [
-          { label: '広告協賛', href: '/sponsors/ad' },
-          { label: '地域協賛', href: '/sponsors/local' },
-        ],
-      },
-    ];
-    expect(navigationItemsByPhase.pre_event).toEqual(expected);
-  });
-
-  it('live と pre_event の「ご案内」は同一の子項目を持つ (design.md 「during と同一の6項目」)', () => {
-    const live = navigationItemsByPhase.live.find(
-      (item) => item.label === 'ご案内',
+  it('フッターのサポート列と重複するお問い合わせは hideInFooter を持つ', () => {
+    const guidance = navigationItemsByPhase.live.find(
+      (item) => item.footerColumn === 'guidance',
     );
-    const preEvent = navigationItemsByPhase.pre_event.find(
-      (item) => item.label === 'ご案内',
-    );
-    expect(preEvent?.children).toEqual(live?.children);
+    expect(guidance?.children?.filter((child) => child.hideInFooter)).toEqual([
+      { label: 'お問い合わせ', href: '/contact', hideInFooter: true },
+    ]);
   });
 
-  it('「ご案内」など子項目のみを持つ親は href を持たない', () => {
-    const parents = ['お知らせ', 'ご案内', '協賛'];
-    for (const phase of [
-      navigationItemsByPhase.live,
-      navigationItemsByPhase.pre_event,
-    ]) {
-      for (const item of phase) {
-        if (parents.includes(item.label) && item.children) {
-          expect(item.href).toBeUndefined();
-        }
+  it('子項目のみを持つ親は href を持たない', () => {
+    for (const items of Object.values(navigationItemsByPhase)) {
+      for (const item of items) {
+        if (item.children) expect(item.href).toBeUndefined();
       }
     }
-  });
-
-  it('フッターの「サイト案内」「ご案内」振り分けは「ご案内」の子項目とそれ以外から導出できる', () => {
-    const live = navigationItemsByPhase.live;
-    const guidance = live.find((item) => item.label === 'ご案内');
-    const siteInfo = live.filter((item) => item.label !== 'ご案内');
-    expect(guidance?.children?.length).toBeGreaterThan(0);
-    expect(siteInfo.map((item) => item.label)).toEqual([
-      '企画一覧',
-      '構内マップ',
-      'タイムテーブル',
-      'お知らせ',
-    ]);
   });
 });
 
@@ -130,15 +173,19 @@ describe('lib/navigation.ts は表示部品を参照しない (要件 19.4)', ()
 
 describe('mobileMenuItemsFor', () => {
   it('live はハンバーガーメニュー用に末尾へマイページを足す', () => {
-    const items = mobileMenuItemsFor('live');
+    const items = mobileMenuItemsFor('live', navigationItemsByPhase.live);
     expect(items.slice(0, -1)).toEqual(navigationItemsByPhase.live);
-    expect(items.at(-1)).toEqual({ label: 'マイページ', href: '/mypage' });
+    expect(items.at(-1)).toEqual({
+      label: 'マイページ',
+      color: 'accent-alt',
+      href: '/mypage',
+    });
   });
 
   it('pre_event は変えない', () => {
-    expect(mobileMenuItemsFor('pre_event')).toEqual(
-      navigationItemsByPhase.pre_event,
-    );
+    expect(
+      mobileMenuItemsFor('pre_event', navigationItemsByPhase.pre_event),
+    ).toEqual(navigationItemsByPhase.pre_event);
   });
 
   it('PC の横並びナビが読む navigationItemsByPhase.live にはマイページを含めない', () => {

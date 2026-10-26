@@ -89,7 +89,16 @@ export type CmsFetchOptions = {
   readonly ttlSeconds?: number;
   /** 通常のキーを読まず、版付きのキー(__v)で取得・保存する */
   readonly version?: number;
+  /** この時間で取得を打ち切る。省略時は打ち切らない */
+  readonly timeoutMs?: number;
+  /**
+   * save: 成功した応答を通常の TTL とは別に長期保持する。
+   * read: 長期保持した直近の正常値だけを返す(無ければ 404 相当)。CMS 停止中の代替表示用
+   */
+  readonly retained?: 'save' | 'read';
 };
+
+const RETAINED_TTL_SECONDS = 60 * 60 * 24 * 30;
 
 function getEdgeCache(): Cache | undefined {
   if (typeof caches === 'undefined') return undefined;
@@ -100,11 +109,22 @@ async function cachedFetch(
   url: string,
   ttlSeconds: number,
   version?: number,
+  timeoutMs?: number,
+  retained?: 'save' | 'read',
 ): Promise<Response> {
   const cache = getEdgeCache();
+  const signal = timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined;
+  const retainedKey = new Request(
+    `${url}${url.includes('?') ? '&' : '?'}__retained=1`,
+  );
+  if (retained === 'read') {
+    return (
+      (await cache?.match(retainedKey)) ?? new Response(null, { status: 404 })
+    );
+  }
   // TTL 0 は即時反映が要る取得。エッジキャッシュも Next の fetch キャッシュも通さない
-  if (ttlSeconds === 0) return fetch(url, { cache: 'no-store' });
-  if (!cache) return fetch(url);
+  if (ttlSeconds === 0) return fetch(url, { cache: 'no-store', signal });
+  if (!cache) return fetch(url, { signal });
   const withParam = (name: string, value: number) =>
     new Request(`${url}${url.includes('?') ? '&' : '?'}${name}=${value}`);
   // キャッシュキーは URL のみなので、既定外の TTL は別キーにして同じクエリを別 TTL と共有しない。
@@ -117,14 +137,18 @@ async function cachedFetch(
         : withParam('__cache_ttl', ttlSeconds);
   const hit = await cache.match(key);
   if (hit) return hit;
-  const response = await fetch(url);
+  const response = await fetch(url, { signal });
   if (response.ok) {
     try {
       const { getCloudflareContext } = await import('@opennextjs/cloudflare');
       const { waitUntil } = getCloudflareContext().ctx;
-      const stored = new Response(response.clone().body, response);
-      stored.headers.set('Cache-Control', `s-maxage=${ttlSeconds}`);
-      waitUntil(cache.put(key, stored));
+      const store = (target: Request, seconds: number) => {
+        const stored = new Response(response.clone().body, response);
+        stored.headers.set('Cache-Control', `s-maxage=${seconds}`);
+        waitUntil(cache.put(target, stored));
+      };
+      store(key, ttlSeconds);
+      if (retained === 'save') store(retainedKey, RETAINED_TTL_SECONDS);
     } catch {
       // waitUntil を取れない環境では保存を諦める (応答自体は返す)
     }
@@ -141,12 +165,16 @@ async function requestUncached<T>(
   path: string,
   ttlSeconds = DEFAULT_CACHE_TTL_SECONDS,
   version?: number,
+  timeoutMs?: number,
+  retained?: 'save' | 'read',
 ): Promise<CmsResult<T>> {
   try {
     const response = await cachedFetch(
       `${env.NEXT_PUBLIC_CMS_URL}${path}`,
       ttlSeconds,
       version,
+      timeoutMs,
+      retained,
     );
     if (!response.ok) {
       if (response.status === 404)
@@ -203,6 +231,8 @@ export const cms = {
       ),
       options.ttlSeconds,
       options.version,
+      options.timeoutMs,
+      options.retained,
     );
   },
 };

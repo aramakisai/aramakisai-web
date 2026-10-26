@@ -5,6 +5,7 @@ import { isHiddenInAdmin } from '../access/policy';
 import { toCmsUser } from '../access/roles';
 import { NAV_GROUPS } from '../nav-groups';
 
+import { Navigation } from './navigation';
 import { SignageSettings } from './signage-settings';
 import { SiteSettings } from './site-settings';
 
@@ -23,4 +24,4 @@ const withAccess = (global: GlobalConfig): GlobalConfig => {
 };
 
 /** グローバルの登録口。1 グローバル 1 ファイルとし、ここへ 1 行追加するだけにとどめる。 */
-export const globals: GlobalConfig[] = [SiteSettings, SignageSettings].map(withAccess);
+export const globals: GlobalConfig[] = [SiteSettings, SignageSettings, Navigation].map(withAccess);

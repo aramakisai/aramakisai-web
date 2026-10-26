@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { CampusMapScreen } from '@/components/campus-map/campus-map-screen';
 import { getCampusMapData } from '@/lib/campus-map';
+import { getNavigation } from '@/lib/get-navigation';
 import { isBuildPhase } from '@/lib/isr';
 import { getRequestPhase } from '@/lib/request-phase';
 import { getSiteMetadata } from '@/lib/site-metadata';
@@ -35,8 +36,9 @@ export default async function MapPage() {
     throw new Error('構内マップの取得に失敗しました');
   }
   const { phase } = await getRequestPhase();
+  const navigation = await getNavigation();
 
   // 絞り込み条件は URL から読む必要があり、ここで searchParams を読むとページが動的になるため、
   // クライアントがマウント時に location.search から復元する
-  return <CampusMapScreen data={data} phase={phase} />;
+  return <CampusMapScreen data={data} phase={phase} navigation={navigation} />;
 }

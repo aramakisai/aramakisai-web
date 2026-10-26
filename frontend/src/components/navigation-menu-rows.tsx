@@ -108,7 +108,7 @@ export function NavigationMenuRows({
     <ul>
       {items.map((item, index) => {
         const active = isItemActive(item, pathname);
-        const colorClass = underlineColorClassFor(item.label);
+        const colorClass = underlineColorClassFor(item);
         const open = Boolean(item.children) && openLabels.has(item.label);
         const isLast = index === items.length - 1;
         // Figma (234:138・256:256): 開いた親の行自体には線がなく、区切りは最後の子行の
