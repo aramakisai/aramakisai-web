@@ -87,7 +87,7 @@ S3 の接続情報 (`S3_BUCKET` 等) が未設定の場合はディスク保存�
 | `DATABASE_URL` | Postgres 接続文字列 | 必須 |
 | `DATABASE_REPLICA_URL` | 読み取りレプリカの接続文字列。トランザクション外の読み取りだけがここへ向く。未設定または空なら primary のみ | 任意 (本番のみ設定) |
 | `PAYLOAD_SECRET` | セッション署名鍵 | 必須 |
-| `CMS_PUBLIC_URL` | 公開 URL (OIDC リダイレクト先の組み立てに使う) | Authentik 連携時 |
+| `CMS_PUBLIC_URL` | 公開 URL (Payload の `serverURL`・OIDC リダイレクト先・招待メールのリンクに使う。cookie 認証の許可オリジンにもなるため、管理画面を開くオリジンと一致させる) | 本番 |
 | `S3_BUCKET` / `S3_ENDPOINT` / `S3_REGION` / `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | メディア保存先 | 本番 |
 | `S3_PREFIX` | メディアのキー接頭辞 (既定 `payload-uploads`) | 任意 |
 | `CLOUDFLARE_ZONE_ID` / `CLOUDFLARE_PURGE_TOKEN` | 画像の非公開化・削除・差し替え時に `cms.aramakisai.com` のエッジキャッシュを purge する (zone の Cache Purge 権限だけのトークン)。`CMS_PUBLIC_URL` と合わせて 3 つ揃わないと purge せず、起動時に警告を 1 回出す | 本番 |
@@ -416,8 +416,12 @@ Local API から行う場合は `payload.create({ collection: 'student_exhibitio
 
 学生団体本人が、ログイン画面の「パスワードをお忘れですか？」からメールアドレスを入力して
 再設定メールを受け取る (Payload 標準の forgot-password。件名・本文は既定のまま)。
-再設定リンクの有効期限は 1 時間。実行委員が代行して再設定する経路は無いため、リンクを
-紛失した場合は招待メールの再送 (上記) で案内し直す。
+再設定リンクの有効期限は 1 時間。リンクは `CMS_PUBLIC_URL` を基にした絶対 URL で送られる。
+期限切れ・使用済みのリンクは無効と表示されるため、もう一度「パスワードをお忘れですか？」から
+やり直す。招待メールの再送は未設定の人にしか使えない。
+
+本人がメールを受け取れない場合は、実行委員がユーザーの編集画面の「パスワードを変更」で
+仮パスワードを設定し、本人へ伝える。
 
 ## 学生団体から見た操作範囲
 

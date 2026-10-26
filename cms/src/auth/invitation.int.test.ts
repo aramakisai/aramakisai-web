@@ -229,7 +229,7 @@ describe.skipIf(!hasDatabase)('招待メールの送信', () => {
         overrideAccess: true,
       }),
     ).rejects.toMatchObject({
-      message: 'リンクが無効なため、実行委員に招待メールの再送を依頼してください。',
+      message: 'リンクが無効です。パスワード設定済みの場合はログイン画面の「パスワードをお忘れですか？」から再設定してください。未設定の場合は実行委員に招待メールの再送を依頼してください。',
       status: 403,
     });
   });

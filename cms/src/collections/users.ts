@@ -50,7 +50,7 @@ const guardResetToken: CollectionBeforeOperationHook = async (arg) => {
   });
   if (!found) {
     throw new APIError(
-      'リンクが無効なため、実行委員に招待メールの再送を依頼してください。',
+      'リンクが無効です。パスワード設定済みの場合はログイン画面の「パスワードをお忘れですか？」から再設定してください。未設定の場合は実行委員に招待メールの再送を依頼してください。',
       403,
       undefined,
       true,
