@@ -769,18 +769,23 @@ describe('受信状態', () => {
     connected: true,
     lastReceivedAt,
     bootedAt,
+    missed: false,
   });
 
-  it('閾値はP2P 12分、Wolfx 3分', () => {
+  it('閾値はWolfxのみ3分', () => {
     expect(SILENCE_LIMIT_MS).toEqual({
-      p2p: 720_000,
       wolfxEew: 180_000,
       wolfxEqlist: 180_000,
     });
-    expect(isReceiving('p2p', input(T0), T0 + 720_000)).toBe(true);
-    expect(isReceiving('p2p', input(T0), T0 + 720_001)).toBe(false);
     expect(isReceiving('wolfxEew', input(T0), T0 + 180_000)).toBe(true);
     expect(isReceiving('wolfxEew', input(T0), T0 + 180_001)).toBe(false);
+  });
+
+  it('P2Pは無受信が50分でも、取りこぼしが無ければ受信中', () => {
+    expect(isReceiving('p2p', input(T0), T0 + 50 * 60_000)).toBe(true);
+    expect(isReceiving('p2p', { ...input(T0), missed: true }, T0 + 1)).toBe(
+      false,
+    );
   });
 
   it('起動直後は未受信でも、閾値まで受信できているとみなす', () => {
@@ -793,9 +798,9 @@ describe('受信状態', () => {
   });
 
   it('受信すると戻る', () => {
-    expect(
-      isReceiving('p2p', input(T0 + 1_000_000), T0 + 1_000_000 + 1000),
-    ).toBe(true);
+    expect(isReceiving('wolfxEew', input(T0 + 1_000_000), T0 + 1_001_000)).toBe(
+      true,
+    );
   });
 
   it('P2PとWolfx(緊急地震速報)がともに受信できないときだけ受信不能', () => {

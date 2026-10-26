@@ -89,3 +89,12 @@ export function readRelayConfig(env: QuakeEnv): ConfigResult {
 export function isInPeriod(config: RelayConfig, now: number): boolean {
   return now >= config.activeFrom && now < config.activeUntil;
 }
+
+/** P2P の WebSocket の URL から、最新1件を返す /history の URL を作る */
+export function p2pHistoryUrl(wsUrl: string): string {
+  const url = new URL(wsUrl);
+  url.protocol = url.protocol === 'wss:' ? 'https:' : 'http:';
+  url.pathname = url.pathname.replace(/\/ws$/, '/history');
+  url.search = '?limit=1';
+  return url.toString();
+}
