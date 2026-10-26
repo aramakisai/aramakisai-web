@@ -31,6 +31,7 @@ import { hasUnreceivedReport, normalizeMessage } from './upstream';
 
 const STATE_KEY = 'state';
 const P2P_PROBE_MS = 5 * 60_000;
+const CONNECT_TIMEOUT_MS = 30_000;
 const RELAY_NAME = 'signage-quake';
 const HUB_NAME = 'signage-hub';
 const CHANNELS: readonly ChannelName[] = ['p2p', 'wolfxEew', 'wolfxEqlist'];
@@ -207,9 +208,14 @@ export class QuakeRelay
   async #connect(channel: ChannelName): Promise<void> {
     const conn = this.#conns[channel];
     conn.connecting = true;
+    // 応答が無いと connecting のまま残り、その系統は再接続されない。
+    // 接続後に abort が効くと確立済みの WebSocket に触れるおそれがあるので finally で必ず解除する
+    const abort = new AbortController();
+    const timer = setTimeout(() => abort.abort(), CONNECT_TIMEOUT_MS);
     try {
       const res = await fetch(toHttpUrl(this.#config.urls[channel]), {
         headers: { Upgrade: 'websocket' },
+        signal: abort.signal,
       });
       const ws = res.webSocket;
       if (!ws) throw new Error(`status ${res.status}`);
@@ -227,6 +233,7 @@ export class QuakeRelay
       conn.retryAt = Date.now() + retryDelayMs(conn.failures, Math.random);
       conn.failures += 1;
     } finally {
+      clearTimeout(timer);
       conn.connecting = false;
     }
   }

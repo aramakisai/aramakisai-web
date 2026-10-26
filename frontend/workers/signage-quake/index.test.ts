@@ -248,6 +248,34 @@ describe('接続', () => {
     expect(fetch).toHaveBeenCalledTimes(4);
   });
 
+  it('上流が応答しなければタイムアウトで失敗扱いにし、待ちの後に再接続する', async () => {
+    const { make } = setup();
+    const fetchMock = vi.fn(
+      (_url: string, init: { signal: AbortSignal }) =>
+        new Promise<never>((_, reject) => {
+          init.signal.addEventListener('abort', () =>
+            reject(new Error('aborted')),
+          );
+        }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const relay = make();
+    const first = relay.ensure();
+    await vi.advanceTimersByTimeAsync(30_000);
+    await first;
+    expect(console.warn).toHaveBeenCalledWith(
+      'quake: wolfxEew に接続できない',
+      expect.any(Error),
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    // connecting が解除されていれば待ちの後に再接続を試みる
+    await vi.advanceTimersByTimeAsync(30_000);
+    const second = relay.ensure();
+    await vi.advanceTimersByTimeAsync(30_000);
+    await second;
+    expect(fetchMock).toHaveBeenCalledTimes(6);
+  });
+
   it('closeされた系統は再試行の待ちを過ぎてから再接続する', async () => {
     const { make } = setup();
     const sockets = stubSockets();
