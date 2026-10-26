@@ -147,18 +147,19 @@ type CmsNavigationItems = NonNullable<NonNullable<Navigation['live']>['items']>;
 type CmsNavigationItem = CmsNavigationItems[number];
 type CmsNavigationChild = NonNullable<CmsNavigationItem['children']>[number];
 
-// 参照先の pages が削除されると page は null か id のままになる。その場合は path に落とし、
-// path も無ければ描画対象から外す
 function resolveLink(entry: {
+  link_type?: 'page' | 'path' | 'group' | null;
   page?: number | Page | null;
   path?: string | null;
   label?: string | null;
 }): { label: string; href: string } | undefined {
-  const { page } = entry;
-  if (page && typeof page === 'object') {
-    return { label: page.title, href: `/${page.slug}` };
+  if (entry.link_type === 'page') {
+    const { page } = entry;
+    return page && typeof page === 'object'
+      ? { label: page.title, href: `/${page.slug}` }
+      : undefined;
   }
-  if (entry.path && entry.label) {
+  if (entry.link_type === 'path' && entry.path && entry.label) {
     return { label: entry.label, href: entry.path };
   }
   return undefined;
@@ -176,8 +177,8 @@ function itemFromCms(item: CmsNavigationItem): NavigationItem | undefined {
     footerColumn:
       item.footer_column === 'guidance' ? ('guidance' as const) : undefined,
   };
-  if (item.children?.length) {
-    const children = item.children.flatMap((child) => {
+  if (item.link_type === 'group') {
+    const children = (item.children ?? []).flatMap((child) => {
       const converted = childFromCms(child);
       return converted ? [converted] : [];
     });

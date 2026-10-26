@@ -6710,6 +6710,14 @@
           "primaryKey": true,
           "notNull": true
         },
+        "link_type": {
+          "name": "link_type",
+          "type": "enum_navigation_live_items_children_link_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'page'"
+        },
         "page_id": {
           "name": "page_id",
           "type": "integer",
@@ -6838,6 +6846,14 @@
           "type": "varchar",
           "primaryKey": true,
           "notNull": true
+        },
+        "link_type": {
+          "name": "link_type",
+          "type": "enum_navigation_live_items_link_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'page'"
         },
         "page_id": {
           "name": "page_id",
@@ -6977,6 +6993,14 @@
           "primaryKey": true,
           "notNull": true
         },
+        "link_type": {
+          "name": "link_type",
+          "type": "enum_navigation_pre_event_items_children_link_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'page'"
+        },
         "page_id": {
           "name": "page_id",
           "type": "integer",
@@ -7105,6 +7129,14 @@
           "type": "varchar",
           "primaryKey": true,
           "notNull": true
+        },
+        "link_type": {
+          "name": "link_type",
+          "type": "enum_navigation_pre_event_items_link_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'page'"
         },
         "page_id": {
           "name": "page_id",
@@ -7435,6 +7467,23 @@
         "purgeMediaEdgeCache"
       ]
     },
+    "public.enum_navigation_live_items_children_link_type": {
+      "name": "enum_navigation_live_items_children_link_type",
+      "schema": "public",
+      "values": [
+        "page",
+        "path"
+      ]
+    },
+    "public.enum_navigation_live_items_link_type": {
+      "name": "enum_navigation_live_items_link_type",
+      "schema": "public",
+      "values": [
+        "page",
+        "path",
+        "group"
+      ]
+    },
     "public.enum_navigation_live_items_color": {
       "name": "enum_navigation_live_items_color",
       "schema": "public",
@@ -7454,6 +7503,23 @@
       "values": [
         "site",
         "guidance"
+      ]
+    },
+    "public.enum_navigation_pre_event_items_children_link_type": {
+      "name": "enum_navigation_pre_event_items_children_link_type",
+      "schema": "public",
+      "values": [
+        "page",
+        "path"
+      ]
+    },
+    "public.enum_navigation_pre_event_items_link_type": {
+      "name": "enum_navigation_pre_event_items_link_type",
+      "schema": "public",
+      "values": [
+        "page",
+        "path",
+        "group"
       ]
     },
     "public.enum_navigation_pre_event_items_color": {
@@ -7488,6 +7554,6 @@
     "tables": {},
     "columns": {}
   },
-  "id": "0a274e54-89cd-47f2-a17b-205ac6a3d537",
+  "id": "7a244ca7-48d1-442f-bfa9-224a31377d5c",
   "prevId": "00000000-0000-0000-0000-000000000000"
 }

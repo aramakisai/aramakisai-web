@@ -1564,71 +1564,59 @@ export interface SignageSetting {
  */
 export interface Navigation {
   id: number;
-  live?: {
-    items?:
-      | {
-          /**
-           * 項目名はページの見出しになる。開催前は公開対象のパスでないと 404 になる。
-           */
-          page?: (number | null) | Page;
-          /**
-           * 固定ページ以外のリンク先。例: /exhibitions、/#about。開催前は公開対象のパスでないと 404 になる。
-           */
-          path?: string | null;
-          label?: string | null;
-          color: 'primary' | 'secondary' | 'info' | 'warning' | 'success' | 'accent' | 'accent-alt';
-          footer_column: 'site' | 'guidance';
-          children?:
-            | {
-                /**
-                 * 項目名はページの見出しになる。開催前は公開対象のパスでないと 404 になる。
-                 */
-                page?: (number | null) | Page;
-                /**
-                 * 固定ページ以外のリンク先。例: /exhibitions、/#about。開催前は公開対象のパスでないと 404 になる。
-                 */
-                path?: string | null;
-                label?: string | null;
-                hide_in_footer?: boolean | null;
-                id?: string | null;
-              }[]
-            | null;
-          id?: string | null;
-        }[]
-      | null;
+  live: {
+    items: {
+      link_type: 'page' | 'path' | 'group';
+      page?: (number | null) | Page;
+      /**
+       * 例: /exhibitions、/#about
+       */
+      path?: string | null;
+      label?: string | null;
+      color: 'primary' | 'secondary' | 'info' | 'warning' | 'success' | 'accent' | 'accent-alt';
+      footer_column: 'site' | 'guidance';
+      children?:
+        | {
+            link_type: 'page' | 'path';
+            page?: (number | null) | Page;
+            /**
+             * 例: /exhibitions、/#about
+             */
+            path?: string | null;
+            label?: string | null;
+            hide_in_footer?: boolean | null;
+            id?: string | null;
+          }[]
+        | null;
+      id?: string | null;
+    }[];
   };
-  pre_event?: {
-    items?:
-      | {
-          /**
-           * 項目名はページの見出しになる。開催前は公開対象のパスでないと 404 になる。
-           */
-          page?: (number | null) | Page;
-          /**
-           * 固定ページ以外のリンク先。例: /exhibitions、/#about。開催前は公開対象のパスでないと 404 になる。
-           */
-          path?: string | null;
-          label?: string | null;
-          color: 'primary' | 'secondary' | 'info' | 'warning' | 'success' | 'accent' | 'accent-alt';
-          footer_column: 'site' | 'guidance';
-          children?:
-            | {
-                /**
-                 * 項目名はページの見出しになる。開催前は公開対象のパスでないと 404 になる。
-                 */
-                page?: (number | null) | Page;
-                /**
-                 * 固定ページ以外のリンク先。例: /exhibitions、/#about。開催前は公開対象のパスでないと 404 になる。
-                 */
-                path?: string | null;
-                label?: string | null;
-                hide_in_footer?: boolean | null;
-                id?: string | null;
-              }[]
-            | null;
-          id?: string | null;
-        }[]
-      | null;
+  pre_event: {
+    items: {
+      link_type: 'page' | 'path' | 'group';
+      page?: (number | null) | Page;
+      /**
+       * 例: /exhibitions、/#about
+       */
+      path?: string | null;
+      label?: string | null;
+      color: 'primary' | 'secondary' | 'info' | 'warning' | 'success' | 'accent' | 'accent-alt';
+      footer_column: 'site' | 'guidance';
+      children?:
+        | {
+            link_type: 'page' | 'path';
+            page?: (number | null) | Page;
+            /**
+             * 例: /exhibitions、/#about
+             */
+            path?: string | null;
+            label?: string | null;
+            hide_in_footer?: boolean | null;
+            id?: string | null;
+          }[]
+        | null;
+      id?: string | null;
+    }[];
   };
   updatedAt?: string | null;
   createdAt?: string | null;
@@ -1682,6 +1670,7 @@ export interface NavigationSelect<T extends boolean = true> {
         items?:
           | T
           | {
+              link_type?: T;
               page?: T;
               path?: T;
               label?: T;
@@ -1690,6 +1679,7 @@ export interface NavigationSelect<T extends boolean = true> {
               children?:
                 | T
                 | {
+                    link_type?: T;
                     page?: T;
                     path?: T;
                     label?: T;
@@ -1705,6 +1695,7 @@ export interface NavigationSelect<T extends boolean = true> {
         items?:
           | T
           | {
+              link_type?: T;
               page?: T;
               path?: T;
               label?: T;
@@ -1713,6 +1704,7 @@ export interface NavigationSelect<T extends boolean = true> {
               children?:
                 | T
                 | {
+                    link_type?: T;
                     page?: T;
                     path?: T;
                     label?: T;

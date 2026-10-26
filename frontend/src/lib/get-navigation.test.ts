@@ -19,6 +19,7 @@ function nav(items: unknown[]): Navigation {
 }
 const item = (label: string, href: string, extra = {}) => ({
   label,
+  link_type: 'path',
   path: href,
   color: 'primary',
   footer_column: 'site',
@@ -80,7 +81,12 @@ describe('getNavigation', () => {
       ok(
         nav([
           item('残る', '/ok'),
-          { color: 'info', footer_column: 'site', page: null },
+          {
+            color: 'info',
+            footer_column: 'site',
+            link_type: 'page',
+            page: null,
+          },
         ]),
       ),
     );
@@ -92,7 +98,11 @@ describe('getNavigation', () => {
       ok(
         nav([
           item('残る', '/ok'),
-          item('空', '/x', { path: undefined, children: [{ page: null }] }),
+          item('空', '/x', {
+            link_type: 'group',
+            path: undefined,
+            children: [{ link_type: 'page', page: null }],
+          }),
         ]),
       ),
     );

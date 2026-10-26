@@ -46,14 +46,19 @@ const ITEMS: Record<'live' | 'pre_event', Item[]> = {
 
 export async function up({ db }: MigrateUpArgs): Promise<void> {
   await db.execute(sql`
-   CREATE TYPE "public"."enum_navigation_live_items_color" AS ENUM('primary', 'secondary', 'info', 'warning', 'success', 'accent', 'accent-alt');
+   CREATE TYPE "public"."enum_navigation_live_items_children_link_type" AS ENUM('page', 'path');
+  CREATE TYPE "public"."enum_navigation_live_items_link_type" AS ENUM('page', 'path', 'group');
+  CREATE TYPE "public"."enum_navigation_live_items_color" AS ENUM('primary', 'secondary', 'info', 'warning', 'success', 'accent', 'accent-alt');
   CREATE TYPE "public"."enum_navigation_live_items_footer_column" AS ENUM('site', 'guidance');
+  CREATE TYPE "public"."enum_navigation_pre_event_items_children_link_type" AS ENUM('page', 'path');
+  CREATE TYPE "public"."enum_navigation_pre_event_items_link_type" AS ENUM('page', 'path', 'group');
   CREATE TYPE "public"."enum_navigation_pre_event_items_color" AS ENUM('primary', 'secondary', 'info', 'warning', 'success', 'accent', 'accent-alt');
   CREATE TYPE "public"."enum_navigation_pre_event_items_footer_column" AS ENUM('site', 'guidance');
   CREATE TABLE "navigation_live_items_children" (
   	"_order" integer NOT NULL,
   	"_parent_id" varchar NOT NULL,
   	"id" varchar PRIMARY KEY NOT NULL,
+  	"link_type" "enum_navigation_live_items_children_link_type" DEFAULT 'page',
   	"page_id" integer,
   	"path" varchar,
   	"label" varchar,
@@ -64,6 +69,7 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
   	"_order" integer NOT NULL,
   	"_parent_id" integer NOT NULL,
   	"id" varchar PRIMARY KEY NOT NULL,
+  	"link_type" "enum_navigation_live_items_link_type" DEFAULT 'page' NOT NULL,
   	"page_id" integer,
   	"path" varchar,
   	"label" varchar,
@@ -75,6 +81,7 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
   	"_order" integer NOT NULL,
   	"_parent_id" varchar NOT NULL,
   	"id" varchar PRIMARY KEY NOT NULL,
+  	"link_type" "enum_navigation_pre_event_items_children_link_type" DEFAULT 'page',
   	"page_id" integer,
   	"path" varchar,
   	"label" varchar,
@@ -85,6 +92,7 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
   	"_order" integer NOT NULL,
   	"_parent_id" integer NOT NULL,
   	"id" varchar PRIMARY KEY NOT NULL,
+  	"link_type" "enum_navigation_pre_event_items_link_type" DEFAULT 'page' NOT NULL,
   	"page_id" integer,
   	"path" varchar,
   	"label" varchar,
@@ -119,7 +127,6 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
   CREATE INDEX "navigation_pre_event_items_parent_id_idx" ON "navigation_pre_event_items" USING btree ("_parent_id");
   CREATE INDEX "navigation_pre_event_items_page_idx" ON "navigation_pre_event_items" USING btree ("page_id");`)
 
-
   // 本番と開発で pages の有無が異なるため、slug で引けたものだけ page に、無ければ path + label にする
   const pages = await db.execute(sql`SELECT id, slug FROM "pages"`)
   const pageIdBySlug = new Map<string, number>(
@@ -127,7 +134,9 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
   )
   const link = (path: string | undefined, label: string) => {
     const pageId = path && /^\/[^/#]+$/.test(path) ? (pageIdBySlug.get(path.slice(1)) ?? null) : null
-    return pageId === null ? { pageId, path: path ?? null, label } : { pageId, path: null, label: null }
+    return pageId === null
+      ? { type: 'path', pageId, path: path ?? null, label }
+      : { type: 'page', pageId, path: null, label: null }
   }
 
   await db.execute(sql`INSERT INTO "navigation" ("id", "updated_at", "created_at") VALUES (1, now(), now())`)
@@ -138,13 +147,13 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
       const id = `${phase}-${i}`
       const l = link(item.path, item.label)
       await db.execute(sql`
-        INSERT INTO ${items} ("_order", "_parent_id", "id", "page_id", "path", "label", "color", "footer_column")
-        VALUES (${i + 1}, 1, ${id}, ${l.pageId}, ${l.path}, ${l.label}, ${item.color}, ${item.guidance ? 'guidance' : 'site'})`)
+        INSERT INTO ${items} ("_order", "_parent_id", "id", "link_type", "page_id", "path", "label", "color", "footer_column")
+        VALUES (${i + 1}, 1, ${id}, ${item.children ? 'group' : l.type}, ${l.pageId}, ${l.path}, ${l.label}, ${item.color}, ${item.guidance ? 'guidance' : 'site'})`)
       for (const [j, child] of (item.children ?? []).entries()) {
         const c = link(child.path, child.label)
         await db.execute(sql`
-          INSERT INTO ${kids} ("_order", "_parent_id", "id", "page_id", "path", "label", "hide_in_footer")
-          VALUES (${j + 1}, ${id}, ${`${id}-${j}`}, ${c.pageId}, ${c.path}, ${c.label}, ${child.hideInFooter ?? false})`)
+          INSERT INTO ${kids} ("_order", "_parent_id", "id", "link_type", "page_id", "path", "label", "hide_in_footer")
+          VALUES (${j + 1}, ${id}, ${`${id}-${j}`}, ${c.type}, ${c.pageId}, ${c.path}, ${c.label}, ${child.hideInFooter ?? false})`)
       }
     }
   }
@@ -157,8 +166,12 @@ export async function down({ db }: MigrateDownArgs): Promise<void> {
   DROP TABLE "navigation_pre_event_items_children" CASCADE;
   DROP TABLE "navigation_pre_event_items" CASCADE;
   DROP TABLE "navigation" CASCADE;
+  DROP TYPE "public"."enum_navigation_live_items_children_link_type";
+  DROP TYPE "public"."enum_navigation_live_items_link_type";
   DROP TYPE "public"."enum_navigation_live_items_color";
   DROP TYPE "public"."enum_navigation_live_items_footer_column";
+  DROP TYPE "public"."enum_navigation_pre_event_items_children_link_type";
+  DROP TYPE "public"."enum_navigation_pre_event_items_link_type";
   DROP TYPE "public"."enum_navigation_pre_event_items_color";
   DROP TYPE "public"."enum_navigation_pre_event_items_footer_column";`)
 }

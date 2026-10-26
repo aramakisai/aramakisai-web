@@ -11,12 +11,22 @@ import type { Navigation, Page } from '@/cms-types';
 
 type CmsItem = NonNullable<NonNullable<Navigation['live']>['items']>[number];
 
-const path = (label: string, href: string) => ({ label, path: href });
+const path = (label: string, href: string) => ({
+  link_type: 'path' as const,
+  label,
+  path: href,
+});
 const parent = (
   label: string,
   color: CmsItem['color'],
   extra: Partial<CmsItem> = {},
-): CmsItem => ({ label, color, footer_column: 'site', ...extra });
+): CmsItem => ({
+  link_type: 'path',
+  label,
+  color,
+  footer_column: 'site',
+  ...extra,
+});
 
 const guidanceChildren = [
   path('アクセス', '/access'),
@@ -36,12 +46,14 @@ const cmsFixture = {
       parent('構内マップ', 'secondary', path('構内マップ', '/map')),
       parent('タイムテーブル', 'info', path('タイムテーブル', '/timetable')),
       parent('お知らせ', 'warning', {
+        link_type: 'group',
         children: [
           path('お知らせ一覧', '/announcements'),
           path('トピック', '/topics'),
         ],
       }),
       parent('ご案内', 'success', {
+        link_type: 'group',
         footer_column: 'guidance',
         children: guidanceChildren,
       }),
@@ -53,10 +65,12 @@ const cmsFixture = {
       parent('お知らせ', 'warning', path('お知らせ', '/announcements')),
       parent('トピック', 'primary', path('トピック', '/topics')),
       parent('ご案内', 'success', {
+        link_type: 'group',
         footer_column: 'guidance',
         children: guidanceChildren,
       }),
       parent('協賛', 'accent', {
+        link_type: 'group',
         children: [
           path('広告協賛', '/sponsors/ad'),
           path('地域協賛', '/sponsors/local'),
@@ -79,6 +93,7 @@ describe('navigationFromCms', () => {
       live: {
         items: [
           parent('', 'primary', {
+            link_type: 'page',
             page: { id: 1, slug: 'faq', title: 'よくある質問' } as Page,
           }),
         ],
@@ -93,20 +108,48 @@ describe('navigationFromCms', () => {
     ]);
   });
 
-  it('参照先が消えて path も無い項目と、子が 0 件になったグループは出さない', () => {
+  it('参照先が消えた固定ページ項目と、子が 0 件になったグループは出さない', () => {
     const result = navigationFromCms({
       id: 1,
       live: {
         items: [
-          parent('', 'primary', { page: null }),
+          parent('', 'primary', { link_type: 'page', page: null }),
           parent('グループ', 'info', {
-            children: [{ page: null }, { page: 3 }],
+            link_type: 'group',
+            children: [
+              { link_type: 'page', page: null },
+              { link_type: 'page', page: 3 },
+            ],
           }),
           parent('残る', 'info', path('残る', '/ok')),
         ],
       },
     } as unknown as Navigation);
     expect(result.live.map((item) => item.label)).toEqual(['残る']);
+  });
+
+  it('link_type が path のとき page の残骸は使わず、page のとき path は使わない', () => {
+    const page = { id: 1, slug: 'faq', title: 'FAQ' } as Page;
+    const result = navigationFromCms({
+      id: 1,
+      live: {
+        items: [
+          parent('', 'primary', {
+            link_type: 'path',
+            page,
+            path: '/a',
+            label: 'A',
+          }),
+          parent('', 'info', {
+            link_type: 'page',
+            page,
+            path: '/b',
+            label: 'B',
+          }),
+        ],
+      },
+    } as unknown as Navigation);
+    expect(result.live.map((i) => i.href)).toEqual(['/a', '/faq']);
   });
 
   it('色は Tailwind が拾える完全なクラス名に対応する', () => {
