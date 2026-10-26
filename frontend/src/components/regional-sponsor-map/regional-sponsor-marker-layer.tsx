@@ -47,13 +47,21 @@ function applyAccessibility(
   marker: LeafletMarker,
   label: string,
   current = false,
+  onActivate?: () => void,
 ) {
   const element = marker.getElement();
   if (!element) return;
   element.setAttribute('role', 'button');
   element.setAttribute('aria-label', label);
+  element.tabIndex = 0;
   if (current) element.setAttribute('aria-current', 'true');
   else element.removeAttribute('aria-current');
+  element.onkeydown = (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    event.stopPropagation();
+    onActivate?.();
+  };
 }
 
 export function RegionalSponsorMarkerLayer({
@@ -70,30 +78,36 @@ export function RegionalSponsorMarkerLayer({
   const map = useMapEvents({
     zoomend: () => {
       setRevision((value) => value + 1);
-      onSpiderfyChange(null);
     },
     moveend: () => {
       setRevision((value) => value + 1);
-      onSpiderfyChange(null);
     },
+    dragstart: () => onSpiderfyChange(null),
     resize: () => setRevision((value) => value + 1),
     click: () => onSpiderfyChange(null),
   });
   const zoom = map.getZoom();
   void revision;
-  const groups = clusterProjectedSponsors(
-    sponsors.map((sponsor) => {
-      const projected = map.project(
-        [sponsor.latitude, sponsor.longitude],
-        zoom,
-      );
-      return { sponsor, x: projected.x, y: projected.y };
-    }),
-    { radius: markerSize, selectedSponsorId },
-  );
-  const spiderfied = groups.find(
+  const projectedSponsors = sponsors.map((sponsor) => {
+    const projected = map.project([sponsor.latitude, sponsor.longitude], zoom);
+    return { sponsor, x: projected.x, y: projected.y };
+  });
+  const groups = clusterProjectedSponsors(projectedSponsors, {
+    radius: markerSize,
+    selectedSponsorId,
+  });
+  const spiderfyGroups = spiderfiedClusterId
+    ? clusterProjectedSponsors(projectedSponsors, {
+        radius: markerSize,
+        selectedSponsorId: null,
+      })
+    : groups;
+  const spiderfied = spiderfyGroups.find(
     (group): group is Extract<MarkerGroup, { kind: 'cluster' }> =>
       group.kind === 'cluster' && group.id === spiderfiedClusterId,
+  );
+  const spiderfiedSponsorIds = new Set(
+    spiderfied?.sponsors.map(({ id }) => id),
   );
 
   useEffect(() => {
@@ -120,18 +134,25 @@ export function RegionalSponsorMarkerLayer({
   return (
     <>
       {groups.map((group) => {
+        const hiddenBySpiderfy =
+          group.kind === 'single'
+            ? spiderfiedSponsorIds.has(group.sponsor.id)
+            : group.sponsors.every(({ id }) => spiderfiedSponsorIds.has(id));
+        if (hiddenBySpiderfy) return null;
         if (group.kind === 'single') {
           const { sponsor } = group;
           const label = `${sponsor.name}、${getRegionalSponsorCategoryPresentation(sponsor.category).label}`;
+          const activate = () => selectSponsor(sponsor);
           return (
             <Marker
               key={group.id}
               ref={(marker) => {
-                if (marker) applyAccessibility(marker, label, group.selected);
+                if (marker)
+                  applyAccessibility(marker, label, group.selected, activate);
               }}
               position={[sponsor.latitude, sponsor.longitude]}
               icon={pinIcon(sponsor, markerSize, group.selected)}
-              keyboard
+              keyboard={false}
               alt={label}
               title={label}
               zIndexOffset={group.selected ? 1000 : 0}
@@ -141,13 +162,13 @@ export function RegionalSponsorMarkerLayer({
                     event.target as LeafletMarker,
                     label,
                     group.selected,
+                    activate,
                   ),
-                click: () => selectSponsor(sponsor),
+                click: activate,
               }}
             />
           );
         }
-        if (group.id === spiderfiedClusterId) return null;
         const sponsorLabels = group.sponsors
           .map(
             (sponsor) =>
@@ -155,21 +176,27 @@ export function RegionalSponsorMarkerLayer({
           )
           .join('、');
         const label = `${group.sponsors.length}件の地域協賛：${sponsorLabels}。選択して拡大`;
+        const activate = () => openCluster(group);
         return (
           <Marker
             key={group.id}
             ref={(marker) => {
-              if (marker) applyAccessibility(marker, label);
+              if (marker) applyAccessibility(marker, label, false, activate);
             }}
             position={[group.anchor.latitude, group.anchor.longitude]}
             icon={clusterIcon(markerSize)}
-            keyboard
+            keyboard={false}
             alt={label}
             title={label}
             eventHandlers={{
               add: (event) =>
-                applyAccessibility(event.target as LeafletMarker, label),
-              click: () => openCluster(group),
+                applyAccessibility(
+                  event.target as LeafletMarker,
+                  label,
+                  false,
+                  activate,
+                ),
+              click: activate,
             }}
           />
         );
@@ -186,22 +213,30 @@ export function RegionalSponsorMarkerLayer({
               zoom,
             );
             const label = `${sponsor.name}、${getRegionalSponsorCategoryPresentation(sponsor.category).label}`;
+            const selected = sponsor.id === selectedSponsorId;
+            const activate = () => onSelectSponsor(sponsor.id);
             return (
               <Marker
                 key={`spider:${sponsor.id}`}
                 ref={(marker) => {
-                  if (marker) applyAccessibility(marker, label);
+                  if (marker)
+                    applyAccessibility(marker, label, selected, activate);
                 }}
                 position={position}
-                icon={pinIcon(sponsor, markerSize, false)}
-                keyboard
+                icon={pinIcon(sponsor, markerSize, selected)}
+                keyboard={false}
                 alt={label}
                 title={label}
-                zIndexOffset={900}
+                zIndexOffset={selected ? 1000 : 900}
                 eventHandlers={{
                   add: (event) =>
-                    applyAccessibility(event.target as LeafletMarker, label),
-                  click: () => selectSponsor(sponsor),
+                    applyAccessibility(
+                      event.target as LeafletMarker,
+                      label,
+                      selected,
+                      activate,
+                    ),
+                  click: activate,
                 }}
               />
             );

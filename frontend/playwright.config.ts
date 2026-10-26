@@ -20,7 +20,8 @@ export default defineConfig({
   reporter: process.env.CI ? [['html', { open: 'never' }], ['github']] : 'list',
   webServer: useLocalApp
     ? {
-        command: 'pnpm exec next dev --hostname 127.0.0.1 --port 3011',
+        command:
+          'pnpm exec next dev --webpack --hostname 127.0.0.1 --port 3011',
         url: 'http://127.0.0.1:3011',
         reuseExistingServer: false,
         timeout: 120_000,

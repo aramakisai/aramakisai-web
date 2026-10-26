@@ -2,22 +2,37 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { s3Storage } from '@payloadcms/storage-s3'
+import { en } from '@payloadcms/translations/languages/en'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import sharp from 'sharp'
+
+import { Media } from '../src/collections/media'
 
 import {
   applyLocalSponsorImportPlan,
   createLocalSponsorImportPlan,
+  type LocalSponsorMediaCleanupToken,
   type LocalSponsorImportStore,
   validateLocalSponsorImportBundle,
   type ValidatedLocalSponsorImportRow,
 } from './local-sponsor-import'
 import {
   createBundleManifest,
+  deletePayloadStorageBlobs,
+  ensureRemoteStorageForApply,
+  main as runLocalSponsorImportMain,
   parseLocalSponsorImportArgs,
+  PayloadLocalSponsorImportStore,
   runLocalSponsorImport,
+  uploadPayloadStorageBlobs,
 } from './import-local-sponsors'
 
-const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00])
+const PNG = await sharp({
+  create: { width: 2000, height: 1000, channels: 3, background: '#fff' },
+})
+  .png()
+  .toBuffer()
 
 let fixtureRoot: string
 
@@ -171,6 +186,28 @@ describe('validateLocalSponsorImportBundle', () => {
       errors: [{ index: -1, importId: null, field: '$' }],
     })
   })
+
+  it('Payloadのtext制約を書き込み前の全件検証で適用する', async () => {
+    const result = await validateLocalSponsorImportBundle(
+      JSON.stringify([
+        validRow({
+          importId: 'i'.repeat(256),
+          name: 'n'.repeat(256),
+          address: 'a'.repeat(501),
+          imageAlt: 'x'.repeat(501),
+          phone: '0'.repeat(101),
+          websiteUrl: `https://example.invalid/${'p'.repeat(480)}`,
+        }),
+      ]),
+      { imageRoot: fixtureRoot, existingImportIds: [] },
+    )
+
+    expect(result).toMatchObject({ ok: false })
+    if (result.ok) throw new Error('unreachable')
+    expect(result.errors.map(({ field }) => field)).toEqual(
+      expect.arrayContaining(['importId', 'name', 'address', 'imageAlt', 'phone', 'websiteUrl']),
+    )
+  })
 })
 
 type StoredSponsor = Record<string, unknown> & { id: number }
@@ -180,6 +217,11 @@ class FixtureStore implements LocalSponsorImportStore<string> {
   media = new Map<number, Record<string, unknown>>()
   events: string[] = []
   failOnSponsorWrite = false
+  failDuringMediaUpload = false
+  failOnMediaDelete = false
+  failOnRollback = false
+  deletedBlobIdentifiers: string[] = []
+  storedBlobIdentifiers = new Set<string>()
   private nextSponsorId = 1
   private nextMediaId = 1
   private snapshot: {
@@ -207,6 +249,7 @@ class FixtureStore implements LocalSponsorImportStore<string> {
 
   async rollbackTransaction(transactionId: string) {
     this.events.push(`rollback:${transactionId}`)
+    if (this.failOnRollback) throw new Error('fixture rollback failure')
     if (this.snapshot) {
       this.sponsors = this.snapshot.sponsors
       this.media = this.snapshot.media
@@ -214,16 +257,42 @@ class FixtureStore implements LocalSponsorImportStore<string> {
     this.snapshot = null
   }
 
-  async createMedia(row: ValidatedLocalSponsorImportRow, transactionId: string) {
+  async createMedia(
+    row: ValidatedLocalSponsorImportRow,
+    transactionId: string,
+    registerCleanupToken: (token: LocalSponsorMediaCleanupToken) => void,
+  ) {
     this.events.push(`media:create:${row.importId}:${transactionId}`)
     const id = this.nextMediaId++
+    const blobIdentifiers = [
+      `payload-uploads/${row.importId}.webp`,
+      `payload-uploads/${row.importId}-thumbnail.webp`,
+      `payload-uploads/${row.importId}-card.webp`,
+    ]
+    const cleanupToken = {
+      mediaId: id,
+      prefix: 'payload-uploads',
+      filenames: blobIdentifiers.map((identifier) => identifier.slice('payload-uploads/'.length)),
+      blobIdentifiers,
+    }
+    registerCleanupToken(cleanupToken)
+    this.storedBlobIdentifiers.add(blobIdentifiers[0])
+    if (this.failDuringMediaUpload) throw new Error('fixture partial upload failure')
+    this.storedBlobIdentifiers.add(blobIdentifiers[1])
+    this.storedBlobIdentifiers.add(blobIdentifiers[2])
     this.media.set(id, { id, checksum: row.image?.checksum })
-    return id
+    return {
+      id,
+      cleanupToken,
+    }
   }
 
-  async deleteMedia(id: number, transactionId: string) {
-    this.events.push(`media:delete:${id}:${transactionId}`)
-    this.media.delete(id)
+  async deleteMediaBlobs(token: LocalSponsorMediaCleanupToken) {
+    this.events.push(`media:delete:${token.mediaId}:no-transaction`)
+    if (this.failOnMediaDelete) throw new Error('fixture cleanup failure')
+    this.deletedBlobIdentifiers.push(...token.blobIdentifiers)
+    for (const identifier of token.blobIdentifiers) this.storedBlobIdentifiers.delete(identifier)
+    if (token.mediaId !== null) this.media.delete(token.mediaId)
   }
 
   async createSponsor(data: Record<string, unknown>, transactionId: string) {
@@ -282,17 +351,47 @@ describe('create/apply local sponsor import plan', () => {
     expect(store.events.filter((event) => event.startsWith('media:create:'))).toHaveLength(1)
   })
 
-  it('orderをPayload互換のfractional indexへ変換して数値順に並べる', async () => {
+  it('新規orderだけを既存Sponsorの最大_orderより後ろで数値順に並べる', async () => {
     const rows = await validatedRows([
       validRow({ importId: 'fixture-002', order: 20 }),
       validRow({ importId: 'fixture-001', order: -4 }),
+      validRow({ importId: 'fixture-003', order: null }),
     ])
 
-    const plan = createLocalSponsorImportPlan(rows, [])
+    const plan = createLocalSponsorImportPlan(rows, [
+      {
+        id: 99,
+        type: ['ad', 'vendor'],
+        name: '既存協賛',
+        _order: 'a5',
+        updatedAt: 'fixture',
+        createdAt: 'fixture',
+      } as never,
+    ])
     const keys = new Map(plan.actions.map(({ row, data }) => [row.importId, data._order as string]))
 
-    expect(keys.get('fixture-001')).toBe('a0')
-    expect(keys.get('fixture-002')).toBe('a1')
+    expect(keys.get('fixture-001')).toBeDefined()
+    expect(keys.get('fixture-002')).toBeDefined()
+    expect(keys.get('fixture-003')).toBeDefined()
+    expect(keys.get('fixture-001')! > 'a5').toBe(true)
+    expect(keys.get('fixture-002')! > keys.get('fixture-001')!).toBe(true)
+    expect(keys.get('fixture-003')! > keys.get('fixture-002')!).toBe(true)
+  })
+
+  it('既存の取り込み対象の_orderを更新せず再適用を変更なしにする', async () => {
+    const store = new FixtureStore()
+    const rows = await validatedRows([validRow({ imageFile: null, imageAlt: null, order: 1 })])
+    store.sponsors.set(9, {
+      id: 9,
+      ...createLocalSponsorImportPlan(rows, []).actions[0].data,
+      local_image: null,
+      _order: 'z1',
+    })
+
+    const plan = createLocalSponsorImportPlan(rows, store.documents())
+
+    expect(plan.counts).toEqual({ create: 0, update: 0, unchanged: 1 })
+    expect(plan.actions[0].data).not.toHaveProperty('_order')
   })
 
   it('更新時に複数typeと広告・出店固有項目を保持し、同checksum画像を再利用する', async () => {
@@ -334,7 +433,7 @@ describe('create/apply local sponsor import plan', () => {
     expect(store.media.size).toBe(1)
   })
 
-  it('途中失敗時に新規blobを補償削除してtransactionをrollbackする', async () => {
+  it('途中失敗時にtransactionをrollbackしてから新規blobをtransactionなしで補償削除する', async () => {
     const store = new FixtureStore()
     store.failOnSponsorWrite = true
     const rows = await validatedRows([validRow()])
@@ -347,9 +446,57 @@ describe('create/apply local sponsor import plan', () => {
       'begin:fixture-tx',
       'media:create:fixture-001:fixture-tx',
       'sponsor:create:fixture-tx',
-      'media:delete:1:fixture-tx',
       'rollback:fixture-tx',
+      'media:delete:1:no-transaction',
     ])
+    expect(store.deletedBlobIdentifiers).toEqual([
+      'payload-uploads/fixture-001.webp',
+      'payload-uploads/fixture-001-thumbnail.webp',
+      'payload-uploads/fixture-001-card.webp',
+    ])
+  })
+
+  it('Media uploadが派生画像の途中で失敗しても先に登録した全予定keyをrollback後に削除する', async () => {
+    const store = new FixtureStore()
+    store.failDuringMediaUpload = true
+    const rows = await validatedRows([validRow()])
+
+    await expect(
+      applyLocalSponsorImportPlan(createLocalSponsorImportPlan(rows, []), store),
+    ).rejects.toThrow('fixture partial upload failure')
+
+    expect(store.events.slice(-2)).toEqual(['rollback:fixture-tx', 'media:delete:1:no-transaction'])
+    expect(store.deletedBlobIdentifiers).toEqual([
+      'payload-uploads/fixture-001.webp',
+      'payload-uploads/fixture-001-thumbnail.webp',
+      'payload-uploads/fixture-001-card.webp',
+    ])
+    expect(store.storedBlobIdentifiers).toEqual(new Set())
+  })
+
+  it('補償削除失敗時は対象Media IDを監査可能な例外に残す', async () => {
+    const store = new FixtureStore()
+    store.failOnSponsorWrite = true
+    store.failOnMediaDelete = true
+    const rows = await validatedRows([validRow()])
+
+    await expect(
+      applyLocalSponsorImportPlan(createLocalSponsorImportPlan(rows, []), store),
+    ).rejects.toThrow(/payload-uploads\/fixture-001\.webp/)
+    expect(store.events.slice(-2)).toEqual(['rollback:fixture-tx', 'media:delete:1:no-transaction'])
+  })
+
+  it('rollback失敗時はblobを削除せず具体的な未削除対象を報告する', async () => {
+    const store = new FixtureStore()
+    store.failOnSponsorWrite = true
+    store.failOnRollback = true
+    const rows = await validatedRows([validRow()])
+
+    await expect(
+      applyLocalSponsorImportPlan(createLocalSponsorImportPlan(rows, []), store),
+    ).rejects.toThrow(/rollback.*payload-uploads\/fixture-001\.webp/)
+    expect(store.events).not.toContain('media:delete:1:no-transaction')
+    expect(store.deletedBlobIdentifiers).toEqual([])
   })
 
   it('入力から消えた既存行を削除せずmissingとして報告する', async () => {
@@ -438,6 +585,339 @@ describe('local sponsor import CLI', () => {
       'sponsor:create:fixture-tx',
       'commit:fixture-tx',
     ])
+  })
+
+  it('--applyはS3_BUCKET未設定をPayload初期化前に拒否する', () => {
+    expect(() => ensureRemoteStorageForApply(false, {})).not.toThrow()
+    expect(() => ensureRemoteStorageForApply(true, {})).toThrow(/S3_BUCKET/)
+    expect(() => ensureRemoteStorageForApply(true, { S3_BUCKET: '   ' })).toThrow(/S3_BUCKET/)
+    expect(() => ensureRemoteStorageForApply(true, { S3_BUCKET: 'test-bucket' })).not.toThrow()
+  })
+
+  it('CLI entrypointはS3_BUCKETなしの--applyでPayload loaderを呼ばない', async () => {
+    const loadPayload = vi.fn()
+
+    await expect(
+      runLocalSponsorImportMain({
+        args: ['--input', 'bundle.json', '--images', 'images', '--apply'],
+        environment: {},
+        loadPayload,
+      }),
+    ).rejects.toThrow(/S3_BUCKET/)
+    expect(loadPayload).not.toHaveBeenCalled()
+  })
+
+  it('Payloadの命名規則で原本と全派生画像をupload開始前にcleanup tokenへ登録する', async () => {
+    const deleteStorageBlobs = vi.fn().mockResolvedValue(undefined)
+    const create = vi.fn().mockResolvedValue({ id: 7 })
+    const payload = {
+      collections: {
+        media: {
+          config: {
+            fields: [{ name: 'prefix', defaultValue: 'payload-uploads' }],
+            upload: {
+              staticDir: path.join(fixtureRoot, 'media'),
+              formatOptions: { format: 'webp', options: { quality: 82 } },
+              imageSizes: [
+                {
+                  name: 'thumbnail',
+                  width: 320,
+                  withoutEnlargement: true,
+                  formatOptions: { format: 'webp', options: { quality: 82 } },
+                },
+                {
+                  name: 'hero',
+                  width: 1920,
+                  withoutEnlargement: true,
+                  formatOptions: { format: 'webp', options: { quality: 82 } },
+                },
+                {
+                  name: 'card',
+                  width: 960,
+                  withoutEnlargement: true,
+                  formatOptions: { format: 'webp', options: { quality: 82 } },
+                },
+              ],
+            },
+          },
+        },
+      },
+      config: { sharp },
+      db: { findOne: vi.fn().mockResolvedValue(null) },
+      create,
+    } as never
+    const uploadStorageBlobs = vi.fn().mockResolvedValue(undefined)
+    const store = new PayloadLocalSponsorImportStore(
+      payload,
+      deleteStorageBlobs,
+      uploadStorageBlobs,
+    )
+    const rows = await validatedRows([validRow()])
+    const registerCleanupToken = vi.fn()
+    const base = `local-sponsor-${rows[0].image!.checksum}`
+
+    const created = await store.createMedia(rows[0], 'fixture-tx', registerCleanupToken)
+    await store.deleteMediaBlobs(created.cleanupToken)
+
+    expect(created.cleanupToken.blobIdentifiers).toEqual([
+      `payload-uploads/${base}.webp`,
+      `payload-uploads/${base}-320x160.webp`,
+      `payload-uploads/${base}-1920x960.webp`,
+      `payload-uploads/${base}-960x480.webp`,
+    ])
+    expect(registerCleanupToken).toHaveBeenCalledBefore(create)
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        file: expect.objectContaining({ name: `${base}.webp` }),
+        overwriteExistingFiles: true,
+        req: expect.objectContaining({ transactionID: 'fixture-tx' }),
+      }),
+    )
+    expect(deleteStorageBlobs).toHaveBeenCalledWith(created.cleanupToken)
+    expect(uploadStorageBlobs).toHaveBeenCalledWith(
+      { id: 7 },
+      expect.objectContaining({ context: { skipCloudStorage: true } }),
+      created.cleanupToken,
+    )
+    expect((payload as { findByID?: unknown }).findByID).toBeUndefined()
+    expect((payload as { delete?: unknown }).delete).toBeUndefined()
+  })
+
+  it('実際のS3 Media afterDelete hookをfresh req・transactionなしで通して全blobを削除する', async () => {
+    const handle = vi.fn().mockResolvedValue({
+      response: { statusCode: 204, headers: {}, body: undefined },
+    })
+    const configured = s3Storage({
+      bucket: 'fixture-bucket',
+      clientCacheKey: `cleanup-success-${crypto.randomUUID()}`,
+      collections: { media: { prefix: 'payload-uploads' } },
+      config: {
+        endpoint: 'http://127.0.0.1:1',
+        region: 'auto',
+        credentials: { accessKeyId: 'fixture', secretAccessKey: 'fixture' },
+        requestHandler: { handle },
+      } as never,
+    })({
+      admin: { user: 'users' },
+      collections: [Media],
+      i18n: { fallbackLanguage: 'en', supportedLanguages: { en } },
+      serverURL: 'http://localhost:3000',
+    } as never)
+    const payload = {
+      config: configured,
+      logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
+    } as never
+    const previousRequest = { transactionID: 'rolled-back' }
+    const token: LocalSponsorMediaCleanupToken = {
+      mediaId: null,
+      prefix: 'payload-uploads',
+      filenames: ['source.webp', 'source-320x160.webp', 'source-1920x960.webp'],
+      blobIdentifiers: [
+        'payload-uploads/source.webp',
+        'payload-uploads/source-320x160.webp',
+        'payload-uploads/source-1920x960.webp',
+      ],
+    }
+
+    const cleanupRequest = await deletePayloadStorageBlobs(payload, token)
+
+    expect(cleanupRequest).not.toBe(previousRequest)
+    expect(cleanupRequest.transactionID).toBeUndefined()
+    expect(handle).toHaveBeenCalledTimes(3)
+    const requestPaths = handle.mock.calls.map(([request]) => decodeURIComponent(request.path))
+    expect(requestPaths).toEqual(
+      expect.arrayContaining(token.filenames.map((filename) => expect.stringContaining(filename))),
+    )
+  })
+
+  it('実際のS3 Media afterDelete hookがloggerへ吸収した失敗をblob識別子付きAggregateErrorへ昇格する', async () => {
+    const handle = vi.fn().mockRejectedValue(new Error('fixture S3 delete failure'))
+    const configured = s3Storage({
+      bucket: 'fixture-bucket',
+      clientCacheKey: `cleanup-failure-${crypto.randomUUID()}`,
+      collections: { media: { prefix: 'payload-uploads' } },
+      config: {
+        endpoint: 'http://127.0.0.1:1',
+        region: 'auto',
+        credentials: { accessKeyId: 'fixture', secretAccessKey: 'fixture' },
+        requestHandler: { handle },
+      } as never,
+    })({
+      admin: { user: 'users' },
+      collections: [Media],
+      i18n: { fallbackLanguage: 'en', supportedLanguages: { en } },
+      serverURL: 'http://localhost:3000',
+    } as never)
+    const payload = {
+      config: configured,
+      logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
+    } as never
+    const token: LocalSponsorMediaCleanupToken = {
+      mediaId: null,
+      prefix: 'payload-uploads',
+      filenames: ['source.webp', 'source-320x160.webp'],
+      blobIdentifiers: ['payload-uploads/source.webp', 'payload-uploads/source-320x160.webp'],
+    }
+
+    const failure = await deletePayloadStorageBlobs(payload, token).catch((error) => error)
+
+    expect(failure).toBeInstanceOf(AggregateError)
+    expect(failure.message).toContain('payload-uploads/source.webp')
+    expect(failure.message).toContain('payload-uploads/source-320x160.webp')
+  })
+
+  it('PUT失敗後に遅延PUTが完了するまで待ってrollback後の補償削除でblobを空にする', async () => {
+    const token: LocalSponsorMediaCleanupToken = {
+      mediaId: 7,
+      prefix: 'payload-uploads',
+      filenames: [
+        'source.webp',
+        'source-320x160.webp',
+        'source-1920x960.webp',
+        'source-960x480.webp',
+      ],
+      blobIdentifiers: [
+        'payload-uploads/source.webp',
+        'payload-uploads/source-320x160.webp',
+        'payload-uploads/source-1920x960.webp',
+        'payload-uploads/source-960x480.webp',
+      ],
+    }
+    const blobs = new Set<string>()
+    let delayedPutFinished = false
+    const handle = vi.fn().mockImplementation(async (request: { method: string; path: string }) => {
+      const requestPath = decodeURIComponent(request.path)
+      const filename = token.filenames.find((candidate) => requestPath.includes(candidate))
+      if (!filename) throw new Error(`unexpected S3 path: ${requestPath}`)
+      const identifier = `payload-uploads/${filename}`
+      if (request.method === 'PUT') {
+        if (filename === 'source-320x160.webp') throw new Error('fixture PUT failure')
+        if (filename === 'source-1920x960.webp') {
+          await new Promise((resolve) => setTimeout(resolve, 25))
+          delayedPutFinished = true
+        }
+        blobs.add(identifier)
+        return { response: { statusCode: 200, headers: {}, body: undefined } }
+      }
+      if (request.method === 'DELETE') {
+        blobs.delete(identifier)
+        return { response: { statusCode: 204, headers: {}, body: undefined } }
+      }
+      throw new Error(`unexpected S3 method: ${request.method}`)
+    })
+    const configured = s3Storage({
+      bucket: 'fixture-bucket',
+      clientCacheKey: `upload-race-${crypto.randomUUID()}`,
+      collections: { media: { prefix: 'payload-uploads' } },
+      config: {
+        endpoint: 'http://127.0.0.1:1',
+        region: 'auto',
+        credentials: { accessKeyId: 'fixture', secretAccessKey: 'fixture' },
+        requestHandler: { handle },
+      } as never,
+    })({
+      admin: { user: 'users' },
+      collections: [Media],
+      i18n: { fallbackLanguage: 'en', supportedLanguages: { en } },
+      serverURL: 'http://localhost:3000',
+    } as never)
+    const payload = {
+      config: configured,
+      logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
+    } as never
+    const media = {
+      id: 7,
+      prefix: 'payload-uploads',
+      filename: 'source.webp',
+      mimeType: 'image/webp',
+      sizes: {
+        thumbnail: { filename: 'source-320x160.webp', mimeType: 'image/webp' },
+        hero: { filename: 'source-1920x960.webp', mimeType: 'image/webp' },
+        card: { filename: 'source-960x480.webp', mimeType: 'image/webp' },
+      },
+    } as never
+    const original = {
+      name: 'source.webp',
+      data: Buffer.from('original'),
+      mimetype: 'image/webp',
+      size: 8,
+    }
+    const sourceRequest = {
+      context: {
+        _payloadCloudStorage: {
+          file: original,
+          uploadSizes: {
+            thumbnail: Buffer.from('thumbnail'),
+            hero: Buffer.from('hero'),
+            card: Buffer.from('card'),
+          },
+        },
+      },
+      payload,
+      transactionID: 'fixture-tx',
+    } as never
+    const events: string[] = []
+    const store: LocalSponsorImportStore<string> = {
+      beginTransaction: async () => {
+        events.push('begin')
+        return 'fixture-tx'
+      },
+      commitTransaction: async () => {
+        events.push('commit')
+      },
+      rollbackTransaction: async () => {
+        events.push('rollback')
+      },
+      createMedia: async (_row, _transactionId, registerCleanupToken) => {
+        registerCleanupToken(token)
+        events.push('upload')
+        await uploadPayloadStorageBlobs(payload, media, sourceRequest, token)
+        return { id: 7, cleanupToken: token }
+      },
+      deleteMediaBlobs: async (cleanupToken) => {
+        events.push('cleanup')
+        await deletePayloadStorageBlobs(payload, cleanupToken)
+      },
+      createSponsor: async () => 1,
+      updateSponsor: async () => undefined,
+    }
+    const rows = await validatedRows([validRow()])
+
+    await expect(
+      applyLocalSponsorImportPlan(createLocalSponsorImportPlan(rows, []), store),
+    ).rejects.toThrow(/payload-uploads\/source-320x160\.webp/)
+
+    expect(delayedPutFinished).toBe(true)
+    expect(events).toEqual(['begin', 'upload', 'rollback', 'cleanup'])
+    expect(blobs).toEqual(new Set())
+  })
+
+  it('dry-runとapplyの両方でPayload入力制約を同じく適用する', async () => {
+    const store = new FixtureStore()
+    const input = JSON.stringify([validRow({ name: 'n'.repeat(256) })])
+
+    const dryRun = await runLocalSponsorImport({
+      json: input,
+      imageRoot: fixtureRoot,
+      existingSponsors: [],
+      store,
+      apply: false,
+      expectedCount: null,
+      bundleFiles: [],
+    })
+    const apply = await runLocalSponsorImport({
+      json: input,
+      imageRoot: fixtureRoot,
+      existingSponsors: [],
+      store,
+      apply: true,
+      expectedCount: null,
+      bundleFiles: [],
+    })
+
+    expect(dryRun).toMatchObject({ status: 'error', errors: [{ field: 'name' }] })
+    expect(apply).toMatchObject({ status: 'error', errors: [{ field: 'name' }] })
+    expect(store.events).toEqual([])
   })
 
   it('検証失敗またはexpected count不一致なら終了用error reportを返し書き込まない', async () => {

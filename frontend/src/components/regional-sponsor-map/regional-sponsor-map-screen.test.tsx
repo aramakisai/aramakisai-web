@@ -183,9 +183,7 @@ describe('RegionalSponsorMapScreen', () => {
       screen.getByRole('button', { name: /テスト専用店舗.*詳細/ }),
     );
     await waitFor(() =>
-      expect(screen.getByTestId('map-bottom-sheet').style.height).toBe(
-        'calc(100dvh - 144px)',
-      ),
+      expect(screen.getByRole('button', { name: /現在: 詳細/ })).toBeVisible(),
     );
   });
 

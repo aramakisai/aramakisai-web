@@ -70,7 +70,7 @@ describe('RegionalSponsorBottomSheet', () => {
     });
   });
 
-  it('uses the final detail height while the sheet transition is still being measured', () => {
+  it('reports the measured height unchanged while showing the detail', () => {
     render(
       <RegionalSponsorBottomSheet
         {...baseProps}
@@ -83,7 +83,7 @@ describe('RegionalSponsorBottomSheet', () => {
       (mocks.shellProps?.onHeightChange as (height: number) => void)(380);
     });
 
-    expect(baseProps.onHeightChange).toHaveBeenCalledWith(700);
+    expect(baseProps.onHeightChange).toHaveBeenCalledWith(380);
   });
 
   it('reports the measured height unchanged while showing the list', () => {
@@ -96,5 +96,59 @@ describe('RegionalSponsorBottomSheet', () => {
     });
 
     expect(baseProps.onHeightChange).toHaveBeenCalledWith(380);
+  });
+
+  it('does not expose the detail snap until a sponsor is selected', () => {
+    const { rerender } = render(
+      <RegionalSponsorBottomSheet {...baseProps} selectedSponsor={null} />,
+    );
+
+    expect(
+      (mocks.shellProps?.snaps as { id: string }[]).map(({ id }) => id),
+    ).toEqual(['collapsed', 'list', 'expanded']);
+
+    rerender(
+      <RegionalSponsorBottomSheet
+        {...baseProps}
+        selectedSponsor={sponsor}
+        snap="detail"
+      />,
+    );
+    expect(
+      (mocks.shellProps?.snaps as { id: string }[]).map(({ id }) => id),
+    ).toEqual(['collapsed', 'list', 'detail', 'expanded']);
+
+    const snaps = mocks.shellProps?.snaps as {
+      id: string;
+      resolveHeightPx: (context: {
+        viewportHeight: number;
+        contentHeight: number;
+      }) => number;
+    }[];
+    for (const viewportHeight of [390, 600, 844]) {
+      for (const id of ['detail', 'expanded']) {
+        const height = snaps
+          .find((snap) => snap.id === id)!
+          .resolveHeightPx({ viewportHeight, contentHeight: 0 });
+        expect(viewportHeight - height).toBeGreaterThanOrEqual(
+          Math.min(278, viewportHeight - 112),
+        );
+      }
+    }
+  });
+
+  it('keeps the visible back operation active when detail is collapsed', () => {
+    render(
+      <RegionalSponsorBottomSheet
+        {...baseProps}
+        selectedSponsor={sponsor}
+        snap="collapsed"
+      />,
+    );
+
+    const collapsed = (
+      mocks.shellProps?.snaps as { id: string; contentInert?: boolean }[]
+    ).find(({ id }) => id === 'collapsed');
+    expect(collapsed?.contentInert).toBe(false);
   });
 });

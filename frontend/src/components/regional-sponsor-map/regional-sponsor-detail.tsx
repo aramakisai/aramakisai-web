@@ -21,11 +21,13 @@ function safeWebsiteUrl(value: string | null): string | null {
 export interface RegionalSponsorDetailProps {
   readonly sponsor: RegionalSponsor;
   readonly onBack: () => void;
+  readonly bodyInert?: boolean;
 }
 
 export function RegionalSponsorDetail({
   sponsor,
   onBack,
+  bodyInert = false,
 }: RegionalSponsorDetailProps) {
   const articleRef = useRef<HTMLElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -50,6 +52,7 @@ export function RegionalSponsorDetail({
     <article
       ref={articleRef}
       className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6"
+      data-map-sheet-scroll
     >
       <button
         type="button"
@@ -59,104 +62,108 @@ export function RegionalSponsorDetail({
         <RegionalSponsorIcon name="arrow-back" />
         店舗一覧に戻る
       </button>
-      <SponsorImage
-        sponsor={sponsor}
-        variant="detail"
-        className="aspect-video w-full"
-      />
-      <h1
-        ref={headingRef}
-        tabIndex={-1}
-        className="mt-5 font-display text-xl font-bold leading-[1.5] text-text focus:outline-none"
-      >
-        {sponsor.name}
-      </h1>
-      <p
-        className={`mt-2 inline-flex h-8 items-center rounded-full px-3 text-sm font-medium text-white ${category.backgroundClass}`}
-      >
-        {category.label}
-      </p>
-
-      {sponsor.message && (
-        <section
-          className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4"
-          aria-labelledby="regional-sponsor-message-title"
+      <div inert={bodyInert}>
+        <SponsorImage
+          sponsor={sponsor}
+          variant="detail"
+          className="aspect-video w-full"
+        />
+        <h1
+          ref={headingRef}
+          tabIndex={-1}
+          className="mt-5 font-display text-xl font-bold leading-[1.5] text-text focus:outline-none"
         >
-          <h2
-            id="regional-sponsor-message-title"
-            className="font-display text-base font-bold text-text"
-          >
-            メッセージ
-          </h2>
-          <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-700">
-            {sponsor.message}
-          </p>
-        </section>
-      )}
-
-      {hasInfo && (
-        <section
-          className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4"
-          aria-labelledby="regional-sponsor-info-title"
+          {sponsor.name}
+        </h1>
+        <p
+          className={`mt-2 inline-flex h-8 items-center rounded-full px-3 text-sm font-medium text-white ${category.backgroundClass}`}
         >
-          <h2
-            id="regional-sponsor-info-title"
-            className="font-display text-base font-bold text-text"
+          {category.label}
+        </p>
+
+        {sponsor.message && (
+          <section
+            className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4"
+            aria-labelledby="regional-sponsor-message-title"
           >
-            基本情報
-          </h2>
-          <dl className="mt-3 divide-y divide-gray-200 text-sm">
-            {sponsor.address && (
-              <div className="py-3 first:pt-0 last:pb-0">
-                <dt className="font-bold text-gray-600">住所</dt>
-                <dd className="mt-1 whitespace-pre-wrap leading-6 text-text">
-                  {sponsor.address}
-                </dd>
-              </div>
-            )}
-            {hasHours && (
-              <div className="py-3 first:pt-0 last:pb-0">
-                <dt className="font-bold text-gray-600">{hoursLabel}</dt>
-                <dd className="mt-1 space-y-1 leading-6 text-text">
-                  {sponsor.businessHours && (
-                    <p className="whitespace-pre-wrap">
-                      {sponsor.businessHours}
-                    </p>
-                  )}
-                  {sponsor.closedDays && (
-                    <p className="whitespace-pre-wrap">{sponsor.closedDays}</p>
-                  )}
-                </dd>
-              </div>
-            )}
-            {sponsor.phone && (
-              <div className="py-3 first:pt-0 last:pb-0">
-                <dt className="font-bold text-gray-600">電話番号</dt>
-                <dd className="mt-1 whitespace-pre-wrap leading-6 text-text">
-                  {sponsor.phone}
-                </dd>
-              </div>
-            )}
-            {websiteUrl && (
-              <div className="py-3 first:pt-0 last:pb-0">
-                <dt className="sr-only">Webサイト</dt>
-                <dd>
-                  <a
-                    href={websiteUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`${sponsor.name}の公式Webサイト（外部サイト）`}
-                    className="inline-flex items-center gap-1 font-normal text-[#356fa8] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                  >
-                    公式Webサイト
-                    <RegionalSponsorIcon name="open-in-new" size={18} />
-                  </a>
-                </dd>
-              </div>
-            )}
-          </dl>
-        </section>
-      )}
+            <h2
+              id="regional-sponsor-message-title"
+              className="font-display text-base font-bold text-text"
+            >
+              メッセージ
+            </h2>
+            <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-700">
+              {sponsor.message}
+            </p>
+          </section>
+        )}
+
+        {hasInfo && (
+          <section
+            className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4"
+            aria-labelledby="regional-sponsor-info-title"
+          >
+            <h2
+              id="regional-sponsor-info-title"
+              className="font-display text-base font-bold text-text"
+            >
+              基本情報
+            </h2>
+            <dl className="mt-3 divide-y divide-gray-200 text-sm">
+              {sponsor.address && (
+                <div className="py-3 first:pt-0 last:pb-0">
+                  <dt className="font-bold text-gray-600">住所</dt>
+                  <dd className="mt-1 whitespace-pre-wrap leading-6 text-text">
+                    {sponsor.address}
+                  </dd>
+                </div>
+              )}
+              {hasHours && (
+                <div className="py-3 first:pt-0 last:pb-0">
+                  <dt className="font-bold text-gray-600">{hoursLabel}</dt>
+                  <dd className="mt-1 space-y-1 leading-6 text-text">
+                    {sponsor.businessHours && (
+                      <p className="whitespace-pre-wrap">
+                        {sponsor.businessHours}
+                      </p>
+                    )}
+                    {sponsor.closedDays && (
+                      <p className="whitespace-pre-wrap">
+                        {sponsor.closedDays}
+                      </p>
+                    )}
+                  </dd>
+                </div>
+              )}
+              {sponsor.phone && (
+                <div className="py-3 first:pt-0 last:pb-0">
+                  <dt className="font-bold text-gray-600">電話番号</dt>
+                  <dd className="mt-1 whitespace-pre-wrap leading-6 text-text">
+                    {sponsor.phone}
+                  </dd>
+                </div>
+              )}
+              {websiteUrl && (
+                <div className="py-3 first:pt-0 last:pb-0">
+                  <dt className="sr-only">Webサイト</dt>
+                  <dd>
+                    <a
+                      href={websiteUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`${sponsor.name}の公式Webサイト（外部サイト）`}
+                      className="inline-flex items-center gap-1 font-normal text-[#356fa8] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    >
+                      公式Webサイト
+                      <RegionalSponsorIcon name="open-in-new" size={18} />
+                    </a>
+                  </dd>
+                </div>
+              )}
+            </dl>
+          </section>
+        )}
+      </div>
     </article>
   );
 }

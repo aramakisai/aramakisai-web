@@ -1,7 +1,5 @@
 'use client';
 
-import { useCallback } from 'react';
-
 import {
   MapBottomSheetShell,
   type MapBottomSheetSnap,
@@ -14,35 +12,44 @@ import type { RegionalSponsorSheetSnap } from './use-regional-sponsor-map-state'
 const DETAIL_SNAP: MapBottomSheetSnap = {
   id: 'detail',
   label: '詳細',
-  height: 'calc(100dvh - 144px)',
-  resolveHeightPx: ({ viewportHeight }) => Math.max(320, viewportHeight - 144),
+  height: 'max(112px, min(65dvh, calc(100dvh - 288px)))',
+  resolveHeightPx: ({ viewportHeight }) =>
+    Math.max(112, Math.min(viewportHeight * 0.65, viewportHeight - 288)),
   overflow: 'hidden',
 };
 
-const SNAPS: readonly MapBottomSheetSnap[] = [
-  {
-    id: 'collapsed',
-    label: '縮小',
-    height: '112px',
-    resolveHeightPx: () => 112,
-    overflow: 'hidden',
-    contentInert: true,
-  },
-  {
-    id: 'list',
-    label: '一覧',
-    height: '45dvh',
-    resolveHeightPx: ({ viewportHeight }) => viewportHeight * 0.45,
-    overflow: 'hidden',
-  },
-  {
-    id: 'expanded',
-    label: '展開',
-    height: '75dvh',
-    resolveHeightPx: ({ viewportHeight }) => viewportHeight * 0.75,
-    overflow: 'hidden',
-  },
+const COLLAPSED_SNAP: MapBottomSheetSnap = {
+  id: 'collapsed',
+  label: '縮小',
+  height: '112px',
+  resolveHeightPx: () => 112,
+  overflow: 'hidden',
+  contentInert: true,
+};
+
+const LIST_SNAP: MapBottomSheetSnap = {
+  id: 'list',
+  label: '一覧',
+  height: '45dvh',
+  resolveHeightPx: ({ viewportHeight }) => viewportHeight * 0.45,
+  overflow: 'hidden',
+};
+
+const EXPANDED_SNAP: MapBottomSheetSnap = {
+  id: 'expanded',
+  label: '展開',
+  height: 'max(112px, min(75dvh, calc(100dvh - 288px)))',
+  resolveHeightPx: ({ viewportHeight }) =>
+    Math.max(112, Math.min(viewportHeight * 0.75, viewportHeight - 288)),
+  overflow: 'hidden',
+};
+
+const LIST_SNAPS = [COLLAPSED_SNAP, LIST_SNAP, EXPANDED_SNAP];
+const DETAIL_SNAPS = [
+  { ...COLLAPSED_SNAP, contentInert: false },
+  LIST_SNAP,
   DETAIL_SNAP,
+  EXPANDED_SNAP,
 ];
 
 export interface RegionalSponsorBottomSheetProps {
@@ -63,31 +70,15 @@ export interface RegionalSponsorBottomSheetProps {
 export function RegionalSponsorBottomSheet(
   props: RegionalSponsorBottomSheetProps,
 ) {
-  const { onHeightChange, selectedSponsor } = props;
-  const reportHeight = useCallback(
-    (height: number) => {
-      if (!selectedSponsor) {
-        onHeightChange(height);
-        return;
-      }
-
-      const detailHeight = DETAIL_SNAP.resolveHeightPx({
-        viewportHeight: window.innerHeight,
-        contentHeight: 0,
-        bottomInset: 0,
-      });
-      onHeightChange(Math.max(height, detailHeight));
-    },
-    [onHeightChange, selectedSponsor],
-  );
+  const snaps = props.selectedSponsor ? DETAIL_SNAPS : LIST_SNAPS;
 
   return (
     <MapBottomSheetShell
-      snaps={SNAPS}
+      snaps={snaps}
       snapId={props.snap}
       restSnapId="list"
       onSnapChange={(id) => props.onSnapChange(id as RegionalSponsorSheetSnap)}
-      onHeightChange={reportHeight}
+      onHeightChange={props.onHeightChange}
       contentClassName="h-[calc(100%_-_32px)] min-h-0"
       sheetClassName="pb-[max(1rem,env(safe-area-inset-bottom))]"
     >
@@ -96,6 +87,7 @@ export function RegionalSponsorBottomSheet(
           <RegionalSponsorDetail
             sponsor={props.selectedSponsor}
             onBack={props.onBack}
+            bodyInert={props.snap === 'collapsed'}
           />
         ) : props.error ? (
           <div

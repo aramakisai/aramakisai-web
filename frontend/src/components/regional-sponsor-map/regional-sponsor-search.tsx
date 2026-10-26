@@ -50,6 +50,7 @@ export function RegionalSponsorSearch({
       </label>
       <div
         className={`mt-3 flex gap-2 ${mobile ? 'overflow-x-auto overscroll-x-contain pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden' : 'flex-wrap'}`}
+        role="group"
         aria-label="カテゴリで絞り込む"
       >
         {controls.map(({ id, label }) => {

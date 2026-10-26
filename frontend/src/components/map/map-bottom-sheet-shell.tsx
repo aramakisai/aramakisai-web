@@ -162,13 +162,21 @@ export function MapBottomSheetShell({
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     const el = sheetRef.current;
     if (!el || event.button > 0) return;
+    const nestedScrollElement =
+      event.target instanceof Element
+        ? event.target.closest<HTMLElement>('[data-map-sheet-scroll]')
+        : null;
+    const scrollElement =
+      nestedScrollElement && el.contains(nestedScrollElement)
+        ? nestedScrollElement
+        : el;
     suppressClickRef.current = false;
     dragRef.current = {
       startX: event.clientX,
       startY: event.clientY,
       startHeight: el.getBoundingClientRect().height,
-      startScrollTop: el.scrollTop,
-      scrollable: el.scrollHeight > el.clientHeight + 1,
+      startScrollTop: scrollElement.scrollTop,
+      scrollable: scrollElement.scrollHeight > scrollElement.clientHeight + 1,
       fromGrabber: !!grabberRef.current?.contains(event.target as Node),
       claimed: false,
       cancelled: false,

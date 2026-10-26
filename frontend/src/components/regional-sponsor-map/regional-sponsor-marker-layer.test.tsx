@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { useLayoutEffect, useRef } from 'react';
+import type { ReactNode, Ref } from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RegionalMapConfig } from '@/lib/regional-map-config';
@@ -26,27 +27,49 @@ vi.mock('react-leaflet', () => ({
     return map;
   },
   Marker: ({
+    ref,
     title,
     zIndexOffset,
     eventHandlers,
     icon,
+    keyboard,
   }: {
+    ref?: Ref<{ getElement: () => HTMLButtonElement | null }>;
     title: string;
     zIndexOffset?: number;
-    eventHandlers: { click: () => void };
+    eventHandlers: {
+      add?: (event: {
+        target: { getElement: () => HTMLButtonElement | null };
+      }) => void;
+      click: () => void;
+    };
     icon: { options: { html?: string | HTMLElement | false } };
+    keyboard?: boolean;
     children?: ReactNode;
-  }) => (
-    <button
-      type="button"
-      aria-label={title}
-      aria-current={zIndexOffset === 1000 ? 'true' : undefined}
-      data-icon-html={String(icon.options.html)}
-      onClick={eventHandlers.click}
-    >
-      {title}
-    </button>
-  ),
+  }) => {
+    const elementRef = useRef<HTMLButtonElement>(null);
+    useLayoutEffect(() => {
+      const marker = { getElement: () => elementRef.current };
+      if (typeof ref === 'function') ref(marker);
+      eventHandlers.add?.({ target: marker });
+      return () => {
+        if (typeof ref === 'function') ref(null);
+      };
+    }, [eventHandlers, ref]);
+    return (
+      <button
+        ref={elementRef}
+        type="button"
+        aria-label={title}
+        aria-current={zIndexOffset === 1000 ? 'true' : undefined}
+        data-icon-html={String(icon.options.html)}
+        data-leaflet-keyboard={String(keyboard)}
+        onClick={eventHandlers.click}
+      >
+        {title}
+      </button>
+    );
+  },
 }));
 
 import { RegionalSponsorMarkerLayer } from './regional-sponsor-marker-layer';
@@ -130,6 +153,22 @@ describe('RegionalSponsorMarkerLayer', () => {
     expect(baseProps.onSelectSponsor).toHaveBeenCalledWith(1);
   });
 
+  it.each(['Enter', ' '])('%sで単独ピンを一度だけ選択する', (key) => {
+    render(
+      <RegionalSponsorMarkerLayer
+        {...baseProps}
+        sponsors={[sponsor(1, 36.4, 139.1)]}
+      />,
+    );
+    const pin = screen.getByRole('button', { name: 'テスト専用1、病院' });
+    pin.focus();
+    fireEvent.keyDown(pin, { key });
+
+    expect(pin).toHaveFocus();
+    expect(baseProps.onSelectSponsor).toHaveBeenCalledTimes(1);
+    expect(pin).toHaveAttribute('data-leaflet-keyboard', 'false');
+  });
+
   it('異なる座標のclusterを余白付きで拡大する', () => {
     render(
       <RegionalSponsorMarkerLayer
@@ -152,7 +191,7 @@ describe('RegionalSponsorMarkerLayer', () => {
     );
   });
 
-  it('同一座標clusterを放射状展開し、各店舗を個別選択できる', () => {
+  it('同一座標clusterは選択後も放射状展開を保ち、別店舗を選択できる', () => {
     const same = [sponsor(1, 36.4, 139.1), sponsor(2, 36.4, 139.1)];
     const { rerender } = render(
       <RegionalSponsorMarkerLayer {...baseProps} sponsors={same} />,
@@ -168,16 +207,22 @@ describe('RegionalSponsorMarkerLayer', () => {
       <RegionalSponsorMarkerLayer
         {...baseProps}
         sponsors={same}
+        selectedSponsorId={1}
         spiderfiedClusterId="cluster:1,2"
       />,
     );
+    const selectedPin = screen.getByRole('button', {
+      name: 'テスト専用1、病院',
+    });
+    expect(selectedPin).toHaveAttribute('aria-current', 'true');
     fireEvent.click(
       screen.getByRole('button', { name: 'テスト専用2、ショップ' }),
     );
     expect(baseProps.onSelectSponsor).toHaveBeenCalledWith(2);
+    expect(baseProps.onSpiderfyChange).not.toHaveBeenCalledWith(null);
   });
 
-  it('地図移動・zoom・背景選択で展開を閉じる', () => {
+  it('利用者の地図drag・zoom・背景選択で展開を閉じる', () => {
     render(
       <RegionalSponsorMarkerLayer
         {...baseProps}
@@ -186,11 +231,11 @@ describe('RegionalSponsorMarkerLayer', () => {
       />,
     );
     act(() => {
-      mocks.handlers.moveend();
+      mocks.handlers.dragstart();
       mocks.handlers.zoomend();
       mocks.handlers.click();
     });
-    expect(baseProps.onSpiderfyChange).toHaveBeenCalledTimes(3);
+    expect(baseProps.onSpiderfyChange).toHaveBeenCalledTimes(2);
     expect(baseProps.onSpiderfyChange).toHaveBeenLastCalledWith(null);
   });
 });

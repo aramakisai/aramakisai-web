@@ -57,8 +57,7 @@ const CAMPUS_SNAPS: Readonly<Record<CampusSnapId, MapBottomSheetSnap>> = {
   full: {
     id: 'full',
     label: '全画面',
-    height:
-      'calc(100dvh - env(safe-area-inset-top) - var(--map-nav, 0px))',
+    height: 'calc(100dvh - env(safe-area-inset-top) - var(--map-nav, 0px))',
     resolveHeightPx: ({ viewportHeight, bottomInset }) =>
       viewportHeight - bottomInset,
     overflow: 'auto',

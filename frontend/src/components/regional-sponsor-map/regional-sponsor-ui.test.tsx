@@ -199,6 +199,9 @@ describe('RegionalSponsorSearch', () => {
     expect(
       screen.getByRole('searchbox', { name: /店舗名・カテゴリ・住所/ }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('group', { name: 'カテゴリで絞り込む' }),
+    ).toBeInTheDocument();
     expect(screen.getAllByRole('button')).toHaveLength(7);
     expect(screen.getByRole('button', { name: /病院/ })).toHaveAttribute(
       'aria-pressed',

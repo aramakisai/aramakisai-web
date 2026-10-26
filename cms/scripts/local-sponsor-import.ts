@@ -49,7 +49,32 @@ export type LocalSponsorImportValidationResult =
 type RowObject = Record<string, unknown>
 type ErrorInput = Omit<LocalSponsorImportError, 'index' | 'importId'>
 
-function optionalString(row: RowObject, field: string, errors: ErrorInput[]): string | null {
+const TEXT_MAX_LENGTHS = {
+  importId: 255,
+  name: 255,
+  websiteUrl: 500,
+  address: 500,
+  imageAlt: 500,
+  phone: 100,
+} as const
+
+function validateMaxLength(
+  field: string,
+  value: string,
+  maxLength: number | undefined,
+  errors: ErrorInput[],
+): void {
+  if (maxLength !== undefined && value.length > maxLength) {
+    errors.push({ field, reason: `${maxLength}文字以下が必要です` })
+  }
+}
+
+function optionalString(
+  row: RowObject,
+  field: string,
+  errors: ErrorInput[],
+  maxLength?: number,
+): string | null {
   const value = row[field]
   if (value === null) return null
   if (typeof value !== 'string') {
@@ -57,16 +82,24 @@ function optionalString(row: RowObject, field: string, errors: ErrorInput[]): st
     return null
   }
   const trimmed = value.trim()
+  validateMaxLength(field, trimmed, maxLength, errors)
   return trimmed === '' ? null : trimmed
 }
 
-function requiredString(row: RowObject, field: string, errors: ErrorInput[]): string {
+function requiredString(
+  row: RowObject,
+  field: string,
+  errors: ErrorInput[],
+  maxLength?: number,
+): string {
   const value = row[field]
   if (typeof value !== 'string' || value.trim() === '') {
     errors.push({ field, reason: '空白でない文字列が必要です' })
     return ''
   }
-  return value.trim()
+  const trimmed = value.trim()
+  validateMaxLength(field, trimmed, maxLength, errors)
+  return trimmed
 }
 
 function coordinate(
@@ -208,8 +241,8 @@ export async function validateLocalSponsorImportBundle(
     }
     const row = value as RowObject
     const rowErrors: ErrorInput[] = []
-    const importId = requiredString(row, 'importId', rowErrors)
-    const name = requiredString(row, 'name', rowErrors)
+    const importId = requiredString(row, 'importId', rowErrors, TEXT_MAX_LENGTHS.importId)
+    const name = requiredString(row, 'name', rowErrors, TEXT_MAX_LENGTHS.name)
     if (importId && (inputCounts.get(importId) ?? 0) > 1) {
       rowErrors.push({ field: 'importId', reason: '入力内で重複しています' })
     }
@@ -221,14 +254,14 @@ export async function validateLocalSponsorImportBundle(
     const category = canonicalCategory(rawCategory, rowErrors)
     const latitude = coordinate(row, 'latitude', -90, 90, rowErrors)
     const longitude = coordinate(row, 'longitude', -180, 180, rowErrors)
-    const address = optionalString(row, 'address', rowErrors)
+    const address = optionalString(row, 'address', rowErrors, TEXT_MAX_LENGTHS.address)
     const imageFile = optionalString(row, 'imageFile', rowErrors)
-    const imageAlt = optionalString(row, 'imageAlt', rowErrors)
+    const imageAlt = optionalString(row, 'imageAlt', rowErrors, TEXT_MAX_LENGTHS.imageAlt)
     const message = optionalString(row, 'message', rowErrors)
     const businessHours = optionalString(row, 'businessHours', rowErrors)
     const closedDays = optionalString(row, 'closedDays', rowErrors)
-    const phone = optionalString(row, 'phone', rowErrors)
-    const website = optionalString(row, 'websiteUrl', rowErrors)
+    const phone = optionalString(row, 'phone', rowErrors, TEXT_MAX_LENGTHS.phone)
+    const website = optionalString(row, 'websiteUrl', rowErrors, TEXT_MAX_LENGTHS.websiteUrl)
 
     const imageDecorative = row.imageDecorative
     if (typeof imageDecorative !== 'boolean') {
@@ -309,12 +342,28 @@ export interface LocalSponsorImportPlan {
   readonly missingImportIds: readonly string[]
 }
 
+export interface LocalSponsorMediaCleanupToken {
+  mediaId: number | null
+  readonly prefix: string | null
+  readonly filenames: readonly string[]
+  readonly blobIdentifiers: readonly string[]
+}
+
+export interface CreatedLocalSponsorMedia {
+  readonly id: number
+  readonly cleanupToken: LocalSponsorMediaCleanupToken
+}
+
 export interface LocalSponsorImportStore<TransactionId> {
   beginTransaction(): Promise<TransactionId>
   commitTransaction(transactionId: TransactionId): Promise<void>
   rollbackTransaction(transactionId: TransactionId): Promise<void>
-  createMedia(row: ValidatedLocalSponsorImportRow, transactionId: TransactionId): Promise<number>
-  deleteMedia(id: number, transactionId: TransactionId): Promise<void>
+  createMedia(
+    row: ValidatedLocalSponsorImportRow,
+    transactionId: TransactionId,
+    registerCleanupToken: (token: LocalSponsorMediaCleanupToken) => void,
+  ): Promise<CreatedLocalSponsorMedia>
+  deleteMediaBlobs(token: LocalSponsorMediaCleanupToken): Promise<void>
   createSponsor(data: Record<string, unknown>, transactionId: TransactionId): Promise<number>
   updateSponsor(
     id: number,
@@ -328,12 +377,24 @@ function relationId(value: Sponsor['local_image']): number | null {
   return typeof value === 'object' ? value.id : value
 }
 
-function orderKeys(rows: readonly ValidatedLocalSponsorImportRow[]): ReadonlyMap<string, string> {
+function orderKeys(
+  rows: readonly ValidatedLocalSponsorImportRow[],
+  existingSponsors: readonly Sponsor[],
+  existingImportIds: ReadonlySet<string>,
+): ReadonlyMap<string, string> {
   const orderedRows = rows
     .map((row, index) => ({ row, index }))
-    .filter(({ row }) => row.order !== null)
-    .sort((a, b) => a.row.order! - b.row.order! || a.index - b.index)
-  const keys = generateNKeysBetween(null, null, orderedRows.length)
+    .filter(({ row }) => !existingImportIds.has(row.importId))
+    .sort((a, b) => {
+      if (a.row.order === null) return b.row.order === null ? a.index - b.index : 1
+      if (b.row.order === null) return -1
+      return a.row.order - b.row.order || a.index - b.index
+    })
+  const lastOrder = existingSponsors.reduce<string | null>((latest, sponsor) => {
+    const order = sponsor._order
+    return typeof order === 'string' && (latest === null || order > latest) ? order : latest
+  }, null)
+  const keys = generateNKeysBetween(lastOrder, null, orderedRows.length)
   return new Map(orderedRows.map(({ row }, index) => [row.importId, keys[index]]))
 }
 
@@ -374,12 +435,12 @@ export function createLocalSponsorImportPlan(
   rows: readonly ValidatedLocalSponsorImportRow[],
   existingSponsors: readonly Sponsor[],
 ): LocalSponsorImportPlan {
-  const orderKeyByImportId = orderKeys(rows)
   const byImportId = new Map(
     existingSponsors
       .filter((sponsor) => sponsor.local_import_id)
       .map((sponsor) => [sponsor.local_import_id!, sponsor]),
   )
+  const orderKeyByImportId = orderKeys(rows, existingSponsors, new Set(byImportId.keys()))
   const mediaByChecksum = new Map<string, number>()
   for (const sponsor of existingSponsors) {
     const mediaId = relationId(sponsor.local_image)
@@ -441,8 +502,8 @@ export async function applyLocalSponsorImportPlan<TransactionId>(
   store: LocalSponsorImportStore<TransactionId>,
 ): Promise<void> {
   const transactionId = await store.beginTransaction()
-  const createdMediaIds: number[] = []
-  const uploadedByChecksum = new Map<string, number>()
+  const createdMedia: LocalSponsorMediaCleanupToken[] = []
+  const uploadedByChecksum = new Map<string, CreatedLocalSponsorMedia>()
   try {
     for (const action of plan.actions) {
       if (action.kind === 'unchanged') continue
@@ -450,11 +511,13 @@ export async function applyLocalSponsorImportPlan<TransactionId>(
       if (action.image.kind === 'upload') {
         const cached = uploadedByChecksum.get(action.image.checksum)
         if (cached !== undefined) {
-          mediaId = cached
+          mediaId = cached.id
         } else {
-          mediaId = await store.createMedia(action.row, transactionId)
-          createdMediaIds.push(mediaId)
-          uploadedByChecksum.set(action.image.checksum, mediaId)
+          const uploaded = await store.createMedia(action.row, transactionId, (cleanupToken) => {
+            createdMedia.push(cleanupToken)
+          })
+          mediaId = uploaded.id
+          uploadedByChecksum.set(action.image.checksum, uploaded)
         }
       } else {
         mediaId = action.image.mediaId
@@ -468,23 +531,29 @@ export async function applyLocalSponsorImportPlan<TransactionId>(
     }
     await store.commitTransaction(transactionId)
   } catch (error) {
-    const cleanupErrors: unknown[] = []
-    for (const id of [...createdMediaIds].reverse()) {
-      try {
-        await store.deleteMedia(id, transactionId)
-      } catch (cleanupError) {
-        cleanupErrors.push(cleanupError)
-      }
-    }
     try {
       await store.rollbackTransaction(transactionId)
     } catch (rollbackError) {
-      cleanupErrors.push(rollbackError)
+      const pendingBlobs = createdMedia.flatMap(({ blobIdentifiers }) => blobIdentifiers)
+      throw new AggregateError(
+        [error, rollbackError],
+        `${error instanceof Error ? error.message : '取り込み失敗'}（rollback失敗、未削除blob: ${pendingBlobs.join(', ') || 'なし'}）`,
+      )
+    }
+    const cleanupErrors: unknown[] = []
+    const failedBlobIdentifiers: string[] = []
+    for (const token of [...createdMedia].reverse()) {
+      try {
+        await store.deleteMediaBlobs(token)
+      } catch (cleanupError) {
+        failedBlobIdentifiers.push(...token.blobIdentifiers)
+        cleanupErrors.push(cleanupError)
+      }
     }
     if (cleanupErrors.length > 0) {
       throw new AggregateError(
         [error, ...cleanupErrors],
-        `${error instanceof Error ? error.message : '取り込み失敗'}（補償処理にも失敗）`,
+        `${error instanceof Error ? error.message : '取り込み失敗'}（Media補償削除失敗 blob: ${failedBlobIdentifiers.join(', ')}）`,
       )
     }
     throw error

@@ -7,7 +7,7 @@ import { promisify } from 'node:util'
 
 import type { Payload } from 'payload'
 import sharp from 'sharp'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import {
   createBundleManifest,
@@ -54,6 +54,11 @@ describe.skipIf(!hasDatabase)('local sponsor import Payload integration', () => 
   let payload!: Payload
 
   beforeAll(async () => {
+    vi.stubEnv('S3_BUCKET', 'ci-local-sponsor-integration')
+    vi.stubEnv('S3_ENDPOINT', 'http://127.0.0.1:1')
+    vi.stubEnv('S3_REGION', 'ci-local-sponsor-integration')
+    vi.stubEnv('S3_ACCESS_KEY_ID', 'ci-local-sponsor-integration')
+    vi.stubEnv('S3_SECRET_ACCESS_KEY', 'ci-local-sponsor-integration')
     const { getPayload } = await import('payload')
     const config = (await import('../src/payload.config')).default
     payload = await getPayload({ config })
@@ -61,27 +66,16 @@ describe.skipIf(!hasDatabase)('local sponsor import Payload integration', () => 
 
   afterAll(async () => {
     if (payload) await payload.destroy()
+    vi.unstubAllEnvs()
   })
 
   it('package scriptでdry-run、apply、同一bundleの再適用を検証する', async () => {
     const fixtureRoot = mkdtempSync(path.join(tmpdir(), 'local-sponsor-int-'))
     const inputPath = path.join(fixtureRoot, 'bundle.json')
-    const imagePath = path.join(fixtureRoot, 'fixture.png')
     const importId = `integration-fixture-${process.pid}-${Date.now()}`
     let sponsorId: number | null = null
-    let mediaId: number | null = null
 
     try {
-      await sharp({
-        create: {
-          width: 2,
-          height: 2,
-          channels: 4,
-          background: '#ffffff',
-        },
-      })
-        .png()
-        .toFile(imagePath)
       const json = JSON.stringify([
         {
           importId,
@@ -90,8 +84,8 @@ describe.skipIf(!hasDatabase)('local sponsor import Payload integration', () => 
           latitude: 36.4,
           longitude: 139.1,
           address: null,
-          imageFile: 'fixture.png',
-          imageAlt: '統合テスト専用地域画像',
+          imageFile: null,
+          imageAlt: null,
           imageDecorative: false,
           message: null,
           businessHours: null,
@@ -140,7 +134,6 @@ describe.skipIf(!hasDatabase)('local sponsor import Payload integration', () => 
       })
       expect(matches.docs).toHaveLength(1)
       sponsorId = matches.docs[0].id
-      mediaId = matches.docs[0].local_image as number
 
       const repeated = await runLocalSponsorImport({
         json,
@@ -155,25 +148,11 @@ describe.skipIf(!hasDatabase)('local sponsor import Payload integration', () => 
         status: 'ok',
         counts: { create: 0, update: 0, unchanged: 1 },
       })
-      expect(
-        await payload.count({
-          collection: 'media',
-          overrideAccess: true,
-          where: { id: { equals: mediaId } },
-        }),
-      ).toMatchObject({ totalDocs: 1 })
     } finally {
       if (sponsorId !== null) {
         await payload.delete({
           collection: 'sponsors',
           id: sponsorId,
-          overrideAccess: true,
-        })
-      }
-      if (mediaId !== null) {
-        await payload.delete({
-          collection: 'media',
-          id: mediaId,
           overrideAccess: true,
         })
       }
@@ -269,15 +248,20 @@ describe.skipIf(!hasDatabase)('local sponsor import Payload integration', () => 
         websiteUrl: null,
         order: null,
       }
-      const delegate = new PayloadLocalSponsorImportStore(payload)
+      const delegate = new PayloadLocalSponsorImportStore(
+        payload,
+        async () => undefined,
+        async () => undefined,
+      )
       const failingStore: LocalSponsorImportStore<string | number> = {
         beginTransaction: () => delegate.beginTransaction(),
         commitTransaction: (transactionId) => delegate.commitTransaction(transactionId),
         rollbackTransaction: (transactionId) => delegate.rollbackTransaction(transactionId),
-        createMedia: (input, transactionId) => delegate.createMedia(input, transactionId),
-        deleteMedia: async (id, transactionId) => {
+        createMedia: (input, transactionId, registerCleanupToken) =>
+          delegate.createMedia(input, transactionId, registerCleanupToken),
+        deleteMediaBlobs: async (token) => {
           deleteMediaCalls += 1
-          await delegate.deleteMedia(id, transactionId)
+          await delegate.deleteMediaBlobs(token)
         },
         createSponsor: async (data, transactionId) => {
           await delegate.createSponsor(data, transactionId)

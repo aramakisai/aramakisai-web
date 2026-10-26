@@ -70,7 +70,7 @@ export function RegionalSponsorMapView({
     selectedSponsorId == null
       ? null
       : (sponsors.find((sponsor) => sponsor.id === selectedSponsorId) ?? null);
-  const controlInset = isDesktop ? 0 : Math.max(0, mobileBottomInset - 16);
+  const controlInset = isDesktop ? 0 : Math.max(0, mobileBottomInset);
 
   return (
     <div

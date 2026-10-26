@@ -747,13 +747,6 @@
 @media (max-width: 767px) {
   .regional-sponsor-map .leaflet-bottom {
     bottom: var(--regional-map-bottom-inset, 0px);
-    transition: bottom 300ms ease-out;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .regional-sponsor-map .leaflet-bottom {
-    transition: none;
   }
 }
 

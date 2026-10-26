@@ -74,8 +74,12 @@
           "name": "users_sessions_parent_id_fk",
           "tableFrom": "users_sessions",
           "tableTo": "users",
-          "columnsFrom": ["_parent_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "_parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -592,8 +596,12 @@
           "name": "media_owner_id_users_id_fk",
           "tableFrom": "media",
           "tableTo": "users",
-          "columnsFrom": ["owner_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -717,8 +725,12 @@
           "name": "announcements_og_image_id_media_id_fk",
           "tableFrom": "announcements",
           "tableTo": "media",
-          "columnsFrom": ["og_image_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "og_image_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -831,8 +843,12 @@
           "name": "announcements_rels_parent_fk",
           "tableFrom": "announcements_rels",
           "tableTo": "announcements",
-          "columnsFrom": ["parent_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -840,8 +856,12 @@
           "name": "announcements_rels_media_fk",
           "tableFrom": "announcements_rels",
           "tableTo": "media",
-          "columnsFrom": ["media_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "media_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -986,8 +1006,12 @@
           "name": "topics_image_id_media_id_fk",
           "tableFrom": "topics",
           "tableTo": "media",
-          "columnsFrom": ["image_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "image_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -995,8 +1019,12 @@
           "name": "topics_attachment_id_media_id_fk",
           "tableFrom": "topics",
           "tableTo": "media",
-          "columnsFrom": ["attachment_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "attachment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1109,8 +1137,12 @@
           "name": "topics_rels_parent_fk",
           "tableFrom": "topics_rels",
           "tableTo": "topics",
-          "columnsFrom": ["parent_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1118,8 +1150,12 @@
           "name": "topics_rels_media_fk",
           "tableFrom": "topics_rels",
           "tableTo": "media",
-          "columnsFrom": ["media_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "media_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1270,8 +1306,12 @@
           "name": "pages_og_image_id_media_id_fk",
           "tableFrom": "pages",
           "tableTo": "media",
-          "columnsFrom": ["og_image_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "og_image_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1349,8 +1389,12 @@
           "name": "sponsors_type_parent_fk",
           "tableFrom": "sponsors_type",
           "tableTo": "sponsors",
-          "columnsFrom": ["parent_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1633,8 +1677,12 @@
           "name": "sponsors_logo_id_media_id_fk",
           "tableFrom": "sponsors",
           "tableTo": "media",
-          "columnsFrom": ["logo_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "logo_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -1642,8 +1690,12 @@
           "name": "sponsors_local_image_id_media_id_fk",
           "tableFrom": "sponsors",
           "tableTo": "media",
-          "columnsFrom": ["local_image_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "local_image_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -1651,8 +1703,12 @@
           "name": "sponsors_area_id_id_map_areas_id_fk",
           "tableFrom": "sponsors",
           "tableTo": "map_areas",
-          "columnsFrom": ["area_id_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "area_id_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -2070,8 +2126,12 @@
           "name": "stages_area_id_id_map_areas_id_fk",
           "tableFrom": "stages",
           "tableTo": "map_areas",
-          "columnsFrom": ["area_id_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "area_id_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -2210,8 +2270,12 @@
           "name": "performance_slots_stage_id_id_stages_id_fk",
           "tableFrom": "performance_slots",
           "tableTo": "stages",
-          "columnsFrom": ["stage_id_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "stage_id_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -2219,8 +2283,12 @@
           "name": "performance_slots_exhibition_id_id_student_exhibitions_id_fk",
           "tableFrom": "performance_slots",
           "tableTo": "student_exhibitions",
-          "columnsFrom": ["exhibition_id_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "exhibition_id_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -2298,8 +2366,12 @@
           "name": "student_exhibitions_categories_parent_fk",
           "tableFrom": "student_exhibitions_categories",
           "tableTo": "student_exhibitions",
-          "columnsFrom": ["parent_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2383,8 +2455,12 @@
           "name": "student_exhibitions_links_parent_id_fk",
           "tableFrom": "student_exhibitions_links",
           "tableTo": "student_exhibitions",
-          "columnsFrom": ["_parent_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "_parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2467,8 +2543,12 @@
           "name": "student_exhibitions_vendor_menu_parent_id_fk",
           "tableFrom": "student_exhibitions_vendor_menu",
           "tableTo": "student_exhibitions",
-          "columnsFrom": ["_parent_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "_parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2723,8 +2803,12 @@
           "name": "student_exhibitions_owner_id_users_id_fk",
           "tableFrom": "student_exhibitions",
           "tableTo": "users",
-          "columnsFrom": ["owner_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -2732,8 +2816,12 @@
           "name": "student_exhibitions_exhibit_area_id_id_map_areas_id_fk",
           "tableFrom": "student_exhibitions",
           "tableTo": "map_areas",
-          "columnsFrom": ["exhibit_area_id_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "exhibit_area_id_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -2741,8 +2829,12 @@
           "name": "student_exhibitions_vendor_area_id_id_map_areas_id_fk",
           "tableFrom": "student_exhibitions",
           "tableTo": "map_areas",
-          "columnsFrom": ["vendor_area_id_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "vendor_area_id_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -2750,8 +2842,12 @@
           "name": "student_exhibitions_other_area_id_id_map_areas_id_fk",
           "tableFrom": "student_exhibitions",
           "tableTo": "map_areas",
-          "columnsFrom": ["other_area_id_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "other_area_id_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -2825,8 +2921,12 @@
           "name": "student_exhibitions_texts_parent_fk",
           "tableFrom": "student_exhibitions_texts",
           "tableTo": "student_exhibitions",
-          "columnsFrom": ["parent_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2939,8 +3039,12 @@
           "name": "student_exhibitions_rels_parent_fk",
           "tableFrom": "student_exhibitions_rels",
           "tableTo": "student_exhibitions",
-          "columnsFrom": ["parent_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2948,8 +3052,869 @@
           "name": "student_exhibitions_rels_media_fk",
           "tableFrom": "student_exhibitions_rels",
           "tableTo": "media",
-          "columnsFrom": ["media_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "media_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public._student_exhibitions_v_version_categories": {
+      "name": "_student_exhibitions_v_version_categories",
+      "schema": "",
+      "columns": {
+        "order": {
+          "name": "order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "enum__student_exhibitions_v_version_categories",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "_student_exhibitions_v_version_categories_order_idx": {
+          "name": "_student_exhibitions_v_version_categories_order_idx",
+          "columns": [
+            {
+              "expression": "order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "_student_exhibitions_v_version_categories_parent_idx": {
+          "name": "_student_exhibitions_v_version_categories_parent_idx",
+          "columns": [
+            {
+              "expression": "parent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "_student_exhibitions_v_version_categories_parent_fk": {
+          "name": "_student_exhibitions_v_version_categories_parent_fk",
+          "tableFrom": "_student_exhibitions_v_version_categories",
+          "tableTo": "_student_exhibitions_v",
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public._student_exhibitions_v_version_links": {
+      "name": "_student_exhibitions_v_version_links",
+      "schema": "",
+      "columns": {
+        "_order": {
+          "name": "_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "_parent_id": {
+          "name": "_parent_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "platform": {
+          "name": "platform",
+          "type": "enum__student_exhibitions_v_version_links_platform",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "url": {
+          "name": "url",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "_uuid": {
+          "name": "_uuid",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "_student_exhibitions_v_version_links_order_idx": {
+          "name": "_student_exhibitions_v_version_links_order_idx",
+          "columns": [
+            {
+              "expression": "_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "_student_exhibitions_v_version_links_parent_id_idx": {
+          "name": "_student_exhibitions_v_version_links_parent_id_idx",
+          "columns": [
+            {
+              "expression": "_parent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "_student_exhibitions_v_version_links_parent_id_fk": {
+          "name": "_student_exhibitions_v_version_links_parent_id_fk",
+          "tableFrom": "_student_exhibitions_v_version_links",
+          "tableTo": "_student_exhibitions_v",
+          "columnsFrom": [
+            "_parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public._student_exhibitions_v_version_vendor_menu": {
+      "name": "_student_exhibitions_v_version_vendor_menu",
+      "schema": "",
+      "columns": {
+        "_order": {
+          "name": "_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "_parent_id": {
+          "name": "_parent_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "price": {
+          "name": "price",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "_uuid": {
+          "name": "_uuid",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "_student_exhibitions_v_version_vendor_menu_order_idx": {
+          "name": "_student_exhibitions_v_version_vendor_menu_order_idx",
+          "columns": [
+            {
+              "expression": "_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "_student_exhibitions_v_version_vendor_menu_parent_id_idx": {
+          "name": "_student_exhibitions_v_version_vendor_menu_parent_id_idx",
+          "columns": [
+            {
+              "expression": "_parent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "_student_exhibitions_v_version_vendor_menu_parent_id_fk": {
+          "name": "_student_exhibitions_v_version_vendor_menu_parent_id_fk",
+          "tableFrom": "_student_exhibitions_v_version_vendor_menu",
+          "tableTo": "_student_exhibitions_v",
+          "columnsFrom": [
+            "_parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public._student_exhibitions_v": {
+      "name": "_student_exhibitions_v",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version_owner_id": {
+          "name": "version_owner_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version_status": {
+          "name": "version_status",
+          "type": "enum__student_exhibitions_v_version_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'draft'"
+        },
+        "version_organization_name": {
+          "name": "version_organization_name",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version_stage_name": {
+          "name": "version_stage_name",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version_stage_description": {
+          "name": "version_stage_description",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version_exhibit_name": {
+          "name": "version_exhibit_name",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version_exhibit_description": {
+          "name": "version_exhibit_description",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version_exhibit_area_id_id": {
+          "name": "version_exhibit_area_id_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version_exhibit_booth_number": {
+          "name": "version_exhibit_booth_number",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version_exhibit_booth_label": {
+          "name": "version_exhibit_booth_label",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version_vendor_name": {
+          "name": "version_vendor_name",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version_vendor_description": {
+          "name": "version_vendor_description",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version_vendor_area_id_id": {
+          "name": "version_vendor_area_id_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version_vendor_booth_number": {
+          "name": "version_vendor_booth_number",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version_vendor_booth_label": {
+          "name": "version_vendor_booth_label",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version_other_name": {
+          "name": "version_other_name",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version_other_description": {
+          "name": "version_other_description",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version_other_area_id_id": {
+          "name": "version_other_area_id_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version_other_booth_number": {
+          "name": "version_other_booth_number",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version_other_booth_label": {
+          "name": "version_other_booth_label",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version_updated_at": {
+          "name": "version_updated_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version_created_at": {
+          "name": "version_created_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "_student_exhibitions_v_parent_idx": {
+          "name": "_student_exhibitions_v_parent_idx",
+          "columns": [
+            {
+              "expression": "parent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "_student_exhibitions_v_version_version_owner_idx": {
+          "name": "_student_exhibitions_v_version_version_owner_idx",
+          "columns": [
+            {
+              "expression": "version_owner_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "_student_exhibitions_v_version_exhibit_version_exhibit_a_idx": {
+          "name": "_student_exhibitions_v_version_exhibit_version_exhibit_a_idx",
+          "columns": [
+            {
+              "expression": "version_exhibit_area_id_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "_student_exhibitions_v_version_vendor_version_vendor_are_idx": {
+          "name": "_student_exhibitions_v_version_vendor_version_vendor_are_idx",
+          "columns": [
+            {
+              "expression": "version_vendor_area_id_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "_student_exhibitions_v_version_other_version_other_area__idx": {
+          "name": "_student_exhibitions_v_version_other_version_other_area__idx",
+          "columns": [
+            {
+              "expression": "version_other_area_id_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "_student_exhibitions_v_version_version_updated_at_idx": {
+          "name": "_student_exhibitions_v_version_version_updated_at_idx",
+          "columns": [
+            {
+              "expression": "version_updated_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "_student_exhibitions_v_version_version_created_at_idx": {
+          "name": "_student_exhibitions_v_version_version_created_at_idx",
+          "columns": [
+            {
+              "expression": "version_created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "_student_exhibitions_v_created_at_idx": {
+          "name": "_student_exhibitions_v_created_at_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "_student_exhibitions_v_updated_at_idx": {
+          "name": "_student_exhibitions_v_updated_at_idx",
+          "columns": [
+            {
+              "expression": "updated_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "_student_exhibitions_v_parent_id_student_exhibitions_id_fk": {
+          "name": "_student_exhibitions_v_parent_id_student_exhibitions_id_fk",
+          "tableFrom": "_student_exhibitions_v",
+          "tableTo": "student_exhibitions",
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "_student_exhibitions_v_version_owner_id_users_id_fk": {
+          "name": "_student_exhibitions_v_version_owner_id_users_id_fk",
+          "tableFrom": "_student_exhibitions_v",
+          "tableTo": "users",
+          "columnsFrom": [
+            "version_owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "_student_exhibitions_v_version_exhibit_area_id_id_map_areas_id_fk": {
+          "name": "_student_exhibitions_v_version_exhibit_area_id_id_map_areas_id_fk",
+          "tableFrom": "_student_exhibitions_v",
+          "tableTo": "map_areas",
+          "columnsFrom": [
+            "version_exhibit_area_id_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "_student_exhibitions_v_version_vendor_area_id_id_map_areas_id_fk": {
+          "name": "_student_exhibitions_v_version_vendor_area_id_id_map_areas_id_fk",
+          "tableFrom": "_student_exhibitions_v",
+          "tableTo": "map_areas",
+          "columnsFrom": [
+            "version_vendor_area_id_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "_student_exhibitions_v_version_other_area_id_id_map_areas_id_fk": {
+          "name": "_student_exhibitions_v_version_other_area_id_id_map_areas_id_fk",
+          "tableFrom": "_student_exhibitions_v",
+          "tableTo": "map_areas",
+          "columnsFrom": [
+            "version_other_area_id_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public._student_exhibitions_v_texts": {
+      "name": "_student_exhibitions_v_texts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "order": {
+          "name": "order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "path": {
+          "name": "path",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "text": {
+          "name": "text",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "_student_exhibitions_v_texts_order_parent": {
+          "name": "_student_exhibitions_v_texts_order_parent",
+          "columns": [
+            {
+              "expression": "order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "parent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "_student_exhibitions_v_texts_parent_fk": {
+          "name": "_student_exhibitions_v_texts_parent_fk",
+          "tableFrom": "_student_exhibitions_v_texts",
+          "tableTo": "_student_exhibitions_v",
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public._student_exhibitions_v_rels": {
+      "name": "_student_exhibitions_v_rels",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "order": {
+          "name": "order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "path": {
+          "name": "path",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "media_id": {
+          "name": "media_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "_student_exhibitions_v_rels_order_idx": {
+          "name": "_student_exhibitions_v_rels_order_idx",
+          "columns": [
+            {
+              "expression": "order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "_student_exhibitions_v_rels_parent_idx": {
+          "name": "_student_exhibitions_v_rels_parent_idx",
+          "columns": [
+            {
+              "expression": "parent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "_student_exhibitions_v_rels_path_idx": {
+          "name": "_student_exhibitions_v_rels_path_idx",
+          "columns": [
+            {
+              "expression": "path",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "_student_exhibitions_v_rels_media_id_idx": {
+          "name": "_student_exhibitions_v_rels_media_id_idx",
+          "columns": [
+            {
+              "expression": "media_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "_student_exhibitions_v_rels_parent_fk": {
+          "name": "_student_exhibitions_v_rels_parent_fk",
+          "tableFrom": "_student_exhibitions_v_rels",
+          "tableTo": "_student_exhibitions_v",
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "_student_exhibitions_v_rels_media_fk": {
+          "name": "_student_exhibitions_v_rels_media_fk",
+          "tableFrom": "_student_exhibitions_v_rels",
+          "tableTo": "media",
+          "columnsFrom": [
+            "media_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3141,8 +4106,12 @@
           "name": "parking_statuses_lot_id_parking_lots_id_fk",
           "tableFrom": "parking_statuses",
           "tableTo": "parking_lots",
-          "columnsFrom": ["lot_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "lot_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -3329,8 +4298,12 @@
           "name": "signage_slides_image_id_media_id_fk",
           "tableFrom": "signage_slides",
           "tableTo": "media",
-          "columnsFrom": ["image_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "image_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -3514,8 +4487,12 @@
           "name": "signage_groups_quake_slides_warning_id_signage_slides_id_fk",
           "tableFrom": "signage_groups",
           "tableTo": "signage_slides",
-          "columnsFrom": ["quake_slides_warning_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "quake_slides_warning_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -3523,8 +4500,12 @@
           "name": "signage_groups_quake_slides_calm_id_signage_slides_id_fk",
           "tableFrom": "signage_groups",
           "tableTo": "signage_slides",
-          "columnsFrom": ["quake_slides_calm_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "quake_slides_calm_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -3532,8 +4513,12 @@
           "name": "signage_groups_quake_slides_evacuate_id_signage_slides_id_fk",
           "tableFrom": "signage_groups",
           "tableTo": "signage_slides",
-          "columnsFrom": ["quake_slides_evacuate_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "quake_slides_evacuate_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -3541,8 +4526,12 @@
           "name": "signage_groups_quake_slides_cancelled_id_signage_slides_id_fk",
           "tableFrom": "signage_groups",
           "tableTo": "signage_slides",
-          "columnsFrom": ["quake_slides_cancelled_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "quake_slides_cancelled_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -3676,8 +4665,12 @@
           "name": "signage_groups_rels_parent_fk",
           "tableFrom": "signage_groups_rels",
           "tableTo": "signage_groups",
-          "columnsFrom": ["parent_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3685,8 +4678,12 @@
           "name": "signage_groups_rels_signage_slides_fk",
           "tableFrom": "signage_groups_rels",
           "tableTo": "signage_slides",
-          "columnsFrom": ["signage_slides_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "signage_slides_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3694,8 +4691,12 @@
           "name": "signage_groups_rels_telops_fk",
           "tableFrom": "signage_groups_rels",
           "tableTo": "telops",
-          "columnsFrom": ["telops_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "telops_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3927,8 +4928,12 @@
           "name": "lost_items_photo_id_media_id_fk",
           "tableFrom": "lost_items",
           "tableTo": "media",
-          "columnsFrom": ["photo_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "photo_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -4096,8 +5101,12 @@
           "name": "payload_jobs_log_parent_id_fk",
           "tableFrom": "payload_jobs_log",
           "tableTo": "payload_jobs",
-          "columnsFrom": ["_parent_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "_parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -4880,8 +5889,12 @@
           "name": "payload_locked_documents_rels_parent_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "payload_locked_documents",
-          "columnsFrom": ["parent_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4889,8 +5902,12 @@
           "name": "payload_locked_documents_rels_users_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "users",
-          "columnsFrom": ["users_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "users_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4898,8 +5915,12 @@
           "name": "payload_locked_documents_rels_media_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "media",
-          "columnsFrom": ["media_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "media_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4907,8 +5928,12 @@
           "name": "payload_locked_documents_rels_announcements_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "announcements",
-          "columnsFrom": ["announcements_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "announcements_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4916,8 +5941,12 @@
           "name": "payload_locked_documents_rels_topics_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "topics",
-          "columnsFrom": ["topics_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "topics_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4925,8 +5954,12 @@
           "name": "payload_locked_documents_rels_pages_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "pages",
-          "columnsFrom": ["pages_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "pages_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4934,8 +5967,12 @@
           "name": "payload_locked_documents_rels_sponsors_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "sponsors",
-          "columnsFrom": ["sponsors_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "sponsors_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4943,8 +5980,12 @@
           "name": "payload_locked_documents_rels_faq_items_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "faq_items",
-          "columnsFrom": ["faq_items_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "faq_items_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4952,8 +5993,12 @@
           "name": "payload_locked_documents_rels_map_areas_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "map_areas",
-          "columnsFrom": ["map_areas_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "map_areas_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4961,8 +6006,12 @@
           "name": "payload_locked_documents_rels_map_points_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "map_points",
-          "columnsFrom": ["map_points_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "map_points_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4970,8 +6019,12 @@
           "name": "payload_locked_documents_rels_stages_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "stages",
-          "columnsFrom": ["stages_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "stages_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4979,8 +6032,12 @@
           "name": "payload_locked_documents_rels_performance_slots_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "performance_slots",
-          "columnsFrom": ["performance_slots_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "performance_slots_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4988,8 +6045,12 @@
           "name": "payload_locked_documents_rels_student_exhibitions_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "student_exhibitions",
-          "columnsFrom": ["student_exhibitions_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "student_exhibitions_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4997,8 +6058,12 @@
           "name": "payload_locked_documents_rels_parking_lots_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "parking_lots",
-          "columnsFrom": ["parking_lots_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "parking_lots_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5006,8 +6071,12 @@
           "name": "payload_locked_documents_rels_parking_statuses_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "parking_statuses",
-          "columnsFrom": ["parking_statuses_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "parking_statuses_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5015,8 +6084,12 @@
           "name": "payload_locked_documents_rels_signage_slides_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "signage_slides",
-          "columnsFrom": ["signage_slides_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "signage_slides_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5024,8 +6097,12 @@
           "name": "payload_locked_documents_rels_signage_groups_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "signage_groups",
-          "columnsFrom": ["signage_groups_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "signage_groups_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5033,8 +6110,12 @@
           "name": "payload_locked_documents_rels_telops_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "telops",
-          "columnsFrom": ["telops_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "telops_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5042,8 +6123,12 @@
           "name": "payload_locked_documents_rels_lost_items_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "lost_items",
-          "columnsFrom": ["lost_items_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "lost_items_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5247,8 +6332,12 @@
           "name": "payload_preferences_rels_parent_fk",
           "tableFrom": "payload_preferences_rels",
           "tableTo": "payload_preferences",
-          "columnsFrom": ["parent_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5256,8 +6345,12 @@
           "name": "payload_preferences_rels_users_fk",
           "tableFrom": "payload_preferences_rels",
           "tableTo": "users",
-          "columnsFrom": ["users_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "users_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5422,8 +6515,12 @@
           "name": "site_settings_event_days_parent_id_fk",
           "tableFrom": "site_settings_event_days",
           "tableTo": "site_settings",
-          "columnsFrom": ["_parent_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "_parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5539,8 +6636,12 @@
           "name": "site_settings_og_image_id_media_id_fk",
           "tableFrom": "site_settings",
           "tableTo": "media",
-          "columnsFrom": ["og_image_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "og_image_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -5653,8 +6754,12 @@
           "name": "site_settings_rels_parent_fk",
           "tableFrom": "site_settings_rels",
           "tableTo": "site_settings",
-          "columnsFrom": ["parent_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5662,8 +6767,12 @@
           "name": "site_settings_rels_media_fk",
           "tableFrom": "site_settings_rels",
           "tableTo": "media",
-          "columnsFrom": ["media_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "media_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5725,8 +6834,12 @@
           "name": "signage_settings_pinned_slide_id_signage_slides_id_fk",
           "tableFrom": "signage_settings",
           "tableTo": "signage_slides",
-          "columnsFrom": ["pinned_slide_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "pinned_slide_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -5742,87 +6855,194 @@
     "public.enum_users_role": {
       "name": "enum_users_role",
       "schema": "public",
-      "values": ["executive", "student_exhibitor"]
+      "values": [
+        "executive",
+        "student_exhibitor"
+      ]
     },
     "public.enum_users_invite_status": {
       "name": "enum_users_invite_status",
       "schema": "public",
-      "values": ["sent", "failed"]
+      "values": [
+        "sent",
+        "failed"
+      ]
     },
     "public.enum_sponsors_type": {
       "name": "enum_sponsors_type",
       "schema": "public",
-      "values": ["ad", "local", "vendor", "other"]
+      "values": [
+        "ad",
+        "local",
+        "vendor",
+        "other"
+      ]
     },
     "public.enum_sponsors_local_map_category": {
       "name": "enum_sponsors_local_map_category",
       "schema": "public",
-      "values": ["hospital", "life", "car", "education", "food", "shop"]
+      "values": [
+        "hospital",
+        "life",
+        "car",
+        "education",
+        "food",
+        "shop"
+      ]
     },
     "public.enum_sponsors_tier": {
       "name": "enum_sponsors_tier",
       "schema": "public",
-      "values": ["planA", "planB", "planC", "planD"]
+      "values": [
+        "planA",
+        "planB",
+        "planC",
+        "planD"
+      ]
     },
     "public.enum_map_points_kind": {
       "name": "enum_map_points_kind",
       "schema": "public",
-      "values": ["garbage_station", "reception"]
+      "values": [
+        "garbage_station",
+        "reception"
+      ]
     },
     "public.enum_student_exhibitions_categories": {
       "name": "enum_student_exhibitions_categories",
       "schema": "public",
-      "values": ["stage", "exhibit", "vendor", "other"]
+      "values": [
+        "stage",
+        "exhibit",
+        "vendor",
+        "other"
+      ]
     },
     "public.enum_student_exhibitions_links_platform": {
       "name": "enum_student_exhibitions_links_platform",
       "schema": "public",
-      "values": ["x", "instagram", "facebook", "youtube", "tiktok", "line", "website"]
+      "values": [
+        "x",
+        "instagram",
+        "facebook",
+        "youtube",
+        "tiktok",
+        "line",
+        "website"
+      ]
     },
     "public.enum_student_exhibitions_status": {
       "name": "enum_student_exhibitions_status",
       "schema": "public",
-      "values": ["published", "draft"]
+      "values": [
+        "published",
+        "draft"
+      ]
+    },
+    "public.enum__student_exhibitions_v_version_categories": {
+      "name": "enum__student_exhibitions_v_version_categories",
+      "schema": "public",
+      "values": [
+        "stage",
+        "exhibit",
+        "vendor",
+        "other"
+      ]
+    },
+    "public.enum__student_exhibitions_v_version_links_platform": {
+      "name": "enum__student_exhibitions_v_version_links_platform",
+      "schema": "public",
+      "values": [
+        "x",
+        "instagram",
+        "facebook",
+        "youtube",
+        "tiktok",
+        "line",
+        "website"
+      ]
+    },
+    "public.enum__student_exhibitions_v_version_status": {
+      "name": "enum__student_exhibitions_v_version_status",
+      "schema": "public",
+      "values": [
+        "published",
+        "draft"
+      ]
     },
     "public.enum_parking_statuses_status": {
       "name": "enum_parking_statuses_status",
       "schema": "public",
-      "values": ["available", "crowded", "full"]
+      "values": [
+        "available",
+        "crowded",
+        "full"
+      ]
     },
     "public.enum_signage_slides_kind": {
       "name": "enum_signage_slides_kind",
       "schema": "public",
-      "values": ["sponsors", "lost_items", "campus_map", "image", "parking", "timetable", "layout"]
+      "values": [
+        "sponsors",
+        "lost_items",
+        "campus_map",
+        "image",
+        "parking",
+        "timetable",
+        "layout"
+      ]
     },
     "public.enum_signage_slides_layout": {
       "name": "enum_signage_slides_layout",
       "schema": "public",
-      "values": ["title", "title-content", "section", "two-content"]
+      "values": [
+        "title",
+        "title-content",
+        "section",
+        "two-content"
+      ]
     },
     "public.enum_signage_slides_tone": {
       "name": "enum_signage_slides_tone",
       "schema": "public",
-      "values": ["normal", "alert"]
+      "values": [
+        "normal",
+        "alert"
+      ]
     },
     "public.enum_telops_audience": {
       "name": "enum_telops_audience",
       "schema": "public",
-      "values": ["visitor", "group"]
+      "values": [
+        "visitor",
+        "group"
+      ]
     },
     "public.enum_payload_jobs_log_task_slug": {
       "name": "enum_payload_jobs_log_task_slug",
       "schema": "public",
-      "values": ["inline", "sendInvitation", "purgeMediaEdgeCache"]
+      "values": [
+        "inline",
+        "sendInvitation",
+        "purgeMediaEdgeCache"
+      ]
     },
     "public.enum_payload_jobs_log_state": {
       "name": "enum_payload_jobs_log_state",
       "schema": "public",
-      "values": ["failed", "succeeded"]
+      "values": [
+        "failed",
+        "succeeded"
+      ]
     },
     "public.enum_payload_jobs_task_slug": {
       "name": "enum_payload_jobs_task_slug",
       "schema": "public",
-      "values": ["inline", "sendInvitation", "purgeMediaEdgeCache"]
+      "values": [
+        "inline",
+        "sendInvitation",
+        "purgeMediaEdgeCache"
+      ]
     }
   },
   "schemas": {},
@@ -5835,6 +7055,6 @@
     "tables": {},
     "columns": {}
   },
-  "id": "7f1daffa-8c5c-4754-85d4-08343ed192b2",
+  "id": "a2b7d3b7-1194-49db-9c3d-12af722f0cc6",
   "prevId": "00000000-0000-0000-0000-000000000000"
 }

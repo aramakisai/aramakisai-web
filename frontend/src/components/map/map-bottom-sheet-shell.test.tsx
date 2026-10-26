@@ -55,6 +55,35 @@ function Harness() {
   );
 }
 
+function renderNestedScrollArea(scrollTop: number) {
+  window.matchMedia = vi.fn().mockReturnValue({
+    matches: false,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  });
+  render(
+    <MapBottomSheetShell
+      snaps={regionalSnaps}
+      snapId="detail"
+      restSnapId="list"
+      onSnapChange={vi.fn()}
+    >
+      <div data-map-sheet-scroll>
+        <span>scroll内容</span>
+      </div>
+    </MapBottomSheetShell>,
+  );
+  const sheet = screen.getByTestId('map-bottom-sheet');
+  const scrollArea = screen.getByText('scroll内容').parentElement!;
+  Object.defineProperty(scrollArea, 'scrollHeight', { value: 1000 });
+  Object.defineProperty(scrollArea, 'clientHeight', { value: 620 });
+  scrollArea.scrollTop = scrollTop;
+  vi.spyOn(sheet, 'getBoundingClientRect').mockReturnValue({
+    height: 620,
+  } as DOMRect);
+  return { sheet, scrollArea };
+}
+
 describe('MapBottomSheetShell', () => {
   it('reduced motion時はsnap遷移を無効化する', () => {
     window.matchMedia = vi.fn().mockReturnValue({
@@ -112,6 +141,36 @@ describe('MapBottomSheetShell', () => {
     expect(screen.getByText('地域協賛の内容').parentElement).toHaveAttribute(
       'inert',
     );
+  });
+
+  it('内側のscroll領域が途中なら、その領域の縦scrollをsheet resizeより優先する', () => {
+    const { sheet, scrollArea } = renderNestedScrollArea(50);
+
+    firePointer(scrollArea, 'pointerdown', { clientY: 300 });
+    firePointer(scrollArea, 'pointermove', { clientY: 400 });
+
+    expect(sheet.style.transition).toBe('');
+    firePointer(scrollArea, 'pointerup', { clientY: 400 });
+  });
+
+  it('最大snapでは内側scroll領域の上方向scrollをsheet resizeより優先する', () => {
+    const { sheet, scrollArea } = renderNestedScrollArea(0);
+
+    firePointer(scrollArea, 'pointerdown', { clientY: 300 });
+    firePointer(scrollArea, 'pointermove', { clientY: 200 });
+
+    expect(sheet.style.transition).toBe('');
+    firePointer(scrollArea, 'pointerup', { clientY: 200 });
+  });
+
+  it('内側scroll領域が先頭なら下方向dragでsheetを縮小する', () => {
+    const { sheet, scrollArea } = renderNestedScrollArea(0);
+
+    firePointer(scrollArea, 'pointerdown', { clientY: 300 });
+    firePointer(scrollArea, 'pointermove', { clientY: 400 });
+
+    expect(sheet.style.transition).toBe('none');
+    firePointer(scrollArea, 'pointerup', { clientY: 400 });
   });
 
   it('下端オフセットをdrag上限から差し引き、呼び出し側固有の装飾を適用する', () => {

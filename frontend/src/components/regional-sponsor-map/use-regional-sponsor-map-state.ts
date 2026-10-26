@@ -63,7 +63,6 @@ export function useRegionalSponsorMapState(
     setReturnSponsorId(null);
     setSelectedSponsorId(sponsorId);
     setMobileSheetSnap('detail');
-    setSpiderfiedClusterId(null);
   };
   const returnToList = () => {
     const sponsorId = selectedSponsorId;

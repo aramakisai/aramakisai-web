@@ -174,6 +174,9 @@ describe('RegionalSponsorMapView', () => {
       position: 'bottomleft',
       prefix: false,
     });
+    expect(screen.getByTestId('leaflet-map').parentElement).toHaveStyle({
+      '--regional-map-bottom-inset': '380px',
+    });
   });
 
   it('loading、透明error tile、失敗通知、再読込を一覧を覆わず提供する', () => {

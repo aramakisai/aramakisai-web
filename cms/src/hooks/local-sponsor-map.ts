@@ -128,13 +128,11 @@ export const localSponsorMapConstraint: CollectionBeforeValidateHook = async ({
     const address = blankToNull(normalizedEffective.address)
     const addressChanged =
       hasOwn(partial, 'address') && address !== blankToNull(originalDoc?.address)
-    const coordinatesExplicitlyChanged =
-      hasOwn(partial, 'local_latitude') &&
-      hasOwn(partial, 'local_longitude') &&
-      (partial.local_latitude !== originalDoc?.local_latitude ||
-        partial.local_longitude !== originalDoc?.local_longitude)
+    const coordinatesExplicitlyProvided =
+      hasOwn(partial, 'local_latitude') && hasOwn(partial, 'local_longitude')
     const needsGeocode =
-      !validCoordinatePair(normalizedEffective) || (addressChanged && !coordinatesExplicitlyChanged)
+      !validCoordinatePair(normalizedEffective) ||
+      (addressChanged && !coordinatesExplicitlyProvided)
 
     if (needsGeocode) {
       if (typeof address !== 'string') {

@@ -71,8 +71,10 @@ export function RegionalSponsorMapScreen({
     return () => cancelAnimationFrame(frame);
   }, [clearReturnSponsorId, returnSponsorId, selectedSponsorId]);
 
-  const selectFromCard = (sponsor: RegionalSponsor) =>
+  const selectFromCard = (sponsor: RegionalSponsor) => {
+    state.setSpiderfiedClusterId(null);
     state.selectSponsor(sponsor.id);
+  };
   const selectFromPin = (sponsorId: number) => state.selectSponsor(sponsorId);
   const onSheetHeightChange = useCallback(
     (height: number) => setMobileBottomInset(height),

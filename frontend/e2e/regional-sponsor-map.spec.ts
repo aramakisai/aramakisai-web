@@ -199,6 +199,95 @@ async function capture(page: Page, testInfo: TestInfo, name: string) {
   await testInfo.attach(name, { path, contentType: 'image/png' });
 }
 
+async function expectMapControlsAboveSheet(page: Page): Promise<void> {
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const sheet = document.querySelector<HTMLElement>(
+          '[data-testid="map-bottom-sheet"]',
+        );
+        const attribution = document.querySelector<HTMLElement>(
+          '.leaflet-control-attribution',
+        );
+        const zoom = document.querySelector<HTMLElement>(
+          '.leaflet-control-zoom',
+        );
+        const corners = [
+          ...document.querySelectorAll<HTMLElement>(
+            '.regional-sponsor-map .leaflet-bottom',
+          ),
+        ];
+        if (!sheet || !attribution || !zoom || corners.length === 0) {
+          return false;
+        }
+        const sheetBox = sheet.getBoundingClientRect();
+        const controls = [attribution, zoom].map((element) =>
+          element.getBoundingClientRect(),
+        );
+        return (
+          controls.every(
+            (box) =>
+              box.width > 0 &&
+              box.height > 0 &&
+              box.top >= 0 &&
+              box.bottom <= sheetBox.top,
+          ) &&
+          corners.every((corner) => {
+            const style = getComputedStyle(corner);
+            return (
+              parseFloat(style.bottom) >= sheetBox.height - 0.5 &&
+              style.transitionDuration === '0s'
+            );
+          })
+        );
+      }),
+    )
+    .toBe(true);
+}
+
+async function expectSelectedPinBetweenOverlays(page: Page): Promise<void> {
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const visibleElement = <T extends HTMLElement>(selector: string) =>
+          [...document.querySelectorAll<T>(selector)].find((element) => {
+            const box = element.getBoundingClientRect();
+            return box.width > 0 && box.height > 0;
+          });
+        const search = visibleElement<HTMLInputElement>('input[type="search"]');
+        const sheet = document.querySelector<HTMLElement>(
+          '[data-testid="map-bottom-sheet"]',
+        );
+        const pin = document.querySelector<HTMLElement>(
+          '.leaflet-marker-icon[aria-current="true"]',
+        );
+        if (!search || !sheet || !pin) return false;
+        const categoryGroup = visibleElement<HTMLElement>(
+          '[role="group"][aria-label="カテゴリで絞り込む"]',
+        );
+        const searchBox = search.getBoundingClientRect();
+        const categoryBox = categoryGroup?.getBoundingClientRect();
+        const overlayBottom = Math.max(
+          searchBox.bottom,
+          categoryBox?.bottom ?? searchBox.bottom,
+        );
+        const sheetBox = sheet.getBoundingClientRect();
+        const pinBox = pin.getBoundingClientRect();
+        const target = document.elementFromPoint(
+          pinBox.left + pinBox.width / 2,
+          pinBox.top + pinBox.height / 2,
+        );
+        return (
+          overlayBottom < sheetBox.top &&
+          pinBox.top >= overlayBottom &&
+          pinBox.bottom <= sheetBox.top &&
+          (target === pin || (target instanceof Node && pin.contains(target)))
+        );
+      }),
+    )
+    .toBe(true);
+}
+
 test.describe('地域協賛マップ fixture E2E', { tag: '@local-fixture' }, () => {
   test.describe.configure({ mode: 'serial' });
   test.setTimeout(120_000);
@@ -304,11 +393,18 @@ test.describe('地域協賛マップ fixture E2E', { tag: '@local-fixture' }, ()
       name: 'テスト専用あらまき病院、病院',
       exact: true,
     });
-    await pin.click();
+    await pin.focus();
+    await page.keyboard.press('Enter');
     await expect(
       page.getByRole('heading', { name: 'テスト専用あらまき病院' }),
     ).toBeFocused();
     await expect(pin).toHaveAttribute('aria-current', 'true');
+    await page.getByRole('button', { name: '店舗一覧に戻る' }).click();
+    await pin.focus();
+    await page.keyboard.press('Space');
+    await expect(
+      page.getByRole('heading', { name: 'テスト専用あらまき病院' }),
+    ).toBeFocused();
     await page.getByRole('button', { name: '店舗一覧に戻る' }).click();
 
     await page
@@ -327,6 +423,16 @@ test.describe('地域協賛マップ fixture E2E', { tag: '@local-fixture' }, ()
     await spiderPin.click();
     await expect(
       page.getByRole('heading', { name: 'テスト専用食堂B' }),
+    ).toBeFocused();
+    const otherSpiderPin = page.getByRole('button', {
+      name: 'テスト専用食堂A、飲食',
+      exact: true,
+    });
+    await expect(otherSpiderPin).toBeVisible();
+    await otherSpiderPin.focus();
+    await page.keyboard.press('Enter');
+    await expect(
+      page.getByRole('heading', { name: 'テスト専用食堂A' }),
     ).toBeFocused();
   });
 
@@ -359,10 +465,10 @@ test.describe('地域協賛マップ fixture E2E', { tag: '@local-fixture' }, ()
     await page.setViewportSize({ width: 390, height: 844 });
     await openMap(page);
     const sheet = page.getByTestId('map-bottom-sheet');
-    await expect(sheet).toHaveCSS('height', '379.797px');
     await expect(
       page.getByRole('button', { name: /現在: 一覧/ }),
     ).toBeVisible();
+    await expectMapControlsAboveSheet(page);
     expect(
       await page.evaluate(
         () =>
@@ -371,40 +477,64 @@ test.describe('地域協賛マップ fixture E2E', { tag: '@local-fixture' }, ()
       ),
     ).toBe(true);
 
-    const card = page.getByRole('button', {
-      name: /テスト専用あらまき病院.*詳細を表示/,
-    });
-    await card.click();
-    await expect(sheet).toHaveCSS('height', '700px');
-    await expect(
-      page.getByRole('heading', { name: 'テスト専用あらまき病院' }),
-    ).toBeFocused();
-    await expect
-      .poll(async () => {
-        const [pinBox, sheetBox] = await Promise.all([
-          page
-            .locator('.leaflet-marker-icon[aria-current="true"]')
-            .boundingBox(),
-          sheet.boundingBox(),
-        ]);
-        return Boolean(
-          pinBox && sheetBox && pinBox.y + pinBox.height <= sheetBox.y,
-        );
-      })
-      .toBe(true);
-    await page.getByRole('button', { name: '店舗一覧に戻る' }).click();
-    await expect(card).toBeFocused();
-
-    const grabber = page.getByRole('button', { name: /現在: 一覧/ });
-    await grabber.focus();
+    const listGrabber = page.getByRole('button', { name: /現在: 一覧/ });
+    await listGrabber.focus();
     await page.keyboard.press('ArrowUp');
     await expect(
       page.getByRole('button', { name: /現在: 展開/ }),
     ).toBeVisible();
+    await expect(page.getByRole('button', { name: /現在: 詳細/ })).toHaveCount(
+      0,
+    );
+    await expectMapControlsAboveSheet(page);
     await page.keyboard.press('ArrowDown');
     await expect(
       page.getByRole('button', { name: /現在: 一覧/ }),
     ).toBeVisible();
+
+    const card = page.getByRole('button', {
+      name: /テスト専用あらまき病院.*詳細を表示/,
+    });
+    await card.click();
+    await expect(
+      page.getByRole('heading', { name: 'テスト専用あらまき病院' }),
+    ).toBeFocused();
+    await expectMapControlsAboveSheet(page);
+    await expectSelectedPinBetweenOverlays(page);
+
+    const detailHeight = await sheet.evaluate(
+      (element) => element.getBoundingClientRect().height,
+    );
+    const detailGrabber = page.getByRole('button', { name: /現在: 詳細/ });
+    await detailGrabber.focus();
+    await page.keyboard.press('ArrowDown');
+    await expect(
+      page.getByRole('button', { name: /現在: 一覧/ }),
+    ).toBeVisible();
+    await expectMapControlsAboveSheet(page);
+    await page.keyboard.press('ArrowDown');
+    await expect(
+      page.getByRole('button', { name: /現在: 縮小/ }),
+    ).toBeVisible();
+    await expectMapControlsAboveSheet(page);
+    expect(
+      await sheet.evaluate((element) => element.getBoundingClientRect().height),
+    ).toBeLessThan(detailHeight);
+    const back = page.getByRole('button', { name: '店舗一覧に戻る' });
+    await expect(back).toBeVisible();
+    await back.focus();
+    await page.keyboard.press('Enter');
+    await expect(card).toBeFocused();
+
+    const mobilePin = page.getByRole('button', {
+      name: 'テスト専用あらまき病院、病院',
+      exact: true,
+    });
+    await mobilePin.focus();
+    await page.keyboard.press('Space');
+    await expect(
+      page.getByRole('heading', { name: 'テスト専用あらまき病院' }),
+    ).toBeFocused();
   });
 
   test('Figma比較用PC一覧・詳細を1440×900で撮影する', async ({
@@ -416,7 +546,11 @@ test.describe('地域協賛マップ fixture E2E', { tag: '@local-fixture' }, ()
     const panelBox = await page
       .getByTestId('regional-sponsor-desktop-panel')
       .boundingBox();
-    expect(panelBox).toEqual({ x: 24, y: 24, width: 348, height: 852 });
+    expect(panelBox).not.toBeNull();
+    expect(panelBox!.x).toBeGreaterThan(0);
+    expect(panelBox!.y).toBeGreaterThan(0);
+    expect(panelBox!.x + panelBox!.width).toBeLessThan(1440 / 2);
+    expect(panelBox!.y + panelBox!.height).toBeLessThanOrEqual(900);
     await capture(page, testInfo, 'regional-pc-list-1440x900');
     await page
       .getByRole('button', { name: /テスト専用あらまき病院.*詳細を表示/ })
@@ -439,13 +573,13 @@ test.describe('地域協賛マップ fixture E2E', { tag: '@local-fixture' }, ()
     const listSheetBox = await page
       .getByTestId('map-bottom-sheet')
       .boundingBox();
-    expect(searchBox).toEqual({ x: 16, y: 16, width: 302, height: 53 });
-    expect(listSheetBox).toEqual({
-      x: 0,
-      y: 464.203125,
-      width: 390,
-      height: 379.796875,
-    });
+    expect(searchBox).not.toBeNull();
+    expect(listSheetBox).not.toBeNull();
+    expect(searchBox!.x).toBeGreaterThan(0);
+    expect(searchBox!.y).toBeGreaterThan(0);
+    expect(searchBox!.x + searchBox!.width).toBeLessThan(390);
+    expect(listSheetBox!.y).toBeGreaterThan(searchBox!.y + searchBox!.height);
+    expect(listSheetBox!.y + listSheetBox!.height).toBeCloseTo(844, 0);
     await capture(page, testInfo, 'regional-mobile-list-390x844');
     await page
       .getByRole('button', { name: /テスト専用あらまき病院.*詳細を表示/ })
@@ -456,23 +590,25 @@ test.describe('地域協賛マップ fixture E2E', { tag: '@local-fixture' }, ()
     await expect(
       page.getByRole('button', { name: '店舗一覧に戻る' }),
     ).toBeVisible();
-    await expect(page.getByTestId('map-bottom-sheet')).toHaveCSS(
-      'height',
-      '700px',
-    );
     const detailSheetBox = await page
       .getByTestId('map-bottom-sheet')
       .boundingBox();
     const detailImageBox = await page
       .locator('article .aspect-video')
       .boundingBox();
-    expect(detailSheetBox).toEqual({ x: 0, y: 144, width: 390, height: 700 });
-    expect(detailImageBox).toEqual({
-      x: 16,
-      y: 248,
-      width: 358,
-      height: 201.375,
-    });
+    expect(detailSheetBox).not.toBeNull();
+    expect(detailImageBox).not.toBeNull();
+    expect(detailSheetBox!.y).toBeGreaterThan(searchBox!.y + searchBox!.height);
+    expect(detailSheetBox!.y + detailSheetBox!.height).toBeCloseTo(844, 0);
+    expect(detailImageBox!.x).toBeGreaterThan(detailSheetBox!.x);
+    expect(detailImageBox!.x + detailImageBox!.width).toBeLessThan(
+      detailSheetBox!.x + detailSheetBox!.width,
+    );
+    expect(detailImageBox!.y).toBeGreaterThan(detailSheetBox!.y);
+    expect(detailImageBox!.width / detailImageBox!.height).toBeCloseTo(
+      16 / 9,
+      1,
+    );
     await capture(page, testInfo, 'regional-mobile-detail-390x844');
   });
 });

@@ -30,9 +30,8 @@ import * as migration_20261013_150312_signage_quake from './20261013_150312_sign
 import * as migration_20261013_172130_site_settings_and_cleanup_a from './20261013_172130_site_settings_and_cleanup_a'
 import * as migration_20261014_072436_invite_claimed_job from './20261014_072436_invite_claimed_job'
 import * as migration_20261014_073409_drop_legacy_globals_and_sort from './20261014_073409_drop_legacy_globals_and_sort'
-import * as migration_20261021_075407_regional_sponsor_map from './20261021_075407_regional_sponsor_map'
-import * as migration_20261025_055003_add_media_thumbnail from './20261025_055003_add_media_thumbnail'
 import * as migration_20261025_082958_add_student_exhibitions_versions from './20261025_082958_add_student_exhibitions_versions'
+import * as migration_20261025_160749_regional_sponsor_map_schema from './20261025_160749_regional_sponsor_map_schema'
 
 export const migrations = [
   {
@@ -196,18 +195,13 @@ export const migrations = [
     name: '20261014_073409_drop_legacy_globals_and_sort',
   },
   {
-    up: migration_20261021_075407_regional_sponsor_map.up,
-    down: migration_20261021_075407_regional_sponsor_map.down,
-    name: '20261021_075407_regional_sponsor_map',
-  },
-  {
-    up: migration_20261025_055003_add_media_thumbnail.up,
-    down: migration_20261025_055003_add_media_thumbnail.down,
-    name: '20261025_055003_add_media_thumbnail',
-  },
-  {
     up: migration_20261025_082958_add_student_exhibitions_versions.up,
     down: migration_20261025_082958_add_student_exhibitions_versions.down,
     name: '20261025_082958_add_student_exhibitions_versions',
+  },
+  {
+    up: migration_20261025_160749_regional_sponsor_map_schema.up,
+    down: migration_20261025_160749_regional_sponsor_map_schema.down,
+    name: '20261025_160749_regional_sponsor_map_schema',
   },
 ]

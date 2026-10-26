@@ -51,6 +51,7 @@ export function RegionalSponsorList({
         ref={scrollRef}
         className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-4"
         onScroll={(event) => onScrollTopChange(event.currentTarget.scrollTop)}
+        data-map-sheet-scroll
         data-testid="regional-sponsor-list-scroll"
       >
         {sponsors.length === 0 ? (
