@@ -20,6 +20,7 @@ import { signageQuakeEndpoints } from './endpoints/signage-quake'
 import { globals } from './globals'
 import { shouldAutoRun } from './lib/jobs-autorun'
 import { purgeEdgeCache, readPurgeConfig, warnIfPurgeUnconfigured } from './lib/edge-purge'
+import { checkParkingCameras, warnIfWatchUnconfigured } from './lib/parking-camera-watch'
 import { createJudge, runJudgeParkingSnapshot, warnIfJudgeUnconfigured } from './lib/parking-judge-task'
 import type { ParkingDb } from './lib/parking-db'
 import { richTextEditorFeatures } from './lib/rich-text-editor'
@@ -51,6 +52,7 @@ export default buildConfig({
   onInit: (payload) => {
     warnIfPurgeUnconfigured((message) => payload.logger.warn(message))
     warnIfJudgeUnconfigured((message) => payload.logger.warn(message))
+    warnIfWatchUnconfigured((message) => payload.logger.warn(message))
   },
   // Authentik OIDC を認証の一次経路とする。ローカル認証は実行委員の緊急用として残す
   endpoints: [...(optionalEnv('AUTHENTIK_ISSUER_URL') ? authentikEndpoints : []), ...signageQuakeEndpoints, ...parkingIngestEndpoints],
@@ -125,6 +127,21 @@ export default buildConfig({
             snapshotId: input.snapshotId,
             image: input.image,
             judge: apiKey ? createJudge(apiKey) : null,
+          })
+          return { output: {} }
+        },
+      },
+      {
+        slug: 'checkParkingCameras',
+        retries: 0,
+        // 送信に失敗した通知は印を書かないため、次の分の実行で送り直される
+        schedule: [{ cron: '0 * * * * *', queue: 'default' }],
+        handler: async ({ req }) => {
+          await checkParkingCameras({
+            payload: req.payload as unknown as ParkingDb,
+            now: new Date(),
+            webhookUrl: optionalEnv('PARKING_CAMERA_DISCORD_WEBHOOK_URL'),
+            fetchImpl: fetch,
           })
           return { output: {} }
         },
