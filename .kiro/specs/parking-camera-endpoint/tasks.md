@@ -30,7 +30,7 @@
   - _Requirements: 4.7, 8.9, 8.10_
   - _Depends: 1_
 
-- [ ] 3. aramakisai-web: CMSの判定・受信が使う純粋な処理を作る
+- [x] 3. aramakisai-web: CMSの判定・受信が使う純粋な処理を作る
 - [x] 3.1 (P) デバイス用トークンの生成とハッシュを作る
   - 32バイトの乱数をbase64urlにした43文字のトークンを作り、SHA-256(hex)のハッシュを求める。乱数とハッシュは`node:crypto`で行う
   - 受信時の照合は`Authorization`の値のハッシュで引く前提とし、ソルトや低速ハッシュは使わない
@@ -65,7 +65,7 @@
   - _Requirements: 4.5_
   - _Boundary: ParkingJudgeRate_
 
-- [ ] 3.6 Gemini APIで画像を判定する処理を作る
+- [x] 3.6 Gemini APIで画像を判定する処理を作る
   - `generateContent`を`fetch`で直接呼び、`x-goog-api-key`ヘッダーでキーを渡す。プロンプト・応答スキーマ・写り具合だけの判定の形はdesign.mdの「ParkingJudge」のとおりにする
   - モデルは`gemma-4-26b-a4b-it` → `gemma-4-31b-it` → `gemini-3.1-flash-lite`の順。1回の呼び出しは20秒で打ち切る。500・503・打ち切り・通信失敗・応答の形が不正は同じモデルで3回まで(2秒、4秒待つ)、429は呼び直さずそのモデルを60秒休ませて次へ、その他の4xxは次へ。呼び出しの前に計数の枠を取り、取れなければ次へ
   - 呼び直しの前に対象の画像がまだ最新かを確かめ、最新でなければ打ち切る。`congestion: unknown`はモデルを切り替えずに判定失敗の結果として返す。`image_quality`だけが不正なら写り具合を値なしで返す
