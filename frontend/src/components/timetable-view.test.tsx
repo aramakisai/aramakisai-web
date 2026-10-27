@@ -90,16 +90,20 @@ describe('TimetableView', () => {
     expect(chips[1]).toHaveAttribute('aria-pressed', 'false');
   });
 
-  test('開催日を切り替えると表示が替わりステージ選択が保たれる', () => {
+  test('開催日を切り替えると、その日に枠のないステージを出さず選択を先頭へ移す', () => {
     renderView();
     fireEvent.click(screen.getByRole('button', { name: '中庭ステージ' }));
     expect(within(sp()).getByText('中庭ライブ')).toBeInTheDocument();
+    expect(within(pc()).getByText('中庭ステージ')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '11/15 日' }));
     expect(
-      screen.getByRole('button', { name: '中庭ステージ' }),
+      screen.queryByRole('button', { name: '中庭ステージ' }),
+    ).not.toBeInTheDocument();
+    expect(within(pc()).queryByText('中庭ステージ')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'メインステージ' }),
     ).toHaveAttribute('aria-pressed', 'true');
-    expect(within(sp()).queryByText('中庭ライブ')).not.toBeInTheDocument();
-    expect(within(sp()).getByText('出演予定はありません')).toBeInTheDocument();
+    expect(within(sp()).getByText('二日目ライブ')).toBeInTheDocument();
     expect(within(pc()).getByText('二日目ライブ')).toBeInTheDocument();
     expect(within(pc()).queryByText('開会式')).not.toBeInTheDocument();
   });

@@ -379,3 +379,30 @@ it('別オリジン・別 window・形の違う知らせは無視する', async 
   await waitFor(() => expect(qrImg(container)).not.toBeNull());
   expect(decoded(container)).not.toContain('/parking');
 });
+
+it('いまのステージは4件で2ページになり、5秒ごとに3件→1件へ切り替わる', () => {
+  const rows = [1, 2, 3, 4].map((id) => ({
+    stage: { id, name: `ステージ${id}` },
+    colorIndex: id,
+    performance: null,
+  }));
+  const at = (ms: number) => (
+    <SignageTouchLayer
+      session={session(open())}
+      now={new Date(ms)}
+      eventDays={[]}
+      rows={rows}
+      boards={[]}
+      telops={[]}
+      offsetMs={0}
+    />
+  );
+  const { container, rerender } = render(at(0));
+  const chips = () =>
+    ['1', '2', '3', '4'].filter((n) =>
+      container.textContent?.includes(`ステージ${n}`),
+    );
+  expect(chips()).toEqual(['1', '2', '3']);
+  rerender(at(5000));
+  expect(chips()).toContain('4');
+});

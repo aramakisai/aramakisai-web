@@ -368,6 +368,23 @@ describe('stageNow', () => {
     expect(at('10:45')[0].performance?.id).toBe(2);
     expect(at('10:15')[0].performance?.id).toBe(1);
   });
+
+  it('今日に枠の無いステージは出さず、残りの色の添字をずらさない', () => {
+    const three: Timetable = {
+      ...tt,
+      stages: [{ id: 0, name: 'Z' }, ...tt.stages],
+    };
+    const rows = stageNow(three, new Date('2026-11-14T09:00:00+09:00'));
+    expect(rows.map((r) => [r.stage.id, r.colorIndex])).toEqual([
+      [1, 1],
+      [2, 2],
+    ]);
+  });
+
+  it('別の日の枠だけのステージは出さない', () => {
+    const rows = stageNow(tt, new Date('2026-11-15T09:00:00+09:00'));
+    expect(rows).toEqual([]);
+  });
 });
 
 describe('timetableWindow', () => {

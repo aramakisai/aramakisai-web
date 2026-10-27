@@ -66,3 +66,44 @@ test('現在時刻が窓の外の日は線を出さない', () => {
   );
   expect(screen.queryByTestId('timetable-now')).toBeNull();
 });
+
+test('4ステージ以上は3つずつのページで、列幅を3列ぶんに固定して5秒で切り替える', () => {
+  const four: Timetable = {
+    ...timetable,
+    stages: [1, 2, 3, 4].map((id) => ({ id, name: `ST${id}` })),
+    performances: [1, 2, 3, 4].map((id) => ({
+      id,
+      stageId: id,
+      slot: slot('13:00', '14:00'),
+      name: `P${id}`,
+      href: null,
+    })),
+  };
+  const at = (t: string) =>
+    render(<TimetableSlide timetable={four} now={new Date(t)} />);
+  const first = at('2026-11-14T14:00:00+09:00');
+  expect(screen.getAllByRole('heading').map((h) => h.textContent)).toEqual([
+    'ST1',
+    'ST2',
+    'ST3',
+  ]);
+  first.unmount();
+  const second = at('2026-11-14T14:00:05+09:00');
+  const headings = screen.getAllByRole('heading');
+  expect(headings.map((h) => h.textContent)).toEqual(['ST4']);
+  expect(headings[0].closest('section')?.style.width).toBe('466px');
+  second.unmount();
+});
+
+test('枠の無いステージは出さない', () => {
+  render(
+    <TimetableSlide
+      timetable={{
+        ...timetable,
+        stages: [...timetable.stages, { id: 3, name: '空ステージ' }],
+      }}
+      now={new Date('2026-11-14T14:17:00+09:00')}
+    />,
+  );
+  expect(screen.queryByText('空ステージ')).toBeNull();
+});

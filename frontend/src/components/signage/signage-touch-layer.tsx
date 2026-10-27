@@ -18,8 +18,10 @@ import {
   TOUCH_DESTINATIONS,
   type TouchDestination,
 } from '@/lib/signage-touch';
+import { pageStagesAt } from '@/lib/timetable';
 import { buildTouchQrUrl } from '@/lib/signage-touch-qr';
 import { isTouchMessage, type TouchFilters } from '@/lib/signage-touch-message';
+import { CrossFade } from '../cross-fade';
 import { SignageBusInfo } from './signage-bus-info';
 import { SignageClock } from './signage-clock';
 import {
@@ -250,6 +252,7 @@ function OpenLayer({
     }
   };
 
+  const page = rows ? pageStagesAt(rows, now.getTime()) : null;
   return (
     <div
       className={`absolute inset-0 bg-background ${closing ? 'fade-out pointer-events-none' : opening ? 'fade-in' : ''}`}
@@ -314,36 +317,45 @@ function OpenLayer({
         <div className="absolute top-10 left-[352px]">
           <SignageClock now={now} />
         </div>
-        {rows && (
+        {rows && page && (
           <div className="absolute top-4 left-[660px] flex w-[880px] flex-col gap-4">
             <div className="flex items-center gap-2 font-display text-[28px] leading-none font-bold text-text">
               <SignageIcon name="mic" />
               <span>いまのステージ</span>
             </div>
-            <div className="flex gap-6">
-              {rows.map(({ stage, colorIndex, performance }) => (
-                <div
-                  key={stage.id}
-                  className="flex w-[277.33px] shrink-0 flex-col items-start gap-1"
-                >
-                  <SignageStageChip colorIndex={colorIndex} name={stage.name} />
-                  {performance ? (
-                    <>
-                      <p className="line-clamp-2 w-full text-[28px] leading-[1.25] font-bold text-text">
-                        {performance.name}
+            <CrossFade
+              transitionKey={String(page.pageIndex)}
+              enabled={page.pageCount > 1}
+              layerClassName="bg-gray-200"
+            >
+              <div className="flex gap-6">
+                {page.items.map(({ stage, colorIndex, performance }) => (
+                  <div
+                    key={stage.id}
+                    className="flex w-[277.33px] shrink-0 flex-col items-start gap-1"
+                  >
+                    <SignageStageChip
+                      colorIndex={colorIndex}
+                      name={stage.name}
+                    />
+                    {performance ? (
+                      <>
+                        <p className="line-clamp-2 w-full text-[28px] leading-[1.25] font-bold text-text">
+                          {performance.name}
+                        </p>
+                        <p className="text-[24px] leading-[1.25] whitespace-nowrap text-gray-600">
+                          {formatPerformanceRange(performance)}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-signage-heading font-bold text-gray-600">
+                        公演なし
                       </p>
-                      <p className="text-[24px] leading-[1.25] whitespace-nowrap text-gray-600">
-                        {formatPerformanceRange(performance)}
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-signage-heading font-bold text-gray-600">
-                      公演なし
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </CrossFade>
           </div>
         )}
         <div className="absolute top-[192px] left-4">

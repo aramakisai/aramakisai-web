@@ -10,7 +10,7 @@ import type {
   TimetablePerformance,
   TimetableStage,
 } from '@/lib/timetable';
-import { isPerformanceActive } from '@/lib/timetable';
+import { isPerformanceActive, stagesWithPerformances } from '@/lib/timetable';
 import type { SignageQuakeStage } from './signage-quake';
 import { getDaysUntilEventDay, toJstDateKey, toJstParts } from './event-day';
 
@@ -280,17 +280,21 @@ export function stageNow(
   timetable: Timetable,
   now: Date,
 ): readonly StageNowRow[] {
-  return timetable.stages.map((stage, colorIndex) => {
-    const active = timetable.performances.filter(
-      (p) => p.stageId === stage.id && isPerformanceActive(p.slot, now),
-    );
-    const performance = active.reduce<TimetablePerformance | null>(
-      (latest, p) =>
-        latest === null || p.slot.startAt >= latest.slot.startAt ? p : latest,
-      null,
-    );
-    return { stage, colorIndex, performance };
-  });
+  const today = toJstDateKey(now.toISOString());
+  const todays = timetable.performances.filter((p) => p.slot.dateKey === today);
+  return stagesWithPerformances(timetable.stages, todays).map(
+    ({ stage, colorIndex }) => {
+      const active = todays.filter(
+        (p) => p.stageId === stage.id && isPerformanceActive(p.slot, now),
+      );
+      const performance = active.reduce<TimetablePerformance | null>(
+        (latest, p) =>
+          latest === null || p.slot.startAt >= latest.slot.startAt ? p : latest,
+        null,
+      );
+      return { stage, colorIndex, performance };
+    },
+  );
 }
 
 export interface TimetableWindow {

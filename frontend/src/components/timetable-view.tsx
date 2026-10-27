@@ -12,6 +12,7 @@ import { useNow } from '@/lib/use-now';
 import {
   isPerformanceActive,
   resolveInitialDayKey,
+  stagesWithPerformances,
   type Timetable,
   type TimetablePerformance,
 } from '@/lib/timetable';
@@ -44,13 +45,18 @@ export function TimetableView({
       }
     }
   }, [days, renderedAt, initialDayKey]);
-  const [stageId, setStageId] = useState(stages[0]?.id ?? null);
+  const [selectedStageId, setStageId] = useState(stages[0]?.id ?? null);
 
   if (days.length === 0) {
     return <p className="text-gray-600">{EMPTY_TEXT}</p>;
   }
 
   const dayPerformances = performances.filter((p) => p.slot.dateKey === dayKey);
+  const visibleStages = stagesWithPerformances(stages, dayPerformances);
+  // 選択中のステージがその日に無ければ、その日の先頭のステージを選ぶ
+  const stageId = visibleStages.some((v) => v.stage.id === selectedStageId)
+    ? selectedStageId
+    : (visibleStages[0]?.stage.id ?? null);
   const stagePerformances = dayPerformances.filter(
     (p) => p.stageId === stageId,
   );
@@ -94,7 +100,7 @@ export function TimetableView({
         {/* 両端を画面幅まで広げ、先頭タブの文字 (px-1 + px-3) をコンテンツ左端に揃える */}
         <div className="-mx-4 overflow-x-auto border-b border-gray-200">
           <div className="flex px-1">
-            {stages.map((stage, i) => {
+            {visibleStages.map(({ stage, colorIndex }) => {
               const selected = stage.id === stageId;
               return (
                 <button
@@ -111,7 +117,7 @@ export function TimetableView({
                     {selected && (
                       <span
                         aria-hidden="true"
-                        className={`absolute inset-x-0 -bottom-[2px] h-1 ${STAGE_BAND_CLASSES[i % STAGE_BAND_CLASSES.length]}`}
+                        className={`absolute inset-x-0 -bottom-[2px] h-1 ${STAGE_BAND_CLASSES[colorIndex % STAGE_BAND_CLASSES.length]}`}
                       />
                     )}
                   </span>
