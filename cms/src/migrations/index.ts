@@ -32,6 +32,7 @@ import * as migration_20261014_072436_invite_claimed_job from './20261014_072436
 import * as migration_20261014_073409_drop_legacy_globals_and_sort from './20261014_073409_drop_legacy_globals_and_sort';
 import * as migration_20261025_082958_add_student_exhibitions_versions from './20261025_082958_add_student_exhibitions_versions';
 import * as migration_20261026_152813_navigation from './20261026_152813_navigation';
+import * as migration_20261027_074658_parking_camera_endpoint from './20261027_074658_parking_camera_endpoint';
 
 export const migrations = [
   {
@@ -203,5 +204,10 @@ export const migrations = [
     up: migration_20261026_152813_navigation.up,
     down: migration_20261026_152813_navigation.down,
     name: '20261026_152813_navigation',
+  },
+  {
+    up: migration_20261027_074658_parking_camera_endpoint.up,
+    down: migration_20261027_074658_parking_camera_endpoint.down,
+    name: '20261027_074658_parking_camera_endpoint'
   },
 ];
