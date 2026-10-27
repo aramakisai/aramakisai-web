@@ -184,6 +184,7 @@ export default buildConfig({
           collections: {
             // Directus が使う directus-uploads と衝突しないキー空間に置く
             media: { prefix: optionalEnv('S3_PREFIX') ?? 'payload-uploads' },
+            parking_snapshots: { prefix: `${optionalEnv('S3_PREFIX') ?? 'payload-uploads'}/parking-snapshots` },
           },
           bucket: s3Bucket,
           config: {

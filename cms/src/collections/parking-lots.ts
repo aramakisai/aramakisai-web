@@ -48,7 +48,7 @@ export const ParkingLots: CollectionConfig = {
     {
       name: 'camera',
       type: 'join',
-      collection: 'parking_cameras' as never,
+      collection: 'parking_cameras',
       on: 'lot',
       label: 'カメラ',
     },

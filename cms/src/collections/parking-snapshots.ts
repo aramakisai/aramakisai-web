@@ -42,7 +42,7 @@ export const ParkingSnapshots: CollectionConfig = {
     {
       name: 'camera',
       type: 'relationship',
-      relationTo: 'parking_cameras' as never,
+      relationTo: 'parking_cameras',
       required: true,
       index: true,
       label: 'カメラ',
