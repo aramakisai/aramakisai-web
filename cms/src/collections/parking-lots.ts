@@ -7,7 +7,7 @@ export const ParkingLots: CollectionConfig = {
   labels: { singular: '駐車場', plural: '駐車場' },
   admin: {
     useAsTitle: 'name',
-    defaultColumns: ['name'],
+    defaultColumns: ['name', 'camera'],
   },
   orderable: true,
   hooks: {
@@ -44,6 +44,13 @@ export const ParkingLots: CollectionConfig = {
       required: true,
       maxLength: 255,
       label: '名称',
+    },
+    {
+      name: 'camera',
+      type: 'join',
+      collection: 'parking_cameras' as never,
+      on: 'lot',
+      label: 'カメラ',
     },
   ],
 };
