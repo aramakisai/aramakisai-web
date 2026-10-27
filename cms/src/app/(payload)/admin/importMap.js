@@ -29,9 +29,9 @@ import { default as default_89f7a8f8aa91e1d435080a03be49030f } from '../../../co
 import { default as default_504d5e68a80296875d878bfb87ddfa84 } from '../../../components/SignagePinBanner.tsx'
 import { default as default_99060507d390123bc3ddd0e8ff97228f } from '../../../components/SignageGroupSwitches.tsx'
 import { default as default_357e2953c117d36a408dd8339cc3d62b } from '../../../components/SignageGroupMembersField.tsx'
+import { default as default_2c8ad62bab3e66a9f030847c2f6103f1 } from '../../../components/NavigationRowLabel.tsx'
 import { default as default_2ed8aac779ca9418101260c808295bcc } from '../../../components/ZitadelLoginButton.tsx'
 import { default as default_3120f3c0ce2a3ae670fab769b41e1831 } from '../../../components/StudentExhibitorRedirect.tsx'
-import { default as default_5488de3eeb9dbe41661009e110b8c158 } from '../../../components/NavigationRowLabel.tsx'
 import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
@@ -68,9 +68,9 @@ export const importMap = {
   "./components/SignagePinBanner.tsx#default": default_504d5e68a80296875d878bfb87ddfa84,
   "./components/SignageGroupSwitches.tsx#default": default_99060507d390123bc3ddd0e8ff97228f,
   "./components/SignageGroupMembersField.tsx#default": default_357e2953c117d36a408dd8339cc3d62b,
+  "./components/NavigationRowLabel.tsx#default": default_2c8ad62bab3e66a9f030847c2f6103f1,
   "./components/ZitadelLoginButton.tsx#default": default_2ed8aac779ca9418101260c808295bcc,
   "./components/StudentExhibitorRedirect.tsx#default": default_3120f3c0ce2a3ae670fab769b41e1831,
-  "./components/NavigationRowLabel.tsx#default": default_5488de3eeb9dbe41661009e110b8c158,
   "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }
