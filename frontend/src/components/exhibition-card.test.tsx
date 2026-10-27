@@ -86,7 +86,7 @@ describe('ExhibitionCard', () => {
     expect(bg.style.backgroundImage).toBe(
       `url("/images/textures/pamphlet/${texture}.webp")`,
     );
-    expect(bg.style.backgroundSize).toBe('125% auto');
+    expect(bg.style.backgroundSize).toBe('250% auto');
     expect(bg.style.transform).toContain(`rotate(${rotation}deg)`);
     expect(bg.style.backgroundPosition).toBe(`${position[0]}% ${position[1]}%`);
   });

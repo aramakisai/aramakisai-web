@@ -23,11 +23,11 @@ export function ExhibitionCard({
   );
   // globals.css の html[data-pl] 規則が url に含まれる /images/textures/ を目印に load まで止める。
   // 原画は幅の 2 倍の正方形に敷いて回し、カードの地で切り抜く (縦が横の √3 倍以内なら隅が欠けない)。
-  // 背景の幅は回す前の地の幅 × 2.5 (= 正方形の幅の 125%)
+  // 背景の幅は回す前の地の幅 × 5 (= 正方形の幅の 250%)
   const textureStyle: CSSProperties = {
     transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
     backgroundImage: `url(/images/textures/pamphlet/${texture}.webp)`,
-    backgroundSize: '125% auto',
+    backgroundSize: '250% auto',
     backgroundPosition: `${position[0]}% ${position[1]}%`,
   };
 
