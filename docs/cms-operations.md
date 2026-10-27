@@ -189,6 +189,8 @@ Directus 撤去 (タスク 9.1) 完了済み。`db-cluster.yaml` と `payload` �
 | `SIGNAGE_NOTIFY_ACCESS_CLIENT_SECRET` | 同じ`client_secret`(sensitive) |
 | `SIGNAGE_QUAKE_TOKEN` | 緊急地震速報のリレーの`/status`・`/dismiss`のBearerトークン。リレーのデプロイ(`frontend-ci.yml`)とCMSの`cms-secrets`が同じ値を使う |
 | `DISCORD_QUAKE_WEBHOOK_URL` | 緊急地震速報の通知先(実行委員用チャンネル)のDiscord Webhook。リレーのデプロイだけが使う |
+| `GEMINI_API_KEY` | 駐車場カメラの画像の判定に使うGemini APIのキー |
+| `DISCORD_OPS_WEBHOOK_URL` | 既存のキー。`aramakisai-infra`の`cms-secrets`のExternalSecretが`PARKING_CAMERA_DISCORD_WEBHOOK_URL`としてCMSへ渡す(駐車場カメラの停止通知) |
 
 `SIGNAGE_NOTIFY_URL`(`https://aramakisai.com/api/signage/notify`)と`SIGNAGE_QUAKE_URL`(`https://aramakisai-signage-quake.aramakisai.workers.dev`)は秘密ではないため、Infisicalには登録せず、CMSのDeploymentのenvに直接書く。
 
@@ -252,6 +254,30 @@ infisical run --env=prod -- pnpm exec tsx scripts/quake-inject.ts \
 ### デプロイ
 
 リレーは `frontend-ci.yml` の `deploy-prod` が、`frontend/workers/signage-quake/` に差分があるときだけ、サイトの後に `wrangler deploy` で出す。デプロイのたびに上流の接続が最大 30 秒切れるため、稼働期間中は `frontend/workers/signage-quake/`・`frontend/src/lib/signage-quake.ts`・`frontend/src/lib/signage-channel.ts` を変える PR を main へマージしない。
+
+## 駐車場カメラの運用
+
+駐車場ごとに置いた撮影端末(カメラ)が画像を受信エンドポイントへ送り、CMSがGeminiで空き状況を判定して駐車場の空き状況を更新する。
+
+### 環境変数
+
+| 変数 | 意味 | 未設定のとき |
+|---|---|---|
+| `GEMINI_API_KEY` | 画像の判定に使うGemini APIのキー | 起動時に警告を出す。画像は保存されるが、判定は`not_configured`の失敗として記録され、空き状況は更新されない |
+| `PARKING_CAMERA_DISCORD_WEBHOOK_URL` | カメラの停止・復旧の通知先のDiscord Webhook | 起動時に警告を出す。停止は通知されない |
+| `PARKING_JUDGE_WINDOW_SECONDS` | 判定の間隔(秒)。同じカメラは撮影時刻をこの秒数で区切った枠ごとに1回だけ判定する | 300。正の整数以外も300 |
+
+本番ではInfisical `prod`の`GEMINI_API_KEY`を`cms-secrets`のExternalSecretで渡す。Webhookは既存の`DISCORD_OPS_WEBHOOK_URL`を同じExternalSecretで`PARKING_CAMERA_DISCORD_WEBHOOK_URL`として参照する。
+
+### カメラの登録とトークンの発行
+
+1. 管理画面のナビ「会場・マップ」→「カメラ」で作成し、名前と割り当て先の駐車場を入れて保存する
+2. 編集画面の「トークンを発行」を押し、表示された値を端末に書き込む。画面を離れると再表示できない
+3. 発行し直し・無効化も同じ画面で行う
+
+### 監視時間
+
+サイト設定の「駐車場カメラ」→「監視時間」(日本時間、既定9:00〜17:30)で変えられる。この時間内に撮影された画像だけを受け付け、稼働の監視もこの時間内に行う。
 
 ## ロールごとの見え方
 
