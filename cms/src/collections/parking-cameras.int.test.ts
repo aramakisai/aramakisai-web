@@ -10,6 +10,8 @@ describe.skipIf(!hasDatabase)('駐車場カメラの割り当てと access', () 
   let jpeg: Buffer;
   let executive: Any;
   let student: Any;
+  let execJwt: string;
+  let studentJwt: string;
   let restGet: (req: Request, ctx: { params: Promise<{ slug: string[] }> }) => Promise<Response>;
 
   const suffix = String(process.pid);
@@ -48,8 +50,10 @@ describe.skipIf(!hasDatabase)('駐車場カメラの割り当てと access', () 
     })) as Any;
   const anonymousSnapshots = async () =>
     (await payload.find({ collection: 'parking_snapshots', overrideAccess: false, pagination: false })).docs as Any[];
-  const anonymousRest = (path: string) =>
-    restGet(new Request(`http://localhost/api/${path}`), { params: Promise.resolve({ slug: path.split('?')[0].split('/') }) });
+  const rest = (path: string, jwt: string | null = null) =>
+    restGet(new Request(`http://localhost/api/${path}`, { headers: jwt ? { authorization: `JWT ${jwt}` } : {} }), {
+      params: Promise.resolve({ slug: path.split('?')[0].split('/') }),
+    });
 
   beforeAll(async () => {
     const { getPayload } = await import('payload');
@@ -68,6 +72,12 @@ describe.skipIf(!hasDatabase)('駐車場カメラの割り当てと access', () 
       })) as Any;
     executive = await createUser(`cam-exec-${suffix}@test.local`, 'executive');
     student = await createUser(`cam-student-${suffix}@test.local`, 'student_exhibitor');
+    // 学生団体のパスワードは作成時にランダム値へ置き換わるため、ログイン用に設定し直す
+    await payload.update({ collection: 'users', id: student.id, data: { password: 'test-password' }, overrideAccess: true });
+    const login = async (email: string) =>
+      (await payload.login({ collection: 'users', data: { email, password: 'test-password' } })).token as string;
+    execJwt = await login(executive.email);
+    studentJwt = await login(student.email);
   });
 
   afterAll(async () => {
@@ -164,24 +174,21 @@ describe.skipIf(!hasDatabase)('駐車場カメラの割り当てと access', () 
     });
     expect(byHash.docs.map((c) => c.id)).toEqual([camera.id]);
 
-    expect((await anonymousRest(`parking_cameras/${camera.id}`)).status).toBe(403);
-    await expect(
-      payload.findByID({ collection: 'parking_cameras', id: camera.id, user: student as never, overrideAccess: false }),
-    ).rejects.toThrow();
-    await expect(
-      payload.find({ collection: 'parking_cameras', user: student as never, overrideAccess: false }),
-    ).rejects.toThrow();
+    expect((await rest(`parking_cameras/${camera.id}`)).status).toBe(403);
+    expect((await rest('parking_cameras')).status).toBe(403);
+    expect((await rest(`parking_cameras/${camera.id}`, studentJwt)).status).toBe(403);
+    expect((await rest('parking_cameras', studentJwt)).status).toBe(403);
 
-    const asExecutive = (await payload.findByID({
-      collection: 'parking_cameras',
-      id: camera.id,
-      user: executive as never,
-      overrideAccess: false,
-    })) as Any;
-    expect(asExecutive.device_status.rssi).toBe(-60);
-    expect(asExecutive).not.toHaveProperty('token_hash');
-    const list = await payload.find({ collection: 'parking_cameras', user: executive as never, overrideAccess: false });
-    expect(JSON.stringify(list)).not.toContain(hashCameraToken('secret-token'));
+    const one = await rest(`parking_cameras/${camera.id}`, execJwt);
+    expect(one.status).toBe(200);
+    const body = (await one.json()) as Any;
+    expect(body.device_status.rssi).toBe(-60);
+    expect(body).not.toHaveProperty('token_hash');
+    const list = await rest('parking_cameras', execJwt);
+    expect(list.status).toBe(200);
+    const listBody = (await list.json()) as Any;
+    expect(listBody.docs.some((c: Any) => c.id === camera.id)).toBe(true);
+    expect(JSON.stringify(listBody)).not.toContain(hashCameraToken('secret-token'));
   });
 
   it('画像の判定の項目は未認証に出ず、割り当てを外す・カメラを削除すると未認証の一覧から消える', async () => {

@@ -335,10 +335,20 @@ describe.skipIf(!hasDatabase)('駐車場カメラの受信から判定まで', (
     expect(thumb.headers.get('cache-control')).toBe('public, max-age=31536000, immutable');
     expect((await file(snap.filename)).status).toBe(200);
 
+    // S3 未設定のテスト環境では実ファイルがディスクの staticDir に置かれる
+    const { existsSync } = await import('node:fs');
+    const path = await import('node:path');
+    const dir = path.resolve((payload.collections.parking_snapshots.config.upload as { staticDir: string }).staticDir);
+    const onDisk = (name: string) => existsSync(path.join(dir, name));
+    expect(onDisk(snap.filename)).toBe(true);
+    expect(onDisk(snap.sizes.web.filename)).toBe(true);
+
     await ingest(token, { captured: BASE + WINDOW, body: wideJpeg });
     // 読めない文書は未認証には 403 で返る
     expect((await file(snap.filename)).status).not.toBe(200);
     expect((await file(snap.sizes.web.filename)).status).not.toBe(200);
+    expect(onDisk(snap.filename)).toBe(false);
+    expect(onDisk(snap.sizes.web.filename)).toBe(false);
   });
 
   describe('割り当てのないカメラ', () => {
