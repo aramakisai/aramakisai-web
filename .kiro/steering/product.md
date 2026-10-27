@@ -10,6 +10,7 @@
 - `announcements` / `faq_items` / `topics` — 告知・FAQ・トピック
 - `pages` — 固定ページ (アクセス・お問い合わせ・プライバシー・協賛案内等) を `slug` で束ねる単一コレクション
 - `site_settings` — 祭名・開催日程・テーマ・ヒーロー画像・概要・問い合わせ先・SNS・OG 画像など祭全体の設定を持つ単一レコード global
+- `parking_cameras` / `parking_snapshots` — 駐車場ごとに割り当てる撮影端末(カメラ、トークンで認証)と、その画像・自動判定の記録。判定結果が駐車場の空き状況を更新する。監視時間は `site_settings.parking_monitor`
 - `media` — アップロード。用途別サイズを WebP で生成し S3 互換ストレージに保存
 
 ## RBAC (Payload access control)
