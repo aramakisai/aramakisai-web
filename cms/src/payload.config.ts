@@ -20,6 +20,8 @@ import { signageQuakeEndpoints } from './endpoints/signage-quake'
 import { globals } from './globals'
 import { shouldAutoRun } from './lib/jobs-autorun'
 import { purgeEdgeCache, readPurgeConfig, warnIfPurgeUnconfigured } from './lib/edge-purge'
+import { createJudge, runJudgeParkingSnapshot, warnIfJudgeUnconfigured } from './lib/parking-judge-task'
+import type { ParkingDb } from './lib/parking-db'
 import { richTextEditorFeatures } from './lib/rich-text-editor'
 
 // S3 未設定のローカル開発ではディスク保存にフォールバックする。本番/staging は Infisical が必ず与える。
@@ -46,7 +48,10 @@ export default buildConfig({
   },
   collections,
   globals,
-  onInit: (payload) => warnIfPurgeUnconfigured((message) => payload.logger.warn(message)),
+  onInit: (payload) => {
+    warnIfPurgeUnconfigured((message) => payload.logger.warn(message))
+    warnIfJudgeUnconfigured((message) => payload.logger.warn(message))
+  },
   // Authentik OIDC を認証の一次経路とする。ローカル認証は実行委員の緊急用として残す
   endpoints: [...(optionalEnv('AUTHENTIK_ISSUER_URL') ? authentikEndpoints : []), ...signageQuakeEndpoints, ...parkingIngestEndpoints],
   editor: lexicalEditor({ features: richTextEditorFeatures }),
@@ -102,6 +107,25 @@ export default buildConfig({
         handler: async ({ input }) => {
           const config = readPurgeConfig()
           if (config) await purgeEdgeCache(config, input as { files: string[]; prefixes: string[] })
+          return { output: {} }
+        },
+      },
+      {
+        slug: 'judgeParkingSnapshot',
+        // Gemini の失敗は結果として画像に記録するため、ジョブとしては再試行しない
+        retries: 0,
+        inputSchema: [
+          { name: 'snapshotId', type: 'number', required: true },
+          { name: 'image', type: 'text', required: true },
+        ],
+        handler: async ({ input, req }) => {
+          const apiKey = optionalEnv('GEMINI_API_KEY')
+          await runJudgeParkingSnapshot({
+            payload: req.payload as unknown as ParkingDb,
+            snapshotId: input.snapshotId,
+            image: input.image,
+            judge: apiKey ? createJudge(apiKey) : null,
+          })
           return { output: {} }
         },
       },
