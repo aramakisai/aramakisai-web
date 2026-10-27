@@ -45,7 +45,7 @@
   - _Requirements: 1.8, 1.9, 4.11_
   - _Boundary: ParkingExposure_
 
-- [ ] 3.3 (P) 端末状態のヘッダーを読む処理を作る
+- [x] 3.3 (P) 端末状態のヘッダーを読む処理を作る
   - `X-Device-Rssi`・`X-Device-Uptime`・`X-Device-Reset-Reason`・`X-Device-Failures`・`X-Device-Firmware`を、design.mdの「受信エンドポイントの取り決め」の形と範囲で読み、外れる項目だけを値なしにする。例外を投げない
   - 5項目すべて正しい値、欠落、小数・範囲外のRSSI、33字の再起動理由、65字・非ASCIIの版でその項目だけ値なしになる単体テストが通る
   - _Requirements: 8.1, 8.2_
