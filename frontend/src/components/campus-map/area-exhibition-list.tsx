@@ -134,7 +134,9 @@ export function AreaExhibitionList({
             <h2
               className={`font-bold text-text ${signage ? 'py-0 text-signage-heading' : 'text-2xl'}`}
             >
-              {listHeading?.heading}
+              {signage && state.areaName
+                ? state.areaName
+                : listHeading?.heading}
             </h2>
             <p
               className={`text-gray-600 ${signage ? 'text-signage-meta' : 'text-sm'}`}
