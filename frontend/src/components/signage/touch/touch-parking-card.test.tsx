@@ -8,6 +8,7 @@ const lot = (over = {}) => ({
   name: '正門前駐車場',
   status: 'crowded' as const,
   updatedAt: '2026-10-24T04:40:00Z',
+  image: null,
   ...over,
 });
 

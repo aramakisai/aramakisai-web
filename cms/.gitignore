@@ -41,6 +41,7 @@ next-env.d.ts
 .env
 
 /media
+/parking_snapshots
 
 # Playwright
 node_modules/

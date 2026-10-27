@@ -12,7 +12,9 @@ import { MapPoints } from './map-points';
 import { LostItems } from './lost-items';
 import { Media } from './media';
 import { Pages } from './pages';
+import { ParkingCameras } from './parking-cameras';
 import { ParkingLots } from './parking-lots';
+import { ParkingSnapshots } from './parking-snapshots';
 import { ParkingStatuses } from './parking-statuses';
 import { PerformanceSlots } from './performance-slots';
 import { SignageGroups } from './signage-groups';
@@ -54,6 +56,8 @@ export const collections: CollectionConfig[] = [
   StudentExhibitions,
   ParkingLots,
   ParkingStatuses,
+  ParkingCameras,
+  ParkingSnapshots,
   SignageSlides,
   SignageGroups,
   Telops,

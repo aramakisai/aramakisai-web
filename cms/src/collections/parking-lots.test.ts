@@ -12,7 +12,7 @@ describe('ParkingLots', () => {
   it('slug・タイトル・一覧列・既定の並びを持つ', () => {
     expect(ParkingLots.slug).toBe('parking_lots');
     expect(ParkingLots.admin?.useAsTitle).toBe('name');
-    expect(ParkingLots.admin?.defaultColumns).toEqual(['name']);
+    expect(ParkingLots.admin?.defaultColumns).toEqual(['name', 'camera']);
   });
 
   it('name は必須で最大 255', () => {
@@ -22,8 +22,9 @@ describe('ParkingLots', () => {
     expect(name.maxLength).toBe(255);
   });
 
-  it('空き状況は持たず、access は登録口に任せる', () => {
-    expect(ParkingLots.fields.map((f) => (f as NamedField).name)).toEqual(['name']);
+  it('カメラの join を持ち、空き状況は持たず、access は登録口に任せる', () => {
+    expect(ParkingLots.fields.map((f) => (f as NamedField).name)).toEqual(['name', 'camera']);
+    expect(fieldOf(ParkingLots, 'camera')).toMatchObject({ type: 'join', collection: 'parking_cameras', on: 'lot', label: 'カメラ' });
     expect(ParkingLots.access).toBeUndefined();
   });
 });

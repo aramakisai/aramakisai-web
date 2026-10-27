@@ -94,7 +94,9 @@ function snapshot(over: Partial<SignageSnapshot> = {}): SignageSnapshot {
     parking: {
       isEventDay: true,
       fetchedAt: '',
-      lots: [{ id: 1, name: 'P', status: 'available', updatedAt: null }],
+      lots: [
+        { id: 1, name: 'P', status: 'available', updatedAt: null, image: null },
+      ],
     },
     ...over,
   };
@@ -200,7 +202,9 @@ describe('buildPlaylist', () => {
         parking: {
           isEventDay: false,
           fetchedAt: '',
-          lots: [{ id: 1, name: 'P', status: null, updatedAt: null }],
+          lots: [
+            { id: 1, name: 'P', status: null, updatedAt: null, image: null },
+          ],
         },
         timetable: { days: [], stages: [], performances: [] },
       }),

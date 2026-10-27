@@ -15,10 +15,14 @@ import { sendInvitation } from './auth/invitation'
 import { collections } from './collections'
 import { createPgWithPoolErrorHandler, resolveReadReplicaUrl } from './db/read-replica'
 import { optionalEnv, requireEnv } from './env'
+import { parkingIngestEndpoints } from './endpoints/parking-ingest'
 import { signageQuakeEndpoints } from './endpoints/signage-quake'
 import { globals } from './globals'
 import { shouldAutoRun } from './lib/jobs-autorun'
 import { purgeEdgeCache, readPurgeConfig, warnIfPurgeUnconfigured } from './lib/edge-purge'
+import { checkParkingCameras, warnIfWatchUnconfigured } from './lib/parking-camera-watch'
+import { createJudge, runJudgeParkingSnapshot, warnIfJudgeUnconfigured } from './lib/parking-judge-task'
+import type { ParkingDb } from './lib/parking-db'
 import { richTextEditorFeatures } from './lib/rich-text-editor'
 
 // S3 未設定のローカル開発ではディスク保存にフォールバックする。本番/staging は Infisical が必ず与える。
@@ -45,9 +49,13 @@ export default buildConfig({
   },
   collections,
   globals,
-  onInit: (payload) => warnIfPurgeUnconfigured((message) => payload.logger.warn(message)),
+  onInit: (payload) => {
+    warnIfPurgeUnconfigured((message) => payload.logger.warn(message))
+    warnIfJudgeUnconfigured((message) => payload.logger.warn(message))
+    warnIfWatchUnconfigured((message) => payload.logger.warn(message))
+  },
   // Authentik OIDC を認証の一次経路とする。ローカル認証は実行委員の緊急用として残す
-  endpoints: [...(optionalEnv('AUTHENTIK_ISSUER_URL') ? authentikEndpoints : []), ...signageQuakeEndpoints],
+  endpoints: [...(optionalEnv('AUTHENTIK_ISSUER_URL') ? authentikEndpoints : []), ...signageQuakeEndpoints, ...parkingIngestEndpoints],
   editor: lexicalEditor({ features: richTextEditorFeatures }),
   // 利用者は実行委員のみで英語需要がないため、言語切替を出さず ja に固定する
   i18n: {
@@ -104,6 +112,40 @@ export default buildConfig({
           return { output: {} }
         },
       },
+      {
+        slug: 'judgeParkingSnapshot',
+        // Gemini の失敗は結果として画像に記録するため、ジョブとしては再試行しない
+        retries: 0,
+        inputSchema: [
+          { name: 'snapshotId', type: 'number', required: true },
+          { name: 'image', type: 'text', required: true },
+        ],
+        handler: async ({ input, req }) => {
+          const apiKey = optionalEnv('GEMINI_API_KEY')
+          await runJudgeParkingSnapshot({
+            payload: req.payload as unknown as ParkingDb,
+            snapshotId: input.snapshotId,
+            image: input.image,
+            judge: apiKey ? createJudge(apiKey) : null,
+          })
+          return { output: {} }
+        },
+      },
+      {
+        slug: 'checkParkingCameras',
+        retries: 0,
+        // 送信に失敗した通知は印を書かないため、次の分の実行で送り直される
+        schedule: [{ cron: '0 * * * * *', queue: 'default' }],
+        handler: async ({ req }) => {
+          await checkParkingCameras({
+            payload: req.payload as unknown as ParkingDb,
+            now: new Date(),
+            webhookUrl: optionalEnv('PARKING_CAMERA_DISCORD_WEBHOOK_URL'),
+            fetchImpl: fetch,
+          })
+          return { output: {} }
+        },
+      },
     ],
     autoRun: [{ cron: '*/10 * * * * *' }],
     // vitest はプロセス全体に VITEST=true を設定する。テストは payload.jobs.run() を明示的に呼ぶ
@@ -142,6 +184,7 @@ export default buildConfig({
           collections: {
             // Directus が使う directus-uploads と衝突しないキー空間に置く
             media: { prefix: optionalEnv('S3_PREFIX') ?? 'payload-uploads' },
+            parking_snapshots: { prefix: `${optionalEnv('S3_PREFIX') ?? 'payload-uploads'}/parking-snapshots` },
           },
           bucket: s3Bucket,
           config: {

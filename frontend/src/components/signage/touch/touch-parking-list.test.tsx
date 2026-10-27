@@ -10,8 +10,8 @@ describe('TouchParkingList', () => {
           isEventDay: false,
           fetchedAt: '2026-10-24T04:42:00Z',
           lots: [
-            { id: 1, name: 'A', status: null, updatedAt: null },
-            { id: 2, name: 'B', status: null, updatedAt: null },
+            { id: 1, name: 'A', status: null, updatedAt: null, image: null },
+            { id: 2, name: 'B', status: null, updatedAt: null, image: null },
           ],
         }}
         renderedAt="2026-10-24T04:42:00Z"

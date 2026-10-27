@@ -61,6 +61,7 @@ describe('待機中サイネージの文字の大きさ', () => {
   it('駐車場の状態は32', () => {
     render(
       <ParkingSlide
+        now={new Date(0)}
         parking={{
           isEventDay: true,
           fetchedAt: '2026-11-14T05:10:00Z',
@@ -70,6 +71,7 @@ describe('待機中サイネージの文字の大きさ', () => {
               name: 'P5',
               status: 'available',
               updatedAt: '2026-11-14T05:05:00Z',
+              image: null,
             },
           ],
         }}

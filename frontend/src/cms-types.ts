@@ -81,6 +81,8 @@ export interface Config {
     student_exhibitions: StudentExhibition;
     parking_lots: ParkingLot;
     parking_statuses: ParkingStatus;
+    parking_cameras: ParkingCamera;
+    parking_snapshots: ParkingSnapshot;
     signage_slides: SignageSlide;
     signage_groups: SignageGroup;
     telops: Telop;
@@ -94,6 +96,9 @@ export interface Config {
   collectionsJoins: {
     student_exhibitions: {
       'stage.performance_slots': 'performance_slots';
+    };
+    parking_lots: {
+      camera: 'parking_cameras';
     };
     signage_slides: {
       groups: 'signage_groups';
@@ -114,6 +119,8 @@ export interface Config {
     student_exhibitions: StudentExhibitionsSelect<false> | StudentExhibitionsSelect<true>;
     parking_lots: ParkingLotsSelect<false> | ParkingLotsSelect<true>;
     parking_statuses: ParkingStatusesSelect<false> | ParkingStatusesSelect<true>;
+    parking_cameras: ParkingCamerasSelect<false> | ParkingCamerasSelect<true>;
+    parking_snapshots: ParkingSnapshotsSelect<false> | ParkingSnapshotsSelect<true>;
     signage_slides: SignageSlidesSelect<false> | SignageSlidesSelect<true>;
     signage_groups: SignageGroupsSelect<false> | SignageGroupsSelect<true>;
     telops: TelopsSelect<false> | TelopsSelect<true>;
@@ -131,10 +138,14 @@ export interface Config {
   globals: {
     site_settings: SiteSetting;
     signage_settings: SignageSetting;
+    navigation: Navigation;
+    'payload-jobs-stats': PayloadJobsStat;
   };
   globalsSelect: {
     site_settings: SiteSettingsSelect<false> | SiteSettingsSelect<true>;
     signage_settings: SignageSettingsSelect<false> | SignageSettingsSelect<true>;
+    navigation: NavigationSelect<false> | NavigationSelect<true>;
+    'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
   locale: null;
   widgets: {
@@ -145,6 +156,8 @@ export interface Config {
     tasks: {
       sendInvitation: TaskSendInvitation;
       purgeMediaEdgeCache: TaskPurgeMediaEdgeCache;
+      judgeParkingSnapshot: TaskJudgeParkingSnapshot;
+      checkParkingCameras: TaskCheckParkingCameras;
       inline: {
         input: unknown;
         output: unknown;
@@ -672,6 +685,46 @@ export interface ParkingLot {
   id: number;
   _order?: string | null;
   name: string;
+  camera?: {
+    docs?: (number | ParkingCamera)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "parking_cameras".
+ */
+export interface ParkingCamera {
+  id: number;
+  /**
+   * 例: 4階東側
+   */
+  name: string;
+  lot?: (number | null) | ParkingLot;
+  token_hash?: string | null;
+  token_issued_at?: string | null;
+  /**
+   * 次の露出補正値を決めるのに使う、最後に有効に判定できた画像の情報
+   */
+  exposure_basis?: {
+    quality?: ('ok' | 'too_dark' | 'too_bright' | 'color_cast') | null;
+    exposure?: number | null;
+    captured_at?: string | null;
+  };
+  last_judged_window?: number | null;
+  last_captured_at?: string | null;
+  device_status?: {
+    rssi?: number | null;
+    uptime?: number | null;
+    reset_reason?: string | null;
+    failures?: number | null;
+    firmware?: string | null;
+    received_at?: string | null;
+  };
+  outage_notified_at?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -685,6 +738,45 @@ export interface ParkingStatus {
   status?: ('available' | 'crowded' | 'full') | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "parking_snapshots".
+ */
+export interface ParkingSnapshot {
+  id: number;
+  camera: number | ParkingCamera;
+  lot?: (number | null) | ParkingLot;
+  exposure?: number | null;
+  judge_status?: ('pending' | 'succeeded' | 'failed' | 'skipped') | null;
+  judge_error?: string | null;
+  congestion?: ('available' | 'crowded' | 'full' | 'unknown') | null;
+  image_quality?: ('ok' | 'too_dark' | 'too_bright' | 'color_cast') | null;
+  judge_model?: string | null;
+  judged_at?: string | null;
+  captured_at: string;
+  prefix?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+  sizes?: {
+    web?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -871,7 +963,7 @@ export interface PayloadJob {
     | {
         executedAt: string;
         completedAt: string;
-        taskSlug: 'inline' | 'sendInvitation' | 'purgeMediaEdgeCache';
+        taskSlug: 'inline' | 'sendInvitation' | 'purgeMediaEdgeCache' | 'judgeParkingSnapshot' | 'checkParkingCameras';
         taskID: string;
         input?:
           | {
@@ -904,10 +996,20 @@ export interface PayloadJob {
         id?: string | null;
       }[]
     | null;
-  taskSlug?: ('inline' | 'sendInvitation' | 'purgeMediaEdgeCache') | null;
+  taskSlug?:
+    ('inline' | 'sendInvitation' | 'purgeMediaEdgeCache' | 'judgeParkingSnapshot' | 'checkParkingCameras') | null;
   queue?: string | null;
   waitUntil?: string | null;
   processing?: boolean | null;
+  meta?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -973,6 +1075,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'parking_statuses';
         value: number | ParkingStatus;
+      } | null)
+    | ({
+        relationTo: 'parking_cameras';
+        value: number | ParkingCamera;
+      } | null)
+    | ({
+        relationTo: 'parking_snapshots';
+        value: number | ParkingSnapshot;
       } | null)
     | ({
         relationTo: 'signage_slides';
@@ -1310,6 +1420,7 @@ export interface StudentExhibitionsSelect<T extends boolean = true> {
 export interface ParkingLotsSelect<T extends boolean = true> {
   _order?: T;
   name?: T;
+  camera?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1322,6 +1433,80 @@ export interface ParkingStatusesSelect<T extends boolean = true> {
   status?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "parking_cameras_select".
+ */
+export interface ParkingCamerasSelect<T extends boolean = true> {
+  name?: T;
+  lot?: T;
+  token_hash?: T;
+  token_issued_at?: T;
+  exposure_basis?:
+    | T
+    | {
+        quality?: T;
+        exposure?: T;
+        captured_at?: T;
+      };
+  last_judged_window?: T;
+  last_captured_at?: T;
+  device_status?:
+    | T
+    | {
+        rssi?: T;
+        uptime?: T;
+        reset_reason?: T;
+        failures?: T;
+        firmware?: T;
+        received_at?: T;
+      };
+  outage_notified_at?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "parking_snapshots_select".
+ */
+export interface ParkingSnapshotsSelect<T extends boolean = true> {
+  camera?: T;
+  lot?: T;
+  exposure?: T;
+  judge_status?: T;
+  judge_error?: T;
+  congestion?: T;
+  image_quality?: T;
+  judge_model?: T;
+  judged_at?: T;
+  captured_at?: T;
+  prefix?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+  sizes?:
+    | T
+    | {
+        web?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1429,6 +1614,7 @@ export interface PayloadJobsSelect<T extends boolean = true> {
   queue?: T;
   waitUntil?: T;
   processing?: T;
+  meta?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1537,6 +1723,19 @@ export interface SiteSetting {
     | boolean
     | null;
   /**
+   * 日本時間。この時間内に撮影された画像だけを受け付け、稼働の監視もこの時間内に行います。
+   */
+  parking_monitor?: {
+    /**
+     * HH:mm 形式 (例: 09:00)
+     */
+    start?: string | null;
+    /**
+     * HH:mm 形式 (例: 17:30)。この時刻ちょうどは監視時間内
+     */
+    end?: string | null;
+  };
+  /**
    * SNS共有時の既定画像。未設定時はサイト同梱の既定画像を使用
    */
   og_image?: (number | null) | Media;
@@ -1553,6 +1752,87 @@ export interface SignageSetting {
    * 選んだスライドだけを全画面に表示し続けます。空にすると通常の巡回に戻ります。
    */
   pinned_slide?: (number | null) | SignageSlide;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "navigation".
+ */
+export interface Navigation {
+  id: number;
+  live: {
+    items: {
+      link_type: 'page' | 'path' | 'group';
+      page?: (number | null) | Page;
+      /**
+       * 例: /exhibitions、/#about
+       */
+      path?: string | null;
+      label?: string | null;
+      color: 'primary' | 'secondary' | 'info' | 'warning' | 'success' | 'accent' | 'accent-alt';
+      footer_column: 'site' | 'guidance';
+      children?:
+        | {
+            link_type: 'page' | 'path';
+            page?: (number | null) | Page;
+            /**
+             * 例: /exhibitions、/#about
+             */
+            path?: string | null;
+            label?: string | null;
+            hide_in_footer?: boolean | null;
+            id?: string | null;
+          }[]
+        | null;
+      id?: string | null;
+    }[];
+  };
+  pre_event: {
+    items: {
+      link_type: 'page' | 'path' | 'group';
+      page?: (number | null) | Page;
+      /**
+       * 例: /exhibitions、/#about
+       */
+      path?: string | null;
+      label?: string | null;
+      color: 'primary' | 'secondary' | 'info' | 'warning' | 'success' | 'accent' | 'accent-alt';
+      footer_column: 'site' | 'guidance';
+      children?:
+        | {
+            link_type: 'page' | 'path';
+            page?: (number | null) | Page;
+            /**
+             * 例: /exhibitions、/#about
+             */
+            path?: string | null;
+            label?: string | null;
+            hide_in_footer?: boolean | null;
+            id?: string | null;
+          }[]
+        | null;
+      id?: string | null;
+    }[];
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs-stats".
+ */
+export interface PayloadJobsStat {
+  id: number;
+  stats?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1579,6 +1859,12 @@ export interface SiteSettingsSelect<T extends boolean = true> {
   contact_form_url?: T;
   exhibitor_contact_url?: T;
   sns_links?: T;
+  parking_monitor?:
+    | T
+    | {
+        start?: T;
+        end?: T;
+      };
   og_image?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -1590,6 +1876,75 @@ export interface SiteSettingsSelect<T extends boolean = true> {
  */
 export interface SignageSettingsSelect<T extends boolean = true> {
   pinned_slide?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "navigation_select".
+ */
+export interface NavigationSelect<T extends boolean = true> {
+  live?:
+    | T
+    | {
+        items?:
+          | T
+          | {
+              link_type?: T;
+              page?: T;
+              path?: T;
+              label?: T;
+              color?: T;
+              footer_column?: T;
+              children?:
+                | T
+                | {
+                    link_type?: T;
+                    page?: T;
+                    path?: T;
+                    label?: T;
+                    hide_in_footer?: T;
+                    id?: T;
+                  };
+              id?: T;
+            };
+      };
+  pre_event?:
+    | T
+    | {
+        items?:
+          | T
+          | {
+              link_type?: T;
+              page?: T;
+              path?: T;
+              label?: T;
+              color?: T;
+              footer_column?: T;
+              children?:
+                | T
+                | {
+                    link_type?: T;
+                    page?: T;
+                    path?: T;
+                    label?: T;
+                    hide_in_footer?: T;
+                    id?: T;
+                  };
+              id?: T;
+            };
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs-stats_select".
+ */
+export interface PayloadJobsStatsSelect<T extends boolean = true> {
+  stats?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -1639,6 +1994,25 @@ export interface TaskPurgeMediaEdgeCache {
       | boolean
       | null;
   };
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskJudgeParkingSnapshot".
+ */
+export interface TaskJudgeParkingSnapshot {
+  input: {
+    snapshotId: number;
+    image: string;
+  };
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskCheckParkingCameras".
+ */
+export interface TaskCheckParkingCameras {
+  input?: unknown;
   output?: unknown;
 }
 /**
