@@ -288,6 +288,19 @@ describe('CampusMapView', () => {
     expect(attributionControlProps.at(-1)!.position).toBe('bottomleft');
   });
 
+  it('attributionTop では出典表記を topright に置く', () => {
+    mockMatchMedia(true);
+    render(
+      <CampusMapView
+        areas={[]}
+        selectedAreaId={null}
+        onSelectArea={() => {}}
+        attributionTop
+      />,
+    );
+    expect(attributionControlProps.at(-1)!.position).toBe('topright');
+  });
+
   it('出典表記を先に、ズームコントロールを後にマウントする (Leaflet は後着ほど角の内側に挿入するため、PC で両者が同じ角を共有してもズームが上に来る)', () => {
     const { container } = render(
       <CampusMapView

@@ -6,6 +6,14 @@ import { useNow } from '@/lib/use-now';
 import type { Timetable } from '@/lib/timetable';
 import { TouchSegment } from './touch-segment';
 
+const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
+
+// key は JST の暦日 'YYYY-MM-DD'。UTC 0 時として読めば環境のタイムゾーンに依らず同じ日付・曜日になる
+function dayButtonLabel(key: string): string {
+  const d = new Date(`${key}T00:00:00Z`);
+  return `${d.getUTCMonth() + 1}/${d.getUTCDate()} ${WEEKDAYS[d.getUTCDay()]}`;
+}
+
 export function TouchTimetable({
   timetable,
   initialDayKey,
@@ -42,7 +50,7 @@ export function TouchTimetable({
             size="page"
             items={days.map((d) => ({
               value: d.key,
-              label: d.label,
+              label: dayButtonLabel(d.key),
               color: 'bg-info',
             }))}
             value={dayKey}

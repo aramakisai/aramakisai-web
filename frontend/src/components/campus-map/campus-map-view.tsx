@@ -33,6 +33,8 @@ export interface CampusMapViewProps {
   readonly showUserLocation?: boolean;
   /** 端末用は自前のボタンから mapRef 経由でズームするため、Leaflet のコントロールを出さない */
   readonly showZoomControl?: boolean;
+  /** 端末用は下部の操作部品と重ならないよう出典表記を右上に置く */
+  readonly attributionTop?: boolean;
   readonly mapRef?: Ref<LeafletMap>;
   /** 端末用は下部の操作部品が地図に重なるため、その高さを避けて全エリアを収める */
   readonly fitBottomInset?: number;
@@ -74,6 +76,7 @@ export function CampusMapView({
   onSelectArea,
   showUserLocation = true,
   showZoomControl = true,
+  attributionTop = false,
   mapRef,
   fitBottomInset,
   maxBoundsPad = 0,
@@ -185,7 +188,13 @@ export function CampusMapView({
        * SP は出典表記を bottomleft に出すため互いに別の角となり、この順序は影響しない
        */}
       <AttributionControl
-        position={isAboveBreakpoint ? 'bottomright' : 'bottomleft'}
+        position={
+          attributionTop
+            ? 'topright'
+            : isAboveBreakpoint
+              ? 'bottomright'
+              : 'bottomleft'
+        }
         prefix={false}
       />
       {showZoomControl && <MapZoomControl />}
