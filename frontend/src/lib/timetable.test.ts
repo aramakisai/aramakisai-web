@@ -10,7 +10,9 @@ import {
   getTimetable,
   toTimetable,
   isPerformanceActive,
+  pageStagesAt,
   resolveInitialDayKey,
+  stagesWithPerformances,
   type TimetableDay,
 } from './timetable';
 
@@ -369,5 +371,48 @@ describe('formatOpenDays', () => {
     expect(formatOpenDays([], days)).toBeNull();
     expect(formatOpenDays(['2026-11-20'], days)).toBeNull();
     expect(formatOpenDays(['2026-11-14'], [])).toBeNull();
+  });
+});
+
+describe('stagesWithPerformances', () => {
+  const stages = [1, 2, 3].map((id) => ({ id, name: `S${id}` }));
+  const p = (stageId: number) => ({ stageId }) as never;
+
+  it('枠のあるステージだけを返し、色の添字は全ステージ内の位置のまま', () => {
+    expect(
+      stagesWithPerformances(stages, [p(3), p(1)]).map((v) => [
+        v.stage.id,
+        v.colorIndex,
+      ]),
+    ).toEqual([
+      [1, 0],
+      [3, 2],
+    ]);
+  });
+});
+
+describe('pageStagesAt', () => {
+  const four = ['a', 'b', 'c', 'd'];
+
+  it('4件は3件+1件の2ページで、5秒の境界で切り替わる', () => {
+    expect(pageStagesAt(four, 0)).toMatchObject({
+      pageIndex: 0,
+      pageCount: 2,
+      items: ['a', 'b', 'c'],
+    });
+    expect(pageStagesAt(four, 4999).pageIndex).toBe(0);
+    expect(pageStagesAt(four, 5000)).toMatchObject({
+      pageIndex: 1,
+      items: ['d'],
+    });
+    expect(pageStagesAt(four, 10000).pageIndex).toBe(0);
+  });
+
+  it('3件以下は常に1ページ', () => {
+    expect(pageStagesAt(['a', 'b', 'c'], 5000)).toMatchObject({
+      pageIndex: 0,
+      pageCount: 1,
+    });
+    expect(pageStagesAt([], 5000).pageCount).toBe(1);
   });
 });

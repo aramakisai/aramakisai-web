@@ -247,3 +247,45 @@ export function formatOpenDays(
   const labels = days.filter((d) => selected.has(d.key)).map((d) => d.label);
   return labels.length > 0 ? labels.join('・') : null;
 }
+
+export interface ColoredStage {
+  readonly stage: TimetableStage;
+  /** CMS の全ステージ内での位置。非表示のステージがあっても色をずらさない */
+  readonly colorIndex: number;
+}
+
+/** performances (表示する日の分) に枠があるステージだけを、全ステージ内の位置つきで返す */
+export function stagesWithPerformances(
+  stages: readonly TimetableStage[],
+  performances: readonly TimetablePerformance[],
+): readonly ColoredStage[] {
+  const used = new Set(performances.map((p) => p.stageId));
+  return stages
+    .map((stage, colorIndex) => ({ stage, colorIndex }))
+    .filter(({ stage }) => used.has(stage.id));
+}
+
+export const STAGES_PER_PAGE = 3;
+/** サイネージのステージページを切り替える間隔。スライドの表示秒数とは無関係 */
+export const STAGE_PAGE_INTERVAL_MS = 5000;
+
+/** items を STAGES_PER_PAGE 件ずつに分け、nowMs の時刻で表示するページ番号を返す */
+export function pageStagesAt<T>(
+  items: readonly T[],
+  nowMs: number,
+): {
+  readonly pageIndex: number;
+  readonly pageCount: number;
+  readonly items: readonly T[];
+} {
+  const pageCount = Math.max(1, Math.ceil(items.length / STAGES_PER_PAGE));
+  const pageIndex = Math.floor(nowMs / STAGE_PAGE_INTERVAL_MS) % pageCount;
+  return {
+    pageIndex,
+    pageCount,
+    items: items.slice(
+      pageIndex * STAGES_PER_PAGE,
+      (pageIndex + 1) * STAGES_PER_PAGE,
+    ),
+  };
+}

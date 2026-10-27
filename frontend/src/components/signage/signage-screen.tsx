@@ -144,7 +144,7 @@ export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
           <SignagePortraitHeader now={now} eventDays={eventDays} />
         </div>
         <div className="absolute top-[829px] left-6 hidden portrait:block">
-          <SignagePortraitInfo rows={rows} />
+          <SignagePortraitInfo rows={rows} now={now} />
         </div>
         <div className="absolute top-[912px] left-[360px] portrait:top-[1776px] portrait:left-6">
           <SignageTelop

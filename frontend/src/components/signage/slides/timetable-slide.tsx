@@ -1,9 +1,13 @@
+import { CrossFade } from '@/components/cross-fade';
 import { STAGE_BAND_CLASSES } from '@/components/timetable-stage-colors';
 import { formatEventDayTime, toJstDateKey, toJstParts } from '@/lib/event-day';
 import { timetableWindow } from '@/lib/signage';
 import {
+  STAGES_PER_PAGE,
   isPerformanceActive,
+  pageStagesAt,
   resolveInitialDayKey,
+  stagesWithPerformances,
   type Timetable,
   type TimetablePerformance,
 } from '@/lib/timetable';
@@ -12,6 +16,9 @@ import { SignageHeadingChip } from '../signage-heading-chip';
 const PX_PER_MINUTE = 2.8;
 const HEADER_H = 56;
 const TIME_COL = 90;
+const CONTENT_W = 1488;
+// ページ分けするときの列幅。最後のページで列が余っても幅を変えない
+const PAGED_COL_W = (CONTENT_W - TIME_COL) / STAGES_PER_PAGE;
 const BODY_H = 240 * PX_PER_MINUTE;
 // 2.8px/分では30分の枠でも名前を2行目に置ける高さになるが、それより短いと入らない
 const COMPACT_UNDER_MINUTES = 27;
@@ -37,6 +44,11 @@ export function TimetableSlide({
     (p) => p.slot.dateKey === dayKey,
   );
   const { startMinute, endMinute } = timetableWindow(performances, now);
+  const page = pageStagesAt(
+    stagesWithPerformances(timetable.stages, performances),
+    now.getTime(),
+  );
+  const paged = page.pageCount > 1;
   const ticks: number[] = [];
   for (let m = startMinute; m <= endMinute; m += 30) ticks.push(m);
   const nowMinute = minuteOfDay(now.toISOString());
@@ -50,72 +62,80 @@ export function TimetableSlide({
     <div className="relative h-[864px] w-[1536px] overflow-hidden rounded-[16px] bg-background">
       <SignageHeadingChip icon="calendar_clock" label="タイムテーブル" />
       <div className="absolute top-[92px] left-6 h-[728px] w-[1488px]">
-        <div
-          aria-hidden="true"
-          className="absolute inset-x-0 h-px bg-gray-200"
-          style={{ top: HEADER_H }}
-        />
-        {ticks.slice(1).map((m) => (
-          <div
-            key={m}
-            aria-hidden="true"
-            className={`absolute right-0 border-t border-gray-200 ${m % 60 === 0 ? '' : 'border-dashed'}`}
-            style={{ left: TIME_COL, top: y(m) }}
-          />
-        ))}
-        {ticks.map((m) => (
-          <p
-            key={m}
-            aria-hidden="true"
-            className="absolute w-[82px] text-right font-display text-[24px] leading-[1.2] text-gray-600 tabular-nums"
-            style={{ left: 0, top: y(m) - 14 }}
-          >
-            {hhmm(m)}
-          </p>
-        ))}
-        <div
-          className="absolute flex"
-          style={{ left: TIME_COL, top: 0, right: 0, height: '100%' }}
+        <CrossFade
+          transitionKey={String(page.pageIndex)}
+          enabled={paged}
+          className="h-full w-full"
+          layerClassName="relative bg-background"
         >
-          {timetable.stages.map((stage, i) => (
-            <section
-              key={stage.id}
-              className="relative min-w-0 flex-1 border-l border-gray-200"
-            >
-              <div className="relative" style={{ height: HEADER_H }}>
-                <div
-                  className={`absolute inset-x-0 top-0 h-1 ${STAGE_BAND_CLASSES[i % STAGE_BAND_CLASSES.length]}`}
-                />
-                <h3 className="px-3 pt-4 font-display text-[28px] leading-[1.2] font-bold text-text">
-                  {stage.name}
-                </h3>
-              </div>
-              <ul
-                className="relative overflow-hidden"
-                style={{ height: BODY_H }}
-              >
-                {performances
-                  .filter((p) => p.stageId === stage.id)
-                  .map((p) => (
-                    <Slot
-                      key={p.id}
-                      performance={p}
-                      startMinute={startMinute}
-                      active={isPerformanceActive(p.slot, now)}
-                    />
-                  ))}
-              </ul>
-            </section>
-          ))}
-        </div>
-        {showNow && (
           <div
             aria-hidden="true"
-            data-testid="timetable-now"
-            className="absolute right-0 h-0.5 bg-text"
-            style={{ left: 68, top: y(nowMinute) - 1 }}
+            className="absolute inset-x-0 h-px bg-gray-200"
+            style={{ top: HEADER_H }}
           />
-        )}
+          {ticks.slice(1).map((m) => (
+            <div
+              key={m}
+              aria-hidden="true"
+              className={`absolute right-0 border-t border-gray-200 ${m % 60 === 0 ? '' : 'border-dashed'}`}
+              style={{ left: TIME_COL, top: y(m) }}
+            />
+          ))}
+          {ticks.map((m) => (
+            <p
+              key={m}
+              aria-hidden="true"
+              className="absolute w-[82px] text-right font-display text-[24px] leading-[1.2] text-gray-600 tabular-nums"
+              style={{ left: 0, top: y(m) - 14 }}
+            >
+              {hhmm(m)}
+            </p>
+          ))}
+          <div
+            className="absolute flex"
+            style={{ left: TIME_COL, top: 0, right: 0, height: '100%' }}
+          >
+            {page.items.map(({ stage, colorIndex }) => (
+              <section
+                key={stage.id}
+                className={`relative border-l border-gray-200 ${paged ? 'shrink-0' : 'min-w-0 flex-1'}`}
+                style={paged ? { width: PAGED_COL_W } : undefined}
+              >
+                <div className="relative" style={{ height: HEADER_H }}>
+                  <div
+                    className={`absolute inset-x-0 top-0 h-1 ${STAGE_BAND_CLASSES[colorIndex % STAGE_BAND_CLASSES.length]}`}
+                  />
+                  <h3 className="px-3 pt-4 font-display text-[28px] leading-[1.2] font-bold text-text">
+                    {stage.name}
+                  </h3>
+                </div>
+                <ul
+                  className="relative overflow-hidden"
+                  style={{ height: BODY_H }}
+                >
+                  {performances
+                    .filter((p) => p.stageId === stage.id)
+                    .map((p) => (
+                      <Slot
+                        key={p.id}
+                        performance={p}
+                        startMinute={startMinute}
+                        active={isPerformanceActive(p.slot, now)}
+                      />
+                    ))}
+                </ul>
+              </section>
+            ))}
+          </div>
+          {showNow && (
+            <div
+              aria-hidden="true"
+              data-testid="timetable-now"
+              className="absolute right-0 h-0.5 bg-text"
+              style={{ left: 68, top: y(nowMinute) - 1 }}
+            />
+          )}
+        </CrossFade>
       </div>
     </div>
   );
