@@ -41,7 +41,14 @@ async function withOldSchema(
       payload,
       req,
       q: async (query) => (await db.execute(query)).rows as Row[],
-      up: () => mig.up(args),
+      up: async () => {
+        await mig.up(args);
+        // マイグレーションAは site_settings を作り直すため、後続のマイグレーションが足した列が無い。
+        // findGlobal は現行の定義の全列を読むので、足りない列を補う
+        await db.execute(sql`
+          ALTER TABLE "site_settings" ADD COLUMN "parking_monitor_start" varchar DEFAULT '09:00';
+          ALTER TABLE "site_settings" ADD COLUMN "parking_monitor_end" varchar DEFAULT '17:30';`);
+      },
       down: () => mig.down(args),
     });
   } finally {
