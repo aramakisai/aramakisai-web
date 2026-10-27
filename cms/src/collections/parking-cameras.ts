@@ -1,6 +1,7 @@
 import type { CollectionAfterChangeHook, CollectionBeforeDeleteHook, CollectionConfig, Field } from 'payload';
 
 import { denyField } from '../access/payload-access';
+import { parkingCameraTokenEndpoints } from '../endpoints/parking-camera-token';
 
 /** relationship の値は depth により ID かオブジェクトで来る */
 export function relationId(value: unknown): number | string | null {
@@ -19,9 +20,9 @@ export const detachSnapshotsOnLotChange: CollectionAfterChangeHook = async ({
   if (operation !== 'update') return doc;
   if (relationId(previousDoc?.lot) === relationId(doc.lot)) return doc;
   await req.payload.update({
-    collection: 'parking_snapshots' as never,
+    collection: 'parking_snapshots',
     where: { camera: { equals: doc.id }, lot: { exists: true } },
-    data: { lot: null } as never,
+    data: { lot: null },
     overrideAccess: true,
     req,
   });
@@ -30,7 +31,7 @@ export const detachSnapshotsOnLotChange: CollectionAfterChangeHook = async ({
 
 export const deleteSnapshotsBeforeDelete: CollectionBeforeDeleteHook = async ({ id, req }) => {
   await req.payload.delete({
-    collection: 'parking_snapshots' as never,
+    collection: 'parking_snapshots',
     where: { camera: { equals: id } },
     overrideAccess: true,
     req,
@@ -66,6 +67,7 @@ export const ParkingCameras: CollectionConfig = {
       'token_issued_at',
     ],
   },
+  endpoints: parkingCameraTokenEndpoints,
   hooks: {
     afterChange: [detachSnapshotsOnLotChange],
     beforeDelete: [deleteSnapshotsBeforeDelete],
@@ -87,6 +89,11 @@ export const ParkingCameras: CollectionConfig = {
       index: true,
       access: { read: denyField, create: denyField, update: denyField },
       admin: { hidden: true },
+    },
+    {
+      name: 'token',
+      type: 'ui',
+      admin: { components: { Field: './components/ParkingCameraTokenField.tsx' } },
     },
     systemDate('token_issued_at', 'トークンの発行時刻'),
     {
