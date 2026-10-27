@@ -8,6 +8,9 @@ const { findMany, findGlobal, getRequestPhase } = vi.hoisted(() => ({
 }));
 
 vi.mock('./cms', () => ({ cms: { findMany, findGlobal } }));
+vi.mock('@/env', () => ({
+  env: { NEXT_PUBLIC_CMS_URL: 'http://localhost:3100' },
+}));
 vi.mock('./request-phase', () => ({ getRequestPhase }));
 
 import { getParkingResponse } from './parking-data';
@@ -30,9 +33,10 @@ const networkError: CmsResult<never> = {
 };
 
 const NOW = new Date('2026-11-14T03:00:00Z'); // JST 12:00
-const meta = (day: string) => ({
+const meta = (day: string, parking_monitor?: object) => ({
   ok: true,
   value: {
+    parking_monitor,
     event_days: [
       { start_at: `${day}T10:00:00+09:00`, end_at: `${day}T17:00:00+09:00` },
     ],
@@ -73,6 +77,7 @@ describe('getParkingResponse', () => {
             name: '第1駐車場',
             status: 'available',
             updatedAt: '2026-10-02T00:00:00.000Z',
+            image: null,
           },
         ],
         fetchedAt: NOW.toISOString(),
@@ -85,7 +90,15 @@ describe('getParkingResponse', () => {
     const result = await getParkingResponse();
     expect(result.ok && result.value).toEqual({
       isEventDay: false,
-      lots: [{ id: 1, name: '第1駐車場', status: null, updatedAt: null }],
+      lots: [
+        {
+          id: 1,
+          name: '第1駐車場',
+          status: null,
+          updatedAt: null,
+          image: null,
+        },
+      ],
       fetchedAt: NOW.toISOString(),
     });
   });
@@ -137,6 +150,7 @@ describe('getParkingResponse', () => {
       name: '第2駐車場',
       status: null,
       updatedAt: null,
+      image: null,
     });
   });
 
@@ -149,5 +163,135 @@ describe('getParkingResponse', () => {
   it('parking_statuses の取得失敗は失敗として返す', async () => {
     findMany.mockResolvedValue(networkError);
     expect(await getParkingResponse()).toEqual(networkError);
+  });
+
+  describe('画像', () => {
+    const snap = (lotId: number, web: object | undefined, extra = {}) => ({
+      id: lotId * 100,
+      lot: lotId,
+      captured_at: '2026-11-14T02:55:00.000Z',
+      url: `/api/parking_snapshots/file/orig${lotId}.jpg`,
+      width: 1600,
+      height: 1200,
+      sizes: { web },
+      ...extra,
+    });
+    const web = (n: number) => ({
+      url: `/api/parking_snapshots/file/s${n}-960x720.webp`,
+      width: 960,
+      height: 720,
+    });
+    const setup = (snaps: object[]) =>
+      findMany.mockImplementation(async (c: string) =>
+        c === 'parking_statuses'
+          ? { ok: true, value: { docs: [lot], totalDocs: 1 } }
+          : { ok: true, value: { docs: snaps, totalDocs: snaps.length } },
+      );
+    const imageOf = async () => {
+      const r = await getParkingResponse();
+      return r.ok ? r.value.lots[0].image : 'ng';
+    };
+
+    it('当日の監視時間内は縮小版の絶対URL・寸法が付き、原寸のURLは返らない', async () => {
+      setup([snap(10, web(1))]);
+      const r = await getParkingResponse();
+      expect(findMany).toHaveBeenCalledWith(
+        'parking_snapshots',
+        {
+          where: { lot: { exists: true } },
+          sort: ['-createdAt'],
+          depth: 0,
+          limit: 100,
+          select: {
+            lot: true,
+            sizes: true,
+            captured_at: true,
+            url: true,
+            width: true,
+            height: true,
+          },
+        },
+        { ttlSeconds: 20 },
+      );
+      const image = r.ok && r.value.lots[0].image;
+      expect(image).toMatchObject({
+        url: 'http://localhost:3100/api/parking_snapshots/file/s1-960x720.webp',
+        capturedAt: '2026-11-14T02:55:00.000Z',
+        width: 960,
+        height: 720,
+      });
+      expect(JSON.stringify(image)).not.toContain('orig10');
+    });
+
+    it('駐車場ごとに新しい順で最初の1件を使う', async () => {
+      setup([snap(10, web(2)), snap(10, web(1))]);
+      expect(await imageOf()).toMatchObject({
+        url: expect.stringContaining('s2-'),
+      });
+    });
+
+    it('縮小版が無ければ原寸の値を使う', async () => {
+      setup([snap(10, undefined)]);
+      expect(await imageOf()).toMatchObject({
+        url: expect.stringContaining('orig10.jpg'),
+        width: 1600,
+        height: 1200,
+      });
+    });
+
+    it('当日以外は画像を取得せず値なし', async () => {
+      findGlobal.mockResolvedValue(otherDay);
+      setup([snap(10, web(1))]);
+      expect(await imageOf()).toBeNull();
+      expect(findMany).not.toHaveBeenCalledWith(
+        'parking_snapshots',
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
+    it('監視時間外は画像を取得せず値なし、状態は返る', async () => {
+      vi.setSystemTime(new Date('2026-11-14T08:31:00Z')); // JST 17:31
+      setup([snap(10, web(1))]);
+      const r = await getParkingResponse();
+      expect(r.ok && r.value.lots[0]).toMatchObject({
+        status: 'available',
+        image: null,
+      });
+      expect(findMany).not.toHaveBeenCalledWith(
+        'parking_snapshots',
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
+    it('監視時間は設定値に従い、両端を含む', async () => {
+      findGlobal.mockResolvedValue(
+        meta('2026-11-14', { start: '12:00', end: '12:00' }),
+      );
+      setup([snap(10, web(1))]);
+      expect(await imageOf()).not.toBeNull();
+    });
+
+    it('取得失敗は画像だけ値なしで状態は返る', async () => {
+      findMany.mockImplementation(async (c: string) =>
+        c === 'parking_statuses'
+          ? { ok: true, value: { docs: [lot], totalDocs: 1 } }
+          : networkError,
+      );
+      const r = await getParkingResponse();
+      expect(r.ok && r.value.lots[0]).toMatchObject({
+        status: 'available',
+        image: null,
+      });
+    });
+
+    it('未割り当てと割り当て直後で画像の無い駐車場の応答の形は同じ', async () => {
+      setup([snap(99, web(1))]);
+      const unassigned = await getParkingResponse();
+      setup([]);
+      const noImage = await getParkingResponse();
+      expect(unassigned).toEqual(noImage);
+    });
   });
 });

@@ -11,7 +11,7 @@ const RENDERED_AT = '2026-11-14T04:00:00Z';
 const res = (updatedAt: string): ParkingResponse => ({
   isEventDay: true,
   fetchedAt: '2026-11-14T03:59:00Z',
-  lots: [{ id: 1, name: 'P', status: 'available', updatedAt }],
+  lots: [{ id: 1, name: 'P', status: 'available', updatedAt, image: null }],
 });
 const fetchMock = vi.fn();
 
