@@ -14,7 +14,7 @@ describe('SiteSettings', () => {
 
   it('名前なしの tabs 1 つで、タブの順序が固定されている', () => {
     expect(SiteSettings.fields).toHaveLength(1);
-    expect(tabs.map((t) => t.label)).toEqual(['基本', 'トップページ', 'About', '連絡先', 'SEO']);
+    expect(tabs.map((t) => t.label)).toEqual(['基本', 'トップページ', 'About', '連絡先', '駐車場カメラ', 'SEO']);
   });
 
   it('各タブの項目名と順序', () => {
@@ -23,6 +23,7 @@ describe('SiteSettings', () => {
       ['hero_images'],
       ['overview', 'overview_html'],
       ['contact_form_url', 'exhibitor_contact_url', 'sns_links'],
+      ['parking_monitor'],
       ['og_image'],
     ]);
   });

@@ -1,6 +1,7 @@
 import { lexicalHTMLField } from '@payloadcms/richtext-lexical';
 import type { GlobalConfig } from 'payload';
 
+import { validateMonitorEnd, validateMonitorStart } from '../lib/parking-monitor';
 import { signageNotifyGlobalHook } from '../lib/signage-notify';
 
 export const SiteSettings: GlobalConfig = {
@@ -102,6 +103,35 @@ export const SiteSettings: GlobalConfig = {
                   : 'URL は https:// で始まる形式で入力してください',
             },
             { name: 'sns_links', type: 'json', label: 'SNSリンク一覧' },
+          ],
+        },
+        {
+          label: '駐車場カメラ',
+          fields: [
+            {
+              name: 'parking_monitor',
+              type: 'group',
+              label: '監視時間',
+              admin: { description: '日本時間。この時間内に撮影された画像だけを受け付け、稼働の監視もこの時間内に行います。' },
+              fields: [
+                {
+                  name: 'start',
+                  type: 'text',
+                  label: '開始',
+                  defaultValue: '09:00',
+                  admin: { description: 'HH:mm 形式 (例: 09:00)' },
+                  validate: validateMonitorStart,
+                },
+                {
+                  name: 'end',
+                  type: 'text',
+                  label: '終了',
+                  defaultValue: '17:30',
+                  admin: { description: 'HH:mm 形式 (例: 17:30)。この時刻ちょうどは監視時間内' },
+                  validate: validateMonitorEnd,
+                },
+              ],
+            },
           ],
         },
         {

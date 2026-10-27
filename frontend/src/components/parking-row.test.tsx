@@ -8,7 +8,7 @@ function lot(
   updatedAt: string | null,
   status: 'available' | 'crowded' | 'full' | null,
 ) {
-  return { id: 1, name: '正門前駐車場', status, updatedAt };
+  return { id: 1, name: '正門前駐車場', status, updatedAt, image: null };
 }
 
 describe('ParkingStatusBadge', () => {
@@ -90,5 +90,108 @@ describe('ParkingRow', () => {
     expect(screen.getByText('非公開')).toBeInTheDocument();
     expect(screen.getByText('正門前駐車場')).not.toHaveClass('text-gray-600');
     expect(screen.queryByText(/更新/)).not.toBeInTheDocument();
+  });
+});
+
+describe('ParkingRow の画像', () => {
+  const image = (capturedAt: string) => ({
+    url: 'https://cms.example/cam.jpg',
+    capturedAt,
+    width: 640,
+    height: 480,
+  });
+  const withImage = (
+    updatedAt: string | null,
+    status: 'available' | null,
+    capturedAt: string,
+  ) => ({ ...lot(updatedAt, status), image: image(capturedAt) });
+
+  test('画像・撮影時刻を更新時刻の後ろに出し、代替テキストと4:3・最大480pxを持つ', () => {
+    render(
+      <ParkingRow
+        lot={withImage(
+          '2026-11-14T03:50:00Z',
+          'available',
+          '2026-11-14T03:55:00Z',
+        )}
+        eventDay
+        now={NOW}
+      />,
+    );
+    const img = screen.getByAltText('正門前駐車場の現在の様子');
+    expect(img).toHaveAttribute('src', 'https://cms.example/cam.jpg');
+    expect(img.parentElement).toHaveClass('aspect-[4/3]', 'max-w-[480px]');
+    const text = screen.getByText('12:55撮影');
+    expect(text).toHaveClass('text-gray-600');
+    const all = Array.from(
+      screen.getByRole('listitem').querySelectorAll('p, img'),
+    );
+    expect(all.indexOf(screen.getByText('12:50更新'))).toBeLessThan(
+      all.indexOf(img),
+    );
+    expect(all.indexOf(img)).toBeLessThan(all.indexOf(text));
+  });
+
+  test('撮影から15分以上は古い画像の表示になる', () => {
+    render(
+      <ParkingRow
+        lot={withImage(
+          '2026-11-14T03:50:00Z',
+          'available',
+          '2026-11-14T03:45:00Z',
+        )}
+        eventDay
+        now={NOW}
+      />,
+    );
+    expect(
+      screen.getByText('12:45撮影・古い画像の可能性があります'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('history')).toHaveClass('text-warning');
+  });
+
+  test('状態の古さと画像の古さは独立に出る', () => {
+    render(
+      <ParkingRow
+        lot={withImage(
+          '2026-11-14T03:00:00Z',
+          'available',
+          '2026-11-14T03:45:00Z',
+        )}
+        eventDay
+        now={NOW}
+      />,
+    );
+    expect(screen.getAllByText('history')).toHaveLength(2);
+    expect(
+      screen.getByText('12:00更新・情報が古い可能性があります'),
+    ).toBeInTheDocument();
+  });
+
+  test('空き状況が未設定なら画像を出さない', () => {
+    render(
+      <ParkingRow
+        lot={withImage(null, null, '2026-11-14T03:55:00Z')}
+        eventDay
+        now={NOW}
+      />,
+    );
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(screen.queryByText(/撮影/)).not.toBeInTheDocument();
+  });
+
+  test('当日でなければ画像を出さない', () => {
+    render(
+      <ParkingRow
+        lot={withImage(
+          '2026-11-14T03:50:00Z',
+          'available',
+          '2026-11-14T03:55:00Z',
+        )}
+        eventDay={false}
+        now={NOW}
+      />,
+    );
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });
 });

@@ -56,7 +56,15 @@ describe('ParkingPage', () => {
       value: {
         isEventDay: false,
         fetchedAt: FETCHED_AT,
-        lots: [{ id: 1, name: '正門前駐車場', status: null, updatedAt: null }],
+        lots: [
+          {
+            id: 1,
+            name: '正門前駐車場',
+            status: null,
+            updatedAt: null,
+            image: null,
+          },
+        ],
       },
     });
 

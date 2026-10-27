@@ -18,7 +18,9 @@ export const SLIDE_RENDERERS: SlideRenderers = {
       items={paginateLostItems(snapshot.lostItems)[entry.page] ?? []}
     />
   ),
-  parking: ({ snapshot }) => <ParkingSlide parking={snapshot.parking} />,
+  parking: ({ snapshot, now }) => (
+    <ParkingSlide parking={snapshot.parking} now={now} />
+  ),
   timetable: ({ snapshot, now }) => (
     <TimetableSlide timetable={snapshot.timetable} now={now} />
   ),
