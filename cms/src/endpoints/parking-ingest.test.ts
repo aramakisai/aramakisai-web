@@ -27,9 +27,8 @@ function setup(opts: { camera?: Record<string, unknown> | null; claim?: boolean 
     })),
     findGlobal: vi.fn().mockResolvedValue({ parking_monitor: { start: '09:00', end: '17:30' } }),
     create: vi.fn().mockResolvedValue({ id: 99 }),
-    update: vi.fn(async (args: Args) => ({
-      docs: args.where && (opts.claim ?? true) ? [{ id: 3 }] : [],
-    })),
+    update: vi.fn(async (_args: Args) => ({})),
+    db: { pool: { query: vi.fn(async (_sql: string, _params: unknown[]) => ({ rowCount: (opts.claim ?? true) ? 1 : 0 })) } },
     delete: vi.fn().mockResolvedValue({}),
     jobs: { queue: vi.fn().mockResolvedValue({}) },
     logger: { warn: vi.fn() },
@@ -207,10 +206,7 @@ describe('保存と判定の登録', () => {
     expect(args.data).toMatchObject({ camera: 3, lot: 11, exposure: 0, judge_status: 'pending' });
     expect(args.data.captured_at).toBe(new Date(nowSec * 1000).toISOString());
     expect(args.file.name).toMatch(/^[0-9a-f]{32}\.jpg$/);
-    const claim = payload.update.mock.calls.find((c) => 'last_judged_window' in (c[0] as { data: object }).data);
-    expect((claim![0] as { data: { last_judged_window: number } }).data.last_judged_window).toBe(
-      Math.floor(nowSec / 300),
-    );
+    expect(payload.db.pool.query.mock.calls[0][1]).toEqual([Math.floor(nowSec / 300), 3]);
     const job = payload.jobs.queue.mock.calls[0][0] as { task: string; input: { snapshotId: number; image: string } };
     expect(job.task).toBe('judgeParkingSnapshot');
     expect(job.input.snapshotId).toBe(99);
@@ -242,10 +238,9 @@ describe('保存と判定の登録', () => {
 
   it('枠の更新は「未設定か今回より小さい」を条件にする', async () => {
     const { payload } = await run();
-    const claim = payload.update.mock.calls.find((c) => 'last_judged_window' in (c[0] as { data: object }).data);
-    const where = JSON.stringify((claim![0] as { where: unknown }).where);
-    expect(where).toContain('"exists":false');
-    expect(where).toContain('less_than');
+    const sql = (payload.db.pool.query.mock.calls[0] as unknown[])[0] as string;
+    expect(sql).toContain('last_judged_window is null or last_judged_window < $1');
+    expect(sql).toContain('where id = $2');
   });
 
   it('古い画像の削除に失敗しても 200', async () => {

@@ -163,19 +163,13 @@ export function ingestHandler(
 
     try {
       const window = Math.floor(capturedSec / deps.windowSeconds);
-      // ponytail: 検索と更新は別クエリ。同じカメラの2枚が同時に届くと二重に判定されうるが、判定は冪等
-      const claimed = await payload.update({
-        collection: 'parking_cameras',
-        where: {
-          and: [
-            { id: { equals: camera.id } },
-            { or: [{ last_judged_window: { exists: false } }, { last_judged_window: { less_than: window } }] },
-          ],
-        },
-        data: { last_judged_window: window },
-        overrideAccess: true,
-      });
-      if (claimed.docs?.length === 1) {
+      // 検索と更新を1文にしないと、同じカメラの2枚が同時に届いたとき両方が枠を取れてしまう
+      const claimed = await payload.db.pool.query(
+        `update parking_cameras set last_judged_window = $1
+         where id = $2 and (last_judged_window is null or last_judged_window < $1)`,
+        [window, camera.id],
+      );
+      if (claimed.rowCount === 1) {
         await payload.jobs.queue({
           task: 'judgeParkingSnapshot',
           input: { snapshotId, image: data.toString('base64') },
