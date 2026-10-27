@@ -63,7 +63,7 @@ const RING_BORDER_CLASS: Record<RingColor, string> = {
 };
 
 // 原画は箱の対角線を一辺とする正方形に敷いて回し、箱で切り抜く。どの角度でも箱の隅に原画の外が出ない。
-// 背景の幅は回す前の箱の幅 × 5 (= 正方形の幅の 5/√2 倍)
+// 背景の幅は回す前の箱の幅 × 2.5 (= 正方形の幅の 2.5/√2 倍)
 const SQRT2 = 1.4143;
 
 // geometry.ts の図形内外判定 (sampleShape) と同じ形を CSS で再現する。roundedSquare の角丸は
@@ -109,7 +109,7 @@ function ShapeFill({
           width: `${SQRT2 * 100}%`,
           transform: `translate(-50%, -50%) rotate(${rot}deg)`,
           backgroundImage: `url(/images/textures/pamphlet/${texture}.webp)`,
-          backgroundSize: `calc(500% / ${SQRT2}) auto`,
+          backgroundSize: `calc(250% / ${SQRT2}) auto`,
           backgroundPosition: `${pos[0]}% ${pos[1]}%`,
         }}
       />
