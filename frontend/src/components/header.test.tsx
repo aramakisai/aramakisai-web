@@ -19,7 +19,7 @@ describe('Header', () => {
   });
 
   test('スキップリンクは本文の main へ遷移し、キーボードフォーカス時のみ表示する', () => {
-    render(<Header phase="pre_event" />);
+    render(<Header phase="pre_event" navigation={navigationItemsByPhase} />);
 
     const skipLink = screen.getByRole('link', { name: '本文へ移動' });
     expect(skipLink).toHaveAttribute('href', `#${MAIN_CONTENT_ID}`);
@@ -27,7 +27,7 @@ describe('Header', () => {
   });
 
   test('ロゴはトップページへのリンクで、PC で 40px 高さの表示になる', () => {
-    render(<Header phase="pre_event" />);
+    render(<Header phase="pre_event" navigation={navigationItemsByPhase} />);
 
     expect(screen.getByRole('link', { name: '荒牧祭2026' })).toHaveAttribute(
       'href',
@@ -40,7 +40,7 @@ describe('Header', () => {
   });
 
   test('開催前フェーズは 荒牧祭について・お知らせ・ご案内・協賛 の順に表示する', () => {
-    render(<Header phase="pre_event" />);
+    render(<Header phase="pre_event" navigation={navigationItemsByPhase} />);
 
     const nav = screen.getByRole('navigation', {
       name: 'メインナビゲーション',
@@ -57,7 +57,7 @@ describe('Header', () => {
   });
 
   test('開催中フェーズは 企画一覧・構内マップ・タイムテーブル・お知らせ・ご案内 の順に表示する', () => {
-    render(<Header phase="live" />);
+    render(<Header phase="live" navigation={navigationItemsByPhase} />);
 
     const nav = screen.getByRole('navigation', {
       name: 'メインナビゲーション',
@@ -70,7 +70,7 @@ describe('Header', () => {
 
   test('href を持つ項目は現在地のとき aria-current を付ける', () => {
     mockedUsePathname.mockReturnValue('/announcements');
-    render(<Header phase="pre_event" />);
+    render(<Header phase="pre_event" navigation={navigationItemsByPhase} />);
 
     const nav = screen.getByRole('navigation', {
       name: 'メインナビゲーション',
@@ -83,7 +83,7 @@ describe('Header', () => {
 
   test('子項目だけを持つ親は、子項目のいずれかが現在地のとき現在地として扱う', () => {
     mockedUsePathname.mockReturnValue('/access');
-    render(<Header phase="pre_event" />);
+    render(<Header phase="pre_event" navigation={navigationItemsByPhase} />);
 
     const nav = screen.getByRole('navigation', {
       name: 'メインナビゲーション',
@@ -95,7 +95,7 @@ describe('Header', () => {
   });
 
   test('子項目を持つ項目は button で開く手段を備え、子項目一覧を含む', () => {
-    render(<Header phase="pre_event" />);
+    render(<Header phase="pre_event" navigation={navigationItemsByPhase} />);
 
     const nav = screen.getByRole('navigation', {
       name: 'メインナビゲーション',
@@ -122,7 +122,7 @@ describe('Header', () => {
 
   test('現在地の下線色は親項目ごとに固定され、ラベルの文字色は変えない', () => {
     mockedUsePathname.mockReturnValue('/announcements');
-    render(<Header phase="pre_event" />);
+    render(<Header phase="pre_event" navigation={navigationItemsByPhase} />);
 
     const nav = screen.getByRole('navigation', {
       name: 'メインナビゲーション',
@@ -136,7 +136,9 @@ describe('Header', () => {
   });
 
   test('上端に固定し、地の色と下端の境界線を持つ', () => {
-    const { container } = render(<Header phase="pre_event" />);
+    const { container } = render(
+      <Header phase="pre_event" navigation={navigationItemsByPhase} />,
+    );
 
     const header = container.querySelector('header');
     expect(header).toHaveClass(
@@ -149,7 +151,9 @@ describe('Header', () => {
   });
 
   test('高さ 80px・左右 padding 80px を PC で適用する', () => {
-    const { container } = render(<Header phase="pre_event" />);
+    const { container } = render(
+      <Header phase="pre_event" navigation={navigationItemsByPhase} />,
+    );
 
     const headerInner = container
       .querySelector('header')
@@ -158,7 +162,7 @@ describe('Header', () => {
   });
 
   test('ナビゲーション項目間は 32px', () => {
-    render(<Header phase="pre_event" />);
+    render(<Header phase="pre_event" navigation={navigationItemsByPhase} />);
     const nav = screen.getByRole('navigation', {
       name: 'メインナビゲーション',
     });
@@ -166,7 +170,7 @@ describe('Header', () => {
   });
 
   test('opens a mobile navigation with the phase navigation links', () => {
-    render(<Header phase="pre_event" />);
+    render(<Header phase="pre_event" navigation={navigationItemsByPhase} />);
 
     const menuButton = screen.getByRole('button', { name: 'メニューを開く' });
     expect(menuButton).toHaveAttribute('type', 'button');
@@ -192,7 +196,9 @@ describe('Header', () => {
 
   test('liveのハンバーガーメニューだけ末尾にマイページを出す', () => {
     mockedUsePathname.mockReturnValue('/');
-    const { unmount } = render(<Header phase="live" />);
+    const { unmount } = render(
+      <Header phase="live" navigation={navigationItemsByPhase} />,
+    );
     const pc = screen.getByRole('navigation', { name: 'メインナビゲーション' });
     expect(within(pc).queryByText('マイページ')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
@@ -204,14 +210,14 @@ describe('Header', () => {
     expect(links.at(-1)).toHaveAttribute('href', '/mypage');
     unmount();
 
-    render(<Header phase="pre_event" />);
+    render(<Header phase="pre_event" navigation={navigationItemsByPhase} />);
     fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
     expect(screen.queryByText('マイページ')).not.toBeInTheDocument();
   });
 
   test('複数の子項目持ちの親を、それぞれ独立して開閉できる (お知らせ + ご案内)', () => {
     mockedUsePathname.mockReturnValue('/');
-    render(<Header phase="live" />);
+    render(<Header phase="live" navigation={navigationItemsByPhase} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
     const mobileNavigation = screen.getByRole('navigation', {
@@ -250,7 +256,7 @@ describe('Header', () => {
   });
 
   test('行の高さは 48px、開いた行の直下に子項目を 16px インデントし左に縦線を添えて表示する', () => {
-    render(<Header phase="pre_event" />);
+    render(<Header phase="pre_event" navigation={navigationItemsByPhase} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
     const mobileNavigation = screen.getByRole('navigation', {
@@ -274,7 +280,7 @@ describe('Header', () => {
   test.each(['pre_event', 'live'] as const)(
     '%s: 開いた親の最後の子行の下に区切り線を出し、親自身と末尾の項目には出さない',
     (phase) => {
-      render(<Header phase={phase} />);
+      render(<Header phase={phase} navigation={navigationItemsByPhase} />);
       fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
       const nav = screen.getByRole('navigation', {
         name: 'モバイルナビゲーション',
@@ -306,7 +312,7 @@ describe('Header', () => {
     const footer = document.createElement('footer');
     document.body.append(main, footer);
     try {
-      render(<Header phase="pre_event" />);
+      render(<Header phase="pre_event" navigation={navigationItemsByPhase} />);
 
       fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
       expect(document.body.style.overflow).toBe('hidden');
@@ -327,7 +333,9 @@ describe('Header', () => {
     const main = document.createElement('main');
     document.body.append(main);
     try {
-      const { container } = render(<Header phase="pre_event" />);
+      const { container } = render(
+        <Header phase="pre_event" navigation={navigationItemsByPhase} />,
+      );
       fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
 
       const header = container.querySelector('header');
@@ -353,7 +361,9 @@ describe('Header', () => {
     document.body.append(pageContainer, outsideSibling);
 
     try {
-      render(<Header phase="pre_event" />, { container: mount });
+      render(<Header phase="pre_event" navigation={navigationItemsByPhase} />, {
+        container: mount,
+      });
 
       fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
 
@@ -369,7 +379,7 @@ describe('Header', () => {
   });
 
   test('外側の選択でメニューを閉じる', () => {
-    render(<Header phase="pre_event" />);
+    render(<Header phase="pre_event" navigation={navigationItemsByPhase} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
     expect(
@@ -384,7 +394,7 @@ describe('Header', () => {
   });
 
   test('メニュー内の選択・開閉ボタン自身の選択では外側扱いにならない', () => {
-    render(<Header phase="pre_event" />);
+    render(<Header phase="pre_event" navigation={navigationItemsByPhase} />);
 
     const menuButton = screen.getByRole('button', { name: 'メニューを開く' });
     fireEvent.click(menuButton);
@@ -401,7 +411,9 @@ describe('Header', () => {
   });
 
   test('開閉は 200ms ease-out で行い、モーション停止で無効化する', () => {
-    const { container } = render(<Header phase="pre_event" />);
+    const { container } = render(
+      <Header phase="pre_event" navigation={navigationItemsByPhase} />,
+    );
 
     const nav = container.querySelector('#mobile-navigation');
     expect(nav).toHaveClass(
@@ -417,7 +429,7 @@ describe('Header', () => {
   });
 
   test('モバイルメニュー内の項目を選択すると遷移してメニューを閉じる', () => {
-    render(<Header phase="pre_event" />);
+    render(<Header phase="pre_event" navigation={navigationItemsByPhase} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
     const mobileNavigation = screen.getByRole('navigation', {
@@ -433,7 +445,7 @@ describe('Header', () => {
   });
 
   test('closes the mobile menu with Escape and returns focus to the toggle', () => {
-    render(<Header phase="pre_event" />);
+    render(<Header phase="pre_event" navigation={navigationItemsByPhase} />);
 
     const menuButton = screen.getByRole('button', { name: 'メニューを開く' });
     fireEvent.click(menuButton);
@@ -450,7 +462,7 @@ describe('Header', () => {
   });
 
   test('メニューを開いている間、Tab と Shift+Tab はメニュー内で循環する', () => {
-    render(<Header phase="pre_event" />);
+    render(<Header phase="pre_event" navigation={navigationItemsByPhase} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
     const mobileNavigation = screen.getByRole('navigation', {
@@ -489,7 +501,7 @@ describe('Header', () => {
 
   test('PC ナビ項目 (リンク・ドロップダウントリガー) は body/md の line-height 1.7', () => {
     mockedUsePathname.mockReturnValue('/');
-    render(<Header phase="pre_event" />);
+    render(<Header phase="pre_event" navigation={navigationItemsByPhase} />);
 
     const nav = screen.getByRole('navigation', {
       name: 'メインナビゲーション',
@@ -503,7 +515,7 @@ describe('Header', () => {
   });
 
   test('ドロップダウンの子項目は body/sm の line-height 1.6 で、ul に縦方向の余白を持たない', () => {
-    render(<Header phase="pre_event" />);
+    render(<Header phase="pre_event" navigation={navigationItemsByPhase} />);
 
     const nav = screen.getByRole('navigation', {
       name: 'メインナビゲーション',
@@ -519,7 +531,7 @@ describe('Header', () => {
 
   test('ホバー下線とPCドロップダウンの開閉モーションは 200ms ease-out で行う', () => {
     mockedUsePathname.mockReturnValue('/announcements');
-    render(<Header phase="pre_event" />);
+    render(<Header phase="pre_event" navigation={navigationItemsByPhase} />);
 
     const nav = screen.getByRole('navigation', {
       name: 'メインナビゲーション',
@@ -538,7 +550,7 @@ describe('Header', () => {
   });
 
   test('PC ドロップダウンの閉状態は上方向 (負の translate) から開く', () => {
-    render(<Header phase="pre_event" />);
+    render(<Header phase="pre_event" navigation={navigationItemsByPhase} />);
 
     const nav = screen.getByRole('navigation', {
       name: 'メインナビゲーション',
@@ -554,7 +566,7 @@ describe('Header', () => {
   test.each(['pre_event', 'live'] as const)(
     '開閉ボタンは 44×44 のタップ領域を確保し、幅24px・太さ2px の横線3本を8px間隔で並べる (%s)',
     (phase) => {
-      render(<Header phase={phase} />);
+      render(<Header phase={phase} navigation={navigationItemsByPhase} />);
 
       const menuButton = screen.getByRole('button', { name: 'メニューを開く' });
       expect(menuButton).toHaveAttribute('aria-expanded', 'false');
@@ -571,7 +583,7 @@ describe('Header', () => {
   test.each(['pre_event', 'live'] as const)(
     '開いた状態で上下の線が回転して交差し、中央の線が消える (%s)',
     (phase) => {
-      render(<Header phase={phase} />);
+      render(<Header phase={phase} navigation={navigationItemsByPhase} />);
 
       const menuButton = screen.getByRole('button', { name: 'メニューを開く' });
       fireEvent.click(menuButton);
@@ -590,7 +602,9 @@ describe('Header', () => {
   );
 
   test('uses compact mobile sizing and safe-area spacing without changing desktop sizes', () => {
-    const { container } = render(<Header phase="pre_event" />);
+    const { container } = render(
+      <Header phase="pre_event" navigation={navigationItemsByPhase} />,
+    );
 
     const header = container.querySelector('header');
     expect(header).toHaveClass('pt-[env(safe-area-inset-top)]');

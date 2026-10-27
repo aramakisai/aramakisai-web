@@ -18,6 +18,15 @@ vi.mock('@/lib/festival-meta', () => ({
   getContactFormUrl: vi.fn(),
 }));
 
+vi.mock('@/lib/get-navigation', async () => ({
+  getNavigation: async () =>
+    (
+      await vi.importActual<typeof import('@/lib/navigation')>(
+        '@/lib/navigation',
+      )
+    ).navigationItemsByPhase,
+}));
+
 vi.mock('@/lib/sns-links', () => ({
   getSnsLinks: vi.fn(),
 }));
@@ -52,7 +61,7 @@ describe('SiteLayout', () => {
       { platform: 'X', url: 'https://x.com/aramakisai_' },
     ]);
 
-    const layout = SiteLayout({ children: <div>content</div> });
+    const layout = await SiteLayout({ children: <div>content</div> });
     const footerElement = findElement(layout, Footer);
 
     render(
@@ -68,8 +77,8 @@ describe('SiteLayout', () => {
     expect(screen.getByRole('contentinfo')).toBeInTheDocument();
   });
 
-  it('Header・余白・BottomNavigation は Cookie を読むクライアント側へ任せる', () => {
-    const layout = SiteLayout({ children: <div>content</div> });
+  it('Header・余白・BottomNavigation は Cookie を読むクライアント側へ任せる', async () => {
+    const layout = await SiteLayout({ children: <div>content</div> });
     const children = React.Children.toArray(
       (layout.props as { children: React.ReactElement[] }).children,
     ).filter(React.isValidElement);

@@ -24,6 +24,11 @@ const aboutSectionPath = join(
   'src/components/about-section.tsx',
 );
 
+vi.mock('@/lib/get-navigation', async () => {
+  const { navigationItemsByPhase } = await import('@/lib/navigation');
+  return { getNavigation: async () => navigationItemsByPhase };
+});
+
 vi.mock('@/lib/sns-links', () => ({
   getSnsLinks: vi.fn(),
 }));

@@ -12,6 +12,11 @@ vi.mock('@/lib/campus-map', async (importOriginal) => {
   return { ...actual, getCampusMapData: vi.fn() };
 });
 
+vi.mock('@/lib/get-navigation', async () => {
+  const { navigationItemsByPhase } = await import('@/lib/navigation');
+  return { getNavigation: async () => navigationItemsByPhase };
+});
+
 vi.mock('@/lib/site-metadata', () => ({
   getSiteMetadata: vi.fn(),
 }));

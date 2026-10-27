@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import {
-  navigationItemsByPhase,
   linkableChildren,
+  type NavigationByPhase,
   type NavigationItem,
 } from '@/lib/navigation';
 import { usePhase } from '@/lib/use-phase';
@@ -29,34 +29,30 @@ export function FooterLink({
   );
 }
 
-function siteGuideLinks(
-  items: readonly NavigationItem[],
-): readonly (NavigationItem & { href: string })[] {
-  return items
-    .filter((item) => item.label !== 'ご案内')
-    .flatMap((item) =>
-      item.href
-        ? [item as NavigationItem & { href: string }]
-        : linkableChildren(item),
-    );
-}
+type FooterLinkItem = NavigationItem & { href: string };
 
-// お問い合わせはサポート列に既にあるため、ここでは重複させない
-function guidanceLinks(
+// 親が href を持たなければ子項目を並べる。お問い合わせ等は hideInFooter で外す
+function footerLinks(
   items: readonly NavigationItem[],
-): readonly (NavigationItem & { href: string })[] {
-  const guidance = items.find((item) => item.label === 'ご案内');
-  if (!guidance) return [];
-  return linkableChildren(guidance).filter(
-    (child) => child.label !== 'お問い合わせ',
-  );
+  column: 'site' | 'guidance',
+): readonly FooterLinkItem[] {
+  return items
+    .filter((item) => (item.footerColumn ?? 'site') === column)
+    .flatMap((item) =>
+      item.href ? [item as FooterLinkItem] : linkableChildren(item),
+    )
+    .filter((item) => !item.hideInFooter);
 }
 
 // フェーズ上書きは Cookie をクライアントで読むため、リンクの選択だけをここで行う
-export function FooterSiteGuideLinks() {
+export function FooterSiteGuideLinks({
+  navigation,
+}: {
+  readonly navigation: NavigationByPhase;
+}) {
   return (
     <>
-      {siteGuideLinks(navigationItemsByPhase[usePhase().phase]).map((item) => (
+      {footerLinks(navigation[usePhase().phase], 'site').map((item) => (
         <FooterLink key={item.href} href={item.href}>
           {item.label}
         </FooterLink>
@@ -65,10 +61,14 @@ export function FooterSiteGuideLinks() {
   );
 }
 
-export function FooterGuidanceLinks() {
+export function FooterGuidanceLinks({
+  navigation,
+}: {
+  readonly navigation: NavigationByPhase;
+}) {
   return (
     <>
-      {guidanceLinks(navigationItemsByPhase[usePhase().phase]).map((item) => (
+      {footerLinks(navigation[usePhase().phase], 'guidance').map((item) => (
         <FooterLink key={item.href} href={item.href}>
           {item.label}
         </FooterLink>

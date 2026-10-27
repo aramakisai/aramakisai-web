@@ -9,6 +9,9 @@ describe('globals 登録口', () => {
   it('admin.hidden: true のグローバルは実行委員にも隠す', () => {
     expect(hiddenFor('signage_settings')({ user: { id: 1, role: 'executive' } })).toBe(true);
   });
+  it('ナビゲーションは実行委員に見せる', () => {
+    expect(hiddenFor('navigation')({ user: { id: 1, role: 'executive' } })).toBe(false);
+  });
   it('サイト設定は実行委員に見せる', () => {
     expect(hiddenFor('site_settings')({ user: { id: 1, role: 'executive' } })).toBe(false);
   });

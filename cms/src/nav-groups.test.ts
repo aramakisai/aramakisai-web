@@ -33,6 +33,6 @@ describe('NAV_GROUPS', () => {
     expect(by('会場・マップ')).toEqual(['map_areas', 'map_points', 'parking_lots']);
     expect(by('当日運営')).toEqual(['parking_statuses', 'lost_items']);
     expect(by('サイネージ')).toEqual(['signage_slides', 'signage_groups', 'telops']);
-    expect(by('管理')).toEqual(['site_settings', 'users', 'media']);
+    expect(by('管理')).toEqual(['site_settings', 'navigation', 'users', 'media']);
   });
 });

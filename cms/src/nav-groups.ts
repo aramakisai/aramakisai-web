@@ -19,6 +19,7 @@ export const NAV_GROUPS: Readonly<Record<string, NavGroup>> = {
   signage_groups: 'サイネージ',
   telops: 'サイネージ',
   site_settings: '管理',
+  navigation: '管理',
   users: '管理',
   media: '管理',
 };

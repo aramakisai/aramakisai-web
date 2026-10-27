@@ -7,6 +7,7 @@ import type { CampusMapArea, CampusMapDataResult } from '@/lib/campus-map';
 import { sendGaEvent } from '@/lib/analytics';
 import { filterExhibitions } from '@/lib/exhibitions';
 import { BUILD_PHASE, type FestivalPhase } from '@/lib/phase';
+import type { NavigationByPhase } from '@/lib/navigation';
 import { usePhase } from '@/lib/use-phase';
 import { PhasedBottomNavigation } from '@/components/phased-chrome';
 import type { AreaExhibitionListState } from './area-exhibition-list';
@@ -51,6 +52,7 @@ const EMPTY_AREAS: readonly CampusMapArea[] = [];
 export interface CampusMapScreenProps {
   readonly data: CampusMapDataResult;
   readonly phase?: FestivalPhase;
+  readonly navigation: NavigationByPhase;
 }
 
 export function CampusMapScreen({
@@ -58,6 +60,7 @@ export function CampusMapScreen({
   // MapPage (Server Component) からのみ実際のフェーズが渡る。省略時は
   // BUILD_PHASE を使うことで、フェーズ結線に関与しない既存呼び出し元を壊さない
   phase = BUILD_PHASE,
+  navigation,
 }: CampusMapScreenProps) {
   // 下部ナビの表示条件 (live かつ 1024px 未満) と同じ条件で、その高さ分だけ下端を空ける。
   // 値は PhasedBottomSpacer の h-[calc(4rem+...)] と揃える
@@ -165,7 +168,7 @@ export function CampusMapScreen({
 
   return (
     <div className={`relative h-dvh w-full ${navClass}`}>
-      <MapMenuButton phase={phase} />
+      <MapMenuButton phase={phase} navigation={navigation} />
       <MapSearchOverlay
         keywordInput={keywordInput}
         setKeywordInput={setKeywordInput}

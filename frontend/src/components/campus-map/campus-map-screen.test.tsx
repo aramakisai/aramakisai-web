@@ -58,6 +58,7 @@ vi.mock('next/dynamic', () => ({
 const { mapViewProps } = state;
 
 import { PHASE_OVERRIDE_COOKIE } from '@/lib/phase';
+import { navigationItemsByPhase } from '@/lib/navigation';
 import { CampusMapScreen } from './campus-map-screen';
 
 function area(overrides: Partial<CampusMapArea> = {}): CampusMapArea {
@@ -164,6 +165,7 @@ describe('CampusMapScreen', () => {
     stubDesktop();
     render(
       <CampusMapScreen
+        navigation={navigationItemsByPhase}
         data={dataResult({ areas: { kind: 'loaded', value: [area()] } })}
       />,
     );
@@ -184,7 +186,12 @@ describe('CampusMapScreen', () => {
 
   it('loads the map view without SSR and shows a loading placeholder for it (要件 1.11)', () => {
     stubDesktop();
-    render(<CampusMapScreen data={dataResult()} />);
+    render(
+      <CampusMapScreen
+        navigation={navigationItemsByPhase}
+        data={dataResult()}
+      />,
+    );
 
     expect(state.dynamicOptions?.ssr).toBe(false);
     render(<>{state.dynamicOptions?.loading?.()}</>);
@@ -226,6 +233,7 @@ describe('CampusMapScreen', () => {
     ];
     render(
       <CampusMapScreen
+        navigation={navigationItemsByPhase}
         data={dataResult({
           areas: { kind: 'loaded', value: areas },
           exhibitions: { kind: 'loaded', value: items },
@@ -261,6 +269,7 @@ describe('CampusMapScreen', () => {
     ];
     render(
       <CampusMapScreen
+        navigation={navigationItemsByPhase}
         data={dataResult({
           areas: { kind: 'loaded', value: areas },
           exhibitions: { kind: 'loaded', value: items },
@@ -278,6 +287,7 @@ describe('CampusMapScreen', () => {
     stubDesktop();
     render(
       <CampusMapScreen
+        navigation={navigationItemsByPhase}
         data={dataResult({
           exhibitions: {
             kind: 'error',
@@ -295,6 +305,7 @@ describe('CampusMapScreen', () => {
     stubDesktop();
     render(
       <CampusMapScreen
+        navigation={navigationItemsByPhase}
         data={dataResult({
           areas: { kind: 'error', error: { kind: 'network', status: 500 } },
         })}
@@ -313,6 +324,7 @@ describe('CampusMapScreen', () => {
     stubDesktop();
     render(
       <CampusMapScreen
+        navigation={navigationItemsByPhase}
         data={dataResult({ areas: { kind: 'loaded', value: [] } })}
       />,
     );
@@ -330,6 +342,7 @@ describe('CampusMapScreen', () => {
 
     const { getByTestId } = render(
       <CampusMapScreen
+        navigation={navigationItemsByPhase}
         data={dataResult({ areas: { kind: 'loaded', value: [area()] } })}
       />,
     );
@@ -366,7 +379,9 @@ describe('CampusMapScreen', () => {
 
     it('エリア選択では area_select だけを送り filter は送らない', async () => {
       stubDesktop();
-      render(<CampusMapScreen data={data()} />);
+      render(
+        <CampusMapScreen navigation={navigationItemsByPhase} data={data()} />,
+      );
       await act(async () => {});
       expect(sendGaEvent).not.toHaveBeenCalled();
 
@@ -384,7 +399,9 @@ describe('CampusMapScreen', () => {
     it('URL からの条件復元では送らない', async () => {
       stubDesktop();
       window.history.replaceState(null, '', '/map?area=1');
-      render(<CampusMapScreen data={data()} />);
+      render(
+        <CampusMapScreen navigation={navigationItemsByPhase} data={data()} />,
+      );
       await act(async () => {});
       expect(sendGaEvent).not.toHaveBeenCalled();
     });
@@ -401,7 +418,12 @@ describe('CampusMapScreen', () => {
     it('live では下部ナビが出て、シートと地図は同じ余白変数で下端を空ける', () => {
       stubMobile();
       setPhase('live');
-      const { container } = render(<CampusMapScreen data={dataResult()} />);
+      const { container } = render(
+        <CampusMapScreen
+          navigation={navigationItemsByPhase}
+          data={dataResult()}
+        />,
+      );
 
       expect(
         screen.getByRole('navigation', { name: '下部ナビゲーション' }),
@@ -416,7 +438,12 @@ describe('CampusMapScreen', () => {
 
     it('live 以外では下部ナビを出さず余白も 0', () => {
       stubMobile();
-      const { container } = render(<CampusMapScreen data={dataResult()} />);
+      const { container } = render(
+        <CampusMapScreen
+          navigation={navigationItemsByPhase}
+          data={dataResult()}
+        />,
+      );
 
       expect(
         screen.queryByRole('navigation', { name: '下部ナビゲーション' }),
