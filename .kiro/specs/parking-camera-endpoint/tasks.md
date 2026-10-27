@@ -22,7 +22,7 @@
   - `infisical secrets get`で`GEMINI_API_KEY`と`DISCORD_OPS_WEBHOOK_URL`がprodにあることを(値を表示せずに)確かめている
   - _Requirements: 4.7, 8.9_
 
-- [ ] 2. aramakisai-infra: `cms-secrets`にGemini APIのキーとDiscordのWebhook URLを足す
+- [x] 2. aramakisai-infra: `cms-secrets`にGemini APIのキーとDiscordのWebhook URLを足す
   - `gitops/manifests/prod/cms-secrets/external-secret.yaml`の`template.data`と`data`に2つを足す。`GEMINI_API_KEY`はInfisical prodの同名のキーを参照する。`PARKING_CAMERA_DISCORD_WEBHOOK_URL`はテンプレートで`"{{ .DISCORD_OPS_WEBHOOK_URL }}"`とし、`data`で既存のキー`DISCORD_OPS_WEBHOOK_URL`を参照する
   - `aramakisai-infra`のmainへのPRを作る
   - ExternalSecretの配列の変更は、ArgoCDの同期の表示だけでなく、反映後に`make kubectl`で`cms-secrets`のキーとWeb用Pod・`cms-worker`のenvに`GEMINI_API_KEY`・`PARKING_CAMERA_DISCORD_WEBHOOK_URL`があることを(値を表示せずに)実測する
