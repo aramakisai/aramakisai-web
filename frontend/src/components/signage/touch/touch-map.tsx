@@ -96,9 +96,10 @@ export function TouchMap({ data }: { readonly data: CampusMapDataResult }) {
     };
   }, [data.exhibitions, data.areas, areas, selectedAreaId, category]);
 
+  // 出典表記は Leaflet 既定の 12px・青いリンクではなく Figma の caption に合わせ、右端は他の操作部品と同じ 24 に揃える
   // タイルの無い余白(maxBounds の拡張分)に Leaflet 既定の #ddd が出ないよう、タイルの地色に合わせる
   return (
-    <div className="relative h-dvh w-full overflow-hidden bg-gray-100 [&_.leaflet-container]:bg-[#f3efea]">
+    <div className="relative h-dvh w-full overflow-hidden bg-gray-100 [&_.leaflet-container]:bg-[#f3efea] [&_.leaflet-control-attribution]:mr-6! [&_.leaflet-control-attribution]:font-display! [&_.leaflet-control-attribution]:tracking-normal [&_.leaflet-control-attribution]:text-signage-caption! [&_.leaflet-control-attribution]:text-gray-600! [&_.leaflet-control-attribution_a]:text-gray-600!">
       <div className="absolute inset-0 z-0">
         <CampusMapView
           areas={areas}
@@ -107,6 +108,7 @@ export function TouchMap({ data }: { readonly data: CampusMapDataResult }) {
           onSelectArea={setSelectedAreaId}
           showUserLocation={false}
           showZoomControl={false}
+          attributionTop
           mapRef={mapRef}
           fitBottomInset={FIT_BOTTOM_INSET}
           maxBoundsPad={MAX_BOUNDS_PAD}
