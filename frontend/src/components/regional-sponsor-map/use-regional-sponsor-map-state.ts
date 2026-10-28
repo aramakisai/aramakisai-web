@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { locationSponsorIds } from '@/lib/regional-sponsor-clustering';
 import type { RegionalSponsorCategory } from '@/lib/regional-sponsor-categories';
 import {
   filterRegionalSponsors,
@@ -11,28 +12,38 @@ import type { RegionalSponsor } from '@/lib/regional-sponsors';
 export type RegionalSponsorSheetSnap =
   'collapsed' | 'list' | 'expanded' | 'detail';
 
+export const LIST_TITLE_ID = 'regional-sponsor-list-title';
+export const LOCATION_LIST_TITLE_ID = 'regional-sponsor-location-list-title';
+
 export function useRegionalSponsorMapState(
   sponsors: readonly RegionalSponsor[],
 ) {
-  const [query, setQueryState] = useState('');
+  const [query, setQuery] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<
     ReadonlySet<RegionalSponsorCategory>
   >(new Set());
   const [selectedSponsorId, setSelectedSponsorId] = useState<number | null>(
     null,
   );
-  const [listScrollTop, setListScrollTop] = useState(0);
+  // スクロールのたびに画面全体と全マーカーを再描画しないよう state にしない。一覧のマウント時にだけ読む
+  const listScrollTop = useRef(0);
+  const locationListScrollTop = useRef(0);
   const [mobileSheetSnap, setMobileSheetSnap] =
     useState<RegionalSponsorSheetSnap>('list');
-  const [spiderfiedClusterId, setSpiderfiedClusterId] = useState<string | null>(
-    null,
-  );
-  const [returnSponsorId, setReturnSponsorId] = useState<number | null>(null);
+  // 地点の一覧で表示中のまとまりのキー。詳細表示中も保持して戻り先を決める
+  const [locationKey, setLocationKey] = useState<string | null>(null);
+  // 描画後に focus する要素の id
+  const [focusTargetId, setFocusTargetId] = useState<string | null>(null);
 
   const filteredSponsors = useMemo(
     () => filterRegionalSponsors(sponsors, query, selectedCategories),
     [query, selectedCategories, sponsors],
   );
+  const locationSponsors = useMemo(() => {
+    if (locationKey === null) return null;
+    const ids = locationSponsorIds(locationKey);
+    return filteredSponsors.filter((s) => ids.has(s.id));
+  }, [filteredSponsors, locationKey]);
   const selectedSponsor =
     selectedSponsorId === null
       ? null
@@ -43,34 +54,56 @@ export function useRegionalSponsorMapState(
       selectedSponsorId !== null &&
       !filteredSponsors.some(({ id }) => id === selectedSponsorId)
     ) {
-      setReturnSponsorId(null);
       setSelectedSponsorId(null);
+      setFocusTargetId(null);
       setMobileSheetSnap('list');
+      if (!locationSponsors?.length) setLocationKey(null);
+    } else if (
+      selectedSponsorId === null &&
+      locationKey !== null &&
+      !locationSponsors?.length
+    ) {
+      setLocationKey(null);
     }
-  }, [filteredSponsors, selectedSponsorId]);
+  }, [filteredSponsors, locationKey, locationSponsors, selectedSponsorId]);
 
-  const setQuery = (value: string) => {
-    setQueryState(value);
-    setSpiderfiedClusterId(null);
-  };
-  const toggleCategory = (category: RegionalSponsorCategory | 'all') => {
+  const toggleCategory = (category: RegionalSponsorCategory | 'all') =>
     setSelectedCategories((current) =>
       toggleRegionalSponsorCategory(current, category),
     );
-    setSpiderfiedClusterId(null);
-  };
-  const selectSponsor = (sponsorId: number) => {
-    setReturnSponsorId(null);
+
+  // カードは全体の一覧と地点の一覧のどちらからも選ぶため locationKey は変えない
+  const selectFromCard = (sponsorId: number) => {
+    setFocusTargetId(null);
     setSelectedSponsorId(sponsorId);
     setMobileSheetSnap('detail');
   };
-  const returnToList = () => {
+  const selectFromPin = (sponsorId: number) => {
+    setFocusTargetId(null);
+    setLocationKey(null);
+    setSelectedSponsorId(sponsorId);
+    setMobileSheetSnap('detail');
+  };
+  const openLocation = (key: string) => {
+    setLocationKey(key);
+    setSelectedSponsorId(null);
+    locationListScrollTop.current = 0;
+    setMobileSheetSnap('list');
+    setFocusTargetId(LOCATION_LIST_TITLE_ID);
+  };
+  const returnFromDetail = () => {
     const sponsorId = selectedSponsorId;
     setSelectedSponsorId(null);
     setMobileSheetSnap('list');
-    setReturnSponsorId(sponsorId);
+    if (sponsorId !== null)
+      setFocusTargetId(`regional-sponsor-card-${sponsorId}`);
   };
-  const clearReturnSponsorId = useCallback(() => setReturnSponsorId(null), []);
+  const returnFromLocation = () => {
+    setLocationKey(null);
+    setMobileSheetSnap('list');
+    setFocusTargetId(LIST_TITLE_ID);
+  };
+  const clearFocusTarget = useCallback(() => setFocusTargetId(null), []);
 
   return {
     query,
@@ -78,17 +111,26 @@ export function useRegionalSponsorMapState(
     selectedSponsorId,
     selectedSponsor,
     filteredSponsors,
-    listScrollTop,
+    locationKey,
+    locationSponsors,
+    listScrollTop: listScrollTop.current,
+    locationListScrollTop: locationListScrollTop.current,
     mobileSheetSnap,
-    spiderfiedClusterId,
-    returnSponsorId,
+    focusTargetId,
     setQuery,
     toggleCategory,
-    selectSponsor,
-    returnToList,
-    setListScrollTop,
+    selectFromCard,
+    selectFromPin,
+    openLocation,
+    returnFromDetail,
+    returnFromLocation,
+    setListScrollTop: (value: number) => {
+      listScrollTop.current = value;
+    },
+    setLocationListScrollTop: (value: number) => {
+      locationListScrollTop.current = value;
+    },
     setMobileSheetSnap,
-    setSpiderfiedClusterId,
-    clearReturnSponsorId,
+    clearFocusTarget,
   };
 }

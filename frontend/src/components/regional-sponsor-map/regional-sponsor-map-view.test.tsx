@@ -74,11 +74,10 @@ const profile: RegionalMapConfig = {
 const baseProps = {
   sponsors: [],
   selectedSponsorId: null,
-  spiderfiedClusterId: null,
   isDesktop: true,
   mobileBottomInset: 0,
   onSelectSponsor: vi.fn(),
-  onSpiderfyChange: vi.fn(),
+  onSelectLocation: vi.fn(),
 };
 
 beforeEach(() => {
@@ -97,7 +96,8 @@ describe('RegionalSponsorMapView', () => {
     });
     expect(mocks.viewportProps.at(-1)).toMatchObject({
       minZoom: 8,
-      minZoomPadding: { x: 420, y: 48 },
+      minZoomPadding: undefined,
+      extendMaxBoundsByPadding: false,
       initialCenter: profile.initialCenter,
       initialZoom: 15.5,
       focusCenter: null,
@@ -164,7 +164,9 @@ describe('RegionalSponsorMapView', () => {
     );
     expect(mocks.markerProps.at(-1)).toMatchObject({ markerSize: 32 });
     expect(mocks.viewportProps.at(-1)).toMatchObject({
-      minZoomPadding: { x: 32, y: 532 },
+      minZoomPadding: { x: 0, y: 380 },
+      extendMaxBoundsByPadding: true,
+      maxBoundsPadding: expect.any(Function),
       fitOptions: expect.objectContaining({
         paddingTopLeft: [16, 136],
         paddingBottomRight: [16, 396],

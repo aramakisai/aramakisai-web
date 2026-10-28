@@ -166,7 +166,13 @@ describe('getRegionalSponsorMapData', () => {
     );
     expect(cms.findMany).toHaveBeenCalledWith(
       'sponsors',
-      { sort: ['_order', 'id'], limit: 0, depth: 0 },
+      expect.objectContaining({
+        where: { type: { equals: 'local' } },
+        select: expect.objectContaining({ local_latitude: true, type: true }),
+        sort: ['_order', 'id'],
+        limit: 0,
+        depth: 0,
+      }),
       undefined,
     );
     warn.mockRestore();

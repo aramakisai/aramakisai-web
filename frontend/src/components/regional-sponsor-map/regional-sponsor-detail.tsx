@@ -3,7 +3,9 @@
 import { useEffect, useRef } from 'react';
 import { getRegionalSponsorCategoryPresentation } from '@/lib/regional-sponsor-categories';
 import type { RegionalSponsor } from '@/lib/regional-sponsors';
-import { RegionalSponsorIcon } from './regional-sponsor-icon';
+import { MaterialIcon } from '@/components/icons';
+import { HoverLine } from '@/components/hover-line';
+import { RegionalSponsorBackButton } from './regional-sponsor-back-button';
 import { SponsorImage } from './sponsor-image';
 
 function safeWebsiteUrl(value: string | null): string | null {
@@ -22,18 +24,22 @@ export interface RegionalSponsorDetailProps {
   readonly sponsor: RegionalSponsor;
   readonly onBack: () => void;
   readonly bodyInert?: boolean;
+  /** Figma の縦間隔は PC パネル 16px、スマートフォンのシート 14px */
+  readonly variant?: 'panel' | 'sheet';
 }
 
 export function RegionalSponsorDetail({
   sponsor,
   onBack,
   bodyInert = false,
+  variant = 'panel',
 }: RegionalSponsorDetailProps) {
   const articleRef = useRef<HTMLElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const category = getRegionalSponsorCategoryPresentation(sponsor.category);
   const hoursLabel =
     sponsor.category === 'hospital' ? '診療時間・休診日' : '営業時間・定休日';
+  const gap = variant === 'panel' ? 'gap-4' : 'gap-3.5';
   const websiteUrl = safeWebsiteUrl(sponsor.websiteUrl);
   const hasHours =
     sponsor.businessHours !== null || sponsor.closedDays !== null;
@@ -51,18 +57,11 @@ export function RegionalSponsorDetail({
   return (
     <article
       ref={articleRef}
-      className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6"
+      className={`flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain pb-5 ${gap} ${variant === 'sheet' ? '-mt-1' : ''}`}
       data-map-sheet-scroll
     >
-      <button
-        type="button"
-        onClick={onBack}
-        className="mb-4 flex h-10 items-center gap-2 rounded-md px-1 text-sm font-bold text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-      >
-        <RegionalSponsorIcon name="arrow-back" />
-        店舗一覧に戻る
-      </button>
-      <div inert={bodyInert}>
+      <RegionalSponsorBackButton onBack={onBack} />
+      <div inert={bodyInert} className={`flex flex-col ${gap}`}>
         <SponsorImage
           sponsor={sponsor}
           variant="detail"
@@ -71,28 +70,30 @@ export function RegionalSponsorDetail({
         <h1
           ref={headingRef}
           tabIndex={-1}
-          className="mt-5 font-display text-xl font-bold leading-[1.5] text-text focus:outline-none"
+          className="py-0 text-xl font-bold leading-[30px] text-text focus:outline-none"
         >
           {sponsor.name}
         </h1>
         <p
-          className={`mt-2 inline-flex h-8 items-center rounded-full px-3 text-sm font-medium text-white ${category.backgroundClass}`}
+          // Figma のタグ幅はチップと同じく 48 + 8 × 文字数
+          style={{ width: 48 + 8 * [...category.label].length }}
+          className={`inline-flex h-8 items-center justify-center self-start rounded-full px-3 text-sm font-medium leading-5 text-white ${category.backgroundClass}`}
         >
           {category.label}
         </p>
 
         {sponsor.message && (
           <section
-            className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4"
+            className="flex flex-col gap-2.5 rounded-xl border border-gray-200 bg-gray-50 p-4"
             aria-labelledby="regional-sponsor-message-title"
           >
             <h2
               id="regional-sponsor-message-title"
-              className="font-display text-base font-bold text-text"
+              className="py-0 text-base font-bold leading-6 text-text"
             >
               メッセージ
             </h2>
-            <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-700">
+            <p className="whitespace-pre-wrap text-sm leading-6 text-text">
               {sponsor.message}
             </p>
           </section>
@@ -100,28 +101,32 @@ export function RegionalSponsorDetail({
 
         {hasInfo && (
           <section
-            className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4"
+            className="flex flex-col gap-2.5 rounded-xl border border-gray-200 bg-gray-50 p-4"
             aria-labelledby="regional-sponsor-info-title"
           >
             <h2
               id="regional-sponsor-info-title"
-              className="font-display text-base font-bold text-text"
+              className="py-0 text-base font-bold leading-6 text-text"
             >
               基本情報
             </h2>
-            <dl className="mt-3 divide-y divide-gray-200 text-sm">
+            <dl className="flex flex-col gap-2.5 text-sm [&>div+div]:border-t [&>div+div]:border-gray-200 [&>div+div]:pt-2.5">
               {sponsor.address && (
-                <div className="py-3 first:pt-0 last:pb-0">
-                  <dt className="font-bold text-gray-600">住所</dt>
-                  <dd className="mt-1 whitespace-pre-wrap leading-6 text-text">
+                <div>
+                  <dt className="text-xs font-medium leading-[18px] text-gray-600">
+                    住所
+                  </dt>
+                  <dd className="mt-1 whitespace-pre-wrap leading-[22px] text-text">
                     {sponsor.address}
                   </dd>
                 </div>
               )}
               {hasHours && (
-                <div className="py-3 first:pt-0 last:pb-0">
-                  <dt className="font-bold text-gray-600">{hoursLabel}</dt>
-                  <dd className="mt-1 space-y-1 leading-6 text-text">
+                <div>
+                  <dt className="text-xs font-medium leading-[18px] text-gray-600">
+                    {hoursLabel}
+                  </dt>
+                  <dd className="mt-1 leading-[22px] text-text">
                     {sponsor.businessHours && (
                       <p className="whitespace-pre-wrap">
                         {sponsor.businessHours}
@@ -136,15 +141,17 @@ export function RegionalSponsorDetail({
                 </div>
               )}
               {sponsor.phone && (
-                <div className="py-3 first:pt-0 last:pb-0">
-                  <dt className="font-bold text-gray-600">電話番号</dt>
-                  <dd className="mt-1 whitespace-pre-wrap leading-6 text-text">
+                <div>
+                  <dt className="text-xs font-medium leading-[18px] text-gray-600">
+                    電話番号
+                  </dt>
+                  <dd className="mt-1 whitespace-pre-wrap leading-[22px] text-text">
                     {sponsor.phone}
                   </dd>
                 </div>
               )}
               {websiteUrl && (
-                <div className="py-3 first:pt-0 last:pb-0">
+                <div>
                   <dt className="sr-only">Webサイト</dt>
                   <dd>
                     <a
@@ -152,10 +159,16 @@ export function RegionalSponsorDetail({
                       target="_blank"
                       rel="noopener noreferrer"
                       aria-label={`${sponsor.name}の公式Webサイト（外部サイト）`}
-                      className="inline-flex items-center gap-1 font-normal text-[#356fa8] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      className="group relative inline-flex items-center gap-1 font-normal leading-[22px] text-[#356fa8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     >
                       公式Webサイト
-                      <RegionalSponsorIcon name="open-in-new" size={18} />
+                      <MaterialIcon name="open_in_new" size={18} />
+                      {/* text-decoration だと文字とアイコンで線が分かれるため、a 全体の下に 1 本引く */}
+                      <span
+                        aria-hidden="true"
+                        className="absolute inset-x-0 bottom-[5px] h-px bg-[#356fa8]"
+                      />
+                      <HoverLine gap={-6} />
                     </a>
                   </dd>
                 </div>

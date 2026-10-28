@@ -134,12 +134,37 @@ function compareSponsors(a: Sponsor, b: Sponsor): number {
   return a.id - b.id;
 }
 
+const SPONSOR_SELECT = {
+  name: true,
+  type: true,
+  address: true,
+  url: true,
+  description: true,
+  _order: true,
+  local_map_category: true,
+  local_latitude: true,
+  local_longitude: true,
+  local_image: true,
+  local_image_alt: true,
+  local_image_decorative: true,
+  local_business_hours: true,
+  local_closed_days: true,
+  local_phone: true,
+} as const;
+
 export async function getRegionalSponsorMapData(
   options?: CmsFetchOptions,
 ): Promise<RegionalSponsorMapDataResult> {
   const result = await cms.findMany(
     'sponsors',
-    { sort: ['_order', 'id'], limit: 0, depth: 0 },
+    {
+      // hasMany select の equals は包含判定になる。CmsWhere は配列型で受けるため型だけ合わせる
+      where: { type: { equals: 'local' as unknown as Sponsor['type'] } },
+      select: SPONSOR_SELECT,
+      sort: ['_order', 'id'],
+      limit: 0,
+      depth: 0,
+    },
     options,
   );
   if (!result.ok) return { ok: false, error: 'unavailable' };

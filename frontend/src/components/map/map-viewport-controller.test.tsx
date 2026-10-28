@@ -19,6 +19,9 @@ const map = vi.hoisted(() => ({
   flyTo: vi.fn(),
   setView: vi.fn(),
   stop: vi.fn(),
+  once: vi.fn(),
+  getCenter: vi.fn(),
+  panBy: vi.fn(),
 }));
 
 vi.mock('react-leaflet', () => ({ useMap: () => map }));
@@ -58,6 +61,36 @@ describe('MapViewportController', () => {
   });
 
   afterEach(() => vi.unstubAllGlobals());
+
+  it('initialFitBoundsがあれば初回だけsetViewの代わりにfitする', () => {
+    map.getBoundsZoom.mockReturnValue(14);
+    const { rerender } = render(
+      <MapViewportController
+        initialCenter={[2, 3]}
+        initialZoom={15}
+        initialFitBounds={initialBounds}
+        maxBounds={maxBounds}
+        minZoom={12}
+        fitOptions={fitOptions}
+      />,
+    );
+
+    expect(map.fitBounds).toHaveBeenCalledTimes(1);
+    expect(map.fitBounds).toHaveBeenCalledWith(initialBounds, fitOptions);
+    expect(map.setView).not.toHaveBeenCalled();
+
+    rerender(
+      <MapViewportController
+        initialCenter={[2, 3]}
+        initialZoom={15}
+        initialFitBounds={initialBounds}
+        maxBounds={maxBounds}
+        minZoom={13}
+        fitOptions={fitOptions}
+      />,
+    );
+    expect(map.fitBounds).toHaveBeenCalledTimes(1);
+  });
 
   it('注入された最大範囲と絶対下限から表示上の最小zoomを設定する', () => {
     map.getBoundsZoom.mockReturnValue(14);
@@ -239,9 +272,37 @@ describe('MapViewportController', () => {
     );
   });
 
+  it('refocusKeyが変わると、選択中の位置をズームを変えずに見えている領域の中央へ移す', () => {
+    vi.stubGlobal('matchMedia', () => ({ matches: true }));
+    map.getBoundsZoom.mockReturnValue(12);
+    map.getZoom.mockReturnValue(14);
+    map.project.mockReturnValue(point(500, 400));
+    map.unproject.mockReturnValue({ lat: 36.41, lng: 139.1 });
+    const props = {
+      focusCenter: [36.41, 139.1] as [number, number],
+      focusKey: 101,
+      focusZoom: 16,
+      maxBounds,
+      minZoom: 10.5,
+      fitOptions,
+    };
+    const { rerender } = render(
+      <MapViewportController {...props} refocusKey="desktop" />,
+    );
+    expect(map.setView).toHaveBeenCalledWith(expect.anything(), 16, {
+      animate: false,
+    });
+    map.setView.mockClear();
+
+    rerender(<MapViewportController {...props} refocusKey="mobile" />);
+    expect(map.setView).toHaveBeenCalledWith(expect.anything(), 14, {
+      animate: false,
+    });
+  });
+
   it('does not restart movement when only the coordinate array identity changes', () => {
     map.getBoundsZoom.mockReturnValue(12);
-    map.getZoom.mockReturnValue(15.5);
+    map.getZoom.mockReturnValue(12);
     map.project.mockReturnValue(point(500, 400));
     map.unproject.mockReturnValue({ lat: 36.41, lng: 139.1 });
     const stableFitOptions = {
@@ -275,7 +336,7 @@ describe('MapViewportController', () => {
 
   it('stops an unfinished automatic movement when returning to the list', () => {
     map.getBoundsZoom.mockReturnValue(12);
-    map.getZoom.mockReturnValue(15.5);
+    map.getZoom.mockReturnValue(12);
     map.project.mockReturnValue(point(500, 400));
     map.unproject.mockReturnValue({ lat: 36.41, lng: 139.1 });
     const { rerender } = render(
@@ -306,7 +367,7 @@ describe('MapViewportController', () => {
 
   it('does not keep following the same selection after the user moves the map', () => {
     map.getBoundsZoom.mockReturnValue(12);
-    map.getZoom.mockReturnValue(15.5);
+    map.getZoom.mockReturnValue(12);
     map.getSize.mockReturnValue(point(390, 844));
     map.project.mockReturnValue(point(200, 400));
     map.unproject.mockReturnValue({ lat: 36.41, lng: 139.1 });
@@ -370,6 +431,101 @@ describe('MapViewportController', () => {
     expect(map.flyTo).not.toHaveBeenCalled();
     expect(map.setView).toHaveBeenCalledWith({ lat: 36.41, lng: 139.1 }, 15.5, {
       animate: false,
+    });
+  });
+
+  it('選択中にシートの余白が変わっても移動をやり直さず、範囲と下限の張り直しは移動の終了後に1回だけ行う', () => {
+    map.getBoundsZoom.mockReturnValue(12);
+    map.getZoom.mockReturnValue(15);
+    map.project.mockReturnValue(point(200, 400));
+    map.unproject.mockReturnValue({ lat: 36.41, lng: 139.1 });
+    const props = {
+      initialCenter: [36.4, 139.0] as [number, number],
+      initialZoom: 15,
+      focusCenter: [36.41, 139.1] as [number, number],
+      focusKey: 101,
+      focusZoom: 16,
+      maxBounds,
+      minZoom: 10.5,
+    };
+    const { rerender } = render(
+      <MapViewportController
+        {...props}
+        fitOptions={{
+          paddingTopLeft: [16, 136],
+          paddingBottomRight: [16, 367],
+        }}
+      />,
+    );
+    expect(map.flyTo).toHaveBeenCalledTimes(1);
+    const minZoomCalls = map.setMinZoom.mock.calls.length;
+
+    for (const bottom of [400, 450, 508]) {
+      rerender(
+        <MapViewportController
+          {...props}
+          fitOptions={{
+            paddingTopLeft: [16, 136],
+            paddingBottomRight: [16, bottom],
+          }}
+        />,
+      );
+    }
+    expect(map.flyTo).toHaveBeenCalledTimes(1);
+    expect(map.setMinZoom).toHaveBeenCalledTimes(minZoomCalls);
+
+    const [event, onMoveEnd] = map.once.mock.calls[0];
+    expect(event).toBe('moveend');
+    onMoveEnd();
+    expect(map.setMinZoom).toHaveBeenCalledTimes(minZoomCalls + 1);
+  });
+
+  describe('ズームが変わらない選択', () => {
+    const renderSelection = () =>
+      render(
+        <MapViewportController
+          focusCenter={[36.41, 139.1]}
+          focusKey={101}
+          focusZoom={16}
+          maxBounds={maxBounds}
+          minZoom={10.5}
+          fitOptions={{ paddingTopLeft: [0, 0], paddingBottomRight: [0, 0] }}
+        />,
+      );
+    beforeEach(() => {
+      map.getBoundsZoom.mockReturnValue(12);
+      map.getZoom.mockReturnValue(16);
+      map.getSize.mockReturnValue(point(390, 844));
+      map.getCenter.mockReturnValue({ lat: 0, lng: 0 });
+      map.unproject.mockReturnValue({ lat: 36.41, lng: 139.1 });
+    });
+
+    it('画面内で届く距離は拡大縮小せずに平行移動する', () => {
+      map.project.mockImplementation(({ lat }: { lat: number }) =>
+        lat === 0 ? point(500, 400) : point(560, 300),
+      );
+      renderSelection();
+      expect(map.flyTo).not.toHaveBeenCalled();
+      expect(map.panBy).toHaveBeenCalledWith(
+        expect.objectContaining({ x: 60, y: -100 }),
+        { duration: 0.6 },
+      );
+    });
+
+    it('移動量が0なら動かさない', () => {
+      map.project.mockReturnValue(point(500, 400));
+      renderSelection();
+      expect(map.flyTo).not.toHaveBeenCalled();
+      expect(map.panBy).not.toHaveBeenCalled();
+    });
+
+    it('画面外まで離れていればflyToにする', () => {
+      map.project.mockImplementation(({ lat }: { lat: number }) =>
+        lat === 0 ? point(500, 400) : point(3000, 400),
+      );
+      renderSelection();
+      expect(map.panBy).not.toHaveBeenCalled();
+      expect(map.flyTo).toHaveBeenCalledTimes(1);
     });
   });
 });

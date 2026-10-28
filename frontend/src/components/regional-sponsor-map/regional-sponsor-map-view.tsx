@@ -1,9 +1,9 @@
 'use client';
 
 import 'leaflet/dist/leaflet.css';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { point } from 'leaflet';
+import { latLngBounds, point } from 'leaflet';
 import type { FitBoundsOptions, LatLngBoundsExpression, Point } from 'leaflet';
 import { AttributionControl, MapContainer, TileLayer } from 'react-leaflet';
 import { MapViewportController } from '@/components/map/map-viewport-controller';
@@ -16,30 +16,85 @@ import { RegionalSponsorMarkerLayer } from './regional-sponsor-marker-layer';
 const TRANSPARENT_TILE_URL =
   'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ycAAAAAAQABAAACAUwAOw==';
 
+// 会場マップの MapViewportSync と同じ、ピンが画面端に接しないための余白
+const FIT_MARGIN = 32;
+
+// ズームボタン(幅 40)と globals.css の右余白(24)。ピンがボタンの裏に入らないよう右の余白に足す
+const ZOOM_CONTROL_WIDTH = 40 + 24;
+
+function mobileOverlayBottom(container: HTMLElement | null) {
+  const overlay = document
+    .querySelector('[data-regional-search-overlay]')
+    ?.getBoundingClientRect();
+  const top = container?.getBoundingClientRect().top ?? 0;
+  return overlay?.height ? Math.max(0, overlay.bottom - top) : 0;
+}
+
 export interface RegionalSponsorMapViewProps {
   readonly profile: RegionalMapConfig | null;
   readonly sponsors: readonly RegionalSponsor[];
   readonly selectedSponsorId: number | null;
-  readonly spiderfiedClusterId: string | null;
   readonly isDesktop: boolean;
   readonly mobileBottomInset: number;
+  /** SP で選択したピンへ寄せるとき、transition 前でもシートの移動先の高さを使うため */
+  readonly getMobileSheetTargetHeight?: () => number | null;
+  /** SP で展開したシートが地図を覆うとき、構内マップの全画面シートと同様にズームと出典表記を出さない */
+  readonly controlsHidden?: boolean;
   readonly onSelectSponsor: (sponsorId: number) => void;
-  readonly onSpiderfyChange: (clusterId: string | null) => void;
+  readonly onSelectLocation: (locationKey: string) => void;
 }
 
 export function RegionalSponsorMapView({
   profile,
   sponsors,
   selectedSponsorId,
-  spiderfiedClusterId,
   isDesktop,
   mobileBottomInset,
+  getMobileSheetTargetHeight,
+  controlsHidden = false,
   onSelectSponsor,
-  onSpiderfyChange,
+  onSelectLocation,
 }: RegionalSponsorMapViewProps) {
   const [loading, setLoading] = useState(true);
   const [tileError, setTileError] = useState(false);
   const [tileKey, setTileKey] = useState(0);
+
+  // 初回表示は絞り込み前の全ピンで固定する。以降の絞り込みで画角を戻さないため初期値だけ使う
+  const [initialPinBounds] = useState(() =>
+    sponsors.length > 0
+      ? latLngBounds(sponsors.map((s) => [s.latitude, s.longitude]))
+      : null,
+  );
+  const initialFitOptions = useCallback(
+    (container: HTMLElement): FitBoundsOptions => {
+      const rect = container.getBoundingClientRect();
+      const panel = document
+        .querySelector('[data-map-side-panel]')
+        ?.getBoundingClientRect();
+      const overlay = document
+        .querySelector('[data-regional-search-overlay]')
+        ?.getBoundingClientRect();
+      // state の高さは ResizeObserver 経由で遅れるため、初回 fit は DOM の実測値を使う
+      const sheetHeight = isDesktop
+        ? 0
+        : (document
+            .querySelector('[data-testid="map-bottom-sheet"]')
+            ?.getBoundingClientRect().height ?? mobileBottomInset);
+      const left = panel?.width ? Math.max(0, panel.right - rect.left) : 0;
+      const top = overlay?.height ? Math.max(0, overlay.bottom - rect.top) : 0;
+      return {
+        paddingTopLeft: [left + FIT_MARGIN, top + FIT_MARGIN],
+        paddingBottomRight: [
+          FIT_MARGIN + ZOOM_CONTROL_WIDTH,
+          FIT_MARGIN + (isDesktop ? 16 : sheetHeight),
+        ],
+        // 1 件だけ、または全件が近接のときに過剰に寄らないよう従来の初期 zoom を上限にする
+        maxZoom: profile?.initialZoom,
+        animate: false,
+      };
+    },
+    [isDesktop, mobileBottomInset, profile?.initialZoom],
+  );
 
   const fitOptions = useMemo<FitBoundsOptions>(
     () => ({
@@ -49,8 +104,25 @@ export function RegionalSponsorMapView({
     }),
     [isDesktop, mobileBottomInset],
   );
-  const minZoomPadding = useMemo<Point>(
-    () => (isDesktop ? point(420, 48) : point(32, mobileBottomInset + 152)),
+  const focusFitOptions = useCallback((): FitBoundsOptions => {
+    if (isDesktop) return fitOptions;
+    const sheetHeight = getMobileSheetTargetHeight?.() ?? mobileBottomInset;
+    return { ...fitOptions, paddingBottomRight: [16, sheetHeight + 16] };
+  }, [fitOptions, getMobileSheetTargetHeight, isDesktop, mobileBottomInset]);
+  // 範囲外のタイルが見えないよう、広げる幅と最小 zoom の余白は覆い隠される領域(SP の検索 overlay と
+  // シート)だけにする。PC はパネルの隙間から範囲外が見えるため広げず、画面全体を範囲で覆う
+  const maxBoundsPadding = useCallback(
+    (container: HTMLElement): FitBoundsOptions => ({
+      paddingTopLeft: [0, mobileOverlayBottom(container)],
+      paddingBottomRight: [0, mobileBottomInset],
+    }),
+    [mobileBottomInset],
+  );
+  const minZoomPadding = useMemo<Point | undefined>(
+    () =>
+      isDesktop
+        ? undefined
+        : point(0, mobileOverlayBottom(null) + mobileBottomInset),
     [isDesktop, mobileBottomInset],
   );
 
@@ -74,7 +146,7 @@ export function RegionalSponsorMapView({
 
   return (
     <div
-      className="regional-sponsor-map relative h-full w-full"
+      className={`regional-sponsor-map relative h-full w-full ${controlsHidden ? '[&_.leaflet-control-container]:invisible' : ''}`}
       style={
         { '--regional-map-bottom-inset': `${controlInset}px` } as CSSProperties
       }
@@ -118,6 +190,8 @@ export function RegionalSponsorMapView({
         <MapViewportController
           initialCenter={profile.initialCenter}
           initialZoom={profile.initialZoom}
+          initialFitBounds={initialPinBounds}
+          initialFitOptions={initialFitOptions}
           focusCenter={
             selectedSponsor
               ? [selectedSponsor.latitude, selectedSponsor.longitude]
@@ -129,16 +203,19 @@ export function RegionalSponsorMapView({
           minZoom={profile.minZoom}
           minZoomPadding={minZoomPadding}
           fitOptions={fitOptions}
+          focusFitOptions={focusFitOptions}
+          refocusKey={isDesktop ? 'desktop' : 'mobile'}
+          extendMaxBoundsByPadding={!isDesktop}
+          maxBoundsPadding={maxBoundsPadding}
         />
         <RegionalSponsorMarkerLayer
           sponsors={sponsors}
           selectedSponsorId={selectedSponsorId}
-          spiderfiedClusterId={spiderfiedClusterId}
           profile={profile}
           markerSize={isDesktop ? 48 : 32}
-          fitOptions={fitOptions}
+          visibleAreaOptions={initialFitOptions}
           onSelectSponsor={onSelectSponsor}
-          onSpiderfyChange={onSpiderfyChange}
+          onSelectLocation={onSelectLocation}
         />
         <AttributionControl
           position={isDesktop ? 'bottomright' : 'bottomleft'}

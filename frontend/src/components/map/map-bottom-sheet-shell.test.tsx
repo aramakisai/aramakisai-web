@@ -250,4 +250,38 @@ describe('MapBottomSheetShell', () => {
     expect(onSnapChange).toHaveBeenCalledWith('full');
     vi.restoreAllMocks();
   });
+
+  it('snap を切り替えた commit で移動先の高さを通知する', () => {
+    window.matchMedia = vi.fn().mockReturnValue({
+      matches: false,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    });
+    const onTargetHeightChange = vi.fn();
+    const { rerender } = render(
+      <MapBottomSheetShell
+        snaps={regionalSnaps}
+        snapId="list"
+        restSnapId="list"
+        onSnapChange={() => {}}
+        onTargetHeightChange={onTargetHeightChange}
+      >
+        <p>地域協賛の内容</p>
+      </MapBottomSheetShell>,
+    );
+    expect(onTargetHeightChange).toHaveBeenLastCalledWith(360);
+
+    rerender(
+      <MapBottomSheetShell
+        snaps={regionalSnaps}
+        snapId="detail"
+        restSnapId="list"
+        onSnapChange={() => {}}
+        onTargetHeightChange={onTargetHeightChange}
+      >
+        <p>地域協賛の内容</p>
+      </MapBottomSheetShell>,
+    );
+    expect(onTargetHeightChange).toHaveBeenLastCalledWith(620);
+  });
 });

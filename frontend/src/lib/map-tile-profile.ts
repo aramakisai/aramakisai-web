@@ -16,6 +16,14 @@ export interface MapTileProfile {
   readonly urlTemplate: string;
   readonly expectedMaxTileCount: number;
   readonly expectedMaxBytes: number;
+  /** 描画漏れ検出用。z13以上でこの地点を含むタイルが無地でないことを検査する */
+  readonly landmarks?: readonly MapTileLandmark[];
+}
+
+export interface MapTileLandmark {
+  readonly name: string;
+  readonly latitude: number;
+  readonly longitude: number;
 }
 
 /**
@@ -39,6 +47,15 @@ export const REGIONAL_MAP_TILE_PROFILE = {
   expectedMaxTileCount: 6_984,
   // 市街部の文字量を考慮しつつ、成果物を64MiB未満に制限する。
   expectedMaxBytes: 64 * 1024 * 1024,
+  // 駅は OSM の railway=station ノード、朝倉町は依頼で指定された座標、
+  // 荒牧キャンパスは campusBounds の中心
+  landmarks: [
+    { name: '前橋駅', latitude: 36.383276, longitude: 139.0727221 },
+    { name: '朝倉町', latitude: 36.3619, longitude: 139.093 },
+    { name: '新前橋駅', latitude: 36.3789954, longitude: 139.0468295 },
+    { name: '高崎駅', latitude: 36.3223662, longitude: 139.0125458 },
+    { name: '荒牧キャンパス', latitude: 36.43068, longitude: 139.044795 },
+  ],
 } as const satisfies MapTileProfile;
 
 export function isWithinMapTileProfile(

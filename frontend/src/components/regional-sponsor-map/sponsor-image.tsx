@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { toAssetUrl } from '@/lib/cms-asset-url';
 import type { RegionalSponsor } from '@/lib/regional-sponsors';
-import { RegionalSponsorIcon } from './regional-sponsor-icon';
+import { MaterialIcon } from '@/components/icons';
 
 export interface SponsorImageProps {
   readonly sponsor: RegionalSponsor;
@@ -21,7 +21,7 @@ export function SponsorImage({
 
   useEffect(() => setFailed(false), [url]);
 
-  const commonClass = `flex items-center justify-center overflow-hidden rounded-md border border-gray-200 bg-gray-50 ${className}`;
+  const commonClass = `flex items-center justify-center overflow-hidden border border-gray-200 bg-white ${variant === 'card' ? 'rounded-lg' : 'rounded-xl'} ${className}`;
   if (!url || failed) {
     return (
       <div
@@ -35,11 +35,7 @@ export function SponsorImage({
         aria-hidden={sponsor.imageDecorative || undefined}
         data-testid="sponsor-image-placeholder"
       >
-        <RegionalSponsorIcon
-          name="hide-image"
-          size={30}
-          className="text-gray-400"
-        />
+        <MaterialIcon name="hide_image" size={30} className="text-gray-400" />
       </div>
     );
   }

@@ -29,6 +29,10 @@ export default async function RegionalSponsorMapPage() {
     getNavigation(),
   ]);
   return (
-    <RegionalSponsorMapScreen data={data} phase={phase} navigation={navigation} />
+    <RegionalSponsorMapScreen
+      data={data}
+      phase={phase}
+      navigation={navigation}
+    />
   );
 }

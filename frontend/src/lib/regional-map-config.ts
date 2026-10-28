@@ -25,5 +25,7 @@ export const REGIONAL_MAP_CONFIG: RegionalMapConfig = {
   // 新規座標を推測せず、既存会場マップの確定済みキャンパス範囲中央を使う。
   initialCenter: REGIONAL_MAP_INITIAL_CENTER,
   initialZoom: CAMPUS_MAP_CONFIG.minZoom,
-  focusZoom: CAMPUS_MAP_CONFIG.minZoom,
+  // 整数の native zoom にする。x.5 だと Leaflet がタイルの z を丸める境界に乗り、
+  // flyTo の途中でわずかに引いただけで 1 段下のタイルを引き伸ばした表示に切り替わる
+  focusZoom: REGIONAL_MAP_TILE_PROFILE.maxNativeZoom,
 };

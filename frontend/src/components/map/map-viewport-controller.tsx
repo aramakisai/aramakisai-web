@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useMap } from 'react-leaflet';
-import { latLng, point } from 'leaflet';
+import { latLng, latLngBounds, point } from 'leaflet';
 import type {
   FitBoundsOptions,
   LatLngBoundsExpression,
@@ -17,14 +17,32 @@ export interface MapViewportControllerProps {
   readonly fitBounds?: LatLngBoundsExpression;
   readonly initialCenter?: LatLngExpression;
   readonly initialZoom?: number;
+  /** 指定時は初回表示だけ initialCenter/initialZoom の代わりにこの範囲へ fit する */
+  readonly initialFitBounds?: LatLngBoundsExpression | null;
+  readonly initialFitOptions?: MapFitOptions;
   readonly focusCenter?: LatLngExpression | null;
   readonly focusKey?: string | number | null;
   readonly focusZoom?: number;
+  /** 選択位置へ寄せるときの余白。省略時は fitOptions */
+  readonly focusFitOptions?: MapFitOptions;
+  /** 変わったとき、選択中の位置を現在のズームのまま見えている領域の中央へ平行移動する */
+  readonly refocusKey?: string | number | null;
   readonly maxBounds: LatLngBoundsExpression;
   readonly minZoom: number;
   readonly minZoomPadding?: Point;
   readonly fitOptions: MapFitOptions;
   readonly fitOnMount?: boolean;
+  /**
+   * 地図がシート・パネルの裏まで広がる画面向け。maxBounds を fitOptions の余白分だけ広げ、
+   * 余白の外側に範囲全体を収められるようにする。広げないと、画面が範囲より大きいとき
+   * Leaflet が範囲を中央に固定して余白に合わせた fit や移動が効かない
+   */
+  readonly extendMaxBoundsByPadding?: boolean;
+  /**
+   * maxBounds を広げる幅。省略時は fitOptions の余白。fitOptions の余白にはピンが縁に接しない
+   * ための余裕が含まれ、そのまま広げると覆い隠されない位置に範囲外が見えてしまう
+   */
+  readonly maxBoundsPadding?: MapFitOptions;
 }
 
 /**
@@ -35,31 +53,92 @@ export function MapViewportController({
   fitBounds,
   initialCenter,
   initialZoom,
+  initialFitBounds,
+  initialFitOptions,
   focusCenter,
   focusKey,
   focusZoom,
+  focusFitOptions,
+  refocusKey,
   maxBounds,
   minZoom,
   minZoomPadding,
   fitOptions,
   fitOnMount = false,
+  extendMaxBoundsByPadding = false,
+  maxBoundsPadding,
 }: MapViewportControllerProps) {
   const map = useMap();
   const interactedRef = useRef(false);
   const initialViewAppliedRef = useRef(false);
   const lastFocusKeyRef = useRef<string | number | null>(null);
+  const lastRefocusKeyRef = useRef(refocusKey);
+  // シートの高さが動くたびに fitOptions 等が作り直されるため、effect を張り直さず最新値を参照する
+  const fitOptionsRef = useRef(fitOptions);
+  const focusFitOptionsRef = useRef(focusFitOptions);
+  const initialFitOptionsRef = useRef(initialFitOptions);
+  const minZoomPaddingRef = useRef(minZoomPadding);
+  const maxBoundsPaddingRef = useRef(maxBoundsPadding);
+  const syncPaddingRef = useRef<(() => void) | null>(null);
+  const focusMovingRef = useRef(false);
+  const paddingDirtyRef = useRef(false);
   const normalizedFocusCenter =
     focusCenter == null ? null : latLng(focusCenter);
   const focusLatitude = normalizedFocusCenter?.lat ?? null;
   const focusLongitude = normalizedFocusCenter?.lng ?? null;
 
+  useLayoutEffect(() => {
+    fitOptionsRef.current = fitOptions;
+    focusFitOptionsRef.current = focusFitOptions;
+    initialFitOptionsRef.current = initialFitOptions;
+    minZoomPaddingRef.current = minZoomPadding;
+    maxBoundsPaddingRef.current = maxBoundsPadding;
+  });
+
   useEffect(() => {
     const container = map.getContainer();
-    const resolveFitOptions = () =>
-      typeof fitOptions === 'function' ? fitOptions(container) : fitOptions;
-    map.setMaxBounds(maxBounds);
+    const resolveFitOptions = () => {
+      const options = fitOptionsRef.current;
+      return typeof options === 'function' ? options(container) : options;
+    };
+    const applyMaxBounds = (zoom: number) => {
+      if (!extendMaxBoundsByPadding) {
+        map.setMaxBounds(maxBounds);
+        return;
+      }
+      const options = maxBoundsPaddingRef.current;
+      const { paddingTopLeft, paddingBottomRight } = options
+        ? typeof options === 'function'
+          ? options(container)
+          : options
+        : resolveFitOptions();
+      const topLeft = point(paddingTopLeft ?? [0, 0]);
+      const bottomRight = point(paddingBottomRight ?? [0, 0]);
+      const bounds = latLngBounds(maxBounds as LatLngExpression[]);
+      map.setMaxBounds(
+        latLngBounds(
+          map.unproject(
+            map
+              .project(bounds.getSouthWest(), zoom)
+              .add([-topLeft.x, bottomRight.y]),
+            zoom,
+          ),
+          map.unproject(
+            map
+              .project(bounds.getNorthEast(), zoom)
+              .add([bottomRight.x, -topLeft.y]),
+            zoom,
+          ),
+        ),
+      );
+    };
+    // fit 前はまだ zoom が定まらないため、最も広く取れる最小 zoom で広げておく
+    applyMaxBounds(minZoom);
+    const onZoomEnd = () => applyMaxBounds(map.getZoom());
+    if (extendMaxBoundsByPadding) map.on('zoomend', onZoomEnd);
     const applyMinZoom = () => {
       map.invalidateSize({ animate: false });
+      const minZoomPadding = minZoomPaddingRef.current;
       const boundsZoom = minZoomPadding
         ? map.getBoundsZoom(maxBounds, true, minZoomPadding)
         : map.getBoundsZoom(maxBounds, true);
@@ -71,7 +150,15 @@ export function MapViewportController({
       initialCenter !== undefined &&
       initialZoom !== undefined
     ) {
-      map.setView(initialCenter, initialZoom, { animate: false });
+      if (initialFitBounds) {
+        const options = initialFitOptionsRef.current ?? fitOptionsRef.current;
+        map.fitBounds(
+          initialFitBounds,
+          typeof options === 'function' ? options(container) : options,
+        );
+      } else {
+        map.setView(initialCenter, initialZoom, { animate: false });
+      }
       initialViewAppliedRef.current = true;
     } else if (fitOnMount && fitBounds && !interactedRef.current) {
       map.fitBounds(fitBounds, resolveFitOptions());
@@ -86,19 +173,27 @@ export function MapViewportController({
 
     if (typeof ResizeObserver === 'undefined') {
       return () => {
+        if (extendMaxBoundsByPadding) map.off('zoomend', onZoomEnd);
         container.removeEventListener('pointerdown', markInteracted);
         container.removeEventListener('wheel', markInteracted);
         container.removeEventListener('keydown', markInteracted);
       };
     }
-    const observer = new ResizeObserver(() => {
+    const onResize = () => {
       applyMinZoom();
       if (initialCenter === undefined && fitBounds && !interactedRef.current) {
         map.fitBounds(fitBounds, resolveFitOptions());
       }
-    });
+    };
+    syncPaddingRef.current = () => {
+      applyMaxBounds(map.getZoom());
+      onResize();
+    };
+    const observer = new ResizeObserver(onResize);
     observer.observe(container);
     return () => {
+      syncPaddingRef.current = null;
+      if (extendMaxBoundsByPadding) map.off('zoomend', onZoomEnd);
       observer.disconnect();
       container.removeEventListener('pointerdown', markInteracted);
       container.removeEventListener('wheel', markInteracted);
@@ -107,16 +202,32 @@ export function MapViewportController({
   }, [
     fitBounds,
     fitOnMount,
-    fitOptions,
     initialCenter,
+    initialFitBounds,
     initialZoom,
     map,
     maxBounds,
     minZoom,
-    minZoomPadding,
+    extendMaxBoundsByPadding,
   ]);
 
-  useLayoutEffect(() => {
+  // 選択直後の flyTo 中はシートの高さが変わり続ける。途中で範囲や下限を張り直すと
+  // Leaflet が移動を打ち切って位置を補正するため、反映は移動の終了まで待つ
+  const isFirstPaddingRunRef = useRef(true);
+  useEffect(() => {
+    if (isFirstPaddingRunRef.current) {
+      isFirstPaddingRunRef.current = false;
+      return;
+    }
+    if (focusMovingRef.current) {
+      paddingDirtyRef.current = true;
+      return;
+    }
+    syncPaddingRef.current?.();
+  }, [fitOptions, minZoomPadding]);
+
+  // 同じ commit でシートが移動先の高さを通知し終えてから終点を決めるため、layout effect にしない
+  useEffect(() => {
     if (
       focusLatitude == null ||
       focusLongitude == null ||
@@ -128,15 +239,17 @@ export function MapViewportController({
       return;
     }
 
-    const isNewSelection = lastFocusKeyRef.current !== focusKey;
-    if (!isNewSelection && interactedRef.current) return;
-    if (isNewSelection) {
-      map.stop();
-      lastFocusKeyRef.current = focusKey;
-      interactedRef.current = false;
-    }
+    const refocus =
+      lastRefocusKeyRef.current !== refocusKey &&
+      lastFocusKeyRef.current === focusKey;
+    lastRefocusKeyRef.current = refocusKey;
+    if (lastFocusKeyRef.current === focusKey && !refocus) return;
+    map.stop();
+    lastFocusKeyRef.current = focusKey;
+    interactedRef.current = false;
 
-    const zoom = Math.max(map.getZoom(), focusZoom);
+    const zoom = refocus ? map.getZoom() : Math.max(map.getZoom(), focusZoom);
+    const fitOptions = focusFitOptionsRef.current ?? fitOptionsRef.current;
     const resolvedFitOptions =
       typeof fitOptions === 'function'
         ? fitOptions(map.getContainer())
@@ -160,9 +273,31 @@ export function MapViewportController({
     if (reducedMotion) {
       map.setView(adjustedCenter, zoom, { animate: false });
     } else {
-      map.flyTo(adjustedCenter, zoom, { duration: 0.6 });
+      // flyTo はズームが同じでも途中で引いて戻すため、画面内で届く移動は拡大縮小のない平行移動にする
+      const offset =
+        zoom === map.getZoom()
+          ? map
+              .project(adjustedCenter, zoom)
+              .subtract(map.project(map.getCenter(), zoom))
+              .round()
+          : null;
+      if (offset && offset.x === 0 && offset.y === 0) return;
+      if (offset && map.getSize().contains(offset)) {
+        map.panBy(offset, { duration: 0.6 });
+      } else {
+        map.flyTo(adjustedCenter, zoom, { duration: 0.6 });
+      }
+      focusMovingRef.current = true;
+      // 次の選択の stop() や利用者の操作で打ち切られた場合も moveend は発火する
+      map.once('moveend', () => {
+        focusMovingRef.current = false;
+        if (paddingDirtyRef.current) {
+          paddingDirtyRef.current = false;
+          syncPaddingRef.current?.();
+        }
+      });
     }
-  }, [fitOptions, focusKey, focusLatitude, focusLongitude, focusZoom, map]);
+  }, [focusKey, focusLatitude, focusLongitude, focusZoom, map, refocusKey]);
 
   return null;
 }

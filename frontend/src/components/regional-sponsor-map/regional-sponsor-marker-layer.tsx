@@ -1,27 +1,31 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { divIcon, latLngBounds } from 'leaflet';
 import type { FitBoundsOptions, Marker as LeafletMarker } from 'leaflet';
 import { Marker, useMapEvents } from 'react-leaflet';
 import {
   clusterProjectedSponsors,
-  createSpiderfyLayout,
+  locationKeyOf,
   type MarkerGroup,
 } from '@/lib/regional-sponsor-clustering';
 import { getRegionalSponsorCategoryPresentation } from '@/lib/regional-sponsor-categories';
 import type { RegionalMapConfig } from '@/lib/regional-map-config';
 import type { RegionalSponsor } from '@/lib/regional-sponsors';
 
+// Leaflet はマーカーの z-index を「画面の y 座標 + zIndexOffset」にする。順位差が
+// y の差(パン後は数万pxに達しうる)に負けないよう、順位1つぶんを十分大きく取る。
+// z-index はマーカーペイン(z-index 600)内で完結し、他ペインとは衝突しない
+const RANK_STEP = 100_000;
+
 interface RegionalSponsorMarkerLayerProps {
   readonly sponsors: readonly RegionalSponsor[];
   readonly selectedSponsorId: number | null;
-  readonly spiderfiedClusterId: string | null;
   readonly profile: RegionalMapConfig;
   readonly markerSize: 32 | 48;
-  readonly fitOptions: FitBoundsOptions;
+  readonly visibleAreaOptions: (container: HTMLElement) => FitBoundsOptions;
   readonly onSelectSponsor: (sponsorId: number) => void;
-  readonly onSpiderfyChange: (clusterId: string | null) => void;
+  readonly onSelectLocation: (locationKey: string) => void;
 }
 
 function pinIcon(sponsor: RegionalSponsor, size: number, selected: boolean) {
@@ -67,24 +71,17 @@ function applyAccessibility(
 export function RegionalSponsorMarkerLayer({
   sponsors,
   selectedSponsorId,
-  spiderfiedClusterId,
   profile,
   markerSize,
-  fitOptions,
+  visibleAreaOptions,
   onSelectSponsor,
-  onSpiderfyChange,
+  onSelectLocation,
 }: RegionalSponsorMarkerLayerProps) {
   const [revision, setRevision] = useState(0);
   const map = useMapEvents({
-    zoomend: () => {
-      setRevision((value) => value + 1);
-    },
-    moveend: () => {
-      setRevision((value) => value + 1);
-    },
-    dragstart: () => onSpiderfyChange(null),
+    zoomend: () => setRevision((value) => value + 1),
+    moveend: () => setRevision((value) => value + 1),
     resize: () => setRevision((value) => value + 1),
-    click: () => onSpiderfyChange(null),
   });
   const zoom = map.getZoom();
   void revision;
@@ -94,55 +91,48 @@ export function RegionalSponsorMarkerLayer({
   });
   const groups = clusterProjectedSponsors(projectedSponsors, {
     radius: markerSize,
+    zoom,
+    maxZoom: profile.maxZoom,
     selectedSponsorId,
   });
-  const spiderfyGroups = spiderfiedClusterId
-    ? clusterProjectedSponsors(projectedSponsors, {
-        radius: markerSize,
-        selectedSponsorId: null,
-      })
-    : groups;
-  const spiderfied = spiderfyGroups.find(
-    (group): group is Extract<MarkerGroup, { kind: 'cluster' }> =>
-      group.kind === 'cluster' && group.id === spiderfiedClusterId,
-  );
-  const spiderfiedSponsorIds = new Set(
-    spiderfied?.sponsors.map(({ id }) => id),
-  );
+  // 重なったピンは一覧の並びで後のものを前面に出す。選択中は常に最前面
+  const rankById = new Map(sponsors.map(({ id }, index) => [id, index]));
+  const rankOf = (group: MarkerGroup) =>
+    RANK_STEP *
+    Math.max(
+      ...(group.kind === 'single' ? [group.sponsor] : group.sponsors).map(
+        ({ id }) => rankById.get(id) ?? 0,
+      ),
+    );
+  const selectedOffset = RANK_STEP * (sponsors.length + 1);
 
-  useEffect(() => {
-    if (spiderfiedClusterId && !spiderfied) onSpiderfyChange(null);
-  }, [onSpiderfyChange, spiderfied, spiderfiedClusterId]);
-
-  const selectSponsor = (sponsor: RegionalSponsor) => {
-    onSpiderfyChange(null);
-    onSelectSponsor(sponsor.id);
-  };
-  const openCluster = (group: Extract<MarkerGroup, { kind: 'cluster' }>) => {
-    if (group.allSameCoordinate || map.getZoom() >= profile.maxZoom) {
-      onSpiderfyChange(group.id);
-      return;
-    }
+  const openCluster = (group: Exclude<MarkerGroup, { kind: 'single' }>) => {
+    const { paddingTopLeft, paddingBottomRight } = visibleAreaOptions(
+      map.getContainer(),
+    );
+    const reducedMotion =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     map.fitBounds(
       latLngBounds(
         group.sponsors.map(({ latitude, longitude }) => [latitude, longitude]),
       ),
-      { ...fitOptions, maxZoom: profile.maxZoom },
+      {
+        paddingTopLeft,
+        paddingBottomRight,
+        maxZoom: profile.maxZoom,
+        ...(reducedMotion ? { animate: false } : {}),
+      },
     );
   };
 
   return (
     <>
       {groups.map((group) => {
-        const hiddenBySpiderfy =
-          group.kind === 'single'
-            ? spiderfiedSponsorIds.has(group.sponsor.id)
-            : group.sponsors.every(({ id }) => spiderfiedSponsorIds.has(id));
-        if (hiddenBySpiderfy) return null;
         if (group.kind === 'single') {
           const { sponsor } = group;
           const label = `${sponsor.name}、${getRegionalSponsorCategoryPresentation(sponsor.category).label}`;
-          const activate = () => selectSponsor(sponsor);
+          const activate = () => onSelectSponsor(sponsor.id);
           return (
             <Marker
               key={group.id}
@@ -155,7 +145,7 @@ export function RegionalSponsorMarkerLayer({
               keyboard={false}
               alt={label}
               title={label}
-              zIndexOffset={group.selected ? 1000 : 0}
+              zIndexOffset={group.selected ? selectedOffset : rankOf(group)}
               eventHandlers={{
                 add: (event) =>
                   applyAccessibility(
@@ -175,8 +165,11 @@ export function RegionalSponsorMarkerLayer({
               `${sponsor.name}（${getRegionalSponsorCategoryPresentation(sponsor.category).label}）`,
           )
           .join('、');
-        const label = `${group.sponsors.length}件の地域協賛：${sponsorLabels}。選択して拡大`;
-        const activate = () => openCluster(group);
+        const label = `${group.sponsors.length}件の地域協賛：${sponsorLabels}。${group.kind === 'cluster' ? '選択して拡大' : '選択して一覧を表示'}`;
+        const activate =
+          group.kind === 'cluster'
+            ? () => openCluster(group)
+            : () => onSelectLocation(locationKeyOf(group.sponsors));
         return (
           <Marker
             key={group.id}
@@ -188,6 +181,7 @@ export function RegionalSponsorMarkerLayer({
             keyboard={false}
             alt={label}
             title={label}
+            zIndexOffset={rankOf(group)}
             eventHandlers={{
               add: (event) =>
                 applyAccessibility(
@@ -201,47 +195,6 @@ export function RegionalSponsorMarkerLayer({
           />
         );
       })}
-      {spiderfied &&
-        createSpiderfyLayout(spiderfied.sponsors, markerSize * 1.4).map(
-          ({ sponsor, offsetX, offsetY }) => {
-            const anchor = map.project(
-              [spiderfied.anchor.latitude, spiderfied.anchor.longitude],
-              zoom,
-            );
-            const position = map.unproject(
-              [anchor.x + offsetX, anchor.y + offsetY],
-              zoom,
-            );
-            const label = `${sponsor.name}、${getRegionalSponsorCategoryPresentation(sponsor.category).label}`;
-            const selected = sponsor.id === selectedSponsorId;
-            const activate = () => onSelectSponsor(sponsor.id);
-            return (
-              <Marker
-                key={`spider:${sponsor.id}`}
-                ref={(marker) => {
-                  if (marker)
-                    applyAccessibility(marker, label, selected, activate);
-                }}
-                position={position}
-                icon={pinIcon(sponsor, markerSize, selected)}
-                keyboard={false}
-                alt={label}
-                title={label}
-                zIndexOffset={selected ? 1000 : 900}
-                eventHandlers={{
-                  add: (event) =>
-                    applyAccessibility(
-                      event.target as LeafletMarker,
-                      label,
-                      selected,
-                      activate,
-                    ),
-                  click: activate,
-                }}
-              />
-            );
-          },
-        )}
     </>
   );
 }

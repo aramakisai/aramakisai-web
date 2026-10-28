@@ -15,6 +15,8 @@ describe('REGIONAL_MAP_CONFIG', () => {
 
     expect(REGIONAL_MAP_CONFIG.initialCenter).toEqual(expectedCenter);
     expect(REGIONAL_MAP_CONFIG.initialZoom).toBe(CAMPUS_MAP_CONFIG.minZoom);
-    expect(REGIONAL_MAP_CONFIG.focusZoom).toBe(CAMPUS_MAP_CONFIG.minZoom);
+    expect(REGIONAL_MAP_CONFIG.focusZoom).toBe(
+      REGIONAL_MAP_CONFIG.maxNativeZoom,
+    );
   });
 });

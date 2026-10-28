@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { KeyboardEvent, MouseEvent, PointerEvent, ReactNode } from 'react';
 import { useIsAboveMapBreakpoint } from '../campus-map/use-is-above-map-breakpoint';
 
@@ -27,11 +27,19 @@ export interface MapBottomSheetShellProps {
   readonly restSnapId: string;
   readonly onSnapChange: (snapId: string) => void;
   readonly onHeightChange?: (height: number) => void;
+  /**
+   * 現在の snap が transition で行き着く高さ。onHeightChange は transition 中の高さを
+   * 逐次通知するため、移動先の高さで地図の位置を決めたい画面はこちらを使う
+   */
+  readonly onTargetHeightChange?: (height: number) => void;
   readonly contentClassName?: string;
   readonly sheetClassName?: string;
   readonly bottomClassName?: string;
   readonly outerClassName?: string;
   readonly sheetShadowClassName?: string;
+  /** シートの内側余白。つまみの位置を変える画面は上余白を0にして grabberClassName 側で置く */
+  readonly sheetPaddingClassName?: string;
+  readonly grabberClassName?: string;
 }
 
 const FLICK_VELOCITY = 0.5;
@@ -45,11 +53,14 @@ export function MapBottomSheetShell({
   restSnapId,
   onSnapChange,
   onHeightChange,
+  onTargetHeightChange,
   contentClassName,
   sheetClassName,
   bottomClassName = 'bottom-0',
   outerClassName,
   sheetShadowClassName = 'shadow-xl',
+  sheetPaddingClassName = 'p-4',
+  grabberClassName = 'mb-3 py-2',
 }: MapBottomSheetShellProps) {
   const isAboveBreakpoint = useIsAboveMapBreakpoint();
   const currentSnap =
@@ -100,6 +111,7 @@ export function MapBottomSheetShell({
       (parseFloat(style.paddingBottom) || 0) +
       (grabber
         ? grabber.offsetHeight +
+          (parseFloat(getComputedStyle(grabber).marginTop) || 0) +
           (parseFloat(getComputedStyle(grabber).marginBottom) || 0)
         : 0) +
       (contentRef.current?.offsetHeight ?? 0);
@@ -120,6 +132,11 @@ export function MapBottomSheetShell({
     (draggedUpBy > 0
       ? drag.startHeight < maxSnapPx() - 1
       : draggedUpBy < 0 && drag.startScrollTop <= 0);
+
+  // snap の切替と同じ commit で地図側が読めるよう、描画前に通知する
+  useLayoutEffect(() => {
+    onTargetHeightChange?.(currentSnap.resolveHeightPx(measureSnapContext()));
+  });
 
   useEffect(() => {
     const el = sheetRef.current;
@@ -315,7 +332,7 @@ export function MapBottomSheetShell({
       <div
         ref={sheetRef}
         data-testid="map-bottom-sheet"
-        className={`pointer-events-auto w-full max-w-2xl select-none bg-white p-4 ${sheetShadowClassName} transition-[height] duration-300 ease-out motion-reduce:transition-none [interpolate-size:allow-keywords] ${currentSnap.fullScreen && !elevated ? '' : 'rounded-t-2xl'} ${currentSnap.overflow === 'auto' ? 'overflow-y-auto' : 'overflow-hidden'} ${sheetClassName ?? ''}`}
+        className={`pointer-events-auto w-full max-w-2xl select-none bg-white ${sheetPaddingClassName} ${sheetShadowClassName} transition-[height] duration-300 ease-out motion-reduce:transition-none [interpolate-size:allow-keywords] ${currentSnap.fullScreen && !elevated ? '' : 'rounded-t-2xl'} ${currentSnap.overflow === 'auto' ? 'overflow-y-auto' : 'overflow-hidden'} ${sheetClassName ?? ''}`}
         style={{ height: currentSnap.height }}
         onPointerDown={handlePointerDown}
         onClickCapture={handleClickCapture}
@@ -327,7 +344,7 @@ export function MapBottomSheetShell({
           tabIndex={0}
           aria-expanded={currentSnap.id !== restSnap.id}
           aria-label={`シートの高さを変更 (現在: ${currentSnap.label})`}
-          className="mb-3 flex touch-none cursor-grab items-center justify-center py-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600 active:cursor-grabbing"
+          className={`${grabberClassName} flex touch-none cursor-grab items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600 active:cursor-grabbing`}
           onKeyDown={handleKeyDown}
         >
           <span

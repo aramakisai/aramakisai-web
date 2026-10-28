@@ -1,10 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { RegionalSponsor } from './regional-sponsors';
-import {
-  clusterProjectedSponsors,
-  createSpiderfyLayout,
-} from './regional-sponsor-clustering';
+import { clusterProjectedSponsors } from './regional-sponsor-clustering';
 
 function sponsor(id: number, latitude = id, longitude = id): RegionalSponsor {
   return {
@@ -34,7 +31,7 @@ describe('clusterProjectedSponsors', () => {
         { sponsor: sponsor(2), x: 18, y: 14 },
         { sponsor: sponsor(1), x: 10, y: 10 },
       ],
-      { radius: 16, selectedSponsorId: null },
+      { radius: 16, zoom: 15, maxZoom: 17, selectedSponsorId: null },
     );
 
     expect(groups.map((group) => [group.kind, group.id])).toEqual([
@@ -52,14 +49,14 @@ describe('clusterProjectedSponsors', () => {
         { sponsor: sponsor(1), x: 10, y: 10 },
         { sponsor: sponsor(2), x: 20, y: 20 },
       ],
-      { radius: 16, selectedSponsorId: null },
+      { radius: 16, zoom: 15, maxZoom: 17, selectedSponsorId: null },
     );
     const separated = clusterProjectedSponsors(
       [
         { sponsor: sponsor(1), x: 10, y: 10 },
         { sponsor: sponsor(2), x: 80, y: 80 },
       ],
-      { radius: 16, selectedSponsorId: null },
+      { radius: 16, zoom: 15, maxZoom: 17, selectedSponsorId: null },
     );
 
     expect(close).toHaveLength(1);
@@ -73,7 +70,7 @@ describe('clusterProjectedSponsors', () => {
         { sponsor: sponsor(2), x: 11, y: 11 },
         { sponsor: sponsor(3), x: 12, y: 12 },
       ],
-      { radius: 16, selectedSponsorId: 2 },
+      { radius: 16, zoom: 15, maxZoom: 17, selectedSponsorId: 2 },
     );
 
     expect(groups).toHaveLength(2);
@@ -89,26 +86,83 @@ describe('clusterProjectedSponsors', () => {
     expect(represented).toBe(3);
   });
 
-  it('全件同一座標を1クラスタにし、全店舗を選べる放射状配置を返す', () => {
+  it('選択中店舗の同一座標グループごと入力から外し、同じ座標の他社は返さない', () => {
+    const groups = clusterProjectedSponsors(
+      [
+        { sponsor: sponsor(1, 36.4, 139.1), x: 100, y: 100 },
+        { sponsor: sponsor(2, 36.4, 139.1), x: 100, y: 100 },
+        { sponsor: sponsor(3, 36.5, 139.2), x: 105, y: 100 },
+      ],
+      { radius: 16, zoom: 15, maxZoom: 17, selectedSponsorId: 2 },
+    );
+    expect(groups.map((g) => g.id)).toEqual(['sponsor:2', 'sponsor:3']);
+    expect(groups[0]).toMatchObject({ kind: 'single', selected: true });
+  });
+
+  it('全件同一座標はどのzoomでも location として返す', () => {
     const same = [
       sponsor(3, 36.4, 139.1),
       sponsor(1, 36.4, 139.1),
       sponsor(2, 36.4, 139.1),
     ];
+    for (const zoom of [10, 17, 18]) {
+      const groups = clusterProjectedSponsors(
+        same.map((item) => ({ sponsor: item, x: 100, y: 100 })),
+        { radius: 16, zoom, maxZoom: 17, selectedSponsorId: null },
+      );
+      expect(groups).toHaveLength(1);
+      expect(groups[0]).toMatchObject({
+        kind: 'location',
+        id: 'location:1,2,3',
+        anchor: { latitude: 36.4, longitude: 139.1 },
+      });
+    }
+  });
+
+  it('最大zoomでは半径内の座標が異なる企業を location にまとめ、半径外は単独のまま返す', () => {
     const groups = clusterProjectedSponsors(
-      same.map((item) => ({ sponsor: item, x: 100, y: 100 })),
-      { radius: 16, selectedSponsorId: null },
+      [
+        { sponsor: sponsor(1, 36.4, 139.1), x: 10, y: 10 },
+        { sponsor: sponsor(2, 36.4001, 139.1), x: 14, y: 10 },
+        { sponsor: sponsor(3, 36.4002, 139.1), x: 18, y: 10 },
+        { sponsor: sponsor(4, 36.5, 139.1), x: 200, y: 10 },
+      ],
+      { radius: 16, zoom: 17, maxZoom: 17, selectedSponsorId: null },
+    );
+    expect(groups.map((g) => [g.kind, g.id])).toEqual([
+      ['location', 'location:1,2,3'],
+      ['single', 'sponsor:4'],
+    ]);
+    // 平均に最も近い実在の1社(2)の座標にピンの先端を置く
+    expect(groups[0]).toMatchObject({
+      anchor: { latitude: 36.4001, longitude: 139.1 },
+    });
+  });
+
+  it('最大zoomの手前では同じ近さでも cluster のまま', () => {
+    const groups = clusterProjectedSponsors(
+      [
+        { sponsor: sponsor(1, 36.4, 139.1), x: 10, y: 10 },
+        { sponsor: sponsor(2, 36.4001, 139.1), x: 14, y: 10 },
+      ],
+      { radius: 16, zoom: 16, maxZoom: 17, selectedSponsorId: null },
+    );
+    expect(groups.map((g) => g.kind)).toEqual(['cluster']);
+  });
+
+  it('cluster の anchor は平均に最も近い1社の座標になる', () => {
+    const groups = clusterProjectedSponsors(
+      [
+        { sponsor: sponsor(1, 0, 0), x: 10, y: 10 },
+        { sponsor: sponsor(2, 1, 1), x: 11, y: 10 },
+        { sponsor: sponsor(3, 5, 5), x: 12, y: 10 },
+      ],
+      { radius: 16, zoom: 15, maxZoom: 17, selectedSponsorId: null },
     );
     expect(groups).toHaveLength(1);
     expect(groups[0]).toMatchObject({
       kind: 'cluster',
-      allSameCoordinate: true,
+      anchor: { latitude: 1, longitude: 1 },
     });
-
-    const layout = createSpiderfyLayout(same, 44);
-    expect(layout.map((entry) => entry.sponsor.id)).toEqual([1, 2, 3]);
-    expect(
-      new Set(layout.map((entry) => `${entry.offsetX},${entry.offsetY}`)).size,
-    ).toBe(3);
   });
 });

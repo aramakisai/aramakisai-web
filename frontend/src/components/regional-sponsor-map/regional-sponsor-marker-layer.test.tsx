@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from 'react';
 import type { ReactNode, Ref } from 'react';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RegionalMapConfig } from '@/lib/regional-map-config';
 import type { RegionalSponsor } from '@/lib/regional-sponsors';
@@ -19,6 +19,7 @@ const map = {
   }),
   unproject: ([x, y]: readonly number[]) => ({ lat: x! / 100, lng: y! / 100 }),
   fitBounds: mocks.fitBounds,
+  getContainer: () => document.body,
 };
 
 vi.mock('react-leaflet', () => ({
@@ -43,7 +44,9 @@ vi.mock('react-leaflet', () => ({
       }) => void;
       click: () => void;
     };
-    icon: { options: { html?: string | HTMLElement | false } };
+    icon: {
+      options: { html?: string | HTMLElement | false; className?: string };
+    };
     keyboard?: boolean;
     children?: ReactNode;
   }) => {
@@ -61,8 +64,13 @@ vi.mock('react-leaflet', () => ({
         ref={elementRef}
         type="button"
         aria-label={title}
-        aria-current={zIndexOffset === 1000 ? 'true' : undefined}
+        aria-current={
+          String(icon.options.className).includes('--selected')
+            ? 'true'
+            : undefined
+        }
         data-icon-html={String(icon.options.html)}
+        data-z-index={zIndexOffset}
         data-leaflet-keyboard={String(keyboard)}
         onClick={eventHandlers.click}
       >
@@ -120,18 +128,23 @@ function sponsor(
 const baseProps = {
   profile,
   markerSize: 48 as const,
-  fitOptions: { animate: false },
+  visibleAreaOptions: () => ({
+    paddingTopLeft: [12, 34] as [number, number],
+    paddingBottomRight: [56, 78] as [number, number],
+    maxZoom: 15,
+    animate: false,
+  }),
   selectedSponsorId: null,
-  spiderfiedClusterId: null,
   onSelectSponsor: vi.fn(),
-  onSpiderfyChange: vi.fn(),
+  onSelectLocation: vi.fn(),
 };
 
 beforeEach(() => {
   mocks.zoom = 10;
   mocks.fitBounds.mockReset();
   baseProps.onSelectSponsor.mockReset();
-  baseProps.onSpiderfyChange.mockReset();
+  baseProps.onSelectLocation.mockReset();
+  vi.unstubAllGlobals();
 });
 
 describe('RegionalSponsorMarkerLayer', () => {
@@ -169,7 +182,7 @@ describe('RegionalSponsorMarkerLayer', () => {
     expect(pin).toHaveAttribute('data-leaflet-keyboard', 'false');
   });
 
-  it('異なる座標のclusterを余白付きで拡大する', () => {
+  it('異なる座標のclusterを初回の余白と maxZoom 17 相当の上限で拡大する', () => {
     render(
       <RegionalSponsorMarkerLayer
         {...baseProps}
@@ -185,57 +198,149 @@ describe('RegionalSponsorMarkerLayer', () => {
     );
     expect(cluster.getAttribute('data-icon-html')).not.toContain('>2<');
     fireEvent.click(cluster);
-    expect(mocks.fitBounds).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({ animate: false, maxZoom: 18 }),
-    );
+    const [, options] = mocks.fitBounds.mock.calls[0]!;
+    expect(options).toEqual({
+      paddingTopLeft: [12, 34],
+      paddingBottomRight: [56, 78],
+      maxZoom: 18,
+    });
+    expect(baseProps.onSelectLocation).not.toHaveBeenCalled();
   });
 
-  it('同一座標clusterは選択後も放射状展開を保ち、別店舗を選択できる', () => {
-    const same = [sponsor(1, 36.4, 139.1), sponsor(2, 36.4, 139.1)];
-    const { rerender } = render(
-      <RegionalSponsorMarkerLayer {...baseProps} sponsors={same} />,
+  it('reduced motion では cluster の拡大をアニメーションしない', () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn(() => ({ matches: true })),
     );
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: '2件の地域協賛：テスト専用1（病院）、テスト専用2（ショップ）。選択して拡大',
-      }),
-    );
-    expect(baseProps.onSpiderfyChange).toHaveBeenCalledWith('cluster:1,2');
-
-    rerender(
+    render(
       <RegionalSponsorMarkerLayer
         {...baseProps}
-        sponsors={same}
-        selectedSponsorId={1}
-        spiderfiedClusterId="cluster:1,2"
+        sponsors={[sponsor(1, 36.4, 139.1), sponsor(2, 36.41, 139.11)]}
       />,
     );
-    const selectedPin = screen.getByRole('button', {
-      name: 'テスト専用1、病院',
+    fireEvent.click(screen.getByRole('button', { name: /2件の地域協賛/ }));
+    expect(mocks.fitBounds.mock.calls[0]![1]).toMatchObject({
+      animate: false,
+      maxZoom: 18,
     });
-    expect(selectedPin).toHaveAttribute('aria-current', 'true');
-    fireEvent.click(
-      screen.getByRole('button', { name: 'テスト専用2、ショップ' }),
-    );
-    expect(baseProps.onSelectSponsor).toHaveBeenCalledWith(2);
-    expect(baseProps.onSpiderfyChange).not.toHaveBeenCalledWith(null);
   });
 
-  it('利用者の地図drag・zoom・背景選択で展開を閉じる', () => {
+  it('同一座標の企業は1本の地点ピンになり、選ぶと地図を動かさず地点の一覧を開く', () => {
     render(
       <RegionalSponsorMarkerLayer
         {...baseProps}
         sponsors={[sponsor(1, 36.4, 139.1), sponsor(2, 36.4, 139.1)]}
-        spiderfiedClusterId="cluster:1,2"
       />,
     );
-    act(() => {
-      mocks.handlers.dragstart();
-      mocks.handlers.zoomend();
-      mocks.handlers.click();
+    const pin = screen.getByRole('button', {
+      name: '2件の地域協賛：テスト専用1（病院）、テスト専用2（ショップ）。選択して一覧を表示',
     });
-    expect(baseProps.onSpiderfyChange).toHaveBeenCalledTimes(2);
-    expect(baseProps.onSpiderfyChange).toHaveBeenLastCalledWith(null);
+    expect(pin).toHaveAttribute(
+      'data-icon-html',
+      expect.stringContaining('pin-neutral.svg'),
+    );
+    fireEvent.click(pin);
+    expect(baseProps.onSelectLocation).toHaveBeenCalledWith('1,2');
+    expect(mocks.fitBounds).not.toHaveBeenCalled();
+    expect(baseProps.onSelectSponsor).not.toHaveBeenCalled();
+  });
+
+  it('同一座標の企業を選択中は、中立色の地点ピンの代わりに選択ピンだけを出す', () => {
+    render(
+      <RegionalSponsorMarkerLayer
+        {...baseProps}
+        sponsors={[sponsor(1, 36.4, 139.1), sponsor(2, 36.4, 139.1)]}
+        selectedSponsorId={2}
+      />,
+    );
+    expect(screen.getAllByRole('button')).toHaveLength(1);
+    expect(
+      screen.getByRole('button', { name: 'テスト専用2、ショップ' }),
+    ).toHaveAttribute('aria-current', 'true');
+  });
+
+  it('最大zoomでは座標が数pxだけ違う企業を1本の地点ピンにまとめ、押すと地点の一覧を開く', () => {
+    mocks.zoom = 18;
+    render(
+      <RegionalSponsorMarkerLayer
+        {...baseProps}
+        sponsors={[
+          sponsor(1, 36.4, 139.1),
+          sponsor(2, 36.41, 139.1),
+          sponsor(3, 37.9, 139.1),
+        ]}
+      />,
+    );
+    expect(screen.getAllByRole('button')).toHaveLength(2);
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: '2件の地域協賛：テスト専用1（病院）、テスト専用2（ショップ）。選択して一覧を表示',
+      }),
+    );
+    expect(baseProps.onSelectLocation).toHaveBeenCalledWith('1,2');
+    expect(mocks.fitBounds).not.toHaveBeenCalled();
+  });
+
+  it('最大zoomでもマーカー径より離れた企業は個別のピンにする', () => {
+    mocks.zoom = 18;
+    render(
+      <RegionalSponsorMarkerLayer
+        {...baseProps}
+        sponsors={[sponsor(1, 36.4, 139.1), sponsor(2, 37.4, 139.1)]}
+      />,
+    );
+    expect(
+      screen.getByRole('button', { name: 'テスト専用1、病院' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'テスト専用2、ショップ' }),
+    ).toBeInTheDocument();
+  });
+
+  it('重なったピンは一覧の並びで後のものを前面にする', () => {
+    mocks.zoom = 18;
+    render(
+      <RegionalSponsorMarkerLayer
+        {...baseProps}
+        sponsors={[sponsor(1, 36.4, 139.1), sponsor(2, 37.4, 139.11)]}
+      />,
+    );
+    const z = (name: string) =>
+      Number(screen.getByRole('button', { name }).dataset.zIndex);
+    expect(z('テスト専用2、ショップ')).toBeGreaterThan(z('テスト専用1、病院'));
+  });
+
+  it('画面で下にあるピンでも順位が後なら前面になり、選択中は常に最前面になる', () => {
+    mocks.zoom = 18;
+    // mock の project は y = 経度*100。ピン1は ピン2・3 より y が 5000px 大きい(画面で下)
+    const sponsors = [
+      sponsor(1, 36.4, 189.1),
+      sponsor(2, 37.41, 139.11),
+      sponsor(3, 38.42, 139.12),
+    ];
+    const layout = (selectedSponsorId: number | null) => {
+      const { unmount } = render(
+        <RegionalSponsorMarkerLayer
+          {...baseProps}
+          sponsors={sponsors}
+          selectedSponsorId={selectedSponsorId}
+        />,
+      );
+      const front = (id: number, lng: number) =>
+        Number(
+          screen.getByRole('button', {
+            name: new RegExp(`^テスト専用${id}、`),
+          }).dataset.zIndex,
+        ) +
+        lng * 100;
+      const result = [front(1, 189.1), front(2, 139.11), front(3, 139.12)];
+      unmount();
+      return result;
+    };
+    const [a, b, c] = layout(null);
+    expect(c).toBeGreaterThan(b!);
+    expect(b).toBeGreaterThan(a!);
+    const [a1, b1, c1] = layout(1);
+    expect(a1).toBeGreaterThan(Math.max(b1!, c1!));
   });
 });
