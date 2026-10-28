@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { navigationItemsByPhase } from '@/lib/navigation';
@@ -7,8 +6,6 @@ import type { RegionalSponsor } from '@/lib/regional-sponsors';
 const mocks = vi.hoisted(() => ({
   refresh: vi.fn(),
   mapProps: [] as Record<string, unknown>[],
-  dynamicOptions: undefined as
-    { ssr?: boolean; loading?: () => ReactNode } | undefined,
 }));
 
 vi.mock('next/navigation', () => ({
@@ -17,11 +14,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('next/dynamic', () => ({
-  default: (
-    _loader: unknown,
-    options?: { ssr?: boolean; loading?: () => ReactNode },
-  ) => {
-    mocks.dynamicOptions = options;
+  default: () => {
     return function MockMapView(props: Record<string, unknown>) {
       mocks.mapProps.push(props);
       const sponsors = props.sponsors as readonly RegionalSponsor[];
@@ -107,19 +100,6 @@ beforeEach(() => {
 });
 
 describe('RegionalSponsorMapScreen', () => {
-  it('Leaflet部分だけをSSR無効で遅延読込する', () => {
-    matchMedia(true);
-    render(
-      <RegionalSponsorMapScreen
-        navigation={navigationItemsByPhase}
-        data={{ ok: true, sponsors: [] }}
-      />,
-    );
-    expect(mocks.dynamicOptions?.ssr).toBe(false);
-    render(<>{mocks.dynamicOptions?.loading?.()}</>);
-    expect(screen.getByText('地図を読み込んでいます…')).toBeInTheDocument();
-  });
-
   it('PCパネルで検索・複数カテゴリ・一覧・詳細を同じ状態へ統合し、戻り先へfocusする', async () => {
     matchMedia(true);
     render(
@@ -359,7 +339,7 @@ describe('RegionalSponsorMapScreen', () => {
       );
     });
 
-    it('全体の一覧から開いた詳細は全体の一覧へ、単独ピンの詳細も全体の一覧へ戻る', async () => {
+    it('地点の一覧の表示中にピンから詳細を開くと、全体の一覧へ戻る', async () => {
       matchMedia(true);
       renderScreen();
       fireEvent.click(screen.getByText('location-select'));

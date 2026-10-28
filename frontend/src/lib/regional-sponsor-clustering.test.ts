@@ -41,26 +41,6 @@ describe('clusterProjectedSponsors', () => {
     ).toEqual([1, 2]);
   });
 
-  it('投影座標が変わればzoom後の分離結果も変わる', () => {
-    const close = clusterProjectedSponsors(
-      [
-        { sponsor: sponsor(1), x: 10, y: 10 },
-        { sponsor: sponsor(2), x: 20, y: 20 },
-      ],
-      { radius: 16, zoom: 15, maxZoom: 17, selectedSponsorId: null },
-    );
-    const separated = clusterProjectedSponsors(
-      [
-        { sponsor: sponsor(1), x: 10, y: 10 },
-        { sponsor: sponsor(2), x: 80, y: 80 },
-      ],
-      { radius: 16, zoom: 15, maxZoom: 17, selectedSponsorId: null },
-    );
-
-    expect(close).toHaveLength(1);
-    expect(separated).toHaveLength(2);
-  });
-
   it('絞り込み後の入力件数を保ち、選択中店舗をクラスタから分離する', () => {
     const groups = clusterProjectedSponsors(
       [

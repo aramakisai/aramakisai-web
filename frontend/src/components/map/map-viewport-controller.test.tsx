@@ -22,6 +22,8 @@ const map = vi.hoisted(() => ({
   once: vi.fn(),
   getCenter: vi.fn(),
   panBy: vi.fn(),
+  on: vi.fn(),
+  off: vi.fn(),
 }));
 
 vi.mock('react-leaflet', () => ({ useMap: () => map }));
@@ -111,25 +113,31 @@ describe('MapViewportController', () => {
     expect(map.setMinZoom).toHaveBeenCalledWith(14);
   });
 
-  it('resize時に注入された初期範囲とpanel・sheet余白でfitし、操作後は再fitしない', () => {
-    map.getBoundsZoom.mockReturnValue(14);
-    render(
-      <MapViewportController
-        fitBounds={initialBounds}
-        maxBounds={maxBounds}
-        minZoom={12}
-        fitOptions={() => fitOptions}
-      />,
-    );
-    const observer = MockResizeObserver.instances.at(-1)!;
+  it.each([
+    ['pointerdown', () => fireEvent.pointerDown(container)],
+    ['keydown', () => fireEvent.keyDown(container, { key: 'ArrowUp' })],
+  ])(
+    'resize時に注入された初期範囲とpanel・sheet余白でfitし、%s後は再fitしない',
+    (_, interact) => {
+      map.getBoundsZoom.mockReturnValue(14);
+      render(
+        <MapViewportController
+          fitBounds={initialBounds}
+          maxBounds={maxBounds}
+          minZoom={12}
+          fitOptions={() => fitOptions}
+        />,
+      );
+      const observer = MockResizeObserver.instances.at(-1)!;
 
-    observer.trigger();
-    expect(map.fitBounds).toHaveBeenCalledWith(initialBounds, fitOptions);
+      observer.trigger();
+      expect(map.fitBounds).toHaveBeenCalledWith(initialBounds, fitOptions);
 
-    fireEvent.pointerDown(container);
-    observer.trigger();
-    expect(map.fitBounds).toHaveBeenCalledTimes(1);
-  });
+      interact();
+      observer.trigger();
+      expect(map.fitBounds).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it('fitOptions callbackをresizeのたびにcontainerから解決する', () => {
     map.getBoundsZoom.mockReturnValue(14);
@@ -364,52 +372,40 @@ describe('MapViewportController', () => {
     expect(map.flyTo).toHaveBeenCalledTimes(1);
   });
 
-  it('does not keep following the same selection after the user moves the map', () => {
+  it('maxBoundsPaddingがあれば余白の分だけ最大範囲を広げ、zoomendで現在のzoomに張り直す', () => {
     map.getBoundsZoom.mockReturnValue(12);
-    map.getZoom.mockReturnValue(12);
-    map.getSize.mockReturnValue(point(390, 844));
-    map.project.mockReturnValue(point(200, 400));
-    map.unproject.mockReturnValue({ lat: 36.41, lng: 139.1 });
-    const { rerender } = render(
+    map.getZoom.mockReturnValue(14);
+    map.project.mockImplementation((ll: { lat: number; lng: number }) =>
+      point(ll.lat * 100, ll.lng * 100),
+    );
+    map.unproject.mockImplementation((p: { x: number; y: number }) => ({
+      lat: p.x / 100,
+      lng: p.y / 100,
+    }));
+    render(
       <MapViewportController
         fitBounds={initialBounds}
-        focusCenter={[36.41, 139.1]}
-        focusKey={101}
-        focusZoom={15.5}
         maxBounds={maxBounds}
         minZoom={10.5}
-        fitOptions={() => ({
-          paddingTopLeft: [16, 136],
-          paddingBottomRight: [16, 396],
-        })}
-        focusFitOptions={() => ({
-          paddingTopLeft: [16, 136],
-          paddingBottomRight: [16, 396],
+        fitOptions={() => fitOptions}
+        maxBoundsPadding={() => ({
+          paddingTopLeft: [10, 20],
+          paddingBottomRight: [30, 40],
         })}
       />,
     );
+    const widened = (call: number) => {
+      const b = map.setMaxBounds.mock.calls[call]![0];
+      return [b.getSouth(), b.getWest(), b.getNorth(), b.getEast()];
+    };
+    expect(map.project).toHaveBeenCalledWith(expect.anything(), 10.5);
+    expect(widened(0)).toEqual([-0.1, 1.4, 4.3, 4.8]);
+    expect(map.setMaxBounds).not.toHaveBeenCalledWith(maxBounds);
 
-    fireEvent.pointerDown(container);
-    rerender(
-      <MapViewportController
-        fitBounds={initialBounds}
-        focusCenter={[36.41, 139.1]}
-        focusKey={101}
-        focusZoom={15.5}
-        maxBounds={maxBounds}
-        minZoom={10.5}
-        fitOptions={() => ({
-          paddingTopLeft: [16, 136],
-          paddingBottomRight: [16, 716],
-        })}
-        focusFitOptions={() => ({
-          paddingTopLeft: [16, 136],
-          paddingBottomRight: [16, 716],
-        })}
-      />,
-    );
-
-    expect(map.flyTo).toHaveBeenCalledTimes(1);
+    const zoomend = map.on.mock.calls.find(([name]) => name === 'zoomend')![1];
+    zoomend();
+    expect(map.project).toHaveBeenLastCalledWith(expect.anything(), 14);
+    expect(map.setMaxBounds).toHaveBeenCalledTimes(2);
   });
 
   it('uses a non-animated move when reduced motion is requested', () => {

@@ -37,10 +37,9 @@ describe('SponsorImage / RegionalSponsorCard', () => {
     const { rerender } = render(
       <SponsorImage sponsor={sponsor()} variant="card" className="h-20 w-20" />,
     );
-    expect(screen.getByRole('img')).toHaveAttribute(
-      'src',
-      'https://cms.invalid/fixture-image?width=160',
-    );
+    expect(
+      screen.getByRole('img', { name: 'テスト専用掲載画像' }),
+    ).toHaveAttribute('src', 'https://cms.invalid/fixture-image?width=160');
     expect(screen.getByRole('img')).toHaveClass('object-contain');
     expect(screen.getByRole('img')).toHaveAttribute('loading', 'lazy');
     expect(screen.getByRole('img')).toHaveAttribute('decoding', 'async');
@@ -70,12 +69,13 @@ describe('SponsorImage / RegionalSponsorCard', () => {
         sponsor={sponsor({
           imageId: 'decorative-fixture',
           imageDecorative: true,
-          imageAlt: null,
+          imageAlt: '装飾のはずの代替テキスト',
         })}
         variant="card"
       />,
     );
     expect(container.querySelector('img')).toHaveAttribute('alt', '');
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });
 
   it.each<[RegionalSponsorCategory, string]>([
@@ -141,6 +141,15 @@ describe('RegionalSponsorList / RegionalSponsorDetail', () => {
     );
     expect(screen.getByRole('heading', { level: 1 })).toHaveFocus();
     expect(screen.getByText('診療時間・休診日')).toBeInTheDocument();
+    expect(screen.getByText('テスト県テスト市1-2-3')).toBeInTheDocument();
+    expect(screen.getByText('000-0000-0000')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        (_, el) =>
+          el?.textContent === '午前 9時〜12時\n午後 14時〜18時' &&
+          el.children.length === 0,
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText(/午前 9時〜12時/)).toHaveClass(
       'whitespace-pre-wrap',
     );

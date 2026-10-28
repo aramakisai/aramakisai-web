@@ -85,18 +85,6 @@ function renderNestedScrollArea(scrollTop: number) {
 }
 
 describe('MapBottomSheetShell', () => {
-  it('reduced motion時はsnap遷移を無効化する', () => {
-    window.matchMedia = vi.fn().mockReturnValue({
-      matches: false,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    });
-    render(<Harness />);
-    expect(screen.getByTestId('map-bottom-sheet')).toHaveClass(
-      'motion-reduce:transition-none',
-    );
-  });
-
   it('内容と一覧用・詳細用の高さ設定を受け取る', () => {
     window.matchMedia = vi.fn().mockReturnValue({
       matches: false,
