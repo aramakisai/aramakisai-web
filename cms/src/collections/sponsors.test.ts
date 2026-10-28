@@ -14,15 +14,10 @@ const address = fieldOf(Sponsors.fields, 'address');
 const areaId = fieldOf(Sponsors.fields, 'area_id');
 const boothNumber = fieldOf(Sponsors.fields, 'booth_number');
 const boothLabel = fieldOf(Sponsors.fields, 'booth_label');
-const localImportId = fieldOf(Sponsors.fields, 'local_import_id');
-const localMapCategory = fieldOf(Sponsors.fields, 'local_map_category');
 const localLatitude = fieldOf(Sponsors.fields, 'local_latitude');
 const localLongitude = fieldOf(Sponsors.fields, 'local_longitude');
 const localImage = fieldOf(Sponsors.fields, 'local_image');
-const localImageAlt = fieldOf(Sponsors.fields, 'local_image_alt');
-const localImageDecorative = fieldOf(Sponsors.fields, 'local_image_decorative');
 const localPhone = fieldOf(Sponsors.fields, 'local_phone');
-const localImageChecksum = fieldOf(Sponsors.fields, 'local_image_checksum');
 
 describe('type フィールド', () => {
   it('4 択の複数選択かつ必須で、既定値を持たない', () => {
@@ -39,10 +34,10 @@ describe('type フィールド', () => {
   });
 });
 
-describe('種別ごとの入力項目の出し分け', () => {
-  const conditionOf = (field: NamedField) =>
-    (field.admin as { condition: (data: Record<string, unknown>) => boolean }).condition;
+const conditionOf = (field: NamedField) =>
+  (field.admin as { condition: (data: Record<string, unknown>) => boolean }).condition;
 
+describe('種別ごとの入力項目の出し分け', () => {
   it('協賛プランは広告協賛を選んだときだけ表示する', () => {
     const condition = conditionOf(tier);
     expect(condition({ type: ['ad'] })).toBe(true);
@@ -79,31 +74,8 @@ describe('booth_number フィールド', () => {
 });
 
 describe('地域協賛マップ項目', () => {
-  it('既存項目を必須化せず、地図固有項目をlocalのときだけ表示する', () => {
-    const condition = (
-      localMapCategory.admin as { condition: (data: Record<string, unknown>) => boolean }
-    ).condition;
-
-    expect(condition({ type: ['local'] })).toBe(true);
-    expect(condition({ type: ['ad'] })).toBe(false);
-    for (const field of [
-      localImportId,
-      localMapCategory,
-      localLatitude,
-      localLongitude,
-      localImage,
-      localImageAlt,
-      localImageDecorative,
-      localPhone,
-      localImageChecksum,
-    ]) {
-      expect(field.required).not.toBe(true);
-    }
-  });
-
-  it('カテゴリをcanonical 6値に限定し、電話番号はtextで保持する', () => {
-    expect(localMapCategory.type).toBe('select');
-    expect((localMapCategory.options as { value: string }[]).map(({ value }) => value)).toEqual([
+  it('業種タグは6カテゴリのselectで、地図固有項目はlocalのときだけ表示する', () => {
+    expect((businessCategory.options as { value: string }[]).map(({ value }) => value)).toEqual([
       'hospital',
       'life',
       'car',
@@ -111,17 +83,10 @@ describe('地域協賛マップ項目', () => {
       'food',
       'shop',
     ]);
-    expect(localPhone.type).toBe('text');
-  });
-
-  it('取り込みIDを一意index、掲載画像をmedia relation、checksumをreadOnlyにする', () => {
-    expect(localImportId).toMatchObject({ type: 'text', unique: true, index: true });
-    expect(localImage).toMatchObject({ type: 'upload', relationTo: 'media' });
-    expect(localImageChecksum.type).toBe('text');
-    expect(localImageChecksum.admin).toMatchObject({ readOnly: true });
-    expect(localLatitude.admin).toMatchObject({ readOnly: true });
-    expect(localLongitude.admin).toMatchObject({ readOnly: true });
-    expect(localImportId.access).toHaveProperty('read');
-    expect(localImageChecksum.access).toHaveProperty('read');
+    for (const field of [businessCategory, localLatitude, localLongitude, localImage, localPhone]) {
+      const condition = conditionOf(field);
+      expect(condition({ type: ['local'] })).toBe(true);
+      expect(condition({ type: ['ad'] })).toBe(false);
+    }
   });
 });

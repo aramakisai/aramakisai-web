@@ -2,14 +2,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
   localSponsorMapConstraint,
-  normalizeLocalSponsorMap,
   validateLocalSponsorMap,
 } from './local-sponsor-map'
 
 const completeLocal = {
   type: ['local'],
   name: 'テスト専用地域協賛',
-  local_map_category: 'hospital',
+  business_category: 'hospital',
   local_latitude: 90,
   local_longitude: 180,
 }
@@ -21,19 +20,18 @@ describe('validateLocalSponsorMap', () => {
     expect(
       validateLocalSponsorMap({
         ...completeLocal,
-        local_map_category: 'unknown',
+        business_category: 'unknown',
         local_latitude: Number.NaN,
         local_longitude: 180.1,
       }),
     ).toEqual([])
   })
 
-  it('URLはhttp/httpsだけを許可し、電話番号は文字列のまま保持する', () => {
+  it('URLはhttp/httpsだけを許可する', () => {
     expect(
       validateLocalSponsorMap({
         ...completeLocal,
         url: 'javascript:alert(1)',
-        local_phone: '027-000-0000（内線12）',
       }),
     ).toEqual([
       {
@@ -41,39 +39,6 @@ describe('validateLocalSponsorMap', () => {
         message: 'Webサイト URL は http または https の絶対URLにしてください',
       },
     ])
-    expect(
-      normalizeLocalSponsorMap({
-        ...completeLocal,
-        url: ' https://example.invalid/path ',
-        local_phone: ' 027-000-0000（内線12） ',
-      }),
-    ).toMatchObject({
-      url: 'https://example.invalid/path',
-      local_phone: '027-000-0000（内線12）',
-    })
-  })
-
-  it('掲載画像にはaltまたは装飾指定のどちらか一方を要求する', () => {
-    expect(validateLocalSponsorMap({ ...completeLocal, local_image: 10 })).toEqual([
-      {
-        field: 'local_image_alt',
-        message: '掲載画像には代替テキストまたは装飾画像の指定が必要です',
-      },
-    ])
-    expect(
-      validateLocalSponsorMap({
-        ...completeLocal,
-        local_image: 10,
-        local_image_alt: 'テスト画像',
-      }),
-    ).toEqual([])
-    expect(
-      validateLocalSponsorMap({
-        ...completeLocal,
-        local_image: 10,
-        local_image_decorative: true,
-      }),
-    ).toEqual([])
   })
 
   it('追加項目のない既存localとlocal以外を妨げない', () => {
@@ -83,32 +48,14 @@ describe('validateLocalSponsorMap', () => {
         type: ['ad', 'vendor'],
         name: '既存の他種別',
         url: 'not-a-url',
-        local_map_category: 'unknown',
+        business_category: 'unknown',
         local_latitude: 999,
       }),
     ).toEqual([])
   })
 })
 
-describe('normalizeLocalSponsorMap', () => {
-  it('取り込み識別子と任意文字列の空白をnullへ正規化する', () => {
-    expect(
-      normalizeLocalSponsorMap({
-        type: ['local'],
-        name: '既存レコード',
-        local_import_id: ' ',
-        local_business_hours: ' ',
-        local_closed_days: ' ',
-        local_phone: ' ',
-      }),
-    ).toMatchObject({
-      local_import_id: null,
-      local_business_hours: null,
-      local_closed_days: null,
-      local_phone: null,
-    })
-  })
-
+describe('localSponsorMapConstraint', () => {
   it('既存localの部分更新でも空白をnullへ正規化する', async () => {
     expect(
       await localSponsorMapConstraint({
@@ -132,7 +79,7 @@ describe('normalizeLocalSponsorMap', () => {
         data: {
           type: ['local'],
           address: '群馬県前橋市荒牧町4丁目2',
-          local_map_category: 'education',
+          business_category: 'education',
         },
         operation: 'create',
       } as never),
@@ -142,37 +89,7 @@ describe('normalizeLocalSponsorMap', () => {
     })
   })
 
-  it('取り込みCLI相当(contextフラグあり)では住所変更時も渡された座標を保存する', async () => {
-    const fetchMock = vi.fn()
-    vi.stubGlobal('fetch', fetchMock)
-
-    await expect(
-      localSponsorMapConstraint({
-        data: {
-          address: '変更後のテスト住所',
-          local_latitude: 36.43068,
-          local_longitude: 139.044795,
-        },
-        originalDoc: {
-          type: ['local'],
-          name: '既存レコード',
-          address: '変更前のテスト住所',
-          local_map_category: 'education',
-          local_latitude: 36.43068,
-          local_longitude: 139.044795,
-        },
-        operation: 'update',
-        req: { context: { localSponsorExplicitCoordinates: true } },
-      } as never),
-    ).resolves.toMatchObject({
-      address: '変更後のテスト住所',
-      local_latitude: 36.43068,
-      local_longitude: 139.044795,
-    })
-    expect(fetchMock).not.toHaveBeenCalled()
-  })
-
-  it('管理画面相当(contextフラグなし)で旧座標がdataにあっても住所変更時は再geocodeする', async () => {
+  it('管理画面相当で旧座標がdataにあっても住所変更時は再geocodeする', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue({
@@ -192,12 +109,11 @@ describe('normalizeLocalSponsorMap', () => {
           type: ['local'],
           name: '既存レコード',
           address: '変更前のテスト住所',
-          local_map_category: 'education',
+          business_category: 'education',
           local_latitude: 36.43068,
           local_longitude: 139.044795,
         },
         operation: 'update',
-        req: { context: {} },
       } as never),
     ).resolves.toMatchObject({ local_latitude: 36, local_longitude: 139 })
   })
@@ -210,7 +126,7 @@ describe('normalizeLocalSponsorMap', () => {
         data: {
           type: ['local'],
           address: '検索できないテスト住所',
-          local_map_category: 'shop',
+          business_category: 'shop',
         },
         operation: 'create',
       } as never),

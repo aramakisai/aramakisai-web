@@ -1,6 +1,5 @@
 import type { CollectionConfig } from 'payload';
 
-import { executiveOnlyField } from '../access/payload-access';
 import { blankToNull } from '../hooks/constraints';
 import { localSponsorMapConstraint } from '../hooks/local-sponsor-map';
 import { sponsorBoothPlacementConstraint } from '../hooks/payload-constraints';
@@ -15,6 +14,9 @@ export const LOCAL_SPONSOR_CATEGORY_OPTIONS = [
   { label: '飲食', value: 'food' },
   { label: 'ショップ', value: 'shop' },
 ] as const;
+
+const isLocal = (data: Record<string, unknown> | undefined) =>
+  Array.isArray(data?.type) && data.type.includes('local');
 
 export const Sponsors: CollectionConfig = {
   slug: 'sponsors',
@@ -69,12 +71,12 @@ export const Sponsors: CollectionConfig = {
     },
     {
       name: 'business_category',
-      type: 'text',
-      maxLength: 100,
+      type: 'select',
+      options: [...LOCAL_SPONSOR_CATEGORY_OPTIONS],
       label: '業種タグ',
       admin: {
         description: '地域協賛のみ',
-        condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
+        condition: isLocal,
       },
     },
     {
@@ -84,29 +86,7 @@ export const Sponsors: CollectionConfig = {
       label: '住所',
       admin: {
         description: '地域協賛のみ',
-        condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
-      },
-    },
-    {
-      name: 'local_import_id',
-      type: 'text',
-      unique: true,
-      index: true,
-      maxLength: 255,
-      label: '地域協賛 取り込み識別子',
-      access: { read: executiveOnlyField },
-      admin: {
-        description: '一括取り込みで同じ所在地を識別する値。手入力では任意',
-        condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
-      },
-    },
-    {
-      name: 'local_map_category',
-      type: 'select',
-      label: '地域協賛 地図カテゴリ',
-      options: [...LOCAL_SPONSOR_CATEGORY_OPTIONS],
-      admin: {
-        condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
+        condition: isLocal,
       },
     },
     {
@@ -117,7 +97,7 @@ export const Sponsors: CollectionConfig = {
       label: '地域協賛 緯度',
       admin: {
         readOnly: true,
-        condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
+        condition: isLocal,
       },
     },
     {
@@ -128,7 +108,7 @@ export const Sponsors: CollectionConfig = {
       label: '地域協賛 経度',
       admin: {
         readOnly: true,
-        condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
+        condition: isLocal,
       },
     },
     {
@@ -137,41 +117,15 @@ export const Sponsors: CollectionConfig = {
       relationTo: 'media',
       label: '地域協賛 掲載画像',
       admin: {
-        condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
-      },
-    },
-    {
-      name: 'local_image_alt',
-      type: 'text',
-      maxLength: 500,
-      label: '地域協賛 掲載画像の代替テキスト',
-      admin: {
-        condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
-      },
-    },
-    {
-      name: 'local_image_decorative',
-      type: 'checkbox',
-      defaultValue: false,
-      label: '地域協賛 掲載画像を装飾として扱う',
-      admin: {
-        condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
+        condition: isLocal,
       },
     },
     {
       name: 'local_business_hours',
       type: 'textarea',
-      label: '地域協賛 営業時間・診療時間',
+      label: '地域協賛 営業時間・定休日',
       admin: {
-        condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
-      },
-    },
-    {
-      name: 'local_closed_days',
-      type: 'textarea',
-      label: '地域協賛 定休日・休診日',
-      admin: {
-        condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
+        condition: isLocal,
       },
     },
     {
@@ -180,18 +134,7 @@ export const Sponsors: CollectionConfig = {
       maxLength: 100,
       label: '地域協賛 電話番号',
       admin: {
-        condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
-      },
-    },
-    {
-      name: 'local_image_checksum',
-      type: 'text',
-      maxLength: 64,
-      label: '地域協賛 掲載画像checksum',
-      access: { read: executiveOnlyField },
-      admin: {
-        readOnly: true,
-        condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
+        condition: isLocal,
       },
     },
     {
