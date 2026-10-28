@@ -56,6 +56,7 @@ export function RegionalSponsorMapView({
   onSelectLocation,
 }: RegionalSponsorMapViewProps) {
   const [loading, setLoading] = useState(true);
+  const markerSize = isDesktop ? 48 : 32;
   const [tileError, setTileError] = useState(false);
   const [tileKey, setTileKey] = useState(0);
 
@@ -83,7 +84,8 @@ export function RegionalSponsorMapView({
       const left = panel?.width ? Math.max(0, panel.right - rect.left) : 0;
       const top = overlay?.height ? Math.max(0, overlay.bottom - rect.top) : 0;
       return {
-        paddingTopLeft: [left + FIT_MARGIN, top + FIT_MARGIN],
+        // ピンは下端中央アンカーなので、座標を余白内に置くだけでは画像上端が画面外へ出る
+        paddingTopLeft: [left + FIT_MARGIN, top + FIT_MARGIN + markerSize],
         paddingBottomRight: [
           FIT_MARGIN + ZOOM_CONTROL_WIDTH,
           FIT_MARGIN + (isDesktop ? 16 : sheetHeight),
@@ -93,7 +95,7 @@ export function RegionalSponsorMapView({
         animate: false,
       };
     },
-    [isDesktop, mobileBottomInset, profile?.initialZoom],
+    [isDesktop, markerSize, mobileBottomInset, profile?.initialZoom],
   );
 
   const fitOptions = useMemo<FitBoundsOptions>(
@@ -212,7 +214,7 @@ export function RegionalSponsorMapView({
           sponsors={sponsors}
           selectedSponsorId={selectedSponsorId}
           profile={profile}
-          markerSize={isDesktop ? 48 : 32}
+          markerSize={markerSize}
           visibleAreaOptions={initialFitOptions}
           onSelectSponsor={onSelectSponsor}
           onSelectLocation={onSelectLocation}
