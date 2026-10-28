@@ -96,7 +96,6 @@ export const Sponsors: CollectionConfig = {
       max: 90,
       label: '地域協賛 緯度',
       admin: {
-        readOnly: true,
         condition: isLocal,
       },
     },
@@ -107,7 +106,6 @@ export const Sponsors: CollectionConfig = {
       max: 180,
       label: '地域協賛 経度',
       admin: {
-        readOnly: true,
         condition: isLocal,
       },
     },

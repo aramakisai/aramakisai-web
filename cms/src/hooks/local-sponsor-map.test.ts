@@ -103,6 +103,52 @@ describe('localSponsorMapConstraint', () => {
     ).resolves.toMatchObject({ local_latitude: 36, local_longitude: 139 })
   })
 
+  it('住所を変えずに座標だけ変えた更新では、geocodeせず入力座標が残る', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(
+      localSponsorMapConstraint({
+        data: { address: 'テスト住所', local_latitude: 36.5, local_longitude: 139.1 },
+        originalDoc: {
+          type: ['local'],
+          name: '既存レコード',
+          address: 'テスト住所',
+          business_category: 'education',
+          local_latitude: 36.43068,
+          local_longitude: 139.044795,
+        },
+        operation: 'update',
+      } as never),
+    ).resolves.toMatchObject({ local_latitude: 36.5, local_longitude: 139.1 })
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('住所と座標を両方変えた更新では、geocodeの結果が勝つ', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve([{ geometry: { coordinates: [139.0, 36.0] } }]),
+      }),
+    )
+
+    await expect(
+      localSponsorMapConstraint({
+        data: { address: '変更後のテスト住所', local_latitude: 36.5, local_longitude: 139.1 },
+        originalDoc: {
+          type: ['local'],
+          name: '既存レコード',
+          address: '変更前のテスト住所',
+          business_category: 'education',
+          local_latitude: 36.43068,
+          local_longitude: 139.044795,
+        },
+        operation: 'update',
+      } as never),
+    ).resolves.toMatchObject({ local_latitude: 36, local_longitude: 139 })
+  })
+
   it('住所検索に失敗した場合は住所fieldの検証エラーにする', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve([]) }))
 

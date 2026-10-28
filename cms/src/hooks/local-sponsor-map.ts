@@ -97,7 +97,7 @@ export const localSponsorMapConstraint: CollectionBeforeValidateHook = async ({
     const address = blankToNull(normalizedEffective.address)
     const addressChanged =
       Object.hasOwn(partial, 'address') && address !== blankToNull(originalDoc?.address)
-    // 管理画面は readOnly 項目も含め全項目を送るため、data の座標は旧住所のものでも信頼しない。
+    // 管理画面は全項目を送るため、住所が変わった保存では data の座標が旧住所のものでも、手入力と区別できず geocode 結果を優先する。
     const needsGeocode = !validCoordinatePair(normalizedEffective) || addressChanged
 
     if (needsGeocode) {
