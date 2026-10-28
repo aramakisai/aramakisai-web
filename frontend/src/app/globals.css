@@ -717,6 +717,39 @@
   pointer-events: none;
 }
 
+/* 地域協賛マップのピンはFigmaのPC 48px / SP 32pxをiconSizeで受ける。 */
+.regional-sponsor-pin,
+.regional-sponsor-cluster {
+  border: 0;
+  background: transparent;
+}
+
+.regional-sponsor-pin > img,
+.regional-sponsor-cluster > img {
+  display: block;
+  width: 80%;
+  height: 100%;
+  margin: 0 auto;
+  filter: drop-shadow(0 4px 6px rgb(32 32 32 / 0.24));
+}
+
+.regional-sponsor-pin--selected > img {
+  filter: drop-shadow(0 0 2px #202020)
+    drop-shadow(0 4px 6px rgb(32 32 32 / 0.24));
+}
+
+.regional-sponsor-pin:focus-visible > img,
+.regional-sponsor-cluster:focus-visible > img {
+  outline: 3px solid #ebb03c;
+  outline-offset: 3px;
+}
+
+@media (max-width: 767px) {
+  .regional-sponsor-map .leaflet-bottom {
+    bottom: var(--regional-map-bottom-inset, 0px);
+  }
+}
+
 .leaflet-tooltip.map-point-tooltip.leaflet-tooltip-top::before {
   bottom: -7px;
   border-top-color: #e7e5e4;

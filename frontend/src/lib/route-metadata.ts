@@ -4,6 +4,7 @@ export type CodeRoutePath =
   | '/exhibitions'
   | '/topics'
   | '/map'
+  | '/sponsors/local'
   | '/faq'
   | '/timetable'
   | '/parking'
@@ -43,6 +44,11 @@ export const ROUTE_METADATA: Readonly<
     title: '構内マップ',
     description:
       '荒牧祭の会場となる構内マップです。企画やステージの場所を検索できます。',
+  },
+  '/sponsors/local': {
+    title: '地域協賛マップ',
+    description:
+      '荒牧祭を支える地域の協賛企業・店舗を、地図やカテゴリから探せます。',
   },
   '/faq': {
     title: 'よくある質問',

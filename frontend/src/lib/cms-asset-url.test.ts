@@ -13,6 +13,8 @@ describe('pickImageSize', () => {
   });
 
   it('指定幅を満たす最小の生成済みサイズを選ぶ', () => {
+    expect(pickImageSize(160)).toBe('thumbnail');
+    expect(pickImageSize(320)).toBe('thumbnail');
     expect(pickImageSize(500)).toBe('card');
     expect(pickImageSize(960)).toBe('card');
   });
@@ -44,6 +46,9 @@ describe('toAssetUrl', () => {
     );
     expect(toAssetUrl('42', 960)).toBe(
       'http://localhost:3100/api/media/serve/42/card',
+    );
+    expect(toAssetUrl('42', 160)).toBe(
+      'http://localhost:3100/api/media/serve/42/thumbnail',
     );
   });
 });

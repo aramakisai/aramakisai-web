@@ -42,6 +42,21 @@ export const CAMPUS_MAP_CONFIG: CampusMapConfig = {
   tileUrlTemplate: '/map-tiles/{z}/{x}/{y}.webp',
 };
 
+// 既存1454枚・約3.83MiBに対する従来の1.5倍停止基準をprofileへ移す。
+// expectedMaxBytesは現在の公開タイル総容量4,019,282 bytesの1.5倍。
+export const CAMPUS_MAP_TILE_PROFILE = {
+  id: 'campus',
+  bounds: CAMPUS_MAP_CONFIG.bounds,
+  minZoom: CAMPUS_MAP_CONFIG.minZoom,
+  maxZoom: CAMPUS_MAP_CONFIG.maxZoom,
+  minNativeZoom: CAMPUS_MAP_CONFIG.minNativeZoom,
+  maxNativeZoom: CAMPUS_MAP_CONFIG.maxNativeZoom,
+  publicDirectory: 'public/map-tiles',
+  urlTemplate: CAMPUS_MAP_CONFIG.tileUrlTemplate,
+  expectedMaxTileCount: 2_181,
+  expectedMaxBytes: 6_028_923,
+} as const;
+
 /**
  * Leaflet の attribution は HTML として解釈されるため、リンクを含む文字列をそのまま定数として持つ。
  * OpenStreetMap Tile Usage Policy / Attribution Guidelines が要求する文言とリンク先を満たす。

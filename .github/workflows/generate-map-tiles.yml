@@ -1,7 +1,18 @@
 name: Generate Map Tiles
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: Map tile profile to generate
+        required: true
+        type: choice
+        options:
+          - campus
+          - regional
+
+env:
+  MAP_TILE_PROFILE: ${{ inputs.profile }}
 
 defaults:
   run:
@@ -12,7 +23,7 @@ permissions:
 
 jobs:
   generate:
-    name: render OSM tiles for the campus map
+    name: render OSM tiles for the selected map profile
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -33,11 +44,29 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # CAMPUS_MAP_CONFIG から算出した枚数が想定の 1.5 倍を超える場合、
+      - name: Resolve profile outputs
+        id: profile
+        run: |
+          case "$MAP_TILE_PROFILE" in
+            campus)
+              echo "output-directory=rendered-tiles" >> "$GITHUB_OUTPUT"
+              echo "artifact-name=map-tiles" >> "$GITHUB_OUTPUT"
+              ;;
+            regional)
+              echo "output-directory=regional-map-tiles" >> "$GITHUB_OUTPUT"
+              echo "artifact-name=regional-map-tiles" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "::error::profile must be campus or regional"
+              exit 1
+              ;;
+          esac
+
+      # 選択profileから算出した枚数がprofileの上限を超える場合、
       # このステップが非ゼロで終了し、後続のレンダリングステップは走らない。
       - name: Calculate tile bounds
         id: bounds
-        run: pnpm exec tsx scripts/map-tile-bounds.ts
+        run: pnpm exec tsx scripts/map-tile-bounds.ts --profile "$MAP_TILE_PROFILE"
 
       # switch2osm 案内の Overv/openstreetmap-tile-server は PostGIS 込みで
       # 30GB 前後のディスクを要求する。ubuntu-latest のプリインストールを削って空きを作る
@@ -63,16 +92,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y osmium-tool
 
-      - name: Extract campus bounding box
+      - name: Extract selected profile bounding box
         run: |
           osmium extract --bbox "${{ steps.bounds.outputs.bbox }}" \
             --strategy complete_ways \
-            -o campus.osm.pbf kanto-latest.osm.pbf
+            -o selected-profile.osm.pbf kanto-latest.osm.pbf
 
       - name: Import into openstreetmap-tile-server
         run: |
           docker run --name import \
-            -v "$PWD/campus.osm.pbf:/data/region.osm.pbf" \
+            -v "$PWD/selected-profile.osm.pbf:/data/region.osm.pbf" \
             -v osm-data:/data/database/ \
             overv/openstreetmap-tile-server:latest import
 
@@ -91,6 +120,10 @@ jobs:
           # render_list / renderd は個別の PNG ではなく、8x8 タイルをまとめた
           # メタタイル (.meta) でしか書き出さない。個別 PNG は後続ステップで
           # mod_tile の HTTP エンドポイント経由で取得するため、置き場を分ける
+          #
+          # 前回実行の残骸が残っていると render_list が「描画済み」とみなして飛ばし、
+          # 古い DB で描いた空白のメタタイルがそのまま使い回されるため、必ず作り直す
+          rm -rf metatiles
           mkdir -p metatiles
           chmod 777 metatiles
 
@@ -117,18 +150,22 @@ jobs:
             sleep 2
           done
 
-          # z16-19 それぞれの範囲を計算結果 (steps.bounds.outputs.zoom-ranges) から取り出し、
+          # 選択profileの各zoom範囲を計算結果 (steps.bounds.outputs.zoom-ranges) から取り出し、
           # コンテナ同梱の render_list (mod_tile) にそのまま渡す。判断ロジックは持たず反復のみ
           echo '${{ steps.bounds.outputs.zoom-ranges }}' | \
             jq -c '.[]' | \
             while read -r range; do
               zoom=$(echo "$range" | jq -r '.zoom')
+              # メタタイルは 8x8 単位。xMin/yMin を 8 の倍数に切り下げないと、
+              # 範囲先頭のメタタイルが事前描画から漏れて空白になる
+              xMin=$(echo "$range" | jq -r '.xMin - .xMin % 8')
+              yMin=$(echo "$range" | jq -r '.yMin - .yMin % 8')
               docker exec tile-server render_list \
-                -a -m default \
+                -a -f -m default \
                 -z "$zoom" -Z "$zoom" \
-                -x "$(echo "$range" | jq -r '.xMin')" \
+                -x "$xMin" \
                 -X "$(echo "$range" | jq -r '.xMax')" \
-                -y "$(echo "$range" | jq -r '.yMin')" \
+                -y "$yMin" \
                 -Y "$(echo "$range" | jq -r '.yMax')"
             done
 
@@ -160,10 +197,10 @@ jobs:
       # 自前でメタタイル形式をパースせずに済むため、この形式で個別ファイルを揃える
       - name: Fetch rendered tiles via HTTP
         run: |
-          mkdir -p rendered-tiles
+          mkdir -p "${{ steps.profile.outputs.output-directory }}"
           MAP_TILE_SERVER_URL=http://localhost:8080 \
-            MAP_TILES_OUT_DIR="$PWD/rendered-tiles" \
-            pnpm exec tsx scripts/fetch-map-tiles.ts
+            MAP_TILES_OUT_DIR="$PWD/${{ steps.profile.outputs.output-directory }}" \
+            pnpm exec tsx scripts/fetch-map-tiles.ts --profile "$MAP_TILE_PROFILE"
 
       - name: Install cwebp
         run: |
@@ -173,14 +210,14 @@ jobs:
       # 配信形式を webp にすることで転送量を抑える (design.md 参照)。変換ロジックは
       # スクリプト側に置き、YAML には呼び出しだけを書く
       - name: Convert rendered tiles to webp
-        run: MAP_TILES_DIR="$PWD/rendered-tiles" pnpm exec tsx scripts/convert-map-tiles-to-webp.ts
+        run: MAP_TILES_DIR="$PWD/${{ steps.profile.outputs.output-directory }}" pnpm exec tsx scripts/convert-map-tiles-to-webp.ts --profile "$MAP_TILE_PROFILE"
 
       - name: Verify rendered tiles
-        run: MAP_TILES_DIR="$PWD/rendered-tiles" pnpm exec tsx scripts/verify-map-tiles.ts
+        run: MAP_TILES_DIR="$PWD/${{ steps.profile.outputs.output-directory }}" pnpm exec tsx scripts/verify-map-tiles.ts --profile "$MAP_TILE_PROFILE"
 
       - name: Upload tiles artifact
         uses: actions/upload-artifact@v4
         with:
-          name: map-tiles
-          path: frontend/rendered-tiles
+          name: ${{ steps.profile.outputs.artifact-name }}
+          path: frontend/${{ steps.profile.outputs.output-directory }}
           retention-days: 14

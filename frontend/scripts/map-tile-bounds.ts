@@ -1,8 +1,9 @@
 import { appendFileSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 import {
-  CAMPUS_MAP_CONFIG,
-  type CampusMapConfig,
-} from '../src/lib/campus-map-config';
+  getMapTileProfile,
+  type MapTileProfile,
+} from '../src/lib/map-tile-profile';
 
 export interface ZoomTileRange {
   readonly zoom: number;
@@ -18,16 +19,12 @@ export interface MapTileBoundsResult {
   readonly totalCount: number;
 }
 
-// 実測 (z16-19 合計 1454 枚、CAMPUS_MAP_CONFIG のドライラン結果)。1.5 倍超で生成前に停止する。
-const EXPECTED_TOTAL_TILE_COUNT = 1454;
-export const TILE_COUNT_THRESHOLD = EXPECTED_TOTAL_TILE_COUNT * 1.5;
-
-function longitudeToTileX(longitude: number, zoom: number): number {
+export function longitudeToTileX(longitude: number, zoom: number): number {
   return Math.floor(((longitude + 180) / 360) * 2 ** zoom);
 }
 
 // Web Mercator の標準変換 (https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames)
-function latitudeToTileY(latitude: number, zoom: number): number {
+export function latitudeToTileY(latitude: number, zoom: number): number {
   const latRad = (latitude * Math.PI) / 180;
   return Math.floor(
     ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) *
@@ -36,18 +33,20 @@ function latitudeToTileY(latitude: number, zoom: number): number {
 }
 
 export function calculateMapTileBounds(
-  config: Pick<
-    CampusMapConfig,
-    'bounds' | 'minZoom' | 'maxZoom'
-  > = CAMPUS_MAP_CONFIG,
+  profile: MapTileProfile,
 ): MapTileBoundsResult {
-  const [[south, west], [north, east]] = config.bounds;
+  const [[south, west], [north, east]] = profile.bounds;
   const zoomRanges: ZoomTileRange[] = [];
 
-  for (let zoom = config.minZoom; zoom <= config.maxZoom; zoom++) {
+  // 生成対象は表示上の電子zoomではなく、実ファイルが存在するnative zoomだけにする。
+  for (
+    let zoom = profile.minNativeZoom;
+    zoom <= profile.maxNativeZoom;
+    zoom++
+  ) {
     const xMin = longitudeToTileX(west, zoom);
     const xMax = longitudeToTileX(east, zoom);
-    // 緯度が下がるほどタイル Y は増えるため、北端が yMin になる
+    // 緯度が下がるほどタイルYは増えるため、北端がyMinになる
     const yMin = latitudeToTileY(north, zoom);
     const yMax = latitudeToTileY(south, zoom);
     const count = (xMax - xMin + 1) * (yMax - yMin + 1);
@@ -58,33 +57,58 @@ export function calculateMapTileBounds(
   return { zoomRanges, totalCount };
 }
 
-export function exceedsTileCountThreshold(
+export function exceedsTileCountLimit(
   result: MapTileBoundsResult,
+  profile: MapTileProfile,
 ): boolean {
-  return result.totalCount > TILE_COUNT_THRESHOLD;
+  return result.totalCount > profile.expectedMaxTileCount;
 }
 
-function formatBbox(config: CampusMapConfig): string {
+export function resolveMapTileProfileFromArgs(
+  args: readonly string[],
+): MapTileProfile {
+  const profileFlagIndex = args.indexOf('--profile');
+  const profileId = args[profileFlagIndex + 1];
+  if (profileFlagIndex < 0 || !profileId || profileId.startsWith('--')) {
+    throw new Error('--profile campus|regional を指定してください');
+  }
+  return getMapTileProfile(profileId);
+}
+
+function formatBbox(profile: MapTileProfile): string {
   // osmium extract --bbox の順序 (west,south,east,north)
-  const [[south, west], [north, east]] = config.bounds;
+  const [[south, west], [north, east]] = profile.bounds;
   return `${west},${south},${east},${north}`;
 }
 
-function printReport(result: MapTileBoundsResult): void {
+function printReport(
+  profile: MapTileProfile,
+  result: MapTileBoundsResult,
+): void {
+  console.log(`profile: ${profile.id}`);
   for (const range of result.zoomRanges) {
     console.log(
       `z${range.zoom}: ${range.count} 枚 (x: ${range.xMin}-${range.xMax}, y: ${range.yMin}-${range.yMax})`,
     );
   }
   console.log(`合計: ${result.totalCount} 枚`);
+  console.log(`最大枚数: ${profile.expectedMaxTileCount} 枚`);
+  console.log(`最大容量: ${profile.expectedMaxBytes} bytes`);
 }
 
-function writeGithubOutput(result: MapTileBoundsResult): void {
+function writeGithubOutput(
+  profile: MapTileProfile,
+  result: MapTileBoundsResult,
+): void {
   const outputPath = process.env.GITHUB_OUTPUT;
   if (!outputPath) return;
   const lines = [
+    `profile=${profile.id}`,
+    `public-directory=${profile.publicDirectory}`,
+    `url-template=${profile.urlTemplate}`,
     `total-count=${result.totalCount}`,
-    `bbox=${formatBbox(CAMPUS_MAP_CONFIG)}`,
+    `max-bytes=${profile.expectedMaxBytes}`,
+    `bbox=${formatBbox(profile)}`,
     `zoom-ranges=${JSON.stringify(result.zoomRanges)}`,
     '',
   ];
@@ -92,18 +116,27 @@ function writeGithubOutput(result: MapTileBoundsResult): void {
 }
 
 function main(): void {
-  const result = calculateMapTileBounds();
-  printReport(result);
-  writeGithubOutput(result);
+  try {
+    const profile = resolveMapTileProfileFromArgs(process.argv.slice(2));
+    const result = calculateMapTileBounds(profile);
+    printReport(profile, result);
+    writeGithubOutput(profile, result);
 
-  if (exceedsTileCountThreshold(result)) {
-    console.error(
-      `想定 (${EXPECTED_TOTAL_TILE_COUNT} 枚) の 1.5 倍 (${TILE_COUNT_THRESHOLD} 枚) を超えています。レンダリング前に停止します。`,
-    );
+    if (exceedsTileCountLimit(result, profile)) {
+      console.error(
+        `profile ${profile.id} の最大枚数 (${profile.expectedMaxTileCount} 枚) を超えています。レンダリング前に停止します。`,
+      );
+      process.exitCode = 1;
+    }
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 1;
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
   main();
 }
