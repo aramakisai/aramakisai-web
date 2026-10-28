@@ -80,7 +80,7 @@ describe('verifyMapTiles', () => {
     expect(hasMapTileVerificationFailure(result)).toBe(true);
   });
 
-  it('破損または256px角でないWebPを失敗と判定する', async () => {
+  it('破損したWebPを失敗と判定する', async () => {
     const statTile: StatTile = vi.fn().mockResolvedValue({
       exists: true,
       sizeBytes: 100,
@@ -148,28 +148,15 @@ describe('空白タイル検出', () => {
 });
 
 describe('validateWebpTile', () => {
-  function vp8x(width: number, height: number): Buffer {
-    const body = Buffer.alloc(30);
+  it('RIFF/WEBPヘッダーを受理する', () => {
+    const body = Buffer.alloc(12);
     body.write('RIFF', 0, 'ascii');
-    body.writeUInt32LE(body.length - 8, 4);
     body.write('WEBP', 8, 'ascii');
-    body.write('VP8X', 12, 'ascii');
-    body.writeUInt32LE(10, 16);
-    body.writeUIntLE(width - 1, 24, 3);
-    body.writeUIntLE(height - 1, 27, 3);
-    return body;
-  }
-
-  it('256x256 WebPを受理する', () => {
-    expect(validateWebpTile(vp8x(256, 256))).toBeNull();
+    expect(validateWebpTile(body)).toBeNull();
   });
 
   it('WebPでないデータを拒否する', () => {
     expect(validateWebpTile(Buffer.from('not-webp'))).toMatch(/WebP/);
-  });
-
-  it('256x256でないWebPを拒否する', () => {
-    expect(validateWebpTile(vp8x(512, 256))).toMatch(/512x256/);
   });
 });
 

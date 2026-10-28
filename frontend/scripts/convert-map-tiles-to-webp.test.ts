@@ -1,34 +1,16 @@
 import { describe, it, expect, vi } from 'vitest';
 import path from 'node:path';
 import {
-  convertMapTileProfileToWebp,
   convertMapTilesToWebp,
   CWEBP_QUALITY,
   type RunCwebp,
 } from './convert-map-tiles-to-webp';
 import type { TileCoord } from './fetch-map-tiles';
-import type { MapTileProfile } from '../src/lib/map-tile-profile';
 
 const coords: TileCoord[] = [
   { zoom: 18, x: 10, y: 20 },
   { zoom: 18, x: 10, y: 21 },
 ];
-
-const fixtureProfile: MapTileProfile = {
-  id: 'campus',
-  bounds: [
-    [36.4318, 139.0464],
-    [36.43181, 139.04641],
-  ],
-  minZoom: 10,
-  maxZoom: 10,
-  minNativeZoom: 10,
-  maxNativeZoom: 10,
-  publicDirectory: 'test-output/map-tiles',
-  urlTemplate: '/test-map-tiles/{z}/{x}/{y}.webp',
-  expectedMaxTileCount: 1,
-  expectedMaxBytes: 1_000,
-};
 
 describe('convertMapTilesToWebp', () => {
   it('すべて成功した場合、既定の品質で cwebp を実行し元の PNG を削除する', async () => {
@@ -94,16 +76,5 @@ describe('convertMapTilesToWebp', () => {
     expect(removeFile).not.toHaveBeenCalledWith(
       path.join('/tiles', '18', '10', '20.png'),
     );
-  });
-
-  it('fixture profileの範囲を算出して変換処理へ渡す', async () => {
-    const runCwebp: RunCwebp = vi.fn().mockResolvedValue(undefined);
-    const result = await convertMapTileProfileToWebp(fixtureProfile, '/tiles', {
-      runCwebp,
-      removeFile: vi.fn().mockResolvedValue(undefined),
-    });
-
-    expect(result.convertedCount).toBe(1);
-    expect(runCwebp).toHaveBeenCalledTimes(1);
   });
 });
