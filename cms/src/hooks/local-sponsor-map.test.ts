@@ -142,7 +142,7 @@ describe('normalizeLocalSponsorMap', () => {
     })
   })
 
-  it('住所変更時でも緯度・経度の両方が明示されていれば同じ値を保持する', async () => {
+  it('取り込みCLI相当(contextフラグあり)では住所変更時も渡された座標を保存する', async () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
 
@@ -162,6 +162,7 @@ describe('normalizeLocalSponsorMap', () => {
           local_longitude: 139.044795,
         },
         operation: 'update',
+        req: { context: { localSponsorExplicitCoordinates: true } },
       } as never),
     ).resolves.toMatchObject({
       address: '変更後のテスト住所',
@@ -169,6 +170,36 @@ describe('normalizeLocalSponsorMap', () => {
       local_longitude: 139.044795,
     })
     expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('管理画面相当(contextフラグなし)で旧座標がdataにあっても住所変更時は再geocodeする', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve([{ geometry: { coordinates: [139.0, 36.0] } }]),
+      }),
+    )
+
+    await expect(
+      localSponsorMapConstraint({
+        data: {
+          address: '変更後のテスト住所',
+          local_latitude: 36.43068,
+          local_longitude: 139.044795,
+        },
+        originalDoc: {
+          type: ['local'],
+          name: '既存レコード',
+          address: '変更前のテスト住所',
+          local_map_category: 'education',
+          local_latitude: 36.43068,
+          local_longitude: 139.044795,
+        },
+        operation: 'update',
+        req: { context: {} },
+      } as never),
+    ).resolves.toMatchObject({ local_latitude: 36, local_longitude: 139 })
   })
 
   it('住所検索に失敗した場合は住所fieldの検証エラーにする', async () => {

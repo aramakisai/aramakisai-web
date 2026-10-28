@@ -257,6 +257,12 @@ export class PayloadLocalSponsorImportStore implements LocalSponsorImportStore<s
     return { payload: this.payload, transactionID } as PayloadRequest
   }
 
+  private sponsorRequest(transactionID: string | number): PayloadRequest {
+    const request = this.request(transactionID)
+    request.context = { localSponsorExplicitCoordinates: true }
+    return request
+  }
+
   async beginTransaction(): Promise<string | number> {
     return (await this.payload.db.beginTransaction()) as string | number
   }
@@ -304,7 +310,7 @@ export class PayloadLocalSponsorImportStore implements LocalSponsorImportStore<s
       collection: 'sponsors',
       data: data as never,
       overrideAccess: true,
-      req: this.request(transactionID),
+      req: this.sponsorRequest(transactionID),
     })
     return sponsor.id
   }
@@ -319,7 +325,7 @@ export class PayloadLocalSponsorImportStore implements LocalSponsorImportStore<s
       id,
       data: data as never,
       overrideAccess: true,
-      req: this.request(transactionID),
+      req: this.sponsorRequest(transactionID),
     })
   }
 }

@@ -1,7 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
 
 import {
   detectBreakingChanges,
@@ -33,11 +32,9 @@ async function shapesAt(ref: string | null): Promise<readonly EntityShape[]> {
       return [];
     }
     const collections = await import(
-      pathToFileURL(path.join(worktree, 'cms/src/collections/index.ts')).href
+      path.join(worktree, 'cms/src/collections/index.ts')
     );
-    const globals = await import(
-      pathToFileURL(path.join(worktree, 'cms/src/globals/index.ts')).href
-    );
+    const globals = await import(path.join(worktree, 'cms/src/globals/index.ts'));
     return [...collections.collections, ...globals.globals].map(toShape);
   } finally {
     execFileSync('git', ['worktree', 'remove', '--force', worktree], {
@@ -53,9 +50,7 @@ if (!baseRef) {
   process.exit(2);
 }
 
-// tsx で別 worktree と現行定義を同時評価すると Windows では極端に遅くなるため直列に読む。
-const base = await shapesAt(baseRef);
-const head = await shapesAt(null);
+const [base, head] = await Promise.all([shapesAt(baseRef), shapesAt(null)]);
 const changes = detectBreakingChanges(base, head);
 
 if (changes.length === 0) {

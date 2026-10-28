@@ -118,6 +118,7 @@ function hasOwn(doc: LocalSponsorDoc, field: string): boolean {
 export const localSponsorMapConstraint: CollectionBeforeValidateHook = async ({
   data,
   originalDoc,
+  req,
 }) => {
   const partial = (data ?? {}) as LocalSponsorDoc
   const effective = { ...(originalDoc ?? {}), ...partial }
@@ -128,7 +129,10 @@ export const localSponsorMapConstraint: CollectionBeforeValidateHook = async ({
     const address = blankToNull(normalizedEffective.address)
     const addressChanged =
       hasOwn(partial, 'address') && address !== blankToNull(originalDoc?.address)
+    // 管理画面は readOnly 項目も含め全項目を送るため、data に座標があるだけでは明示指定と区別できない。
+    // 取り込み CLI が context フラグを付けたときだけ座標を信頼する。
     const coordinatesExplicitlyProvided =
+      req?.context?.localSponsorExplicitCoordinates === true &&
       hasOwn(partial, 'local_latitude') && hasOwn(partial, 'local_longitude')
     const needsGeocode =
       !validCoordinatePair(normalizedEffective) ||

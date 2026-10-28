@@ -683,6 +683,27 @@ describe('local sponsor import CLI', () => {
     expect((payload as { delete?: unknown }).delete).toBeUndefined()
   })
 
+  it('協賛企業のcreate・updateは座標の明示フラグ付きreqで呼ぶ', async () => {
+    const create = vi.fn().mockResolvedValue({ id: 1 })
+    const update = vi.fn().mockResolvedValue({})
+    const store = new PayloadLocalSponsorImportStore({ create, update } as never)
+
+    await store.createSponsor({ name: 'テスト専用' }, 'fixture-tx')
+    await store.updateSponsor(1, { name: 'テスト専用' }, 'fixture-tx')
+
+    for (const call of [create, update]) {
+      expect(call).toHaveBeenCalledWith(
+        expect.objectContaining({
+          collection: 'sponsors',
+          req: expect.objectContaining({
+            transactionID: 'fixture-tx',
+            context: expect.objectContaining({ localSponsorExplicitCoordinates: true }),
+          }),
+        }),
+      )
+    }
+  })
+
   it('実際のS3 Media afterDelete hookをfresh req・transactionなしで通して全blobを削除する', async () => {
     const handle = vi.fn().mockResolvedValue({
       response: { statusCode: 204, headers: {}, body: undefined },
