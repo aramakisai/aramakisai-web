@@ -2,7 +2,7 @@
 
 ## 1. 概要
 
-`/sponsors/local` に、地域協賛の地図、検索、6カテゴリの複数選択、店舗一覧、店舗詳細を1画面で提供する。PCでは左サイドパネル、スマートフォンではボトムシートを使い、最終確定Figmaの4画面をそのまま実装基準とする。
+`/sponsors/local` に、地域協賛の地図、検索、6カテゴリの複数選択、店舗一覧、店舗詳細を1画面で提供する。PCでは左サイドパネル、スマートフォンではボトムシートを使い、最終確定Figmaの一覧・地点の一覧・詳細・地点の一覧からの詳細のPC・スマートフォン各4画面と、スマートフォンの展開snapの計9画面をそのまま実装基準とする。
 
 既存の `Sponsors` コレクション、CMS取得基盤、会場マップのLeaflet・自前タイル・メニュー・ズーム・ボトムシート機構を再利用する。地域協賛固有のデータ変換、カード、詳細、フィルタ、クラスタだけを追加し、新しい地図ライブラリや公開ワークフローは導入しない。
 
@@ -93,9 +93,9 @@ flowchart LR
 | `frontend/src/app/(fullscreen)/sponsors/local/page.tsx`                          | 新規       | CMS取得、メタデータ、Client Screen境界                          |
 | `frontend/src/components/regional-sponsor-map/regional-sponsor-map-screen.tsx`   | 新規       | 全クライアント状態とPC・スマートフォン構成の統合                |
 | `frontend/src/components/regional-sponsor-map/regional-sponsor-map-view.tsx`     | 新規       | Leaflet MapContainer、タイル、viewport、ローディング・失敗通知  |
-| `frontend/src/components/regional-sponsor-map/regional-sponsor-marker-layer.tsx` | 新規       | 単独ピン、選択ピン、クラスタ、同一座標展開                      |
-| `frontend/src/components/regional-sponsor-map/regional-sponsor-panel.tsx`        | 新規       | PC用左パネルと一覧・詳細の切替                                  |
-| `frontend/src/components/regional-sponsor-map/regional-sponsor-bottom-sheet.tsx` | 新規       | スマートフォン用シート設定と一覧・詳細の切替                    |
+| `frontend/src/components/regional-sponsor-map/regional-sponsor-marker-layer.tsx` | 新規       | 単独ピン、選択ピン、クラスタ、同一座標ピン                      |
+| `frontend/src/components/regional-sponsor-map/regional-sponsor-panel.tsx`        | 新規       | PC用左パネルと一覧・地点の一覧・詳細の切替                      |
+| `frontend/src/components/regional-sponsor-map/regional-sponsor-bottom-sheet.tsx` | 新規       | スマートフォン用シート設定と一覧・地点の一覧・詳細の切替        |
 | `frontend/src/components/regional-sponsor-map/regional-sponsor-search.tsx`       | 新規       | 検索入力と6カテゴリ操作                                         |
 | `frontend/src/components/regional-sponsor-map/regional-sponsor-list.tsx`         | 新規       | 見出し、件数、空状態、スクロール位置                            |
 | `frontend/src/components/regional-sponsor-map/regional-sponsor-card.tsx`         | 新規       | Figma準拠カード                                                 |
@@ -108,7 +108,7 @@ flowchart LR
 | `frontend/src/components/campus-map/map-viewport-sync.tsx`                       | 変更       | 汎用controllerへ既存設定を渡し公開APIを保持                     |
 | `frontend/src/lib/regional-sponsors.ts`                                          | 新規       | CMS取得、掲載条件判定、公開DTO変換                              |
 | `frontend/src/lib/regional-sponsor-search.ts`                                    | 新規       | 正規化とAND・ORフィルタの純粋関数                               |
-| `frontend/src/lib/regional-sponsor-clustering.ts`                                | 新規       | 画面座標クラスタと同一座標展開モデル                            |
+| `frontend/src/lib/regional-sponsor-clustering.ts`                                | 新規       | 画面座標クラスタと同一座標グループの判定                        |
 | `frontend/src/lib/regional-map-config.ts`                                        | 新規       | 地域タイルprofile、初期範囲、zoom契約                           |
 | `frontend/src/lib/phase.ts`                                                      | 変更       | 全画面公開routeの分類を明示                                     |
 | `frontend/src/lib/route-metadata.ts`                                             | 変更       | `/sponsors/local` のtitle、descriptionを登録                    |
@@ -233,7 +233,7 @@ Payloadの生成型ではupload relationが `number | null | Media` となる。
 
 ## 6. CMS取得と掲載条件
 
-`getRegionalSponsorMapData` は既存 `cms.findMany('sponsors', { sort: ['_order', 'id'], limit: 0, depth: 0 })` を使う。既存取得型にhasMany専用operatorを増やさず、全協賛を取得後に `type.includes('local')` で抽出する。現行データ規模では単純で、既存 `getSponsors` と同じ取得契約を維持できる。
+`getRegionalSponsorMapData` は既存 `cms.findMany('sponsors', ...)` を使い、REST の `where`（`type` が `local` と等しい。hasMany select では包含判定になる）と、DTO 変換に使うフィールドだけの `select` で絞って取得する。`sort: ['_order', 'id']`、`limit: 0`、`depth: 0` は維持する。取得後も `type.includes('local')` を DTO 変換側で確認する。
 
 掲載可能条件は次のすべて。
 
@@ -253,6 +253,7 @@ Payloadの生成型ではupload relationが `number | null | Media` となる。
 - 左24px、上24px、幅348px、高さ `calc(100dvh - 48px)` のパネルを置く。1440×900ではFigmaの852pxになる。
 - パネル内paddingは24px、内容幅は300pxとする。
 - 一覧状態は検索46px、2段カテゴリ72px、件数見出し64px、divider、124pxカードを16px間隔で表示する。
+- 地点の一覧状態は、詳細と同じ40pxの戻る操作、件数見出し64px、divider、124pxカードを16px間隔で表示する。検索とカテゴリは詳細状態と同じく表示しない。戻る操作と見出しは固定し、一覧だけをスクロールする。Figma（1493:550）のパネル内の位置は、戻る操作y=25、見出しy=81、divider y=161、一覧y=178である。
 - 詳細状態は40pxの戻る操作、300×169の16:9画像領域、名称、カテゴリ、任意のメッセージ・基本情報を同一パネル内で縦スクロールする。
 - メニューは右上、ズームは右下に既存コンポーネントを置く。
 
@@ -261,7 +262,12 @@ Payloadの生成型ではupload relationが `number | null | Media` となる。
 - 上部overlayは検索行と、1行横スクロールのカテゴリ操作で構成する。
 - 390×844基準で検索・メニュー領域は16px余白、カテゴリ行はその下に置く。
 - 一覧はFigmaの半展開位置を初期snapとし、358px幅の124pxカードを16px間隔で表示する。
+- 地点の一覧は一覧と同じsnapで表示し、ハンドルの下に詳細と同じ戻る操作を置き、件数見出し、divider、カードを続ける。戻る操作と見出しは固定し、一覧だけをスクロールする。Figma（1493:13543）のシート内の位置は、戻る操作y=32、見出しy=84、divider y=128、一覧y=141である。
+- 地点の一覧に入るとき、地点の一覧から全体の一覧へ戻るとき、詳細から地点の一覧へ戻るときは、snapを `list` にする。
+- PCからスマートフォン幅へ切り替えたときは、表示中の状態（全体の一覧・地点の一覧・詳細）を保ち、snapは既存の規則に従う。
 - 詳細選択時はFigmaの詳細用snapへ移動し、戻る、358×201の16:9画像、詳細本文をシート内でスクロールする。
+- 詳細用snapの高さは `max(112px, min(地図領域の高さ×0.65, 地図領域の高さ−288px))` とし、シート下端は地図領域の下端に置く。地図領域の高さは `100dvh − var(--map-nav, 0px)`（下部ナビの高さ。無ければ0px）である。844pxで下部ナビが無いときは高さ548.6px、上端295.4pxになり（Figma 1206:3281・1494:992）、選択ピンは検索・カテゴリの下端（113px）とシート上端の間に見える。
+- 展開snapのシート上端は、DOMの `[data-regional-search-overlay]`（検索行とカテゴリ行）の下端に8pxを足した位置とする。390×844ではカテゴリ行の下端113pxに8pxを足した121pxになる（Figma 1494:13899）。
 - `env(safe-area-inset-*)` を上部overlay、シート下端、地図操作余白へ反映する。
 - viewport高さには `100dvh` を使い、ページbodyの横・縦スクロールを発生させない。
 
@@ -270,6 +276,8 @@ Figma寸法は代表viewportで固定検証し、それ以外は同じ余白・�
 ### 7.3 一覧と詳細
 
 カードは正式名称、カテゴリ、登録済み住所、画像または共通の画像なし表示を描画する。カード全体をbutton相当の操作面とし、DOM順とCMS順を一致させる。
+
+地点の一覧は、同一座標ピンを選んだときに、その座標の企業だけを全体の一覧と同じカードで表示する状態である。先頭に詳細と同じ「店舗一覧に戻る」を置き、押すと全体の一覧へ戻る。見出しは全体の一覧と同じ「地域協賛」とし、件数はその座標の件数を表示する。見出しには視覚的に隠した補足を付け、アクセシブルネームを「この地点の地域協賛{件数}件」とする（見た目は「地域協賛」と件数のまま）。見出しのidは全体の一覧の `regional-sponsor-list-title` と重ならない `regional-sponsor-location-list-title` とする。
 
 詳細は次の順に描画する。
 
@@ -304,8 +312,9 @@ interface RegionalSponsorMapState {
   readonly selectedCategories: ReadonlySet<RegionalSponsorCategory>;
   readonly selectedSponsorId: number | null;
   readonly listScrollTop: number;
+  readonly locationListScrollTop: number;
   readonly mobileSheetSnap: "collapsed" | "list" | "expanded" | "detail";
-  readonly spiderfiedClusterId: string | null;
+  readonly locationKey: string | null;
 }
 ```
 
@@ -313,23 +322,44 @@ interface RegionalSponsorMapState {
 
 一覧と地図は同じ `filteredSponsors` を読む。件数は `filteredSponsors.length`、ピン・クラスタも同じ配列から導出し、個別の件数状態を持たない。
 
+`locationKey` は地点の一覧で表示中のまとまりのキー（所属する企業IDの昇順連結。9.3）である。地点の一覧のカードは `filteredSponsors` のうちこのキーに含まれるIDのものから導出する。詳細表示中も `locationKey` を保持し、詳細の戻り先を決める。全体の一覧のカードまたは単独ピンから選んだときは `null` にする。
+
+一覧のスクロール位置は、全体の一覧用の `listScrollTop` と地点の一覧用の `locationListScrollTop` に分けて持つ。スクロールのたびに画面全体を再描画しないよう、どちらも再描画を起こさない参照で保持し、一覧のマウント時にだけ読んで復元する。`locationListScrollTop` は詳細から地点の一覧へ戻るときだけ復元し、地点の一覧に新しく入るときは先頭から表示する。全体の一覧へ戻るときは `listScrollTop` を復元する。
+
 ### 8.2 遷移
 
 ```mermaid
 stateDiagram-v2
     [*] --> List
     List --> Detail: card or pin selected
-    Detail --> List: back selected
+    List --> Location: same-location pin selected
+    Location --> Detail: card selected
+    Location --> List: back selected
+    Detail --> Location: back selected (locationKey set)
+    Detail --> List: back selected (locationKey null)
     List --> List: query or categories changed
+    Location --> Location: another same-location pin selected (replace locationKey)
+    Location --> Detail: single pin selected (locationKey null)
+    Detail --> Detail: single pin selected (locationKey null)
+    Detail --> Location: same-location pin selected
+    Location --> Location: records at locationKey still match
+    Location --> List: no record at locationKey matches
     Detail --> Detail: selected record still matches
-    Detail --> List: selected record no longer matches
+    Detail --> Location: selected record no longer matches, records at locationKey remain
+    Detail --> List: selected record no longer matches, no record at locationKey (locationKey null)
 ```
 
 - カード選択時にcard要素IDと一覧scrollTopを保存し、詳細先頭の見出しへfocusする。
 - ピン選択時は詳細先頭へfocusし、戻ると対応カードまたは一覧見出しへfocusする。
 - 戻る操作は検索語、カテゴリ、Leafletのcenter・zoom、一覧scrollTopを変更しない。
 - 戻った描画後に保存したscrollTopを復元し、元カードが存在すればそこへfocusする。
-- 詳細表示中に条件変更で選択行が対象外になった場合は一覧へ戻し、更新後の件数を通知する。
+- 詳細の戻る操作は、地点の一覧から開いた詳細なら地点の一覧へ、全体の一覧または単独ピンから開いた詳細なら全体の一覧へ戻る。地点の一覧へ戻ったときは起点cardへfocusする。
+- 地点の一覧の戻る操作は全体の一覧へ戻り、一覧見出しへfocusする。検索語とカテゴリは変更しない。
+- 地点の一覧に入ったときは、地点の一覧の見出しへfocusする。地点の一覧への切り替えは件数の `aria-live` 通知の対象にしない。
+- 地点の一覧表示中に別の同一座標ピンを押したときは、地点の一覧のまま `locationKey` を差し替える。
+- 地点の一覧または詳細の表示中に単独ピンを押したときは、その企業の詳細にして `locationKey` を `null` にする。詳細の表示中に同一座標ピンを押したときは、その座標の地点の一覧にする。
+- クラスタを押したときは地図が寄るだけで、画面状態は変えない。地図の背景を押す、ドラッグする、ズームするだけでも画面状態は変えない。縮小して地点がクラスタに含まれても、地点の一覧はそのまま表示する。
+- 詳細表示中に条件変更で選択行が対象外になった場合は一覧へ戻し、更新後の件数を通知する。地点の一覧から開いた詳細では、その座標の該当がまだあれば地点の一覧へ戻し、無ければ `locationKey` を `null` にして全体の一覧へ戻す。地点の一覧表示中に条件変更でその座標の該当が0件になった場合も、`locationKey` を `null` にして全体の一覧へ戻す。
 - ブラウザURLやhistoryは変更せず、同一ページ内状態として扱う。
 
 ### 8.3 検索
@@ -344,18 +374,22 @@ stateDiagram-v2
 
 - `MapContainer`、`TileLayer`、既存の透過エラータイル、OSM attributionを使用する。
 - `MapViewportController` に地域profileの初期中心・zoom、選択座標、パネル余白を渡す。
-- 初回は既存会場マップの確定済みキャンパス範囲中央を、会場マップと同じ最小zoomで表示する。全有効座標への `fitBounds` は行わない。
+- 初回だけ、表示中（絞り込み前）の全ピンが入るように `fitBounds` する（Figmaの市全体が入る縮尺）。余白は会場マップの `MapViewportSync` と同じく、四方に32px、右にはPC・スマートフォンとも地図操作（ズームボタンと右余白）の幅64pxを加え、PCは左パネル右端、スマートフォンは上部overlayと下側シート分を加え、zoomは `initialZoom` を上限にする。ピンが0件のときは、既存会場マップの確定済みキャンパス範囲中央を会場マップと同じ最小zoomで表示する。
 - カードまたはピンから店舗を選択したときは、PC左パネルまたはスマートフォンの詳細シートを除く表示領域の中央へ選択ピンを移動する。通常は短い `flyTo`、reduced motion時は非アニメーションの `setView` を使う。
-- データ0件または取得失敗時も同じ初期中心を表示する。地域profileのboundsは年度ごとの協賛企業に依存しない固定サービス範囲とする。
+- データ0件または取得失敗時は、上記のキャンパス範囲中央を表示する。地域profileのboundsは年度ごとの協賛企業に依存しない固定サービス範囲とする。
+- PCからスマートフォン幅へ（またはその逆へ）リサイズして見えている領域が変わったときは、選択中の企業があれば、ズームを変えずにその企業を新しい見えている領域の中央へ平行移動する。
 - 初期中心は初回だけ適用し、resize、一覧・詳細切替、filter変更だけでcenter・zoomを戻さない。選択後にuserが地図操作した場合も、同じ選択へ自動追従し続けない。
 - `maxBounds`、`minZoom`、`maxZoom` は地域profileに従い、範囲外を表示しない。
+  - 初回の `fitBounds` と範囲外を見せない最小zoomが両立しない画面サイズでは、範囲外を見せない最小zoomを優先し、一部のピンが初期表示の画面外に出てもよい。
+  - スマートフォンは `maxBounds` を、上部overlayの下端とシート高さの分だけ上と下に広げる（覆い隠される領域に範囲外を逃がす）。左右は広げない。最小zoomの余白も同じ値にする。
+  - PCはパネルの隙間から範囲外が見えるため `maxBounds` を広げず、最小zoomは画面全体を範囲で覆う値にする。
 - zoom、pan、pinch、wheelと既存ズーム操作をLeaflet標準で提供する。
 
 ### 9.2 ピン
 
 各ピンはcategory mappingから同じtoken classを得る。PC48px、スマートフォン32pxでFigma形状を描画し、アクセシブルネームを「{正式名称}、{カテゴリ}」とする。選択ピンは元のカテゴリ色を保ち、既存outline token、太い枠、`aria-current`、上位z-indexで色以外にも区別する。
 
-緯度・経度はLeafletの `LatLng` へ直接渡し、CSS offsetはicon anchorにだけ適用する。同一座標展開中を除き、見た目の重なり回避のために地理座標を変更しない。
+緯度・経度はLeafletの `LatLng` へ直接渡し、CSS offsetはicon anchorにだけ適用する。雫型ピンの先端は常に企業の本来の座標を指し、見た目の重なり回避のために地理座標も画面上の位置も変更しない。
 
 ### 9.3 クラスタ
 
@@ -369,9 +403,14 @@ interface ProjectedSponsor {
 }
 
 type MarkerGroup =
-  | { readonly kind: "single"; readonly sponsor: RegionalSponsor }
   | {
-      readonly kind: "cluster";
+      readonly kind: "single";
+      readonly id: string;
+      readonly sponsor: RegionalSponsor;
+      readonly selected: boolean;
+    }
+  | {
+      readonly kind: "cluster" | "location";
       readonly id: string;
       readonly sponsors: readonly RegionalSponsor[];
       readonly anchor: {
@@ -379,26 +418,43 @@ type MarkerGroup =
         readonly longitude: number;
       };
     };
+
+interface ClusterOptions {
+  readonly radius: number;
+  readonly zoom: number;
+  readonly maxZoom: number;
+  readonly selectedSponsorId: number | null;
+}
+
+function clusterProjectedSponsors(
+  projectedSponsors: readonly ProjectedSponsor[],
+  options: ClusterOptions,
+): readonly MarkerGroup[];
 ```
 
 処理順は次のとおり。
 
-1. 絞り込み済み各座標を `map.project(latLng, zoom)` で画面座標へ変換する。
-2. marker径に対応する固定pixel半径で空間hashを作る。
-3. 自cellと隣接8cellを調べ、重なる点をdisjoint-setで結合する。
-4. ID順に並べ、単独点とクラスタを決定的に返す。
-5. `zoomend`、`moveend`、resize、絞り込み結果変更時に再計算する。
+1. 絞り込み済みの企業を、緯度・経度が完全に一致するものごとに同一座標グループへまとめる。`selectedSponsorId` の企業があれば、その企業を含む同一座標グループごと以降の入力から外し、その企業だけを `selected: true` の `single` として返す。同じ座標の他の企業は返さない。
+2. 各グループの座標を `map.project(latLng, zoom)` で画面座標へ変換する。
+3. marker径に対応する固定pixel半径で空間hashを作る。
+4. 自cellと隣接8cellを調べ、半径内で重なるグループをdisjoint-setで結合する。最大zoom（`zoom >= maxZoom`）でも同じく結合する。
+5. ID順に並べ、決定的に返す。1社だけなら `single`、2社以上で全件が同一座標なら `location`、異なる座標を含めば最大zoomの手前では `cluster`、最大zoomでは `location` とする。`anchor` は、所属する企業のうち平均座標に最も近い1社の座標とし、実在しない地点を指さない（全件同一座標ならその座標）。`id` と地点の一覧の `locationKey` は、所属する企業IDを昇順に `,` で連結した文字列から作る（`location:1,2,3`、キーは `1,2,3`）。座標の完全一致を使わないのは、住所から自動算出した座標が同じ建物で数mずれても同じ地点として扱うためである。
+6. `zoomend`、`moveend`、resize、絞り込み結果変更時に再計算する。
 
-選択中の店舗はクラスタ入力から除いて元座標に単独表示する。クラスタはFigmaの雫型ピンを中立色で表示し、Figmaにない件数バッジは重ねない。件数と内訳はアクセシブル名で伝える。
+`cluster` と `location` はFigmaの雫型ピンを中立色で表示し、Figmaにない件数バッジは重ねない。件数と内訳はアクセシブル名で伝える。`location` のピンは `anchor` の座標に1本だけ立て、どのzoomでも分かれない。地点の一覧を表示中も、地図上の `location` のピンは通常の見た目のまま表示する。
 
-クラスタ選択時は次の分岐とする。
+最大zoomでマーカー径の内側に重なる企業は `location` にまとまるため、ピンどうしの重なり順は選択中のピンを最前面とし、それ以外は一覧の並び順で後のものを前面にする。
 
-- 異なる座標へ分離可能：子のboundsへpanel/sheet余白付きで `fitBounds` し、最大zoomを超えない。
-- 最大zoomまたは全件同一座標：元座標を中心に画面pixel上で一時的に放射状展開し、各ピンをbuttonとして選べるようにする。
+選択時は次の分岐とする。
 
-放射状展開は地図移動、zoom、絞り込み変更、背景選択、詳細選択で閉じる。クラスタbuttonの名前は「{件数}件の地域協賛。選択して拡大」とする。一覧カードは常に同等の到達手段として残す。
+- `cluster`：子のboundsへ `fitBounds` する。流用するのは初回の画角合わせ（9.1）の余白（`paddingTopLeft`・`paddingBottomRight`）だけで、`maxZoom` は地域profileの `maxZoom`（17）とする。reduced motion設定では `animate: false` とする。寄った先で再びまとまる場合がある。最大zoomでは `cluster` を作らず、`location` にまとめる。buttonの名前は「{件数}件の地域協賛：{正式名称}（{カテゴリ}）、…。選択して拡大」とする。
+- `location`：地図は動かさず、シートとパネルを地点の一覧（7.3）にする。buttonの名前は「{件数}件の地域協賛：{正式名称}（{カテゴリ}）、…。選択して一覧を表示」とする。
 
-クラスタ自体はカテゴリを表さないため、既存の白・gray・文字色tokenで件数を表示する。カテゴリを表す単独ピンとタグだけに6色mappingを適用し、混在クラスタへ任意のカテゴリ色を割り当てない。
+重なったピンを画面上で広げる表示や、そのための地図移動は行わない。一覧カードは常に同等の到達手段として残す。
+
+選択中の店舗は、その座標の同一座標グループごとクラスタ入力から除き、元座標に選択ピンを単独表示する。同じ座標に別の企業がいても、選択中はその座標に中立色のピンを立てず、選択した企業のピンだけを既存の選択中の見た目で表示する（一覧カード・地点の一覧のどちらから選んでも同じ）。
+
+クラスタ自体はカテゴリを表さないため中立色で描画し、件数は見た目では表示しない。カテゴリを表す単独ピンとタグだけに6色mappingを適用し、混在クラスタへ任意のカテゴリ色を割り当てない。
 
 ### 9.4 タイル状態
 
@@ -559,7 +615,7 @@ flowchart TD
 
 - 検索は可視labelまたは同等のアクセシブルネームを持つ。
 - category buttonは `aria-pressed`、選択icon・枠・文言を持ち、色だけに依存しない。
-- card、戻る、menu、zoom、cluster、単独pin、外部linkをkeyboard操作可能にする。
+- card、戻る、menu、zoom、cluster、同一座標pin、単独pin、外部linkをkeyboard操作可能にする。
 - 更新件数は控えめな `aria-live="polite"` で通知する。
 - 詳細遷移時は詳細見出し、戻る時は起点cardへfocusする。
 - 地図を操作できなくても一覧から全詳細へ到達できる。
@@ -567,7 +623,7 @@ flowchart TD
 - pointer drag中も、scroll領域とhandle領域の競合を既存shellで制御する。
 - 非表示のPCまたはスマートフォンUIは `inert`、`aria-hidden` とfocus管理から外す。
 - 選択pinはoutline・z-index・`aria-current`、errorはicon・文言・live regionを併用する。
-- reduced motion設定ではsheetとpin展開のtransitionを無効化する。
+- reduced motion設定ではsheetのtransitionを無効化する。
 
 ## 14. テスト戦略
 
@@ -589,10 +645,10 @@ flowchart TD
 - `NFKC`、大文字小文字、名称・カテゴリ・住所の部分一致
 - 複数カテゴリORと検索AND、「すべて」の状態遷移
 - 表示範囲変更で一覧が変わらないこと
-- clusteringのzoom別結果、filter後件数、選択pin分離、同一座標展開
+- clusteringのzoom別結果、filter後件数、選択pin分離、同一座標グループの判定と選択中の置換
 - optional fieldの完全省略、病院とその他の見出し
 - 画像contain、alt、decorative、未登録・onError placeholder
-- list/detail遷移、scroll・focus・地図状態保持
+- list/地点の一覧/detail遷移と詳細の戻り先、scroll・focus・地図状態保持
 - CMS、tile、空結果の各状態
 
 ### 14.3 統合・回帰
@@ -608,12 +664,12 @@ flowchart TD
 
 ### 14.4 E2Eと視覚確認
 
-Playwrightで1440×900と390×844を固定viewportとして、Figma4画面と比較する。
+Playwrightで1440×900と390×844を固定viewportとして、Figmaの一覧・地点の一覧・詳細・地点の一覧からの詳細のPC・スマートフォン各4画面と、スマートフォンの展開snapの計9画面と比較する。
 
 - 一覧・詳細の位置、寸法、余白、字体、色、角丸、枠、影
 - PC左パネル、スマートフォン半展開・詳細展開・横スクロール
 - search、複数category、0件、件数・card・pin・cluster同期
-- card・pin・cluster・同一座標展開・戻る状態保持
+- card・pin・cluster・同一座標ピンと地点の一覧・戻る状態保持
 - missing/failed image、partial invalid data、CMS error、tile error
 - keyboard順、focus復帰、live region、非表示UIの非操作性
 - 横scrollなし、safe area、現行対応browser
@@ -625,11 +681,11 @@ Playwrightで1440×900と390×844を固定viewportとして、Figma4画面と比
 
 | Requirement            | Acceptance Criteria                                     | 設計箇所        | 主な検証                                                |
 | ---------------------- | ------------------------------------------------------- | --------------- | ------------------------------------------------------- |
-| 1 地域協賛マップページ | 1.1, 1.2, 1.3, 1.4, 1.5, 1.6                            | 3、4、6、7      | route、local抽出、4画面、menu E2E                       |
+| 1 地域協賛マップページ | 1.1, 1.2, 1.3, 1.4, 1.5, 1.6                            | 3、4、6、7      | route、local抽出、Figma9画面、menu E2E                  |
 | 2 地図表示と操作       | 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8                  | 9、10           | fit、bounds、zoom、出典、loading、tile profile          |
 | 3 データ成立条件       | 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 3.10, 3.11 | 5、6            | CMS field validation、access、order                     |
 | 4 実データ検証         | 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8                  | 11              | parser、dry-run、transaction、idempotency、audit        |
-| 5 ピンとクラスタ       | 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8, 5.9             | 5.3、9          | category mapping、cluster、spiderfy、pin選択            |
+| 5 ピンとクラスタ       | 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8, 5.9, 5.10, 5.11 | 5.3、9          | category mapping、cluster、同一座標ピン、pin選択        |
 | 6 検索と絞り込み       | 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9, 6.10       | 7、8            | normalization、AND・OR、0件、同期                       |
 | 7 一覧カード           | 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8                  | 6、7.3、7.4     | card content、image fallback、order、detail遷移         |
 | 8 詳細表示             | 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7, 8.8, 8.9, 8.10, 8.11 | 7.3、8、9.2     | conditional sections、heading、selection、state restore |
