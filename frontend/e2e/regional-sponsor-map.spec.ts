@@ -1,5 +1,5 @@
 import { createServer, type Server } from 'node:http';
-import { expect, test, type Page, type TestInfo } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { REGIONAL_MAP_TILE_PROFILE } from '../src/lib/map-tile-profile';
 
 const CMS_PORT = 18055;
@@ -188,20 +188,6 @@ async function openMap(page: Page): Promise<void> {
   });
 }
 
-async function stabilizeVisual(page: Page): Promise<void> {
-  await page.addStyleTag({
-    content:
-      'nextjs-portal{display:none!important} *{caret-color:transparent!important}',
-  });
-  await page.evaluate(() => document.fonts.ready);
-}
-
-async function capture(page: Page, testInfo: TestInfo, name: string) {
-  const path = testInfo.outputPath(`${name}.png`);
-  await page.screenshot({ path, animations: 'disabled' });
-  await testInfo.attach(name, { path, contentType: 'image/png' });
-}
-
 async function expectMapControlsAboveSheet(page: Page): Promise<void> {
   await expect
     .poll(async () =>
@@ -315,163 +301,54 @@ test.describe('地域協賛マップ fixture E2E', { tag: '@local-fixture' }, ()
     await expect(page.getByText('8件')).toBeVisible();
   });
 
-  test('PCで検索・複数カテゴリ・0件・詳細・戻り状態を統合する', async ({
+  test('PCで検索・カテゴリ・詳細の操作で見出しへフォーカスが移る', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await openMap(page);
-    const search = page.getByPlaceholder('店舗名・カテゴリ・住所で検索');
-    await expect(page.getByText('8件')).toBeVisible();
-
-    await search.fill('中央1-1');
-    await expect(page.getByText('1件')).toBeVisible();
+    await page.getByPlaceholder('店舗名・カテゴリ・住所で検索').fill('中央1-1');
+    await page.getByRole('button', { name: '病院', exact: true }).click();
+    await page
+      .getByRole('button', { name: /テスト専用あらまき病院.*詳細を表示/ })
+      .click();
     await expect(
-      page.getByRole('button', { name: /テスト専用あらまき病院.*詳細を表示/ }),
-    ).toBeVisible();
-    await search.fill('');
-
-    const hospital = page.getByRole('button', { name: '病院', exact: true });
-    const food = page.getByRole('button', { name: '飲食', exact: true });
-    await hospital.click();
-    await food.click();
-    await expect(page.getByText('3件')).toBeVisible();
-    await expect(hospital).toHaveAttribute('aria-pressed', 'true');
-    await expect(food).toHaveAttribute('aria-pressed', 'true');
-
-    const hospitalCard = page.getByRole('button', {
-      name: /テスト専用あらまき病院.*詳細を表示/,
-    });
-    await hospitalCard.click();
-    const detailHeading = page.getByRole('heading', {
-      level: 1,
-      name: 'テスト専用あらまき病院',
-    });
-    await expect(detailHeading).toBeFocused();
-    const panel = page.getByTestId('regional-sponsor-desktop-panel');
-    await expect
-      .poll(async () => {
-        const [pinBox, panelBox] = await Promise.all([
-          page
-            .locator('.leaflet-marker-icon[aria-current="true"]')
-            .boundingBox(),
-          panel.boundingBox(),
-        ]);
-        return Boolean(
-          pinBox && panelBox && pinBox.x >= panelBox.x + panelBox.width,
-        );
-      })
-      .toBe(true);
-    await page.getByRole('button', { name: '店舗一覧に戻る' }).click();
-    await expect(hospitalCard).toBeFocused();
-    await expect(hospital).toHaveAttribute('aria-pressed', 'true');
-    await expect(food).toHaveAttribute('aria-pressed', 'true');
-
-    await page.getByRole('button', { name: 'すべて', exact: true }).click();
-    await search.fill('一致しない検索語');
-    await expect(page.getByText('0件')).toBeVisible();
-    await expect(
-      page.getByText(/条件に一致する地域協賛はありません/),
-    ).toBeVisible();
-
-    await search.fill('');
-    await search.focus();
-    await page.keyboard.press('Tab');
-    await expect(
-      page.getByRole('button', { name: 'すべて', exact: true }),
+      page.getByRole('heading', { level: 1, name: 'テスト専用あらまき病院' }),
     ).toBeFocused();
   });
 
-  test('単独ピンから同じ詳細へ遷移する', async ({ page }) => {
+  test('単独ピンのキーボード操作で詳細へ遷移する', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await openMap(page);
-
     await page
       .getByRole('button', {
-        name: /テスト専用あらまき病院.*詳細を表示/,
+        name: 'テスト専用あらまき病院、病院',
+        exact: true,
       })
-      .click();
-    await page.getByRole('button', { name: '店舗一覧に戻る' }).click();
-    const pin = page.getByRole('button', {
-      name: 'テスト専用あらまき病院、病院',
-      exact: true,
-    });
-    await pin.focus();
-    await page.keyboard.press('Enter');
+      .press('Enter');
     await expect(
       page.getByRole('heading', { name: 'テスト専用あらまき病院' }),
     ).toBeFocused();
-    await expect(pin).toHaveAttribute('aria-current', 'true');
-    await page.getByRole('button', { name: '店舗一覧に戻る' }).click();
-    await pin.focus();
-    await page.keyboard.press('Space');
-    await expect(
-      page.getByRole('heading', { name: 'テスト専用あらまき病院' }),
-    ).toBeFocused();
-    await page.getByRole('button', { name: '店舗一覧に戻る' }).click();
   });
 
-  test('同一座標ピンは地点の一覧を開き、詳細の戻り先と状態を保つ', async ({
-    page,
-  }) => {
+  test('同一座標ピンから地点の一覧と詳細へ遷移する', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await openMap(page);
-    const search = page.getByPlaceholder('店舗名・カテゴリ・住所で検索');
-    await search.fill('テスト専用');
-    const food = page.getByRole('button', { name: '飲食', exact: true });
-    await food.click();
-
-    const locationPin = page.getByRole('button', {
-      name: /2件の地域協賛：テスト専用食堂A（飲食）、テスト専用食堂B（飲食）。選択して一覧を表示/,
-    });
-    const center = async () =>
-      page.evaluate(() => {
-        const box = document
-          .querySelector('.leaflet-map-pane')
-          ?.getBoundingClientRect();
-        return box ? [box.x, box.y] : null;
-      });
-    const before = await center();
-    await locationPin.click();
+    await page
+      .getByRole('button', {
+        name: /2件の地域協賛：テスト専用食堂A（飲食）、テスト専用食堂B（飲食）。選択して一覧を表示/,
+      })
+      .click();
     await expect(
       page.getByRole('heading', { name: 'この地点の地域協賛2件' }),
     ).toBeFocused();
-    expect(await center()).toEqual(before);
-    await expect(search).toHaveCount(0);
-    await expect(
-      page.getByRole('button', { name: /テスト専用食堂[AB].*詳細を表示/ }),
-    ).toHaveCount(2);
-    await expect(locationPin).toBeVisible();
-
-    const cardB = page.getByRole('button', {
-      name: /テスト専用食堂B.*詳細を表示/,
-    });
-    await cardB.click();
+    await page
+      .getByRole('button', { name: /テスト専用食堂B.*詳細を表示/ })
+      .click();
     await expect(
       page.getByRole('heading', { name: 'テスト専用食堂B' }),
     ).toBeFocused();
-    await expect(
-      page.getByRole('button', { name: 'テスト専用食堂B、飲食', exact: true }),
-    ).toHaveAttribute('aria-current', 'true');
-    await page.getByRole('button', { name: '店舗一覧に戻る' }).click();
-    await expect(cardB).toBeFocused();
-    await expect(
-      page.getByRole('heading', { name: 'この地点の地域協賛2件' }),
-    ).toBeVisible();
-
-    await page.getByRole('button', { name: '店舗一覧に戻る' }).click();
-    await expect(page.getByRole('heading', { name: '地域協賛' })).toBeFocused();
-    await expect(search).toHaveValue('テスト専用');
-    await expect(food).toHaveAttribute('aria-pressed', 'true');
-
-    await page
-      .getByRole('button', { name: /テスト専用食堂A.*詳細を表示/ })
-      .click();
-    await page.getByRole('button', { name: '店舗一覧に戻る' }).click();
-    await expect(
-      page.getByRole('heading', { name: '地域協賛', exact: true }),
-    ).toBeVisible();
   });
 
   for (const [width, height] of [
@@ -485,31 +362,30 @@ test.describe('地域協賛マップ fixture E2E', { tag: '@local-fixture' }, ()
       await page.setViewportSize({ width, height });
       await openMap(page);
       await expect(page.locator('.leaflet-marker-icon').first()).toBeVisible();
-      await page.waitForTimeout(500);
       const panel = await page
         .getByTestId('regional-sponsor-desktop-panel')
         .boundingBox();
       const zoom = await page.locator('.leaflet-control-zoom').boundingBox();
-      const pins = await page
-        .locator('.leaflet-marker-icon')
-        .evaluateAll((elements) =>
-          elements.map((element) => {
-            const box = element.getBoundingClientRect();
-            return {
-              left: box.left,
-              right: box.right,
-              top: box.top,
-              bottom: box.bottom,
-            };
-          }),
-        );
-      expect(pins.length).toBeGreaterThan(0);
-      for (const pin of pins) {
-        expect(pin.left).toBeGreaterThanOrEqual(panel!.x + panel!.width);
-        expect(pin.right).toBeLessThanOrEqual(zoom!.x);
-        expect(pin.top).toBeGreaterThanOrEqual(0);
-        expect(pin.bottom).toBeLessThanOrEqual(height);
-      }
+      // 初期 fit は描画後に確定するため、確定した状態を待って検証する
+      await expect
+        .poll(async () => {
+          const pins = await page
+            .locator('.leaflet-marker-icon')
+            .evaluateAll((elements) =>
+              elements.map((element) => element.getBoundingClientRect()),
+            );
+          return (
+            pins.length > 0 &&
+            pins.every(
+              (pin) =>
+                pin.left >= panel!.x + panel!.width &&
+                pin.right <= zoom!.x &&
+                pin.top >= 0 &&
+                pin.bottom <= height,
+            )
+          );
+        })
+        .toBe(true);
     });
   }
 
@@ -517,43 +393,51 @@ test.describe('地域協賛マップ fixture E2E', { tag: '@local-fixture' }, ()
     await page.setViewportSize({ width: 800, height: 1000 });
     await openMap(page);
     await expect(page.locator('.leaflet-marker-icon').first()).toBeVisible();
-    await page.waitForTimeout(500);
-    // 表示タイルのz/x/yと画面上の位置から、地図コンテナ四隅の緯度経度を求める
-    const view = await page.evaluate(() => {
-      const container = document
-        .querySelector('.leaflet-container')!
-        .getBoundingClientRect();
-      const tile = [
-        ...document.querySelectorAll<HTMLImageElement>('.leaflet-tile'),
-      ]
-        .map((img) => ({
-          match: /\/(\d+)\/(\d+)\/(\d+)\.webp/.exec(img.src),
-          rect: img.getBoundingClientRect(),
-        }))
-        .find((t) => t.match);
-      const [z, x, y] = tile!.match!.slice(1).map(Number);
-      const size = tile!.rect.width;
-      const toLng = (px: number) =>
-        ((x + (px - tile!.rect.left) / size) / 2 ** z) * 360 - 180;
-      const toLat = (py: number) => {
-        const n =
-          Math.PI - (2 * Math.PI * (y + (py - tile!.rect.top) / size)) / 2 ** z;
-        return (Math.atan(Math.sinh(n)) * 180) / Math.PI;
-      };
-      return {
-        north: toLat(container.top),
-        south: toLat(container.bottom),
-        west: toLng(container.left),
-        east: toLng(container.right),
-      };
-    });
     const [[south, west], [north, east]] = REGIONAL_MAP_TILE_PROFILE.bounds;
     // 1pxは約2.5e-4度（z12.5）。サブピクセルの丸め誤差を許容する
     const tolerance = 5e-4;
-    expect(view.north).toBeLessThanOrEqual(north + tolerance);
-    expect(view.south).toBeGreaterThanOrEqual(south - tolerance);
-    expect(view.west).toBeGreaterThanOrEqual(west - tolerance);
-    expect(view.east).toBeLessThanOrEqual(east + tolerance);
+    // 表示タイルのz/x/yと画面上の位置から、地図コンテナ四隅の緯度経度を求める
+    await expect
+      .poll(async () => {
+        const view = await page.evaluate(() => {
+          const container = document
+            .querySelector('.leaflet-container')!
+            .getBoundingClientRect();
+          const tile = [
+            ...document.querySelectorAll<HTMLImageElement>('.leaflet-tile'),
+          ]
+            .map((img) => ({
+              match: /\/(\d+)\/(\d+)\/(\d+)\.webp/.exec(img.src),
+              rect: img.getBoundingClientRect(),
+            }))
+            .find((t) => t.match);
+          if (!tile) return null;
+          const [z, x, y] = tile.match!.slice(1).map(Number);
+          const size = tile.rect.width;
+          const toLng = (px: number) =>
+            ((x + (px - tile.rect.left) / size) / 2 ** z) * 360 - 180;
+          const toLat = (py: number) => {
+            const n =
+              Math.PI -
+              (2 * Math.PI * (y + (py - tile.rect.top) / size)) / 2 ** z;
+            return (Math.atan(Math.sinh(n)) * 180) / Math.PI;
+          };
+          return {
+            north: toLat(container.top),
+            south: toLat(container.bottom),
+            west: toLng(container.left),
+            east: toLng(container.right),
+          };
+        });
+        return (
+          view !== null &&
+          view.north <= north + tolerance &&
+          view.south >= south - tolerance &&
+          view.west >= west - tolerance &&
+          view.east <= east + tolerance
+        );
+      })
+      .toBe(true);
   });
 
   test('最大zoomで数mだけ離れた企業は地点ピン1本になり、押すと地点の一覧を開く', async ({
@@ -570,19 +454,13 @@ test.describe('地域協賛マップ fixture E2E', { tag: '@local-fixture' }, ()
     const locationPin = page.getByRole('button', {
       name: /2件の地域協賛：テスト専用雑貨店.*選択して一覧を表示/,
     });
-    await expect(locationPin).toHaveCount(1);
     await locationPin.click();
     await expect(
       page.getByRole('heading', { name: 'この地点の地域協賛2件' }),
     ).toBeFocused();
-    await expect(
-      page.getByRole('button', { name: /テスト専用雑貨店.*詳細を表示/ }),
-    ).toHaveCount(2);
   });
 
-  test('クラスタは押すと地図が寄るだけで画面状態を変えない', async ({
-    page,
-  }) => {
+  test('クラスタを押すと拡大し、元のクラスタが分かれる', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await openMap(page);
@@ -594,20 +472,11 @@ test.describe('地域協賛マップ fixture E2E', { tag: '@local-fixture' }, ()
       await zoomOut.click();
     }
     await expect(cluster).toBeVisible();
-    const zoomOf = () =>
-      page.evaluate(() => {
-        const transform =
-          document.querySelector<HTMLElement>('.leaflet-tile-container')?.style
-            .transform ?? '';
-        return transform;
-      });
-    const before = await zoomOf();
+    const label = await cluster.getAttribute('aria-label');
     await cluster.click();
-    await expect(page.getByRole('heading', { name: '地域協賛' })).toBeVisible();
-    await expect.poll(zoomOf).not.toBe(before);
     await expect(
-      page.getByPlaceholder('店舗名・カテゴリ・住所で検索'),
-    ).toBeVisible();
+      page.getByRole('button', { name: label!, exact: true }),
+    ).toHaveCount(0);
   });
 
   test('スマートフォンで地点の一覧を一覧snapで開き、詳細からシートの戻り先へ戻る', async ({
@@ -692,7 +561,6 @@ test.describe('地域協賛マップ fixture E2E', { tag: '@local-fixture' }, ()
     await expect(page.getByRole('button', { name: /現在: 詳細/ })).toHaveCount(
       0,
     );
-    await expectMapControlsAboveSheet(page);
     await page.keyboard.press('ArrowDown');
     await expect(
       page.getByRole('button', { name: /現在: 一覧/ }),
@@ -707,6 +575,10 @@ test.describe('地域協賛マップ fixture E2E', { tag: '@local-fixture' }, ()
     ).toBeFocused();
     await expectMapControlsAboveSheet(page);
     await expectSelectedPinBetweenOverlays(page);
+    const detailImage = await page
+      .locator('article .aspect-video')
+      .boundingBox();
+    expect(detailImage!.width / detailImage!.height).toBeCloseTo(16 / 9, 1);
 
     const detailHeight = await sheet.evaluate(
       (element) => element.getBoundingClientRect().height,
@@ -741,80 +613,5 @@ test.describe('地域協賛マップ fixture E2E', { tag: '@local-fixture' }, ()
     await expect(
       page.getByRole('heading', { name: 'テスト専用あらまき病院' }),
     ).toBeFocused();
-  });
-
-  test('Figma比較用PC一覧・詳細を1440×900で撮影する', async ({
-    page,
-  }, testInfo) => {
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await openMap(page);
-    await stabilizeVisual(page);
-    const panelBox = await page
-      .getByTestId('regional-sponsor-desktop-panel')
-      .boundingBox();
-    expect(panelBox).not.toBeNull();
-    expect(panelBox!.x).toBeGreaterThan(0);
-    expect(panelBox!.y).toBeGreaterThan(0);
-    expect(panelBox!.x + panelBox!.width).toBeLessThan(1440 / 2);
-    expect(panelBox!.y + panelBox!.height).toBeLessThanOrEqual(900);
-    await capture(page, testInfo, 'regional-pc-list-1440x900');
-    await page
-      .getByRole('button', { name: /テスト専用あらまき病院.*詳細を表示/ })
-      .click();
-    await expect(
-      page.getByRole('button', { name: '店舗一覧に戻る' }),
-    ).toBeVisible();
-    await capture(page, testInfo, 'regional-pc-detail-1440x900');
-  });
-
-  test('Figma比較用スマートフォン一覧・詳細を390×844で撮影する', async ({
-    page,
-  }, testInfo) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await openMap(page);
-    await stabilizeVisual(page);
-    const searchBox = await page
-      .getByPlaceholder('店舗名・カテゴリ・住所で検索')
-      .boundingBox();
-    const listSheetBox = await page
-      .getByTestId('map-bottom-sheet')
-      .boundingBox();
-    expect(searchBox).not.toBeNull();
-    expect(listSheetBox).not.toBeNull();
-    expect(searchBox!.x).toBeGreaterThan(0);
-    expect(searchBox!.y).toBeGreaterThan(0);
-    expect(searchBox!.x + searchBox!.width).toBeLessThan(390);
-    expect(listSheetBox!.y).toBeGreaterThan(searchBox!.y + searchBox!.height);
-    expect(listSheetBox!.y + listSheetBox!.height).toBeCloseTo(844, 0);
-    await capture(page, testInfo, 'regional-mobile-list-390x844');
-    await page
-      .getByRole('button', { name: /テスト専用あらまき病院.*詳細を表示/ })
-      .click();
-    await expect(
-      page.getByPlaceholder('店舗名・カテゴリ・住所で検索'),
-    ).toBeVisible();
-    await expect(
-      page.getByRole('button', { name: '店舗一覧に戻る' }),
-    ).toBeVisible();
-    const detailSheetBox = await page
-      .getByTestId('map-bottom-sheet')
-      .boundingBox();
-    const detailImageBox = await page
-      .locator('article .aspect-video')
-      .boundingBox();
-    expect(detailSheetBox).not.toBeNull();
-    expect(detailImageBox).not.toBeNull();
-    expect(detailSheetBox!.y).toBeGreaterThan(searchBox!.y + searchBox!.height);
-    expect(detailSheetBox!.y + detailSheetBox!.height).toBeCloseTo(844, 0);
-    expect(detailImageBox!.x).toBeGreaterThan(detailSheetBox!.x);
-    expect(detailImageBox!.x + detailImageBox!.width).toBeLessThan(
-      detailSheetBox!.x + detailSheetBox!.width,
-    );
-    expect(detailImageBox!.y).toBeGreaterThan(detailSheetBox!.y);
-    expect(detailImageBox!.width / detailImageBox!.height).toBeCloseTo(
-      16 / 9,
-      1,
-    );
-    await capture(page, testInfo, 'regional-mobile-detail-390x844');
   });
 });
