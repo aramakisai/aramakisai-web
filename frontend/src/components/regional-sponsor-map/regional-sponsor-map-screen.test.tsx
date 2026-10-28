@@ -82,7 +82,6 @@ function sponsor(overrides: Partial<RegionalSponsor> = {}): RegionalSponsor {
     imageDecorative: false,
     message: null,
     businessHours: null,
-    closedDays: null,
     phone: null,
     websiteUrl: null,
     order: 0,

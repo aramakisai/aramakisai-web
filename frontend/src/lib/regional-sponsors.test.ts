@@ -16,16 +16,13 @@ const sponsor = (overrides: Partial<Sponsor> = {}): Sponsor => ({
   _order: 'a0',
   type: ['local'],
   name: ' テスト専用地域協賛 ',
-  local_map_category: 'hospital',
+  business_category: 'hospital',
   local_latitude: 36.4,
   local_longitude: 139.1,
-  local_image: { id: 10 } as Sponsor['local_image'],
-  local_image_alt: ' テスト画像 ',
-  local_image_decorative: false,
+  local_image: { id: 10, alt: ' テスト画像 ' } as Sponsor['local_image'],
   address: ' 群馬県テスト市 ',
   description: ' 応援メッセージ\n2行目 ',
-  local_business_hours: ' 9:00〜17:00 ',
-  local_closed_days: ' 日曜日 ',
+  local_business_hours: ' 9:00〜17:00\n日曜定休 ',
   local_phone: ' 027-000-0000 ',
   url: ' https://example.invalid/shop ',
   updatedAt: '2026-10-21T00:00:00.000Z',
@@ -50,8 +47,7 @@ describe('toRegionalSponsor', () => {
         imageAlt: 'テスト画像',
         imageDecorative: false,
         message: '応援メッセージ\n2行目',
-        businessHours: '9:00〜17:00',
-        closedDays: '日曜日',
+        businessHours: '9:00〜17:00\n日曜定休',
         phone: '027-000-0000',
         websiteUrl: 'https://example.invalid/shop',
         order: 3,
@@ -59,15 +55,13 @@ describe('toRegionalSponsor', () => {
     });
   });
 
-  it('任意値をnullにし、無効URLとアクセシビリティ不成立画像を公開しない', () => {
+  it('任意値をnullにし、無効URLを公開せず、altが空の画像は装飾扱いにする', () => {
     const result = toRegionalSponsor(
       sponsor({
         address: ' ',
         description: null,
-        local_image_alt: ' ',
-        local_image_decorative: false,
+        local_image: { id: 10, alt: ' ' } as Sponsor['local_image'],
         local_business_hours: undefined,
-        local_closed_days: null,
         local_phone: '',
         url: 'javascript:alert(1)',
       }),
@@ -78,32 +72,13 @@ describe('toRegionalSponsor', () => {
       ok: true,
       value: {
         address: null,
-        imageId: null,
+        imageId: '10',
         imageAlt: null,
+        imageDecorative: true,
         message: null,
         businessHours: null,
-        closedDays: null,
         phone: null,
         websiteUrl: null,
-      },
-    });
-  });
-
-  it('altと装飾指定が同時にある不成立画像を公開しない', () => {
-    expect(
-      toRegionalSponsor(
-        sponsor({
-          local_image_alt: '同時指定',
-          local_image_decorative: true,
-        }),
-        0,
-      ),
-    ).toMatchObject({
-      ok: true,
-      value: {
-        imageId: null,
-        imageAlt: null,
-        imageDecorative: false,
       },
     });
   });
@@ -111,7 +86,7 @@ describe('toRegionalSponsor', () => {
   it('CMSで追加された未知カテゴリも除外せず公開する', () => {
     expect(
       toRegionalSponsor(
-        sponsor({ local_map_category: 'future-category' as never }),
+        sponsor({ business_category: 'future-category' as never }),
         0,
       ),
     ).toMatchObject({
@@ -171,7 +146,7 @@ describe('getRegionalSponsorMapData', () => {
         select: expect.objectContaining({ local_latitude: true, type: true }),
         sort: ['_order', 'id'],
         limit: 0,
-        depth: 0,
+        depth: 1,
       }),
       undefined,
     );

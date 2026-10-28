@@ -16,7 +16,6 @@ function sponsor(id: number, latitude = id, longitude = id): RegionalSponsor {
     imageDecorative: false,
     message: null,
     businessHours: null,
-    closedDays: null,
     phone: null,
     websiteUrl: null,
     order: id,

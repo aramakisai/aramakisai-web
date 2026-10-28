@@ -25,7 +25,6 @@ export interface RegionalSponsor {
   readonly imageDecorative: boolean;
   readonly message: string | null;
   readonly businessHours: string | null;
-  readonly closedDays: string | null;
   readonly phone: string | null;
   readonly websiteUrl: string | null;
   readonly order: number;
@@ -79,8 +78,8 @@ export function toRegionalSponsor(
   if (!sponsor.type.includes('local')) reasons.push('typeにlocalがない');
   const name = optionalText(sponsor.name);
   if (name === null) reasons.push('nameが空');
-  const category = optionalText(sponsor.local_map_category);
-  if (category === null) reasons.push('local_map_categoryが空');
+  const category = optionalText(sponsor.business_category);
+  if (category === null) reasons.push('business_categoryが空');
   if (!isCoordinate(sponsor.local_latitude, -90, 90)) {
     reasons.push('local_latitudeが不正');
   }
@@ -100,10 +99,12 @@ export function toRegionalSponsor(
   }
   if (reasons.length > 0) return { ok: false, reasons };
 
-  const decorative = sponsor.local_image_decorative === true;
-  const alt = optionalText(sponsor.local_image_alt);
-  const accessibleImage =
-    sponsor.local_image != null && decorative !== (alt !== null);
+  const imageId = toMediaId(sponsor.local_image);
+  // 代替テキストは media の alt。空なら装飾画像として扱う。
+  const alt =
+    typeof sponsor.local_image === 'object' && sponsor.local_image !== null
+      ? optionalText(sponsor.local_image.alt)
+      : null;
 
   return {
     ok: true,
@@ -114,12 +115,11 @@ export function toRegionalSponsor(
       latitude: sponsor.local_latitude!,
       longitude: sponsor.local_longitude!,
       address: optionalText(sponsor.address),
-      imageId: accessibleImage ? toMediaId(sponsor.local_image) : null,
-      imageAlt: accessibleImage && !decorative ? alt : null,
-      imageDecorative: accessibleImage ? decorative : false,
+      imageId,
+      imageAlt: alt,
+      imageDecorative: alt === null,
       message: optionalText(sponsor.description),
       businessHours: optionalText(sponsor.local_business_hours),
-      closedDays: optionalText(sponsor.local_closed_days),
       phone: optionalText(sponsor.local_phone),
       websiteUrl: websiteUrl(sponsor.url),
       order,
@@ -141,14 +141,11 @@ const SPONSOR_SELECT = {
   url: true,
   description: true,
   _order: true,
-  local_map_category: true,
+  business_category: true,
   local_latitude: true,
   local_longitude: true,
   local_image: true,
-  local_image_alt: true,
-  local_image_decorative: true,
   local_business_hours: true,
-  local_closed_days: true,
   local_phone: true,
 } as const;
 
@@ -163,7 +160,7 @@ export async function getRegionalSponsorMapData(
       select: SPONSOR_SELECT,
       sort: ['_order', 'id'],
       limit: 0,
-      depth: 0,
+      depth: 1,
     },
     options,
   );

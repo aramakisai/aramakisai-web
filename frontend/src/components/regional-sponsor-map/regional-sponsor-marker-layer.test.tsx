@@ -118,7 +118,6 @@ function sponsor(
     imageDecorative: false,
     message: null,
     businessHours: null,
-    closedDays: null,
     phone: null,
     websiteUrl: null,
     order: id,

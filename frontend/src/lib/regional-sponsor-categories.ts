@@ -2,7 +2,7 @@ import type { Sponsor } from '@/cms-types';
 
 /** Payload の select から生成された型をカテゴリ型の正とする。 */
 export type RegionalSponsorCategory = NonNullable<
-  Sponsor['local_map_category']
+  Sponsor['business_category']
 >;
 
 export const REGIONAL_SPONSOR_CATEGORY_LABELS: Readonly<

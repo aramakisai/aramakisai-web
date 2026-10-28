@@ -41,11 +41,9 @@ export function RegionalSponsorDetail({
     sponsor.category === 'hospital' ? '診療時間・休診日' : '営業時間・定休日';
   const gap = variant === 'panel' ? 'gap-4' : 'gap-3.5';
   const websiteUrl = safeWebsiteUrl(sponsor.websiteUrl);
-  const hasHours =
-    sponsor.businessHours !== null || sponsor.closedDays !== null;
   const hasInfo =
     sponsor.address !== null ||
-    hasHours ||
+    sponsor.businessHours !== null ||
     sponsor.phone !== null ||
     websiteUrl !== null;
 
@@ -121,22 +119,15 @@ export function RegionalSponsorDetail({
                   </dd>
                 </div>
               )}
-              {hasHours && (
+              {sponsor.businessHours && (
                 <div>
                   <dt className="text-xs font-medium leading-[18px] text-gray-600">
                     {hoursLabel}
                   </dt>
                   <dd className="mt-1 leading-[22px] text-text">
-                    {sponsor.businessHours && (
-                      <p className="whitespace-pre-wrap">
-                        {sponsor.businessHours}
-                      </p>
-                    )}
-                    {sponsor.closedDays && (
-                      <p className="whitespace-pre-wrap">
-                        {sponsor.closedDays}
-                      </p>
-                    )}
+                    <p className="whitespace-pre-wrap">
+                      {sponsor.businessHours}
+                    </p>
                   </dd>
                 </div>
               )}

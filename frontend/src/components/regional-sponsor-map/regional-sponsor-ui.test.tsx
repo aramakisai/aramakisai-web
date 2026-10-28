@@ -26,7 +26,6 @@ function sponsor(overrides: Partial<RegionalSponsor> = {}): RegionalSponsor {
     imageDecorative: false,
     message: '応援メッセージ\n2行目',
     businessHours: '午前 9時〜12時\n午後 14時〜18時',
-    closedDays: '日曜日',
     phone: '000-0000-0000',
     websiteUrl: 'https://example.invalid/',
     order: 0,
@@ -170,7 +169,6 @@ describe('RegionalSponsorList / RegionalSponsorDetail', () => {
           message: null,
           address: null,
           businessHours: '10時から',
-          closedDays: null,
           phone: null,
           websiteUrl: 'javascript:alert(1)',
         })}
