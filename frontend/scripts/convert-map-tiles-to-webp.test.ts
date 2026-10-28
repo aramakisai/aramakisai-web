@@ -32,7 +32,10 @@ describe('convertMapTilesToWebp', () => {
     expect(removeFile).toHaveBeenCalledWith(
       path.join('/tiles', '18', '10', '20.png'),
     );
-    expect(removeFile).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(removeFile).mock.calls.map(([f]) => f)).toEqual([
+      path.join('/tiles', '18', '10', '20.png'),
+      path.join('/tiles', '18', '10', '21.png'),
+    ]);
   });
 
   it('quality を指定した場合はそれを cwebp に渡す', async () => {
@@ -72,9 +75,8 @@ describe('convertMapTilesToWebp', () => {
       reason: expect.stringMatching(/cwebp exited with code 1/),
     });
     // 変換に失敗したタイルの PNG は削除しない (失敗したタイルが1枚も残らなくなるのを防ぐ)
-    expect(removeFile).toHaveBeenCalledTimes(1);
-    expect(removeFile).not.toHaveBeenCalledWith(
-      path.join('/tiles', '18', '10', '20.png'),
-    );
+    expect(vi.mocked(removeFile).mock.calls.map(([f]) => f)).toEqual([
+      path.join('/tiles', '18', '10', '21.png'),
+    ]);
   });
 });

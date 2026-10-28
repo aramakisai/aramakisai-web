@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
@@ -40,8 +40,9 @@ describe('verifyMapTiles', () => {
     const result = await verifyMapTiles(statTile, tinyProfile);
 
     expect(result.missingTiles).toEqual([]);
-    expect(result.foundCount).toBe(result.expectedCount);
-    expect(result.totalSizeBytes).toBe(result.expectedCount * 100);
+    expect(result.expectedCount).toBe(2);
+    expect(result.foundCount).toBe(2);
+    expect(result.totalSizeBytes).toBe(200);
     expect(hasMapTileVerificationFailure(result)).toBe(false);
   });
 
@@ -58,14 +59,6 @@ describe('verifyMapTiles', () => {
     expect(result.totalSizeBytes).toBe(100);
   });
 
-  it('期待枚数は範囲算出スクリプトの合計と一致する', async () => {
-    const statTile: StatTile = vi
-      .fn()
-      .mockResolvedValue({ exists: true, sizeBytes: 1 });
-    const result = await verifyMapTiles(statTile, tinyProfile);
-    expect(result.expectedCount).toBeGreaterThan(0);
-  });
-
   it('profileの最大容量を超えた結果を失敗と判定する', async () => {
     const statTile: StatTile = vi.fn().mockResolvedValue({
       exists: true,
@@ -78,6 +71,20 @@ describe('verifyMapTiles', () => {
 
     expect(result.exceedsByteLimit).toBe(true);
     expect(hasMapTileVerificationFailure(result)).toBe(true);
+  });
+
+  it('合計容量が上限ちょうどなら合格する', async () => {
+    const statTile: StatTile = vi.fn().mockResolvedValue({
+      exists: true,
+      sizeBytes: 600,
+    });
+    const result = await verifyMapTiles(statTile, {
+      ...tinyProfile,
+      expectedMaxBytes: 1_200,
+    });
+
+    expect(result.exceedsByteLimit).toBe(false);
+    expect(hasMapTileVerificationFailure(result)).toBe(false);
   });
 
   it('破損したWebPを失敗と判定する', async () => {
@@ -118,6 +125,58 @@ describe('空白タイル検出', () => {
     expect(hasMapTileVerificationFailure(result)).toBe(true);
   });
 
+  // 先頭 blankCount 枚だけ小タイルにする
+  const blankFirst = (blankCount: number): StatTile => {
+    let calls = 0;
+    return async () => ({
+      exists: true,
+      sizeBytes: calls++ < blankCount ? BLANK_TILE_BYTES - 1 : BLANK_TILE_BYTES,
+    });
+  };
+
+  // z16 は 48 枚で許容 3% (1.44 枚)、z13 は許容 0%
+  const z16Wide: MapTileProfile = {
+    ...z16Profile,
+    bounds: [
+      [36.43, 139.04],
+      [36.45, 139.08],
+    ],
+    expectedMaxTileCount: 100,
+  };
+
+  it('z16の許容割合以内 (1/48枚) の空白は合格する', async () => {
+    const result = await verifyMapTiles(blankFirst(1), z16Wide);
+
+    expect(result.expectedCount).toBe(48);
+    expect(result.blankTileViolations).toEqual([]);
+    expect(hasMapTileVerificationFailure(result)).toBe(false);
+  });
+
+  it('z16の許容割合を1枚超える (2/48枚) と失敗する', async () => {
+    const result = await verifyMapTiles(blankFirst(2), z16Wide);
+
+    expect(result.blankTileViolations).toEqual([
+      { zoom: 16, blankCount: 2, totalCount: 48, maxRatio: 0.03 },
+    ]);
+    expect(hasMapTileVerificationFailure(result)).toBe(true);
+  });
+
+  it('許容0%のz13は空白0枚なら合格し、1枚でも混ざると失敗する', async () => {
+    const z13: MapTileProfile = {
+      ...z16Wide,
+      minZoom: 13,
+      maxZoom: 13,
+      minNativeZoom: 13,
+      maxNativeZoom: 13,
+    };
+    const ok = await verifyMapTiles(blankFirst(0), z13);
+    expect(ok.blankTileViolations).toEqual([]);
+
+    const ng = await verifyMapTiles(blankFirst(1), z13);
+    expect(ng.blankTileViolations.map((v) => v.zoom)).toEqual([13]);
+    expect(hasMapTileVerificationFailure(ng)).toBe(true);
+  });
+
   it('十分な大きさのタイルは通す', async () => {
     const statTile: StatTile = vi
       .fn()
@@ -125,6 +184,22 @@ describe('空白タイル検出', () => {
     const result = await verifyMapTiles(statTile, z16Profile);
 
     expect(result.blankTileViolations).toEqual([]);
+  });
+
+  it('基準点タイルがLANDMARK_MIN_BYTESちょうどなら違反にならない', async () => {
+    const profile: MapTileProfile = {
+      ...tinyProfile,
+      minNativeZoom: 13,
+      maxNativeZoom: 13,
+      expectedMaxBytes: 10_000_000,
+      landmarks: [{ name: '基準点', latitude: 36.4318, longitude: 139.0464 }],
+    };
+    const exact = vi
+      .fn()
+      .mockResolvedValue({ exists: true, sizeBytes: LANDMARK_MIN_BYTES });
+    const result = await verifyMapTiles(exact, profile);
+
+    expect(result.landmarkViolations).toEqual([]);
   });
 
   it('z13〜16の基準点タイルが小さければ失敗と判定する', async () => {
@@ -152,6 +227,14 @@ describe('validateWebpTile', () => {
     const body = Buffer.alloc(12);
     body.write('RIFF', 0, 'ascii');
     body.write('WEBP', 8, 'ascii');
+    expect(validateWebpTile(body)).toBeNull();
+  });
+
+  it('コミット済みの実タイル (VP8) を受理する', async () => {
+    const body = await readFile(
+      path.join(__dirname, '..', 'public/regional-map-tiles/11/1814/800.webp'),
+    );
+    expect(body.toString('ascii', 12, 16)).toBe('VP8 ');
     expect(validateWebpTile(body)).toBeNull();
   });
 

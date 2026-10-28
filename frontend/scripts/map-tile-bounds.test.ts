@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { readdirSync } from 'node:fs';
+import path from 'node:path';
 import {
   calculateMapTileBounds,
   exceedsTileCountLimit,
@@ -6,6 +8,7 @@ import {
 } from './map-tile-bounds';
 import { CAMPUS_MAP_TILE_PROFILE } from '../src/lib/campus-map-config';
 import {
+  isWithinMapTileProfile,
   REGIONAL_MAP_TILE_PROFILE,
   type MapTileProfile,
 } from '../src/lib/map-tile-profile';
@@ -27,32 +30,9 @@ const fixtureProfile: MapTileProfile = {
 };
 
 describe('calculateMapTileBounds', () => {
-  it('minZoom から maxZoom までの各ズームについて範囲を算出する', () => {
+  it('minNativeZoom から maxNativeZoom までの各ズームについて範囲を算出する (minZoom は 15.5 でも 16 から)', () => {
     const result = calculateMapTileBounds(fixtureProfile);
     expect(result.zoomRanges.map((r) => r.zoom)).toEqual([16, 17, 18, 19]);
-  });
-
-  it('各ズームの枚数は x 範囲 * y 範囲になる', () => {
-    const result = calculateMapTileBounds(fixtureProfile);
-    for (const range of result.zoomRanges) {
-      expect(range.count).toBe(
-        (range.xMax - range.xMin + 1) * (range.yMax - range.yMin + 1),
-      );
-    }
-  });
-
-  it('ズームが上がるほど範囲 (枚数) が広がる', () => {
-    const result = calculateMapTileBounds(fixtureProfile);
-    const [z16, z17, z18, z19] = result.zoomRanges;
-    expect(z17.count).toBeGreaterThan(z16.count);
-    expect(z18.count).toBeGreaterThan(z17.count);
-    expect(z19.count).toBeGreaterThan(z18.count);
-  });
-
-  it('合計枚数は各ズームの枚数の合計と一致する', () => {
-    const result = calculateMapTileBounds(fixtureProfile);
-    const sum = result.zoomRanges.reduce((acc, r) => acc + r.count, 0);
-    expect(result.totalCount).toBe(sum);
   });
 
   it('単一タイルに収まる極小の範囲では 1 ズームあたり 1 枚になる', () => {
@@ -103,15 +83,53 @@ describe('exceedsTileCountLimit', () => {
     expect(exceedsTileCountLimit(result, CAMPUS_MAP_TILE_PROFILE)).toBe(false);
   });
 
-  it('固定regionalサービス範囲はz11-16で上限内に収まる', () => {
+  it('固定regionalサービス範囲はz11-16・4656枚で上限内に収まる', () => {
     const result = calculateMapTileBounds(REGIONAL_MAP_TILE_PROFILE);
     expect(result.zoomRanges.map(({ zoom }) => zoom)).toEqual([
       11, 12, 13, 14, 15, 16,
     ]);
-    expect(result.zoomRanges.every(({ count }) => count > 0)).toBe(true);
+    expect(result.totalCount).toBe(4656);
     expect(exceedsTileCountLimit(result, REGIONAL_MAP_TILE_PROFILE)).toBe(
       false,
     );
+
+    const z11 = result.zoomRanges[0];
+    expect([z11.xMin, z11.xMax, z11.yMin, z11.yMax]).toEqual([
+      1814, 1816, 800, 802,
+    ]);
+    // コミット済みタイルの構成と範囲が一致すること
+    const z11Dir = path.join(
+      __dirname,
+      '..',
+      REGIONAL_MAP_TILE_PROFILE.publicDirectory,
+      '11',
+    );
+    expect(readdirSync(z11Dir).sort()).toEqual(['1814', '1815', '1816']);
+    for (const x of ['1814', '1815', '1816']) {
+      expect(readdirSync(path.join(z11Dir, x)).sort()).toEqual([
+        '800.webp',
+        '801.webp',
+        '802.webp',
+      ]);
+    }
+  });
+
+  it('regional profileの範囲にlandmark全件と荒牧キャンパス中心が入る', () => {
+    const landmarks = REGIONAL_MAP_TILE_PROFILE.landmarks;
+    expect(landmarks.length).toBeGreaterThan(0);
+    for (const { latitude, longitude } of landmarks) {
+      expect(
+        isWithinMapTileProfile(REGIONAL_MAP_TILE_PROFILE, latitude, longitude),
+      ).toBe(true);
+    }
+    const [[south, west], [north, east]] = CAMPUS_MAP_TILE_PROFILE.bounds;
+    expect(
+      isWithinMapTileProfile(
+        REGIONAL_MAP_TILE_PROFILE,
+        (south + north) / 2,
+        (west + east) / 2,
+      ),
+    ).toBe(true);
   });
 });
 
