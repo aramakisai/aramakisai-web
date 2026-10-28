@@ -1,37 +1,39 @@
-import * as migration_20260827_082729_initial from './20260827_082729_initial'
-import * as migration_20260827_084210_owner_unique from './20260827_084210_owner_unique'
-import * as migration_20260827_084500_schema_constraints from './20260827_084500_schema_constraints'
-import * as migration_20260828_134029_authentik_sub from './20260828_134029_authentik_sub'
-import * as migration_20260830_073945_add_media_prefix from './20260830_073945_add_media_prefix'
-import * as migration_20260917_190645_student_exhibitions_links_stage_name from './20260917_190645_student_exhibitions_links_stage_name'
-import * as migration_20260918_015706_student_exhibitions_multi_category_content from './20260918_015706_student_exhibitions_multi_category_content'
-import * as migration_20260918_095545_sponsors_tier_plans from './20260918_095545_sponsors_tier_plans'
-import * as migration_20260919_080856_map_areas_color_geometry_validation from './20260919_080856_map_areas_color_geometry_validation'
-import * as migration_20260922_132853_sponsors_type_drop from './20260922_132853_sponsors_type_drop'
-import * as migration_20260922_132916_sponsors_type_add from './20260922_132916_sponsors_type_add'
-import * as migration_20260922_134900_event_days_structured from './20260922_134900_event_days_structured'
-import * as migration_20260922_155727_festival_meta_access_summary from './20260922_155727_festival_meta_access_summary'
-import * as migration_20260923_164954_seo_fields from './20260923_164954_seo_fields'
-import * as migration_20260924_130150_exhibitor_admin_ui from './20260924_130150_exhibitor_admin_ui'
-import * as migration_20260924_142843_exhibitor_contact_url from './20260924_142843_exhibitor_contact_url'
-import * as migration_20260927_074248_student_exhibitions_organization_name_optional from './20260927_074248_student_exhibitions_organization_name_optional'
-import * as migration_20260929_054933_map_areas_multi_polygon_hex from './20260929_054933_map_areas_multi_polygon_hex'
-import * as migration_20260929_093220_performance_slots_inline_time from './20260929_093220_performance_slots_inline_time'
-import * as migration_20260929_111510_map_facilities from './20260929_111510_map_facilities'
-import * as migration_20260929_161314_student_exhibitions_menu_open_days from './20260929_161314_student_exhibitions_menu_open_days'
-import * as migration_20260930_145729_users_activated_at from './20260930_145729_users_activated_at'
-import * as migration_20260930_185535_student_exhibitions_category_placement from './20260930_185535_student_exhibitions_category_placement'
-import * as migration_20261003_155255_parking_lots from './20261003_155255_parking_lots'
-import * as migration_20261009_100051_media_public_null from './20261009_100051_media_public_null'
-import * as migration_20261009_110654_purge_media_edge_cache from './20261009_110654_purge_media_edge_cache'
-import * as migration_20261010_004355_signage from './20261010_004355_signage'
-import * as migration_20261010_150844_telop_label_free_text from './20261010_150844_telop_label_free_text'
-import * as migration_20261013_150312_signage_quake from './20261013_150312_signage_quake'
-import * as migration_20261013_172130_site_settings_and_cleanup_a from './20261013_172130_site_settings_and_cleanup_a'
-import * as migration_20261014_072436_invite_claimed_job from './20261014_072436_invite_claimed_job'
-import * as migration_20261014_073409_drop_legacy_globals_and_sort from './20261014_073409_drop_legacy_globals_and_sort'
-import * as migration_20261025_082958_add_student_exhibitions_versions from './20261025_082958_add_student_exhibitions_versions'
-import * as migration_20261025_160749_regional_sponsor_map_schema from './20261025_160749_regional_sponsor_map_schema'
+import * as migration_20260827_082729_initial from './20260827_082729_initial';
+import * as migration_20260827_084210_owner_unique from './20260827_084210_owner_unique';
+import * as migration_20260827_084500_schema_constraints from './20260827_084500_schema_constraints';
+import * as migration_20260828_134029_authentik_sub from './20260828_134029_authentik_sub';
+import * as migration_20260830_073945_add_media_prefix from './20260830_073945_add_media_prefix';
+import * as migration_20260917_190645_student_exhibitions_links_stage_name from './20260917_190645_student_exhibitions_links_stage_name';
+import * as migration_20260918_015706_student_exhibitions_multi_category_content from './20260918_015706_student_exhibitions_multi_category_content';
+import * as migration_20260918_095545_sponsors_tier_plans from './20260918_095545_sponsors_tier_plans';
+import * as migration_20260919_080856_map_areas_color_geometry_validation from './20260919_080856_map_areas_color_geometry_validation';
+import * as migration_20260922_132853_sponsors_type_drop from './20260922_132853_sponsors_type_drop';
+import * as migration_20260922_132916_sponsors_type_add from './20260922_132916_sponsors_type_add';
+import * as migration_20260922_134900_event_days_structured from './20260922_134900_event_days_structured';
+import * as migration_20260922_155727_festival_meta_access_summary from './20260922_155727_festival_meta_access_summary';
+import * as migration_20260923_164954_seo_fields from './20260923_164954_seo_fields';
+import * as migration_20260924_130150_exhibitor_admin_ui from './20260924_130150_exhibitor_admin_ui';
+import * as migration_20260924_142843_exhibitor_contact_url from './20260924_142843_exhibitor_contact_url';
+import * as migration_20260927_074248_student_exhibitions_organization_name_optional from './20260927_074248_student_exhibitions_organization_name_optional';
+import * as migration_20260929_054933_map_areas_multi_polygon_hex from './20260929_054933_map_areas_multi_polygon_hex';
+import * as migration_20260929_093220_performance_slots_inline_time from './20260929_093220_performance_slots_inline_time';
+import * as migration_20260929_111510_map_facilities from './20260929_111510_map_facilities';
+import * as migration_20260929_161314_student_exhibitions_menu_open_days from './20260929_161314_student_exhibitions_menu_open_days';
+import * as migration_20260930_145729_users_activated_at from './20260930_145729_users_activated_at';
+import * as migration_20260930_185535_student_exhibitions_category_placement from './20260930_185535_student_exhibitions_category_placement';
+import * as migration_20261003_155255_parking_lots from './20261003_155255_parking_lots';
+import * as migration_20261009_100051_media_public_null from './20261009_100051_media_public_null';
+import * as migration_20261009_110654_purge_media_edge_cache from './20261009_110654_purge_media_edge_cache';
+import * as migration_20261010_004355_signage from './20261010_004355_signage';
+import * as migration_20261010_150844_telop_label_free_text from './20261010_150844_telop_label_free_text';
+import * as migration_20261013_150312_signage_quake from './20261013_150312_signage_quake';
+import * as migration_20261013_172130_site_settings_and_cleanup_a from './20261013_172130_site_settings_and_cleanup_a';
+import * as migration_20261014_072436_invite_claimed_job from './20261014_072436_invite_claimed_job';
+import * as migration_20261014_073409_drop_legacy_globals_and_sort from './20261014_073409_drop_legacy_globals_and_sort';
+import * as migration_20261025_082958_add_student_exhibitions_versions from './20261025_082958_add_student_exhibitions_versions';
+import * as migration_20261026_152813_navigation from './20261026_152813_navigation';
+import * as migration_20261027_074658_parking_camera_endpoint from './20261027_074658_parking_camera_endpoint';
+import * as migration_20261027_095257_regional_sponsor_map_schema from './20261027_095257_regional_sponsor_map_schema';
 
 export const migrations = [
   {
@@ -200,8 +202,18 @@ export const migrations = [
     name: '20261025_082958_add_student_exhibitions_versions',
   },
   {
-    up: migration_20261025_160749_regional_sponsor_map_schema.up,
-    down: migration_20261025_160749_regional_sponsor_map_schema.down,
-    name: '20261025_160749_regional_sponsor_map_schema',
+    up: migration_20261026_152813_navigation.up,
+    down: migration_20261026_152813_navigation.down,
+    name: '20261026_152813_navigation',
   },
-]
+  {
+    up: migration_20261027_074658_parking_camera_endpoint.up,
+    down: migration_20261027_074658_parking_camera_endpoint.down,
+    name: '20261027_074658_parking_camera_endpoint',
+  },
+  {
+    up: migration_20261027_095257_regional_sponsor_map_schema.up,
+    down: migration_20261027_095257_regional_sponsor_map_schema.down,
+    name: '20261027_095257_regional_sponsor_map_schema'
+  },
+];

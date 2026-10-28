@@ -4122,6 +4122,522 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.parking_cameras": {
+      "name": "parking_cameras",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lot_id": {
+          "name": "lot_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "token_hash": {
+          "name": "token_hash",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "token_issued_at": {
+          "name": "token_issued_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "exposure_basis_quality": {
+          "name": "exposure_basis_quality",
+          "type": "enum_parking_cameras_exposure_basis_quality",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "exposure_basis_exposure": {
+          "name": "exposure_basis_exposure",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "exposure_basis_captured_at": {
+          "name": "exposure_basis_captured_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_judged_window": {
+          "name": "last_judged_window",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_captured_at": {
+          "name": "last_captured_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "device_status_rssi": {
+          "name": "device_status_rssi",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "device_status_uptime": {
+          "name": "device_status_uptime",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "device_status_reset_reason": {
+          "name": "device_status_reset_reason",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "device_status_failures": {
+          "name": "device_status_failures",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "device_status_firmware": {
+          "name": "device_status_firmware",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "device_status_received_at": {
+          "name": "device_status_received_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "outage_notified_at": {
+          "name": "outage_notified_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "parking_cameras_lot_idx": {
+          "name": "parking_cameras_lot_idx",
+          "columns": [
+            {
+              "expression": "lot_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "parking_cameras_token_hash_idx": {
+          "name": "parking_cameras_token_hash_idx",
+          "columns": [
+            {
+              "expression": "token_hash",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "parking_cameras_updated_at_idx": {
+          "name": "parking_cameras_updated_at_idx",
+          "columns": [
+            {
+              "expression": "updated_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "parking_cameras_created_at_idx": {
+          "name": "parking_cameras_created_at_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "parking_cameras_lot_id_parking_lots_id_fk": {
+          "name": "parking_cameras_lot_id_parking_lots_id_fk",
+          "tableFrom": "parking_cameras",
+          "tableTo": "parking_lots",
+          "columnsFrom": [
+            "lot_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.parking_snapshots": {
+      "name": "parking_snapshots",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "camera_id": {
+          "name": "camera_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lot_id": {
+          "name": "lot_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "exposure": {
+          "name": "exposure",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "judge_status": {
+          "name": "judge_status",
+          "type": "enum_parking_snapshots_judge_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "judge_error": {
+          "name": "judge_error",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "congestion": {
+          "name": "congestion",
+          "type": "enum_parking_snapshots_congestion",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "image_quality": {
+          "name": "image_quality",
+          "type": "enum_parking_snapshots_image_quality",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "judge_model": {
+          "name": "judge_model",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "judged_at": {
+          "name": "judged_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "captured_at": {
+          "name": "captured_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prefix": {
+          "name": "prefix",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'payload-uploads/parking-snapshots'"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "url": {
+          "name": "url",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "thumbnail_u_r_l": {
+          "name": "thumbnail_u_r_l",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "filename": {
+          "name": "filename",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mime_type": {
+          "name": "mime_type",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "filesize": {
+          "name": "filesize",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "width": {
+          "name": "width",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "height": {
+          "name": "height",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "focal_x": {
+          "name": "focal_x",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "focal_y": {
+          "name": "focal_y",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sizes_web_url": {
+          "name": "sizes_web_url",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sizes_web_width": {
+          "name": "sizes_web_width",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sizes_web_height": {
+          "name": "sizes_web_height",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sizes_web_mime_type": {
+          "name": "sizes_web_mime_type",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sizes_web_filesize": {
+          "name": "sizes_web_filesize",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sizes_web_filename": {
+          "name": "sizes_web_filename",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "parking_snapshots_camera_idx": {
+          "name": "parking_snapshots_camera_idx",
+          "columns": [
+            {
+              "expression": "camera_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "parking_snapshots_lot_idx": {
+          "name": "parking_snapshots_lot_idx",
+          "columns": [
+            {
+              "expression": "lot_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "parking_snapshots_updated_at_idx": {
+          "name": "parking_snapshots_updated_at_idx",
+          "columns": [
+            {
+              "expression": "updated_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "parking_snapshots_created_at_idx": {
+          "name": "parking_snapshots_created_at_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "parking_snapshots_filename_idx": {
+          "name": "parking_snapshots_filename_idx",
+          "columns": [
+            {
+              "expression": "filename",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "parking_snapshots_sizes_web_sizes_web_filename_idx": {
+          "name": "parking_snapshots_sizes_web_sizes_web_filename_idx",
+          "columns": [
+            {
+              "expression": "sizes_web_filename",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "parking_snapshots_camera_id_parking_cameras_id_fk": {
+          "name": "parking_snapshots_camera_id_parking_cameras_id_fk",
+          "tableFrom": "parking_snapshots",
+          "tableTo": "parking_cameras",
+          "columnsFrom": [
+            "camera_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "parking_snapshots_lot_id_parking_lots_id_fk": {
+          "name": "parking_snapshots_lot_id_parking_lots_id_fk",
+          "tableFrom": "parking_snapshots",
+          "tableTo": "parking_lots",
+          "columnsFrom": [
+            "lot_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.signage_slides": {
       "name": "signage_slides",
       "schema": "",
@@ -5186,6 +5702,12 @@
           "notNull": false,
           "default": false
         },
+        "meta": {
+          "name": "meta",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
         "updated_at": {
           "name": "updated_at",
           "type": "timestamp(3) with time zone",
@@ -5542,6 +6064,18 @@
           "primaryKey": false,
           "notNull": false
         },
+        "parking_cameras_id": {
+          "name": "parking_cameras_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parking_snapshots_id": {
+          "name": "parking_snapshots_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "signage_slides_id": {
           "name": "signage_slides_id",
           "type": "integer",
@@ -5823,6 +6357,36 @@
           "method": "btree",
           "with": {}
         },
+        "payload_locked_documents_rels_parking_cameras_id_idx": {
+          "name": "payload_locked_documents_rels_parking_cameras_id_idx",
+          "columns": [
+            {
+              "expression": "parking_cameras_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "payload_locked_documents_rels_parking_snapshots_id_idx": {
+          "name": "payload_locked_documents_rels_parking_snapshots_id_idx",
+          "columns": [
+            {
+              "expression": "parking_snapshots_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "payload_locked_documents_rels_signage_slides_id_idx": {
           "name": "payload_locked_documents_rels_signage_slides_id_idx",
           "columns": [
@@ -6073,6 +6637,32 @@
           "tableTo": "parking_statuses",
           "columnsFrom": [
             "parking_statuses_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "payload_locked_documents_rels_parking_cameras_fk": {
+          "name": "payload_locked_documents_rels_parking_cameras_fk",
+          "tableFrom": "payload_locked_documents_rels",
+          "tableTo": "parking_cameras",
+          "columnsFrom": [
+            "parking_cameras_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "payload_locked_documents_rels_parking_snapshots_fk": {
+          "name": "payload_locked_documents_rels_parking_snapshots_fk",
+          "tableFrom": "payload_locked_documents_rels",
+          "tableTo": "parking_snapshots",
+          "columnsFrom": [
+            "parking_snapshots_id"
           ],
           "columnsTo": [
             "id"
@@ -6595,6 +7185,20 @@
           "primaryKey": false,
           "notNull": false
         },
+        "parking_monitor_start": {
+          "name": "parking_monitor_start",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'09:00'"
+        },
+        "parking_monitor_end": {
+          "name": "parking_monitor_end",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'17:30'"
+        },
         "og_image_id": {
           "name": "og_image_id",
           "type": "integer",
@@ -6849,6 +7453,640 @@
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
+    },
+    "public.navigation_live_items_children": {
+      "name": "navigation_live_items_children",
+      "schema": "",
+      "columns": {
+        "_order": {
+          "name": "_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "_parent_id": {
+          "name": "_parent_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id": {
+          "name": "id",
+          "type": "varchar",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "link_type": {
+          "name": "link_type",
+          "type": "enum_navigation_live_items_children_link_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'page'"
+        },
+        "page_id": {
+          "name": "page_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "path": {
+          "name": "path",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "label": {
+          "name": "label",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hide_in_footer": {
+          "name": "hide_in_footer",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        }
+      },
+      "indexes": {
+        "navigation_live_items_children_order_idx": {
+          "name": "navigation_live_items_children_order_idx",
+          "columns": [
+            {
+              "expression": "_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "navigation_live_items_children_parent_id_idx": {
+          "name": "navigation_live_items_children_parent_id_idx",
+          "columns": [
+            {
+              "expression": "_parent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "navigation_live_items_children_page_idx": {
+          "name": "navigation_live_items_children_page_idx",
+          "columns": [
+            {
+              "expression": "page_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "navigation_live_items_children_page_id_pages_id_fk": {
+          "name": "navigation_live_items_children_page_id_pages_id_fk",
+          "tableFrom": "navigation_live_items_children",
+          "tableTo": "pages",
+          "columnsFrom": [
+            "page_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "navigation_live_items_children_parent_id_fk": {
+          "name": "navigation_live_items_children_parent_id_fk",
+          "tableFrom": "navigation_live_items_children",
+          "tableTo": "navigation_live_items",
+          "columnsFrom": [
+            "_parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.navigation_live_items": {
+      "name": "navigation_live_items",
+      "schema": "",
+      "columns": {
+        "_order": {
+          "name": "_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "_parent_id": {
+          "name": "_parent_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id": {
+          "name": "id",
+          "type": "varchar",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "link_type": {
+          "name": "link_type",
+          "type": "enum_navigation_live_items_link_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'page'"
+        },
+        "page_id": {
+          "name": "page_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "path": {
+          "name": "path",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "label": {
+          "name": "label",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "color": {
+          "name": "color",
+          "type": "enum_navigation_live_items_color",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'primary'"
+        },
+        "footer_column": {
+          "name": "footer_column",
+          "type": "enum_navigation_live_items_footer_column",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'site'"
+        }
+      },
+      "indexes": {
+        "navigation_live_items_order_idx": {
+          "name": "navigation_live_items_order_idx",
+          "columns": [
+            {
+              "expression": "_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "navigation_live_items_parent_id_idx": {
+          "name": "navigation_live_items_parent_id_idx",
+          "columns": [
+            {
+              "expression": "_parent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "navigation_live_items_page_idx": {
+          "name": "navigation_live_items_page_idx",
+          "columns": [
+            {
+              "expression": "page_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "navigation_live_items_page_id_pages_id_fk": {
+          "name": "navigation_live_items_page_id_pages_id_fk",
+          "tableFrom": "navigation_live_items",
+          "tableTo": "pages",
+          "columnsFrom": [
+            "page_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "navigation_live_items_parent_id_fk": {
+          "name": "navigation_live_items_parent_id_fk",
+          "tableFrom": "navigation_live_items",
+          "tableTo": "navigation",
+          "columnsFrom": [
+            "_parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.navigation_pre_event_items_children": {
+      "name": "navigation_pre_event_items_children",
+      "schema": "",
+      "columns": {
+        "_order": {
+          "name": "_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "_parent_id": {
+          "name": "_parent_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id": {
+          "name": "id",
+          "type": "varchar",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "link_type": {
+          "name": "link_type",
+          "type": "enum_navigation_pre_event_items_children_link_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'page'"
+        },
+        "page_id": {
+          "name": "page_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "path": {
+          "name": "path",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "label": {
+          "name": "label",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hide_in_footer": {
+          "name": "hide_in_footer",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        }
+      },
+      "indexes": {
+        "navigation_pre_event_items_children_order_idx": {
+          "name": "navigation_pre_event_items_children_order_idx",
+          "columns": [
+            {
+              "expression": "_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "navigation_pre_event_items_children_parent_id_idx": {
+          "name": "navigation_pre_event_items_children_parent_id_idx",
+          "columns": [
+            {
+              "expression": "_parent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "navigation_pre_event_items_children_page_idx": {
+          "name": "navigation_pre_event_items_children_page_idx",
+          "columns": [
+            {
+              "expression": "page_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "navigation_pre_event_items_children_page_id_pages_id_fk": {
+          "name": "navigation_pre_event_items_children_page_id_pages_id_fk",
+          "tableFrom": "navigation_pre_event_items_children",
+          "tableTo": "pages",
+          "columnsFrom": [
+            "page_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "navigation_pre_event_items_children_parent_id_fk": {
+          "name": "navigation_pre_event_items_children_parent_id_fk",
+          "tableFrom": "navigation_pre_event_items_children",
+          "tableTo": "navigation_pre_event_items",
+          "columnsFrom": [
+            "_parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.navigation_pre_event_items": {
+      "name": "navigation_pre_event_items",
+      "schema": "",
+      "columns": {
+        "_order": {
+          "name": "_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "_parent_id": {
+          "name": "_parent_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id": {
+          "name": "id",
+          "type": "varchar",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "link_type": {
+          "name": "link_type",
+          "type": "enum_navigation_pre_event_items_link_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'page'"
+        },
+        "page_id": {
+          "name": "page_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "path": {
+          "name": "path",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "label": {
+          "name": "label",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "color": {
+          "name": "color",
+          "type": "enum_navigation_pre_event_items_color",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'primary'"
+        },
+        "footer_column": {
+          "name": "footer_column",
+          "type": "enum_navigation_pre_event_items_footer_column",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'site'"
+        }
+      },
+      "indexes": {
+        "navigation_pre_event_items_order_idx": {
+          "name": "navigation_pre_event_items_order_idx",
+          "columns": [
+            {
+              "expression": "_order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "navigation_pre_event_items_parent_id_idx": {
+          "name": "navigation_pre_event_items_parent_id_idx",
+          "columns": [
+            {
+              "expression": "_parent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "navigation_pre_event_items_page_idx": {
+          "name": "navigation_pre_event_items_page_idx",
+          "columns": [
+            {
+              "expression": "page_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "navigation_pre_event_items_page_id_pages_id_fk": {
+          "name": "navigation_pre_event_items_page_id_pages_id_fk",
+          "tableFrom": "navigation_pre_event_items",
+          "tableTo": "pages",
+          "columnsFrom": [
+            "page_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "navigation_pre_event_items_parent_id_fk": {
+          "name": "navigation_pre_event_items_parent_id_fk",
+          "tableFrom": "navigation_pre_event_items",
+          "tableTo": "navigation",
+          "columnsFrom": [
+            "_parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.navigation": {
+      "name": "navigation",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.payload_jobs_stats": {
+      "name": "payload_jobs_stats",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "stats": {
+          "name": "stats",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     }
   },
   "enums": {
@@ -6979,6 +8217,46 @@
         "full"
       ]
     },
+    "public.enum_parking_cameras_exposure_basis_quality": {
+      "name": "enum_parking_cameras_exposure_basis_quality",
+      "schema": "public",
+      "values": [
+        "ok",
+        "too_dark",
+        "too_bright",
+        "color_cast"
+      ]
+    },
+    "public.enum_parking_snapshots_judge_status": {
+      "name": "enum_parking_snapshots_judge_status",
+      "schema": "public",
+      "values": [
+        "pending",
+        "succeeded",
+        "failed",
+        "skipped"
+      ]
+    },
+    "public.enum_parking_snapshots_congestion": {
+      "name": "enum_parking_snapshots_congestion",
+      "schema": "public",
+      "values": [
+        "available",
+        "crowded",
+        "full",
+        "unknown"
+      ]
+    },
+    "public.enum_parking_snapshots_image_quality": {
+      "name": "enum_parking_snapshots_image_quality",
+      "schema": "public",
+      "values": [
+        "ok",
+        "too_dark",
+        "too_bright",
+        "color_cast"
+      ]
+    },
     "public.enum_signage_slides_kind": {
       "name": "enum_signage_slides_kind",
       "schema": "public",
@@ -7024,7 +8302,9 @@
       "values": [
         "inline",
         "sendInvitation",
-        "purgeMediaEdgeCache"
+        "purgeMediaEdgeCache",
+        "judgeParkingSnapshot",
+        "checkParkingCameras"
       ]
     },
     "public.enum_payload_jobs_log_state": {
@@ -7041,7 +8321,85 @@
       "values": [
         "inline",
         "sendInvitation",
-        "purgeMediaEdgeCache"
+        "purgeMediaEdgeCache",
+        "judgeParkingSnapshot",
+        "checkParkingCameras"
+      ]
+    },
+    "public.enum_navigation_live_items_children_link_type": {
+      "name": "enum_navigation_live_items_children_link_type",
+      "schema": "public",
+      "values": [
+        "page",
+        "path"
+      ]
+    },
+    "public.enum_navigation_live_items_link_type": {
+      "name": "enum_navigation_live_items_link_type",
+      "schema": "public",
+      "values": [
+        "page",
+        "path",
+        "group"
+      ]
+    },
+    "public.enum_navigation_live_items_color": {
+      "name": "enum_navigation_live_items_color",
+      "schema": "public",
+      "values": [
+        "primary",
+        "secondary",
+        "info",
+        "warning",
+        "success",
+        "accent",
+        "accent-alt"
+      ]
+    },
+    "public.enum_navigation_live_items_footer_column": {
+      "name": "enum_navigation_live_items_footer_column",
+      "schema": "public",
+      "values": [
+        "site",
+        "guidance"
+      ]
+    },
+    "public.enum_navigation_pre_event_items_children_link_type": {
+      "name": "enum_navigation_pre_event_items_children_link_type",
+      "schema": "public",
+      "values": [
+        "page",
+        "path"
+      ]
+    },
+    "public.enum_navigation_pre_event_items_link_type": {
+      "name": "enum_navigation_pre_event_items_link_type",
+      "schema": "public",
+      "values": [
+        "page",
+        "path",
+        "group"
+      ]
+    },
+    "public.enum_navigation_pre_event_items_color": {
+      "name": "enum_navigation_pre_event_items_color",
+      "schema": "public",
+      "values": [
+        "primary",
+        "secondary",
+        "info",
+        "warning",
+        "success",
+        "accent",
+        "accent-alt"
+      ]
+    },
+    "public.enum_navigation_pre_event_items_footer_column": {
+      "name": "enum_navigation_pre_event_items_footer_column",
+      "schema": "public",
+      "values": [
+        "site",
+        "guidance"
       ]
     }
   },
@@ -7055,6 +8413,6 @@
     "tables": {},
     "columns": {}
   },
-  "id": "a2b7d3b7-1194-49db-9c3d-12af722f0cc6",
+  "id": "3937f986-8856-46cb-940f-8361fe8900fa",
   "prevId": "00000000-0000-0000-0000-000000000000"
 }

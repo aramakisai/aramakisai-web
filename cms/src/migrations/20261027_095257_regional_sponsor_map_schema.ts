@@ -33,7 +33,7 @@ export async function down({ db, payload, req }: MigrateDownArgs): Promise<void>
    ALTER TABLE "sponsors" DROP CONSTRAINT "sponsors_local_image_id_media_id_fk";
   ALTER TABLE "sponsors" DROP CONSTRAINT "sponsors_local_latitude_check";
   ALTER TABLE "sponsors" DROP CONSTRAINT "sponsors_local_longitude_check";
-
+  
   DROP INDEX "media_sizes_thumbnail_sizes_thumbnail_filename_idx";
   DROP INDEX "sponsors_local_import_id_idx";
   DROP INDEX "sponsors_local_image_idx";

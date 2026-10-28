@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { RegionalSponsorMapScreen } from '@/components/regional-sponsor-map/regional-sponsor-map-screen';
+import { getNavigation } from '@/lib/get-navigation';
 import { getRequestPhase } from '@/lib/request-phase';
 import { getRegionalSponsorMapData } from '@/lib/regional-sponsors';
 import { getSiteMetadata } from '@/lib/site-metadata';
@@ -22,9 +23,12 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function RegionalSponsorMapPage() {
-  const [data, { phase }] = await Promise.all([
+  const [data, { phase }, navigation] = await Promise.all([
     getRegionalSponsorMapData(),
     getRequestPhase(),
+    getNavigation(),
   ]);
-  return <RegionalSponsorMapScreen data={data} phase={phase} />;
+  return (
+    <RegionalSponsorMapScreen data={data} phase={phase} navigation={navigation} />
+  );
 }

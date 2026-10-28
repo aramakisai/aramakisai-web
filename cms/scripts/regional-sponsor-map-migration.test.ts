@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 const migrationsDirectory = fileURLToPath(new URL('../src/migrations/', import.meta.url))
-const migrationName = '20261025_160749_regional_sponsor_map_schema'
+const migrationName = '20261027_095257_regional_sponsor_map_schema'
 
 const localColumns = [
   'local_import_id',
@@ -94,7 +94,7 @@ function expectOnlyApprovedSnapshotChanges(generated: Snapshot, previous: Snapsh
 
 const readGeneratedMigration = (extension: '.ts' | '.json') => {
   expect(
-    migrationName.localeCompare('20261025_082958_add_student_exhibitions_versions'),
+    migrationName.localeCompare('20261027_074658_parking_camera_endpoint'),
   ).toBeGreaterThan(0)
   return {
     filename: `${migrationName}${extension}`,
@@ -149,7 +149,7 @@ describe('regional sponsor map migration', () => {
     const { source } = readGeneratedMigration('.json')
     const latestDevSnapshot = JSON.parse(
       readFileSync(
-        `${migrationsDirectory}/20261025_082958_add_student_exhibitions_versions.json`,
+        `${migrationsDirectory}/20261027_074658_parking_camera_endpoint.json`,
         'utf8',
       ),
     ) as Snapshot

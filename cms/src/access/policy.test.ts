@@ -227,3 +227,30 @@ describe('parking_statuses', () => {
     expect(canUpdate(null, 'parking_statuses')).toBe(false);
   });
 });
+
+describe('parking_cameras', () => {
+  it('実行委員だけが読み書きできる', () => {
+    expect(canRead(executive, 'parking_cameras', NOW)).toBe(true);
+    expect(canRead(null, 'parking_cameras', NOW)).toBe(false);
+    expect(canRead(exhibitor, 'parking_cameras', NOW)).toBe(false);
+    expect(canCreate(executive, 'parking_cameras')).toBe(true);
+    expect(canUpdate(executive, 'parking_cameras')).toBe(true);
+    expect(canDelete(executive, 'parking_cameras')).toBe(true);
+    expect(canCreate(exhibitor, 'parking_cameras')).toBe(false);
+    expect(canUpdate(exhibitor, 'parking_cameras')).toBe(false);
+    expect(canDelete(exhibitor, 'parking_cameras')).toBe(false);
+  });
+});
+
+describe('parking_snapshots', () => {
+  it('未認証・学生団体には割り当て先のある画像だけ見せ、実行委員は全件読める', () => {
+    expect(canRead(null, 'parking_snapshots', NOW)).toEqual({ lot: { exists: true } });
+    expect(canRead(exhibitor, 'parking_snapshots', NOW)).toEqual({ lot: { exists: true } });
+    expect(canRead(executive, 'parking_snapshots', NOW)).toBe(true);
+  });
+
+  it('実行委員でも作成・削除できない', () => {
+    expect(canCreate(executive, 'parking_snapshots')).toBe(false);
+    expect(canDelete(executive, 'parking_snapshots')).toBe(false);
+  });
+});

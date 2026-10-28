@@ -1,7 +1,7 @@
 import { sql } from '@payloadcms/db-postgres'
 import { describe, expect, it } from 'vitest'
 
-import * as migration from '../src/migrations/20261025_160749_regional_sponsor_map_schema'
+import * as migration from '../src/migrations/20261027_095257_regional_sponsor_map_schema'
 
 const hasDatabase = Boolean(process.env.DATABASE_URL && process.env.PAYLOAD_SECRET)
 

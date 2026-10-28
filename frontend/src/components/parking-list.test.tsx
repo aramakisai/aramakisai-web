@@ -27,6 +27,7 @@ const LOT = {
   name: '正門前駐車場',
   status: 'available' as const,
   updatedAt: '2026-11-14T03:50:00Z',
+  image: null,
 };
 
 const fetchMock = vi.fn();

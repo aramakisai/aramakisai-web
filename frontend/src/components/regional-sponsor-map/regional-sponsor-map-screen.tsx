@@ -13,6 +13,7 @@ import type {
   RegionalSponsor,
   RegionalSponsorMapDataResult,
 } from '@/lib/regional-sponsors';
+import type { NavigationByPhase } from '@/lib/navigation';
 import { BUILD_PHASE, type FestivalPhase } from '@/lib/phase';
 import { RegionalSponsorBottomSheet } from './regional-sponsor-bottom-sheet';
 import { RegionalSponsorPanel } from './regional-sponsor-panel';
@@ -42,12 +43,14 @@ const EMPTY_SPONSORS: readonly RegionalSponsor[] = [];
 export interface RegionalSponsorMapScreenProps {
   readonly data: RegionalSponsorMapDataResult;
   readonly phase?: FestivalPhase;
+  readonly navigation: NavigationByPhase;
   readonly mapProfile?: RegionalMapConfig | null;
 }
 
 export function RegionalSponsorMapScreen({
   data,
   phase = BUILD_PHASE,
+  navigation,
   mapProfile = REGIONAL_MAP_CONFIG,
 }: RegionalSponsorMapScreenProps) {
   const router = useRouter();
@@ -116,7 +119,7 @@ export function RegionalSponsorMapScreen({
         />
       </div>
 
-      <MapMenuButton phase={phase} />
+      <MapMenuButton phase={phase} navigation={navigation} />
       {isDesktop ? (
         <RegionalSponsorPanel
           {...shared}

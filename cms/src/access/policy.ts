@@ -26,10 +26,12 @@ const PUBLISHED_FILTER: Record<string, (now: string) => Where> = {
   telops: () => ({ enabled: { equals: true } }),
   // returned が未設定の行も読めるよう、equals false ではなく not_equals true にする
   lost_items: () => ({ returned: { not_equals: true } }),
+  // 割り当てのないカメラの画像は管理画面でだけ見られる
+  parking_snapshots: () => ({ lot: { exists: true } }),
 };
 
 /** 未認証には見せないコレクション (owner や id で個別に絞るものはここに含めない)。 */
-const PRIVATE_COLLECTIONS = ['users'] as const;
+const PRIVATE_COLLECTIONS = ['users', 'parking_cameras'] as const;
 
 function publicRead(collection: string, now: string): AccessResult {
   if ((PRIVATE_COLLECTIONS as readonly string[]).includes(collection)) return false;
@@ -78,8 +80,8 @@ export function canRead(
   return publicRead(collection, now);
 }
 
-/** 駐車場の作成・削除に連動するフックだけが作る・消す (overrideAccess)。人は更新のみ。 */
-const HOOK_MANAGED = ['parking_statuses'] as const;
+/** フックとエンドポイントだけが作る・消す (overrideAccess)。空き状況は駐車場の作成・削除に連動し、画像は受信とカメラの変更に連動する。 */
+const HOOK_MANAGED = ['parking_statuses', 'parking_snapshots'] as const;
 
 export function canCreate(user: CmsUser | null, collection: string): boolean {
   if ((HOOK_MANAGED as readonly string[]).includes(collection)) return false;

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { navigationItemsByPhase } from '@/lib/navigation';
 import type { RegionalSponsor } from '@/lib/regional-sponsors';
 
 const mocks = vi.hoisted(() => ({
@@ -91,7 +92,7 @@ beforeEach(() => {
 describe('RegionalSponsorMapScreen', () => {
   it('Leaflet部分だけをSSR無効で遅延読込する', () => {
     matchMedia(true);
-    render(<RegionalSponsorMapScreen data={{ ok: true, sponsors: [] }} />);
+    render(<RegionalSponsorMapScreen navigation={navigationItemsByPhase} data={{ ok: true, sponsors: [] }} />);
     expect(mocks.dynamicOptions?.ssr).toBe(false);
     render(<>{mocks.dynamicOptions?.loading?.()}</>);
     expect(screen.getByText('地図を読み込んでいます…')).toBeInTheDocument();
@@ -100,7 +101,7 @@ describe('RegionalSponsorMapScreen', () => {
   it('PCパネルで検索・複数カテゴリ・一覧・詳細を同じ状態へ統合し、戻り先へfocusする', async () => {
     matchMedia(true);
     render(
-      <RegionalSponsorMapScreen
+      <RegionalSponsorMapScreen navigation={navigationItemsByPhase}
         data={{
           ok: true,
           sponsors: [
@@ -149,7 +150,7 @@ describe('RegionalSponsorMapScreen', () => {
   it('ピン選択後に検索対象外になっても検索入力のfocusを奪わない', async () => {
     matchMedia(false);
     render(
-      <RegionalSponsorMapScreen data={{ ok: true, sponsors: [sponsor()] }} />,
+      <RegionalSponsorMapScreen navigation={navigationItemsByPhase} data={{ ok: true, sponsors: [sponsor()] }} />,
     );
     fireEvent.click(screen.getByText('pin-select'));
     expect(
@@ -172,7 +173,7 @@ describe('RegionalSponsorMapScreen', () => {
   it('スマートフォンでは上部操作と45dvhの一覧sheet、詳細用snapを使う', async () => {
     matchMedia(false);
     render(
-      <RegionalSponsorMapScreen data={{ ok: true, sponsors: [sponsor()] }} />,
+      <RegionalSponsorMapScreen navigation={navigationItemsByPhase} data={{ ok: true, sponsors: [sponsor()] }} />,
     );
     expect(screen.getAllByRole('searchbox')).toHaveLength(1);
     expect(
@@ -190,7 +191,7 @@ describe('RegionalSponsorMapScreen', () => {
   it('詳細から戻っても一覧scroll位置を復元する', async () => {
     matchMedia(true);
     render(
-      <RegionalSponsorMapScreen
+      <RegionalSponsorMapScreen navigation={navigationItemsByPhase}
         data={{
           ok: true,
           sponsors: [sponsor(), sponsor({ id: 2, name: '別のテスト店舗' })],
@@ -213,14 +214,14 @@ describe('RegionalSponsorMapScreen', () => {
   it('0件とCMS取得失敗を区別し、失敗時の再試行でrouter.refreshする', () => {
     matchMedia(true);
     const { rerender } = render(
-      <RegionalSponsorMapScreen data={{ ok: true, sponsors: [] }} />,
+      <RegionalSponsorMapScreen navigation={navigationItemsByPhase} data={{ ok: true, sponsors: [] }} />,
     );
     expect(
       screen.getByText('掲載可能な地域協賛情報はありません。'),
     ).toBeInTheDocument();
 
     rerender(
-      <RegionalSponsorMapScreen data={{ ok: false, error: 'unavailable' }} />,
+      <RegionalSponsorMapScreen navigation={navigationItemsByPhase} data={{ ok: false, error: 'unavailable' }} />,
     );
     expect(screen.getByRole('alert')).toHaveTextContent('取得できませんでした');
     fireEvent.click(screen.getByRole('button', { name: '再試行' }));
