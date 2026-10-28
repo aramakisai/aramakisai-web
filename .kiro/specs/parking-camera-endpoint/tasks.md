@@ -194,19 +194,19 @@
   - 確認が済んだ後に、タスク5.1・8.2・8.3を含む変更をコミットし、検証データを入れたままサーバーを立ててユーザーのレビューに渡す
   - _Requirements: 1.5, 2.9, 2.10, 3.3, 4.8, 5.1, 6.1, 6.6, 6.7, 6.8, 7.1, 7.3, 7.6, 8.3_
 
-- [ ] 10. 本番へ反映し、撮影端末からの受信を確かめる
-- [ ] 10.1 aramakisai-web: CMSを本番へ出す
+- [x] 10. 本番へ反映し、撮影端末からの受信を確かめる
+- [x] 10.1 aramakisai-web: CMSを本番へ出す
   - `docs/cms-operations.md`に環境変数(`GEMINI_API_KEY`・`PARKING_CAMERA_DISCORD_WEBHOOK_URL`・`PARKING_JUDGE_WINDOW_SECONDS`)、Infisical prodのキー(`GEMINI_API_KEY`と、参照する`DISCORD_OPS_WEBHOOK_URL`)、カメラの登録と割り当ての手順を書き、steeringの`product.md`にドメインモデル、`tech.md`に秘密の名前を足す
   - devへのPRを出してCIが通った後、mainへ上げる。`cms-ci.yml`が作る`aramakisai-infra`へのタグ更新のPRをマージし、ArgoCDのPreSyncでマイグレーションが適用されたことを確かめる
   - 本番の管理画面にカメラ・画像のコレクションとサイト設定の監視時間が出て、`cms-worker`のログに`GEMINI_API_KEY`・Webhook URLの未設定の警告が出ていない
   - _Requirements: 4.7, 4.13, 8.9_
   - _Depends: 2_
 
-- [ ] 10.2 aramakisai-web: 本番でカメラを登録し、撮影端末から受信を確かめる
+- [x] 10.2 aramakisai-web: 本番でカメラを登録し、撮影端末から受信を確かめる
   - ユーザー(実行委員)が本番の管理画面でカメラを登録・割り当てて、トークンを発行し、撮影端末に書き込む
   - 実機の撮影端末から本番の`/api/parking-ingest`へ送り、Cloudflareの前段で遮られず200と`exposure`(または`{}`)が返り、管理画面に画像と判定の記録が残ることを確かめる
   - _Requirements: 1.1, 1.8, 2.1, 2.2, 3.3_
 
-- [ ] 10.3 aramakisai-web: frontendを本番へ出す
+- [x] 10.3 aramakisai-web: frontendを本番へ出す
   - frontendをmainへ上げ、本番の`/parking`とサイネージの駐車場画面が、当日以外は従来どおり画像を出さないことを確かめる
   - _Requirements: 6.2, 7.2_
