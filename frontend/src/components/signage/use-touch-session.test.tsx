@@ -152,3 +152,29 @@ it('行き先選択と戻る', () => {
   act(() => result.current.back());
   expect(result.current.state.kind).toBe('closing');
 });
+
+it('固定中はタップで開かず、全画面化は行う', () => {
+  const request = vi.fn(() => Promise.resolve());
+  document.documentElement.requestFullscreen = request;
+  const { result } = renderHook(() =>
+    useTouchSession({ quakeActive: false, pinned: true }),
+  );
+  act(() => result.current.tap('landscape'));
+  expect(result.current.state.kind).toBe('closed');
+  expect(request).toHaveBeenCalledTimes(1);
+});
+
+it('開いているときに固定が始まると閉じ、解除後はタップで開く', () => {
+  const { result, rerender } = renderHook(
+    ({ p }) => useTouchSession({ quakeActive: false, pinned: p }),
+    { initialProps: { p: false } },
+  );
+  act(() => result.current.tap('landscape'));
+  expect(result.current.state.kind).toBe('open');
+  rerender({ p: true });
+  expect(result.current.state.kind).toBe('closing');
+  act(() => result.current.fadeEnd());
+  rerender({ p: false });
+  act(() => result.current.tap('landscape'));
+  expect(result.current.state.kind).toBe('open');
+});

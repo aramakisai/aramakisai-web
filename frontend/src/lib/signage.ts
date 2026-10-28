@@ -231,22 +231,36 @@ export function pageCount(
   }
 }
 
-/** pinnedSlideIdが有効スライドを指し、かつ表示できるページがあればその1枚のページだけ、無ければ有効スライドを順に。空の自動スライドは除く */
+function entriesOf(
+  snapshot: SignageSnapshot,
+  now: Date,
+  slides: readonly SignageSlide[],
+): readonly PlaylistEntry[] {
+  return slides.flatMap((slide) =>
+    Array.from({ length: pageCount(slide, snapshot, now) }, (_, page) => ({
+      key: `${slide.id}:${page}`,
+      slide,
+      page,
+    })),
+  );
+}
+
+/** pinnedSlideIdが有効スライドを指し、かつ表示できるページがあるときだけそのページ。固定されていなければ空 */
+export function pinnedEntries(
+  snapshot: SignageSnapshot,
+  now: Date,
+): readonly PlaylistEntry[] {
+  const pinned = snapshot.slides.find((s) => s.id === snapshot.pinnedSlideId);
+  return pinned ? entriesOf(snapshot, now, [pinned]) : [];
+}
+
+/** 固定スライドがあればそのページだけ、無ければ有効スライドを順に。空の自動スライドは除く */
 export function buildPlaylist(
   snapshot: SignageSnapshot,
   now: Date,
 ): readonly PlaylistEntry[] {
-  const entriesOf = (slides: readonly SignageSlide[]) =>
-    slides.flatMap((slide) =>
-      Array.from({ length: pageCount(slide, snapshot, now) }, (_, page) => ({
-        key: `${slide.id}:${page}`,
-        slide,
-        page,
-      })),
-    );
-  const pinned = snapshot.slides.find((s) => s.id === snapshot.pinnedSlideId);
-  const pinnedEntries = pinned ? entriesOf([pinned]) : [];
-  return pinnedEntries.length > 0 ? pinnedEntries : entriesOf(snapshot.slides);
+  const pinned = pinnedEntries(snapshot, now);
+  return pinned.length > 0 ? pinned : entriesOf(snapshot, now, snapshot.slides);
 }
 
 /** 表示秒数の合計を周期として、nowMs mod 周期から現在の項目と項目内の経過を返す。周期が0ならnull */
