@@ -8,9 +8,20 @@ const WORKFLOW_PATH = path.resolve(
   '../.github/workflows/generate-map-tiles.yml',
 );
 
-type Step = { name?: string; run?: string; uses?: string };
+type Step = {
+  id?: string;
+  name?: string;
+  run?: string;
+  uses?: string;
+  with?: Record<string, unknown>;
+};
 type Workflow = {
-  on: Record<string, unknown>;
+  on: {
+    workflow_dispatch: {
+      inputs?: Record<string, Record<string, unknown>>;
+    };
+  };
+  env?: Record<string, string>;
   jobs: Record<string, { steps: Step[] }>;
 };
 
@@ -20,6 +31,62 @@ const steps = workflow.jobs.generate.steps;
 describe('generate-map-tiles workflow', () => {
   it('workflow_dispatch のみで発火し、push/pull_request のトリガーを持たない', () => {
     expect(Object.keys(workflow.on)).toEqual(['workflow_dispatch']);
+  });
+
+  it('campus・regionalだけを必須のchoiceとして受け取る', () => {
+    const profileInput = workflow.on.workflow_dispatch.inputs?.profile;
+    expect(profileInput).toMatchObject({
+      required: true,
+      type: 'choice',
+      options: ['campus', 'regional'],
+    });
+    expect(workflow.env?.MAP_TILE_PROFILE).toBe('${{ inputs.profile }}');
+  });
+
+  it('profileを検証して出力先を解決してから範囲を算出する', () => {
+    const profileStepIndex = steps.findIndex((s) => s.id === 'profile');
+    const boundsStepIndex = steps.findIndex((s) =>
+      s.run?.includes('scripts/map-tile-bounds.ts'),
+    );
+    expect(profileStepIndex).toBeGreaterThanOrEqual(0);
+    expect(steps[profileStepIndex]?.run).toContain(
+      'case "$MAP_TILE_PROFILE" in',
+    );
+    expect(steps[profileStepIndex]?.run).toMatch(
+      /\*\)[\s\S]*::error::[\s\S]*exit 1/,
+    );
+    expect(boundsStepIndex).toBeGreaterThan(profileStepIndex);
+  });
+
+  it('campusの既存成果物を維持し、regionalを別directory・artifactへ隔離する', () => {
+    const profileStep = steps.find((s) => s.id === 'profile');
+    const campusBranch = profileStep?.run?.match(
+      /campus\)([\s\S]*?)\s*;;/,
+    )?.[1];
+    const regionalBranch = profileStep?.run?.match(
+      /regional\)([\s\S]*?)\s*;;/,
+    )?.[1];
+
+    expect(campusBranch).toContain('output-directory=rendered-tiles');
+    expect(campusBranch).toContain('artifact-name=map-tiles');
+    expect(regionalBranch).toContain('output-directory=regional-map-tiles');
+    expect(regionalBranch).toContain('artifact-name=regional-map-tiles');
+    expect(profileStep?.run).not.toContain('scripts/');
+  });
+
+  it('全タイルscriptへ同じprofile引数を明示的に渡す', () => {
+    const scriptNames = [
+      'map-tile-bounds.ts',
+      'fetch-map-tiles.ts',
+      'convert-map-tiles-to-webp.ts',
+      'verify-map-tiles.ts',
+    ];
+    for (const scriptName of scriptNames) {
+      const step = steps.find((candidate) =>
+        candidate.run?.includes(`scripts/${scriptName}`),
+      );
+      expect(step?.run, scriptName).toContain('--profile "$MAP_TILE_PROFILE"');
+    }
   });
 
   it('レンダリング前に範囲算出スクリプトを実行し、閾値超過時に停止できる', () => {
@@ -83,6 +150,19 @@ describe('generate-map-tiles workflow', () => {
     );
   });
 
+  it('選択profileの抽出PBFをcampus固有名にせず、そのままimportへ渡す', () => {
+    const extractStep = steps.find((s) => s.run?.includes('osmium extract'));
+    const importStep = steps.find((s) =>
+      s.run?.includes('openstreetmap-tile-server'),
+    );
+    expect(extractStep?.run).toContain('-o selected-profile.osm.pbf');
+    expect(importStep?.run).toContain(
+      '$PWD/selected-profile.osm.pbf:/data/region.osm.pbf',
+    );
+    expect(extractStep?.run).not.toContain('campus.osm.pbf');
+    expect(importStep?.run).not.toContain('campus.osm.pbf');
+  });
+
   it('renderd の実際のタイル出力先 (/var/cache/renderd/tiles) をホストへバインドする', () => {
     const renderStep = steps.find((s) => s.run?.includes('render_list'));
     const commandLines = (renderStep?.run ?? '')
@@ -94,6 +174,21 @@ describe('generate-map-tiles workflow', () => {
     );
     expect(commandLines).not.toContain('/data/tiles');
     expect(commandLines).not.toContain('docker cp');
+  });
+
+  it('メタタイルを作り直し、render_list を強制描画かつ 8 の倍数始点で呼ぶ', () => {
+    const run = steps.find((s) => s.run?.includes('render_list'))?.run ?? '';
+    const commandLines = run
+      .split('\n')
+      .filter((line) => !line.trim().startsWith('#'))
+      .join('\n');
+    expect(commandLines.indexOf('rm -rf metatiles')).toBeGreaterThanOrEqual(0);
+    expect(commandLines.indexOf('rm -rf metatiles')).toBeLessThan(
+      commandLines.indexOf('mkdir -p metatiles'),
+    );
+    expect(commandLines).toMatch(/render_list \\\n\s+-a -f /);
+    expect(commandLines).toContain('.xMin - .xMin % 8');
+    expect(commandLines).toContain('.yMin - .yMin % 8');
   });
 
   it('renderd の起動 (ソケット生成) を待ってから render_list を実行する', () => {
@@ -148,7 +243,7 @@ describe('generate-map-tiles workflow', () => {
     expect(verifyStepIndex).toBeGreaterThan(convertStepIndex);
   });
 
-  it('メタタイルの置き場と PNG の置き場を分け、artifact と検証は PNG 側を指す', () => {
+  it('メタタイルとprofile別タイルを分け、検証とartifactは選択profileだけを指す', () => {
     const renderStep = steps.find((s) => s.run?.includes('render_list'));
     expect(renderStep?.run).toContain('metatiles');
     expect(renderStep?.run).not.toMatch(/rendered-tiles/);
@@ -156,13 +251,18 @@ describe('generate-map-tiles workflow', () => {
     const verifyStep = steps.find((s) =>
       s.run?.includes('scripts/verify-map-tiles.ts'),
     );
-    expect(verifyStep?.run).toContain('MAP_TILES_DIR="$PWD/rendered-tiles"');
+    expect(verifyStep?.run).toContain(
+      'MAP_TILES_DIR="$PWD/${{ steps.profile.outputs.output-directory }}"',
+    );
 
     const uploadStep = steps.find((s) =>
       s.uses?.startsWith('actions/upload-artifact'),
     );
-    expect(
-      (uploadStep as unknown as { with?: { path?: string } })?.with?.path,
-    ).toBe('frontend/rendered-tiles');
+    expect(uploadStep?.with?.name).toBe(
+      '${{ steps.profile.outputs.artifact-name }}',
+    );
+    expect(uploadStep?.with?.path).toBe(
+      'frontend/${{ steps.profile.outputs.output-directory }}',
+    );
   });
 });

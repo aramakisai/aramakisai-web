@@ -4,11 +4,13 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
   fetchMapTiles,
+  fetchMapTileProfile,
   tileUrl,
   validatePngBody,
   type FetchTileBytes,
   type TileCoord,
 } from './fetch-map-tiles';
+import type { MapTileProfile } from '../src/lib/map-tile-profile';
 
 const PNG_BODY = Buffer.concat([
   Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
@@ -19,6 +21,22 @@ const coords: TileCoord[] = [
   { zoom: 18, x: 10, y: 20 },
   { zoom: 18, x: 10, y: 21 },
 ];
+
+const fixtureProfile: MapTileProfile = {
+  id: 'campus',
+  bounds: [
+    [36.4318, 139.0464],
+    [36.43181, 139.04641],
+  ],
+  minZoom: 10,
+  maxZoom: 10,
+  minNativeZoom: 10,
+  maxNativeZoom: 10,
+  publicDirectory: 'test-output/map-tiles',
+  urlTemplate: '/test-map-tiles/{z}/{x}/{y}.webp',
+  expectedMaxTileCount: 1,
+  expectedMaxBytes: 1_000,
+};
 
 describe('tileUrl', () => {
   it('overv/openstreetmap-tile-server の /tile/{z}/{x}/{y}.png 形式を組み立てる', () => {
@@ -44,6 +62,21 @@ describe('validatePngBody', () => {
 });
 
 describe('fetchMapTiles', () => {
+  it('fixture profileの範囲を算出して取得処理へ渡す', async () => {
+    const fetchTileBytes: FetchTileBytes = vi
+      .fn()
+      .mockResolvedValue({ status: 200, body: PNG_BODY });
+    const result = await fetchMapTileProfile(fixtureProfile, {
+      baseUrl: 'http://localhost:8080',
+      outDir: '/unused',
+      fetchTileBytes,
+      writeFile: vi.fn().mockResolvedValue(undefined),
+    });
+
+    expect(result.succeededCount).toBe(1);
+    expect(fetchTileBytes).toHaveBeenCalledTimes(1);
+  });
+
   it('すべて成功した場合、ファイルへ書き出して失敗なしで返す', async () => {
     const fetchTileBytes: FetchTileBytes = vi
       .fn()
