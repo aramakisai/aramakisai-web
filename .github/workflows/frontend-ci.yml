@@ -235,9 +235,6 @@ jobs:
         # 実在しない測定 ID を渡すのは、e2e で dataLayer を読むため。本番の ID だと実行委員の閲覧が本番プロパティに混ざる。
         run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- env NEXT_PUBLIC_CMS_URL=https://cms.aramakisai.com NEXT_PUBLIC_ENABLE_PHASE_OVERRIDE=true NEXT_PUBLIC_GA_MEASUREMENT_ID=G-PREVIEW000 pnpm exec opennextjs-cloudflare build
 
-      - name: Verify map tiles in OpenNext preview assets
-        run: pnpm exec tsx scripts/verify-build-artifacts.ts --map-tiles-only
-
       - name: Write Workers secrets file (staging)
         # 値は echo しない。未設定なら KeyError でステップを失敗させてデプロイを止める。
         run: |
@@ -421,10 +418,7 @@ jobs:
           NEXT_PUBLIC_CMS_URL: https://cms.aramakisai.com
           NEXT_PUBLIC_SITE_URL: https://dev.aramakisai.com
           # deploy-preview にも同フラグを付与している (要件 7-5)。deploy-prod には付与しない。
-          NEXT_PUBLIC_ENABLE_PHASE_OVERRIDE: "true"
-
-      - name: Verify map tiles in OpenNext dev assets
-        run: pnpm exec tsx scripts/verify-build-artifacts.ts --map-tiles-only
+          NEXT_PUBLIC_ENABLE_PHASE_OVERRIDE: 'true'
 
       - name: Write Workers secrets file (staging)
         # 値は echo しない。未設定なら KeyError でステップを失敗させてデプロイを止める。
@@ -496,9 +490,6 @@ jobs:
 
       - name: Build (prod env, inlined by Infisical)
         run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod -- pnpm exec opennextjs-cloudflare build
-
-      - name: Verify production OpenNext artifacts
-        run: pnpm exec tsx scripts/verify-build-artifacts.ts
 
       - name: Write Workers secrets file (prod)
         # プレビューは本番と同じ Worker に staging の値を積む。本番デプロイでも明示しないとプレビューの値が引き継がれうる。

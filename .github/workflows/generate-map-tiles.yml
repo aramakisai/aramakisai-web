@@ -120,6 +120,10 @@ jobs:
           # render_list / renderd は個別の PNG ではなく、8x8 タイルをまとめた
           # メタタイル (.meta) でしか書き出さない。個別 PNG は後続ステップで
           # mod_tile の HTTP エンドポイント経由で取得するため、置き場を分ける
+          #
+          # 前回実行の残骸が残っていると render_list が「描画済み」とみなして飛ばし、
+          # 古い DB で描いた空白のメタタイルがそのまま使い回されるため、必ず作り直す
+          rm -rf metatiles
           mkdir -p metatiles
           chmod 777 metatiles
 
@@ -152,12 +156,16 @@ jobs:
             jq -c '.[]' | \
             while read -r range; do
               zoom=$(echo "$range" | jq -r '.zoom')
+              # メタタイルは 8x8 単位。xMin/yMin を 8 の倍数に切り下げないと、
+              # 範囲先頭のメタタイルが事前描画から漏れて空白になる
+              xMin=$(echo "$range" | jq -r '.xMin - .xMin % 8')
+              yMin=$(echo "$range" | jq -r '.yMin - .yMin % 8')
               docker exec tile-server render_list \
-                -a -m default \
+                -a -f -m default \
                 -z "$zoom" -Z "$zoom" \
-                -x "$(echo "$range" | jq -r '.xMin')" \
+                -x "$xMin" \
                 -X "$(echo "$range" | jq -r '.xMax')" \
-                -y "$(echo "$range" | jq -r '.yMin')" \
+                -y "$yMin" \
                 -Y "$(echo "$range" | jq -r '.yMax')"
             done
 

@@ -176,6 +176,21 @@ describe('generate-map-tiles workflow', () => {
     expect(commandLines).not.toContain('docker cp');
   });
 
+  it('メタタイルを作り直し、render_list を強制描画かつ 8 の倍数始点で呼ぶ', () => {
+    const run = steps.find((s) => s.run?.includes('render_list'))?.run ?? '';
+    const commandLines = run
+      .split('\n')
+      .filter((line) => !line.trim().startsWith('#'))
+      .join('\n');
+    expect(commandLines.indexOf('rm -rf metatiles')).toBeGreaterThanOrEqual(0);
+    expect(commandLines.indexOf('rm -rf metatiles')).toBeLessThan(
+      commandLines.indexOf('mkdir -p metatiles'),
+    );
+    expect(commandLines).toMatch(/render_list \\\n\s+-a -f /);
+    expect(commandLines).toContain('.xMin - .xMin % 8');
+    expect(commandLines).toContain('.yMin - .yMin % 8');
+  });
+
   it('renderd の起動 (ソケット生成) を待ってから render_list を実行する', () => {
     const renderStep = steps.find((s) => s.run?.includes('render_list'));
     const commandLines = (renderStep?.run ?? '')

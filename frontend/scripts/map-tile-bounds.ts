@@ -19,12 +19,12 @@ export interface MapTileBoundsResult {
   readonly totalCount: number;
 }
 
-function longitudeToTileX(longitude: number, zoom: number): number {
+export function longitudeToTileX(longitude: number, zoom: number): number {
   return Math.floor(((longitude + 180) / 360) * 2 ** zoom);
 }
 
 // Web Mercator の標準変換 (https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames)
-function latitudeToTileY(latitude: number, zoom: number): number {
+export function latitudeToTileY(latitude: number, zoom: number): number {
   const latRad = (latitude * Math.PI) / 180;
   return Math.floor(
     ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) *

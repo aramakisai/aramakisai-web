@@ -8,20 +8,22 @@ import {
   createFsStatTile,
   validateWebpTile,
   type StatTile,
+  BLANK_TILE_BYTES,
+  LANDMARK_MIN_BYTES,
 } from './verify-map-tiles';
 import type { MapTileProfile } from '../src/lib/map-tile-profile';
 
 const tinyProfile: MapTileProfile = {
   id: 'campus',
-  // z10 で 1 枚だけになる極小範囲
+  // 空白検出の対象外ズーム (z10 以下) で 1 枚だけになる極小範囲
   bounds: [
     [36.4318, 139.0464],
     [36.43181, 139.04641],
   ],
   minZoom: 10,
-  maxZoom: 11,
-  minNativeZoom: 10,
-  maxNativeZoom: 11,
+  maxZoom: 10,
+  minNativeZoom: 9,
+  maxNativeZoom: 10,
   publicDirectory: 'test-output/map-tiles',
   urlTemplate: '/test-map-tiles/{z}/{x}/{y}.webp',
   expectedMaxTileCount: 10,
@@ -87,6 +89,60 @@ describe('verifyMapTiles', () => {
     const result = await verifyMapTiles(statTile, tinyProfile);
 
     expect(result.invalidTiles).toHaveLength(result.expectedCount);
+    expect(hasMapTileVerificationFailure(result)).toBe(true);
+  });
+});
+
+describe('空白タイル検出', () => {
+  const z16Profile: MapTileProfile = {
+    ...tinyProfile,
+    minNativeZoom: 16,
+    maxNativeZoom: 16,
+    minZoom: 16,
+    maxZoom: 16,
+    bounds: [
+      [36.4318, 139.0464],
+      [36.4335, 139.0485],
+    ],
+    expectedMaxTileCount: 100,
+    expectedMaxBytes: 10_000_000,
+  };
+
+  it('z16で許容割合を超える小タイルを失敗と判定する', async () => {
+    const statTile: StatTile = vi
+      .fn()
+      .mockResolvedValue({ exists: true, sizeBytes: BLANK_TILE_BYTES - 1 });
+    const result = await verifyMapTiles(statTile, z16Profile);
+
+    expect(result.blankTileViolations).toHaveLength(1);
+    expect(hasMapTileVerificationFailure(result)).toBe(true);
+  });
+
+  it('十分な大きさのタイルは通す', async () => {
+    const statTile: StatTile = vi
+      .fn()
+      .mockResolvedValue({ exists: true, sizeBytes: BLANK_TILE_BYTES });
+    const result = await verifyMapTiles(statTile, z16Profile);
+
+    expect(result.blankTileViolations).toEqual([]);
+  });
+
+  it('z13〜16の基準点タイルが小さければ失敗と判定する', async () => {
+    const profile: MapTileProfile = {
+      ...tinyProfile,
+      minNativeZoom: 13,
+      maxNativeZoom: 13,
+      expectedMaxBytes: 10_000_000,
+      landmarks: [{ name: '基準点', latitude: 36.4318, longitude: 139.0464 }],
+    };
+    const small = vi
+      .fn()
+      .mockResolvedValue({ exists: true, sizeBytes: LANDMARK_MIN_BYTES - 1 });
+    const result = await verifyMapTiles(small, profile);
+
+    expect(result.landmarkViolations.map((v) => v.zoom)).toEqual([
+      13, 14, 15, 16,
+    ]);
     expect(hasMapTileVerificationFailure(result)).toBe(true);
   });
 });
