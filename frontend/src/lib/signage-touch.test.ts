@@ -103,6 +103,15 @@ describe('nextTouchState', () => {
     const s = open('map');
     expect(nextTouchState(s, { type: 'quake', active: false })).toBe(s);
   });
+  it('open: 固定開始で closing(行き先は保持しない)', () => {
+    expect(nextTouchState(open('map'), { type: 'pin' })).toEqual({
+      kind: 'closing',
+    });
+  });
+  it('closed: 固定開始は無視', () => {
+    const s: TouchState = { kind: 'closed' };
+    expect(nextTouchState(s, { type: 'pin' })).toBe(s);
+  });
   it('open: tap・fadeEnd は無視', () => {
     const s = open('map');
     expect(

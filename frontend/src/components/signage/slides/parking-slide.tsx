@@ -31,8 +31,8 @@ export function ParkingSlide({
                 key={lot.id}
                 className={`flex items-start gap-6 rounded-[16px] border border-gray-200 p-8 ${anyImage ? CARD_MIN_H.image : CARD_MIN_H.plain}`}
               >
-                <div className="flex h-[184px] min-w-px flex-1 flex-col gap-4">
-                  <p className="min-h-px flex-1 font-display text-[64px] leading-none font-extrabold text-text">
+                <div className="flex min-h-[184px] min-w-px flex-1 flex-col gap-4">
+                  <p className="line-clamp-2 min-h-px flex-1 font-display text-signage-title-lg leading-[1.25] font-extrabold text-text [word-break:auto-phrase]">
                     {lot.name}
                   </p>
                   <div className="flex flex-col gap-2">

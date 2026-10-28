@@ -124,3 +124,16 @@ test('撮影から15分ちょうどで古い表示、14分59秒では出さな�
   expect(screen.getByText('history')).toBeInTheDocument();
   expect(screen.getByText('13:55 撮影')).toBeInTheDocument();
 });
+
+test('長い駐車場名は44px・2行までで折り返し、バッジと更新行も出る', () => {
+  renderLots([
+    withImage(1, 'P5(共同教育学部棟駐車場)', '2026-11-14T05:05:00Z'),
+  ]);
+  expect(screen.getByText('P5(共同教育学部棟駐車場)')).toHaveClass(
+    'line-clamp-2',
+    'text-signage-title-lg',
+    '[word-break:auto-phrase]',
+  );
+  expect(screen.getByText('空き')).toBeInTheDocument();
+  expect(screen.getByText('14:05 更新')).toBeInTheDocument();
+});
