@@ -11,7 +11,8 @@ if (process.env.CF_ACCESS_CLIENT_ID && process.env.CF_ACCESS_CLIENT_SECRET) {
     process.env.CF_ACCESS_CLIENT_SECRET;
 }
 
-const useLocalApp = process.env.E2E_LOCAL_APP === '1';
+// ローカルでは開発サーバーを make 経由で起動する運用のため、Playwright 自身は CI でだけ起動する
+const useLocalApp = !!process.env.CI && process.env.E2E_LOCAL_APP === '1';
 
 export default defineConfig({
   testDir: './e2e',
