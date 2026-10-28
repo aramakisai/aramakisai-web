@@ -8,18 +8,6 @@ import { HoverLine } from '@/components/hover-line';
 import { RegionalSponsorBackButton } from './regional-sponsor-back-button';
 import { SponsorImage } from './sponsor-image';
 
-function safeWebsiteUrl(value: string | null): string | null {
-  if (!value) return null;
-  try {
-    const url = new URL(value);
-    return url.protocol === 'http:' || url.protocol === 'https:'
-      ? url.toString()
-      : null;
-  } catch {
-    return null;
-  }
-}
-
 export interface RegionalSponsorDetailProps {
   readonly sponsor: RegionalSponsor;
   readonly onBack: () => void;
@@ -40,7 +28,7 @@ export function RegionalSponsorDetail({
   const hoursLabel =
     sponsor.category === 'hospital' ? '診療時間・休診日' : '営業時間・定休日';
   const gap = variant === 'panel' ? 'gap-4' : 'gap-3.5';
-  const websiteUrl = safeWebsiteUrl(sponsor.websiteUrl);
+  const { websiteUrl } = sponsor;
   const hasInfo =
     sponsor.address !== null ||
     sponsor.businessHours !== null ||

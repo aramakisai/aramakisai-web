@@ -7,6 +7,7 @@ import {
 } from '@/components/map/map-bottom-sheet-shell';
 import type { RegionalSponsor } from '@/lib/regional-sponsors';
 import { RegionalSponsorDetail } from './regional-sponsor-detail';
+import { RegionalSponsorError } from './regional-sponsor-error';
 import { RegionalSponsorList } from './regional-sponsor-list';
 import type { RegionalSponsorSheetSnap } from './use-regional-sponsor-map-state';
 
@@ -93,7 +94,7 @@ export interface RegionalSponsorBottomSheetProps {
   readonly onScrollTopChange: (scrollTop: number) => void;
   readonly onLocationScrollTopChange: (scrollTop: number) => void;
   readonly onLocationBack: () => void;
-  readonly onSelect: (sponsor: RegionalSponsor) => void;
+  readonly onSelect: (sponsorId: number) => void;
   readonly onBack: () => void;
 }
 
@@ -121,7 +122,6 @@ export function RegionalSponsorBottomSheet(
       onSnapChange={(id) => props.onSnapChange(id as RegionalSponsorSheetSnap)}
       onHeightChange={props.onHeightChange}
       onTargetHeightChange={props.onTargetHeightChange}
-      bottomClassName="bottom-[var(--map-nav,0px)]"
       contentClassName="h-[calc(100%_-_32px)] min-h-0"
       // Figma はつまみの帯(高さ12)をシート上端から8px下に置き、つまみ線は上端から12px
       sheetPaddingClassName="px-4 pt-0 pb-[max(1rem,env(safe-area-inset-bottom))]"
@@ -136,27 +136,12 @@ export function RegionalSponsorBottomSheet(
             bodyInert={props.snap === 'collapsed'}
           />
         ) : props.error ? (
-          <div
-            className="rounded-lg border border-warning bg-orange-50 p-4"
-            role="alert"
-          >
-            <p className="text-sm leading-6 text-text">
-              地域協賛情報を取得できませんでした。
-            </p>
-            <button
-              type="button"
-              onClick={props.onRetry}
-              className="mt-3 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            >
-              再試行
-            </button>
-          </div>
+          <RegionalSponsorError onRetry={props.onRetry} />
         ) : props.locationSponsors ? (
           <RegionalSponsorList
             key="location"
             variant="sheet"
             sponsors={props.locationSponsors}
-            selectedSponsorId={null}
             initialScrollTop={props.locationListScrollTop}
             onScrollTopChange={props.onLocationScrollTopChange}
             onSelect={props.onSelect}
@@ -167,7 +152,6 @@ export function RegionalSponsorBottomSheet(
             key="all"
             variant="sheet"
             sponsors={props.sponsors}
-            selectedSponsorId={null}
             initialScrollTop={props.listScrollTop}
             onScrollTopChange={props.onScrollTopChange}
             onSelect={props.onSelect}

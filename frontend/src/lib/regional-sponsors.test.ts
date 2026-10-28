@@ -34,7 +34,7 @@ beforeEach(() => vi.clearAllMocks());
 
 describe('toRegionalSponsor', () => {
   it('安全な公開DTOへ変換し、管理項目を含めない', () => {
-    expect(toRegionalSponsor(sponsor(), 3)).toEqual({
+    expect(toRegionalSponsor(sponsor())).toEqual({
       ok: true,
       value: {
         id: 1,
@@ -50,7 +50,6 @@ describe('toRegionalSponsor', () => {
         businessHours: '9:00〜17:00\n日曜定休',
         phone: '027-000-0000',
         websiteUrl: 'https://example.invalid/shop',
-        order: 3,
       },
     });
   });
@@ -65,7 +64,6 @@ describe('toRegionalSponsor', () => {
         local_phone: '',
         url: 'javascript:alert(1)',
       }),
-      0,
     );
 
     expect(result).toMatchObject({
@@ -83,25 +81,15 @@ describe('toRegionalSponsor', () => {
     });
   });
 
-  it('CMSで追加された未知カテゴリも除外せず公開する', () => {
-    expect(
-      toRegionalSponsor(
-        sponsor({ business_category: 'future-category' as never }),
-        0,
-      ),
-    ).toMatchObject({
-      ok: true,
-      value: { category: 'future-category' },
-    });
-  });
-
   it.each([
     ['local以外', { type: ['ad'] }],
     ['空名称', { name: ' ' }],
+    ['未知カテゴリ', { business_category: 'future-category' as never }],
+    ['カテゴリ未設定', { business_category: null }],
     ['地域タイル提供範囲外', { local_latitude: 36 }],
     ['経度が非有限', { local_longitude: Number.NaN }],
   ])('%sを理由付きで除外する', (_label, overrides) => {
-    const result = toRegionalSponsor(sponsor(overrides as Partial<Sponsor>), 0);
+    const result = toRegionalSponsor(sponsor(overrides as Partial<Sponsor>));
     expect(result.ok).toBe(false);
     if (result.ok) throw new Error('unreachable');
     expect(result.reasons.length).toBeGreaterThan(0);
@@ -109,17 +97,17 @@ describe('toRegionalSponsor', () => {
 });
 
 describe('getRegionalSponsorMapData', () => {
-  it('localだけをCMS順・同順位ID順で返し、不成立行だけをログして除外する', async () => {
+  it('CMSの並びのまま返し、不成立行だけをログして除外する', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     vi.mocked(cms.findMany).mockResolvedValue({
       ok: true,
       value: {
         totalDocs: 4,
         docs: [
-          sponsor({ id: 5, _order: 'a1', name: '後' }),
-          sponsor({ id: 3, _order: 'a0', name: '同順位後' }),
-          sponsor({ id: 2, _order: 'a0', name: '同順位先' }),
-          sponsor({ id: 4, _order: 'a2', name: '不成立', local_latitude: 999 }),
+          sponsor({ id: 5, name: '先' }),
+          sponsor({ id: 3, name: '中' }),
+          sponsor({ id: 4, name: '不成立', local_latitude: 999 }),
+          sponsor({ id: 2, name: '後' }),
         ],
       },
     });
@@ -128,12 +116,10 @@ describe('getRegionalSponsorMapData', () => {
 
     expect(result).toMatchObject({ ok: true });
     if (!result.ok) throw new Error('unreachable');
-    expect(
-      result.sponsors.map(({ id, name, order }) => [id, name, order]),
-    ).toEqual([
-      [2, '同順位先', 0],
-      [3, '同順位後', 1],
-      [5, '後', 2],
+    expect(result.sponsors.map(({ id, name }) => [id, name])).toEqual([
+      [5, '先'],
+      [3, '中'],
+      [2, '後'],
     ]);
     expect(warn).toHaveBeenCalledWith(
       'regional_sponsor_excluded',

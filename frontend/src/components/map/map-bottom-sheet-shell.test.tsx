@@ -219,7 +219,6 @@ describe('MapBottomSheetShell', () => {
         snapId="rest"
         restSnapId="rest"
         onSnapChange={onSnapChange}
-        bottomClassName="bottom-[var(--bottom-nav)]"
         outerClassName="bottom-nav-test clip-bottom-shadow"
         sheetShadowClassName="shadow-card"
       >
@@ -241,7 +240,7 @@ describe('MapBottomSheetShell', () => {
 
     expect(sheet.style.height).toBe('736px');
     expect(wrapper).toHaveClass(
-      'bottom-[var(--bottom-nav)]',
+      'bottom-[var(--map-nav,0px)]',
       'clip-bottom-shadow',
     );
     expect(sheet).toHaveClass('shadow-card');

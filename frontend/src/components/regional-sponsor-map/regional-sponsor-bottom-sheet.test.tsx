@@ -48,7 +48,6 @@ const sponsor: RegionalSponsor = {
   businessHours: null,
   phone: null,
   websiteUrl: null,
-  order: 0,
 };
 
 const baseProps = {

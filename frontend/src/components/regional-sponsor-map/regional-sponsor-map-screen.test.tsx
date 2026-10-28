@@ -84,7 +84,6 @@ function sponsor(overrides: Partial<RegionalSponsor> = {}): RegionalSponsor {
     businessHours: null,
     phone: null,
     websiteUrl: null,
-    order: 0,
     ...overrides,
   };
 }
@@ -134,7 +133,6 @@ describe('RegionalSponsorMapScreen', () => {
               id: 2,
               name: 'テスト病院',
               category: 'hospital',
-              order: 1,
             }),
           ],
         }}

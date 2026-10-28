@@ -18,7 +18,6 @@ function sponsor(id: number, latitude = id, longitude = id): RegionalSponsor {
     businessHours: null,
     phone: null,
     websiteUrl: null,
-    order: id,
   };
 }
 

@@ -22,7 +22,6 @@ const sponsors: readonly RegionalSponsor[] = [
     businessHours: null,
     phone: null,
     websiteUrl: null,
-    order: 0,
   },
   {
     id: 2,
@@ -38,7 +37,6 @@ const sponsors: readonly RegionalSponsor[] = [
     businessHours: null,
     phone: null,
     websiteUrl: null,
-    order: 1,
   },
   {
     id: 3,
@@ -54,7 +52,6 @@ const sponsors: readonly RegionalSponsor[] = [
     businessHours: null,
     phone: null,
     websiteUrl: null,
-    order: 2,
   },
 ];
 

@@ -58,6 +58,7 @@ describe('MapViewportController', () => {
     vi.clearAllMocks();
     MockResizeObserver.instances.length = 0;
     vi.stubGlobal('ResizeObserver', MockResizeObserver);
+    vi.stubGlobal('matchMedia', () => ({ matches: false }));
   });
 
   afterEach(() => vi.unstubAllGlobals());
@@ -71,7 +72,8 @@ describe('MapViewportController', () => {
         initialFitBounds={initialBounds}
         maxBounds={maxBounds}
         minZoom={12}
-        fitOptions={fitOptions}
+        fitOptions={() => fitOptions}
+        initialFitOptions={() => fitOptions}
       />,
     );
 
@@ -86,7 +88,8 @@ describe('MapViewportController', () => {
         initialFitBounds={initialBounds}
         maxBounds={maxBounds}
         minZoom={13}
-        fitOptions={fitOptions}
+        fitOptions={() => fitOptions}
+        initialFitOptions={() => fitOptions}
       />,
     );
     expect(map.fitBounds).toHaveBeenCalledTimes(1);
@@ -99,7 +102,7 @@ describe('MapViewportController', () => {
         fitBounds={initialBounds}
         maxBounds={maxBounds}
         minZoom={12}
-        fitOptions={fitOptions}
+        fitOptions={() => fitOptions}
       />,
     );
 
@@ -115,7 +118,7 @@ describe('MapViewportController', () => {
         fitBounds={initialBounds}
         maxBounds={maxBounds}
         minZoom={12}
-        fitOptions={fitOptions}
+        fitOptions={() => fitOptions}
       />,
     );
     const observer = MockResizeObserver.instances.at(-1)!;
@@ -128,7 +131,7 @@ describe('MapViewportController', () => {
     expect(map.fitBounds).toHaveBeenCalledTimes(1);
   });
 
-  it('fitOptions callbackを初回fitとresizeのたびにcontainerから解決する', () => {
+  it('fitOptions callbackをresizeのたびにcontainerから解決する', () => {
     map.getBoundsZoom.mockReturnValue(14);
     const dynamicFitOptions = vi
       .fn()
@@ -140,12 +143,13 @@ describe('MapViewportController', () => {
         maxBounds={maxBounds}
         minZoom={12}
         fitOptions={dynamicFitOptions}
-        fitOnMount
       />,
     );
 
+    const observer = MockResizeObserver.instances.at(-1)!;
+    observer.trigger();
     expect(map.fitBounds).toHaveBeenLastCalledWith(initialBounds, fitOptions);
-    MockResizeObserver.instances.at(-1)!.trigger();
+    observer.trigger();
     expect(dynamicFitOptions).toHaveBeenCalledTimes(2);
     expect(dynamicFitOptions).toHaveBeenNthCalledWith(1, container);
     expect(dynamicFitOptions).toHaveBeenNthCalledWith(2, container);
@@ -153,24 +157,6 @@ describe('MapViewportController', () => {
       ...fitOptions,
       paddingTopLeft: [400, 24],
     });
-  });
-
-  it('地域mapでは初回fitを明示でき、keyboard操作後はresizeで再fitしない', () => {
-    map.getBoundsZoom.mockReturnValue(14);
-    render(
-      <MapViewportController
-        fitBounds={initialBounds}
-        maxBounds={maxBounds}
-        minZoom={12}
-        fitOptions={fitOptions}
-        fitOnMount
-      />,
-    );
-    expect(map.fitBounds).toHaveBeenCalledTimes(1);
-
-    fireEvent.keyDown(container, { key: 'Enter' });
-    MockResizeObserver.instances.at(-1)!.trigger();
-    expect(map.fitBounds).toHaveBeenCalledTimes(1);
   });
 
   it('注入したpaddingを表示上の最小zoom計算へ渡す', () => {
@@ -181,7 +167,7 @@ describe('MapViewportController', () => {
         maxBounds={maxBounds}
         minZoom={10.5}
         minZoomPadding={point(32, 532)}
-        fitOptions={fitOptions}
+        fitOptions={() => fitOptions}
       />,
     );
 
@@ -201,7 +187,7 @@ describe('MapViewportController', () => {
         initialZoom={15.5}
         maxBounds={maxBounds}
         minZoom={10.5}
-        fitOptions={fitOptions}
+        fitOptions={() => fitOptions}
       />,
     );
 
@@ -230,10 +216,14 @@ describe('MapViewportController', () => {
         focusZoom={15.5}
         maxBounds={maxBounds}
         minZoom={10.5}
-        fitOptions={{
+        fitOptions={() => ({
           paddingTopLeft: [396, 24],
           paddingBottomRight: [24, 24],
-        }}
+        })}
+        focusFitOptions={() => ({
+          paddingTopLeft: [396, 24],
+          paddingBottomRight: [24, 24],
+        })}
       />,
     );
 
@@ -259,10 +249,14 @@ describe('MapViewportController', () => {
         focusZoom={15.5}
         maxBounds={maxBounds}
         minZoom={10.5}
-        fitOptions={{
+        fitOptions={() => ({
           paddingTopLeft: [396, 24],
           paddingBottomRight: [24, 24],
-        }}
+        })}
+        focusFitOptions={() => ({
+          paddingTopLeft: [396, 24],
+          paddingBottomRight: [24, 24],
+        })}
       />,
     );
     expect(map.flyTo).toHaveBeenCalledTimes(2);
@@ -284,7 +278,8 @@ describe('MapViewportController', () => {
       focusZoom: 16,
       maxBounds,
       minZoom: 10.5,
-      fitOptions,
+      fitOptions: () => fitOptions,
+      focusFitOptions: () => fitOptions,
     };
     const { rerender } = render(
       <MapViewportController {...props} refocusKey="desktop" />,
@@ -316,7 +311,8 @@ describe('MapViewportController', () => {
         focusZoom={15.5}
         maxBounds={maxBounds}
         minZoom={10.5}
-        fitOptions={stableFitOptions}
+        fitOptions={() => stableFitOptions}
+        focusFitOptions={() => stableFitOptions}
       />,
     );
 
@@ -327,7 +323,8 @@ describe('MapViewportController', () => {
         focusZoom={15.5}
         maxBounds={maxBounds}
         minZoom={10.5}
-        fitOptions={stableFitOptions}
+        fitOptions={() => stableFitOptions}
+        focusFitOptions={() => stableFitOptions}
       />,
     );
 
@@ -346,7 +343,8 @@ describe('MapViewportController', () => {
         focusZoom={15.5}
         maxBounds={maxBounds}
         minZoom={10.5}
-        fitOptions={fitOptions}
+        fitOptions={() => fitOptions}
+        focusFitOptions={() => fitOptions}
       />,
     );
 
@@ -357,7 +355,8 @@ describe('MapViewportController', () => {
         focusZoom={15.5}
         maxBounds={maxBounds}
         minZoom={10.5}
-        fitOptions={fitOptions}
+        fitOptions={() => fitOptions}
+        focusFitOptions={() => fitOptions}
       />,
     );
 
@@ -379,10 +378,14 @@ describe('MapViewportController', () => {
         focusZoom={15.5}
         maxBounds={maxBounds}
         minZoom={10.5}
-        fitOptions={{
+        fitOptions={() => ({
           paddingTopLeft: [16, 136],
           paddingBottomRight: [16, 396],
-        }}
+        })}
+        focusFitOptions={() => ({
+          paddingTopLeft: [16, 136],
+          paddingBottomRight: [16, 396],
+        })}
       />,
     );
 
@@ -395,10 +398,14 @@ describe('MapViewportController', () => {
         focusZoom={15.5}
         maxBounds={maxBounds}
         minZoom={10.5}
-        fitOptions={{
+        fitOptions={() => ({
           paddingTopLeft: [16, 136],
           paddingBottomRight: [16, 716],
-        }}
+        })}
+        focusFitOptions={() => ({
+          paddingTopLeft: [16, 136],
+          paddingBottomRight: [16, 716],
+        })}
       />,
     );
 
@@ -424,7 +431,8 @@ describe('MapViewportController', () => {
         focusZoom={15.5}
         maxBounds={maxBounds}
         minZoom={10.5}
-        fitOptions={fitOptions}
+        fitOptions={() => fitOptions}
+        focusFitOptions={() => fitOptions}
       />,
     );
 
@@ -451,10 +459,10 @@ describe('MapViewportController', () => {
     const { rerender } = render(
       <MapViewportController
         {...props}
-        fitOptions={{
+        fitOptions={() => ({
           paddingTopLeft: [16, 136],
           paddingBottomRight: [16, 367],
-        }}
+        })}
       />,
     );
     expect(map.flyTo).toHaveBeenCalledTimes(1);
@@ -464,10 +472,10 @@ describe('MapViewportController', () => {
       rerender(
         <MapViewportController
           {...props}
-          fitOptions={{
+          fitOptions={() => ({
             paddingTopLeft: [16, 136],
             paddingBottomRight: [16, bottom],
-          }}
+          })}
         />,
       );
     }
@@ -489,7 +497,14 @@ describe('MapViewportController', () => {
           focusZoom={16}
           maxBounds={maxBounds}
           minZoom={10.5}
-          fitOptions={{ paddingTopLeft: [0, 0], paddingBottomRight: [0, 0] }}
+          fitOptions={() => ({
+            paddingTopLeft: [0, 0],
+            paddingBottomRight: [0, 0],
+          })}
+          focusFitOptions={() => ({
+            paddingTopLeft: [0, 0],
+            paddingBottomRight: [0, 0],
+          })}
         />,
       );
     beforeEach(() => {

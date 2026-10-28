@@ -119,7 +119,6 @@ export function MapBottomSheet({
       restSnapId={restSnapId}
       onSnapChange={(next) => setSnapId(next as CampusSnapId)}
       onHeightChange={onHeightChange}
-      bottomClassName="bottom-[var(--map-nav,0px)]"
       outerClassName="[clip-path:inset(-100px_-100px_0_-100px)]"
       sheetShadowClassName="shadow-card"
     >

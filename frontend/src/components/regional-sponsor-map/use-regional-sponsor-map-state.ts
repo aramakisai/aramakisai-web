@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { locationSponsorIds } from '@/lib/regional-sponsor-clustering';
 import type { RegionalSponsorCategory } from '@/lib/regional-sponsor-categories';
 import {
   filterRegionalSponsors,
@@ -30,8 +29,10 @@ export function useRegionalSponsorMapState(
   const locationListScrollTop = useRef(0);
   const [mobileSheetSnap, setMobileSheetSnap] =
     useState<RegionalSponsorSheetSnap>('list');
-  // 地点の一覧で表示中のまとまりのキー。詳細表示中も保持して戻り先を決める
-  const [locationKey, setLocationKey] = useState<string | null>(null);
+  // 地点の一覧で表示中のまとまりの企業 ID。詳細表示中も保持して戻り先を決める
+  const [locationIds, setLocationIds] = useState<readonly number[] | null>(
+    null,
+  );
   // 描画後に focus する要素の id
   const [focusTargetId, setFocusTargetId] = useState<string | null>(null);
 
@@ -40,10 +41,9 @@ export function useRegionalSponsorMapState(
     [query, selectedCategories, sponsors],
   );
   const locationSponsors = useMemo(() => {
-    if (locationKey === null) return null;
-    const ids = locationSponsorIds(locationKey);
-    return filteredSponsors.filter((s) => ids.has(s.id));
-  }, [filteredSponsors, locationKey]);
+    if (locationIds === null) return null;
+    return filteredSponsors.filter((s) => locationIds.includes(s.id));
+  }, [filteredSponsors, locationIds]);
   const selectedSponsor =
     selectedSponsorId === null
       ? null
@@ -57,22 +57,22 @@ export function useRegionalSponsorMapState(
       setSelectedSponsorId(null);
       setFocusTargetId(null);
       setMobileSheetSnap('list');
-      if (!locationSponsors?.length) setLocationKey(null);
+      if (!locationSponsors?.length) setLocationIds(null);
     } else if (
       selectedSponsorId === null &&
-      locationKey !== null &&
+      locationIds !== null &&
       !locationSponsors?.length
     ) {
-      setLocationKey(null);
+      setLocationIds(null);
     }
-  }, [filteredSponsors, locationKey, locationSponsors, selectedSponsorId]);
+  }, [filteredSponsors, locationIds, locationSponsors, selectedSponsorId]);
 
   const toggleCategory = (category: RegionalSponsorCategory | 'all') =>
     setSelectedCategories((current) =>
       toggleRegionalSponsorCategory(current, category),
     );
 
-  // カードは全体の一覧と地点の一覧のどちらからも選ぶため locationKey は変えない
+  // カードは全体の一覧と地点の一覧のどちらからも選ぶため locationIds は変えない
   const selectFromCard = (sponsorId: number) => {
     setFocusTargetId(null);
     setSelectedSponsorId(sponsorId);
@@ -80,12 +80,12 @@ export function useRegionalSponsorMapState(
   };
   const selectFromPin = (sponsorId: number) => {
     setFocusTargetId(null);
-    setLocationKey(null);
+    setLocationIds(null);
     setSelectedSponsorId(sponsorId);
     setMobileSheetSnap('detail');
   };
-  const openLocation = (key: string) => {
-    setLocationKey(key);
+  const openLocation = (ids: readonly number[]) => {
+    setLocationIds(ids);
     setSelectedSponsorId(null);
     locationListScrollTop.current = 0;
     setMobileSheetSnap('list');
@@ -99,7 +99,7 @@ export function useRegionalSponsorMapState(
       setFocusTargetId(`regional-sponsor-card-${sponsorId}`);
   };
   const returnFromLocation = () => {
-    setLocationKey(null);
+    setLocationIds(null);
     setMobileSheetSnap('list');
     setFocusTargetId(LIST_TITLE_ID);
   };
@@ -111,7 +111,7 @@ export function useRegionalSponsorMapState(
     selectedSponsorId,
     selectedSponsor,
     filteredSponsors,
-    locationKey,
+    locationIds,
     locationSponsors,
     listScrollTop: listScrollTop.current,
     locationListScrollTop: locationListScrollTop.current,

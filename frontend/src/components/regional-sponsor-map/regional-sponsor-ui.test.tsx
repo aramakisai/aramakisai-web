@@ -28,7 +28,6 @@ function sponsor(overrides: Partial<RegionalSponsor> = {}): RegionalSponsor {
     businessHours: '午前 9時〜12時\n午後 14時〜18時',
     phone: '000-0000-0000',
     websiteUrl: 'https://example.invalid/',
-    order: 0,
     ...overrides,
   };
 }
@@ -100,16 +99,6 @@ describe('SponsorImage / RegionalSponsorCard', () => {
     fireEvent.click(screen.getByRole('button', { name: /詳細を表示/ }));
     expect(onSelect).toHaveBeenCalledOnce();
   });
-
-  it('未知カテゴリを除外せず中立色の未分類として表示する', () => {
-    render(
-      <RegionalSponsorCard
-        sponsor={sponsor({ category: 'future-category' })}
-        onSelect={vi.fn()}
-      />,
-    );
-    expect(screen.getByText('未分類')).toBeInTheDocument();
-  });
 });
 
 describe('RegionalSponsorList / RegionalSponsorDetail', () => {
@@ -121,7 +110,6 @@ describe('RegionalSponsorList / RegionalSponsorDetail', () => {
           sponsor({ id: 2, name: '先' }),
           sponsor({ id: 1, name: '後' }),
         ]}
-        selectedSponsorId={null}
         initialScrollTop={0}
         onScrollTopChange={onScroll}
         onSelect={vi.fn()}
@@ -135,7 +123,6 @@ describe('RegionalSponsorList / RegionalSponsorDetail', () => {
     rerender(
       <RegionalSponsorList
         sponsors={[]}
-        selectedSponsorId={null}
         initialScrollTop={0}
         onScrollTopChange={onScroll}
         onSelect={vi.fn()}
@@ -162,7 +149,7 @@ describe('RegionalSponsorList / RegionalSponsorDetail', () => {
     ).toHaveAttribute('rel', 'noopener noreferrer');
   });
 
-  it('任意項目・空節・無効URLをDOMごと省略し、病院以外の見出しを使う', () => {
+  it('任意項目・空節・URLなしをDOMごと省略し、病院以外の見出しを使う', () => {
     render(
       <RegionalSponsorDetail
         sponsor={sponsor({
@@ -170,7 +157,7 @@ describe('RegionalSponsorList / RegionalSponsorDetail', () => {
           address: null,
           businessHours: '10時から',
           phone: null,
-          websiteUrl: 'javascript:alert(1)',
+          websiteUrl: null,
         })}
         onBack={vi.fn()}
       />,

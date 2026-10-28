@@ -2,7 +2,6 @@ import { useLayoutEffect, useRef } from 'react';
 import type { ReactNode, Ref } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { RegionalMapConfig } from '@/lib/regional-map-config';
 import type { RegionalSponsor } from '@/lib/regional-sponsors';
 
 const mocks = vi.hoisted(() => ({
@@ -82,25 +81,6 @@ vi.mock('react-leaflet', () => ({
 
 import { RegionalSponsorMarkerLayer } from './regional-sponsor-marker-layer';
 
-const profile: RegionalMapConfig = {
-  id: 'regional',
-  bounds: [
-    [36, 139],
-    [37, 140],
-  ],
-  minZoom: 8,
-  maxZoom: 18,
-  minNativeZoom: 8,
-  maxNativeZoom: 16,
-  publicDirectory: 'public/regional-map-tiles',
-  urlTemplate: '/regional-map-tiles/{z}/{x}/{y}.webp',
-  expectedMaxTileCount: 10,
-  expectedMaxBytes: 10,
-  initialCenter: [36.43068, 139.044795],
-  initialZoom: 15.5,
-  focusZoom: 15.5,
-};
-
 function sponsor(
   id: number,
   latitude: number,
@@ -120,12 +100,11 @@ function sponsor(
     businessHours: null,
     phone: null,
     websiteUrl: null,
-    order: id,
   };
 }
 
 const baseProps = {
-  profile,
+  maxZoom: 18,
   markerSize: 48 as const,
   visibleAreaOptions: () => ({
     paddingTopLeft: [12, 34] as [number, number],
@@ -144,6 +123,7 @@ beforeEach(() => {
   baseProps.onSelectSponsor.mockReset();
   baseProps.onSelectLocation.mockReset();
   vi.unstubAllGlobals();
+  vi.stubGlobal('matchMedia', () => ({ matches: false }));
 });
 
 describe('RegionalSponsorMarkerLayer', () => {
@@ -239,7 +219,7 @@ describe('RegionalSponsorMarkerLayer', () => {
       expect.stringContaining('pin-neutral.svg'),
     );
     fireEvent.click(pin);
-    expect(baseProps.onSelectLocation).toHaveBeenCalledWith('1,2');
+    expect(baseProps.onSelectLocation).toHaveBeenCalledWith([1, 2]);
     expect(mocks.fitBounds).not.toHaveBeenCalled();
     expect(baseProps.onSelectSponsor).not.toHaveBeenCalled();
   });
@@ -276,7 +256,7 @@ describe('RegionalSponsorMarkerLayer', () => {
         name: '2件の地域協賛：テスト専用1（病院）、テスト専用2（ショップ）。選択して一覧を表示',
       }),
     );
-    expect(baseProps.onSelectLocation).toHaveBeenCalledWith('1,2');
+    expect(baseProps.onSelectLocation).toHaveBeenCalledWith([1, 2]);
     expect(mocks.fitBounds).not.toHaveBeenCalled();
   });
 

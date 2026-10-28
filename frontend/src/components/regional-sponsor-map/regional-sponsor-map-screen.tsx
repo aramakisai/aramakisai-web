@@ -6,10 +6,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { PhasedBottomNavigation } from '@/components/phased-chrome';
 import { MapMenuButton } from '@/components/campus-map/map-menu-button';
 import { useIsAboveMapBreakpoint } from '@/components/campus-map/use-is-above-map-breakpoint';
-import {
-  REGIONAL_MAP_CONFIG,
-  type RegionalMapConfig,
-} from '@/lib/regional-map-config';
 import type {
   RegionalSponsor,
   RegionalSponsorMapDataResult,
@@ -50,14 +46,12 @@ export interface RegionalSponsorMapScreenProps {
   readonly data: RegionalSponsorMapDataResult;
   readonly phase?: FestivalPhase;
   readonly navigation: NavigationByPhase;
-  readonly mapProfile?: RegionalMapConfig | null;
 }
 
 export function RegionalSponsorMapScreen({
   data,
   phase = BUILD_PHASE,
   navigation,
-  mapProfile = REGIONAL_MAP_CONFIG,
 }: RegionalSponsorMapScreenProps) {
   const router = useRouter();
   // 値は PhasedBottomSpacer の高さと揃える。会場マップの --map-nav と同じ扱い
@@ -85,12 +79,6 @@ export function RegionalSponsorMapScreen({
     return () => cancelAnimationFrame(frame);
   }, [clearFocusTarget, focusTargetId, selectedSponsorId]);
 
-  const selectFromCard = (sponsor: RegionalSponsor) =>
-    state.selectFromCard(sponsor.id);
-  const onSheetHeightChange = useCallback(
-    (height: number) => setMobileBottomInset(height),
-    [],
-  );
   // 選択と同じ commit で地図が移動先を決めるため、state を経由せず最新値を渡す
   const sheetTargetHeightRef = useRef<number | null>(null);
   const onSheetTargetHeightChange = useCallback((height: number) => {
@@ -118,7 +106,7 @@ export function RegionalSponsorMapScreen({
     onScrollTopChange: state.setListScrollTop,
     onLocationScrollTopChange: state.setLocationListScrollTop,
     onLocationBack: state.returnFromLocation,
-    onSelect: selectFromCard,
+    onSelect: state.selectFromCard,
     onBack: state.returnFromDetail,
   };
 
@@ -129,7 +117,6 @@ export function RegionalSponsorMapScreen({
     >
       <div className="absolute inset-x-0 top-0 bottom-[var(--map-nav,0px)]">
         <RegionalSponsorMapView
-          profile={mapProfile}
           sponsors={state.filteredSponsors}
           selectedSponsorId={state.selectedSponsorId}
           isDesktop={isDesktop}
@@ -168,7 +155,7 @@ export function RegionalSponsorMapScreen({
             {...shared}
             snap={state.mobileSheetSnap}
             onSnapChange={state.setMobileSheetSnap}
-            onHeightChange={onSheetHeightChange}
+            onHeightChange={setMobileBottomInset}
             onTargetHeightChange={onSheetTargetHeightChange}
           />
         </>

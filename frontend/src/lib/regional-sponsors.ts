@@ -3,6 +3,10 @@ import type { Sponsor } from '@/cms-types';
 import { cms, type CmsFetchOptions } from './cms';
 import { toMediaId } from './cms-media';
 import {
+  REGIONAL_SPONSOR_CATEGORIES,
+  type RegionalSponsorCategory,
+} from './regional-sponsor-categories';
+import {
   REGIONAL_MAP_TILE_PROFILE,
   isWithinMapTileProfile,
 } from './map-tile-profile';
@@ -16,7 +20,7 @@ export {
 export interface RegionalSponsor {
   readonly id: number;
   readonly name: string;
-  readonly category: string;
+  readonly category: RegionalSponsorCategory;
   readonly latitude: number;
   readonly longitude: number;
   readonly address: string | null;
@@ -27,7 +31,6 @@ export interface RegionalSponsor {
   readonly businessHours: string | null;
   readonly phone: string | null;
   readonly websiteUrl: string | null;
-  readonly order: number;
 }
 
 export type RegionalSponsorMapDataResult =
@@ -70,16 +73,15 @@ function isCoordinate(
   );
 }
 
-export function toRegionalSponsor(
-  sponsor: Sponsor,
-  order: number,
-): RegionalSponsorConversion {
+export function toRegionalSponsor(sponsor: Sponsor): RegionalSponsorConversion {
   const reasons: string[] = [];
   if (!sponsor.type.includes('local')) reasons.push('typeにlocalがない');
   const name = optionalText(sponsor.name);
   if (name === null) reasons.push('nameが空');
-  const category = optionalText(sponsor.business_category);
-  if (category === null) reasons.push('business_categoryが空');
+  const category = REGIONAL_SPONSOR_CATEGORIES.find(
+    (value) => value === sponsor.business_category,
+  );
+  if (category === undefined) reasons.push('business_categoryが不正');
   if (!isCoordinate(sponsor.local_latitude, -90, 90)) {
     reasons.push('local_latitudeが不正');
   }
@@ -122,16 +124,8 @@ export function toRegionalSponsor(
       businessHours: optionalText(sponsor.local_business_hours),
       phone: optionalText(sponsor.local_phone),
       websiteUrl: websiteUrl(sponsor.url),
-      order,
     },
   };
-}
-
-function compareSponsors(a: Sponsor, b: Sponsor): number {
-  if (a._order == null && b._order != null) return 1;
-  if (a._order != null && b._order == null) return -1;
-  if (a._order !== b._order) return a._order! < b._order! ? -1 : 1;
-  return a.id - b.id;
 }
 
 const SPONSOR_SELECT = {
@@ -140,7 +134,6 @@ const SPONSOR_SELECT = {
   address: true,
   url: true,
   description: true,
-  _order: true,
   business_category: true,
   local_latitude: true,
   local_longitude: true,
@@ -166,13 +159,9 @@ export async function getRegionalSponsorMapData(
   );
   if (!result.ok) return { ok: false, error: 'unavailable' };
 
-  const localSponsors = result.value.docs
-    .filter((sponsor) => sponsor.type.includes('local'))
-    .slice()
-    .sort(compareSponsors);
   const sponsors: RegionalSponsor[] = [];
-  for (const sponsor of localSponsors) {
-    const converted = toRegionalSponsor(sponsor, sponsors.length);
+  for (const sponsor of result.value.docs) {
+    const converted = toRegionalSponsor(sponsor);
     if (converted.ok) {
       sponsors.push(converted.value);
     } else {
