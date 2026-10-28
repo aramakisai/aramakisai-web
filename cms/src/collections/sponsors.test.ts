@@ -74,19 +74,32 @@ describe('booth_number フィールド', () => {
 });
 
 describe('地域協賛マップ項目', () => {
-  it('業種タグは6カテゴリのselectで、地図固有項目はlocalのときだけ表示する', () => {
-    expect((businessCategory.options as { value: string }[]).map(({ value }) => value)).toEqual([
-      'hospital',
-      'life',
-      'car',
-      'education',
-      'food',
-      'shop',
+  it('業種タグは単一選択で、6カテゴリのlabelとvalueの組を持つ', () => {
+    expect(businessCategory.type).toBe('select');
+    expect(businessCategory.hasMany).not.toBe(true);
+    expect(businessCategory.options).toEqual([
+      { label: '病院', value: 'hospital' },
+      { label: '生活', value: 'life' },
+      { label: '車', value: 'car' },
+      { label: '教育', value: 'education' },
+      { label: '飲食', value: 'food' },
+      { label: 'ショップ', value: 'shop' },
     ]);
+  });
+
+  it('地図固有項目はlocalのときだけ表示する', () => {
     for (const field of [businessCategory, localLatitude, localLongitude, localImage, localPhone]) {
       const condition = conditionOf(field);
       expect(condition({ type: ['local'] })).toBe(true);
       expect(condition({ type: ['ad'] })).toBe(false);
     }
+  });
+
+  it('name と type 以外の既存項目を必須化しない', () => {
+    const others = (Sponsors.fields as NamedField[]).filter(
+      (f) => f.name !== 'name' && f.name !== 'type',
+    );
+    expect(others.length).toBeGreaterThan(10);
+    for (const field of others) expect(field.required).not.toBe(true);
   });
 });

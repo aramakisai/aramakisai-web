@@ -16,29 +16,14 @@ const completeLocal = {
 afterEach(() => vi.unstubAllGlobals())
 
 describe('validateLocalSponsorMap', () => {
-  it('カテゴリと座標の標準検証をPayload select/number fieldへ委ねる', () => {
-    expect(
-      validateLocalSponsorMap({
-        ...completeLocal,
-        business_category: 'unknown',
-        local_latitude: Number.NaN,
-        local_longitude: 180.1,
-      }),
-    ).toEqual([])
-  })
-
-  it('URLはhttp/httpsだけを許可する', () => {
-    expect(
-      validateLocalSponsorMap({
-        ...completeLocal,
-        url: 'javascript:alert(1)',
-      }),
-    ).toEqual([
-      {
-        field: 'url',
-        message: 'Webサイト URL は http または https の絶対URLにしてください',
-      },
-    ])
+  it('URLはhttp/httpsの絶対URLだけを受理する', () => {
+    const urlViolations = (url: string) =>
+      validateLocalSponsorMap({ ...completeLocal, url }).map(({ field }) => field)
+    expect(urlViolations('https://example.invalid/path')).toEqual([])
+    expect(urlViolations('http://example.invalid/path')).toEqual([])
+    expect(urlViolations('/relative/path')).toEqual(['url'])
+    expect(urlViolations('ftp://example.invalid/file')).toEqual(['url'])
+    expect(urlViolations('javascript:alert(1)')).toEqual(['url'])
   })
 
   it('追加項目のない既存localとlocal以外を妨げない', () => {
