@@ -462,7 +462,7 @@ jobs:
         run: rm -f "$RUNNER_TEMP/workers-secrets.json"
 
       - name: Publish static assets generation (dev)
-        if: ${{ !cancelled() && steps.deploy_site.outcome == 'success' }}
+        if: ${{ always() && steps.deploy_site.outcome == 'success' }}
         run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec tsx scripts/static-archive.ts publish --bucket "$STATIC_ARCHIVE_BUCKET" --target dev --sha "$GITHUB_SHA" --keep "$STATIC_ARCHIVE_KEEP"
 
   deploy-prod:
@@ -582,5 +582,5 @@ jobs:
         run: rm -f "$RUNNER_TEMP/quake-secrets.json"
 
       - name: Publish static assets generation (prod)
-        if: ${{ !cancelled() && steps.deploy_site.outcome == 'success' }}
+        if: ${{ always() && steps.deploy_site.outcome == 'success' }}
         run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod -- pnpm exec tsx scripts/static-archive.ts publish --bucket "$STATIC_ARCHIVE_BUCKET" --target prod --sha "$GITHUB_SHA" --keep "$STATIC_ARCHIVE_KEEP"

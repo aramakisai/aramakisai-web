@@ -410,7 +410,7 @@ describe('.github/workflows/frontend-ci.yml — static assets archive', () => {
             if?: string;
           }
         ).if,
-      ).toBe("${{ !cancelled() && steps.deploy_site.outcome == 'success' }}");
+      ).toBe("${{ always() && steps.deploy_site.outcome == 'success' }}");
     });
   });
 
