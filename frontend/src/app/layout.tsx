@@ -7,6 +7,7 @@ import '@fontsource/line-seed-jp/800.css';
 import './globals.css';
 import { getSiteMetadata } from '@/lib/site-metadata';
 import { buildPageMetadata } from '@/lib/page-metadata';
+import { CHUNK_RECOVERY_SCRIPT } from '@/lib/chunk-recovery-script';
 import { DEV_OVERRIDE_ENABLED } from '@/lib/phase';
 import { GoogleAnalytics } from '@/components/google-analytics';
 import { PhaseToggle } from '@/components/phase-toggle';
@@ -129,6 +130,7 @@ export default function RootLayout({
         <link rel="preconnect" href={cmsOrigin} />
         <link rel="stylesheet" href={MATERIAL_SYMBOLS_HREF} />
         <script dangerouslySetInnerHTML={{ __html: MOTION_INIT_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: CHUNK_RECOVERY_SCRIPT }} />
       </head>
       <body className="flex min-h-screen min-h-dvh min-w-0 flex-col font-sans">
         {children}
