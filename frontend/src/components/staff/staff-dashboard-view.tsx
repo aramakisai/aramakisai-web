@@ -14,18 +14,27 @@ const BADGE_COLORS: Readonly<Record<StampCategory, string>> = {
 const ROW = 'border-b border-gray-200 py-4';
 const percent = (rate: number) => Math.round(rate * 100);
 
-function Tile({ label, value }: { label: string; value: number }) {
+export function Tile({
+  label,
+  value,
+  unit = '',
+}: {
+  label: string;
+  value: number;
+  unit?: string;
+}) {
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-1 rounded-md border border-gray-200 p-4">
       <p className="text-sm leading-[1.4] text-gray-600">{label}</p>
       <p className="text-[32px] leading-[1.25] font-bold text-text">
         {value.toLocaleString('ja-JP')}
+        {unit}
       </p>
     </div>
   );
 }
 
-function Section({
+export function Section({
   title,
   children,
 }: {

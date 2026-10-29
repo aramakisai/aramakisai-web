@@ -1,3 +1,4 @@
+import { MaterialIcon } from '@/components/icons';
 import { StaffActionLink } from './staff-action-button';
 import { StaffTitle } from './staff-heading';
 
@@ -23,5 +24,18 @@ export function StaffLoginFailed() {
         ログイン
       </StaffActionLink>
     </>
+  );
+}
+
+export function StaffStatusRow({ children }: { readonly children: string }) {
+  return (
+    <p className="flex items-start gap-1 text-sm leading-[1.4] text-text">
+      <MaterialIcon
+        name="sync_problem"
+        size={16}
+        className="shrink-0 text-warning"
+      />
+      {children}
+    </p>
   );
 }
