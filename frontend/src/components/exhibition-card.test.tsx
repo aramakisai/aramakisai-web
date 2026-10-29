@@ -4,6 +4,10 @@ import { ExhibitionCard } from './exhibition-card';
 import type { ExhibitionCardSummary } from '@/lib/exhibitions';
 import { getExhibitionTexture } from '@/lib/exhibition-color';
 
+vi.mock('@/env', () => ({
+  env: { NEXT_PUBLIC_CMS_URL: 'http://localhost:8055' },
+}));
+
 vi.mock('@/lib/cms-asset-url', () => ({
   toAssetUrl: (id: string | null) =>
     id ? `https://example.com/assets/${id}` : null,
