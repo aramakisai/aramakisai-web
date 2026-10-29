@@ -11,9 +11,9 @@ const type = fieldOf(Sponsors.fields, 'type');
 const tier = fieldOf(Sponsors.fields, 'tier');
 const businessCategory = fieldOf(Sponsors.fields, 'business_category');
 const address = fieldOf(Sponsors.fields, 'address');
-const areaId = fieldOf(Sponsors.fields, 'area_id');
-const boothNumber = fieldOf(Sponsors.fields, 'booth_number');
-const boothLabel = fieldOf(Sponsors.fields, 'booth_label');
+const vendor = fieldOf(Sponsors.fields, 'vendor');
+const vendorFields = vendor.fields as NamedField[];
+const boothNumber = fieldOf(vendorFields, 'booth_number');
 const localLatitude = fieldOf(Sponsors.fields, 'local_latitude');
 const localLongitude = fieldOf(Sponsors.fields, 'local_longitude');
 const localImage = fieldOf(Sponsors.fields, 'local_image');
@@ -53,12 +53,24 @@ describe('種別ごとの入力項目の出し分け', () => {
     expect(conditionOf(address)({ type: ['vendor'] })).toBe(false);
   });
 
-  it('マップ配置エリア・ブース番号・マップ表示ラベルは出店協賛を選んだときだけ表示する', () => {
-    expect(conditionOf(areaId)({ type: ['vendor'] })).toBe(true);
-    expect(conditionOf(areaId)({ type: ['other'] })).toBe(false);
-    expect(conditionOf(boothNumber)({ type: ['vendor'] })).toBe(true);
-    expect(conditionOf(boothLabel)({ type: ['vendor'] })).toBe(true);
-    expect(conditionOf(boothLabel)({ type: ['ad'] })).toBe(false);
+  it('出店の企画内容グループは出店協賛を選んだときだけ表示する', () => {
+    expect(vendor.type).toBe('group');
+    expect(conditionOf(vendor)({ type: ['vendor'] })).toBe(true);
+    expect(conditionOf(vendor)({ type: ['ad', 'vendor'] })).toBe(true);
+    expect(conditionOf(vendor)({ type: ['other'] })).toBe(false);
+    expect(conditionOf(vendor)({})).toBe(false);
+  });
+
+  it('出店グループは企画名・紹介文・画像と配置の項目を持ち、メニューは持たない', () => {
+    expect(vendorFields.map((f) => f.name)).toEqual([
+      'name',
+      'description',
+      'images',
+      'open_days',
+      'area_id',
+      'booth_number',
+      'booth_label',
+    ]);
   });
 });
 
