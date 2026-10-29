@@ -20,6 +20,7 @@ import {
   useSignageFeature,
 } from '@/lib/use-signage-channel';
 import { usePolling } from '@/lib/use-polling';
+import { SignageBubbles } from './signage-bubbles';
 import { SignageBusInfo } from './signage-bus-info';
 import { SignageLeftColumn } from './signage-left-column';
 import { SignageMain } from './signage-main';
@@ -141,6 +142,7 @@ export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
           transform: `scale(${fit.scale})`,
         }}
       >
+        <SignageBubbles orientation={orientation} />
         <div className="absolute top-6 left-6 portrait:hidden">
           <SignageLeftColumn now={now} eventDays={eventDays} rows={rows} />
         </div>

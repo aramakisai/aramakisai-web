@@ -829,6 +829,26 @@ html[data-pl] [style*='/images/textures/'] {
   animation: fade-out 600ms ease-out forwards;
 }
 
+/* サイネージ背景の泡。上昇 (外側) と横揺れ・回転 (内側) を別要素の transform に分け、互いの合成を避ける */
+@keyframes bubble-rise {
+  from {
+    transform: translateY(var(--rise-from));
+  }
+  to {
+    transform: translateY(var(--rise-to));
+  }
+}
+
+@keyframes bubble-sway {
+  0%,
+  100% {
+    transform: translateX(calc(var(--sway) * -1)) rotate(-8deg);
+  }
+  50% {
+    transform: translateX(var(--sway)) rotate(8deg);
+  }
+}
+
 /* TouchLinkGuard が遮断したリンクに data-touch-blocked を付ける。本文と同じ見た目にする */
 a[data-touch-blocked] {
   color: inherit;
