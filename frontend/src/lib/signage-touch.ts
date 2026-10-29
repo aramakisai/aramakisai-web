@@ -55,6 +55,7 @@ export type TouchEvent =
   | { readonly type: 'tick'; readonly at: number }
   | { readonly type: 'back' }
   | { readonly type: 'quake'; readonly active: boolean }
+  | { readonly type: 'pin' }
   | { readonly type: 'fadeEnd' };
 
 export function nextTouchState(
@@ -81,6 +82,7 @@ export function nextTouchState(
             ? { kind: 'closing' }
             : state;
         case 'back':
+        case 'pin':
           return { kind: 'closing' };
         case 'quake':
           return event.active
