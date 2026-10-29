@@ -17,6 +17,10 @@ defaults:
   run:
     working-directory: frontend
 
+env:
+  STATIC_ARCHIVE_KEEP: 20
+  STATIC_ARCHIVE_BUCKET: aramakisai-web-cache
+
 # Least-privilege default: this job never touches secrets (dummy build env only),
 # so fork PRs can run it safely without any repository secret exposure.
 permissions:
@@ -427,6 +431,15 @@ jobs:
           # deploy-preview にも同フラグを付与している (要件 7-5)。deploy-prod には付与しない。
           NEXT_PUBLIC_ENABLE_PHASE_OVERRIDE: 'true'
 
+      - name: Pack current static assets
+        run: pnpm exec tsx scripts/static-archive.ts pack --dir .open-next/assets/_next/static --out "$RUNNER_TEMP/static-current.tar.gz"
+
+      - name: Upload current static assets (dev)
+        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec tsx scripts/static-archive.ts upload --bucket "$STATIC_ARCHIVE_BUCKET" --target dev --sha "$GITHUB_SHA" --archive "$RUNNER_TEMP/static-current.tar.gz"
+
+      - name: Restore previous static assets (dev)
+        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec tsx scripts/static-archive.ts restore --bucket "$STATIC_ARCHIVE_BUCKET" --target dev --dir .open-next/assets/_next/static
+
       - name: Write Workers secrets file (staging)
         # 値は echo しない。未設定なら KeyError でステップを失敗させてデプロイを止める。
         run: |
@@ -441,11 +454,16 @@ jobs:
         run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec wrangler d1 migrations apply STAMP_DB --remote --env=dev
 
       - name: Deploy to Cloudflare Workers (dev)
+        id: deploy_site
         run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec tsx scripts/deploy-with-cpu-limit-fallback.ts pnpm exec wrangler deploy --env=dev --secrets-file "$RUNNER_TEMP/workers-secrets.json"
 
       - name: Remove Workers secrets file
         if: always()
         run: rm -f "$RUNNER_TEMP/workers-secrets.json"
+
+      - name: Publish static assets generation (dev)
+        if: ${{ !cancelled() && steps.deploy_site.outcome == 'success' }}
+        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec tsx scripts/static-archive.ts publish --bucket "$STATIC_ARCHIVE_BUCKET" --target dev --sha "$GITHUB_SHA" --keep "$STATIC_ARCHIVE_KEEP"
 
   deploy-prod:
     name: deploy prod (Workers)
@@ -506,6 +524,15 @@ jobs:
       - name: Build (prod env, inlined by Infisical)
         run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod -- pnpm exec opennextjs-cloudflare build
 
+      - name: Pack current static assets
+        run: pnpm exec tsx scripts/static-archive.ts pack --dir .open-next/assets/_next/static --out "$RUNNER_TEMP/static-current.tar.gz"
+
+      - name: Upload current static assets (prod)
+        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod -- pnpm exec tsx scripts/static-archive.ts upload --bucket "$STATIC_ARCHIVE_BUCKET" --target prod --sha "$GITHUB_SHA" --archive "$RUNNER_TEMP/static-current.tar.gz"
+
+      - name: Restore previous static assets (prod)
+        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod -- pnpm exec tsx scripts/static-archive.ts restore --bucket "$STATIC_ARCHIVE_BUCKET" --target prod --dir .open-next/assets/_next/static
+
       - name: Write Workers secrets file (prod)
         # プレビューは本番と同じ Worker に staging の値を積む。本番デプロイでも明示しないとプレビューの値が引き継がれうる。
         # 値は echo しない。未設定なら KeyError でステップを失敗させてデプロイを止める。
@@ -516,6 +543,7 @@ jobs:
         run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod -- pnpm exec wrangler d1 migrations apply STAMP_DB --remote
 
       - name: Deploy to Cloudflare Workers (prod)
+        id: deploy_site
         run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod -- pnpm exec tsx scripts/deploy-with-cpu-limit-fallback.ts pnpm exec opennextjs-cloudflare deploy --secrets-file "$RUNNER_TEMP/workers-secrets.json"
 
       - name: Remove Workers secrets file
@@ -552,3 +580,7 @@ jobs:
       - name: Remove signage relay secrets file
         if: always()
         run: rm -f "$RUNNER_TEMP/quake-secrets.json"
+
+      - name: Publish static assets generation (prod)
+        if: ${{ !cancelled() && steps.deploy_site.outcome == 'success' }}
+        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod -- pnpm exec tsx scripts/static-archive.ts publish --bucket "$STATIC_ARCHIVE_BUCKET" --target prod --sha "$GITHUB_SHA" --keep "$STATIC_ARCHIVE_KEEP"
