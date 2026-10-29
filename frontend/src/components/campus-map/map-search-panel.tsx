@@ -2,8 +2,8 @@
 
 import { SearchIcon } from '@/components/icons';
 import {
-  CATEGORY_LABELS,
-  CATEGORY_VALUES,
+  LISTING_CATEGORY_LABELS,
+  LISTING_CATEGORY_VALUES,
   type ListingCategory,
 } from '@/lib/exhibitions';
 
@@ -71,7 +71,7 @@ export function MapSearchPanel({
         >
           すべて
         </button>
-        {CATEGORY_VALUES.map((category) => {
+        {LISTING_CATEGORY_VALUES.map((category) => {
           const pressed = categories.includes(category);
           return (
             <button
@@ -85,7 +85,7 @@ export function MapSearchPanel({
                   : 'border-gray-200 bg-background text-text'
               }`}
             >
-              {CATEGORY_LABELS[category]}
+              {LISTING_CATEGORY_LABELS[category]}
             </button>
           );
         })}

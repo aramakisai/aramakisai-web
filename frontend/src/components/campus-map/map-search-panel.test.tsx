@@ -46,7 +46,7 @@ describe('MapSearchPanel', () => {
     const group = screen.getByRole('group', { name: 'カテゴリで絞り込み' });
     expect(
       Array.from(group.querySelectorAll('button')).map((b) => b.textContent),
-    ).toEqual(['すべて', 'ステージ', '展示', '出店', 'その他']);
+    ).toEqual(['すべて', 'ステージ', '展示', '出店', 'その他', '企業ブース']);
   });
 
   it('marks the currently applied categories as pressed', () => {
@@ -104,5 +104,19 @@ describe('MapSearchPanel', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'ステージ' }));
     expect(onCategoriesChange).toHaveBeenCalledWith(['exhibit']);
+  });
+});
+
+describe('MapSearchPanel (企業ブース)', () => {
+  it('lists 企業ブース as the last chip and toggles it as "booth"', () => {
+    const onCategoriesChange = vi.fn();
+    render(<MapSearchPanel {...baseProps({ onCategoriesChange })} />);
+    const group = screen.getByRole('group', { name: 'カテゴリで絞り込み' });
+    expect(
+      Array.from(group.querySelectorAll('button')).map((b) => b.textContent),
+    ).toEqual(['すべて', 'ステージ', '展示', '出店', 'その他', '企業ブース']);
+
+    fireEvent.click(screen.getByRole('button', { name: '企業ブース' }));
+    expect(onCategoriesChange).toHaveBeenCalledWith(['booth']);
   });
 });

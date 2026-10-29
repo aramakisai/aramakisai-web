@@ -2,7 +2,7 @@ import { ExhibitionCard } from '@/components/exhibition-card';
 import { MaterialIcon } from '@/components/icons';
 import {
   LISTING_CATEGORY_LABELS,
-  type ExhibitionCardSummary,
+  type ListingCard,
   type ListingCategory,
 } from '@/lib/exhibitions';
 
@@ -25,7 +25,7 @@ export type AreaExhibitionListState =
       };
       readonly keyword: string;
       readonly categories: readonly ListingCategory[];
-      readonly items: readonly ExhibitionCardSummary[];
+      readonly items: readonly ListingCard[];
     }
   | { readonly kind: 'error'; readonly message: string };
 

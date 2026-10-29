@@ -2,8 +2,8 @@
 
 import { SearchIcon } from '@/components/icons';
 import {
-  CATEGORY_LABELS,
-  CATEGORY_VALUES,
+  LISTING_CATEGORY_LABELS,
+  LISTING_CATEGORY_VALUES,
   type ListingCategory,
 } from '@/lib/exhibitions';
 import { useIsAboveMapBreakpoint } from './use-is-above-map-breakpoint';
@@ -77,7 +77,7 @@ export function MapSearchOverlay({
         >
           すべて
         </button>
-        {CATEGORY_VALUES.map((category) => {
+        {LISTING_CATEGORY_VALUES.map((category) => {
           const pressed = categories.includes(category);
           return (
             <button
@@ -92,7 +92,7 @@ export function MapSearchOverlay({
                   : 'border-gray-200 bg-white/95 text-text'
               }`}
             >
-              {CATEGORY_LABELS[category]}
+              {LISTING_CATEGORY_LABELS[category]}
             </button>
           );
         })}
