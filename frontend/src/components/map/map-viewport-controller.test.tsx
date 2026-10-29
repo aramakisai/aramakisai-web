@@ -207,6 +207,32 @@ describe('MapViewportController', () => {
     expect(map.fitBounds).not.toHaveBeenCalled();
   });
 
+  it('焦点を合わせた後のresizeでは全体表示へfitし直さない', () => {
+    map.getBoundsZoom.mockReturnValue(12);
+    map.getZoom.mockReturnValue(12);
+    map.getSize.mockReturnValue(point(1000, 800));
+    map.project.mockReturnValue(point(500, 400));
+    map.unproject.mockImplementation(({ x, y }: { x: number; y: number }) => ({
+      lat: y,
+      lng: x,
+    }));
+    render(
+      <MapViewportController
+        fitBounds={initialBounds}
+        focusCenter={[36.41, 139.1]}
+        focusKey={101}
+        focusZoom={15.5}
+        maxBounds={maxBounds}
+        minZoom={10.5}
+        fitOptions={() => fitOptions}
+        focusFitOptions={() => fitOptions}
+      />,
+    );
+
+    MockResizeObserver.instances.at(-1)!.trigger();
+    expect(map.fitBounds).not.toHaveBeenCalled();
+  });
+
   it('moves a newly selected position into the unobscured area and follows consecutive selections', () => {
     map.getBoundsZoom.mockReturnValue(12);
     map.getZoom.mockReturnValue(12);
