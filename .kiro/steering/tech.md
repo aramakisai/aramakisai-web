@@ -9,7 +9,7 @@ CMS 本体 (`cms/`) は独立した Next.js アプリで、フロントエンド
 ## コア技術
 
 - **言語**: TypeScript (strict mode)
-- **フレームワーク**: Next.js 15 (App Router) / React 19 (`frontend/`)、Next.js 16 / React 19 + Payload 3 (`cms/`)
+- **フレームワーク**: Next.js 16 (App Router) / React 19 (`frontend/`)、Next.js 16 / React 19 + Payload 3 (`cms/`)
 - **デプロイ基盤**: Cloudflare Workers + `@opennextjs/cloudflare` (`wrangler versions upload` でプレビュー、`opennextjs-cloudflare deploy` で本番)。CMS は Docker イメージを GHCR へ push し K8s Deployment で運用
 - **CMS**: Payload 3 + `@payloadcms/db-postgres` (Postgres 16)、認証は Authentik OIDC を一次経路としローカル認証は緊急用
 - **パッケージマネージャ**: pnpm。`frontend/` と `cms/` はそれぞれ独立した `packageManager` ピンを持つ
@@ -84,6 +84,9 @@ make kubectl ARGS="get pods -A"   # kubectl 直実行不可、Infisical 経由 K
   - サイトの Worker は `frontend/wrangler.toml` の `[limits] cpu_ms = 5000` で CPU 課金に上限を持つ。Free プランは cpu_ms 付きのデプロイを API が拒否する (code 100328) ため、3 つのデプロイ (preview の `wrangler versions upload`、dev の `wrangler deploy --env=dev`、prod の `opennextjs-cloudflare deploy`) は `frontend/scripts/deploy-with-cpu-limit-fallback.ts` で包み、100328 で失敗したときだけ `[limits]` を除いた一時設定 (`--config`、元の設定と同じディレクトリ) で 1 回再実行する。再実行時は `::warning::` を出す。それ以外の失敗はそのまま失敗。`env.dev` は limits を継承するため再掲しない。
   - プレビュー URL は `https://<version-hash>-aramakisai-web.<subdomain>.workers.dev` 形式。`wrangler versions upload` は本番トラフィックに影響しないバージョンを作るだけなので、複数 PR が同時に開いていても PR ごとに URL が独立し衝突しない。push のたびに hash は変わるが PR コメント自体は上書き更新される。
   - `aramakisai-web.aramakisai.workers.dev` (hash 無し) は `deploy-prod` が書き込む本番固定 URL であり、上記プレビュー URL とは別物。
+  - 旧ビルドの静的アセット (`_next/static`) は、ビルドごとに 1 世代として R2 `aramakisai-web-cache` の `static-archive/<prod|dev>/` に tar.gz と索引 (`index.json`) で保管する。`deploy-prod` / `deploy-dev` はビルド後・deploy 前に `frontend/scripts/static-archive.ts` で旧世代を `.open-next/assets/_next/static` へ合成し (既存のファイルは上書きしない)、deploy 成功時だけ現世代を索引に登録して古い世代を削除する。デプロイ直後も、旧タブの遅延チャンクと CSS が 404 にならないようにするため。R2 の読み書きと展開の失敗ではデプロイを止める。
+  - 保持する旧世代数は `frontend-ci.yml` の workflow `env` の `STATIC_ARCHIVE_KEEP` (20)、バケット名は同 `STATIC_ARCHIVE_BUCKET` で設定する。
+  - `frontend/src/lib/chunk-recovery-script.ts` のインラインスクリプトは `src/app/layout.tsx` の `<head>` に埋め込まれ、`/_next/static/` の script / stylesheet の取得失敗や `ChunkLoadError` を検知して、読み込んでいるビルドごとに 1 回だけ `location.reload()` する。合成した世代の保持期間を過ぎた旧タブの救済用。
 - **`frontend-ci-dummy.yml`**: `frontend/**` を触らない PR でのみ発火し、`frontend-ci.yml` と同名の required status check を常に成功報告する。branch protection の path-filter 既知の制約 (対象外 PR ではチェックが永久に "Expected" のまま完了せず admin でもマージ不能になる) の回避策。**`frontend-ci.yml` のジョブ名を変更したら、このダミー側の `name:` も揃える。**
 - **`cms-ci.yml`**: `cms/**` 変更 PR/push で発火。`verify` job (type-check → migrate → test → 生成物同期確認 → build) が通った上で、`main` push では `release` job が本体イメージと migration 用イメージの 2 つを GHCR へ push し、`aramakisai-infra` へタグ更新の PR を自動作成する (専用 GitHub App、write 権限)。マージ後 ArgoCD が PreSync Job で `payload migrate` を実行してから Deployment を更新する。
 - **`cms-schema-check.yml`**: `cms/src/collections/**` / `cms/src/globals/**` 変更 PR で base/head のコレクション定義を比較し、フィールド削除・型変更・必須化を機械検出する。
