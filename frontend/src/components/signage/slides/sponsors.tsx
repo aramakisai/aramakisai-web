@@ -15,15 +15,6 @@ const LOGO_HEIGHT = {
   planC: 'h-[96px]',
 } as const;
 
-// 行間: 同じプラン内は24px、プランが変わるときは32px (paginateSponsors の行高計算と一致させる)
-function rowGap(prev: SponsorRow | undefined, row: SponsorRow): string {
-  if (!prev) return '';
-  const same =
-    prev.kind === row.kind &&
-    (row.kind === 'names' || (prev.kind === 'logo' && prev.tier === row.tier));
-  return same ? 'mt-6' : 'mt-8';
-}
-
 export function SponsorsSlide({
   rows,
 }: {
@@ -36,7 +27,7 @@ export function SponsorsSlide({
         {rows.map((row, i) => (
           <ul
             key={`${row.kind}-${row.items[0]?.id ?? i}`}
-            className={`flex gap-6 ${row.kind === 'names' ? 'justify-start' : 'justify-center'} ${rowGap(rows[i - 1], row)}`}
+            className={`flex gap-6 ${row.kind === 'names' ? 'justify-start' : 'justify-center'} ${i > 0 ? 'mt-6' : ''}`}
           >
             {row.items.map((s) =>
               row.kind === 'logo' ? (
@@ -45,7 +36,7 @@ export function SponsorsSlide({
                   className={`flex flex-col items-center gap-2 ${LOGO_WIDTH[row.tier]}`}
                 >
                   <div
-                    className={`flex items-center justify-center w-full bg-gray-200 ${LOGO_HEIGHT[row.tier]}`}
+                    className={`flex w-full items-center justify-center ${LOGO_HEIGHT[row.tier]}`}
                   >
                     <img
                       src={toAssetUrl(s.logoId, 960) ?? ''}
