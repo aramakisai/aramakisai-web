@@ -1,26 +1,47 @@
 import { render, screen } from '@testing-library/react';
 import { expect, test, describe, vi } from 'vitest';
 import { SponsorsList } from './sponsors-list';
+import type { RegionalSponsor } from '@/lib/regional-sponsors';
+import type { SponsorListItem } from '@/lib/sponsors';
 
 vi.mock('@/lib/cms-asset-url', () => ({
   toAssetUrl: (id: string | null) =>
     id ? `https://example.com/assets/${id}` : null,
 }));
 
-describe('SponsorsList', () => {
-  const sponsors = [
-    { id: 1, name: 'Sponsor 1', logoId: 'file-1' },
-    { id: 2, name: 'Sponsor 2', logoId: null },
-    { id: 3, name: 'Sponsor 3', logoId: 'file-3' },
-    { id: 4, name: 'Sponsor 4', logoId: 'file-4' },
-    { id: 5, name: 'Sponsor 5', logoId: 'file-5' },
-  ];
+const ad = (id: number, tier: string, logo: string | null = `f${id}`) =>
+  ({ id, name: `Ad ${id}`, logoId: logo, url: null, tier }) as SponsorListItem;
 
-  test('見出しと2つの導線を常に表示する', () => {
-    render(<SponsorsList sponsors={[]} />);
+const local = (id: number, over: Partial<RegionalSponsor> = {}) =>
+  ({
+    id,
+    name: `Local ${id}`,
+    category: 'food',
+    latitude: 0,
+    longitude: 0,
+    address: `Addr ${id}`,
+    imageId: null,
+    imageAlt: null,
+    imageDecorative: true,
+    message: `Msg ${id}`,
+    businessHours: null,
+    phone: null,
+    websiteUrl: null,
+    ...over,
+  }) as RegionalSponsor;
+
+describe('SponsorsList', () => {
+  test('見出し・小見出しと2つの導線を常に表示する', () => {
+    render(<SponsorsList adSponsors={[]} localSponsors={[]} />);
 
     expect(
       screen.getByRole('heading', { level: 2, name: '協賛' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 3, name: '広告協賛' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 3, name: '地域協賛' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /広告協賛へ/ })).toHaveAttribute(
       'href',
@@ -32,24 +53,56 @@ describe('SponsorsList', () => {
     );
   });
 
-  test('0件・取得失敗 (空配列) でもページの表示が続く', () => {
-    render(<SponsorsList sponsors={[]} />);
+  test('0件では帯もカードも出さない', () => {
+    render(<SponsorsList adSponsors={[]} localSponsors={[]} />);
 
-    expect(screen.queryByRole('list')).not.toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { level: 2, name: '協賛' }),
-    ).toBeInTheDocument();
+      screen.queryByTestId('ad-sponsor-marquee-track'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('list')).not.toBeInTheDocument();
   });
 
-  test('ロゴがある協賛は画像、無い協賛は名称で表示し、4件までに絞る', () => {
-    render(<SponsorsList sponsors={sponsors} />);
+  test('広告協賛は帯に並び、ロゴは画像・ロゴ無しは社名で出す。2つ目のセットは読み上げ対象外', () => {
+    render(
+      <SponsorsList
+        adSponsors={[
+          ad(1, 'planA'),
+          ad(2, 'planA', null),
+          ad(3, 'planD', null),
+        ]}
+        localSponsors={[]}
+      />,
+    );
 
-    const logo1 = screen.getByAltText('Sponsor 1');
-    expect(logo1.tagName).toBe('IMG');
-    expect(screen.getByText('Sponsor 2')).toBeInTheDocument();
+    expect(screen.getAllByAltText('Ad 1')).toHaveLength(1);
+    expect(screen.getAllByText('Ad 2')).toHaveLength(2);
+    expect(screen.getAllByText('Ad 3')).toHaveLength(2);
+    const track = screen.getByTestId('ad-sponsor-marquee-track');
+    expect(track.children).toHaveLength(2);
+    expect(track.children[1]).toHaveAttribute('aria-hidden', 'true');
+  });
 
-    expect(screen.queryByAltText('Sponsor 5')).not.toBeInTheDocument();
-    expect(screen.queryByText('Sponsor 5')).not.toBeInTheDocument();
-    expect(screen.getAllByRole('listitem')).toHaveLength(4);
+  test('地域協賛は5件以上あっても4件に絞る', () => {
+    render(
+      <SponsorsList
+        adSponsors={[]}
+        localSponsors={[1, 2, 3, 4, 5].map((i) => local(i))}
+      />,
+    );
+
+    expect(screen.getAllByText(/^Local \d$/)).toHaveLength(4);
+    expect(screen.getAllByText('飲食')).toHaveLength(4);
+  });
+
+  test('住所・説明が空ならその行を出さない', () => {
+    render(
+      <SponsorsList
+        adSponsors={[]}
+        localSponsors={[local(1, { address: null, message: null })]}
+      />,
+    );
+
+    expect(screen.queryByText('location_on')).not.toBeInTheDocument();
+    expect(screen.queryByText('chat_bubble')).not.toBeInTheDocument();
   });
 });
