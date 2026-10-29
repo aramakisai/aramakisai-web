@@ -1,10 +1,10 @@
 /* eslint-disable @next/next/no-img-element */
 import { toAssetUrl } from '@/lib/cms-asset-url';
+import type { SponsorRow } from '@/lib/signage';
 import {
   SPONSOR_AREA_TOP,
   SPONSOR_PAGE_HEIGHT,
-  type SponsorRow,
-} from '@/lib/signage';
+} from '@/lib/signage-sponsor-area';
 import { SignageHeadingChip } from '../signage-heading-chip';
 
 const LOGO_WIDTH = {

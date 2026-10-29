@@ -12,6 +12,7 @@ import type {
 } from '@/lib/timetable';
 import { isPerformanceActive, stagesWithPerformances } from '@/lib/timetable';
 import type { SignageQuakeStage } from './signage-quake';
+import { SPONSOR_PAGE_HEIGHT } from './signage-sponsor-area';
 import { getDaysUntilEventDay, toJstDateKey, toJstParts } from './event-day';
 
 /** 向きで変わるのはキャンバス寸法だけで、ページ分割・時間窓の定数は向きに依らない */
@@ -126,9 +127,6 @@ export type SponsorRow =
     }
   | { readonly kind: 'names'; readonly items: readonly SignageSponsor[] };
 
-/** ロゴ領域(横型スライド内)の上端と高さ。中身はこの範囲の上下中央に置く */
-export const SPONSOR_AREA_TOP = 106;
-export const SPONSOR_PAGE_HEIGHT = 704;
 const SPONSOR_ROW_GAP = 24;
 const LOGO_TIERS = ['planA', 'planB', 'planC'] as const;
 // 列数と行高(ロゴ枠+社名)はFigmaのロゴ領域の実測値
