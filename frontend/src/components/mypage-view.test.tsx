@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MypageView } from './mypage-view';
 import type {
   ExhibitionCardSummary,
@@ -65,19 +65,38 @@ function saveBookmarks(refs: Array<[number, string, string]>) {
   );
 }
 
-function save(refs: Array<[number, string]>) {
+const VID = '11111111-1111-4111-8111-111111111111';
+
+function setVisitorId() {
   window.localStorage.setItem(
     'aramakisai_mypage',
-    JSON.stringify({
-      version: 1,
-      lists: {
-        stamps: refs.map(([id, category], i) => ({
-          id,
-          category,
-          savedAt: `2026-10-24T0${i}:00:00.000Z`,
-        })),
-      },
-    }),
+    JSON.stringify({ version: 1, visitorId: VID, lists: { bookmarks: [] } }),
+  );
+}
+
+function stubFetch(handler: (url: string) => unknown) {
+  const fetchMock = vi.fn(async (url: string) => {
+    const r = handler(url);
+    if (r === 'error')
+      return { ok: false, status: 503, json: async () => ({}) };
+    return { ok: true, status: 200, json: async () => r };
+  });
+  vi.stubGlobal('fetch', fetchMock);
+  return fetchMock;
+}
+
+function save(refs: Array<[number, string]>) {
+  setVisitorId();
+  return stubFetch((url) =>
+    url.startsWith('/api/stamps?')
+      ? {
+          stamps: refs.map(([exhibitionId, category], i) => ({
+            exhibitionId,
+            category,
+            acquiredAt: `2026-10-24T0${i}:00:00.000Z`,
+          })),
+        }
+      : 'error',
   );
 }
 
@@ -86,6 +105,7 @@ describe('MypageView', () => {
     window.localStorage.clear();
     window.history.replaceState(null, '', '/mypage');
   });
+  afterEach(() => vi.unstubAllGlobals());
 
   it('スタンプが無いときは空表示を出し、エリアは0%で並ぶ', () => {
     render(
@@ -104,7 +124,7 @@ describe('MypageView', () => {
     );
   });
 
-  it('取得率を表示し、エリアは既定で閉じている', () => {
+  it('取得率を表示し、エリアは既定で閉じている', async () => {
     save([[10, 'exhibit']]);
     const { container } = render(
       <MypageView
@@ -114,7 +134,7 @@ describe('MypageView', () => {
         categoryLabels={LABELS}
       />,
     );
-    expect(screen.getByText('50%')).toBeInTheDocument();
+    expect(await screen.findByText('50%')).toBeInTheDocument();
     expect(screen.queryByText('スタンプはありません')).not.toBeInTheDocument();
     const details = container.querySelectorAll('details');
     expect(details).toHaveLength(1);
@@ -123,7 +143,7 @@ describe('MypageView', () => {
     expect(bar).toHaveStyle({ width: '50%' });
   });
 
-  it('行は企画詳細ページへのリンクで、カテゴリを示す', () => {
+  it('行は企画詳細ページへのリンクで、カテゴリを示す', async () => {
     save([[11, 'vendor']]);
     render(
       <MypageView
@@ -133,12 +153,12 @@ describe('MypageView', () => {
         categoryLabels={LABELS}
       />,
     );
-    const link = screen.getByRole('link', { name: /クレープ/ });
+    const link = await screen.findByRole('link', { name: /クレープ/ });
     expect(link).toHaveAttribute('href', '/exhibitions/11/vendor');
     expect(within(link).getByText('出店')).toBeInTheDocument();
   });
 
-  it('「その他」は取得率なしで、取得があるときだけ出る', () => {
+  it('「その他」は取得率なしで、取得があるときだけ出る', async () => {
     save([[13, 'exhibit']]);
     render(
       <MypageView
@@ -148,7 +168,7 @@ describe('MypageView', () => {
         categoryLabels={LABELS}
       />,
     );
-    const summary = screen.getByText('その他').closest('summary')!;
+    const summary = (await screen.findByText('その他')).closest('summary')!;
     expect(summary).not.toHaveTextContent('%');
     expect(screen.getByRole('link', { name: /野良/ })).toHaveAttribute(
       'href',
@@ -156,7 +176,7 @@ describe('MypageView', () => {
     );
   });
 
-  it('対象に無い保存済みスタンプは無視する', () => {
+  it('対象に無い保存済みスタンプは無視する', async () => {
     save([[999, 'exhibit']]);
     render(
       <MypageView
@@ -166,7 +186,131 @@ describe('MypageView', () => {
         categoryLabels={LABELS}
       />,
     );
+    expect(await screen.findByText('スタンプはありません')).toBeInTheDocument();
+  });
+
+  it('匿名IDが無ければ取得APIを呼ばず、端末内の旧スタンプも表示しない', () => {
+    window.localStorage.setItem(
+      'aramakisai_mypage',
+      JSON.stringify({
+        version: 1,
+        lists: {
+          stamps: [{ id: 10, category: 'exhibit', savedAt: '2026-10-24' }],
+          bookmarks: [],
+        },
+      }),
+    );
+    const fetchMock = stubFetch(() => 'error');
+    render(
+      <MypageView
+        targets={TARGETS}
+        areas={AREAS}
+        cards={CARDS}
+        categoryLabels={LABELS}
+      />,
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
     expect(screen.getByText('スタンプはありません')).toBeInTheDocument();
+    expect(screen.getAllByText('0%')).toHaveLength(2);
+  });
+
+  it('匿名IDを付けて取得APIを呼ぶ', async () => {
+    const fetchMock = save([[10, 'exhibit']]);
+    render(
+      <MypageView
+        targets={TARGETS}
+        areas={AREAS}
+        cards={CARDS}
+        categoryLabels={LABELS}
+      />,
+    );
+    await screen.findByText('50%');
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/stamps?visitorId=${VID}`,
+      expect.objectContaining({ cache: 'no-store' }),
+    );
+  });
+
+  it('取得に失敗したら取得状況を出さず、再読み込みで取り直せる', async () => {
+    setVisitorId();
+    let fail = true;
+    stubFetch(() =>
+      fail
+        ? 'error'
+        : {
+            stamps: [
+              {
+                exhibitionId: 10,
+                category: 'exhibit',
+                acquiredAt: '2026-10-24T00:00:00.000Z',
+              },
+            ],
+          },
+    );
+    render(
+      <MypageView
+        targets={TARGETS}
+        areas={AREAS}
+        cards={CARDS}
+        categoryLabels={LABELS}
+      />,
+    );
+    expect(
+      await screen.findByText('スタンプを取得できませんでした'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('0%')).not.toBeInTheDocument();
+    expect(screen.queryByText('スタンプはありません')).not.toBeInTheDocument();
+    fail = false;
+    fireEvent.click(screen.getByRole('button', { name: '再読み込み' }));
+    expect(await screen.findByText('50%')).toBeInTheDocument();
+    expect(
+      screen.queryByText('スタンプを取得できませんでした'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('全対象を取得すると景品交換の節を出し、そろっていなければ出さない', async () => {
+    setVisitorId();
+    const all: Array<[number, string]> = TARGETS.map((t) => [t.id, t.category]);
+    stubFetch((url) =>
+      url.startsWith('/api/stamps?')
+        ? {
+            stamps: all.map(([exhibitionId, category]) => ({
+              exhibitionId,
+              category,
+              acquiredAt: '2026-10-24T00:00:00.000Z',
+            })),
+          }
+        : {
+            url: 'https://example.com/staff/visitors/x?t=1',
+            expiresAt: new Date(Date.now() + 300_000).toISOString(),
+          },
+    );
+    const { unmount } = render(
+      <MypageView
+        targets={TARGETS}
+        areas={AREAS}
+        cards={CARDS}
+        categoryLabels={LABELS}
+      />,
+    );
+    expect(
+      await screen.findByRole('heading', { name: '景品交換' }),
+    ).toBeInTheDocument();
+    unmount();
+
+    save([[10, 'exhibit']]);
+    render(
+      <MypageView
+        targets={TARGETS}
+        areas={AREAS}
+        cards={CARDS}
+        categoryLabels={LABELS}
+      />,
+    );
+    await screen.findByText('50%');
+    expect(
+      screen.queryByRole('heading', { name: '景品交換' }),
+    ).not.toBeInTheDocument();
   });
 
   it('保存不可でも空表示で落ちない', () => {
