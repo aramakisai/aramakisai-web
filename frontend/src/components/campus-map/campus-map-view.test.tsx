@@ -33,8 +33,12 @@ vi.mock('react-leaflet', () => ({
 
 vi.mock('@/lib/analytics', () => ({ sendGaEvent: vi.fn() }));
 
+const viewportSyncProps: Record<string, unknown>[] = [];
 vi.mock('./map-viewport-sync', () => ({
-  MapViewportSync: () => null,
+  MapViewportSync: (props: Record<string, unknown>) => {
+    viewportSyncProps.push(props);
+    return null;
+  },
 }));
 
 vi.mock('./area-polygon-layer', () => ({
@@ -125,6 +129,30 @@ describe('CampusMapView', () => {
       [36.43, 139.0],
       [36.431, 139.001],
     ]);
+  });
+
+  it('選択中エリアの中心を焦点として渡し、未選択では null にする', () => {
+    const { rerender } = render(
+      <CampusMapView
+        areas={[area({ id: 7 })]}
+        selectedAreaId={7}
+        onSelectArea={() => {}}
+      />,
+    );
+    const props = viewportSyncProps.at(-1)!;
+    expect(props.focusKey).toBe(7);
+    const [lat, lng] = props.focusCenter as [number, number];
+    expect(lat).toBeCloseTo(36.4305, 6);
+    expect(lng).toBeCloseTo(139.0005, 6);
+    expect(props.refocusKey).toBe('mobile');
+    rerender(
+      <CampusMapView
+        areas={[area({ id: 7 })]}
+        selectedAreaId={null}
+        onSelectArea={() => {}}
+      />,
+    );
+    expect(viewportSyncProps.at(-1)!.focusCenter).toBeNull();
   });
 
   it('表示範囲の外へドラッグできないよう粘性を最大にする', () => {

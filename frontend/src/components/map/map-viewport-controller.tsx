@@ -222,7 +222,8 @@ export function MapViewportController({
     if (lastFocusKeyRef.current === focusKey && !refocus) return;
     map.stop();
     lastFocusKeyRef.current = focusKey;
-    interactedRef.current = false;
+    // 選択は利用者の操作とみなし、以後のリサイズで全体表示へ戻さない
+    interactedRef.current = true;
 
     const zoom = refocus ? map.getZoom() : Math.max(map.getZoom(), focusZoom);
     const resolvedFitOptions =
