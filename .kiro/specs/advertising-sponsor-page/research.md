@@ -4,7 +4,7 @@
 
 - **対象**: 既存システムの拡張。企業・個人の一覧、ナビゲーション、Media保護を調査。
 - **結果**: 企業は既存取得とMediaを利用。個人は専用コレクションで公開表示名と順序のみを管理する。
-- **注意点**: 一覧取得の長期キャッシュは現行では動かず、Media参照保護には削除前の排他制御が必要。
+- **注意点**: 一覧ページは既存と同じ `revalidate = 60` と `loadForIsr` で描画する。Media参照保護は `beforeDelete` での参照数確認で足りる。
 
 ## Research Log
 
@@ -17,20 +17,19 @@
 ### 公開・キャッシュ
 
 - `cms/src/access/policy.ts` は公開状態を持たないコレクションの未認証readを許可し、書込は実行委員に限定する。新コレクションは登録口の既存accessを通す。
-- `frontend/src/lib/cms.ts` の `findMany` は `ttlSeconds` と `version` のみを `request` に転送する。60秒キャッシュがヒットすれば正常値を返すが、`retained` は `findGlobal` と異なり転送されず、一覧の長期保持は現行では存在しない。
+- `frontend/src/lib/isr.ts` の `loadForIsr` はビルド中の失敗だけを空値に置き換え、実行時は例外を投げ直す。既存の一覧ページ (例: タイムテーブル) は `export const revalidate = 60` とこれを併用しており、再検証の失敗時は直前の正常なページが保たれる。
 - 個人情報や公開前ロゴは公開CMSに保存しない。MediaのS3直URLや既存キャッシュに対し新たな非公開保証を設けない。
 
-### ロゴ削除と競合
+### ロゴ削除
 
 - `cms/src/collections/media.ts` の `guardPublishedMedia` は学生団体の公開企画向け。初期migrationの `sponsors_logo_id_media_id_fk` は `ON DELETE SET NULL`。現状は企業のロゴ参照を保証しない。
-- インストール済みPayload 3.88.0の `deleteByID.js` と `delete.js` では `beforeDelete` がファイル削除より先。削除のトランザクションで対象Media行をロック後、同じ主DBトランザクションで参照を確認する。Payloadのセッション利用例は `cms/scripts/regional-sponsor-map-migration.int.test.ts` にある。
-- [Payloadのトランザクション](https://payloadcms.com/docs/database/transactions) と [PostgreSQLの行ロック](https://www.postgresql.org/docs/17/explicit-locking.html) を参照。既存実装依存のため同時操作とS3の統合検証を実装時に必須とする。
+- インストール済みPayload 3.88.0の `deleteByID.js` と `delete.js` では `beforeDelete` がファイル削除 (`deleteAssociatedFiles`) より先。`beforeDelete` で `sponsors` の `logo` 参照数を `payload.count` で数え、1件以上なら拒否すれば、ファイルも残る。
 
 ### ナビゲーション・画面
 
-- `frontend/src/lib/get-navigation.ts` はCMS、長期保持、コード定数の順で縮退。`navigationFromCms` はCMS値をそのまま変換する。両フェーズの導線保証にはCMS値・保持済み値・フォールバックの全経路が必要。
+- `frontend/src/lib/get-navigation.ts` はCMS、長期保持、コード定数の順で縮退する。liveの導線は、コード定数 (`navigationItemsByPhase.live`) への追加と、本番CMS `navigation` global への運用登録の2つで揃える。
 - Figmaの [Desktop](https://www.figma.com/design/0kWDqHsLr6xE8b4FFgR1Zx?node-id=1410-26)、[Mobile](https://www.figma.com/design/0kWDqHsLr6xE8b4FFgR1Zx?node-id=1410-27)、[SponsorLogoCard](https://www.figma.com/design/0kWDqHsLr6xE8b4FFgR1Zx?node-id=1409-38) を参照。既存サイトの切替は `lg` 1024px。カードのHoverは枠色の変化で、共通部分は既存コンポーネントを維持する。
-- `frontend/src/components/text-link.tsx` は矢印を含むため外部リンクアイコンなしのD表示にそのまま使えない。下線部品 `HoverLine` は再利用できる。
+- `frontend/src/components/text-link.tsx` は矢印を含むため外部リンクアイコンなしのD表示にそのまま使えない。下線部品 `HoverLineText` は再利用できる。
 
 ## Architecture Pattern Evaluation
 
@@ -43,12 +42,12 @@
 ## Design Decisions
 
 - 企業は既存 `getSponsors` の結果を利用し、ページ用変換だけ追加する。個人は専用コレクションを選択する。
-- 既存Media参照の競合を防ぐため、削除処理の同一トランザクションで行ロックと参照確認を行う。DB外の直削除は対象外。
-- CMS更新の既存60秒キャッシュは維持し、長期fallbackを新たに導入しない。URL空欄は許容し、非空の不正URLは書込時に拒否する。
+- 既存Media参照の削除を防ぐため、`media` の `beforeDelete` で `sponsors` の参照数を確認し、1件以上なら拒否する。DB外の直削除は対象外。
+- 描画は既存一覧ページと同じ `revalidate = 60` と `loadForIsr` にし、長期fallbackを新たに導入しない。URL空欄は許容し、非空の不正URLは書込時に拒否する。
 - 共通UI・既存CIを採用し、新しいUI基盤や重複フィールドを追加しない。
 
 ## Risks & Mitigations
 
-- navigationの必要な親がCMSにないと子項目を追加できない。公開前に担当者が確認し、勝手に最上位項目を増やさない。
-- Media削除ガードはPayloadのトランザクションセッションと外部ストレージの削除順序に依存する。実DB・ストレージで並行処理を検証し、取引が使えない場合は削除を拒否する。
+- 本番CMSの `navigation` global「開催中」タブに「広告協賛」を実行委員が登録しないと、liveの導線がCMS値で上書きされて出ない。公開前の運用手順に含める。
+- Media削除ガードはPayloadが `beforeDelete` をファイル削除より前に呼ぶ順序に依存する。Payloadのバージョンを上げる際は順序を再確認する。
 - 登録即公開のため、担当者が公開可能な名前と画像を登録前に確認する。
