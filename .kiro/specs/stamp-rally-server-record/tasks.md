@@ -1,7 +1,7 @@
 # Implementation Plan
 
-- [ ] 1. 基盤: データベース・実行環境・認証基盤の準備
-- [ ] 1.1 本番用と dev 用の D1 データベースを infra の Terraform に定義する
+- [x] 1. 基盤: データベース・実行環境・認証基盤の準備
+- [x] 1.1 本番用と dev 用の D1 データベースを infra の Terraform に定義する
   - `aramakisai-infra` に本番 `aramakisai-stamps` と dev `aramakisai-stamps-dev` の 2 つを追加する
   - 適用 (`terraform apply`) は本番のアカウントへの変更なので、計画 (`plan`) の結果を示して承認を得てから `-target` で絞って行う
   - 適用後、2 つの `database_id` が確定し、D1 の一覧 API で 2 件が見える
@@ -20,7 +20,7 @@
   - ローカル起動でバインディングを型付きで取得でき、値が欠けた状態では失敗が返るテストが通る
   - _Requirements: 7.5, 8.2_
 
-- [ ] 1.4 公式サイトの管理者ログイン用の Zitadel アプリを宣言する
+- [x] 1.4 公式サイトの管理者ログイン用の Zitadel アプリを宣言する
   - `aramakisai-infra` の Zitadel の投入定義に、本番と dev のコールバック URL を持つアプリを追加する
   - playbook の適用は本番の IdP への変更なので承認を得てから行い、発行された client secret は Infisical の `prod` にだけ登録する
   - 適用後、本番と dev のコールバック URL でアプリが認可リクエストを受け付ける

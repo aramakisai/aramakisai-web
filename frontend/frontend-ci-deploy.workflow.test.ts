@@ -1,7 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { parse } from 'yaml';
+
+const getCloudflareContext = vi.fn();
+vi.mock('@opennextjs/cloudflare', () => ({ getCloudflareContext }));
+
+import { readStampEnv } from './src/lib/cloudflare-env';
 
 const WORKFLOW_PATH = path.resolve(
   __dirname,
@@ -285,4 +290,42 @@ describe('.github/workflows/frontend-ci.yml — D1 migrations and stamp secrets'
       runCommands(workflow.jobs['deploy-preview']).join('\n'),
     ).not.toContain('STAFF_OIDC_CLIENT_SECRET');
   });
+});
+
+describe('stamp env completeness for deployed environments', () => {
+  const toml = readFileSync(path.resolve(__dirname, 'wrangler.toml'), 'utf-8');
+
+  function varsKeys(header: string): string[] {
+    const body = toml.split(new RegExp(`^\\[${header}\\]$`, 'm'))[1] ?? '';
+    return [...body.split(/^\[/m)[0].matchAll(/^(\w+)\s*=/gm)].map((m) => m[1]);
+  }
+
+  function secretsFileKeys(job: string): string[] {
+    const joined = runCommands(loadWorkflow().jobs[job])
+      .filter((c) => c.includes('workers-secrets.json'))
+      .join('\n');
+    return [
+      ...joined.matchAll(/"(\w+)":/g),
+      ...joined.matchAll(/\["(\w+)"\]\s*=(?!=)/g),
+    ].map((m) => m[1]);
+  }
+
+  it.each([
+    ['deploy-prod', '', 'prod'],
+    ['deploy-dev', 'env.dev.', 'dev'],
+  ])(
+    '%s provides every key readStampEnv requires',
+    async (job, prefix, stampEnv) => {
+      const env: Record<string, unknown> = {
+        STAMP_DB: {},
+        STAMP_METRICS: {},
+        STAMP_RATE_LIMITER: {},
+      };
+      for (const k of [...varsKeys(`${prefix}vars`), ...secretsFileKeys(job)]) {
+        env[k] = k === 'STAMP_ENV' ? stampEnv : 'x';
+      }
+      getCloudflareContext.mockReturnValue({ env });
+      expect(await readStampEnv()).toMatchObject({ ok: true });
+    },
+  );
 });
