@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { ExhibitionFilters } from './exhibition-filters';
 import type { AreaOption, ExhibitionQuery } from '@/lib/exhibitions';
@@ -169,5 +169,30 @@ describe('ExhibitionFilters', () => {
     vi.advanceTimersByTime(1000);
 
     expect(onChange).not.toHaveBeenCalled();
+  });
+
+  test('カテゴリチップは 企業ブース を その他 の後ろに出し、選ぶと booth を通知する', () => {
+    render(
+      <ExhibitionFilters
+        query={baseQuery()}
+        areas={areas}
+        onChange={onChange}
+      />,
+    );
+
+    const group = screen.getByRole('group', { name: 'カテゴリで絞り込み' });
+    expect(
+      within(group)
+        .getAllByRole('button')
+        .map((b) => b.textContent),
+    ).toEqual(['ステージ', '展示', '出店', 'その他', '企業ブース']);
+
+    fireEvent.click(screen.getByRole('button', { name: '企業ブース' }));
+
+    expect(onChange).toHaveBeenCalledWith({
+      q: '',
+      categories: ['booth'],
+      areaIds: [],
+    });
   });
 });

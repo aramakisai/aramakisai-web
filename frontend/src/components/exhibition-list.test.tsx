@@ -1,7 +1,10 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { ExhibitionList } from './exhibition-list';
-import type { ExhibitionCardSummary } from '@/lib/exhibitions';
+import type {
+  CorporateBoothCard,
+  ExhibitionCardSummary,
+} from '@/lib/exhibitions';
 
 const sendGaEvent = vi.hoisted(() => vi.fn());
 const trackPageView = vi.hoisted(() => vi.fn());
@@ -169,5 +172,29 @@ describe('ExhibitionList', () => {
       item_count: 1,
     });
     expect(JSON.stringify(sendGaEvent.mock.calls)).not.toContain('企画1');
+  });
+
+  test('カテゴリ 企業ブース で企業ブースのカードだけに絞り込み、詳細 URL へリンクする', () => {
+    setUrl('?category=booth');
+
+    render(
+      <ExhibitionList
+        cards={[
+          card(1),
+          {
+            ...card(7),
+            category: 'booth',
+            displayName: '企業A',
+          } as CorporateBoothCard,
+        ]}
+        areas={areas}
+      />,
+    );
+
+    expect(screen.queryByText('企画1')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /企業A/ })).toHaveAttribute(
+      'href',
+      '/exhibitions/booth/7',
+    );
   });
 });

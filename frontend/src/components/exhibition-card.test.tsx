@@ -110,4 +110,26 @@ describe('ExhibitionCard', () => {
     expect(link.parentElement).toBe(button.parentElement);
     expect(link).toHaveAttribute('href', '/exhibitions/1/exhibit');
   });
+
+  it('links a corporate booth card to its booth detail page', () => {
+    render(
+      <ExhibitionCard exhibition={{ ...baseExhibition, category: 'booth' }} />,
+    );
+
+    expect(screen.getByRole('link')).toHaveAttribute(
+      'href',
+      '/exhibitions/booth/1',
+    );
+  });
+
+  it('hides the bookmark button on a corporate booth card even when bookmarkable', () => {
+    render(
+      <ExhibitionCard
+        exhibition={{ ...baseExhibition, category: 'booth' }}
+        bookmarkable
+      />,
+    );
+
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
 });
