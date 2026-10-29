@@ -238,12 +238,19 @@ jobs:
       - name: Write Workers secrets file (staging)
         # 値は echo しない。未設定なら KeyError でステップを失敗させてデプロイを止める。
         run: |
-          infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- python3 -c 'import json,os; json.dump({"STAMP_SIGNING_SECRET": os.environ["STAMP_SIGNING_SECRET"]}, open(os.environ["RUNNER_TEMP"] + "/workers-secrets.json", "w"))'
+          infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- python3 -c 'import json,os; json.dump({"STAMP_SIGNING_SECRET": os.environ["STAMP_SIGNING_SECRET"], "STAMP_ENV": "preview"}, open(os.environ["RUNNER_TEMP"] + "/workers-secrets.json", "w"))'
+
+      - name: Apply D1 migrations (dev DB)
+        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec wrangler d1 migrations apply STAMP_DB --remote --env=dev
+
+      # プレビューは本番 Worker のバージョンなので、一時設定で STAMP_DB を dev の D1 に差し替える。
+      - name: Write preview wrangler config (STAMP_DB -> dev)
+        run: pnpm exec tsx scripts/write-preview-wrangler-config.ts .wrangler.preview.toml
 
       - name: Upload Cloudflare Workers preview version
         id: upload_preview
         run: |
-          OUTPUT=$(infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec tsx scripts/deploy-with-cpu-limit-fallback.ts pnpm exec wrangler versions upload --secrets-file "$RUNNER_TEMP/workers-secrets.json")
+          OUTPUT=$(infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec tsx scripts/deploy-with-cpu-limit-fallback.ts pnpm exec wrangler versions upload --config .wrangler.preview.toml --secrets-file "$RUNNER_TEMP/workers-secrets.json")
           echo "$OUTPUT"
           # wrangler はバージョンのプレビュー URL を出力しないため、バージョン ID から組み立てる。
           # 形式は https://<バージョン ID の先頭 8 文字>-<worker 名>.<アカウントのサブドメイン>.workers.dev
@@ -256,7 +263,7 @@ jobs:
 
       - name: Remove Workers secrets file
         if: always()
-        run: rm -f "$RUNNER_TEMP/workers-secrets.json"
+        run: rm -f "$RUNNER_TEMP/workers-secrets.json" .wrangler.preview.toml
 
       - name: Find existing preview comment
         uses: peter-evans/find-comment@v3
@@ -423,7 +430,15 @@ jobs:
       - name: Write Workers secrets file (staging)
         # 値は echo しない。未設定なら KeyError でステップを失敗させてデプロイを止める。
         run: |
-          infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- python3 -c 'import json,os; json.dump({"STAMP_SIGNING_SECRET": os.environ["STAMP_SIGNING_SECRET"]}, open(os.environ["RUNNER_TEMP"] + "/workers-secrets.json", "w"))'
+          infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- python3 -c 'import json,os; json.dump({"STAMP_SIGNING_SECRET": os.environ["STAMP_SIGNING_SECRET"], "STAMP_ENV": "dev"}, open(os.environ["RUNNER_TEMP"] + "/workers-secrets.json", "w"))'
+
+      # 本番と dev は同じ Zitadel アプリを使うため、client secret は prod から読む。
+      - name: Add staff OIDC client secret to Workers secrets file (prod)
+        run: |
+          infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod -- python3 -c 'import json,os; p = os.environ["RUNNER_TEMP"] + "/workers-secrets.json"; d = json.load(open(p)); d["STAFF_OIDC_CLIENT_SECRET"] = os.environ["STAFF_OIDC_CLIENT_SECRET"]; json.dump(d, open(p, "w"))'
+
+      - name: Apply D1 migrations (dev)
+        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec wrangler d1 migrations apply STAMP_DB --remote --env=dev
 
       - name: Deploy to Cloudflare Workers (dev)
         run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec tsx scripts/deploy-with-cpu-limit-fallback.ts pnpm exec wrangler deploy --env=dev --secrets-file "$RUNNER_TEMP/workers-secrets.json"
@@ -495,7 +510,10 @@ jobs:
         # プレビューは本番と同じ Worker に staging の値を積む。本番デプロイでも明示しないとプレビューの値が引き継がれうる。
         # 値は echo しない。未設定なら KeyError でステップを失敗させてデプロイを止める。
         run: |
-          infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod -- python3 -c 'import json,os; json.dump({"STAMP_SIGNING_SECRET": os.environ["STAMP_SIGNING_SECRET"]}, open(os.environ["RUNNER_TEMP"] + "/workers-secrets.json", "w"))'
+          infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod -- python3 -c 'import json,os; json.dump({"STAMP_SIGNING_SECRET": os.environ["STAMP_SIGNING_SECRET"], "STAMP_ENV": "prod", "STAFF_OIDC_CLIENT_SECRET": os.environ["STAFF_OIDC_CLIENT_SECRET"]}, open(os.environ["RUNNER_TEMP"] + "/workers-secrets.json", "w"))'
+
+      - name: Apply D1 migrations (prod)
+        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod -- pnpm exec wrangler d1 migrations apply STAMP_DB --remote
 
       - name: Deploy to Cloudflare Workers (prod)
         run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod -- pnpm exec tsx scripts/deploy-with-cpu-limit-fallback.ts pnpm exec opennextjs-cloudflare deploy --secrets-file "$RUNNER_TEMP/workers-secrets.json"

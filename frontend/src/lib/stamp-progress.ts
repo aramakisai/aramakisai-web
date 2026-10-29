@@ -6,6 +6,7 @@ export interface MypageStampTarget {
   readonly id: number;
   readonly category: StampCategory;
   readonly displayName: string;
+  readonly organizationName: string;
   readonly areaId: number | null;
 }
 

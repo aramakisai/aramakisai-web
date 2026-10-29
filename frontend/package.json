@@ -17,12 +17,15 @@
     "test:e2e": "playwright test",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "postinstall": "node scripts/copy-zxing-wasm.mjs",
     "qr:generate": "tsx scripts/generate-exhibition-qr.ts",
+    "metrics:stamps": "tsx scripts/export-stamp-metrics.ts",
     "check:build-artifacts": "opennextjs-cloudflare build && tsx scripts/verify-build-artifacts.ts"
   },
   "dependencies": {
     "@fontsource/line-seed-jp": "^5.3.1",
     "@opennextjs/cloudflare": "1.20.13",
+    "barcode-detector": "3.2.3",
     "leaflet": "1.9.4",
     "next": "16.4.2",
     "qrcode": "^1.5.4",

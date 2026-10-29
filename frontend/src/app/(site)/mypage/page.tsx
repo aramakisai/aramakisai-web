@@ -5,8 +5,7 @@ import { loadForIsr } from '@/lib/isr';
 import { buildPageMetadata } from '@/lib/page-metadata';
 import { ROUTE_METADATA } from '@/lib/route-metadata';
 import { getSiteMetadata } from '@/lib/site-metadata';
-import { isStampCategory, type StampCategory } from '@/lib/stamp-signature';
-import type { MypageStampTarget } from '@/lib/stamp-progress';
+import { toStampTargets } from '@/lib/stamp-targets';
 
 export const revalidate = 60;
 
@@ -29,18 +28,7 @@ export default async function MypagePage() {
     cards: [],
     areas: [],
   });
-  const targets: MypageStampTarget[] = cards.flatMap((card) =>
-    isStampCategory(card.category)
-      ? [
-          {
-            id: card.id,
-            category: card.category as StampCategory,
-            displayName: card.displayName,
-            areaId: card.areaIds[0] ?? null,
-          },
-        ]
-      : [],
-  );
+  const targets = toStampTargets(cards);
 
   return (
     <MypageView
