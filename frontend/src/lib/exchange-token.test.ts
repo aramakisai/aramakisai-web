@@ -17,27 +17,63 @@ describe('exchange-token', () => {
     expect(EXCHANGE_TOKEN_TTL_SECONDS).toBe(300);
     expect(t.expiresAt).toBe(after(300).toISOString());
     expect(await verifyExchangeToken(SECRET, VID, t.token, NOW)).toBe('valid');
-    expect(await verifyExchangeToken(SECRET, VID, t.token, after(299))).toBe('valid');
+    expect(await verifyExchangeToken(SECRET, VID, t.token, after(299))).toBe(
+      'valid',
+    );
   });
 
   it('300 秒後は expired', async () => {
     const t = await issueExchangeToken(SECRET, VID, NOW);
-    expect(await verifyExchangeToken(SECRET, VID, t.token, after(300))).toBe('expired');
+    expect(await verifyExchangeToken(SECRET, VID, t.token, after(300))).toBe(
+      'expired',
+    );
   });
 
   it('別の匿名ID・別の秘密値は invalid', async () => {
     const t = await issueExchangeToken(SECRET, VID, NOW);
-    expect(await verifyExchangeToken(SECRET, 'other-id', t.token, NOW)).toBe('invalid');
-    expect(await verifyExchangeToken('other', VID, t.token, NOW)).toBe('invalid');
+    expect(await verifyExchangeToken(SECRET, 'other-id', t.token, NOW)).toBe(
+      'invalid',
+    );
+    expect(await verifyExchangeToken('other', VID, t.token, NOW)).toBe(
+      'invalid',
+    );
   });
 
   it('期限の改変・署名の改変・形式不正は invalid (期限切れでも署名が先)', async () => {
     const t = await issueExchangeToken(SECRET, VID, NOW);
     const [exp, mac] = t.token.split('.');
-    expect(await verifyExchangeToken(SECRET, VID, `${Number(exp) + 1000}.${mac}`, NOW)).toBe('invalid');
-    expect(await verifyExchangeToken(SECRET, VID, `${exp}.${mac!.slice(0, -1)}A`, NOW)).toBe('invalid');
-    expect(await verifyExchangeToken(SECRET, VID, `${Number(exp) - 1}.${mac}`, after(1000))).toBe('invalid');
-    for (const bad of ['', 'x', `${exp}`, `${exp}.`, `a.${mac}`, `${exp}.${mac}.z`]) {
+    expect(
+      await verifyExchangeToken(
+        SECRET,
+        VID,
+        `${Number(exp) + 1000}.${mac}`,
+        NOW,
+      ),
+    ).toBe('invalid');
+    expect(
+      await verifyExchangeToken(
+        SECRET,
+        VID,
+        `${exp}.${mac!.slice(0, -1)}A`,
+        NOW,
+      ),
+    ).toBe('invalid');
+    expect(
+      await verifyExchangeToken(
+        SECRET,
+        VID,
+        `${Number(exp) - 1}.${mac}`,
+        after(1000),
+      ),
+    ).toBe('invalid');
+    for (const bad of [
+      '',
+      'x',
+      `${exp}`,
+      `${exp}.`,
+      `a.${mac}`,
+      `${exp}.${mac}.z`,
+    ]) {
       expect(await verifyExchangeToken(SECRET, VID, bad, NOW)).toBe('invalid');
     }
   });
@@ -45,6 +81,8 @@ describe('exchange-token', () => {
   it('企画QRの署名は invalid', async () => {
     const stamp = await signStamp(SECRET, 12, 'exhibit');
     const exp = Math.floor(NOW.getTime() / 1000) + 300;
-    expect(await verifyExchangeToken(SECRET, VID, `${exp}.${stamp}`, NOW)).toBe('invalid');
+    expect(await verifyExchangeToken(SECRET, VID, `${exp}.${stamp}`, NOW)).toBe(
+      'invalid',
+    );
   });
 });

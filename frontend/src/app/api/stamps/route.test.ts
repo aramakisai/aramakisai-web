@@ -1,4 +1,12 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 const ctx = vi.hoisted(() => ({ env: {} as Record<string, unknown> }));
 vi.mock('@opennextjs/cloudflare', () => ({
@@ -40,11 +48,15 @@ const get = (q: string) => GET(new Request(`http://localhost/api/stamps${q}`));
 describe('GET /api/stamps', () => {
   it('記録済みの組を取得日時つきで返し、他の匿名IDは混ざらない', async () => {
     await d1.db
-      .prepare("INSERT INTO stamps VALUES (?, 1, 'exhibit', '2026-11-14T01:00:00.000Z')")
+      .prepare(
+        "INSERT INTO stamps VALUES (?, 1, 'exhibit', '2026-11-14T01:00:00.000Z')",
+      )
       .bind(V1)
       .run();
     await d1.db
-      .prepare("INSERT INTO stamps VALUES (?, 2, 'exhibit', '2026-11-14T02:00:00.000Z')")
+      .prepare(
+        "INSERT INTO stamps VALUES (?, 2, 'exhibit', '2026-11-14T02:00:00.000Z')",
+      )
       .bind(V2)
       .run();
     const res = await get(`?visitorId=${V1}`);
@@ -52,7 +64,11 @@ describe('GET /api/stamps', () => {
     expect(res.headers.get('Cache-Control')).toBe('no-store');
     expect(await res.json()).toEqual({
       stamps: [
-        { exhibitionId: 1, category: 'exhibit', acquiredAt: '2026-11-14T01:00:00.000Z' },
+        {
+          exhibitionId: 1,
+          category: 'exhibit',
+          acquiredAt: '2026-11-14T01:00:00.000Z',
+        },
       ],
     });
     expect(points).toHaveLength(1);

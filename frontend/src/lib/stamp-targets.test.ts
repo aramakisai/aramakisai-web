@@ -3,7 +3,12 @@ import { toStampTargets } from './stamp-targets';
 import type { ExhibitionCardSummary } from './exhibitions';
 
 const card = (id: number, category: string, areaIds: number[]) =>
-  ({ id, category, displayName: `企画${id}`, areaIds }) as unknown as ExhibitionCardSummary;
+  ({
+    id,
+    category,
+    displayName: `企画${id}`,
+    areaIds,
+  }) as unknown as ExhibitionCardSummary;
 
 describe('toStampTargets', () => {
   it('スタンプ対象のカテゴリだけを残し、先頭のエリアを割り当てる', () => {

@@ -53,7 +53,9 @@ export async function verifyExchangeToken(
   if (!mac || mac.length !== 32) return 'invalid';
   const key = await importKey(secret, 'verify');
   // 期限より先に署名を検証し、改変された期限の値で結果が変わらないようにする
-  if (!(await crypto.subtle.verify('HMAC', key, mac, message(visitorId, exp)))) {
+  if (
+    !(await crypto.subtle.verify('HMAC', key, mac, message(visitorId, exp)))
+  ) {
     return 'invalid';
   }
   return now.getTime() / 1000 >= exp ? 'expired' : 'valid';

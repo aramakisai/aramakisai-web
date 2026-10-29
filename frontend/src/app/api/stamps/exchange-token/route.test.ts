@@ -1,4 +1,12 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 const ctx = vi.hoisted(() => ({ env: {} as Record<string, unknown> }));
 vi.mock('@opennextjs/cloudflare', () => ({
@@ -70,11 +78,21 @@ describe('POST /api/stamps/exchange-token', () => {
     await stamp(2, 'vendor');
     res = await post({ visitorId: V1 });
     expect(res.status).toBe(200);
-    const { url, expiresAt } = (await res.json()) as { url: string; expiresAt: string };
+    const { url, expiresAt } = (await res.json()) as {
+      url: string;
+      expiresAt: string;
+    };
     const u = new URL(url);
-    expect(u.origin + u.pathname).toBe(`https://example.test/staff/visitors/${V1}`);
+    expect(u.origin + u.pathname).toBe(
+      `https://example.test/staff/visitors/${V1}`,
+    );
     expect(
-      await verifyExchangeToken(SECRET, V1, u.searchParams.get('t')!, new Date()),
+      await verifyExchangeToken(
+        SECRET,
+        V1,
+        u.searchParams.get('t')!,
+        new Date(),
+      ),
     ).toBe('valid');
     expect(Date.parse(expiresAt)).toBeGreaterThan(Date.now());
   });

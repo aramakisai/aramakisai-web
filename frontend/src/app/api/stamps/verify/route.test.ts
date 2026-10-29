@@ -1,4 +1,12 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 const ctx = vi.hoisted(() => ({
   env: {} as Record<string, unknown>,
@@ -64,7 +72,9 @@ describe('POST /api/stamps/verify', () => {
     const r1 = await post(await body());
     expect(r1.headers.get('Cache-Control')).toBe('no-store');
     expect(await r1.json()).toEqual({ result: 'added' });
-    expect(await (await post(await body())).json()).toEqual({ result: 'exists' });
+    expect(await (await post(await body())).json()).toEqual({
+      result: 'exists',
+    });
     expect(await count()).toBe(1);
   });
 
@@ -91,9 +101,13 @@ describe('POST /api/stamps/verify', () => {
 
   it('env 不備なら failed', async () => {
     ctx.env = {};
-    expect(await (await post(await body())).json()).toEqual({ result: 'failed' });
+    expect(await (await post(await body())).json()).toEqual({
+      result: 'failed',
+    });
     ctx.throws = true;
-    expect(await (await post(await body())).json()).toEqual({ result: 'failed' });
+    expect(await (await post(await body())).json()).toEqual({
+      result: 'failed',
+    });
   });
 
   it('JSON として読めなければ 400', async () => {
@@ -108,7 +122,12 @@ describe('POST /api/stamps/verify', () => {
     expect(res.status).toBe(429);
     expect(await res.json()).toEqual({ result: 'rate_limited' });
     expect(await count()).toBe(0);
-    expect(points.at(-1)!.blobs).toEqual(['preview', 'verify', 'rate_limited', '429']);
+    expect(points.at(-1)!.blobs).toEqual([
+      'preview',
+      'verify',
+      'rate_limited',
+      '429',
+    ]);
   });
 
   it('1 リクエストにつき計測 1 点、匿名IDは含めない', async () => {

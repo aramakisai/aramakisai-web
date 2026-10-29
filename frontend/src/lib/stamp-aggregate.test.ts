@@ -45,7 +45,10 @@ describe('summarizeVisitor', () => {
     ]);
   });
   it('記録が無ければ 0 件', () => {
-    expect(summarizeVisitor(targets, areas, [])).toEqual({ stampCount: 0, byArea: [] });
+    expect(summarizeVisitor(targets, areas, [])).toEqual({
+      stampCount: 0,
+      byArea: [],
+    });
   });
 });
 
@@ -62,15 +65,29 @@ describe('aggregate', () => {
     expect(d.activeExchangeCount).toBe(1);
   });
   it('組ごとの取得端末数と取得率', () => {
-    expect(d.targets.find((x) => x.exhibitionId === 1)).toMatchObject({ visitorCount: 2, rate: 1 });
-    expect(d.targets.find((x) => x.exhibitionId === 2)).toMatchObject({ visitorCount: 1, rate: 0.5 });
-    expect(d.targets.find((x) => x.exhibitionId === 3)).toMatchObject({ visitorCount: 0, rate: 0 });
+    expect(d.targets.find((x) => x.exhibitionId === 1)).toMatchObject({
+      visitorCount: 2,
+      rate: 1,
+    });
+    expect(d.targets.find((x) => x.exhibitionId === 2)).toMatchObject({
+      visitorCount: 1,
+      rate: 0.5,
+    });
+    expect(d.targets.find((x) => x.exhibitionId === 3)).toMatchObject({
+      visitorCount: 0,
+      rate: 0,
+    });
   });
   it('エリアごとの取得数と平均取得率 (エリア不明は null)', () => {
     expect(d.areas).toEqual([
       { areaId: 1, areaName: '体育館', collected: 3, averagePercent: 75 },
       { areaId: 2, areaName: '中庭', collected: 0, averagePercent: 0 },
-      { areaId: null, areaName: 'エリア不明', collected: 2, averagePercent: null },
+      {
+        areaId: null,
+        areaName: 'エリア不明',
+        collected: 2,
+        averagePercent: null,
+      },
     ]);
   });
   it('スタンプ数の分布', () => {
@@ -83,6 +100,8 @@ describe('aggregate', () => {
     const e = aggregate(targets, areas, { stamps: [], activeExchangeCount: 0 });
     expect(e.participantCount).toBe(0);
     expect(e.targets.every((x) => x.rate === 0)).toBe(true);
-    expect(e.areas.every((x) => x.averagePercent === 0 || x.averagePercent === null)).toBe(true);
+    expect(
+      e.areas.every((x) => x.averagePercent === 0 || x.averagePercent === null),
+    ).toBe(true);
   });
 });
