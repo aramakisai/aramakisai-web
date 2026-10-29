@@ -19,9 +19,9 @@ import { StrikethroughFeatureClient as StrikethroughFeatureClient_e70f5e05f09f93
 import { UnderlineFeatureClient as UnderlineFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { BoldFeatureClient as BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { ItalicFeatureClient as ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
+import { default as default_42b4dc53b2f2e15edc073b0f303c1d16 } from '../../../components/EventDayCheckboxes.tsx'
 import { default as default_00c726c713f496c3755871b372f6a445 } from '../../../components/EventDayCell.tsx'
 import { default as default_865dc7d07d004c420a6d9b7fc6db63a7 } from '../../../components/EventDaySelect.tsx'
-import { default as default_42b4dc53b2f2e15edc073b0f303c1d16 } from '../../../components/EventDayCheckboxes.tsx'
 import { default as default_500b18ce8047db3154c8558e5e7121ea } from '../../../components/ParkingCameraTokenField.tsx'
 import { default as default_94d312732a635f395da61fd489cd8943 } from '../../../components/SignagePinCell.tsx'
 import { default as default_b8239a33d555f0c0b19f6fed8046038f } from '../../../components/SignagePinButton.tsx'
@@ -59,9 +59,9 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#UnderlineFeatureClient": UnderlineFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#BoldFeatureClient": BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#ItalicFeatureClient": ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
+  "./components/EventDayCheckboxes.tsx#default": default_42b4dc53b2f2e15edc073b0f303c1d16,
   "./components/EventDayCell.tsx#default": default_00c726c713f496c3755871b372f6a445,
   "./components/EventDaySelect.tsx#default": default_865dc7d07d004c420a6d9b7fc6db63a7,
-  "./components/EventDayCheckboxes.tsx#default": default_42b4dc53b2f2e15edc073b0f303c1d16,
   "./components/ParkingCameraTokenField.tsx#default": default_500b18ce8047db3154c8558e5e7121ea,
   "./components/SignagePinCell.tsx#default": default_94d312732a635f395da61fd489cd8943,
   "./components/SignagePinButton.tsx#default": default_b8239a33d555f0c0b19f6fed8046038f,
