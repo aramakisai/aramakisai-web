@@ -488,7 +488,7 @@ describe('getExhibitionListData', () => {
     expect(result.items[0]?.areaIds).toEqual([20]);
   });
 
-  it('ステージ以外のカードはエリア名 (+ブース表示名) のみを場所にし、出演枠があっても無視する', async () => {
+  it('ステージ以外のカードはエリア名のみを場所にし (booth_label は含めない)、出演枠があっても無視する', async () => {
     mockCmsCollections({
       exhibitions: [
         {
@@ -520,10 +520,10 @@ describe('getExhibitionListData', () => {
 
     const result = await getExhibitionListData(baseQuery);
     const exhibitCard = result.items.find((i) => i.category === 'exhibit');
-    expect(exhibitCard?.location).toBe('Aゾーン A-1');
+    expect(exhibitCard?.location).toBe('Aゾーン');
   });
 
-  it('ブース表示名がなければエリア名のみ', async () => {
+  it('booth_label が null でもエリア名のみ', async () => {
     mockCmsCollections({
       exhibitions: [
         {
@@ -547,7 +547,7 @@ describe('getExhibitionListData', () => {
 
   it.each([
     ['番号のみ', null, '12', 'Aゾーン 12'],
-    ['ラベルと番号', '出店ブース', '12', 'Aゾーン 出店ブース 12'],
+    ['ラベルがあっても番号のみ', '出店ブース', '12', 'Aゾーン 12'],
     ['両方なし', null, null, 'Aゾーン'],
   ])(
     '場所にブース番号を連結する: %s',
