@@ -28,7 +28,7 @@ function fakeFetch() {
         const row = (host: string, path: string, count: number, b: number) => ({
           count,
           dimensions: {
-            date: '2026-11-14',
+            datetimeHour: '2026-11-14T03:00:00Z',
             clientRequestHTTPHost: host,
             clientRequestPath: path,
           },
@@ -54,17 +54,28 @@ function fakeFetch() {
           },
         });
       }
-      const data = q.includes('d1StorageAdaptiveGroups')
-        ? { max: { databaseSizeBytes: 4096 } }
-        : {
-            sum: {
-              readQueries: 3,
-              writeQueries: 2,
-              rowsRead: 30,
-              rowsWritten: 4,
-              queryBatchResponseBytes: 999,
-            },
-          };
+      const sum = (n: number) => ({
+        sum: {
+          readQueries: n,
+          writeQueries: n,
+          rowsRead: n * 10,
+          rowsWritten: n,
+          queryBatchResponseBytes: n * 100,
+        },
+      });
+      // 14:00Z と 15:00Z は日本時間で別の日になる
+      const hours = q.includes('d1StorageAdaptiveGroups')
+        ? [
+            ['2026-11-14T03:00:00Z', { max: { databaseSizeBytes: 4096 } }],
+            ['2026-11-14T10:00:00Z', { max: { databaseSizeBytes: 5000 } }],
+            ['2026-11-14T14:00:00Z', { max: { databaseSizeBytes: 4500 } }],
+            ['2026-11-14T15:00:00Z', { max: { databaseSizeBytes: 6000 } }],
+          ]
+        : [
+            ['2026-11-14T03:00:00Z', sum(1)],
+            ['2026-11-14T14:00:00Z', sum(2)],
+            ['2026-11-14T15:00:00Z', sum(3)],
+          ];
       const key = q.includes('d1StorageAdaptiveGroups')
         ? 'd1StorageAdaptiveGroups'
         : 'd1AnalyticsAdaptiveGroups';
@@ -72,7 +83,12 @@ function fakeFetch() {
         data: {
           viewer: {
             accounts: [
-              { [key]: [{ dimensions: { date: '2026-11-14' }, ...data }] },
+              {
+                [key]: hours.map(([h, d]) => ({
+                  dimensions: { datetimeHour: h },
+                  ...(d as object),
+                })),
+              },
             ],
           },
         },
@@ -109,7 +125,8 @@ describe('exportStampMetrics', () => {
     ).toBe(0);
     expect(readFileSync(join(out, 'd1_daily.csv'), 'utf8')).toBe(
       'date,env,rowsRead,rowsWritten,readQueries,writeQueries,queryBatchResponseBytes,databaseSizeBytes\n' +
-        '2026-11-14,dev,30,4,3,2,999,4096\n',
+        '2026-11-14,dev,30,3,3,3,300,5000\n' +
+        '2026-11-15,dev,30,3,3,3,300,6000\n',
     );
     expect(readFileSync(join(out, 'endpoints_daily.csv'), 'utf8')).toBe(
       'date,env,endpoint,outcome,requests,requestBytes,responseBytes,totalMsAvg,totalMsP90,d1DurationMsAvg,rowsRead,rowsWritten,d1Failed\n' +
@@ -125,7 +142,64 @@ describe('exportStampMetrics', () => {
       .map(([u, i]) => [String(u), String(i?.body)])
       .find(([u]) => u.includes('analytics_engine'))!;
     expect(sql[1]).toContain('aramakisai_stamp_metrics');
-    expect(sql[1]).toContain('2026-11-14');
+    expect(sql[1]).toContain(
+      "toStartOfInterval(timestamp + INTERVAL '9' HOUR, INTERVAL '1' DAY)",
+    );
+    expect(sql[1]).toContain("timestamp >= toDateTime('2026-11-13 15:00:00')");
+    expect(sql[1]).toContain("timestamp < toDateTime('2026-11-15 15:00:00')");
+  });
+
+  it('日本時間の範囲を UTC の datetimeHour で問い合わせる', async () => {
+    const out = mkdtempSync(join(tmpdir(), 'metrics-'));
+    const f = fakeFetch();
+    await exportStampMetrics(args(out), env, f as unknown as typeof fetch);
+    const bodies = f.mock.calls
+      .map(([, i]) => String(i?.body))
+      .filter((b) => b.includes('datetimeHour_geq'));
+    expect(bodies.length).toBe(3);
+    for (const b of bodies) {
+      expect(b).toContain('datetimeHour_geq: \\"2026-11-13T15:00:00Z\\"');
+      expect(b).toContain('datetimeHour_lt: \\"2026-11-15T15:00:00Z\\"');
+    }
+  });
+
+  it('未計測の印 -1 を含む endpoint の responseBytes は合計せず -1 のまま出す', async () => {
+    const out = mkdtempSync(join(tmpdir(), 'metrics-'));
+    const f = fakeFetch();
+    await exportStampMetrics(args(out), env, f as unknown as typeof fetch);
+    const sql = String(
+      f.mock.calls.find(([u]) => String(u).includes('analytics_engine'))![1]
+        ?.body,
+    );
+    expect(sql).toContain(
+      'if(MIN(double2) < 0, -1.0, SUM(_sample_interval * double2)) AS responseBytes',
+    );
+  });
+
+  it('GraphQL の取得件数が上限に達したら 1 を返す', async () => {
+    const out = mkdtempSync(join(tmpdir(), 'metrics-'));
+    const f = vi.fn(async () =>
+      Response.json({
+        data: {
+          viewer: {
+            accounts: [
+              {
+                d1AnalyticsAdaptiveGroups: Array.from(
+                  { length: 10000 },
+                  () => ({
+                    dimensions: { datetimeHour: '2026-11-14T03:00:00Z' },
+                    sum: {},
+                  }),
+                ),
+              },
+            ],
+          },
+        },
+      }),
+    );
+    expect(
+      await exportStampMetrics(args(out), env, f as unknown as typeof fetch),
+    ).toBe(1);
   });
 
   it('zone の問い合わせは 30 日以内の窓に分ける', async () => {
@@ -149,11 +223,15 @@ describe('exportStampMetrics', () => {
       .map(([, i]) => String(i?.body))
       .filter((b) => b.includes('httpRequestsAdaptiveGroups'))
       .map((b) =>
-        b.match(/date_geq: \\"([\d-]+)\\", date_leq: \\"([\d-]+)\\"/)!.slice(1),
+        b
+          .match(
+            /datetimeHour_geq: \\"([\w:-]+)\\", datetimeHour_lt: \\"([\w:-]+)\\"/,
+          )!
+          .slice(1),
       );
     expect(windows).toEqual([
-      ['2026-10-01', '2026-10-30'],
-      ['2026-10-31', '2026-11-15'],
+      ['2026-09-30T15:00:00Z', '2026-10-30T15:00:00Z'],
+      ['2026-10-30T15:00:00Z', '2026-11-15T15:00:00Z'],
     ]);
   });
 
