@@ -44,4 +44,20 @@ describe('CrossFade', () => {
     expect(screen.queryByText('A')).not.toBeInTheDocument();
     expect(layerOf('B').classList.contains('fade-in')).toBe(false);
   });
+
+  it('fadePrevious では旧レイヤーが fade-out になり fade-in は付かない', () => {
+    const { rerender } = render(
+      <CrossFade transitionKey="a" fadePrevious>
+        A
+      </CrossFade>,
+    );
+    rerender(
+      <CrossFade transitionKey="b" fadePrevious>
+        B
+      </CrossFade>,
+    );
+    expect(layerOf('A').classList.contains('fade-out')).toBe(true);
+    expect(layerOf('A').classList.contains('fade-in')).toBe(false);
+    expect(layerOf('B').classList.contains('fade-in')).toBe(true);
+  });
 });

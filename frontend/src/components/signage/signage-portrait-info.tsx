@@ -28,7 +28,7 @@ export function SignagePortraitInfo({ rows, now }: SignagePortraitInfoProps) {
               transitionKey={String(page.pageIndex)}
               enabled={page.pageCount > 1}
               className={page.pageCount > 1 ? 'h-[357px] w-full' : 'w-full'}
-              layerClassName="bg-background"
+              fadePrevious
             >
               <div className="flex w-full flex-col gap-6">
                 {page.items.map(({ stage, colorIndex, performance }) => (
@@ -42,7 +42,8 @@ export function SignagePortraitInfo({ rows, now }: SignagePortraitInfoProps) {
                     <CrossFade
                       transitionKey={String(performance?.id ?? 'none')}
                       className="min-w-px flex-1"
-                      layerClassName="flex flex-col gap-1 bg-background"
+                      layerClassName="flex flex-col gap-1"
+                      fadePrevious
                     >
                       {performance ? (
                         <>
