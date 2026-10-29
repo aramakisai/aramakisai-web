@@ -3,6 +3,7 @@ import sitemap from './sitemap';
 import * as announcementsModule from '@/lib/announcements';
 import * as campusMapModule from '@/lib/campus-map';
 import * as cmsModule from '@/lib/cms';
+import * as corporateBoothsModule from '@/lib/corporate-booths';
 import * as exhibitionsModule from '@/lib/exhibitions';
 import * as faqModule from '@/lib/faq';
 import * as staticPageModule from '@/lib/static-page';
@@ -28,6 +29,9 @@ vi.mock('@/lib/cms', () => ({ cms: { findGlobal: vi.fn() } }));
 vi.mock('@/lib/announcements', () => ({ getAnnouncements: vi.fn() }));
 vi.mock('@/lib/topics', () => ({ getTopics: vi.fn() }));
 vi.mock('@/lib/exhibitions', () => ({ getExhibitionSitemapEntries: vi.fn() }));
+vi.mock('@/lib/corporate-booths', () => ({
+  getCorporateBoothSitemapEntries: vi.fn(),
+}));
 vi.mock('@/lib/faq', () => ({ getFaqItems: vi.fn() }));
 vi.mock('@/lib/campus-map', () => ({ getCampusMapLastModified: vi.fn() }));
 vi.mock('@/lib/static-page', () => ({ getPageSlugsUpdatedAt: vi.fn() }));
@@ -52,6 +56,9 @@ beforeEach(() => {
   vi.mocked(exhibitionsModule.getExhibitionSitemapEntries).mockResolvedValue(
     [],
   );
+  vi.mocked(
+    corporateBoothsModule.getCorporateBoothSitemapEntries,
+  ).mockResolvedValue([]);
   vi.mocked(faqModule.getFaqItems).mockResolvedValue([]);
   vi.mocked(campusMapModule.getCampusMapLastModified).mockResolvedValue(null);
   vi.mocked(staticPageModule.getPageSlugsUpdatedAt).mockResolvedValue([]);
@@ -259,5 +266,59 @@ describe('sitemap (live)', () => {
 
   it('開催前も /parking を収録する', async () => {
     expect(urlsOf(await sitemap())).toContain(`${SITE_URL}/parking`);
+  });
+});
+
+describe('sitemap (企業ブース)', () => {
+  const entries = [
+    { id: 7, updatedAt: '2026-09-02T00:00:00.000Z' },
+    { id: 8, updatedAt: '2026-09-01T00:00:00.000Z' },
+  ];
+
+  it('公開フェーズでは詳細 URL を更新日時付きで載せ、/exhibitions の更新日時に含める', async () => {
+    await setPhase('live');
+    vi.mocked(exhibitionsModule.getExhibitionSitemapEntries).mockResolvedValue([
+      { id: 1, category: 'stage', updatedAt: '2026-08-01T00:00:00.000Z' },
+    ] as never);
+    vi.mocked(
+      corporateBoothsModule.getCorporateBoothSitemapEntries,
+    ).mockResolvedValue(entries);
+
+    const result = await sitemap();
+
+    expect(result).toContainEqual({
+      url: `${SITE_URL}/exhibitions/booth/7`,
+      lastModified: '2026-09-02T00:00:00.000Z',
+    });
+    expect(urlsOf(result)).toContain(`${SITE_URL}/exhibitions/booth/8`);
+    expect(
+      result.find((e) => e.url === `${SITE_URL}/exhibitions`)?.lastModified,
+    ).toBe('2026-09-02T00:00:00.000Z');
+  });
+
+  it('開催前フェーズでは載せない', async () => {
+    await setPhase('pre_event');
+    vi.mocked(
+      corporateBoothsModule.getCorporateBoothSitemapEntries,
+    ).mockResolvedValue(entries);
+
+    const urls = urlsOf(await sitemap());
+
+    expect(urls.some((u) => u.includes('/exhibitions/booth/'))).toBe(false);
+  });
+
+  it('企業ブースの取得に失敗しても学生企画のエントリは残す', async () => {
+    await setPhase('live');
+    vi.mocked(exhibitionsModule.getExhibitionSitemapEntries).mockResolvedValue([
+      { id: 1, category: 'stage', updatedAt: '2026-08-01T00:00:00.000Z' },
+    ] as never);
+    vi.mocked(
+      corporateBoothsModule.getCorporateBoothSitemapEntries,
+    ).mockRejectedValue(new Error('x'));
+
+    const urls = urlsOf(await sitemap());
+
+    expect(urls).toContain(`${SITE_URL}/exhibitions/1/stage`);
+    expect(urls.some((u) => u.includes('/exhibitions/booth/'))).toBe(false);
   });
 });
