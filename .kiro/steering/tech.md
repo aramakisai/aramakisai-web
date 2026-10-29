@@ -66,6 +66,7 @@ infisical run --env=prod -- pnpm dev
 cd frontend
 pnpm install
 pnpm dev            # http://localhost:3000
+# make dev は起動前に wrangler d1 migrations apply STAMP_DB --local でローカル D1 へマイグレーションを適用する
 pnpm type-check
 pnpm lint / pnpm format:check
 pnpm test
