@@ -16,25 +16,38 @@ import type { D1Usage } from '@/lib/stamp-db';
 
 export const dynamic = 'force-dynamic';
 
-async function load(
-  env: StampEnv,
-): Promise<{ dashboard: Dashboard | null; usage: D1Usage | null }> {
+type Loaded = {
+  dashboard: Dashboard | null;
+  usage: D1Usage | null;
+  // D1 の失敗は 'failed'、CMS カタログの失敗は 'error' で区別する
+  outcome: 'ok' | 'failed' | 'error';
+};
+
+async function load(env: StampEnv): Promise<Loaded> {
   try {
-    const [records, catalog] = await Promise.all([
+    const [records, catalog] = await Promise.allSettled([
       createStampRepository(env.STAMP_DB).loadAllRecords(),
       getExhibitionCatalog(),
     ]);
-    if (!records.ok) return { dashboard: null, usage: records.usage };
+    if (records.status === 'rejected') {
+      return { dashboard: null, usage: null, outcome: 'failed' };
+    }
+    const { usage } = records.value;
+    if (!records.value.ok) return { dashboard: null, usage, outcome: 'failed' };
+    if (catalog.status === 'rejected') {
+      return { dashboard: null, usage, outcome: 'error' };
+    }
     return {
       dashboard: aggregate(
-        toStampTargets(catalog.cards),
-        catalog.areas,
-        records.value,
+        toStampTargets(catalog.value.cards),
+        catalog.value.areas,
+        records.value.value,
       ),
-      usage: records.usage,
+      usage,
+      outcome: 'ok',
     };
   } catch {
-    return { dashboard: null, usage: null };
+    return { dashboard: null, usage: null, outcome: 'failed' };
   }
 }
 
@@ -42,20 +55,20 @@ export default async function StaffDashboardPage() {
   const started = Date.now();
   const auth = await authorizeStaffPage('/staff');
   if (auth.kind === 'forbidden') return <StaffForbidden />;
-  const { dashboard, usage } =
+  const { dashboard, usage, outcome }: Loaded =
     auth.kind === 'allowed'
       ? await load(auth.env)
-      : { dashboard: null, usage: null };
+      : { dashboard: null, usage: null, outcome: 'error' };
   if (auth.kind === 'allowed') {
     recordRequest(auth.env, {
       endpoint: 'staff_dashboard',
-      outcome: dashboard ? 'ok' : 'failed',
+      outcome,
       status: dashboard ? 200 : 503,
       requestBytes: 0,
       responseBytes: 0,
       totalMs: Date.now() - started,
       usage,
-      d1Failed: usage === null || dashboard === null,
+      d1Failed: outcome === 'failed',
     });
   }
 

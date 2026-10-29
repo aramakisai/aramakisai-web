@@ -94,7 +94,33 @@ describe('StaffDashboardPage', () => {
     expect(screen.queryByText('参加端末')).toBeNull();
     expect(mocks.record).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({ endpoint: 'staff_dashboard', status: 503 }),
+      expect.objectContaining({
+        endpoint: 'staff_dashboard',
+        outcome: 'failed',
+        status: 503,
+        d1Failed: true,
+      }),
+    );
+  });
+
+  it('カタログの取得失敗は D1 の失敗として記録しない', async () => {
+    mocks.loadAllRecords.mockResolvedValue({
+      ok: true,
+      usage,
+      value: { stamps: [], activeExchangeCount: 0 },
+    });
+    mocks.catalog.mockRejectedValue(new Error('cms down'));
+    render(await StaffDashboardPage());
+    expect(screen.getByText('集計を取得できませんでした')).toBeTruthy();
+    expect(mocks.record).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        endpoint: 'staff_dashboard',
+        outcome: 'error',
+        status: 503,
+        usage,
+        d1Failed: false,
+      }),
     );
   });
 });
