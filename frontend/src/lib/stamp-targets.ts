@@ -12,6 +12,7 @@ export function toStampTargets(
             id: card.id,
             category: card.category,
             displayName: card.displayName,
+            organizationName: card.organizationName,
             areaId: card.areaIds[0] ?? null,
           },
         ]

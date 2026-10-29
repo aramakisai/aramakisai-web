@@ -28,10 +28,34 @@ const LABELS = {
   other: 'その他企画',
 } as const;
 const TARGETS: MypageStampTarget[] = [
-  { id: 10, category: 'exhibit', displayName: '展示A', areaId: 1 },
-  { id: 11, category: 'vendor', displayName: 'クレープ', areaId: 1 },
-  { id: 12, category: 'other', displayName: '休憩所', areaId: 2 },
-  { id: 13, category: 'exhibit', displayName: '野良', areaId: null },
+  {
+    id: 10,
+    category: 'exhibit',
+    displayName: '展示A',
+    organizationName: '',
+    areaId: 1,
+  },
+  {
+    id: 11,
+    category: 'vendor',
+    displayName: 'クレープ',
+    organizationName: '',
+    areaId: 1,
+  },
+  {
+    id: 12,
+    category: 'other',
+    displayName: '休憩所',
+    organizationName: '',
+    areaId: 2,
+  },
+  {
+    id: 13,
+    category: 'exhibit',
+    displayName: '野良',
+    organizationName: '',
+    areaId: null,
+  },
 ];
 
 const card = (id: number, category: ExhibitionCategory, name: string) => ({

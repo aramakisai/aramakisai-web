@@ -13,6 +13,7 @@ vi.mock('@/lib/stamp-db', () => ({
 }));
 vi.mock('@/lib/exhibitions', () => ({
   getExhibitionCatalog: mocks.catalog,
+  normalizeText: (v: string) => v,
   CATEGORY_LABELS: {
     stage: 'ステージ',
     exhibit: '展示',
@@ -81,7 +82,7 @@ describe('StaffDashboardPage', () => {
     expect(screen.getByText('参加端末')).toBeTruthy();
     expect(screen.getByText('2台 100%')).toBeTruthy();
     expect(screen.getByText('写真展')).toBeTruthy();
-    expect(screen.getByText('2台')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '1個 2台' })).toBeTruthy();
   });
 
   it('記録を取得できなければ値を出さず再読み込みを案内する', async () => {

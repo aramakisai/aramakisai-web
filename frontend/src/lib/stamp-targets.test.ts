@@ -7,6 +7,7 @@ const card = (id: number, category: string, areaIds: number[]) =>
     id,
     category,
     displayName: `企画${id}`,
+    organizationName: `団体${id}`,
     areaIds,
   }) as unknown as ExhibitionCardSummary;
 
@@ -18,8 +19,20 @@ describe('toStampTargets', () => {
       card(3, 'exhibit', []),
     ]);
     expect(targets).toEqual([
-      { id: 1, category: 'exhibit', displayName: '企画1', areaId: 3 },
-      { id: 3, category: 'exhibit', displayName: '企画3', areaId: null },
+      {
+        id: 1,
+        category: 'exhibit',
+        displayName: '企画1',
+        organizationName: '団体1',
+        areaId: 3,
+      },
+      {
+        id: 3,
+        category: 'exhibit',
+        displayName: '企画3',
+        organizationName: '団体3',
+        areaId: null,
+      },
     ]);
   });
 });

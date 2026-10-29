@@ -85,7 +85,9 @@ describe('ExchangeActions', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: '取り消す' }));
     await waitFor(() =>
-      expect(screen.getByText('既に取り消されています 11/14 14:00')).toBeTruthy(),
+      expect(
+        screen.getByText('既に取り消されています 11/14 14:00'),
+      ).toBeTruthy(),
     );
     expect(screen.getByText('未交換')).toBeTruthy();
   });

@@ -6,8 +6,20 @@ import type { StampRecord } from '@/lib/stamp-db';
 
 const VID = '11111111-1111-4111-8111-111111111111';
 const TARGETS: MypageStampTarget[] = [
-  { id: 10, category: 'exhibit', displayName: '展示A', areaId: 1 },
-  { id: 11, category: 'vendor', displayName: 'クレープ', areaId: null },
+  {
+    id: 10,
+    category: 'exhibit',
+    displayName: '展示A',
+    organizationName: '',
+    areaId: 1,
+  },
+  {
+    id: 11,
+    category: 'vendor',
+    displayName: 'クレープ',
+    organizationName: '',
+    areaId: null,
+  },
 ];
 const stamp = (exhibitionId: number, category: StampRecord['category']) => ({
   exhibitionId,

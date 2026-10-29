@@ -10,6 +10,7 @@ const t = (id: number, areaId: number | null): MypageStampTarget => ({
   id,
   category: 'exhibit',
   displayName: `企画${id}`,
+  organizationName: `団体${id}`,
   areaId,
 });
 const s = (exhibitionId: number, at = '2026-11-01T00:00:00Z') => ({
@@ -92,9 +93,18 @@ describe('aggregate', () => {
   });
   it('スタンプ数の分布', () => {
     expect(d.distribution).toEqual([
+      { stampCount: 1, visitorCount: 0 },
       { stampCount: 2, visitorCount: 1 },
       { stampCount: 3, visitorCount: 1 },
+      { stampCount: 4, visitorCount: 0 },
     ]);
+  });
+  it('企画ごとに団体名とエリアを持つ', () => {
+    expect(d.targets.find((x) => x.exhibitionId === 3)).toMatchObject({
+      organizationName: '団体3',
+      areaId: 2,
+    });
+    expect(d.targets.find((x) => x.exhibitionId === 4)?.areaId).toBeNull();
   });
   it('参加 0 なら率は 0', () => {
     const e = aggregate(targets, areas, { stamps: [], activeExchangeCount: 0 });

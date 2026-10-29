@@ -1,18 +1,11 @@
 import Link from 'next/link';
 import { MaterialIcon } from '@/components/icons';
-import { CATEGORY_LABELS } from '@/lib/exhibitions';
 import type { Dashboard } from '@/lib/stamp-aggregate';
-import type { StampCategory } from '@/lib/stamp-signature';
 import { StaffSectionTitle } from './staff-heading';
-
-const BADGE_COLORS: Readonly<Record<StampCategory, string>> = {
-  exhibit: 'bg-info',
-  vendor: 'bg-warning',
-  other: 'bg-accent-alt',
-};
+import { StaffTargetFilter } from './staff-target-filter';
+import { StampDistributionChart } from './stamp-distribution-chart';
 
 const ROW = 'border-b border-gray-200 py-4';
-const percent = (rate: number) => Math.round(rate * 100);
 
 export function Tile({
   label,
@@ -90,36 +83,14 @@ export function StaffDashboardView({
       </Section>
 
       <Section title="企画別">
-        {dashboard.targets.map((t) => (
-          <div
-            key={`${t.exhibitionId}:${t.category}`}
-            className={`${ROW} flex items-center gap-3`}
-          >
-            <span
-              className={`rounded-full px-3 py-1 text-xs leading-[1.4] text-text ${BADGE_COLORS[t.category]}`}
-            >
-              {CATEGORY_LABELS[t.category]}
-            </span>
-            <p className="min-w-0 flex-1 text-base leading-[1.7] text-text">
-              {t.displayName}
-            </p>
-            <p className="shrink-0 text-sm leading-[1.4] text-text">
-              {t.visitorCount}台 {percent(t.rate)}%
-            </p>
-          </div>
-        ))}
+        <StaffTargetFilter
+          targets={dashboard.targets}
+          areas={dashboard.areas}
+        />
       </Section>
 
       <Section title="スタンプ数の分布">
-        {dashboard.distribution.map((d) => (
-          <div
-            key={d.stampCount}
-            className={`${ROW} flex items-center justify-between text-text`}
-          >
-            <p className="text-base leading-[1.7]">{d.stampCount}個</p>
-            <p className="text-sm leading-[1.4]">{d.visitorCount}台</p>
-          </div>
-        ))}
+        <StampDistributionChart distribution={dashboard.distribution} />
       </Section>
     </>
   );

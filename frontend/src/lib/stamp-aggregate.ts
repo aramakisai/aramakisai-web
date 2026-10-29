@@ -18,6 +18,8 @@ export interface TargetStat {
   readonly exhibitionId: number;
   readonly category: StampCategory;
   readonly displayName: string;
+  readonly organizationName: string;
+  readonly areaId: number | null;
   readonly visitorCount: number;
   readonly rate: number;
 }
@@ -162,13 +164,16 @@ export function aggregate(
         exhibitionId: t.id,
         category: t.category,
         displayName: t.displayName,
+        organizationName: t.organizationName,
+        areaId: t.areaId,
         visitorCount,
         rate: participantCount === 0 ? 0 : visitorCount / participantCount,
       };
     }),
     areas: areaStats,
-    distribution: [...distribution]
-      .sort((a, b) => a[0] - b[0])
-      .map(([stampCount, visitorCount]) => ({ stampCount, visitorCount })),
+    distribution: Array.from({ length: targets.length }, (_, i) => ({
+      stampCount: i + 1,
+      visitorCount: distribution.get(i + 1) ?? 0,
+    })),
   };
 }
