@@ -184,7 +184,10 @@ type PersonalSponsor = Readonly<{ id: number; name: string }>;
 
 ## リリース順
 
-CMS (`personal_sponsors` の migration と media の hook) を先に本番反映し、ArgoCD の PreSync migration 完了後に frontend を反映する。`frontend/src/cms-types.ts` は CMS 側で `pnpm generate:types` を実行して同じ PR で同期する。
+CMSとfrontendを別のPRに分ける。
+
+1. CMSのPR: HTTP(S) URL判定の共通化、`personal_sponsors` コレクションとmigration、企業の入力検証、参照中ロゴの削除防止、権限の統合テスト、`pnpm generate:types` による `frontend/src/cms-types.ts` の同期を含める。devへマージしてdev→mainで本番へ反映し、ArgoCDのPreSync migration完了と、本番の公開RESTで `personal_sponsors` が未認証で読めることを確認する。
+2. frontendのPR: ナビゲーション・SEO、データの取得と変換、ページ本文、ページの結線、ブラウザー検証を含める。1の本番反映を確認してからdevへマージし、dev→mainで本番へ反映する。PRごとのプレビューは本番CMSを参照するため、1の反映後に実データで確認できる。
 
 ## 運用上の確認事項
 
