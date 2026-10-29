@@ -19,8 +19,41 @@ const args = (out: string) => [
 function fakeFetch() {
   return vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
     const u = String(url);
+    if (u.includes('/zones?name=')) {
+      return Response.json({ result: [{ id: 'zone1' }] });
+    }
     if (u.endsWith('/graphql')) {
       const q = JSON.parse(String(init?.body)).query as string;
+      if (q.includes('httpRequestsAdaptiveGroups')) {
+        const row = (host: string, path: string, count: number, b: number) => ({
+          count,
+          dimensions: {
+            date: '2026-11-14',
+            clientRequestHTTPHost: host,
+            clientRequestPath: path,
+          },
+          sum: { edgeResponseBytes: b },
+        });
+        return Response.json({
+          data: {
+            viewer: {
+              zones: [
+                {
+                  httpRequestsAdaptiveGroups: [
+                    row('dev.aramakisai.com', '/staff', 2, 100),
+                    row('dev.aramakisai.com', '/staff', 1, 50),
+                    row('dev.aramakisai.com', '/staff/exchanges', 4, 400),
+                    row('dev.aramakisai.com', '/staff/visitors/abc', 3, 30),
+                    row('dev.aramakisai.com', '/staff/scan', 9, 9),
+                    row('dev.aramakisai.com', '/stamp', 9, 9),
+                    row('aramakisai.com', '/staff', 7, 70),
+                  ],
+                },
+              ],
+            },
+          },
+        });
+      }
       const data = q.includes('d1StorageAdaptiveGroups')
         ? { max: { databaseSizeBytes: 4096 } }
         : {
@@ -82,11 +115,46 @@ describe('exportStampMetrics', () => {
       'date,env,endpoint,outcome,requests,requestBytes,responseBytes,totalMsAvg,totalMsP90,d1DurationMsAvg,rowsRead,rowsWritten,d1Failed\n' +
         '2026-11-14,dev,verify,added,10,1200,180,30,55,12,10,20,0\n',
     );
+    expect(readFileSync(join(out, 'staff_pages_daily.csv'), 'utf8')).toBe(
+      'date,env,endpoint,requests,responseBytes\n' +
+        '2026-11-14,dev,staff_dashboard,3,150\n' +
+        '2026-11-14,dev,staff_exchanges,4,400\n' +
+        '2026-11-14,dev,staff_visitor,3,30\n',
+    );
     const sql = f.mock.calls
       .map(([u, i]) => [String(u), String(i?.body)])
       .find(([u]) => u.includes('analytics_engine'))!;
     expect(sql[1]).toContain('aramakisai_stamp_metrics');
     expect(sql[1]).toContain('2026-11-14');
+  });
+
+  it('zone の問い合わせは 30 日以内の窓に分ける', async () => {
+    const out = mkdtempSync(join(tmpdir(), 'metrics-'));
+    const f = fakeFetch();
+    await exportStampMetrics(
+      [
+        '--from',
+        '2026-10-01',
+        '--to',
+        '2026-11-15',
+        '--out',
+        out,
+        '--env',
+        'dev',
+      ],
+      env,
+      f as unknown as typeof fetch,
+    );
+    const windows = f.mock.calls
+      .map(([, i]) => String(i?.body))
+      .filter((b) => b.includes('httpRequestsAdaptiveGroups'))
+      .map((b) =>
+        b.match(/date_geq: \\"([\d-]+)\\", date_leq: \\"([\d-]+)\\"/)!.slice(1),
+      );
+    expect(windows).toEqual([
+      ['2026-10-01', '2026-10-30'],
+      ['2026-10-31', '2026-11-15'],
+    ]);
   });
 
   it('トークン未設定・日付不正は 1 を返す', async () => {

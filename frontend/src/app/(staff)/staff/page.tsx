@@ -65,7 +65,7 @@ export default async function StaffDashboardPage() {
       outcome,
       status: dashboard ? 200 : 503,
       requestBytes: 0,
-      responseBytes: 0,
+      responseBytes: -1,
       totalMs: Date.now() - started,
       usage,
       d1Failed: outcome === 'failed',

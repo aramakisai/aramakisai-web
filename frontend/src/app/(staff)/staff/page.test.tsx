@@ -96,6 +96,8 @@ describe('StaffDashboardPage', () => {
       expect.anything(),
       expect.objectContaining({
         endpoint: 'staff_dashboard',
+        requestBytes: 0,
+        responseBytes: -1,
         outcome: 'failed',
         status: 503,
         d1Failed: true,

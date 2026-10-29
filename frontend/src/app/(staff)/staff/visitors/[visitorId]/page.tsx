@@ -56,7 +56,7 @@ export default async function StaffVisitorPage({
       outcome,
       status,
       requestBytes: 0,
-      responseBytes: 0,
+      responseBytes: -1,
       totalMs: Date.now() - started,
       usage,
       d1Failed: outcome === 'failed',

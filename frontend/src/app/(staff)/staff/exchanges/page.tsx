@@ -21,7 +21,7 @@ export default async function StaffExchangesPage() {
     outcome: r.ok ? 'ok' : 'failed',
     status: r.ok ? 200 : 503,
     requestBytes: 0,
-    responseBytes: 0,
+    responseBytes: -1,
     totalMs: Date.now() - started,
     usage: r.usage,
     d1Failed: !r.ok,
