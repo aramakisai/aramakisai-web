@@ -1,9 +1,9 @@
 import { ExhibitionCard } from '@/components/exhibition-card';
 import { MaterialIcon } from '@/components/icons';
 import {
-  CATEGORY_LABELS,
+  LISTING_CATEGORY_LABELS,
   type ExhibitionCardSummary,
-  type ExhibitionCategory,
+  type ListingCategory,
 } from '@/lib/exhibitions';
 
 /**
@@ -24,7 +24,7 @@ export type AreaExhibitionListState =
         readonly hasToilet: boolean;
       };
       readonly keyword: string;
-      readonly categories: readonly ExhibitionCategory[];
+      readonly categories: readonly ListingCategory[];
       readonly items: readonly ExhibitionCardSummary[];
     }
   | { readonly kind: 'error'; readonly message: string };
@@ -69,7 +69,9 @@ export function buildListHeading(state: FilteredState): ListHeading {
   if (state.areaName) segments.push(state.areaName);
   if (state.keyword) segments.push(`「${state.keyword}」`);
   if (state.categories.length > 0) {
-    segments.push(state.categories.map((c) => CATEGORY_LABELS[c]).join('・'));
+    segments.push(
+      state.categories.map((c) => LISTING_CATEGORY_LABELS[c]).join('・'),
+    );
   }
   return {
     heading: segments.join(' '),

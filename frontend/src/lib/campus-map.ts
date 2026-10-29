@@ -7,7 +7,7 @@ import {
   parseExhibitionQuery,
   toCards,
   type ExhibitionCardSummary,
-  type ExhibitionCategory,
+  type ListingCategory,
 } from './exhibitions';
 import {
   parseAreaGeometry,
@@ -17,7 +17,7 @@ import {
 /** 構内マップの絞り込み条件。エリアは単一選択 */
 export interface CampusMapFilters {
   readonly q: string;
-  readonly categories: readonly ExhibitionCategory[];
+  readonly categories: readonly ListingCategory[];
   readonly selectedAreaId: number | null;
 }
 

@@ -4,15 +4,15 @@ import { SearchIcon } from '@/components/icons';
 import {
   CATEGORY_LABELS,
   CATEGORY_VALUES,
-  type ExhibitionCategory,
+  type ListingCategory,
 } from '@/lib/exhibitions';
 import { useIsAboveMapBreakpoint } from './use-is-above-map-breakpoint';
 
 export interface MapSearchOverlayProps {
   readonly keywordInput: string;
   readonly setKeywordInput: (value: string) => void;
-  readonly categories: readonly ExhibitionCategory[];
-  readonly setCategories: (categories: readonly ExhibitionCategory[]) => void;
+  readonly categories: readonly ListingCategory[];
+  readonly setCategories: (categories: readonly ListingCategory[]) => void;
 }
 
 export function MapSearchOverlay({
@@ -23,7 +23,7 @@ export function MapSearchOverlay({
 }: MapSearchOverlayProps) {
   const isAboveBreakpoint = useIsAboveMapBreakpoint();
 
-  const toggleCategory = (category: ExhibitionCategory) => {
+  const toggleCategory = (category: ListingCategory) => {
     setCategories(
       categories.includes(category)
         ? categories.filter((c) => c !== category)
