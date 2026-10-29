@@ -582,6 +582,7 @@ interface RequestMeasure {
 function recordRequest(env: StampEnv, measure: RequestMeasure): void;
 ```
 - 点の構成: index = `endpoint`、blobs = [`STAMP_ENV`, `endpoint`, `outcome`, `status`]、doubles = [`requestBytes`, `responseBytes`, `totalMs`, `d1DurationMs`, `rowsRead`, `rowsWritten`, `d1Failed (0/1)`]
+- 管理者画面のページ (`staff_dashboard`・`staff_visitor`・`staff_exchanges`) は Server Component で、点を書く時点では返す HTML の大きさが分からない。`requestBytes` は GET で本文が無いため 0、`responseBytes` は未計測を表す -1 を書く。この 3 つのレスポンスのバイト数は ExportStampMetrics が zone のアクセス解析から取る (8.1)
 - `totalMs - d1DurationMs` を「記録を加える前の相当値」として比べる (8.3)。`Date.now()` は I/O で進むため D1 の待ちを含む全体時間が取れる
 - 書き込みの失敗は握りつぶす (計測が本処理を落とさない)
 - 本番とdevは `STAMP_ENV` の blob で区別する (8.2)。D1 の値は DB が別なので `databaseId` で区別する
@@ -655,10 +656,11 @@ Figma (ファイル `0kWDqHsLr6xE8b4FFgR1Zx`):
 
 **Contracts**: Batch [x]
 - Trigger: 手動。`infisical run --env=prod -- pnpm metrics:stamps --from 2026-11-14 --to 2026-11-15`
-- Input: Cloudflare API トークン (Account Analytics Read)、アカウント ID、2 つの `databaseId`
+- Input: Cloudflare API トークン (Account Analytics Read、aramakisai.com の zone の Analytics Read)、アカウント ID、2 つの `databaseId`、aramakisai.com の zone ID (トークンで `GET /zones?name=aramakisai.com` から引く)
 - Output: `d1_daily.csv` (date, env, rowsRead, rowsWritten, readQueries, writeQueries, queryBatchResponseBytes, databaseSizeBytes) と `endpoints_daily.csv` (date, env, endpoint, outcome, requests, requestBytes, responseBytes, totalMs の平均と P90, d1DurationMs の平均, rowsRead, rowsWritten, d1Failed)
+- `staff_pages_daily.csv` (date, env, endpoint, requests, responseBytes): GraphQL の `httpRequestsAdaptiveGroups` を `clientRequestHTTPHost` と `clientRequestPath` で日別に集計する。env はホストで分ける (`aramakisai.com` = prod、`dev.aramakisai.com` = dev)。endpoint はパスで分ける (`/staff` = `staff_dashboard`、`/staff/exchanges` = `staff_exchanges`、`/staff/visitors/` で始まるもの = `staff_visitor`)。requests は `count`、responseBytes は `sum.edgeResponseBytes`。値はサンプリングからの推定値で、responseBytes はクライアントへの転送量 (圧縮後とみられる) のため、`endpoints_daily.csv` の本文のバイト数とは定義が違う
 - 出力先は引数で受け、リポジトリには置かない
-- D1 の GraphQL は保持 31 日、Analytics Engine は 3 か月。開催後 31 日以内 (2026-12-15 まで) に実行する
+- D1 と zone のアクセス解析の GraphQL は保持 31 日、Analytics Engine は 3 か月。開催後 31 日以内 (2026-12-15 まで) に実行する
 - CPU 時間は API で取らない。Workers Logs の Query Builder で `$workers.event.request.path` ごとに `$workers.cpuTimeMs` の平均と P99 を開催後 7 日以内 (2026-11-22 まで) に記録する。`head_sampling_rate = 0.1` のサンプル値である
 
 #### OpsDashboardStampUsage

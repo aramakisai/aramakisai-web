@@ -194,9 +194,10 @@
   - _Requirements: 7.5, 8.2_
 
 - [ ] 7. 計測の取り出しと監視
-- [x] 7.1 (P) 計測値を日別に取り出すスクリプトを作る
+- [ ] 7.1 (P) 計測値を日別に取り出すスクリプトを作る
   - D1 の日別の読み取り・書き込み行数・クエリ数・応答バイト数・容量と、Analytics Engine のエンドポイント別の値を CSV に出す
   - 出力先は引数で受ける。ローカルで dev の値を取り出せる
+  - 管理者画面の 3 ページのリクエスト数とレスポンスのバイト数を、zone のアクセス解析から日別に CSV に出す。Analytics Engine の点では 3 ページの responseBytes を未計測 (-1) にする
   - _Depends: 2.6_
   - _Requirements: 8.1, 8.2, 8.3_
   - _Boundary: ExportStampMetrics_
