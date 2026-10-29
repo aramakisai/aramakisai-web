@@ -131,7 +131,7 @@ sequenceDiagram
 
 - pack は restore より前に実行する。こうすると、tar には現ビルドのファイルだけが入る。
 - tar の put(upload)は deploy より前に行う。deploy が成功して配信されたビルドは、必ず保管済みになる。publish の失敗で保管されないまま配信されるビルドは生じない。
-- 索引への登録(publish)は、サイトの deploy が成功したときだけ行う(Requirement 6.4)。ステップの条件は `if: ${{ !cancelled() && steps.<deploy の id>.outcome == 'success' }}` とし、ジョブの最後に置く。こうすると publish が失敗しても、deploy-prod の後続ステップ(地震速報リレーのデプロイ)が飛ばされない。後続のステップが失敗しても、サイトの世代は登録される。
+- 索引への登録(publish)は、サイトの deploy が成功したときだけ行う(Requirement 6.4)。ステップの条件は `if: ${{ always() && steps.<deploy の id>.outcome == 'success' }}` とし、ジョブの最後に置く。deploy の成功後にジョブが取り消されても、配信中のビルドは登録される。こうすると publish が失敗しても、deploy-prod の後続ステップ(地震速報リレーのデプロイ)が飛ばされない。後続のステップが失敗しても、サイトの世代は登録される。
 - deploy が失敗したときの tar は、索引に載らずに R2 に残る。同じ sha で再実行すると上書きされる。それ以外の場合は残り続けるが、まれな事象で 1 件約 20MB(試算上)にすぎないので、掃除の仕組みは作らない。
 - index.json を更新してから tar を削除する。削除に失敗しても、その時点で索引は既に整合している。
 
@@ -236,7 +236,7 @@ function classifyR2GetFailure(stderr: string): 'not-found' | 'error';
 | Build の直後 | `Pack current static assets` | `pnpm exec tsx scripts/static-archive.ts pack --dir .open-next/assets/_next/static --out "$RUNNER_TEMP/static-current.tar.gz"` |
 | その直後 | `Upload current static assets (<T>)` | `infisical run ... --env=<E> -- pnpm exec tsx scripts/static-archive.ts upload --bucket "$STATIC_ARCHIVE_BUCKET" --target <T> --sha "$GITHUB_SHA" --archive "$RUNNER_TEMP/static-current.tar.gz"` |
 | その直後 | `Restore previous static assets (<T>)` | `infisical run ... --env=<E> -- pnpm exec tsx scripts/static-archive.ts restore --bucket "$STATIC_ARCHIVE_BUCKET" --target <T> --dir .open-next/assets/_next/static` |
-| ジョブの最後 | `Publish static assets generation (<T>)` | 条件 `if: ${{ !cancelled() && steps.deploy_site.outcome == 'success' }}`。`infisical run ... --env=<E> -- pnpm exec tsx scripts/static-archive.ts publish --bucket "$STATIC_ARCHIVE_BUCKET" --target <T> --sha "$GITHUB_SHA" --keep "$STATIC_ARCHIVE_KEEP"` |
+| ジョブの最後 | `Publish static assets generation (<T>)` | 条件 `if: ${{ always() && steps.deploy_site.outcome == 'success' }}`。`infisical run ... --env=<E> -- pnpm exec tsx scripts/static-archive.ts publish --bucket "$STATIC_ARCHIVE_BUCKET" --target <T> --sha "$GITHUB_SHA" --keep "$STATIC_ARCHIVE_KEEP"` |
 
 - サイトの deploy ステップ(deploy-prod の「Deploy to Cloudflare Workers (prod)」、deploy-dev の「Deploy to Cloudflare Workers (dev)」)に `id: deploy_site` を付ける
 - deploy-prod では、publish を地震速報リレーのデプロイ(`Detect signage relay changes` 以降)より後に置く。publish の失敗で、リレーのデプロイが飛ばされないようにするため。リレーの差分は `github.event.before..GITHUB_SHA` で判定しているので、一度飛ばされると次の push では検出できない
@@ -262,6 +262,7 @@ function classifyR2GetFailure(stderr: string): 'not-found' | 'error';
   - 新しいデプロイの後は URL が変わるので、もう一度だけ救える
   - ランタイムの script が見つからない場合は、同じセッション内で 1 回だけにする。sessionStorage が使えない環境では再読み込みしない
 - `/_next/static/` 以外の取得失敗(画像・地図タイル・外部スクリプト)では再読み込みしない
+- `navigator.onLine === false` のときは再読み込みしない。オフラインや電波の弱い環境での取得失敗は旧ビルドが原因ではなく、読み込み直すとオフラインのエラー画面へ遷移して入力中の内容が失われるため
 - 置き場所は、`src/app/layout.tsx` の `<head>` 内の `MOTION_INIT_SCRIPT` と同じ位置にする。layout に書いた要素は、Next が出力するスタイルシートと async の script より後ろに並ぶ(本番の HTML で実測)。そのため、登録より前に起きる初期読み込みの失敗は検知できない。対象は、hydrate 後の遅延チャンクと CSS の取得失敗とする。旧タブで起きる失敗はこちらに当たる
 - 外部への要求は発生させない(Requirement 5.1)
 
@@ -300,6 +301,7 @@ export const CHUNK_RELOAD_STORAGE_KEY = 'aramakisai_chunk_reload_build';
 | tar の put の失敗(upload) | `::error::` を出してジョブを失敗させる。deploy の前なので、保管されないビルドが配信されることはない |
 | index.json の put の失敗(publish) | `::error::` を出してジョブを失敗させる。tar は保管済みで、配信中のビルドは次回の restore に含まれない。ジョブを再実行すると再ビルドになるので、この世代は戻らない(再実行のビルドが新しい世代として登録される) |
 | 古い tar の delete の失敗 | `::warning::` |
+| 同じ sha でジョブを再実行した | 再ビルドで buildId が変わるが、tar は同じキーに上書きされる。前回配信したビルドの `_next/static/<buildId>/` はどの世代にも残らない。チャンク本体は contenthash が同じなので影響は小さく、既知の制約として受け入れる |
 | Cloudflare のダッシュボードか `wrangler rollback` で旧版 X に戻した | X の static assets には、X より新しいビルドのチャンクが無い。新しいビルドを開いていたタブは 404 になり、自動再読み込みで X に移る。index.json は新しい sha が先頭のまま残るが、次の deploy で整合する |
 
 ### Monitoring
@@ -318,9 +320,10 @@ export const CHUNK_RELOAD_STORAGE_KEY = 'aramakisai_chunk_reload_build';
   - ランタイム URL が変わった後の失敗 → もう一度 reload される
   - `/images/x.webp` の img で error → reload されない
   - `ChunkLoadError` の unhandledrejection → reload される
+  - `navigator.onLine === false` のときの失敗 → reload されない
 - `frontend-ci-deploy.workflow.test.ts`
   - deploy-prod と deploy-dev で、Build < pack < upload < restore < deploy_site の順に並ぶこと。publish はジョブの最後のステップで、deploy-prod ではリレーのデプロイより後にあること
-  - publish の条件が `!cancelled() && steps.deploy_site.outcome == 'success'` であること
+  - publish の条件が `always() && steps.deploy_site.outcome == 'success'` であること
   - target と Infisical の環境の組み合わせ(prod と prod、dev と staging)
   - deploy-preview に static-archive の呼び出しが無いこと
 

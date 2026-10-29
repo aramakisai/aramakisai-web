@@ -33,7 +33,7 @@
 - [x] 3. 本番と dev のデプロイジョブに、旧世代の合成と登録を組み込む
   - 保持世代数(20)と保管先のバケット名を、ワークフロー全体の環境変数として定める
   - deploy-prod と deploy-dev に、Build の直後に pack・upload・restore を、ジョブの最後に publish を加える。Infisical の環境は、prod なら prod、dev なら staging を使う
-  - サイトの deploy ステップに id を付け、publish の条件を「キャンセルされておらず、サイトの deploy が成功した」とする。deploy-prod では、publish を地震速報リレーのデプロイより後ろに置く
+  - サイトの deploy ステップに id を付け、publish の条件を「サイトの deploy が成功した(その後の取り消しを問わない)」とする。deploy-prod では、publish を地震速報リレーのデプロイより後ろに置く
   - deploy-preview と、PR で走るほかのジョブは変えない
   - ワークフローのテストが通る。確かめる内容は次のとおり
     - 並び順: Build < pack < upload < restore < サイトの deploy。publish は最後で、deploy-prod ではリレーより後
