@@ -27,14 +27,18 @@ function requestFullscreenIfNeeded() {
 
 export function useTouchSession({
   quakeActive,
+  pinned = false,
 }: {
   readonly quakeActive: boolean;
+  readonly pinned?: boolean;
 }) {
   const [state, dispatch] = useReducer(nextTouchState, {
     kind: 'closed',
   } as TouchState);
   const quakeRef = useRef(quakeActive);
   quakeRef.current = quakeActive;
+  const pinnedRef = useRef(pinned);
+  pinnedRef.current = pinned;
   const detach = useRef<(() => void) | null>(null);
 
   const kind = state.kind;
@@ -50,6 +54,10 @@ export function useTouchSession({
   useEffect(() => {
     dispatch({ type: 'quake', active: quakeActive });
   }, [quakeActive]);
+
+  useEffect(() => {
+    if (pinned) dispatch({ type: 'pin' });
+  }, [pinned]);
 
   const activity = useCallback(
     () => dispatch({ type: 'activity', at: Date.now() }),
@@ -81,7 +89,7 @@ export function useTouchSession({
     state,
     tap: useCallback((orientation: SignageOrientation) => {
       requestFullscreenIfNeeded();
-      if (quakeRef.current) return;
+      if (quakeRef.current || pinnedRef.current) return;
       dispatch({ type: 'tap', at: Date.now(), orientation });
     }, []),
     select: useCallback(

@@ -1,11 +1,12 @@
 import { render } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CAMPUS_MAP_CONFIG } from '@/lib/campus-map-config';
 import { MapViewportSync } from './map-viewport-sync';
 
 const map = vi.hoisted(() => ({
   getContainer: () => document.createElement('div'),
   invalidateSize: vi.fn(),
+  setMaxBounds: vi.fn(),
   setMinZoom: vi.fn(),
   getBoundsZoom: vi.fn(),
   fitBounds: vi.fn(),
@@ -36,6 +37,16 @@ function renderWithResize(bottomInset?: number) {
 }
 
 describe('MapViewportSync', () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe() {}
+        disconnect() {}
+      },
+    );
+  });
+
   afterEach(() => {
     vi.unstubAllGlobals();
     document.body.innerHTML = '';

@@ -8,9 +8,20 @@ const WORKFLOW_PATH = path.resolve(
   '../.github/workflows/generate-map-tiles.yml',
 );
 
-type Step = { name?: string; run?: string; uses?: string };
+type Step = {
+  id?: string;
+  name?: string;
+  run?: string;
+  uses?: string;
+  with?: Record<string, unknown>;
+};
 type Workflow = {
-  on: Record<string, unknown>;
+  on: {
+    workflow_dispatch: {
+      inputs?: Record<string, Record<string, unknown>>;
+    };
+  };
+  env?: Record<string, string>;
   jobs: Record<string, { steps: Step[] }>;
 };
 
@@ -146,23 +157,5 @@ describe('generate-map-tiles workflow', () => {
     );
     expect(convertStepIndex).toBeGreaterThan(fetchStepIndex);
     expect(verifyStepIndex).toBeGreaterThan(convertStepIndex);
-  });
-
-  it('メタタイルの置き場と PNG の置き場を分け、artifact と検証は PNG 側を指す', () => {
-    const renderStep = steps.find((s) => s.run?.includes('render_list'));
-    expect(renderStep?.run).toContain('metatiles');
-    expect(renderStep?.run).not.toMatch(/rendered-tiles/);
-
-    const verifyStep = steps.find((s) =>
-      s.run?.includes('scripts/verify-map-tiles.ts'),
-    );
-    expect(verifyStep?.run).toContain('MAP_TILES_DIR="$PWD/rendered-tiles"');
-
-    const uploadStep = steps.find((s) =>
-      s.uses?.startsWith('actions/upload-artifact'),
-    );
-    expect(
-      (uploadStep as unknown as { with?: { path?: string } })?.with?.path,
-    ).toBe('frontend/rendered-tiles');
   });
 });

@@ -11,8 +11,8 @@ import { isStudentExhibitor, toCmsUser } from '../access/roles';
 import { purgeEdgeCacheAfterChange, purgeEdgeCacheAfterDelete } from '../hooks/media-edge-purge';
 
 /**
- * フロントエンドが要求する表示幅の実測値は 1920 / 960 / 無指定 の 3 種。
- * 無指定は原本 (WebP 変換済み) が受け持つため、生成するのはこの 2 サイズでよい。
+ * フロントエンドが要求する表示幅に合わせたサイズを生成する。
+ * 無指定は原本 (WebP 変換済み) が受け持つ。
  */
 export const IMAGE_SIZES = [
   { name: 'hero', width: 1920 },
@@ -100,7 +100,8 @@ export const Media: CollectionConfig = {
       type: 'text',
       label: '代替テキスト',
       admin: {
-        description: '画像の内容を短い文で説明してください。画像読込み時にエラーが発生した場合などに表示されます。',
+        description:
+          '画像の内容を短い文で説明してください。画像読込み時にエラーが発生した場合などに表示されます。',
       },
     },
     {

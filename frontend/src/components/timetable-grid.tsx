@@ -4,6 +4,7 @@ import { ChevronRightIcon, PlayCircleIcon } from './icons';
 import { formatEventDayTime, toJstDateKey, toJstParts } from '@/lib/event-day';
 import {
   isPerformanceActive,
+  stagesWithPerformances,
   type TimetablePerformance,
   type TimetableStage,
 } from '@/lib/timetable';
@@ -44,6 +45,7 @@ export function TimetableGrid({
   variant = 'site',
 }: TimetableGridProps) {
   const signage = variant === 'signage';
+  const visibleStages = stagesWithPerformances(stages, performances);
   const pxPerMinute = signage ? SIGNAGE_PX_PER_MINUTE : PX_PER_MINUTE;
   const timeColPx = signage ? SIGNAGE_TIME_COL_PX : TIME_COL_PX;
   const rangeStart =
@@ -75,7 +77,7 @@ export function TimetableGrid({
         style={
           signage
             ? undefined
-            : { minWidth: TIME_COL_PX + stages.length * MIN_COL_PX }
+            : { minWidth: TIME_COL_PX + visibleStages.length * MIN_COL_PX }
         }
       >
         <div
@@ -110,11 +112,13 @@ export function TimetableGrid({
               />
             ))}
           </div>
-          {stages.map((stage, i) => (
+          {visibleStages.map(({ stage, colorIndex }) => (
             <StageColumn
               key={stage.id}
               stage={stage}
-              bandClass={STAGE_BAND_CLASSES[i % STAGE_BAND_CLASSES.length]}
+              bandClass={
+                STAGE_BAND_CLASSES[colorIndex % STAGE_BAND_CLASSES.length]
+              }
               rangeStart={rangeStart}
               bodyHeight={bodyHeight}
               performances={performances.filter((p) => p.stageId === stage.id)}

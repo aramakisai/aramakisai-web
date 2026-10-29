@@ -2,9 +2,12 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { rm } from 'node:fs/promises';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { tileCoordsFromBoundsResult, type TileCoord } from './fetch-map-tiles';
-import { calculateMapTileBounds } from './map-tile-bounds';
-import { CAMPUS_MAP_CONFIG } from '../src/lib/campus-map-config';
+import {
+  calculateMapTileBounds,
+  resolveMapTileProfileFromArgs,
+} from './map-tile-bounds';
 
 // 品質を上げるほど容量が増える。80 は cwebp の既定値で、地図タイル程度の情報量では
 // 目視での劣化がほぼ気にならない一方、容量はほぼ半減する。変える場合はここ 1 箇所でよい
@@ -94,17 +97,17 @@ export async function convertMapTilesToWebp(
 }
 
 async function main(): Promise<void> {
+  const profile = resolveMapTileProfileFromArgs(process.argv.slice(2));
   const tilesDir =
-    process.env.MAP_TILES_DIR ?? path.join(__dirname, '..', 'rendered-tiles');
-  const coords = tileCoordsFromBoundsResult(
-    calculateMapTileBounds(CAMPUS_MAP_CONFIG),
-  );
+    process.env.MAP_TILES_DIR ??
+    path.join(__dirname, '..', `${profile.id}-map-tiles`);
 
+  const coords = tileCoordsFromBoundsResult(calculateMapTileBounds(profile));
   const result = await convertMapTilesToWebp(coords, tilesDir, {
     runCwebp: createCwebpRunner(),
   });
 
-  console.log(`変換成功: ${result.convertedCount} 枚`);
+  console.log(`${profile.id}: 変換成功: ${result.convertedCount} 枚`);
 
   if (result.failures.length > 0) {
     console.error(`${result.failures.length} 枚の変換に失敗しました:`);
@@ -117,6 +120,9 @@ async function main(): Promise<void> {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
   main();
 }

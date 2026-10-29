@@ -21,6 +21,7 @@ type Job = {
   'runs-on'?: string;
   if?: string;
   needs?: string | string[];
+  env?: Record<string, unknown>;
   steps: Step[];
 };
 
@@ -126,6 +127,27 @@ describe('.github/workflows/frontend-ci.yml', () => {
     expect([e2eJob.needs].flat()).toContain('deploy-preview');
   });
 
+  it('runs local fixture E2E in an independent job without preview deployment or secrets', () => {
+    const workflow = loadWorkflow();
+    const localFixtureJob = workflow.jobs['local-fixture-e2e'];
+    expect(localFixtureJob).toBeDefined();
+    expect(localFixtureJob.name).toBe('e2e (local fixture)');
+    expect([localFixtureJob.needs].flat()).not.toContain('deploy-preview');
+    expect(localFixtureJob.env).toMatchObject({
+      E2E_LOCAL_APP: '1',
+      E2E_BASE_URL: 'http://127.0.0.1:3011',
+    });
+
+    const jobJson = JSON.stringify(localFixtureJob);
+    expect(jobJson).not.toMatch(/secrets\.|INFISICAL|wrangler|Cloudflare/);
+    expect(
+      localFixtureJob.steps.some(
+        (step) =>
+          step.run === "pnpm exec playwright test --grep '@local-fixture'",
+      ),
+    ).toBe(true);
+  });
+
   it('runs deploy-dev job on push to dev branch', () => {
     const workflow = loadWorkflow();
     const job = workflow.jobs['deploy-dev'];
@@ -160,6 +182,7 @@ describe('.github/workflows/frontend-ci.yml', () => {
 
     for (const jobName of [
       'validate',
+      'local-fixture-e2e',
       'e2e',
       'verify-build-artifacts',
       'deploy-prod',

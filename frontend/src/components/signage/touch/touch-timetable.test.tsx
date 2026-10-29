@@ -26,8 +26,8 @@ function perf(
 
 const timetable: Timetable = {
   days: [
-    { key: '2026-11-14', label: '11/14 土' },
-    { key: '2026-11-15', label: '11/15 日' },
+    { key: '2026-11-14', label: '1日目' },
+    { key: '2026-11-15', label: '2日目' },
   ],
   stages: [{ id: 1, name: 'メインステージ' }],
   performances: [

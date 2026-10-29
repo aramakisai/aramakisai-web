@@ -418,11 +418,16 @@ export interface Sponsor {
   /**
    * 地域協賛のみ
    */
-  business_category?: string | null;
+  business_category?: ('hospital' | 'life' | 'car' | 'education' | 'food' | 'shop') | null;
   /**
    * 地域協賛のみ
    */
   address?: string | null;
+  local_latitude?: number | null;
+  local_longitude?: number | null;
+  local_image?: (number | null) | Media;
+  local_business_hours?: string | null;
+  local_phone?: string | null;
   /**
    * 広告協賛のみ
    */
@@ -1277,6 +1282,11 @@ export interface SponsorsSelect<T extends boolean = true> {
   description?: T;
   business_category?: T;
   address?: T;
+  local_latitude?: T;
+  local_longitude?: T;
+  local_image?: T;
+  local_business_hours?: T;
+  local_phone?: T;
   tier?: T;
   area_id?: T;
   booth_number?: T;

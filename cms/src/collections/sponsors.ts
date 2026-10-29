@@ -1,8 +1,22 @@
 import type { CollectionConfig } from 'payload';
 
 import { blankToNull } from '../hooks/constraints';
+import { localSponsorMapConstraint } from '../hooks/local-sponsor-map';
 import { sponsorBoothPlacementConstraint } from '../hooks/payload-constraints';
 import { signageNotifyHook } from '../lib/signage-notify';
+
+/** 地域協賛カテゴリのruntime値はPayload selectを唯一の定義とする。 */
+export const LOCAL_SPONSOR_CATEGORY_OPTIONS = [
+  { label: '病院', value: 'hospital' },
+  { label: '生活', value: 'life' },
+  { label: '車', value: 'car' },
+  { label: '教育', value: 'education' },
+  { label: '飲食', value: 'food' },
+  { label: 'ショップ', value: 'shop' },
+] as const;
+
+const isLocal = (data: Record<string, unknown> | undefined) =>
+  Array.isArray(data?.type) && data.type.includes('local');
 
 export const Sponsors: CollectionConfig = {
   slug: 'sponsors',
@@ -12,7 +26,7 @@ export const Sponsors: CollectionConfig = {
   },
   orderable: true,
   hooks: {
-    beforeValidate: [sponsorBoothPlacementConstraint],
+    beforeValidate: [localSponsorMapConstraint, sponsorBoothPlacementConstraint],
     afterChange: [signageNotifyHook(['snapshot'])],
     afterDelete: [signageNotifyHook(['snapshot'])],
   },
@@ -57,12 +71,12 @@ export const Sponsors: CollectionConfig = {
     },
     {
       name: 'business_category',
-      type: 'text',
-      maxLength: 100,
+      type: 'select',
+      options: [...LOCAL_SPONSOR_CATEGORY_OPTIONS],
       label: '業種タグ',
       admin: {
         description: '地域協賛のみ',
-        condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
+        condition: isLocal,
       },
     },
     {
@@ -72,7 +86,53 @@ export const Sponsors: CollectionConfig = {
       label: '住所',
       admin: {
         description: '地域協賛のみ',
-        condition: (data) => Array.isArray(data?.type) && data.type.includes('local'),
+        condition: isLocal,
+      },
+    },
+    {
+      name: 'local_latitude',
+      type: 'number',
+      min: -90,
+      max: 90,
+      label: '地域協賛 緯度',
+      admin: {
+        condition: isLocal,
+      },
+    },
+    {
+      name: 'local_longitude',
+      type: 'number',
+      min: -180,
+      max: 180,
+      label: '地域協賛 経度',
+      admin: {
+        condition: isLocal,
+      },
+    },
+    {
+      name: 'local_image',
+      type: 'upload',
+      relationTo: 'media',
+      label: '地域協賛 掲載画像',
+      admin: {
+        condition: isLocal,
+      },
+    },
+    {
+      name: 'local_business_hours',
+      type: 'textarea',
+      label: '地域協賛 営業時間・定休日',
+      admin: {
+        condition: isLocal,
+      },
+    },
+    {
+      name: 'local_phone',
+      type: 'text',
+      maxLength: 100,
+      label: '地域協賛 電話番号',
+      admin: {
+        condition: isLocal,
       },
     },
     {

@@ -268,6 +268,24 @@ describe('variant signage', () => {
     expect(grid).toHaveClass('grid', 'grid-cols-2', 'gap-6', 'overflow-y-auto');
   });
 
+  it('見出しはエリア名だけで、カテゴリ名を足さない', () => {
+    render(
+      <AreaExhibitionList
+        variant="signage"
+        state={{
+          kind: 'filtered',
+          areaName: '1号館',
+          keyword: '',
+          categories: ['exhibit'],
+          items: [card({ id: 1 })],
+        }}
+      />,
+    );
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent(
+      /^1号館$/,
+    );
+  });
+
   it('site では従来どおり1列のまま', () => {
     render(
       <AreaExhibitionList

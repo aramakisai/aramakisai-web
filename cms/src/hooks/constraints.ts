@@ -40,7 +40,7 @@ type CategoryContentsDoc = {
   readonly status?: unknown;
 } & { readonly [K in ExhibitionCategory]?: CategoryContentValue | null };
 
-function hasValue(value: unknown): boolean {
+export function hasValue(value: unknown): boolean {
   return value !== null && value !== undefined && value !== '';
 }
 

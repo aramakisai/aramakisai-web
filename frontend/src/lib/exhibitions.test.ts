@@ -545,6 +545,36 @@ describe('getExhibitionListData', () => {
     expect(result.items[0]?.location).toBe('Aゾーン');
   });
 
+  it.each([
+    ['番号のみ', null, '12', 'Aゾーン 12'],
+    ['ラベルと番号', '出店ブース', '12', 'Aゾーン 出店ブース 12'],
+    ['両方なし', null, null, 'Aゾーン'],
+  ])(
+    '場所にブース番号を連結する: %s',
+    async (_name, label, number, expected) => {
+      mockCmsCollections({
+        exhibitions: [
+          {
+            id: 1,
+            organization_name: '団体A',
+            categories: ['vendor'],
+            vendor: {
+              name: '企画A',
+              images: [],
+              area_id: 10,
+              booth_label: label,
+              booth_number: number,
+            },
+          },
+        ],
+        areas: [{ id: 10, name: 'Aゾーン' }],
+      });
+
+      const result = await getExhibitionListData(baseQuery);
+      expect(result.items[0]?.location).toBe(expected);
+    },
+  );
+
   it('エリアがなく出演枠のみなら重複を除いたステージ名を連結する', async () => {
     mockCmsCollections({
       exhibitions: [

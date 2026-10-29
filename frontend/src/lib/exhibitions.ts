@@ -402,8 +402,10 @@ function resolveLocationForCategory(
   const directArea =
     directAreaId !== null ? context.areasById.get(directAreaId) : undefined;
   if (!directArea) return null;
-  const boothLabel = placementOf(exhibition, category)?.booth_label;
-  return boothLabel ? `${directArea.name} ${boothLabel}` : directArea.name;
+  const placement = placementOf(exhibition, category);
+  return [directArea.name, placement?.booth_label, placement?.booth_number]
+    .filter(Boolean)
+    .join(' ');
 }
 
 /** カテゴリ別企画内容欄 (`stage` / `exhibit` / `vendor` / `other`) 1 件分 */

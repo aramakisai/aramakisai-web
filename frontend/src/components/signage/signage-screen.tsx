@@ -6,6 +6,7 @@ import { BUS_TIMETABLE } from '@/lib/bus-timetable-data';
 import {
   buildPlaylist,
   CANVAS_SIZE,
+  pinnedEntries,
   slideAt,
   stageNow,
   type SignageSnapshot,
@@ -107,7 +108,10 @@ export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
   const fit = layout?.fit ?? { scale: 1, left: 0, top: 0 };
   // 形が合わない payload は表示せず、通常の画面のままにする
   const quake = parseQuakePayload(useSignageFeature(channel, 'quake', now));
-  const session = useTouchSession({ quakeActive: quake?.active ?? false });
+  const session = useTouchSession({
+    quakeActive: quake?.active ?? false,
+    pinned: data !== null && pinnedEntries(data, now).length > 0,
+  });
   const entries = data ? buildPlaylist(data, now) : [];
   const entry = slideAt(entries, now.getTime())?.entry ?? null;
   const canvas = CANVAS_SIZE[orientation];
@@ -144,7 +148,7 @@ export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
           <SignagePortraitHeader now={now} eventDays={eventDays} />
         </div>
         <div className="absolute top-[829px] left-6 hidden portrait:block">
-          <SignagePortraitInfo rows={rows} />
+          <SignagePortraitInfo rows={rows} now={now} />
         </div>
         <div className="absolute top-[912px] left-[360px] portrait:top-[1776px] portrait:left-6">
           <SignageTelop

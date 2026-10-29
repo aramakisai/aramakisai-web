@@ -191,7 +191,9 @@ describe('MapBottomSheet', () => {
       expect(grabber).toHaveAttribute('aria-expanded', 'true');
 
       fireEvent.keyDown(grabber, { key: 'ArrowUp' });
-      expect(sheet.style.height).toMatch(/100dvh/);
+      expect(sheet.style.height).toBe(
+        'calc(100dvh - env(safe-area-inset-top) - var(--map-nav, 0px))',
+      );
       expect(grabber).toHaveAccessibleName(/全画面/);
 
       fireEvent.keyDown(grabber, { key: 'ArrowUp' });

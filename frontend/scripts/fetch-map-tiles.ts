@@ -1,10 +1,11 @@
 import { mkdir, writeFile as fsWriteFile } from 'node:fs/promises';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import {
   calculateMapTileBounds,
+  resolveMapTileProfileFromArgs,
   type MapTileBoundsResult,
 } from './map-tile-bounds';
-import { CAMPUS_MAP_CONFIG } from '../src/lib/campus-map-config';
 
 export interface TileCoord {
   readonly zoom: number;
@@ -155,14 +156,12 @@ export async function fetchMapTiles(
 }
 
 async function main(): Promise<void> {
+  const profile = resolveMapTileProfileFromArgs(process.argv.slice(2));
   const baseUrl = process.env.MAP_TILE_SERVER_URL ?? 'http://localhost:8080';
-  const outDir = process.env.MAP_TILES_OUT_DIR ?? 'rendered-tiles';
-  const coords = tileCoordsFromBoundsResult(
-    calculateMapTileBounds(CAMPUS_MAP_CONFIG),
-  );
-
+  const outDir = process.env.MAP_TILES_OUT_DIR ?? `${profile.id}-map-tiles`;
+  const coords = tileCoordsFromBoundsResult(calculateMapTileBounds(profile));
   console.log(
-    `${coords.length} 枚を ${baseUrl} から取得します (並列度: ${DEFAULT_CONCURRENCY})`,
+    `${profile.id}: ${coords.length} 枚を ${baseUrl} から取得します (並列度: ${DEFAULT_CONCURRENCY})`,
   );
 
   const result = await fetchMapTiles(coords, {
@@ -184,6 +183,9 @@ async function main(): Promise<void> {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
   main();
 }

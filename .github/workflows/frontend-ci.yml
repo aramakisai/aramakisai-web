@@ -79,6 +79,66 @@ jobs:
           NEXT_PUBLIC_CMS_URL: https://cms.example.com
           NEXT_PUBLIC_SITE_URL: https://example.com
 
+  local-fixture-e2e:
+    name: e2e (local fixture)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      E2E_LOCAL_APP: "1"
+      E2E_BASE_URL: http://127.0.0.1:3011
+      NEXT_PUBLIC_CMS_URL: http://127.0.0.1:18055
+      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3011
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Get installed Playwright version
+        id: playwright_version
+        run: |
+          echo "version=$(node -e "console.log(require('./node_modules/@playwright/test/package.json').version)")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: playwright_cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.playwright_version.outputs.version }}
+
+      - name: Install Playwright browsers
+        if: steps.playwright_cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Install Playwright OS dependencies
+        if: steps.playwright_cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
+
+      - name: Run local fixture E2E tests
+        run: pnpm exec playwright test --grep '@local-fixture'
+
+      - name: Upload Playwright report (trace/screenshot)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-local-fixture
+          path: frontend/playwright-report/
+          retention-days: 7
+
   verify-build-artifacts:
     name: verify build artifacts (no dev code)
     needs: validate
@@ -284,14 +344,14 @@ jobs:
       - name: Wait for preview to become reachable
         run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- pnpm exec tsx scripts/wait-for-preview.ts
 
-      - name: Run E2E tests
-        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- env NEXT_PUBLIC_CMS_URL=https://cms.aramakisai.com pnpm test:e2e
+      - name: Run staging preview E2E tests
+        run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- env NEXT_PUBLIC_CMS_URL=https://cms.aramakisai.com pnpm exec playwright test --grep-invert '@local-fixture'
 
       - name: Upload Playwright report (trace/screenshot)
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-staging-preview
           path: frontend/playwright-report/
           retention-days: 7
 

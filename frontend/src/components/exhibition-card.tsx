@@ -22,12 +22,12 @@ export function ExhibitionCard({
     exhibition.displayName,
   );
   // globals.css の html[data-pl] 規則が url に含まれる /images/textures/ を目印に load まで止める。
-  // 原画は幅の 2 倍の正方形に敷いて回し、カードの地で切り抜く (縦が横の √3 倍以内なら隅が欠けない)。
-  // 背景の幅は回す前の地の幅 × 2.5 (= 正方形の幅の 125%)
+  // 原画は地の幅の 1.2 倍の正方形に敷いて回し、カードの地で切り抜く (地の縦が横の 0.66 倍 (= √(1.2²−1)) 以内なら隅が欠けない)。
+  // 背景の幅は回す前の地の幅 × 2.5 (= 正方形の幅の 250%/1.2)
   const textureStyle: CSSProperties = {
     transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
     backgroundImage: `url(/images/textures/pamphlet/${texture}.webp)`,
-    backgroundSize: '125% auto',
+    backgroundSize: `calc(250% / 1.2) auto`,
     backgroundPosition: `${position[0]}% ${position[1]}%`,
   };
 
@@ -59,7 +59,7 @@ export function ExhibitionCard({
           <div
             aria-hidden
             style={textureStyle}
-            className="absolute top-1/2 left-1/2 aspect-square w-[200%]"
+            className="absolute top-1/2 left-1/2 aspect-square w-[120%]"
           />
           <div className="relative flex flex-col gap-1">
             <span
