@@ -1,6 +1,7 @@
 import type { MapArea, MapPoint } from '@/cms-types';
 import tailwindConfig from '../../tailwind.config';
 import { cms, type CmsFetchError, type CmsResult } from './cms';
+import { getCorporateBoothSitemapEntries } from './corporate-booths';
 import {
   buildFilterHref,
   buildJoinContext,
@@ -269,6 +270,13 @@ export async function getCampusMapLastModified(): Promise<string | null> {
   ]);
 
   const timestamps: string[] = [];
+  try {
+    for (const { updatedAt } of await getCorporateBoothSitemapEntries()) {
+      timestamps.push(updatedAt);
+    }
+  } catch {
+    // 他の取得と同じく、失敗した分は最大値の対象から外す
+  }
   for (const result of results) {
     if (!result.ok) continue;
     const updatedAt = result.value.docs[0]?.updatedAt;
