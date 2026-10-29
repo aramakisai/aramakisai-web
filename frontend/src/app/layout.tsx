@@ -25,6 +25,7 @@ const MATERIAL_SYMBOLS_ICON_NAMES = [
   'bookmark',
   'calendar_clock',
   'calendar_month',
+  'chat_bubble',
   'chevron_left',
   'chevron_right',
   'close',

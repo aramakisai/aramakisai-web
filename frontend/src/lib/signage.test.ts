@@ -286,48 +286,42 @@ describe('paginateLostItems', () => {
 });
 
 describe('paginateSponsors', () => {
-  it('A〜Cかつロゴありはロゴ行、それ以外は社名行に振り分ける', () => {
+  const kinds = (pages: ReturnType<typeof paginateSponsors>) =>
+    pages.map((p) => p.map((r) => (r.kind === 'logo' ? r.tier : 'names')));
+
+  it('プランごとに別ページにし、A→B→C→社名の順に並べる', () => {
     const pages = paginateSponsors([
-      sponsor(1, 'planA'),
-      sponsor(2, 'planB'),
-      sponsor(3, 'planC'),
       sponsor(4, 'planD'),
+      sponsor(3, 'planC'),
+      sponsor(2, 'planB'),
+      sponsor(1, 'planA'),
       sponsor(5, null),
       sponsor(6, 'planA', false),
     ]);
-    expect(pages).toHaveLength(1);
-    expect(pages[0].map((r) => (r.kind === 'logo' ? r.tier : 'names'))).toEqual(
-      ['planA', 'planB', 'planC', 'names'],
-    );
-    expect(pages[0][3].items.map((s) => s.id)).toEqual([4, 5, 6]);
+    expect(kinds(pages)).toEqual([['planA'], ['planB'], ['planC'], ['names']]);
+    expect(pages[3][0].items.map((s) => s.id)).toEqual([4, 5, 6]);
   });
 
   it('列数で行を折り返す(A=3列, B=4列, C=6列, 社名=4列)', () => {
-    const pages = paginateSponsors([
-      ...[1, 2, 3, 4].map((i) => sponsor(i, 'planC')),
-      ...[11, 12, 13, 14, 15, 16, 17].map((i) => sponsor(i, 'planC')),
-    ]);
+    const pages = paginateSponsors(
+      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((i) => sponsor(i, 'planC')),
+    );
     expect(pages[0].map((r) => r.items.length)).toEqual([6, 5]);
   });
 
-  it('行高の合計が704を超える位置でページを分ける', () => {
-    // A 232 + 32 + B 176 + 32 + C 128 + 32 + 社名 24 = 656 ... A+B+C+社名1行は収まる
-    const fit = paginateSponsors([
-      sponsor(1, 'planA'),
-      sponsor(2, 'planB'),
-      sponsor(3, 'planC'),
-      sponsor(4, 'planD'),
-    ]);
-    expect(fit).toHaveLength(1);
-    // A2行 = 232+24+232 = 488, +32+B 176 = 696 ≤ 704, +32+C は超える
-    const over = paginateSponsors([
-      ...[1, 2, 3, 4].map((i) => sponsor(i, 'planA')),
-      sponsor(5, 'planB'),
-      sponsor(6, 'planC'),
-    ]);
-    expect(
-      over.map((p) => p.map((r) => (r.kind === 'logo' ? r.tier : 'names'))),
-    ).toEqual([['planA', 'planA', 'planB'], ['planC']]);
+  it('同じプラン内は行高の合計が704を超える位置でページを分ける', () => {
+    // A 232 + 24 + 232 = 488, +24+232 = 744 > 704
+    const pages = paginateSponsors(
+      Array.from({ length: 7 }, (_, i) => sponsor(i + 1, 'planA')),
+    );
+    expect(kinds(pages)).toEqual([['planA', 'planA'], ['planA']]);
+  });
+
+  it('社名60件は1ページ(15行=696px)に収まる', () => {
+    const pages = paginateSponsors(
+      Array.from({ length: 60 }, (_, i) => sponsor(i + 1, 'planD')),
+    );
+    expect(pages.map((p) => p.length)).toEqual([15]);
   });
 
   it('0件は0ページ', () => {

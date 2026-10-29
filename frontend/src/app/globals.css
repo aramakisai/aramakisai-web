@@ -920,3 +920,12 @@ a[data-touch-blocked] {
 .rich-text-body[data-variant='signage'] h4:not(:first-child) {
   margin-top: 24px;
 }
+
+@keyframes sponsor-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(var(--marquee-width) * -1));
+  }
+}

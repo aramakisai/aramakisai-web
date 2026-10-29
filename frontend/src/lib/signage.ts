@@ -12,6 +12,7 @@ import type {
 } from '@/lib/timetable';
 import { isPerformanceActive, stagesWithPerformances } from '@/lib/timetable';
 import type { SignageQuakeStage } from './signage-quake';
+import { SPONSOR_PAGE_HEIGHT } from './signage-sponsor-area';
 import { getDaysUntilEventDay, toJstDateKey, toJstParts } from './event-day';
 
 /** 向きで変わるのはキャンバス寸法だけで、ページ分割・時間窓の定数は向きに依らない */
@@ -126,8 +127,6 @@ export type SponsorRow =
     }
   | { readonly kind: 'names'; readonly items: readonly SignageSponsor[] };
 
-const SPONSOR_PAGE_HEIGHT = 704;
-const SPONSOR_PLAN_GAP = 32;
 const SPONSOR_ROW_GAP = 24;
 const LOGO_TIERS = ['planA', 'planB', 'planC'] as const;
 // 列数と行高(ロゴ枠+社名)はFigmaのロゴ領域の実測値
@@ -145,50 +144,47 @@ function chunk<T>(items: readonly T[], size: number): T[][] {
   return out;
 }
 
-/** プランA〜Cかつロゴありはプラン別のロゴ行、それ以外(プランD・未設定・ロゴなし)は社名行。行高の合計が704pxを超える位置でページを分ける */
-export function paginateSponsors(
-  sponsors: readonly SignageSponsor[],
-): readonly (readonly SponsorRow[])[] {
-  const rows: { row: SponsorRow; height: number }[] = [];
-  const rest: SignageSponsor[] = [];
-  for (const tier of LOGO_TIERS) {
-    const spec = LOGO_ROW_SPEC[tier];
-    const logos = sponsors.filter((s) => s.tier === tier && s.logoId !== null);
-    for (const items of chunk(logos, spec.columns)) {
-      rows.push({ row: { kind: 'logo', tier, items }, height: spec.height });
-    }
-  }
-  for (const s of sponsors) {
-    const isLogo =
-      s.logoId !== null &&
-      (LOGO_TIERS as readonly string[]).includes(s.tier ?? '');
-    if (!isLogo) rest.push(s);
-  }
-  for (const items of chunk(rest, NAME_ROW_SPEC.columns)) {
-    rows.push({ row: { kind: 'names', items }, height: NAME_ROW_SPEC.height });
-  }
-
+/** 行を行高の合計が704pxを超える位置でページに分ける */
+function paginateRows(rows: readonly SponsorRow[], height: number) {
   const pages: SponsorRow[][] = [];
   let used = 0;
-  let prev: SponsorRow | null = null;
-  for (const { row, height } of rows) {
-    const sameGroup =
-      prev !== null &&
-      prev.kind === row.kind &&
-      (row.kind === 'names' ||
-        (prev.kind === 'logo' && prev.tier === row.tier));
-    const gap =
-      prev === null ? 0 : sameGroup ? SPONSOR_ROW_GAP : SPONSOR_PLAN_GAP;
+  for (const row of rows) {
     const page = pages[pages.length - 1];
-    if (page && used + gap + height <= SPONSOR_PAGE_HEIGHT) {
+    if (page && used + SPONSOR_ROW_GAP + height <= SPONSOR_PAGE_HEIGHT) {
       page.push(row);
-      used += gap + height;
+      used += SPONSOR_ROW_GAP + height;
     } else {
       pages.push([row]);
       used = height;
     }
-    prev = row;
   }
+  return pages;
+}
+
+/** プランA→B→C→社名(D・未設定・ロゴなし)の順に、プランごと別ページにする。1ページに複数プランを混ぜない */
+export function paginateSponsors(
+  sponsors: readonly SignageSponsor[],
+): readonly (readonly SponsorRow[])[] {
+  const pages: SponsorRow[][] = [];
+  for (const tier of LOGO_TIERS) {
+    const spec = LOGO_ROW_SPEC[tier];
+    const logos = sponsors.filter((s) => s.tier === tier && s.logoId !== null);
+    const rows = chunk(logos, spec.columns).map((items): SponsorRow => ({
+      kind: 'logo',
+      tier,
+      items,
+    }));
+    pages.push(...paginateRows(rows, spec.height));
+  }
+  const rest = sponsors.filter(
+    (s) =>
+      s.logoId === null ||
+      !(LOGO_TIERS as readonly string[]).includes(s.tier ?? ''),
+  );
+  const nameRows = chunk(rest, NAME_ROW_SPEC.columns).map(
+    (items): SponsorRow => ({ kind: 'names', items }),
+  );
+  pages.push(...paginateRows(nameRows, NAME_ROW_SPEC.height));
   return pages;
 }
 

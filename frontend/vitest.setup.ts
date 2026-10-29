@@ -19,3 +19,12 @@ if (
     }) as unknown as DOMRectList;
   };
 }
+
+// jsdom は ResizeObserver を実装していない。寸法観測の結果に依存しないテスト向けの no-op
+if (typeof ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}
