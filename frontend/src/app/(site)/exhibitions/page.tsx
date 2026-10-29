@@ -3,6 +3,7 @@ import {
   getExhibitionCatalog,
   type ExhibitionCatalog,
 } from '@/lib/exhibitions';
+import { getCorporateBoothCards } from '@/lib/corporate-booths';
 import { ExhibitionList } from '@/components/exhibition-list';
 import { loadForIsr } from '@/lib/isr';
 import { getSiteMetadata } from '@/lib/site-metadata';
@@ -33,11 +34,12 @@ export default async function ExhibitionsPage() {
     getExhibitionCatalog,
     EMPTY_CATALOG,
   );
+  const booths = await loadForIsr(getCorporateBoothCards, []);
 
   return (
     <div className="mx-auto flex max-w-[1440px] flex-col gap-4 px-4 pt-4 pb-12 lg:gap-6 lg:px-20 lg:pt-12 lg:pb-20">
       <h1 className="text-center">企画一覧</h1>
-      <ExhibitionList cards={cards} areas={areas} />
+      <ExhibitionList cards={[...cards, ...booths]} areas={areas} />
     </div>
   );
 }

@@ -454,3 +454,78 @@ describe('CampusMapScreen', () => {
     });
   });
 });
+
+describe('CampusMapScreen (企業ブース)', () => {
+  const booth = {
+    id: 7,
+    category: 'booth' as const,
+    displayName: '協賛ブース',
+    organizationName: '協賛企業',
+    location: null,
+    areaIds: [1],
+    thumbnail: null,
+  };
+
+  it('appends booths after student exhibitions in the selected area list', async () => {
+    stubDesktop();
+    window.history.replaceState(null, '', '/map?area=1');
+    render(
+      <CampusMapScreen
+        navigation={navigationItemsByPhase}
+        data={dataResult({
+          areas: { kind: 'loaded', value: [area()] },
+          exhibitions: {
+            kind: 'loaded',
+            value: [card({ id: 3, displayName: '学生企画', areaIds: [1] })],
+          },
+        })}
+        booths={[booth]}
+      />,
+    );
+    await act(async () => {});
+
+    const links = screen
+      .getAllByRole('link')
+      .map((a) => a.getAttribute('href'))
+      .filter((h) => h?.startsWith('/exhibitions'));
+    expect(links.slice(0, 2)).toEqual([
+      '/exhibitions/3/exhibit',
+      '/exhibitions/booth/7',
+    ]);
+  });
+
+  it('filters to booths by the booth category', async () => {
+    stubDesktop();
+    window.history.replaceState(null, '', '/map?category=booth');
+    render(
+      <CampusMapScreen
+        navigation={navigationItemsByPhase}
+        data={dataResult({
+          areas: { kind: 'loaded', value: [area()] },
+          exhibitions: {
+            kind: 'loaded',
+            value: [card({ id: 3, displayName: '学生企画', areaIds: [1] })],
+          },
+        })}
+        booths={[booth]}
+      />,
+    );
+    await act(async () => {});
+
+    expect(
+      screen.getAllByRole('link', { name: /協賛ブース/ }).length,
+    ).toBeGreaterThan(0);
+    expect(screen.queryByRole('link', { name: /学生企画/ })).toBeNull();
+  });
+
+  it('works without booths (default empty)', () => {
+    stubDesktop();
+    render(
+      <CampusMapScreen
+        navigation={navigationItemsByPhase}
+        data={dataResult()}
+      />,
+    );
+    expect(screen.getByTestId('campus-map-view')).toBeInTheDocument();
+  });
+});

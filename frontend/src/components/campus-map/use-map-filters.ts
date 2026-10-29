@@ -12,7 +12,7 @@ import {
   parseCampusMapQuery,
   type CampusMapFilters,
 } from '@/lib/campus-map';
-import type { ExhibitionCategory } from '@/lib/exhibitions';
+import type { ListingCategory } from '@/lib/exhibitions';
 
 // 企画一覧の絞り込み UI (ExhibitionFilters) とデバウンス時間を揃える (design.md 参照)
 const KEYWORD_DEBOUNCE_MS = 300;
@@ -23,7 +23,7 @@ export interface UseMapFiltersResult {
   /** 検索欄に束縛する即時値。デバウンス中は filters.q と異なる */
   readonly keywordInput: string;
   readonly setKeywordInput: (value: string) => void;
-  readonly setCategories: (categories: readonly ExhibitionCategory[]) => void;
+  readonly setCategories: (categories: readonly ListingCategory[]) => void;
   readonly selectArea: (areaId: number | null) => void;
 }
 
@@ -96,7 +96,7 @@ export function useMapFilters(): UseMapFiltersResult {
   );
 
   const setCategories = useCallback(
-    (categories: readonly ExhibitionCategory[]) => {
+    (categories: readonly ListingCategory[]) => {
       commit({ ...filtersRef.current, categories });
     },
     [commit],

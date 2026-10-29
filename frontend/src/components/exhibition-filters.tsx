@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react';
 import { SearchIcon } from './icons';
 import {
-  CATEGORY_LABELS,
+  LISTING_CATEGORY_LABELS,
+  LISTING_CATEGORY_VALUES,
   type AreaOption,
-  type ExhibitionCategory,
+  type ListingCategory,
   type ExhibitionQuery,
 } from '@/lib/exhibitions';
 
@@ -20,13 +21,6 @@ export type ExhibitionFilterValues = Pick<
   ExhibitionQuery,
   'q' | 'categories' | 'areaIds'
 >;
-
-const CATEGORY_OPTIONS: readonly ExhibitionCategory[] = [
-  'stage',
-  'exhibit',
-  'vendor',
-  'other',
-];
 
 // 1 打鍵ごとの URL 更新 (履歴汚染・再描画の頻発) を避けるための確定待ち時間 (要件 2.1)
 const KEYWORD_DEBOUNCE_MS = 300;
@@ -54,7 +48,7 @@ export function ExhibitionFilters({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keyword]);
 
-  const toggleCategory = (category: ExhibitionCategory) => {
+  const toggleCategory = (category: ListingCategory) => {
     const categories = query.categories.includes(category)
       ? query.categories.filter((c) => c !== category)
       : [...query.categories, category];
@@ -92,7 +86,7 @@ export function ExhibitionFilters({
         >
           <span className="text-sm font-bold text-text lg:w-20">カテゴリ</span>
           <div className="flex flex-wrap gap-2">
-            {CATEGORY_OPTIONS.map((category) => {
+            {LISTING_CATEGORY_VALUES.map((category) => {
               const pressed = query.categories.includes(category);
               return (
                 <button
@@ -106,7 +100,7 @@ export function ExhibitionFilters({
                       : 'border-gray-200 bg-background text-text'
                   }`}
                 >
-                  {CATEGORY_LABELS[category]}
+                  {LISTING_CATEGORY_LABELS[category]}
                 </button>
               );
             })}

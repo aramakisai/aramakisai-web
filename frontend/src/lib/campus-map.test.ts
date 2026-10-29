@@ -475,6 +475,32 @@ describe('getCampusMapLastModified', () => {
     expect(await getCampusMapLastModified()).toBe('2023-04-01T00:00:00.000Z');
   });
 
+  it('企業ブースの更新日時も最大値の対象にする', async () => {
+    vi.mocked(cms.findMany).mockImplementation((async (collection: string) => {
+      const table: Record<string, unknown[]> = {
+        student_exhibitions: [{ updatedAt: '2023-04-01T00:00:00.000Z' }],
+        sponsors: [
+          {
+            id: 1,
+            type: ['vendor'],
+            vendor: { name: 'ブース' },
+            updatedAt: '2023-05-01T00:00:00.000Z',
+          },
+          {
+            id: 2,
+            type: ['vendor'],
+            vendor: { name: ' ' },
+            updatedAt: '2023-06-01T00:00:00.000Z',
+          },
+        ],
+      };
+      const docs = table[collection] ?? [];
+      return { ok: true, value: { docs, totalDocs: docs.length } };
+    }) as never);
+
+    expect(await getCampusMapLastModified()).toBe('2023-05-01T00:00:00.000Z');
+  });
+
   it('公開済み企画のみを対象にする where 条件を明示的に送る', async () => {
     vi.mocked(cms.findMany).mockResolvedValue({
       ok: true,

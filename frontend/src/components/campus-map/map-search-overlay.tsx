@@ -2,17 +2,17 @@
 
 import { SearchIcon } from '@/components/icons';
 import {
-  CATEGORY_LABELS,
-  CATEGORY_VALUES,
-  type ExhibitionCategory,
+  LISTING_CATEGORY_LABELS,
+  LISTING_CATEGORY_VALUES,
+  type ListingCategory,
 } from '@/lib/exhibitions';
 import { useIsAboveMapBreakpoint } from './use-is-above-map-breakpoint';
 
 export interface MapSearchOverlayProps {
   readonly keywordInput: string;
   readonly setKeywordInput: (value: string) => void;
-  readonly categories: readonly ExhibitionCategory[];
-  readonly setCategories: (categories: readonly ExhibitionCategory[]) => void;
+  readonly categories: readonly ListingCategory[];
+  readonly setCategories: (categories: readonly ListingCategory[]) => void;
 }
 
 export function MapSearchOverlay({
@@ -23,7 +23,7 @@ export function MapSearchOverlay({
 }: MapSearchOverlayProps) {
   const isAboveBreakpoint = useIsAboveMapBreakpoint();
 
-  const toggleCategory = (category: ExhibitionCategory) => {
+  const toggleCategory = (category: ListingCategory) => {
     setCategories(
       categories.includes(category)
         ? categories.filter((c) => c !== category)
@@ -77,7 +77,7 @@ export function MapSearchOverlay({
         >
           すべて
         </button>
-        {CATEGORY_VALUES.map((category) => {
+        {LISTING_CATEGORY_VALUES.map((category) => {
           const pressed = categories.includes(category);
           return (
             <button
@@ -92,7 +92,7 @@ export function MapSearchOverlay({
                   : 'border-gray-200 bg-white/95 text-text'
               }`}
             >
-              {CATEGORY_LABELS[category]}
+              {LISTING_CATEGORY_LABELS[category]}
             </button>
           );
         })}

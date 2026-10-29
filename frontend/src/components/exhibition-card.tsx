@@ -3,12 +3,12 @@ import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import { getExhibitionTexture } from '@/lib/exhibition-color';
 import { toAssetUrl } from '@/lib/cms-asset-url';
-import type { ExhibitionCardSummary } from '@/lib/exhibitions';
+import { listingHref, type ListingCard } from '@/lib/exhibitions';
 import { BookmarkButton } from './bookmark-button';
 import { ImageIcon, PlaceIcon } from './icons';
 
 export interface ExhibitionCardProps {
-  readonly exhibition: ExhibitionCardSummary;
+  readonly exhibition: ListingCard;
   readonly bookmarkable?: boolean;
   readonly variant?: 'site' | 'signage';
 }
@@ -31,6 +31,8 @@ export function ExhibitionCard({
     backgroundPosition: `${position[0]}% ${position[1]}%`,
   };
 
+  // 企業ブースは ブックマーク・スタンプの保存形式 (学生企画のカテゴリ) の対象外
+  const showBookmark = bookmarkable && exhibition.category !== 'booth';
   const signage = variant === 'signage';
   const thumbnailUrl = exhibition.thumbnail
     ? toAssetUrl(exhibition.thumbnail.id, 960)
@@ -39,7 +41,7 @@ export function ExhibitionCard({
   return (
     <div className="relative flex flex-col overflow-clip rounded-xl hover-card-shadow">
       <Link
-        href={`/exhibitions/${exhibition.id}/${exhibition.category}`}
+        href={listingHref(exhibition)}
         className="flex flex-col focus-visible:outline-offset-[-2px]"
       >
         <div className="relative flex aspect-[300/225] w-full shrink-0 items-center justify-center overflow-clip bg-gray-200">
@@ -54,7 +56,7 @@ export function ExhibitionCard({
           )}
         </div>
         <div
-          className={`relative flex flex-col overflow-clip p-4 ${bookmarkable ? 'pr-14' : ''}`}
+          className={`relative flex flex-col overflow-clip p-4 ${showBookmark ? 'pr-14' : ''}`}
         >
           <div
             aria-hidden
@@ -91,7 +93,7 @@ export function ExhibitionCard({
           </div>
         </div>
       </Link>
-      {bookmarkable && (
+      {showBookmark && (
         <BookmarkButton
           exhibitionId={exhibition.id}
           category={exhibition.category}

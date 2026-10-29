@@ -2,15 +2,23 @@ import { render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
 import MapPage, { generateMetadata, revalidate } from './page';
 import * as campusMapModule from '@/lib/campus-map';
+import * as corporateBoothsModule from '@/lib/corporate-booths';
 import * as siteMetadataModule from '@/lib/site-metadata';
 import type { CampusMapArea, CampusMapDataResult } from '@/lib/campus-map';
-import type { ExhibitionCardSummary } from '@/lib/exhibitions';
+import type {
+  CorporateBoothCard,
+  ExhibitionCardSummary,
+} from '@/lib/exhibitions';
 import type { SiteMetadata } from '@/lib/site-metadata';
 
 vi.mock('@/lib/campus-map', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/campus-map')>();
   return { ...actual, getCampusMapData: vi.fn() };
 });
+
+vi.mock('@/lib/corporate-booths', () => ({
+  getCorporateBoothCards: vi.fn(),
+}));
 
 vi.mock('@/lib/get-navigation', async () => {
   const { navigationItemsByPhase } = await import('@/lib/navigation');
@@ -112,6 +120,9 @@ const SITE_METADATA: SiteMetadata = {
 describe('MapPage', () => {
   beforeEach(() => {
     vi.mocked(campusMapModule.getCampusMapData).mockReset();
+    vi.mocked(corporateBoothsModule.getCorporateBoothCards)
+      .mockReset()
+      .mockResolvedValue([]);
     vi.mocked(siteMetadataModule.getSiteMetadata).mockResolvedValue(
       SITE_METADATA,
     );
@@ -136,6 +147,44 @@ describe('MapPage', () => {
 
     expect(screen.getByTestId('campus-map-screen')).toBeInTheDocument();
     expect(screenProps.at(-1)!.data).toEqual(data);
+  });
+
+  it('企業ブースのカードを CampusMapScreen へ渡す', async () => {
+    const booths: CorporateBoothCard[] = [
+      {
+        id: 7,
+        category: 'booth',
+        displayName: 'ブース',
+        organizationName: '企業',
+        location: null,
+        areaIds: [],
+        thumbnail: null,
+      },
+    ];
+    vi.mocked(campusMapModule.getCampusMapData).mockResolvedValue(
+      dataResult({}),
+    );
+    vi.mocked(corporateBoothsModule.getCorporateBoothCards).mockResolvedValue(
+      booths,
+    );
+
+    await renderPage();
+
+    expect(screenProps.at(-1)!.booths).toEqual(booths);
+  });
+
+  it('企業ブースの実行時の取得失敗は例外を投げ、ビルド時は空で描画する', async () => {
+    vi.mocked(campusMapModule.getCampusMapData).mockResolvedValue(
+      dataResult({}),
+    );
+    vi.mocked(corporateBoothsModule.getCorporateBoothCards).mockRejectedValue(
+      new Error('booth error'),
+    );
+    await expect(renderPage()).rejects.toThrow('booth error');
+
+    vi.stubEnv('NEXT_PHASE', 'phase-production-build');
+    await renderPage();
+    expect(screenProps.at(-1)!.booths).toEqual([]);
   });
 
   it('実行時にエリアか出展物の取得が失敗したら例外を投げる (ISR が古いページを保つため)', async () => {

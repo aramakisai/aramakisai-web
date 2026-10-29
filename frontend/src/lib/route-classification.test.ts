@@ -32,6 +32,7 @@ const INTENTIONALLY_PRIVATE_ROUTES: readonly string[] = [
   '/topics/[id]',
   '/exhibitions',
   '/exhibitions/[id]/[category]',
+  '/exhibitions/booth/[id]',
   '/map',
   '/mypage',
   '/timetable',
