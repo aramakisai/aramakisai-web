@@ -148,20 +148,6 @@ describe('.github/workflows/frontend-ci.yml', () => {
     ).toBe(true);
   });
 
-  it('runs only non-fixture tests against the staging preview', () => {
-    const workflow = loadWorkflow();
-    const previewCommands = workflow.jobs.e2e.steps
-      .filter((step) => step.run)
-      .map((step) => step.run);
-
-    expect(previewCommands).toContain(
-      'infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=staging -- env NEXT_PUBLIC_CMS_URL=https://cms.aramakisai.com pnpm exec playwright test --grep-invert \'@local-fixture\'',
-    );
-    expect(previewCommands).not.toContain(
-      "pnpm exec playwright test --grep '@local-fixture'",
-    );
-  });
-
   it('runs deploy-dev job on push to dev branch', () => {
     const workflow = loadWorkflow();
     const job = workflow.jobs['deploy-dev'];

@@ -8,13 +8,25 @@ import type { FitBoundsOptions, LatLngBoundsExpression, Point } from 'leaflet';
 import { AttributionControl, MapContainer, TileLayer } from 'react-leaflet';
 import { MapViewportController } from '@/components/map/map-viewport-controller';
 import { MapZoomControl } from '@/components/campus-map/map-zoom-control';
-import { MAP_ATTRIBUTION } from '@/lib/campus-map-config';
-import type { RegionalMapConfig } from '@/lib/regional-map-config';
+import { CAMPUS_MAP_CONFIG, MAP_ATTRIBUTION } from '@/lib/campus-map-config';
+import { REGIONAL_MAP_TILE_PROFILE as profile } from '@/lib/map-tile-profile';
 import type { RegionalSponsor } from '@/lib/regional-sponsors';
 import { RegionalSponsorMarkerLayer } from './regional-sponsor-marker-layer';
 
 const TRANSPARENT_TILE_URL =
   'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ycAAAAAAQABAAACAUwAOw==';
+
+// 新規座標を推測せず、確定済みの会場マップのキャンパス範囲中央と最小 zoom から始める
+const [[campusSouth, campusWest], [campusNorth, campusEast]] =
+  CAMPUS_MAP_CONFIG.campusBounds;
+const INITIAL_CENTER: [number, number] = [
+  (campusSouth + campusNorth) / 2,
+  (campusWest + campusEast) / 2,
+];
+const INITIAL_ZOOM = CAMPUS_MAP_CONFIG.minZoom;
+// 整数の native zoom にする。x.5 だと Leaflet がタイルの z を丸める境界に乗り、
+// flyTo の途中でわずかに引いただけで 1 段下のタイルを引き伸ばした表示に切り替わる
+const FOCUS_ZOOM = profile.maxNativeZoom;
 
 // 会場マップの MapViewportSync と同じ、ピンが画面端に接しないための余白
 const FIT_MARGIN = 32;
@@ -31,7 +43,6 @@ function mobileOverlayBottom(container: HTMLElement | null) {
 }
 
 export interface RegionalSponsorMapViewProps {
-  readonly profile: RegionalMapConfig | null;
   readonly sponsors: readonly RegionalSponsor[];
   readonly selectedSponsorId: number | null;
   readonly isDesktop: boolean;
@@ -41,11 +52,10 @@ export interface RegionalSponsorMapViewProps {
   /** SP で展開したシートが地図を覆うとき、構内マップの全画面シートと同様にズームと出典表記を出さない */
   readonly controlsHidden?: boolean;
   readonly onSelectSponsor: (sponsorId: number) => void;
-  readonly onSelectLocation: (locationKey: string) => void;
+  readonly onSelectLocation: (sponsorIds: readonly number[]) => void;
 }
 
 export function RegionalSponsorMapView({
-  profile,
   sponsors,
   selectedSponsorId,
   isDesktop,
@@ -91,15 +101,15 @@ export function RegionalSponsorMapView({
           FIT_MARGIN + (isDesktop ? 16 : sheetHeight),
         ],
         // 1 件だけ、または全件が近接のときに過剰に寄らないよう従来の初期 zoom を上限にする
-        maxZoom: profile?.initialZoom,
+        maxZoom: INITIAL_ZOOM,
         animate: false,
       };
     },
-    [isDesktop, markerSize, mobileBottomInset, profile?.initialZoom],
+    [isDesktop, markerSize, mobileBottomInset],
   );
 
-  const fitOptions = useMemo<FitBoundsOptions>(
-    () => ({
+  const fitOptions = useCallback(
+    (): FitBoundsOptions => ({
       paddingTopLeft: isDesktop ? [396, 24] : [16, 136],
       paddingBottomRight: isDesktop ? [24, 24] : [16, mobileBottomInset + 16],
       animate: false,
@@ -107,9 +117,12 @@ export function RegionalSponsorMapView({
     [isDesktop, mobileBottomInset],
   );
   const focusFitOptions = useCallback((): FitBoundsOptions => {
-    if (isDesktop) return fitOptions;
+    if (isDesktop) return fitOptions();
     const sheetHeight = getMobileSheetTargetHeight?.() ?? mobileBottomInset;
-    return { ...fitOptions, paddingBottomRight: [16, sheetHeight + 16] };
+    return {
+      ...fitOptions(),
+      paddingBottomRight: [16, sheetHeight + 16],
+    };
   }, [fitOptions, getMobileSheetTargetHeight, isDesktop, mobileBottomInset]);
   // 範囲外のタイルが見えないよう、広げる幅と最小 zoom の余白は覆い隠される領域(SP の検索 overlay と
   // シート)だけにする。PC はパネルの隙間から範囲外が見えるため広げず、画面全体を範囲で覆う
@@ -128,17 +141,6 @@ export function RegionalSponsorMapView({
     [isDesktop, mobileBottomInset],
   );
 
-  if (!profile) {
-    return (
-      <div
-        className="flex h-full w-full items-center justify-center bg-gray-100 text-sm text-gray-600"
-        role="status"
-      >
-        地域地図は準備中です
-      </div>
-    );
-  }
-
   const bounds = profile.bounds as unknown as LatLngBoundsExpression;
   const selectedSponsor =
     selectedSponsorId == null
@@ -154,8 +156,8 @@ export function RegionalSponsorMapView({
       }
     >
       <MapContainer
-        center={profile.initialCenter}
-        zoom={profile.initialZoom}
+        center={INITIAL_CENTER}
+        zoom={INITIAL_ZOOM}
         minZoom={profile.minZoom}
         maxZoom={profile.maxZoom}
         maxBounds={bounds}
@@ -190,8 +192,8 @@ export function RegionalSponsorMapView({
           }}
         />
         <MapViewportController
-          initialCenter={profile.initialCenter}
-          initialZoom={profile.initialZoom}
+          initialCenter={INITIAL_CENTER}
+          initialZoom={INITIAL_ZOOM}
           initialFitBounds={initialPinBounds}
           initialFitOptions={initialFitOptions}
           focusCenter={
@@ -200,20 +202,19 @@ export function RegionalSponsorMapView({
               : null
           }
           focusKey={selectedSponsorId}
-          focusZoom={profile.focusZoom}
+          focusZoom={FOCUS_ZOOM}
           maxBounds={bounds}
           minZoom={profile.minZoom}
           minZoomPadding={minZoomPadding}
           fitOptions={fitOptions}
           focusFitOptions={focusFitOptions}
           refocusKey={isDesktop ? 'desktop' : 'mobile'}
-          extendMaxBoundsByPadding={!isDesktop}
-          maxBoundsPadding={maxBoundsPadding}
+          maxBoundsPadding={isDesktop ? undefined : maxBoundsPadding}
         />
         <RegionalSponsorMarkerLayer
           sponsors={sponsors}
           selectedSponsorId={selectedSponsorId}
-          profile={profile}
+          maxZoom={profile.maxZoom}
           markerSize={markerSize}
           visibleAreaOptions={initialFitOptions}
           onSelectSponsor={onSelectSponsor}

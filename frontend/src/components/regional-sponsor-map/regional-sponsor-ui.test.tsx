@@ -26,10 +26,8 @@ function sponsor(overrides: Partial<RegionalSponsor> = {}): RegionalSponsor {
     imageDecorative: false,
     message: '応援メッセージ\n2行目',
     businessHours: '午前 9時〜12時\n午後 14時〜18時',
-    closedDays: '日曜日',
     phone: '000-0000-0000',
     websiteUrl: 'https://example.invalid/',
-    order: 0,
     ...overrides,
   };
 }
@@ -39,10 +37,9 @@ describe('SponsorImage / RegionalSponsorCard', () => {
     const { rerender } = render(
       <SponsorImage sponsor={sponsor()} variant="card" className="h-20 w-20" />,
     );
-    expect(screen.getByRole('img')).toHaveAttribute(
-      'src',
-      'https://cms.invalid/fixture-image?width=160',
-    );
+    expect(
+      screen.getByRole('img', { name: 'テスト専用掲載画像' }),
+    ).toHaveAttribute('src', 'https://cms.invalid/fixture-image?width=160');
     expect(screen.getByRole('img')).toHaveClass('object-contain');
     expect(screen.getByRole('img')).toHaveAttribute('loading', 'lazy');
     expect(screen.getByRole('img')).toHaveAttribute('decoding', 'async');
@@ -72,12 +69,13 @@ describe('SponsorImage / RegionalSponsorCard', () => {
         sponsor={sponsor({
           imageId: 'decorative-fixture',
           imageDecorative: true,
-          imageAlt: null,
+          imageAlt: '装飾のはずの代替テキスト',
         })}
         variant="card"
       />,
     );
     expect(container.querySelector('img')).toHaveAttribute('alt', '');
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });
 
   it.each<[RegionalSponsorCategory, string]>([
@@ -101,16 +99,6 @@ describe('SponsorImage / RegionalSponsorCard', () => {
     fireEvent.click(screen.getByRole('button', { name: /詳細を表示/ }));
     expect(onSelect).toHaveBeenCalledOnce();
   });
-
-  it('未知カテゴリを除外せず中立色の未分類として表示する', () => {
-    render(
-      <RegionalSponsorCard
-        sponsor={sponsor({ category: 'future-category' })}
-        onSelect={vi.fn()}
-      />,
-    );
-    expect(screen.getByText('未分類')).toBeInTheDocument();
-  });
 });
 
 describe('RegionalSponsorList / RegionalSponsorDetail', () => {
@@ -122,7 +110,6 @@ describe('RegionalSponsorList / RegionalSponsorDetail', () => {
           sponsor({ id: 2, name: '先' }),
           sponsor({ id: 1, name: '後' }),
         ]}
-        selectedSponsorId={null}
         initialScrollTop={0}
         onScrollTopChange={onScroll}
         onSelect={vi.fn()}
@@ -136,7 +123,6 @@ describe('RegionalSponsorList / RegionalSponsorDetail', () => {
     rerender(
       <RegionalSponsorList
         sponsors={[]}
-        selectedSponsorId={null}
         initialScrollTop={0}
         onScrollTopChange={onScroll}
         onSelect={vi.fn()}
@@ -155,6 +141,15 @@ describe('RegionalSponsorList / RegionalSponsorDetail', () => {
     );
     expect(screen.getByRole('heading', { level: 1 })).toHaveFocus();
     expect(screen.getByText('診療時間・休診日')).toBeInTheDocument();
+    expect(screen.getByText('テスト県テスト市1-2-3')).toBeInTheDocument();
+    expect(screen.getByText('000-0000-0000')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        (_, el) =>
+          el?.textContent === '午前 9時〜12時\n午後 14時〜18時' &&
+          el.children.length === 0,
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText(/午前 9時〜12時/)).toHaveClass(
       'whitespace-pre-wrap',
     );
@@ -163,16 +158,15 @@ describe('RegionalSponsorList / RegionalSponsorDetail', () => {
     ).toHaveAttribute('rel', 'noopener noreferrer');
   });
 
-  it('任意項目・空節・無効URLをDOMごと省略し、病院以外の見出しを使う', () => {
+  it('任意項目・空節・URLなしをDOMごと省略し、病院以外の見出しを使う', () => {
     render(
       <RegionalSponsorDetail
         sponsor={sponsor({
           message: null,
           address: null,
           businessHours: '10時から',
-          closedDays: null,
           phone: null,
-          websiteUrl: 'javascript:alert(1)',
+          websiteUrl: null,
         })}
         onBack={vi.fn()}
       />,

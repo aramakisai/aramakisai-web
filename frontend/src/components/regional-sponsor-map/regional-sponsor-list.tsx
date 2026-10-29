@@ -4,13 +4,16 @@ import { useLayoutEffect, useRef } from 'react';
 import type { RegionalSponsor } from '@/lib/regional-sponsors';
 import { RegionalSponsorBackButton } from './regional-sponsor-back-button';
 import { RegionalSponsorCard } from './regional-sponsor-card';
+import {
+  LIST_TITLE_ID,
+  LOCATION_LIST_TITLE_ID,
+} from './use-regional-sponsor-map-state';
 
 export interface RegionalSponsorListProps {
   readonly sponsors: readonly RegionalSponsor[];
-  readonly selectedSponsorId: number | null;
   readonly initialScrollTop: number;
   readonly onScrollTopChange: (scrollTop: number) => void;
-  readonly onSelect: (sponsor: RegionalSponsor) => void;
+  readonly onSelect: (sponsorId: number) => void;
   readonly emptyMessage?: string;
   /** Figma の見出し・区切り線まわりの間隔は PC パネルと SP シートで異なる */
   readonly variant?: 'panel' | 'sheet';
@@ -20,7 +23,6 @@ export interface RegionalSponsorListProps {
 
 export function RegionalSponsorList({
   sponsors,
-  selectedSponsorId,
   initialScrollTop,
   onScrollTopChange,
   onSelect,
@@ -30,9 +32,7 @@ export function RegionalSponsorList({
 }: RegionalSponsorListProps) {
   const panel = variant === 'panel';
   const location = onLocationBack !== undefined;
-  const titleId = location
-    ? 'regional-sponsor-location-list-title'
-    : 'regional-sponsor-list-title';
+  const titleId = location ? LOCATION_LIST_TITLE_ID : LIST_TITLE_ID;
   const scrollRef = useRef<HTMLDivElement>(null);
   // 復元は戻ってきたとき(マウント時)だけ。スクロールのたびに代入し直さない
   useLayoutEffect(() => {
@@ -96,7 +96,6 @@ export function RegionalSponsorList({
               <RegionalSponsorCard
                 key={sponsor.id}
                 sponsor={sponsor}
-                selected={sponsor.id === selectedSponsorId}
                 onSelect={onSelect}
               />
             ))}

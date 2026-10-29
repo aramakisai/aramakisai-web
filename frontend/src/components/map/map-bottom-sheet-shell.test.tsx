@@ -85,18 +85,6 @@ function renderNestedScrollArea(scrollTop: number) {
 }
 
 describe('MapBottomSheetShell', () => {
-  it('reduced motion時はsnap遷移を無効化する', () => {
-    window.matchMedia = vi.fn().mockReturnValue({
-      matches: false,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    });
-    render(<Harness />);
-    expect(screen.getByTestId('map-bottom-sheet')).toHaveClass(
-      'motion-reduce:transition-none',
-    );
-  });
-
   it('内容と一覧用・詳細用の高さ設定を受け取る', () => {
     window.matchMedia = vi.fn().mockReturnValue({
       matches: false,
@@ -219,7 +207,6 @@ describe('MapBottomSheetShell', () => {
         snapId="rest"
         restSnapId="rest"
         onSnapChange={onSnapChange}
-        bottomClassName="bottom-[var(--bottom-nav)]"
         outerClassName="bottom-nav-test clip-bottom-shadow"
         sheetShadowClassName="shadow-card"
       >
@@ -241,7 +228,7 @@ describe('MapBottomSheetShell', () => {
 
     expect(sheet.style.height).toBe('736px');
     expect(wrapper).toHaveClass(
-      'bottom-[var(--bottom-nav)]',
+      'bottom-[var(--map-nav,0px)]',
       'clip-bottom-shadow',
     );
     expect(sheet).toHaveClass('shadow-card');

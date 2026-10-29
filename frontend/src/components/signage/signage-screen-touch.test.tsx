@@ -12,6 +12,7 @@ vi.mock('qrcode', () => ({
   default: { toString: vi.fn(async () => '<svg/>') },
 }));
 
+import type { SignageSlide, SignageSnapshot } from '@/lib/signage';
 import type { SignageChannelState } from '@/lib/use-signage-channel';
 import { SignageScreen } from './signage-screen';
 
@@ -144,6 +145,48 @@ describe('操作層の組み込み(5.1)', () => {
     fireEvent.pointerDown(root(container));
     expect(hasNav(container)).toBeFalsy();
     expect(requestFullscreen).toHaveBeenCalledTimes(1);
+  });
+
+  it('固定スライドがあるあいだはタップで開かず、解除後は開く', () => {
+    const slide: SignageSlide = {
+      id: 1,
+      durationSec: 10,
+      kind: 'layout',
+      layout: 'title',
+      tone: 'normal',
+      title: 't',
+      subtext: null,
+      content1Html: '',
+      content2Html: '',
+    };
+    const snapshot = {
+      serverNow: '2026-11-14T00:00:00Z',
+      pinnedSlideId: null,
+      eventDays: [],
+      slides: [slide],
+      quakeSlides: {},
+      telops: [],
+      timetable: { days: [], stages: [], performances: [] },
+      sponsors: [],
+      lostItems: [],
+      parking: { isEventDay: false, fetchedAt: '', lots: [] },
+    } as unknown as SignageSnapshot;
+    const ui = () => (
+      <SignageScreen initial={snapshot} renderedAt={snapshot.serverNow} />
+    );
+    channel = { ...channel, pin: { slide, visibleSlideIds: [1] } };
+    const { container, rerender } = render(ui());
+    fireEvent.pointerDown(root(container));
+    expect(hasNav(container)).toBeFalsy();
+
+    channel = { ...channel, pin: { slide: null, visibleSlideIds: [1] } };
+    rerender(ui());
+    fireEvent.pointerDown(root(container));
+    expect(hasNav(container)).toBe(true);
+
+    channel = { ...channel, pin: { slide, visibleSlideIds: [1] } };
+    rerender(ui());
+    expect(container.querySelector('.fade-out')).not.toBeNull();
   });
 
   it('操作層は速報オーバーレイより前の兄弟として並ぶ', () => {

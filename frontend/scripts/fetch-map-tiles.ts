@@ -6,7 +6,6 @@ import {
   resolveMapTileProfileFromArgs,
   type MapTileBoundsResult,
 } from './map-tile-bounds';
-import type { MapTileProfile } from '../src/lib/map-tile-profile';
 
 export interface TileCoord {
   readonly zoom: number;
@@ -156,36 +155,16 @@ export async function fetchMapTiles(
   return { succeededCount, failures };
 }
 
-export function fetchMapTileProfile(
-  profile: MapTileProfile,
-  options: FetchMapTilesOptions,
-): Promise<FetchMapTilesResult> {
-  return fetchMapTiles(
-    tileCoordsFromBoundsResult(calculateMapTileBounds(profile)),
-    options,
-  );
-}
-
 async function main(): Promise<void> {
-  let profile: MapTileProfile;
-  try {
-    profile = resolveMapTileProfileFromArgs(process.argv.slice(2));
-  } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error));
-    process.exitCode = 1;
-    return;
-  }
-
+  const profile = resolveMapTileProfileFromArgs(process.argv.slice(2));
   const baseUrl = process.env.MAP_TILE_SERVER_URL ?? 'http://localhost:8080';
-  const outDir =
-    process.env.MAP_TILES_OUT_DIR ??
-    (profile.id === 'campus' ? 'rendered-tiles' : 'regional-map-tiles');
+  const outDir = process.env.MAP_TILES_OUT_DIR ?? `${profile.id}-map-tiles`;
   const coords = tileCoordsFromBoundsResult(calculateMapTileBounds(profile));
   console.log(
     `${profile.id}: ${coords.length} 枚を ${baseUrl} から取得します (並列度: ${DEFAULT_CONCURRENCY})`,
   );
 
-  const result = await fetchMapTileProfile(profile, {
+  const result = await fetchMapTiles(coords, {
     baseUrl,
     outDir,
     fetchTileBytes: createHttpFetchTileBytes(),

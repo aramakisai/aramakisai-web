@@ -1,38 +1,27 @@
 import type { CollectionBeforeValidateHook } from 'payload'
 import { ValidationError } from 'payload'
 
-import { blankToNull, type ConstraintViolation } from './constraints'
+import { blankToNull, type ConstraintViolation, hasValue } from './constraints'
 
 type LocalSponsorDoc = Record<string, unknown> & {
   readonly type?: unknown
   readonly url?: unknown
-  readonly local_map_category?: unknown
+  readonly business_category?: unknown
   readonly local_latitude?: unknown
   readonly local_longitude?: unknown
-  readonly local_image?: unknown
-  readonly local_image_alt?: unknown
-  readonly local_image_decorative?: unknown
   readonly address?: unknown
 }
 
 const LOCAL_TEXT_FIELDS = [
-  'local_import_id',
   'url',
   'address',
   'description',
-  'local_image_alt',
   'local_business_hours',
-  'local_closed_days',
   'local_phone',
-  'local_image_checksum',
 ] as const
 
 function isLocal(doc: LocalSponsorDoc): boolean {
   return Array.isArray(doc.type) && doc.type.includes('local')
-}
-
-function hasValue(value: unknown): boolean {
-  return value !== null && value !== undefined && value !== ''
 }
 
 function normalizeLocalTextFields<T extends LocalSponsorDoc>(doc: T): T {
@@ -41,10 +30,6 @@ function normalizeLocalTextFields<T extends LocalSponsorDoc>(doc: T): T {
     if (field in doc) normalized[field] = blankToNull(doc[field])
   }
   return normalized as T
-}
-
-export function normalizeLocalSponsorMap<T extends LocalSponsorDoc>(doc: T): T {
-  return isLocal(doc) ? normalizeLocalTextFields(doc) : doc
 }
 
 export function validateLocalSponsorMap(doc: LocalSponsorDoc): readonly ConstraintViolation[] {
@@ -62,17 +47,6 @@ export function validateLocalSponsorMap(doc: LocalSponsorDoc): readonly Constrai
       })
     }
   }
-
-  if (hasValue(doc.local_image)) {
-    const hasAlt = typeof doc.local_image_alt === 'string' && doc.local_image_alt.trim() !== ''
-    const decorative = doc.local_image_decorative === true
-    if (hasAlt === decorative) {
-      violations.push({
-        field: 'local_image_alt',
-        message: '掲載画像には代替テキストまたは装飾画像の指定が必要です',
-      })
-    }
-  }
   return violations
 }
 
@@ -87,9 +61,8 @@ function validCoordinatePair(doc: LocalSponsorDoc): boolean {
 
 export async function geocodeLocalSponsorAddress(
   address: string,
-  fetchImpl: typeof fetch = fetch,
 ): Promise<{ latitude: number; longitude: number }> {
-  const response = await fetchImpl(
+  const response = await fetch(
     `https://msearch.gsi.go.jp/address-search/AddressSearch?q=${encodeURIComponent(address)}`,
     { signal: AbortSignal.timeout(5_000) },
   )
@@ -111,32 +84,21 @@ export async function geocodeLocalSponsorAddress(
   return { latitude: coordinates[1], longitude: coordinates[0] }
 }
 
-function hasOwn(doc: LocalSponsorDoc, field: string): boolean {
-  return Object.prototype.hasOwnProperty.call(doc, field)
-}
-
 export const localSponsorMapConstraint: CollectionBeforeValidateHook = async ({
   data,
   originalDoc,
-  req,
 }) => {
   const partial = (data ?? {}) as LocalSponsorDoc
   const effective = { ...(originalDoc ?? {}), ...partial }
   let normalized = isLocal(effective) ? normalizeLocalTextFields(partial) : partial
   let normalizedEffective = { ...(originalDoc ?? {}), ...normalized }
 
-  if (isLocal(normalizedEffective) && hasValue(normalizedEffective.local_map_category)) {
+  if (isLocal(normalizedEffective) && hasValue(normalizedEffective.business_category)) {
     const address = blankToNull(normalizedEffective.address)
     const addressChanged =
-      hasOwn(partial, 'address') && address !== blankToNull(originalDoc?.address)
-    // 管理画面は readOnly 項目も含め全項目を送るため、data に座標があるだけでは明示指定と区別できない。
-    // 取り込み CLI が context フラグを付けたときだけ座標を信頼する。
-    const coordinatesExplicitlyProvided =
-      req?.context?.localSponsorExplicitCoordinates === true &&
-      hasOwn(partial, 'local_latitude') && hasOwn(partial, 'local_longitude')
-    const needsGeocode =
-      !validCoordinatePair(normalizedEffective) ||
-      (addressChanged && !coordinatesExplicitlyProvided)
+      Object.hasOwn(partial, 'address') && address !== blankToNull(originalDoc?.address)
+    // 管理画面は全項目を送るため、住所が変わった保存では data の座標が旧住所のものでも、手入力と区別できず geocode 結果を優先する。
+    const needsGeocode = !validCoordinatePair(normalizedEffective) || addressChanged
 
     if (needsGeocode) {
       if (typeof address !== 'string') {

@@ -66,7 +66,6 @@ export interface VerifyMapTilesResult {
   readonly blankTileViolations: readonly BlankTileViolation[];
   readonly landmarkViolations: readonly LandmarkViolation[];
   readonly totalSizeBytes: number;
-  readonly exceedsTileCountLimit: boolean;
   readonly exceedsByteLimit: boolean;
 }
 
@@ -142,7 +141,6 @@ export async function verifyMapTiles(
     blankTileViolations,
     landmarkViolations,
     totalSizeBytes,
-    exceedsTileCountLimit: totalCount > profile.expectedMaxTileCount,
     exceedsByteLimit: totalSizeBytes > profile.expectedMaxBytes,
   };
 }
@@ -155,50 +153,17 @@ export function hasMapTileVerificationFailure(
     result.invalidTiles.length > 0 ||
     result.blankTileViolations.length > 0 ||
     result.landmarkViolations.length > 0 ||
-    result.exceedsTileCountLimit ||
     result.exceedsByteLimit
   );
 }
 
-function webpDimensions(body: Buffer): readonly [number, number] | null {
-  const chunkType = body.toString('ascii', 12, 16);
-  if (chunkType === 'VP8X' && body.length >= 30) {
-    return [body.readUIntLE(24, 3) + 1, body.readUIntLE(27, 3) + 1];
-  }
-  if (
-    chunkType === 'VP8 ' &&
-    body.length >= 30 &&
-    body[23] === 0x9d &&
-    body[24] === 0x01 &&
-    body[25] === 0x2a
-  ) {
-    return [body.readUInt16LE(26) & 0x3fff, body.readUInt16LE(28) & 0x3fff];
-  }
-  if (chunkType === 'VP8L' && body.length >= 25 && body[20] === 0x2f) {
-    return [
-      1 + body[21]! + ((body[22]! & 0x3f) << 8),
-      1 + (body[22]! >> 6) + (body[23]! << 2) + ((body[24]! & 0x0f) << 10),
-    ];
-  }
-  return null;
-}
-
 export function validateWebpTile(body: Buffer): string | null {
   if (
-    body.length < 20 ||
+    body.length < 12 ||
     body.toString('ascii', 0, 4) !== 'RIFF' ||
     body.toString('ascii', 8, 12) !== 'WEBP'
   ) {
     return 'WebPのRIFFヘッダーがありません';
-  }
-  if (body.readUInt32LE(4) + 8 !== body.length) {
-    return 'WebPのRIFFサイズが実ファイルと一致しません';
-  }
-  const dimensions = webpDimensions(body);
-  if (!dimensions) return 'WebPの画像寸法を読み取れません';
-  const [width, height] = dimensions;
-  if (width !== 256 || height !== 256) {
-    return `WebPの画像寸法が256x256ではありません (${width}x${height})`;
   }
   return null;
 }
@@ -225,14 +190,7 @@ function formatBytes(bytes: number): string {
 }
 
 async function main(): Promise<void> {
-  let profile: MapTileProfile;
-  try {
-    profile = resolveMapTileProfileFromArgs(process.argv.slice(2));
-  } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error));
-    process.exitCode = 1;
-    return;
-  }
+  const profile = resolveMapTileProfileFromArgs(process.argv.slice(2));
   const tilesDir =
     process.env.MAP_TILES_DIR ??
     path.join(__dirname, '..', profile.publicDirectory);
@@ -265,9 +223,6 @@ async function main(): Promise<void> {
     console.error(
       `${v.name} を含む z${v.zoom}/${v.x}/${v.y}.webp が ${v.sizeBytes}B (${LANDMARK_MIN_BYTES}B未満)`,
     );
-  }
-  if (result.exceedsTileCountLimit) {
-    console.error(`最大枚数 ${profile.expectedMaxTileCount} 枚を超えています`);
   }
   if (result.exceedsByteLimit) {
     console.error(`最大容量 ${profile.expectedMaxBytes} bytesを超えています`);

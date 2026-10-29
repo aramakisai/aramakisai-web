@@ -20,10 +20,8 @@ const sponsors: readonly RegionalSponsor[] = [
     imageDecorative: false,
     message: null,
     businessHours: null,
-    closedDays: null,
     phone: null,
     websiteUrl: null,
-    order: 0,
   },
   {
     id: 2,
@@ -37,10 +35,8 @@ const sponsors: readonly RegionalSponsor[] = [
     imageDecorative: false,
     message: null,
     businessHours: null,
-    closedDays: null,
     phone: null,
     websiteUrl: null,
-    order: 1,
   },
   {
     id: 3,
@@ -54,10 +50,8 @@ const sponsors: readonly RegionalSponsor[] = [
     imageDecorative: false,
     message: null,
     businessHours: null,
-    closedDays: null,
     phone: null,
     websiteUrl: null,
-    order: 2,
   },
 ];
 
@@ -103,14 +97,6 @@ describe('filterRegionalSponsors', () => {
       ),
     ).toEqual([3]);
     expect(filterRegionalSponsors(sponsors, '\u0000', new Set())).toEqual([]);
-  });
-
-  it('地図表示範囲の変更とは独立して同じ結果を返す', () => {
-    const before = filterRegionalSponsors(sponsors, '群馬', new Set());
-    const movedMapBounds = [0, 0, 1, 1];
-    movedMapBounds[0] = 50;
-    const after = filterRegionalSponsors(sponsors, '群馬', new Set());
-    expect(after).toEqual(before);
   });
 });
 

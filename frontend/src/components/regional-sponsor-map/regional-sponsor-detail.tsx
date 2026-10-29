@@ -8,18 +8,6 @@ import { HoverLine } from '@/components/hover-line';
 import { RegionalSponsorBackButton } from './regional-sponsor-back-button';
 import { SponsorImage } from './sponsor-image';
 
-function safeWebsiteUrl(value: string | null): string | null {
-  if (!value) return null;
-  try {
-    const url = new URL(value);
-    return url.protocol === 'http:' || url.protocol === 'https:'
-      ? url.toString()
-      : null;
-  } catch {
-    return null;
-  }
-}
-
 export interface RegionalSponsorDetailProps {
   readonly sponsor: RegionalSponsor;
   readonly onBack: () => void;
@@ -40,12 +28,10 @@ export function RegionalSponsorDetail({
   const hoursLabel =
     sponsor.category === 'hospital' ? '診療時間・休診日' : '営業時間・定休日';
   const gap = variant === 'panel' ? 'gap-4' : 'gap-3.5';
-  const websiteUrl = safeWebsiteUrl(sponsor.websiteUrl);
-  const hasHours =
-    sponsor.businessHours !== null || sponsor.closedDays !== null;
+  const { websiteUrl } = sponsor;
   const hasInfo =
     sponsor.address !== null ||
-    hasHours ||
+    sponsor.businessHours !== null ||
     sponsor.phone !== null ||
     websiteUrl !== null;
 
@@ -77,7 +63,7 @@ export function RegionalSponsorDetail({
         <p
           // Figma のタグ幅はチップと同じく 48 + 8 × 文字数
           style={{ width: 48 + 8 * [...category.label].length }}
-          className={`inline-flex h-8 items-center justify-center self-start rounded-full px-3 text-sm font-medium leading-5 text-white ${category.backgroundClass}`}
+          className={`inline-flex h-8 items-center justify-center self-start whitespace-nowrap rounded-full px-3 text-sm font-medium leading-5 text-white ${category.backgroundClass}`}
         >
           {category.label}
         </p>
@@ -121,22 +107,15 @@ export function RegionalSponsorDetail({
                   </dd>
                 </div>
               )}
-              {hasHours && (
+              {sponsor.businessHours && (
                 <div>
                   <dt className="text-xs font-medium leading-[18px] text-gray-600">
                     {hoursLabel}
                   </dt>
                   <dd className="mt-1 leading-[22px] text-text">
-                    {sponsor.businessHours && (
-                      <p className="whitespace-pre-wrap">
-                        {sponsor.businessHours}
-                      </p>
-                    )}
-                    {sponsor.closedDays && (
-                      <p className="whitespace-pre-wrap">
-                        {sponsor.closedDays}
-                      </p>
-                    )}
+                    <p className="whitespace-pre-wrap">
+                      {sponsor.businessHours}
+                    </p>
                   </dd>
                 </div>
               )}

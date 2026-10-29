@@ -3,6 +3,10 @@ import type { Sponsor } from '@/cms-types';
 import { cms, type CmsFetchOptions } from './cms';
 import { toMediaId } from './cms-media';
 import {
+  REGIONAL_SPONSOR_CATEGORIES,
+  type RegionalSponsorCategory,
+} from './regional-sponsor-categories';
+import {
   REGIONAL_MAP_TILE_PROFILE,
   isWithinMapTileProfile,
 } from './map-tile-profile';
@@ -16,7 +20,7 @@ export {
 export interface RegionalSponsor {
   readonly id: number;
   readonly name: string;
-  readonly category: string;
+  readonly category: RegionalSponsorCategory;
   readonly latitude: number;
   readonly longitude: number;
   readonly address: string | null;
@@ -25,10 +29,8 @@ export interface RegionalSponsor {
   readonly imageDecorative: boolean;
   readonly message: string | null;
   readonly businessHours: string | null;
-  readonly closedDays: string | null;
   readonly phone: string | null;
   readonly websiteUrl: string | null;
-  readonly order: number;
 }
 
 export type RegionalSponsorMapDataResult =
@@ -71,16 +73,15 @@ function isCoordinate(
   );
 }
 
-export function toRegionalSponsor(
-  sponsor: Sponsor,
-  order: number,
-): RegionalSponsorConversion {
+export function toRegionalSponsor(sponsor: Sponsor): RegionalSponsorConversion {
   const reasons: string[] = [];
   if (!sponsor.type.includes('local')) reasons.push('typeにlocalがない');
   const name = optionalText(sponsor.name);
   if (name === null) reasons.push('nameが空');
-  const category = optionalText(sponsor.local_map_category);
-  if (category === null) reasons.push('local_map_categoryが空');
+  const category = REGIONAL_SPONSOR_CATEGORIES.find(
+    (value) => value === sponsor.business_category,
+  );
+  if (category === undefined) reasons.push('business_categoryが不正');
   if (!isCoordinate(sponsor.local_latitude, -90, 90)) {
     reasons.push('local_latitudeが不正');
   }
@@ -100,10 +101,12 @@ export function toRegionalSponsor(
   }
   if (reasons.length > 0) return { ok: false, reasons };
 
-  const decorative = sponsor.local_image_decorative === true;
-  const alt = optionalText(sponsor.local_image_alt);
-  const accessibleImage =
-    sponsor.local_image != null && decorative !== (alt !== null);
+  const imageId = toMediaId(sponsor.local_image);
+  // 代替テキストは media の alt。空なら装飾画像として扱う。
+  const alt =
+    typeof sponsor.local_image === 'object' && sponsor.local_image !== null
+      ? optionalText(sponsor.local_image.alt)
+      : null;
 
   return {
     ok: true,
@@ -114,24 +117,15 @@ export function toRegionalSponsor(
       latitude: sponsor.local_latitude!,
       longitude: sponsor.local_longitude!,
       address: optionalText(sponsor.address),
-      imageId: accessibleImage ? toMediaId(sponsor.local_image) : null,
-      imageAlt: accessibleImage && !decorative ? alt : null,
-      imageDecorative: accessibleImage ? decorative : false,
+      imageId,
+      imageAlt: alt,
+      imageDecorative: alt === null,
       message: optionalText(sponsor.description),
       businessHours: optionalText(sponsor.local_business_hours),
-      closedDays: optionalText(sponsor.local_closed_days),
       phone: optionalText(sponsor.local_phone),
       websiteUrl: websiteUrl(sponsor.url),
-      order,
     },
   };
-}
-
-function compareSponsors(a: Sponsor, b: Sponsor): number {
-  if (a._order == null && b._order != null) return 1;
-  if (a._order != null && b._order == null) return -1;
-  if (a._order !== b._order) return a._order! < b._order! ? -1 : 1;
-  return a.id - b.id;
 }
 
 const SPONSOR_SELECT = {
@@ -140,15 +134,11 @@ const SPONSOR_SELECT = {
   address: true,
   url: true,
   description: true,
-  _order: true,
-  local_map_category: true,
+  business_category: true,
   local_latitude: true,
   local_longitude: true,
   local_image: true,
-  local_image_alt: true,
-  local_image_decorative: true,
   local_business_hours: true,
-  local_closed_days: true,
   local_phone: true,
 } as const;
 
@@ -163,19 +153,15 @@ export async function getRegionalSponsorMapData(
       select: SPONSOR_SELECT,
       sort: ['_order', 'id'],
       limit: 0,
-      depth: 0,
+      depth: 1,
     },
     options,
   );
   if (!result.ok) return { ok: false, error: 'unavailable' };
 
-  const localSponsors = result.value.docs
-    .filter((sponsor) => sponsor.type.includes('local'))
-    .slice()
-    .sort(compareSponsors);
   const sponsors: RegionalSponsor[] = [];
-  for (const sponsor of localSponsors) {
-    const converted = toRegionalSponsor(sponsor, sponsors.length);
+  for (const sponsor of result.value.docs) {
+    const converted = toRegionalSponsor(sponsor);
     if (converted.ok) {
       sponsors.push(converted.value);
     } else {

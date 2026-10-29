@@ -103,11 +103,6 @@ function writeGithubOutput(
   const outputPath = process.env.GITHUB_OUTPUT;
   if (!outputPath) return;
   const lines = [
-    `profile=${profile.id}`,
-    `public-directory=${profile.publicDirectory}`,
-    `url-template=${profile.urlTemplate}`,
-    `total-count=${result.totalCount}`,
-    `max-bytes=${profile.expectedMaxBytes}`,
     `bbox=${formatBbox(profile)}`,
     `zoom-ranges=${JSON.stringify(result.zoomRanges)}`,
     '',
@@ -116,20 +111,15 @@ function writeGithubOutput(
 }
 
 function main(): void {
-  try {
-    const profile = resolveMapTileProfileFromArgs(process.argv.slice(2));
-    const result = calculateMapTileBounds(profile);
-    printReport(profile, result);
-    writeGithubOutput(profile, result);
+  const profile = resolveMapTileProfileFromArgs(process.argv.slice(2));
+  const result = calculateMapTileBounds(profile);
+  printReport(profile, result);
+  writeGithubOutput(profile, result);
 
-    if (exceedsTileCountLimit(result, profile)) {
-      console.error(
-        `profile ${profile.id} の最大枚数 (${profile.expectedMaxTileCount} 枚) を超えています。レンダリング前に停止します。`,
-      );
-      process.exitCode = 1;
-    }
-  } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error));
+  if (exceedsTileCountLimit(result, profile)) {
+    console.error(
+      `profile ${profile.id} の最大枚数 (${profile.expectedMaxTileCount} 枚) を超えています。レンダリング前に停止します。`,
+    );
     process.exitCode = 1;
   }
 }

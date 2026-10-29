@@ -33,8 +33,6 @@ export interface MapBottomSheetShellProps {
    */
   readonly onTargetHeightChange?: (height: number) => void;
   readonly contentClassName?: string;
-  readonly sheetClassName?: string;
-  readonly bottomClassName?: string;
   readonly outerClassName?: string;
   readonly sheetShadowClassName?: string;
   /** シートの内側余白。つまみの位置を変える画面は上余白を0にして grabberClassName 側で置く */
@@ -55,8 +53,6 @@ export function MapBottomSheetShell({
   onHeightChange,
   onTargetHeightChange,
   contentClassName,
-  sheetClassName,
-  bottomClassName = 'bottom-0',
   outerClassName,
   sheetShadowClassName = 'shadow-xl',
   sheetPaddingClassName = 'p-4',
@@ -325,14 +321,14 @@ export function MapBottomSheetShell({
   return (
     <div
       ref={outerRef}
-      className={`pointer-events-none fixed inset-x-0 ${bottomClassName} flex justify-center md:hidden ${currentSnap.fullScreen || elevated ? 'z-[1100]' : 'z-[1050]'} ${outerClassName ?? ''}`}
+      className={`pointer-events-none fixed inset-x-0 bottom-[var(--map-nav,0px)] flex justify-center md:hidden ${currentSnap.fullScreen || elevated ? 'z-[1100]' : 'z-[1050]'} ${outerClassName ?? ''}`}
       aria-hidden={isAboveBreakpoint}
       inert={isAboveBreakpoint}
     >
       <div
         ref={sheetRef}
         data-testid="map-bottom-sheet"
-        className={`pointer-events-auto w-full max-w-2xl select-none bg-white ${sheetPaddingClassName} ${sheetShadowClassName} transition-[height] duration-300 ease-out motion-reduce:transition-none [interpolate-size:allow-keywords] ${currentSnap.fullScreen && !elevated ? '' : 'rounded-t-2xl'} ${currentSnap.overflow === 'auto' ? 'overflow-y-auto' : 'overflow-hidden'} ${sheetClassName ?? ''}`}
+        className={`pointer-events-auto w-full max-w-2xl select-none bg-white ${sheetPaddingClassName} ${sheetShadowClassName} transition-[height] duration-300 ease-out motion-reduce:transition-none [interpolate-size:allow-keywords] ${currentSnap.fullScreen && !elevated ? '' : 'rounded-t-2xl'} ${currentSnap.overflow === 'auto' ? 'overflow-y-auto' : 'overflow-hidden'}`}
         style={{ height: currentSnap.height }}
         onPointerDown={handlePointerDown}
         onClickCapture={handleClickCapture}
