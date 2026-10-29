@@ -12,8 +12,17 @@ export const CHUNK_RECOVERY_SCRIPT = `
     a.href = url;
     return a.pathname.indexOf('/_next/static/') === 0;
   }
+  var navAt = 0;
+  // Next は RSC デコード中にチャンクを先読みし、その後 buildId 不一致でハードナビゲーションする。
+  // 遷移中の失敗で reload すると遷移先でなく現在のページを再読み込みして遷移を上書きする。
+  if (typeof navigation !== 'undefined' && navigation) {
+    navigation.addEventListener('navigate', function (ev) {
+      if (ev.destination && ev.destination.sameDocument === false) navAt = Date.now();
+    });
+  }
   function recover() {
     if (navigator.onLine === false) return;
+    if (navAt && Date.now() - navAt <= 5000) return;
     try {
       var rt = document.querySelector('script[src*="/_next/static/chunks/webpack-"]');
       var build = rt ? rt.getAttribute('src') : '-';

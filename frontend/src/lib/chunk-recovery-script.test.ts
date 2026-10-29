@@ -12,7 +12,13 @@ let reload: ReturnType<typeof vi.fn>;
 let listeners: [string, EventListener][];
 
 // location.reload は jsdom で差し替えられないため、スクリプトの自由変数を引数で束縛して実行する
-function runScript(nav: { onLine: boolean } = { onLine: true }) {
+function runScript(
+  nav: { onLine: boolean } = { onLine: true },
+  navigation?: {
+    addEventListener: (t: string, fn: (e: unknown) => void) => void;
+  },
+  now: () => number = () => 0,
+) {
   const add = (type: string, fn: EventListener, capture?: boolean) => {
     listeners.push([type, fn]);
     window.addEventListener(type, fn, capture);
@@ -21,8 +27,10 @@ function runScript(nav: { onLine: boolean } = { onLine: true }) {
     'location',
     'addEventListener',
     'navigator',
+    'navigation',
+    'Date',
     CHUNK_RECOVERY_SCRIPT,
-  )({ reload }, add, nav);
+  )({ reload }, add, nav, navigation, { now });
 }
 
 function setRuntime(path: string | null) {
@@ -159,4 +167,54 @@ it('navigator.onLine === false のときの失敗では reload されず session
   failLoad('script', '/_next/static/chunks/x.js');
   expect(reload).not.toHaveBeenCalled();
   expect(sessionStorage.getItem(CHUNK_RELOAD_STORAGE_KEY)).toBeNull();
+});
+
+function fakeNavigation() {
+  let handler: (e: unknown) => void = () => {};
+  return {
+    addEventListener: (_t: string, fn: (e: unknown) => void) => {
+      handler = fn;
+    },
+    navigate: (sameDocument: boolean) =>
+      handler({ destination: { sameDocument } }),
+  };
+}
+
+it('別文書への navigate から 5 秒以内の失敗では reload されず sessionStorage にも書かれない', () => {
+  setRuntime(RUNTIME_A);
+  let t = 1000;
+  const nav = fakeNavigation();
+  runScript({ onLine: true }, nav, () => t);
+  nav.navigate(false);
+  t += 4999;
+  failLoad('script', '/_next/static/chunks/x.js');
+  expect(reload).not.toHaveBeenCalled();
+  expect(sessionStorage.getItem(CHUNK_RELOAD_STORAGE_KEY)).toBeNull();
+});
+
+it('別文書への navigate から 5 秒を過ぎた失敗では reload される', () => {
+  setRuntime(RUNTIME_A);
+  let t = 1000;
+  const nav = fakeNavigation();
+  runScript({ onLine: true }, nav, () => t);
+  nav.navigate(false);
+  t += 5001;
+  failLoad('script', '/_next/static/chunks/x.js');
+  expect(reload).toHaveBeenCalledTimes(1);
+});
+
+it('sameDocument の navigate の後の失敗では reload される', () => {
+  setRuntime(RUNTIME_A);
+  const nav = fakeNavigation();
+  runScript({ onLine: true }, nav, () => 1000);
+  nav.navigate(true);
+  failLoad('script', '/_next/static/chunks/x.js');
+  expect(reload).toHaveBeenCalledTimes(1);
+});
+
+it('navigation が無い環境では従来どおり reload される', () => {
+  setRuntime(RUNTIME_A);
+  runScript({ onLine: true }, undefined);
+  failLoad('script', '/_next/static/chunks/x.js');
+  expect(reload).toHaveBeenCalledTimes(1);
 });
