@@ -1,9 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const ctx = vi.hoisted(() => ({
-  env: {
-    STAMP_SIGNING_SECRET: 'test-secret-0123456789-0123456789', // gitleaks:allow
-  } as Record<string, unknown>,
+  env: {} as Record<string, unknown>,
   throws: false,
 }));
 vi.mock('@opennextjs/cloudflare', () => ({
@@ -14,9 +12,37 @@ vi.mock('@opennextjs/cloudflare', () => ({
 }));
 
 import { signStamp } from '@/lib/stamp-signature';
+import { openTestD1 } from '@/test-support/stamp-d1';
 import { POST } from './route';
 
 const SECRET = 'test-secret-0123456789-0123456789'; // gitleaks:allow
+const V1 = '11111111-1111-4111-8111-111111111111';
+
+let d1: Awaited<ReturnType<typeof openTestD1>>;
+let points: { blobs?: string[]; doubles?: number[] }[];
+let limitOk: boolean;
+
+beforeAll(async () => {
+  d1 = await openTestD1();
+}, 60_000);
+afterAll(async () => {
+  await d1?.close();
+});
+beforeEach(async () => {
+  await d1.reset();
+  points = [];
+  limitOk = true;
+  ctx.throws = false;
+  ctx.env = {
+    STAMP_DB: d1.db,
+    STAMP_METRICS: { writeDataPoint: (p: never) => points.push(p) },
+    STAMP_RATE_LIMITER: { limit: async () => ({ success: limitOk }) },
+    STAMP_SIGNING_SECRET: SECRET,
+    STAMP_ENV: 'preview',
+    STAFF_OIDC_ISSUER: 'https://idp.test',
+  };
+});
+
 const post = (body: unknown) =>
   POST(
     new Request('http://localhost/api/stamps/verify', {
@@ -24,74 +50,50 @@ const post = (body: unknown) =>
       body: typeof body === 'string' ? body : JSON.stringify(body),
     }),
   );
-
-async function valid(res: Response) {
-  expect(res.headers.get('Cache-Control')).toBe('no-store');
-  return (await res.json()) as { valid: boolean };
-}
+const count = () => d1.count('stamps');
+const body = async (extra: object = {}) => ({
+  id: 5,
+  category: 'exhibit',
+  signature: await signStamp(SECRET, 5, 'exhibit'),
+  visitorId: V1,
+  ...extra,
+});
 
 describe('POST /api/stamps/verify', () => {
-  beforeEach(() => {
-    ctx.env = { STAMP_SIGNING_SECRET: SECRET };
-    ctx.throws = false;
+  it('1 回目は added、2 回目は exists で記録は 1 件', async () => {
+    const r1 = await post(await body());
+    expect(r1.headers.get('Cache-Control')).toBe('no-store');
+    expect(await r1.json()).toEqual({ result: 'added' });
+    expect(await (await post(await body())).json()).toEqual({ result: 'exists' });
+    expect(await count()).toBe(1);
   });
 
-  it('正しい値で一致', async () => {
-    const signature = await signStamp(SECRET, 5, 'exhibit');
-    const res = await post({ id: 5, category: 'exhibit', signature });
-    expect(res.status).toBe(200);
-    expect(await valid(res)).toEqual({ valid: true });
-  });
-
-  it('誤った値・別の組の値は不一致', async () => {
-    const signature = await signStamp(SECRET, 5, 'exhibit');
-    expect(
-      await valid(await post({ id: 6, category: 'exhibit', signature })),
-    ).toEqual({ valid: false });
-    expect(
-      await valid(
-        await post({ id: 5, category: 'exhibit', signature: 'x'.repeat(43) }),
-      ),
-    ).toEqual({ valid: false });
-  });
-
-  it('stage・未知カテゴリは不一致', async () => {
-    const signature = await signStamp(SECRET, 5, 'exhibit');
-    for (const category of ['stage', 'unknown', 1, null]) {
-      expect(await valid(await post({ id: 5, category, signature }))).toEqual({
-        valid: false,
-      });
+  it('署名不正・匿名ID欠落/不正・stage では記録されず invalid', async () => {
+    for (const b of [
+      await body({ signature: 'x'.repeat(43) }),
+      await body({ id: 6 }),
+      await body({ visitorId: undefined }),
+      await body({ visitorId: 'not-a-uuid' }),
+      await body({ category: 'stage' }),
+      await body({ id: 0 }),
+    ]) {
+      expect(await (await post(b)).json()).toEqual({ result: 'invalid' });
     }
+    expect(await count()).toBe(0);
   });
 
-  it('不正な id・長すぎる検証値・型違いは不一致', async () => {
-    const signature = await signStamp(SECRET, 5, 'exhibit');
-    for (const id of [0, -1, 1.5, '5', null, undefined]) {
-      expect(
-        await valid(await post({ id, category: 'exhibit', signature })),
-      ).toEqual({ valid: false });
-    }
-    expect(
-      await valid(
-        await post({ id: 5, category: 'exhibit', signature: 'a'.repeat(65) }),
-      ),
-    ).toEqual({ valid: false });
-    expect(
-      await valid(await post({ id: 5, category: 'exhibit', signature: 5 })),
-    ).toEqual({ valid: false });
-    expect(await valid(await post([1, 2]))).toEqual({ valid: false });
-    expect(await valid(await post('null'))).toEqual({ valid: false });
+  it('D1 失敗で failed、計測に d1Failed が残る', async () => {
+    await d1.db.prepare('DROP TABLE stamps').run();
+    const res = await post(await body());
+    expect(await res.json()).toEqual({ result: 'failed' });
+    expect(points.at(-1)!.doubles![6]).toBe(1);
   });
 
-  it('秘密値が未設定・空・取得不可なら不一致', async () => {
-    const signature = await signStamp(SECRET, 5, 'exhibit');
-    const body = { id: 5, category: 'exhibit', signature };
+  it('env 不備なら failed', async () => {
     ctx.env = {};
-    expect(await valid(await post(body))).toEqual({ valid: false });
-    ctx.env = { STAMP_SIGNING_SECRET: '' };
-    expect(await valid(await post(body))).toEqual({ valid: false });
+    expect(await (await post(await body())).json()).toEqual({ result: 'failed' });
     ctx.throws = true;
-    expect(await valid(await post(body))).toEqual({ valid: false });
+    expect(await (await post(await body())).json()).toEqual({ result: 'failed' });
   });
 
   it('JSON として読めなければ 400', async () => {
@@ -100,11 +102,27 @@ describe('POST /api/stamps/verify', () => {
     expect(res.headers.get('Cache-Control')).toBe('no-store');
   });
 
+  it('制限超過は 429 で記録しない', async () => {
+    limitOk = false;
+    const res = await post(await body());
+    expect(res.status).toBe(429);
+    expect(await res.json()).toEqual({ result: 'rate_limited' });
+    expect(await count()).toBe(0);
+    expect(points.at(-1)!.blobs).toEqual(['preview', 'verify', 'rate_limited', '429']);
+  });
+
+  it('1 リクエストにつき計測 1 点、匿名IDは含めない', async () => {
+    await post(await body());
+    expect(points).toHaveLength(1);
+    expect(points[0]!.blobs).toEqual(['preview', 'verify', 'added', '200']);
+    expect(JSON.stringify(points[0])).not.toContain(V1);
+  });
+
   it('リクエスト内容をログに出さない', async () => {
     const spies = (['log', 'info', 'warn', 'error'] as const).map((m) =>
       vi.spyOn(console, m).mockImplementation(() => {}),
     );
-    await post({ id: 5, category: 'exhibit', signature: 'abc' });
+    await post(await body());
     await post('{bad');
     spies.forEach((s) => expect(s).not.toHaveBeenCalled());
     vi.restoreAllMocks();

@@ -9,7 +9,9 @@ export interface D1Statement {
 
 export interface D1Binding {
   prepare(query: string): D1Statement;
-  batch(statements: D1Statement[]): Promise<unknown[]>;
+  batch<T = unknown>(
+    statements: D1Statement[],
+  ): Promise<{ results: T[]; meta: Record<string, number> }[]>;
 }
 
 export interface AnalyticsBinding {
