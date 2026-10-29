@@ -6,6 +6,7 @@ import * as homePageModule from '@/lib/home-page';
 import * as phaseModule from '@/lib/request-phase';
 import * as exhibitionsModule from '@/lib/exhibitions';
 import * as sponsorsModule from '@/lib/sponsors';
+import * as regionalSponsorsModule from '@/lib/regional-sponsors';
 import * as siteMetadataModule from '@/lib/site-metadata';
 import { HomePageContent } from '@/lib/home-page-types';
 import type { ExhibitionCardSummary } from '@/lib/exhibitions';
@@ -39,6 +40,13 @@ vi.mock('@/lib/exhibitions', async () => {
 vi.mock('@/lib/sponsors', async () => {
   const actual = await vi.importActual<typeof sponsorsModule>('@/lib/sponsors');
   return { ...actual, getSponsors: vi.fn() };
+});
+
+vi.mock('@/lib/regional-sponsors', async () => {
+  const actual = await vi.importActual<typeof regionalSponsorsModule>(
+    '@/lib/regional-sponsors',
+  );
+  return { ...actual, getRegionalSponsorMapData: vi.fn() };
 });
 
 // 実際の matchMedia/localStorage は use-motion-preference.test.ts が担う。
@@ -332,6 +340,9 @@ describe('Page (開催中フェーズ)', () => {
       ok: true,
       value: { ad: [], local: [], vendor: [], other: [] },
     });
+    vi.mocked(
+      regionalSponsorsModule.getRegionalSponsorMapData,
+    ).mockResolvedValue({ ok: true, sponsors: [] });
   });
 
   it('テーマ趣旨文を荒牧祭とはの直後に表示する', async () => {
@@ -499,18 +510,37 @@ describe('Page (開催中フェーズ)', () => {
     ).not.toBeNull();
   });
 
-  it('協賛を種別をまたいで重複なく統合して表示する (要件3.3)', async () => {
+  it('広告協賛を帯に、地域協賛をカードに表示する', async () => {
     vi.mocked(sponsorsModule.getSponsors).mockResolvedValue({
       ok: true,
       value: {
-        ad: [{ id: 1, name: 'S1', logoId: null, url: null, tier: null }],
-        local: [
-          { id: 1, name: 'S1', logoId: null, url: null, tier: null },
-          { id: 2, name: 'S2', logoId: null, url: null, tier: null },
-        ],
+        ad: [{ id: 1, name: 'S1', logoId: null, url: null, tier: 'planD' }],
+        local: [],
         vendor: [],
         other: [],
       },
+    });
+    vi.mocked(
+      regionalSponsorsModule.getRegionalSponsorMapData,
+    ).mockResolvedValue({
+      ok: true,
+      sponsors: [
+        {
+          id: 2,
+          name: 'L2',
+          category: 'food',
+          latitude: 0,
+          longitude: 0,
+          address: null,
+          imageId: null,
+          imageAlt: null,
+          imageDecorative: true,
+          message: null,
+          businessHours: null,
+          phone: null,
+          websiteUrl: null,
+        },
+      ],
     });
 
     const ui = await Page();
@@ -519,7 +549,8 @@ describe('Page (開催中フェーズ)', () => {
     const section = screen
       .getByRole('heading', { level: 2, name: '協賛' })
       .closest('section')!;
-    expect(within(section).getAllByRole('listitem')).toHaveLength(2);
+    expect(within(section).getAllByText('S1')).toHaveLength(2);
+    expect(within(section).getByText('L2')).toBeInTheDocument();
   });
 
   it('協賛の取得に失敗してもページの表示が続く (要件3.3)', async () => {

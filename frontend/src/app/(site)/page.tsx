@@ -20,7 +20,8 @@ import {
   parseExhibitionQuery,
   type ExhibitionCardSummary,
 } from '@/lib/exhibitions';
-import { getSponsors, mergeSponsorLogos } from '@/lib/sponsors';
+import { getRegionalSponsorMapData } from '@/lib/regional-sponsors';
+import { getSponsors } from '@/lib/sponsors';
 import { getSiteMetadata } from '@/lib/site-metadata';
 import { buildPageMetadata } from '@/lib/page-metadata';
 import { ROUTE_METADATA } from '@/lib/route-metadata';
@@ -72,9 +73,14 @@ async function getFeaturedExhibitions(): Promise<
   }
 }
 
-async function getSponsorLogos() {
+async function getAdSponsors() {
   const result = await getSponsors();
-  return result.ok ? mergeSponsorLogos(result.value) : [];
+  return result.ok ? result.value.ad : [];
+}
+
+async function getLocalSponsors() {
+  const result = await getRegionalSponsorMapData();
+  return result.ok ? result.sponsors : [];
 }
 
 export default async function Page() {
@@ -132,9 +138,10 @@ export default async function Page() {
   if (phase === 'live') {
     // 企画一覧・協賛はトップページ以外でも使う汎用の取得層のため、開催中フェーズでのみ
     // ここから呼ぶ (getHomePage には含めない、design.md Requirement 3)
-    const [exhibitions, sponsors] = await Promise.all([
+    const [exhibitions, adSponsors, localSponsors] = await Promise.all([
       getFeaturedExhibitions(),
-      getSponsorLogos(),
+      getAdSponsors(),
+      getLocalSponsors(),
     ]);
 
     return (
@@ -182,7 +189,7 @@ export default async function Page() {
 
         <AccessSection />
 
-        <SponsorsList sponsors={sponsors} />
+        <SponsorsList adSponsors={adSponsors} localSponsors={localSponsors} />
       </div>
     );
   }

@@ -11,7 +11,6 @@ import {
   normalizeText,
   paginate,
   parseExhibitionQuery,
-  pickRandomExhibitions,
   type ExhibitionCardSummary,
   type ExhibitionQuery,
 } from './exhibitions';
@@ -308,45 +307,6 @@ describe('CATEGORY_LABELS', () => {
   });
 });
 
-describe('pickRandomExhibitions', () => {
-  const source: ExhibitionCardSummary[] = Array.from(
-    { length: 10 },
-    (_, i) => ({
-      id: i + 1,
-      category: 'exhibit',
-      displayName: `企画${i + 1}`,
-      organizationName: '団体',
-      location: null,
-      areaIds: [],
-      thumbnail: null,
-    }),
-  );
-
-  it('指定件数だけ返し、すべて元の配列に含まれる一意な要素である', () => {
-    const picked = pickRandomExhibitions(source, 4);
-    expect(picked).toHaveLength(4);
-    expect(new Set(picked.map((e) => e.id)).size).toBe(4);
-    for (const item of picked) {
-      expect(source).toContainEqual(item);
-    }
-  });
-
-  it('要素数が指定件数より少ないときは全件を返す', () => {
-    const short = source.slice(0, 2);
-    expect(pickRandomExhibitions(short, 4)).toHaveLength(2);
-  });
-
-  it('空配列を渡すと空配列を返す', () => {
-    expect(pickRandomExhibitions([], 4)).toEqual([]);
-  });
-
-  it('元の配列を変更しない', () => {
-    const copy = [...source];
-    pickRandomExhibitions(source, 4);
-    expect(source).toEqual(copy);
-  });
-});
-
 type MockDocs = {
   exhibitions?: unknown[];
   slots?: unknown[];
@@ -488,7 +448,7 @@ describe('getExhibitionListData', () => {
     expect(result.items[0]?.areaIds).toEqual([20]);
   });
 
-  it('ステージ以外のカードはエリア名 (+ブース表示名) のみを場所にし、出演枠があっても無視する', async () => {
+  it('ステージ以外のカードはエリア名のみを場所にし (booth_label は含めない)、出演枠があっても無視する', async () => {
     mockCmsCollections({
       exhibitions: [
         {
@@ -520,10 +480,10 @@ describe('getExhibitionListData', () => {
 
     const result = await getExhibitionListData(baseQuery);
     const exhibitCard = result.items.find((i) => i.category === 'exhibit');
-    expect(exhibitCard?.location).toBe('Aゾーン A-1');
+    expect(exhibitCard?.location).toBe('Aゾーン');
   });
 
-  it('ブース表示名がなければエリア名のみ', async () => {
+  it('booth_label が null でもエリア名のみ', async () => {
     mockCmsCollections({
       exhibitions: [
         {
@@ -547,7 +507,7 @@ describe('getExhibitionListData', () => {
 
   it.each([
     ['番号のみ', null, '12', 'Aゾーン 12'],
-    ['ラベルと番号', '出店ブース', '12', 'Aゾーン 出店ブース 12'],
+    ['ラベルがあっても番号のみ', '出店ブース', '12', 'Aゾーン 12'],
     ['両方なし', null, null, 'Aゾーン'],
   ])(
     '場所にブース番号を連結する: %s',

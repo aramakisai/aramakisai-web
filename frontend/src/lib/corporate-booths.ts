@@ -49,7 +49,6 @@ function toCard(
     organizationName: sponsor.name,
     location: formatPlacementLocation(
       areaId === null ? undefined : areasById.get(areaId)?.name,
-      vendor?.booth_label,
       vendor?.booth_number,
     ),
     areaIds: areaId === null ? [] : [areaId],

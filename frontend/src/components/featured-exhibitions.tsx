@@ -1,9 +1,7 @@
 import { ExhibitionCard } from './exhibition-card';
 import { TextLink } from './text-link';
-import {
-  pickRandomExhibitions,
-  type ExhibitionCardSummary,
-} from '@/lib/exhibitions';
+import type { ExhibitionCardSummary } from '@/lib/exhibitions';
+import { pickRandom } from '@/lib/pick-random';
 
 const FEATURED_COUNT = 4;
 
@@ -13,7 +11,7 @@ export interface FeaturedExhibitionsProps {
 }
 
 export function FeaturedExhibitions({ exhibitions }: FeaturedExhibitionsProps) {
-  const featured = pickRandomExhibitions(exhibitions, FEATURED_COUNT);
+  const featured = pickRandom(exhibitions, FEATURED_COUNT);
 
   return (
     <div className="flex flex-col gap-4 lg:gap-6">

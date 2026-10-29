@@ -16,6 +16,8 @@ const WORKFLOW_PATH = path.resolve(
 type Step = {
   name?: string;
   id?: string;
+  if?: string;
+  'continue-on-error'?: unknown;
   run?: string;
   uses?: string;
   with?: Record<string, unknown>;
@@ -328,4 +330,104 @@ describe('stamp env completeness for deployed environments', () => {
       expect(await readStampEnv()).toMatchObject({ ok: true });
     },
   );
+});
+
+describe('.github/workflows/frontend-ci.yml — static assets archive', () => {
+  const idx = (job: Job, name: string) =>
+    job.steps.findIndex((s) => s.name === name);
+  const stepOf = (job: Job, name: string) =>
+    job.steps.find((s) => s.name === name) as Step;
+
+  it('defines archive keep count and bucket at workflow level', () => {
+    const env = (loadWorkflow() as unknown as { env?: Record<string, unknown> })
+      .env;
+    expect(env?.STATIC_ARCHIVE_KEEP).toBe(20);
+    expect(env?.STATIC_ARCHIVE_BUCKET).toBe('aramakisai-web-cache');
+  });
+
+  describe.each([
+    ['deploy-prod', 'prod', 'prod', 'Deploy to Cloudflare Workers (prod)'],
+    ['deploy-dev', 'dev', 'staging', 'Deploy to Cloudflare Workers (dev)'],
+  ])('%s', (jobName, target, infisicalEnv, deployName) => {
+    const job = () => loadWorkflow().jobs[jobName];
+    const infisical = `infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=${infisicalEnv} -- pnpm exec tsx scripts/static-archive.ts`;
+    const buildName = () =>
+      job().steps.find((s) => s.run?.includes('opennextjs-cloudflare build'))!
+        .name as string;
+
+    it('orders Build < pack < upload < restore < site deploy < publish', () => {
+      const j = job();
+      const order = [
+        buildName(),
+        'Pack current static assets',
+        `Upload current static assets (${target})`,
+        `Restore previous static assets (${target})`,
+        deployName,
+        `Publish static assets generation (${target})`,
+      ].map((n) => idx(j, n));
+      expect(order.every((i) => i >= 0)).toBe(true);
+      expect([...order].sort((a, b) => a - b)).toEqual(order);
+    });
+
+    it('runs pack/upload/restore/publish with the right target and Infisical env', () => {
+      const j = job();
+      expect(stepOf(j, 'Pack current static assets').run).toBe(
+        'pnpm exec tsx scripts/static-archive.ts pack --dir .open-next/assets/_next/static --out "$RUNNER_TEMP/static-current.tar.gz"',
+      );
+      expect(stepOf(j, `Upload current static assets (${target})`).run).toBe(
+        `${infisical} upload --bucket "$STATIC_ARCHIVE_BUCKET" --target ${target} --sha "$GITHUB_SHA" --archive "$RUNNER_TEMP/static-current.tar.gz"`,
+      );
+      expect(stepOf(j, `Restore previous static assets (${target})`).run).toBe(
+        `${infisical} restore --bucket "$STATIC_ARCHIVE_BUCKET" --target ${target} --dir .open-next/assets/_next/static`,
+      );
+      expect(
+        stepOf(j, `Publish static assets generation (${target})`).run,
+      ).toBe(
+        `${infisical} publish --bucket "$STATIC_ARCHIVE_BUCKET" --target ${target} --sha "$GITHUB_SHA" --keep "$STATIC_ARCHIVE_KEEP"`,
+      );
+    });
+
+    it('pack/upload/restore have neither if nor continue-on-error', () => {
+      const j = job();
+      for (const name of [
+        'Pack current static assets',
+        `Upload current static assets (${target})`,
+        `Restore previous static assets (${target})`,
+      ]) {
+        const step = stepOf(j, name);
+        expect(step).toBeDefined();
+        expect(step.if).toBeUndefined();
+        expect(step['continue-on-error']).toBeUndefined();
+      }
+    });
+
+    it('publishes only after a successful, non-cancelled site deploy', () => {
+      const j = job();
+      expect(stepOf(j, deployName).id).toBe('deploy_site');
+      expect(
+        (
+          stepOf(j, `Publish static assets generation (${target})`) as {
+            if?: string;
+          }
+        ).if,
+      ).toBe("${{ always() && steps.deploy_site.outcome == 'success' }}");
+    });
+  });
+
+  it('deploy-prod publishes after every signage relay step', () => {
+    const j = loadWorkflow().jobs['deploy-prod'];
+    const pub = idx(j, 'Publish static assets generation (prod)');
+    expect(pub).toBe(j.steps.length - 1);
+    expect(pub).toBeGreaterThan(idx(j, 'Detect signage relay changes'));
+    expect(pub).toBeGreaterThan(idx(j, 'Remove signage relay secrets file'));
+  });
+
+  it('deploy-preview and validate never call static-archive', () => {
+    const wf = loadWorkflow();
+    for (const name of ['deploy-preview', 'e2e', 'validate']) {
+      expect(runCommands(wf.jobs[name]).join('\n')).not.toContain(
+        'static-archive',
+      );
+    }
+  });
 });

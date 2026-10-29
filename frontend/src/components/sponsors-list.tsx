@@ -1,57 +1,47 @@
-/* eslint-disable @next/next/no-img-element */
-import { toAssetUrl } from '@/lib/cms-asset-url';
-import { TextLink } from './text-link';
+import type { RegionalSponsor } from '@/lib/regional-sponsors';
+import { pickRandom } from '@/lib/pick-random';
+import type { SponsorListItem } from '@/lib/sponsors';
+import { AdSponsorMarquee } from './ad-sponsor-marquee';
+import { LocalSponsorCard } from './local-sponsor-card';
 import { SectionHeading } from './section-heading';
-
-export interface SponsorLogoItem {
-  readonly id: number;
-  readonly name: string;
-  readonly logoId: string | null;
-}
+import { TextLink } from './text-link';
 
 export interface SponsorsListProps {
-  readonly sponsors: readonly SponsorLogoItem[];
+  readonly adSponsors: readonly SponsorListItem[];
+  readonly localSponsors: readonly RegionalSponsor[];
 }
 
-// Figma 実測 (156:798 / 161:173): トップページは代表数件に留め、全件は種別ごとの一覧ページに任せる
-const LOGO_LIMIT = 4;
+const LOCAL_COUNT = 4;
 
-export function SponsorsList({ sponsors }: SponsorsListProps) {
-  const items = sponsors.slice(0, LOGO_LIMIT);
+export function SponsorsList({ adSponsors, localSponsors }: SponsorsListProps) {
+  const locals = pickRandom(localSponsors, LOCAL_COUNT);
 
   return (
     <section className="mx-auto w-full max-w-[1440px] px-4 py-8 lg:px-20 lg:py-12">
       <SectionHeading level="h2">協賛</SectionHeading>
       <div className="flex flex-col gap-4 lg:gap-6">
-        {items.length > 0 && (
-          <ul className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-6">
-            {items.map((sponsor) => {
-              const logoUrl = toAssetUrl(sponsor.logoId, 960);
-              return (
-                <li
-                  key={sponsor.id}
-                  className="flex h-[72px] items-center justify-center bg-gray-200 lg:h-[100px]"
-                >
-                  {logoUrl ? (
-                    <img
-                      src={logoUrl}
-                      alt={sponsor.name}
-                      className="max-h-full max-w-full object-contain"
-                    />
-                  ) : (
-                    <span className="px-2 text-center text-sm text-gray-600">
-                      {sponsor.name}
-                    </span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+        <SectionHeading level="h3" className="!mb-0">
+          広告協賛
+        </SectionHeading>
+        {adSponsors.length > 0 && <AdSponsorMarquee sponsors={adSponsors} />}
+        <TextLink href="/sponsors/ad" className="self-end">
+          広告協賛へ
+        </TextLink>
+        <SectionHeading level="h3" className="!mb-0">
+          地域協賛
+        </SectionHeading>
+        {locals.length > 0 && (
+          <div className="flex gap-6 overflow-x-auto lg:grid lg:grid-cols-4 lg:overflow-visible">
+            {locals.map((sponsor) => (
+              <div key={sponsor.id} className="w-[280px] shrink-0 lg:w-auto">
+                <LocalSponsorCard sponsor={sponsor} />
+              </div>
+            ))}
+          </div>
         )}
-        <div className="flex justify-end gap-4 lg:gap-6">
-          <TextLink href="/sponsors/ad">広告協賛へ</TextLink>
-          <TextLink href="/sponsors/local">地域協賛へ</TextLink>
-        </div>
+        <TextLink href="/sponsors/local" className="self-end">
+          地域協賛へ
+        </TextLink>
       </div>
     </section>
   );
