@@ -1,6 +1,10 @@
 /* eslint-disable @next/next/no-img-element */
 import { toAssetUrl } from '@/lib/cms-asset-url';
-import type { SponsorRow } from '@/lib/signage';
+import {
+  SPONSOR_AREA_TOP,
+  SPONSOR_PAGE_HEIGHT,
+  type SponsorRow,
+} from '@/lib/signage';
 import { SignageHeadingChip } from '../signage-heading-chip';
 
 const LOGO_WIDTH = {
@@ -23,7 +27,10 @@ export function SponsorsSlide({
   return (
     <div className="relative h-[864px] w-[1536px] overflow-clip rounded-2xl bg-white">
       <SignageHeadingChip icon="handshake" label="ご協賛いただいた皆さま" />
-      <div className="absolute top-[106px] left-[84px] flex w-[1368px] flex-col">
+      <div
+        className="absolute left-[84px] flex w-[1368px] flex-col justify-center"
+        style={{ top: SPONSOR_AREA_TOP, height: SPONSOR_PAGE_HEIGHT }}
+      >
         {rows.map((row, i) => (
           <ul
             key={`${row.kind}-${row.items[0]?.id ?? i}`}

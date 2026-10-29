@@ -317,6 +317,13 @@ describe('paginateSponsors', () => {
     expect(kinds(pages)).toEqual([['planA', 'planA'], ['planA']]);
   });
 
+  it('社名60件は1ページ(15行=696px)に収まる', () => {
+    const pages = paginateSponsors(
+      Array.from({ length: 60 }, (_, i) => sponsor(i + 1, 'planD')),
+    );
+    expect(pages.map((p) => p.length)).toEqual([15]);
+  });
+
   it('0件は0ページ', () => {
     expect(paginateSponsors([])).toEqual([]);
   });

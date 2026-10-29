@@ -126,7 +126,9 @@ export type SponsorRow =
     }
   | { readonly kind: 'names'; readonly items: readonly SignageSponsor[] };
 
-const SPONSOR_PAGE_HEIGHT = 704;
+/** ロゴ領域(横型スライド内)の上端と高さ。中身はこの範囲の上下中央に置く */
+export const SPONSOR_AREA_TOP = 106;
+export const SPONSOR_PAGE_HEIGHT = 704;
 const SPONSOR_ROW_GAP = 24;
 const LOGO_TIERS = ['planA', 'planB', 'planC'] as const;
 // 列数と行高(ロゴ枠+社名)はFigmaのロゴ領域の実測値
