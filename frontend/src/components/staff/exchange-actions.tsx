@@ -22,14 +22,18 @@ export function ExchangeActions({
   const [eligible, setEligible] = useState(initialEligible);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [alreadyCancelledAt, setAlreadyCancelledAt] = useState<string | null>(
+    null,
+  );
 
   // 照会時点の署名は再検証しないため、成功の応答だけで状態を持ち替える (ページは再取得しない)
   async function call(
     send: () => Promise<Response>,
-    onOk: (exchange: ExchangeRecord) => void,
+    onOk: (exchange: ExchangeRecord, kind: string) => void,
   ) {
     setBusy(true);
     setFailed(false);
+    setAlreadyCancelledAt(null);
     try {
       const res = await send();
       if (res.status === 409) {
@@ -37,7 +41,11 @@ export function ExchangeActions({
         return;
       }
       if (!res.ok) throw new Error('request failed');
-      onOk(((await res.json()) as { exchange: ExchangeRecord }).exchange);
+      const body = (await res.json()) as {
+        kind: string;
+        exchange: ExchangeRecord;
+      };
+      onOk(body.exchange, body.kind);
     } catch {
       setFailed(true);
     } finally {
@@ -53,12 +61,15 @@ export function ExchangeActions({
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ visitorId }),
         }),
-      setExchange,
+      (e) => setExchange(e),
     );
   const cancel = () =>
     call(
       () => cancelExchangeRequest(exchange!.exchangeId),
-      () => setExchange(null),
+      (e, kind) => {
+        setExchange(null);
+        if (kind === 'already') setAlreadyCancelledAt(e.cancelledAt);
+      },
     );
 
   return (
@@ -67,6 +78,11 @@ export function ExchangeActions({
       {failed && (
         <p role="alert" className="text-sm leading-[1.4] text-text">
           処理できませんでした。もう一度お試しください
+        </p>
+      )}
+      {alreadyCancelledAt && (
+        <p role="status" className={BODY}>
+          既に取り消されています {formatJst(alreadyCancelledAt)}
         </p>
       )}
       {exchange ? (

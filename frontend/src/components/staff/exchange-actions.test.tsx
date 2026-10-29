@@ -68,6 +68,28 @@ describe('ExchangeActions', () => {
     expect(screen.getByRole('button', { name: '交換済みにする' })).toBeTruthy();
   });
 
+  it('既に取り消されていた場合は取り消し日時を示して未交換に戻る', async () => {
+    vi.stubGlobal(
+      'fetch',
+      reply(200, {
+        kind: 'already',
+        exchange: {
+          ...exchange,
+          cancelledAt: '2026-11-14T05:00:00.000Z',
+          cancelledBy: 'jiro@example.invalid',
+        },
+      }),
+    );
+    render(
+      <ExchangeActions visitorId={ID} initialExchange={exchange} eligible />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: '取り消す' }));
+    await waitFor(() =>
+      expect(screen.getByText('既に取り消されています 11/14 14:00')).toBeTruthy(),
+    );
+    expect(screen.getByText('未交換')).toBeTruthy();
+  });
+
   it('失敗したら表示を変えず案内を出す', async () => {
     vi.stubGlobal('fetch', reply(503, { error: 'unavailable' }));
     render(<ExchangeActions visitorId={ID} initialExchange={null} eligible />);
