@@ -94,14 +94,12 @@ describe('filterExhibitions (企業ブース混在)', () => {
 });
 
 describe('formatPlacementLocation', () => {
-  it('エリア名・ラベル・番号を空白区切りで連結する', () => {
-    expect(formatPlacementLocation('中庭', 'ブース', 'A-1')).toBe(
-      '中庭 ブース A-1',
-    );
-    expect(formatPlacementLocation('中庭', null, undefined)).toBe('中庭');
+  it('エリア名・番号を空白区切りで連結する', () => {
+    expect(formatPlacementLocation('中庭', 'A-1')).toBe('中庭 A-1');
+    expect(formatPlacementLocation('中庭', undefined)).toBe('中庭');
   });
 
   it('エリア未解決なら null', () => {
-    expect(formatPlacementLocation(undefined, 'ブース', 'A-1')).toBeNull();
+    expect(formatPlacementLocation(undefined, 'A-1')).toBeNull();
   });
 });

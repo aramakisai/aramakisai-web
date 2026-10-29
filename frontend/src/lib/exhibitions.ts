@@ -443,21 +443,16 @@ function resolveLocationForCategory(
     directAreaId !== null ? context.areasById.get(directAreaId) : undefined;
   if (!directArea) return null;
   const placement = placementOf(exhibition, category);
-  return formatPlacementLocation(
-    directArea.name,
-    placement?.booth_label,
-    placement?.booth_number,
-  );
+  return formatPlacementLocation(directArea.name, placement?.booth_number);
 }
 
 /** エリアが解決できないときは null (場所の手掛かりが無いため) */
 export function formatPlacementLocation(
   areaName: string | undefined,
-  boothLabel: string | null | undefined,
   boothNumber: string | null | undefined,
 ): string | null {
   if (areaName === undefined) return null;
-  return [areaName, boothLabel, boothNumber].filter(Boolean).join(' ');
+  return [areaName, boothNumber].filter(Boolean).join(' ');
 }
 
 /** カテゴリ別企画内容欄 (`stage` / `exhibit` / `vendor` / `other`) 1 件分 */
