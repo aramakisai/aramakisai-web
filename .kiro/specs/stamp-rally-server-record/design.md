@@ -283,7 +283,7 @@ stateDiagram-v2
 | 7.1–7.6 | 管理者画面の保護 | StaffAuth, StaffSession, StaffLayout | `requireStaff` | 管理者ログインと照会 |
 | 8.1–8.3 | 計測 | StampMetrics, ExportStampMetrics | `recordRequest` | — |
 | 8.4–8.5 | 運用ダッシュボードの監視 | OpsDashboardStampUsage | `dashboard.toml` の limits、`quota.*` 項目 | — |
-| 9.1–9.5 | 集計 | StaffDashboardPage, StampAggregate | `aggregate` | — |
+| 9.1–9.7 | 集計 | StaffDashboardPage, StampAggregate | `aggregate` | — |
 | 10.1–10.5 | 読み取り | QrScanner, StaffNav | `parseExchangeUrl` | — |
 | 11.1–11.6 | 一覧と取り消し | StaffExchangesPage, StaffCancelApi, ExchangeActions | `listExchanges`, `cancelExchange` | 交換済み登録の状態 |
 
@@ -524,6 +524,8 @@ interface TargetStat {
   readonly exhibitionId: number;
   readonly category: StampCategory;
   readonly displayName: string;
+  readonly organizationName: string; // 企画別のキーワード絞り込み用 (9.6)
+  readonly areaId: number | null; // MypageStampTarget の areaId。エリア別の集計と同じ値 (9.6)
   readonly visitorCount: number;
   readonly rate: number; // visitorCount / participantCount、参加 0 なら 0
 }
@@ -551,6 +553,8 @@ function isComplete(targets: readonly MypageStampTarget[], stamps: readonly Stam
 - `targets` は署名発行・登録・マイページのいずれでも `stamp-targets.ts` で `getExhibitionCatalog` から作る。CMS への問い合わせは既存のエッジキャッシュ (TTL 60 秒) を通る
 - エリアの取得率は参加端末ごとに `groupStampsByArea` で求め、その `percent` を平均する (9.3)
 - カタログに無い企画・areaId が null の企画は `areaId: null` (「エリア不明」) に数える (5.5, 9.4)。スタンプ数には含める
+- `MypageStampTarget` に `organizationName` を足し、`toStampTargets` でカードの `organizationName` を写す。`TargetStat` はその値と `areaId` を持つ (9.6)
+- `distribution` は 1 から `targets.length` までのすべてのスタンプ数を持ち、該当端末が 0 のスタンプ数も `visitorCount: 0` で含める (9.7。グラフの横軸を詰めないため)
 
 ### Runtime
 
@@ -632,7 +636,7 @@ UI コンポーネントは新しい境界を持たないため要約に留め�
 
 Figma (ファイル `0kWDqHsLr6xE8b4FFgR1Zx`):
 - マイページ (ページ `990:14`): 交換用QR (全対象取得時) `1531:684`、交換用QR表示失敗 `1531:710`、スタンプ取得失敗 `1531:825`、トースト「スタンプを記録できませんでした。(改行)もう一度読み取ってください」`1531:867`、トースト「この端末ではスタンプを集められません」`1531:985`
-- 管理者画面 (ページ `1532:2`): 集計 `1532:3`、集計 — 取得失敗 `1532:99`、読み取り `1532:126`、読み取り — 交換用QR以外 `1532:161`、読み取り — カメラ使用不可 `1532:188`、照会 — 未交換 `1532:212`、照会 — 交換済み `1532:258`、照会 — 有効期限切れ `1532:305`、照会 — 読み取り直し `1532:329`、照会 — 条件未達 `1535:1097`、交換済み一覧 `1532:353`、ログイン失敗 `1532:405`、利用不可 `1532:413`
+- 管理者画面 (ページ `1532:2`): 集計 `1532:3`、集計 — 企画別 絞り込み中 `1585:248`、集計 — 企画別 該当なし `1585:395`、集計 — 分布の値表示 `1585:542`、集計 — 取得失敗 `1532:99`、読み取り `1532:126`、読み取り — 交換用QR以外 `1532:161`、読み取り — カメラ使用不可 `1532:188`、照会 — 未交換 `1532:212`、照会 — 交換済み `1532:258`、照会 — 有効期限切れ `1532:305`、照会 — 読み取り直し `1532:329`、照会 — 条件未達 `1535:1097`、交換済み一覧 `1532:353`、ログイン失敗 `1532:405`、利用不可 `1532:413`
 - コンポーネント (ページ `2:2`): `StaffNav` `1530:1080` (Selected=dashboard|exchanges|none|scan。scan は読み取り画面用で「QRを読み取る」ボタンを持たない)、`StaffActionButton` `1530:1025` (Kind=primary|secondary)、`icon/bar_chart` `1530:1013`、`icon/list_alt` `1530:1015`、`icon/qr_code_scanner` `1530:1017`、`icon/sync_problem` `1530:1019`
 
 - **MypageStorage**: `MypageData = { version: 1; visitorId?: string; lists: { bookmarks } }`。`readVisitorId(): string | null | 'unavailable'`、`saveVisitorId(id): 'saved' | 'unavailable'`。既存の `stamps` 配列は読み込み時に捨てる
@@ -644,6 +648,8 @@ Figma (ファイル `0kWDqHsLr6xE8b4FFgR1Zx`):
 - **Staff visitor page**: 登録時に 409 `not_eligible` が返ったとき、または照会時点で `isComplete` が `false` のときは、交換済み登録のボタンの代わりに「すべての企画のスタンプがそろっていません」を表示する (6.4)。`verifyExchangeToken` が `valid` でなければ照会せず表示し直しの案内 (4.6)。匿名IDの形式不正は読み取り直しの案内 (5.6)。`summarizeVisitor` の結果と有効な交換済み登録を表示し、`ExchangeActions` で登録・取り消し (6.1, 11.6)。登録・取り消しの後は API の応答で画面の表示を更新し、ページを再取得しない (再取得すると署名を再検証し、300 秒を過ぎていれば有効期限切れの表示に変わるため、4.7)
 - **Staff exchanges page**: `listExchanges` を表示 (11.1)。匿名IDは先頭 8 文字で識別表示。取り消し済みでない行に取り消しボタン (11.2)
 - **Staff dashboard page**: `aggregate` の結果。取得失敗は値を出さず案内 (9.5)
+- **StaffTargetFilter** (企画別、9.6): 検索欄 (SearchField `2:212`)、カテゴリのチップ (FacetChip `2:111`、展示・出店・その他)、エリアのチップ (`dashboard.areas` のうち `areaId` が null でないもの)、件数「全 N 件」。チップの見た目と間隔は企画一覧と同じ。カテゴリとエリアはそれぞれ単一選択で、選択中のチップを押すと解除する。条件はページ内の状態として持ち、URL には載せない。キーワードは `normalizeText` で正規化して `displayName` と `organizationName` の部分一致を見る (企画一覧と同じ判定)。入力ごとに即時に絞り込む。一致 0 件なら件数と行の代わりに「条件に一致する企画はありません」
+- **StampDistributionChart** (分布、9.7): 縦棒グラフ。チャートのライブラリは入れず、棒を flex で並べる。横軸は `distribution` の全スタンプ数、縦軸は端末数。目盛り線は 0・最大の半分・最大の 3 本で、左端に数値。横軸のラベルは 1 と 10 の倍数。軸の単位は「端末数 (台)」「スタンプ数 (個)」。棒の色は `accent-alt`。各棒は `aria-label="N個 M台"` のボタンで、押すとその棒を `primary` にし、グラフの上に「N個 M台」を出す。もう一度押すと解除する。初期状態は未選択で値の行を出さない
 
 ### Batch
 
@@ -743,7 +749,7 @@ CREATE UNIQUE INDEX exchanges_active_visitor
 - Unit
   - `exchange-token`: 発行直後 `valid`、300 秒後 `expired`、別匿名ID・改変で `invalid`、企画QRの署名を渡しても `invalid`
   - `staff-session`: 期限・改ざん・形式不正で `null`
-  - `stamp-aggregate`: 取得率、エリア不明の扱い、参加 0 件、分布。`isComplete` は全組取得で true、1 組欠けで false、対象 0 件で false、非公開企画のスタンプを数えない
+  - `stamp-aggregate`: 取得率、エリア不明の扱い、参加 0 件、分布 (0 台のスタンプ数を含む)、`organizationName`・`areaId` の受け渡し。`isComplete` は全組取得で true、1 組欠けで false、対象 0 件で false、非公開企画のスタンプを数えない
   - `mypage-storage`: `visitorId` の保持、ブックマーク書き込みで `visitorId` が消えない、旧 `stamps` の破棄
   - `staff-auth`: `executive` の有無、`preview` での通過、`returnTo` の制限
 - Integration (vitest、miniflare の D1)
