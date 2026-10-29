@@ -61,7 +61,7 @@ export function ExhibitionGallery({
         <CrossFade
           transitionKey={selected.id}
           enabled={!reduced}
-          className="absolute inset-0"
+          className="absolute inset-0 grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)]"
           layerClassName="bg-gray-200"
         >
           <img

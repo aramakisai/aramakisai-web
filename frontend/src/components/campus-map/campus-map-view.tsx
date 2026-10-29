@@ -3,7 +3,11 @@
 import 'leaflet/dist/leaflet.css';
 import { useEffect, useMemo, useRef, type Ref } from 'react';
 import { AttributionControl, MapContainer, TileLayer } from 'react-leaflet';
-import type { LatLngBoundsExpression, Map as LeafletMap } from 'leaflet';
+import type {
+  LatLngBoundsExpression,
+  LatLngExpression,
+  Map as LeafletMap,
+} from 'leaflet';
 import { sendGaEvent } from '@/lib/analytics';
 import { CAMPUS_MAP_CONFIG, MAP_ATTRIBUTION } from '@/lib/campus-map-config';
 import type { CampusMapArea, CampusMapPoint } from '@/lib/campus-map';
@@ -93,6 +97,15 @@ export function CampusMapView({
     );
     return [southWest, northEast] as unknown as LatLngBoundsExpression;
   }, [areas]);
+  const focusCenter = useMemo<LatLngExpression | null>(() => {
+    const area = areas.find((a) => a.id === selectedAreaId);
+    if (!area) return null;
+    const { southWest, northEast } = toAreaBounds([area]);
+    return [
+      (southWest[0] + northEast[0]) / 2,
+      (southWest[1] + northEast[1]) / 2,
+    ];
+  }, [areas, selectedAreaId]);
   const maxBounds = useMemo<LatLngBoundsExpression>(() => {
     const [[s, w], [n, e]] = CAMPUS_MAP_CONFIG.bounds;
     const dLat = (n - s) * maxBoundsPad;
@@ -171,7 +184,13 @@ export function CampusMapView({
         errorTileUrl={TRANSPARENT_TILE_URL}
         eventHandlers={tileEventHandlers}
       />
-      <MapViewportSync fitBounds={fitBounds} bottomInset={fitBottomInset} />
+      <MapViewportSync
+        fitBounds={fitBounds}
+        bottomInset={fitBottomInset}
+        focusCenter={focusCenter}
+        focusKey={selectedAreaId}
+        refocusKey={isAboveBreakpoint ? 'desktop' : 'mobile'}
+      />
       <AreaPolygonLayer
         areas={areas}
         selectedAreaId={selectedAreaId}
