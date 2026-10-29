@@ -1,5 +1,6 @@
 import type { ExhibitionCategory } from './exhibitions';
-import { isStampCategory, type StampCategory } from './stamp-signature';
+import type { StampCategory } from './stamp-signature';
+import { isVisitorId } from './visitor-id';
 
 const STORAGE_KEY = 'aramakisai_mypage';
 
@@ -14,6 +15,7 @@ export const BOOKMARK_CATEGORIES: readonly ExhibitionCategory[] = [
   'other',
 ];
 
+// stamp-progress.ts が入力型として使う。端末内には保存しない
 export interface SavedExhibitionRef {
   readonly id: number;
   readonly category: StampCategory;
@@ -26,12 +28,10 @@ export interface SavedBookmarkRef {
   readonly savedAt: string;
 }
 
-export type MypageListName = 'stamps' | 'bookmarks';
-
 export interface MypageData {
   readonly version: 1;
+  readonly visitorId?: string;
   readonly lists: {
-    readonly stamps: readonly SavedExhibitionRef[];
     readonly bookmarks: readonly SavedBookmarkRef[];
   };
 }
@@ -55,32 +55,28 @@ function isRef(
   );
 }
 
-const isSavedStamp = (v: unknown): v is SavedExhibitionRef =>
-  isRef(v, isStampCategory);
 const isSavedBookmark = (v: unknown): v is SavedBookmarkRef =>
   isRef(v, (c) => (BOOKMARK_CATEGORIES as readonly string[]).includes(c));
 
 export function parseMypageData(raw: string | null): MypageData {
-  const empty: MypageData = {
-    version: 1,
-    lists: { stamps: [], bookmarks: [] },
-  };
+  const empty: MypageData = { version: 1, lists: { bookmarks: [] } };
   if (raw === null) return empty;
   try {
     const parsed: unknown = JSON.parse(raw);
     if (typeof parsed !== 'object' || parsed === null) return empty;
-    const { version, lists } = parsed as { version?: unknown; lists?: unknown };
+    const { version, lists, visitorId } = parsed as {
+      version?: unknown;
+      lists?: unknown;
+      visitorId?: unknown;
+    };
     if (version !== 1 || typeof lists !== 'object' || lists === null) {
       return empty;
     }
-    const { stamps, bookmarks } = lists as {
-      stamps?: unknown;
-      bookmarks?: unknown;
-    };
+    const { bookmarks } = lists as { bookmarks?: unknown };
     return {
       version: 1,
+      ...(isVisitorId(visitorId) ? { visitorId } : {}),
       lists: {
-        stamps: Array.isArray(stamps) ? stamps.filter(isSavedStamp) : [],
         bookmarks: Array.isArray(bookmarks)
           ? bookmarks.filter(isSavedBookmark)
           : [],
@@ -106,16 +102,8 @@ export function readMypageData(): MypageData | null {
   return raw === 'unavailable' ? null : parseMypageData(raw);
 }
 
-// stamps と bookmarks は同じキーに同居するため、必ず全リストを読んで対象だけ差し替える
-function writeList(
-  data: MypageData,
-  name: MypageListName,
-  list: readonly unknown[],
-): boolean {
-  const next: MypageData = {
-    version: 1,
-    lists: { ...data.lists, [name]: list },
-  };
+// visitorId と bookmarks は同じキーに同居するため、必ず全体を読んで対象だけ差し替える
+function write(next: MypageData): boolean {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   } catch {
@@ -126,29 +114,31 @@ function writeList(
   return true;
 }
 
-function add(name: MypageListName, id: number, category: string): AddResult {
+export function readVisitorId(): string | null | 'unavailable' {
   const data = readMypageData();
-  if (!data) return 'unavailable';
-  const current = data.lists[name] as readonly {
-    id: number;
-    category: string;
-  }[];
-  if (current.some((s) => s.id === id && s.category === category)) {
-    return 'exists';
-  }
-  const item = { id, category, savedAt: new Date().toISOString() };
-  return writeList(data, name, [...current, item]) ? 'added' : 'unavailable';
+  return data ? (data.visitorId ?? null) : 'unavailable';
 }
 
-export function addStamp(id: number, category: StampCategory): AddResult {
-  return add('stamps', id, category);
+export function saveVisitorId(id: string): 'saved' | 'unavailable' {
+  const data = readMypageData();
+  if (!data) return 'unavailable';
+  return write({ ...data, visitorId: id }) ? 'saved' : 'unavailable';
 }
 
 export function addBookmark(
   id: number,
   category: ExhibitionCategory,
 ): AddResult {
-  return add('bookmarks', id, category);
+  const data = readMypageData();
+  if (!data) return 'unavailable';
+  const current = data.lists.bookmarks;
+  if (current.some((b) => b.id === id && b.category === category)) {
+    return 'exists';
+  }
+  const item = { id, category, savedAt: new Date().toISOString() };
+  return write({ ...data, lists: { bookmarks: [...current, item] } })
+    ? 'added'
+    : 'unavailable';
 }
 
 export function removeBookmark(
@@ -161,5 +151,7 @@ export function removeBookmark(
     (b) => !(b.id === id && b.category === category),
   );
   if (rest.length === data.lists.bookmarks.length) return 'absent';
-  return writeList(data, 'bookmarks', rest) ? 'removed' : 'unavailable';
+  return write({ ...data, lists: { bookmarks: rest } })
+    ? 'removed'
+    : 'unavailable';
 }
