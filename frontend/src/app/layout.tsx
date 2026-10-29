@@ -18,6 +18,7 @@ import { env } from '@/env';
 // アイコンごとに塗りつぶし版 (位置ピン) と線画版を出し分ける
 const MATERIAL_SYMBOLS_ICON_NAMES = [
   'add',
+  'bar_chart',
   'approval',
   'arrow_back',
   'bookmark',
@@ -39,6 +40,7 @@ const MATERIAL_SYMBOLS_ICON_NAMES = [
   'info',
   'info_i',
   'link',
+  'list_alt',
   'local_parking',
   'location_on',
   'mail',
@@ -50,6 +52,7 @@ const MATERIAL_SYMBOLS_ICON_NAMES = [
   'open_in_new',
   'parking_sign',
   'person',
+  'qr_code_scanner',
   'progress_activity',
   'history',
   'pause',
