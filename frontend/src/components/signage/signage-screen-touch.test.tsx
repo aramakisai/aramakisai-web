@@ -204,3 +204,127 @@ describe('操作層の組み込み(5.1)', () => {
     );
   });
 });
+
+describe('ステージ開始告知の組み込み', () => {
+  const NOW = '2026-11-14T00:00:00Z';
+  const slide: SignageSlide = {
+    id: 1,
+    durationSec: 10,
+    kind: 'layout',
+    layout: 'title',
+    tone: 'normal',
+    title: 't',
+    subtext: null,
+    content1Html: '',
+    content2Html: '',
+  };
+  const snap = (pinnedSlideId: number | null) =>
+    ({
+      serverNow: NOW,
+      pinnedSlideId,
+      eventDays: [],
+      slides: [slide],
+      quakeSlides: {},
+      telops: [
+        { id: 9, audience: 'visitor', target: '全体', body: 'CMSのテロップ' },
+      ],
+      timetable: {
+        days: [],
+        stages: [{ id: 1, name: 'メインステージ' }],
+        performances: [
+          {
+            id: 1,
+            stageId: 1,
+            slot: {
+              dateKey: '2026-11-14',
+              startAt: '2026-11-14T00:02:00Z',
+              endAt: '2026-11-14T00:30:00Z',
+            },
+            name: '吹奏楽部',
+            href: null,
+          },
+        ],
+      },
+      sponsors: [],
+      lostItems: [],
+      parking: { isEventDay: false, fetchedAt: '', lots: [] },
+    }) as unknown as SignageSnapshot;
+  const NOTICE_TELOP = 'まもなく吹奏楽部が始まります';
+  const screen = (s: SignageSnapshot) => (
+    <SignageScreen initial={s} renderedAt={NOW} />
+  );
+  // 告知の層自身の文字(まもなく/出演名/が始まります)は数えない
+  const count = (c: HTMLElement, text: string) => {
+    const clone = c.cloneNode(true) as HTMLElement;
+    clone.querySelectorAll('[data-stage-notice]').forEach((e) => e.remove());
+    return clone.textContent!.split(text).length - 1;
+  };
+  const hasNotice = (c: HTMLElement) =>
+    c.querySelector('[data-stage-notice]') !== null;
+
+  beforeEach(() => {
+    Object.defineProperty(document, 'fonts', {
+      configurable: true,
+      value: { status: 'loaded', ready: Promise.resolve() },
+    });
+    vi.stubGlobal('requestAnimationFrame', () => 1);
+    vi.stubGlobal('cancelAnimationFrame', () => {});
+  });
+
+  it('開始3分前に入った出演枠があればメインに告知を出す', () => {
+    const { container } = render(screen(snap(null)));
+    expect(hasNotice(container)).toBe(true);
+  });
+
+  it('固定表示中は告知を出さない', () => {
+    const { container } = render(screen(snap(1)));
+    expect(hasNotice(container)).toBe(false);
+  });
+
+  it('告知中も通常の画面のテロップはCMSのままで、告知の文面は出ない', () => {
+    const { container } = render(screen(snap(null)));
+    expect(count(container, 'CMSのテロップ')).toBe(1);
+    expect(count(container, NOTICE_TELOP)).toBe(0);
+  });
+
+  it('タッチ操作の画面のテロップは告知に替わる', () => {
+    const { container } = render(screen(snap(null)));
+    fireEvent.pointerDown(root(container));
+    expect(count(container, NOTICE_TELOP)).toBe(1);
+    expect(count(container, 'CMSのテロップ')).toBe(1);
+  });
+
+  it('地震速報のオーバーレイは告知の層より後ろの子になる', () => {
+    channel = {
+      ...channel,
+      latest: {
+        quake: {
+          kind: 'broadcast',
+          feature: 'quake',
+          payload: {
+            active: true,
+            stage: 'warning',
+            training: false,
+            source: 'p2p',
+            startedAt: NOW,
+            updatedAt: NOW,
+            observation: null,
+          },
+          expiresAt: null,
+          sentAt: NOW,
+        },
+      } as unknown as SignageChannelState['latest'],
+    };
+    const { container } = render(screen(snap(null)));
+    const kids = Array.from(
+      container.querySelector('.signage-canvas')!.children,
+    );
+    const notice = kids.findIndex((k) =>
+      k.contains(container.querySelector('[data-stage-notice]')),
+    );
+    const quake = kids.findIndex((k) => k.hasAttribute('data-quake-overlay'));
+    expect(notice).toBeGreaterThan(-1);
+    expect(quake).toBe(kids.length - 1);
+    expect(quake).toBeGreaterThan(notice);
+  });
+});

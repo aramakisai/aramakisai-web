@@ -13,6 +13,7 @@ import {
 } from '@/lib/signage';
 import { withPin } from '@/lib/signage-pin';
 import { parseQuakePayload } from '@/lib/signage-quake';
+import { noticeTelops, stageStartNotices } from '@/lib/signage-stage-notice';
 import { clockOffsetMs, useCorrectedNow } from '@/lib/signage-time';
 import { useCanvasLayout } from '@/lib/signage-viewport';
 import {
@@ -109,10 +110,12 @@ export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
   const fit = layout?.fit ?? { scale: 1, left: 0, top: 0 };
   // 形が合わない payload は表示せず、通常の画面のままにする
   const quake = parseQuakePayload(useSignageFeature(channel, 'quake', now));
+  const pinned = data !== null && pinnedEntries(data, now).length > 0;
   const session = useTouchSession({
     quakeActive: quake?.active ?? false,
-    pinned: data !== null && pinnedEntries(data, now).length > 0,
+    pinned,
   });
+  const notices = data && !pinned ? stageStartNotices(data.timetable, now) : [];
   const entries = data ? buildPlaylist(data, now) : [];
   const entry = slideAt(entries, now.getTime())?.entry ?? null;
   const canvas = CANVAS_SIZE[orientation];
@@ -167,6 +170,7 @@ export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
           snapshot={data}
           now={now}
           renderers={SLIDE_RENDERERS}
+          notices={notices}
         />
         <SignageTouchLayer
           session={session}
@@ -174,7 +178,9 @@ export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
           eventDays={eventDays}
           rows={rows}
           boards={boards}
-          telops={data?.telops ?? []}
+          telops={
+            notices.length > 0 ? noticeTelops(notices) : (data?.telops ?? [])
+          }
           offsetMs={offsetMs}
         />
         {quake?.active && (
