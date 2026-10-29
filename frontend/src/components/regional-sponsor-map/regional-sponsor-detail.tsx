@@ -63,7 +63,7 @@ export function RegionalSponsorDetail({
         <p
           // Figma のタグ幅はチップと同じく 48 + 8 × 文字数
           style={{ width: 48 + 8 * [...category.label].length }}
-          className={`inline-flex h-8 items-center justify-center self-start rounded-full px-3 text-sm font-medium leading-5 text-white ${category.backgroundClass}`}
+          className={`inline-flex h-8 items-center justify-center self-start whitespace-nowrap rounded-full px-3 text-sm font-medium leading-5 text-white ${category.backgroundClass}`}
         >
           {category.label}
         </p>
