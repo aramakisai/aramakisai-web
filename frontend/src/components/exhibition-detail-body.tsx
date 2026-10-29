@@ -1,7 +1,8 @@
 import {
-  CATEGORY_LABELS,
-  type ExhibitionCategory,
-  type ExhibitionDetail,
+  LISTING_CATEGORY_LABELS,
+  listingHref,
+  type ListingCategory,
+  type ListingDetail,
 } from '@/lib/exhibitions';
 import { env } from '@/env';
 import type { CampusMapArea } from '@/lib/campus-map';
@@ -15,31 +16,32 @@ import { BookmarkButton } from '@/components/bookmark-button';
 import { ShareButton } from '@/components/share-button';
 import { CalendarMonthIcon, PlaceIcon } from '@/components/icons';
 
-const CATEGORY_BADGE_COLORS: Readonly<Record<ExhibitionCategory, string>> = {
+const CATEGORY_BADGE_COLORS: Readonly<Record<ListingCategory, string>> = {
   stage: 'bg-accent',
   exhibit: 'bg-info',
   vendor: 'bg-warning',
   other: 'bg-accent-alt',
+  booth: 'bg-secondary',
 };
 
 function CategoryBadge({
   category,
   signage,
 }: {
-  readonly category: ExhibitionCategory;
+  readonly category: ListingCategory;
   readonly signage: boolean;
 }) {
   return (
     <span
       className={`rounded-full text-text ${CATEGORY_BADGE_COLORS[category]} ${signage ? 'px-3 py-1 text-signage-label' : 'px-3 py-1 text-xs leading-[140%] font-medium'}`}
     >
-      {CATEGORY_LABELS[category]}
+      {LISTING_CATEGORY_LABELS[category]}
     </span>
   );
 }
 
 export interface ExhibitionDetailBodyProps {
-  readonly exhibition: ExhibitionDetail;
+  readonly exhibition: ListingDetail;
   readonly areas: readonly CampusMapArea[];
   readonly performances: readonly ExhibitionPerformance[] | null;
   readonly openDays: string | null;
@@ -65,7 +67,7 @@ export function ExhibitionDetailBody({
     );
   }
 
-  const shareUrl = `${env.NEXT_PUBLIC_SITE_URL}/exhibitions/${exhibition.id}/${exhibition.category}`;
+  const shareUrl = `${env.NEXT_PUBLIC_SITE_URL}${listingHref(exhibition)}`;
 
   return (
     <>
@@ -114,12 +116,14 @@ export function ExhibitionDetailBody({
             title={exhibition.displayName}
             url={shareUrl}
             leading={
-              <BookmarkButton
-                exhibitionId={exhibition.id}
-                category={exhibition.category}
-                displayName={exhibition.displayName}
-                variant="detail"
-              />
+              exhibition.category === 'booth' ? undefined : (
+                <BookmarkButton
+                  exhibitionId={exhibition.id}
+                  category={exhibition.category}
+                  displayName={exhibition.displayName}
+                  variant="detail"
+                />
+              )
             }
           >
             <ExhibitionLinks links={exhibition.links} />

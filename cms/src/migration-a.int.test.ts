@@ -21,6 +21,7 @@ async function withOldSchema(
   const payload = await getPayload({ config });
   const mig = await import('./migrations/20261013_172130_site_settings_and_cleanup_a');
   const migC = await import('./migrations/20261014_073409_drop_legacy_globals_and_sort');
+  const migVendor = await import('./migrations/20261029_133248_sponsors_vendor_group');
   const txId = (await payload.db.beginTransaction()) as string | number;
   // drizzle の db は型を公開しておらず、トランザクション内の sql 実行に any が要る
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -33,6 +34,8 @@ async function withOldSchema(
       DELETE FROM "sponsors"; DELETE FROM "student_exhibitions";
       DELETE FROM "faq_items"; DELETE FROM "map_areas"; DELETE FROM "parking_lots"; DELETE FROM "stages";
       DELETE FROM "telops"; DELETE FROM "signage_groups";`);
+    // マイグレーションAの down は sponsors.booth_number を前提にするため、先にその列を戻す
+    await migVendor.down(args);
     // マイグレーションCが旧グローバルと sort を削除済みのため、先にCを戻してからAを戻す
     await migC.down(args);
     await mig.down(args);

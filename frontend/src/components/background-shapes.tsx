@@ -86,7 +86,7 @@ const SHAPE_CLIP: Record<ShapeKind, { className: string; clipPath?: string }> =
     semicircle: { className: 'rounded-full', clipPath: 'inset(50% 0 0 0)' },
   };
 
-function ShapeFill({
+export function ShapeFill({
   kind,
   texture,
   pos,
@@ -182,6 +182,38 @@ function SolidShapeView({
   );
 }
 
+/** ∞ の輪 1 つ (直径 D・線幅 0.1D)。2 つ目は 1 つ目から 0.74D 右に置く */
+export function InfRing({
+  index,
+  diameter,
+  color,
+  elRef,
+  transform,
+}: {
+  index: 0 | 1;
+  diameter: number;
+  color: RingColor;
+  elRef?: (el: HTMLDivElement | null) => void;
+  transform?: string;
+}) {
+  return (
+    <div
+      ref={elRef}
+      data-bg-ring={index}
+      className={`absolute rounded-full ${RING_BORDER_CLASS[color]}`}
+      style={{
+        left: index === 0 ? 0 : 0.74 * diameter,
+        top: 0,
+        width: diameter,
+        height: diameter,
+        borderStyle: 'solid',
+        borderWidth: diameter * 0.1,
+        transform,
+      }}
+    />
+  );
+}
+
 /**
  * ∞ を描画する。外側要素 (1.74D × D、design.md「ShapeView / ShapeMotion」) は
  * 回転と揺れの transform だけを持ち、入場の移動は持たない。中の 2 つの輪
@@ -207,8 +239,6 @@ function InfShapeView({
 }) {
   const D = shape.size;
   const width = 1.74 * D;
-  const strokeWidth = D * 0.1;
-  const ringLeft: readonly [number, number] = [0, 0.74 * D];
 
   return (
     <div
@@ -227,24 +257,16 @@ function InfShapeView({
     >
       {([0, 1] as const).map((i) => {
         const offset = ringEntryOffsets?.[i];
-        const translate = offset
-          ? `translate(${offset.dx}px, ${offset.dy}px)`
-          : undefined;
         return (
-          <div
+          <InfRing
             key={i}
-            ref={ringRefs[i]}
-            data-bg-ring={i}
-            className={`absolute rounded-full ${RING_BORDER_CLASS[shape.colors[i]]}`}
-            style={{
-              left: ringLeft[i],
-              top: 0,
-              width: D,
-              height: D,
-              borderStyle: 'solid',
-              borderWidth: strokeWidth,
-              transform: translate,
-            }}
+            index={i}
+            diameter={D}
+            color={shape.colors[i]}
+            elRef={ringRefs[i]}
+            transform={
+              offset ? `translate(${offset.dx}px, ${offset.dy}px)` : undefined
+            }
           />
         );
       })}

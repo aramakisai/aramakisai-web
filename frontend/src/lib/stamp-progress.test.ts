@@ -11,7 +11,13 @@ const t = (
   id: number,
   areaId: number | null,
   category: MypageStampTarget['category'] = 'exhibit',
-): MypageStampTarget => ({ id, category, displayName: `企画${id}`, areaId });
+): MypageStampTarget => ({
+  id,
+  category,
+  displayName: `企画${id}`,
+  organizationName: `団体${id}`,
+  areaId,
+});
 const s = (
   id: number,
   savedAt: string,

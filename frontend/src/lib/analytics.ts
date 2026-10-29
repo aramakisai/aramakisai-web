@@ -12,7 +12,14 @@ type GaResult<T extends string> = { readonly result: T };
 // イベント名に click は使わない (GA4 プロパティの page_view 由来のイベント作成ルールと衝突する)
 export interface GaEventMap {
   qr_stamp: ExhibitionEventParams &
-    GaResult<'added' | 'exists' | 'unavailable' | 'invalid' | 'network_error'>;
+    GaResult<
+      | 'added'
+      | 'exists'
+      | 'unavailable'
+      | 'invalid'
+      | 'failed'
+      | 'network_error'
+    >;
   bookmark_add: ExhibitionEventParams;
   bookmark_remove: ExhibitionEventParams;
   share:
@@ -80,7 +87,9 @@ export function isGaEnabled(): boolean {
     process.env.NODE_ENV === 'production' &&
     !!env.NEXT_PUBLIC_GA_MEASUREMENT_ID &&
     typeof window !== 'undefined' &&
-    !window.location.pathname.startsWith('/signage')
+    !window.location.pathname.startsWith('/signage') &&
+    // 照会画面の URL に匿名IDと署名が入るため
+    !window.location.pathname.startsWith('/staff')
   );
 }
 

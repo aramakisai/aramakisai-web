@@ -1,15 +1,23 @@
-import { render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
 import ExhibitionsPage, { generateMetadata, revalidate } from './page';
 import * as exhibitionsModule from '@/lib/exhibitions';
+import * as corporateBoothsModule from '@/lib/corporate-booths';
 import * as siteMetadataModule from '@/lib/site-metadata';
-import type { ExhibitionCardSummary } from '@/lib/exhibitions';
+import type {
+  CorporateBoothCard,
+  ExhibitionCardSummary,
+} from '@/lib/exhibitions';
 import type { SiteMetadata } from '@/lib/site-metadata';
 
 vi.mock('@/lib/exhibitions', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/exhibitions')>();
   return { ...actual, getExhibitionCatalog: vi.fn() };
 });
+
+vi.mock('@/lib/corporate-booths', () => ({
+  getCorporateBoothCards: vi.fn(),
+}));
 
 vi.mock('@/lib/site-metadata', () => ({
   getSiteMetadata: vi.fn(),
@@ -42,6 +50,19 @@ function exhibition(
   };
 }
 
+function booth(overrides: Partial<CorporateBoothCard>): CorporateBoothCard {
+  return {
+    id: 1,
+    category: 'booth',
+    displayName: 'ブース',
+    organizationName: '企業',
+    location: null,
+    areaIds: [],
+    thumbnail: null,
+    ...overrides,
+  };
+}
+
 function catalog(cards: ExhibitionCardSummary[] = []) {
   return { cards, areas: [] };
 }
@@ -60,6 +81,9 @@ const SITE_METADATA: SiteMetadata = {
 describe('ExhibitionsPage', () => {
   beforeEach(() => {
     vi.mocked(exhibitionsModule.getExhibitionCatalog).mockReset();
+    vi.mocked(corporateBoothsModule.getCorporateBoothCards)
+      .mockReset()
+      .mockResolvedValue([]);
     vi.mocked(siteMetadataModule.getSiteMetadata).mockResolvedValue(
       SITE_METADATA,
     );
@@ -89,6 +113,44 @@ describe('ExhibitionsPage', () => {
     expect(
       screen.getByRole('searchbox', { name: '企画を検索' }),
     ).toBeInTheDocument();
+  });
+
+  it('企業ブースを学生企画の後ろに並べ、「企業ブース」で絞り込める', async () => {
+    vi.mocked(exhibitionsModule.getExhibitionCatalog).mockResolvedValue(
+      catalog([exhibition({ id: 1, displayName: 'ロボット企画' })]),
+    );
+    vi.mocked(corporateBoothsModule.getCorporateBoothCards).mockResolvedValue([
+      booth({ id: 7, displayName: 'たこ焼きブース' }),
+    ]);
+
+    await renderPage();
+
+    const titles = screen
+      .getAllByRole('link')
+      .map((a) => a.textContent ?? '')
+      .filter((t) => /ロボット企画|たこ焼きブース/.test(t));
+    expect(titles[0]).toContain('ロボット企画');
+    expect(titles[1]).toContain('たこ焼きブース');
+    expect(
+      screen.getByRole('link', { name: /たこ焼きブース/ }),
+    ).toHaveAttribute('href', '/exhibitions/booth/7');
+
+    window.history.replaceState(null, '', '/exhibitions?category=booth');
+    cleanup();
+    await renderPage();
+    expect(screen.queryByText('ロボット企画')).not.toBeInTheDocument();
+    expect(screen.getByText('たこ焼きブース')).toBeInTheDocument();
+  });
+
+  it('企業ブースの実行時の取得失敗は例外のまま伝える', async () => {
+    vi.mocked(exhibitionsModule.getExhibitionCatalog).mockResolvedValue(
+      catalog(),
+    );
+    vi.mocked(corporateBoothsModule.getCorporateBoothCards).mockRejectedValue(
+      new Error('booth error'),
+    );
+
+    await expect(ExhibitionsPage()).rejects.toThrow('booth error');
   });
 
   it('実行時の取得失敗は例外のまま伝える (ISR が古いページを保つため)', async () => {

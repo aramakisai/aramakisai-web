@@ -25,6 +25,18 @@ export const CATEGORY_VALUES: readonly ExhibitionCategory[] = [
   'other',
 ];
 
+export type ListingCategory = ExhibitionCategory | 'booth';
+
+/** 一覧・マップの選択肢順。既存 4 カテゴリの後ろに企業ブース */
+export const LISTING_CATEGORY_VALUES: readonly ListingCategory[] = [
+  ...CATEGORY_VALUES,
+  'booth',
+];
+
+export const LISTING_CATEGORY_LABELS: Readonly<
+  Record<ListingCategory, string>
+> = { ...CATEGORY_LABELS, booth: '企業ブース' };
+
 export interface ExhibitionImage {
   readonly id: string;
   readonly alt: string;
@@ -71,6 +83,33 @@ export interface ExhibitionDetail extends ExhibitionCardSummary {
   readonly openDayKeys: readonly string[];
 }
 
+export interface CorporateBoothCard extends Omit<
+  ExhibitionCardSummary,
+  'category'
+> {
+  readonly category: 'booth';
+}
+
+export type ListingCard = ExhibitionCardSummary | CorporateBoothCard;
+
+export interface CorporateBoothDetail extends CorporateBoothCard {
+  readonly description: string | null;
+  readonly images: readonly ExhibitionImage[];
+  readonly links: readonly ExhibitionLink[];
+  readonly categories: readonly ['booth'];
+  readonly openDayKeys: readonly string[];
+}
+
+export type ListingDetail = ExhibitionDetail | CorporateBoothDetail;
+
+export function listingHref(
+  card: Pick<ListingCard, 'id' | 'category'>,
+): string {
+  return card.category === 'booth'
+    ? `/exhibitions/booth/${card.id}`
+    : `/exhibitions/${card.id}/${card.category}`;
+}
+
 export interface AreaOption {
   readonly id: number;
   readonly name: string;
@@ -78,7 +117,7 @@ export interface AreaOption {
 
 export interface ExhibitionQuery {
   readonly q: string;
-  readonly categories: readonly ExhibitionCategory[];
+  readonly categories: readonly ListingCategory[];
   readonly areaIds: readonly number[];
   readonly page: number;
 }
@@ -109,8 +148,8 @@ export const PAGE_SIZE = 24;
 
 // --- クエリの解釈 -----------------------------------------------------
 
-function isExhibitionCategory(value: string): value is ExhibitionCategory {
-  return (CATEGORY_VALUES as readonly string[]).includes(value);
+function isListingCategory(value: string): value is ListingCategory {
+  return (LISTING_CATEGORY_VALUES as readonly string[]).includes(value);
 }
 
 /** 配列指定 (`?a=1&a=2`) とカンマ区切り (`?a=1,2`) のどちらも受け付ける */
@@ -125,10 +164,11 @@ function toValues(raw: string | readonly string[] | undefined): string[] {
 
 /** CATEGORY_VALUES は CMS の select 選択肢順 (cms/src/collections/student-exhibitions.ts) と一致させてある */
 function sortCategories(
-  categories: readonly ExhibitionCategory[],
-): ExhibitionCategory[] {
+  categories: readonly ListingCategory[],
+): ListingCategory[] {
   return [...categories].sort(
-    (a, b) => CATEGORY_VALUES.indexOf(a) - CATEGORY_VALUES.indexOf(b),
+    (a, b) =>
+      LISTING_CATEGORY_VALUES.indexOf(a) - LISTING_CATEGORY_VALUES.indexOf(b),
   );
 }
 
@@ -143,7 +183,7 @@ export function parseExhibitionQuery(
   const q = (Array.isArray(qRaw) ? qRaw[0] : qRaw)?.trim() ?? '';
 
   const categories = sortCategories(
-    Array.from(new Set(toValues(params.category).filter(isExhibitionCategory))),
+    Array.from(new Set(toValues(params.category).filter(isListingCategory))),
   );
 
   const areaIds = sortAreaIds(
@@ -173,7 +213,7 @@ export function buildFilterHref(
   path: string,
   query: {
     readonly q: string;
-    readonly categories: readonly ExhibitionCategory[];
+    readonly categories: readonly ListingCategory[];
     readonly areaIds: readonly number[];
     readonly page?: number;
   },
@@ -212,7 +252,7 @@ export function pickRandomExhibitions(
 
 export function buildExhibitionsHref(query: {
   readonly q: string;
-  readonly categories: readonly ExhibitionCategory[];
+  readonly categories: readonly ListingCategory[];
   readonly areaIds: readonly number[];
   readonly page?: number;
 }): string {
@@ -226,10 +266,10 @@ export function normalizeText(value: string): string {
 
 // --- 絞り込み・ページング ----------------------------------------------
 
-export function filterExhibitions(
-  items: readonly ExhibitionCardSummary[],
+export function filterExhibitions<T extends ListingCard>(
+  items: readonly T[],
   query: ExhibitionQuery,
-): readonly ExhibitionCardSummary[] {
+): readonly T[] {
   const q = normalizeText(query.q.trim());
   return items.filter((item) => {
     if (q) {
@@ -403,9 +443,21 @@ function resolveLocationForCategory(
     directAreaId !== null ? context.areasById.get(directAreaId) : undefined;
   if (!directArea) return null;
   const placement = placementOf(exhibition, category);
-  return [directArea.name, placement?.booth_label, placement?.booth_number]
-    .filter(Boolean)
-    .join(' ');
+  return formatPlacementLocation(
+    directArea.name,
+    placement?.booth_label,
+    placement?.booth_number,
+  );
+}
+
+/** エリアが解決できないときは null (場所の手掛かりが無いため) */
+export function formatPlacementLocation(
+  areaName: string | undefined,
+  boothLabel: string | null | undefined,
+  boothNumber: string | null | undefined,
+): string | null {
+  if (areaName === undefined) return null;
+  return [areaName, boothLabel, boothNumber].filter(Boolean).join(' ');
 }
 
 /** カテゴリ別企画内容欄 (`stage` / `exhibit` / `vendor` / `other`) 1 件分 */

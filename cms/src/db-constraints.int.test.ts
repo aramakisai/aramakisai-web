@@ -30,7 +30,7 @@ describe.skipIf(!hasDatabase)('手書きマイグレーションの制約', () =
       'student_exhibitions_exhibit_area_booth_unique',
       'student_exhibitions_vendor_area_booth_unique',
       'student_exhibitions_other_area_booth_unique',
-      'sponsors_area_booth_unique',
+      'sponsors_vendor_area_booth_unique',
       // Authentik の sub による突合が一意であることに依存している
       'users_authentik_sub_idx',
     ]) {

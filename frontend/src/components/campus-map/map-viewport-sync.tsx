@@ -1,7 +1,11 @@
 'use client';
 
 import { useCallback } from 'react';
-import type { FitBoundsOptions, LatLngBoundsExpression } from 'leaflet';
+import type {
+  FitBoundsOptions,
+  LatLngBoundsExpression,
+  LatLngExpression,
+} from 'leaflet';
 import { MapViewportController } from '@/components/map/map-viewport-controller';
 import { CAMPUS_MAP_CONFIG } from '@/lib/campus-map-config';
 
@@ -33,10 +37,16 @@ function fitOptions(
 export function MapViewportSync({
   fitBounds,
   bottomInset = 0,
+  focusCenter,
+  focusKey,
+  refocusKey,
 }: {
   readonly fitBounds: LatLngBoundsExpression;
   /** 地図の下に重なって浮く操作部品の高さ。その分を避けて合わせる */
   readonly bottomInset?: number;
+  readonly focusCenter: LatLngExpression | null;
+  readonly focusKey: number | null;
+  readonly refocusKey: string;
 }) {
   const resolveFitOptions = useCallback(
     (container: HTMLElement) => fitOptions(container, bottomInset),
@@ -49,6 +59,11 @@ export function MapViewportSync({
       maxBounds={CAMPUS_MAX_BOUNDS}
       minZoom={CAMPUS_MAP_CONFIG.minZoom}
       fitOptions={resolveFitOptions}
+      focusCenter={focusCenter}
+      focusKey={focusKey}
+      focusZoom={CAMPUS_MAP_CONFIG.maxNativeZoom}
+      focusFitOptions={resolveFitOptions}
+      refocusKey={refocusKey}
     />
   );
 }

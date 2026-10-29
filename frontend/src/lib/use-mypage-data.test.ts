@@ -13,7 +13,7 @@ describe('useMypageData', () => {
     const { result } = renderHook(() => useMypageData());
     expect(result.current).toEqual({
       version: 1,
-      lists: { stamps: [], bookmarks: [] },
+      lists: { bookmarks: [] },
     });
   });
 

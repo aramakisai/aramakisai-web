@@ -118,6 +118,10 @@ cmd_dev() {
   fi
   # getCloudflareContext().env にプロセス環境変数を載せるのに必要
   export CLOUDFLARE_INCLUDE_PROCESS_ENV=true
+  # wrangler.toml の [vars] には置かない設計のため、プロセス環境変数で渡す
+  export STAMP_ENV=preview
+  # ローカル D1 は空で始まるため、起動のたびに未適用のマイグレーションを流す
+  node_modules/.bin/wrangler d1 migrations apply STAMP_DB --local
   exec node_modules/.bin/next dev --webpack -p "${port}"
 }
 

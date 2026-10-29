@@ -6,6 +6,7 @@ import {
   deployWithCpuLimitFallback,
   isCpuLimitUnsupported,
   makeFallbackConfigFile,
+  stripConfigArg,
   stripLimitsTable,
 } from './deploy-with-cpu-limit-fallback';
 
@@ -71,6 +72,57 @@ describe('deployWithCpuLimitFallback', () => {
     expect(code).toBe(0);
     expect(s.run).toHaveBeenCalledTimes(1);
     expect(s.makeFallbackConfig).not.toHaveBeenCalled();
+  });
+});
+
+describe('deployWithCpuLimitFallback with --config', () => {
+  it('builds the fallback from the given config and passes only the fallback config on rerun', async () => {
+    const s = setup([FREE_PLAN_ERROR, { code: 0, output: 'ok' }]);
+    const command = [...COMMAND, '--config', '.wrangler.preview.toml', '--x'];
+
+    await deployWithCpuLimitFallback({ command, ...s });
+
+    expect(s.makeFallbackConfig).toHaveBeenCalledWith('.wrangler.preview.toml');
+    expect(s.run).toHaveBeenLastCalledWith([
+      ...COMMAND,
+      '--x',
+      '--config',
+      '/tmp/x.toml',
+    ]);
+  });
+
+  it('falls back to wrangler.toml when the command has no --config', async () => {
+    const s = setup([FREE_PLAN_ERROR, { code: 0, output: 'ok' }]);
+
+    await deployWithCpuLimitFallback({ command: COMMAND, ...s });
+
+    expect(s.makeFallbackConfig).toHaveBeenCalledWith('wrangler.toml');
+  });
+
+  it('keeps the D1 reference of the given config in the fallback file', () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'wrangler-'));
+    const original = path.join(dir, 'preview.toml');
+    writeFileSync(
+      original,
+      'name = "a"\n[limits]\ncpu_ms = 5000\n[[d1_databases]]\ndatabase_id = "dev-id"\n',
+    );
+
+    const fallback = makeFallbackConfigFile(original);
+
+    expect(readFileSync(fallback.path, 'utf-8')).toContain(
+      'database_id = "dev-id"',
+    );
+    fallback.cleanup();
+  });
+});
+
+describe('stripConfigArg', () => {
+  it('removes --config with its value and --config=value', () => {
+    expect(stripConfigArg(['a', '--config', 'x.toml', 'b'])).toEqual([
+      'a',
+      'b',
+    ]);
+    expect(stripConfigArg(['a', '--config=x.toml', 'b'])).toEqual(['a', 'b']);
   });
 });
 

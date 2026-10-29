@@ -19,6 +19,8 @@ const FIT = [
   [1, 1],
 ] as [[number, number], [number, number]];
 
+const NO_FOCUS = { focusCenter: null, focusKey: null, refocusKey: 'mobile' };
+
 function renderWithResize(bottomInset?: number) {
   let trigger = () => {};
   vi.stubGlobal(
@@ -32,7 +34,9 @@ function renderWithResize(bottomInset?: number) {
     },
   );
   map.fitBounds.mockClear();
-  render(<MapViewportSync fitBounds={FIT} bottomInset={bottomInset} />);
+  render(
+    <MapViewportSync fitBounds={FIT} bottomInset={bottomInset} {...NO_FOCUS} />,
+  );
   trigger();
 }
 
@@ -82,6 +86,7 @@ describe('MapViewportSync', () => {
           [0, 0],
           [1, 1],
         ]}
+        {...NO_FOCUS}
       />,
     );
     expect(map.getBoundsZoom).toHaveBeenCalledWith(
@@ -99,6 +104,7 @@ describe('MapViewportSync', () => {
           [0, 0],
           [1, 1],
         ]}
+        {...NO_FOCUS}
       />,
     );
     expect(map.setMinZoom).toHaveBeenLastCalledWith(CAMPUS_MAP_CONFIG.minZoom);

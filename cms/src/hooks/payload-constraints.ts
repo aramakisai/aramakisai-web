@@ -137,8 +137,9 @@ export const sponsorBoothPlacementConstraint: CollectionBeforeValidateHook = asy
   originalDoc,
   req,
 }) => {
-  const areaId = data?.area_id
-  const boothNumber = data?.booth_number
+  const vendor = data?.vendor as { area_id?: unknown; booth_number?: unknown } | null | undefined
+  const areaId = vendor?.area_id
+  const boothNumber = vendor?.booth_number
   if (areaId == null || boothNumber == null || boothNumber === '') return data
 
   const duplicates = await req.payload.find({
@@ -149,8 +150,8 @@ export const sponsorBoothPlacementConstraint: CollectionBeforeValidateHook = asy
     req,
     where: {
       and: [
-        { area_id: { equals: areaId } },
-        { booth_number: { equals: boothNumber } },
+        { 'vendor.area_id': { equals: areaId } },
+        { 'vendor.booth_number': { equals: boothNumber } },
         ...(originalDoc?.id ? [{ id: { not_equals: originalDoc.id } }] : []),
       ],
     },
@@ -158,8 +159,16 @@ export const sponsorBoothPlacementConstraint: CollectionBeforeValidateHook = asy
 
   raise(
     'sponsors',
-    validateBoothPlacement(data ?? {}, { duplicateExists: duplicates.docs.length > 0 }),
+    validateBoothPlacement(vendor ?? {}, { duplicateExists: duplicates.docs.length > 0 }).map(
+      (v) => ({ ...v, field: `vendor.${v.field}` }),
+    ),
   )
+  return data
+}
+
+/** 出店協賛の画像枚数上限。学生団体向けの必須入力・所有者チェックは対象外。 */
+export const sponsorImageCountConstraint: CollectionBeforeValidateHook = ({ data }) => {
+  raise('sponsors', validateImageCount({ vendor: (data as { vendor?: { images?: unknown } } | undefined)?.vendor }))
   return data
 }
 

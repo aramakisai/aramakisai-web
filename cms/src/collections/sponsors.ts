@@ -1,9 +1,9 @@
 import type { CollectionConfig } from 'payload';
 
-import { blankToNull } from '../hooks/constraints';
 import { localSponsorMapConstraint } from '../hooks/local-sponsor-map';
-import { sponsorBoothPlacementConstraint } from '../hooks/payload-constraints';
+import { sponsorBoothPlacementConstraint, sponsorImageCountConstraint } from '../hooks/payload-constraints';
 import { signageNotifyHook } from '../lib/signage-notify';
+import { CONTENT_FIELDS, PLACEMENT_FIELDS } from './booth-fields';
 
 /** 地域協賛カテゴリのruntime値はPayload selectを唯一の定義とする。 */
 export const LOCAL_SPONSOR_CATEGORY_OPTIONS = [
@@ -26,7 +26,7 @@ export const Sponsors: CollectionConfig = {
   },
   orderable: true,
   hooks: {
-    beforeValidate: [localSponsorMapConstraint, sponsorBoothPlacementConstraint],
+    beforeValidate: [localSponsorMapConstraint, sponsorBoothPlacementConstraint, sponsorImageCountConstraint],
     afterChange: [signageNotifyHook(['snapshot'])],
     afterDelete: [signageNotifyHook(['snapshot'])],
   },
@@ -151,36 +151,17 @@ export const Sponsors: CollectionConfig = {
       },
     },
     {
-      name: 'area_id',
-      type: 'relationship',
-      relationTo: 'map_areas',
-      label: 'マップ配置エリア',
+      name: 'vendor',
+      type: 'group',
+      label: '出店の企画内容',
       admin: {
-        description: '出店協賛のみ',
+        description: '種別で「出店協賛」を選択したときだけ表示する',
         condition: (data) => Array.isArray(data?.type) && data.type.includes('vendor'),
+        // 一括編集はレコードごとの type を評価できず condition が働かないため、
+        // 種別を問わず入力欄が常に選択候補へ出てしまう。個別編集画面に限定する
+        disableBulkEdit: true,
       },
-    },
-    {
-      name: 'booth_number',
-      type: 'text',
-      maxLength: 20,
-      // 重複判定 (collection の beforeValidate) より先に正規化するため field の beforeValidate に置く
-      hooks: { beforeValidate: [({ value }) => blankToNull(value)] },
-      label: 'ブース番号',
-      admin: {
-        description: 'エリア内番号 (area_id+booth_number UNIQUE)。出店協賛のみ',
-        condition: (data) => Array.isArray(data?.type) && data.type.includes('vendor'),
-      },
-    },
-    {
-      name: 'booth_label',
-      type: 'text',
-      maxLength: 50,
-      label: 'マップ表示ラベル',
-      admin: {
-        description: '出店協賛のみ',
-        condition: (data) => Array.isArray(data?.type) && data.type.includes('vendor'),
-      },
+      fields: [...CONTENT_FIELDS, ...PLACEMENT_FIELDS],
     },
   ],
 };

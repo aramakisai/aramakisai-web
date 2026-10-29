@@ -2,9 +2,9 @@
 
 import { SearchIcon } from '@/components/icons';
 import {
-  CATEGORY_LABELS,
-  CATEGORY_VALUES,
-  type ExhibitionCategory,
+  LISTING_CATEGORY_LABELS,
+  LISTING_CATEGORY_VALUES,
+  type ListingCategory,
 } from '@/lib/exhibitions';
 
 // スマートフォン側 (MapSearchOverlay) と同じページに同時に存在するため、
@@ -14,12 +14,10 @@ const KEYWORD_INPUT_ID = 'map-search-panel-keyword';
 export interface MapSearchProps {
   /** 検索欄に束縛する即時値 (useMapFilters().keywordInput) */
   readonly keyword: string;
-  readonly categories: readonly ExhibitionCategory[];
+  readonly categories: readonly ListingCategory[];
   /** デバウンスや正規化は useMapFilters 側の責務のため、値をそのまま渡す */
   readonly onKeywordChange: (value: string) => void;
-  readonly onCategoriesChange: (
-    categories: readonly ExhibitionCategory[],
-  ) => void;
+  readonly onCategoriesChange: (categories: readonly ListingCategory[]) => void;
 }
 
 export function MapSearchPanel({
@@ -28,7 +26,7 @@ export function MapSearchPanel({
   onKeywordChange,
   onCategoriesChange,
 }: MapSearchProps) {
-  const toggleCategory = (category: ExhibitionCategory) => {
+  const toggleCategory = (category: ListingCategory) => {
     onCategoriesChange(
       categories.includes(category)
         ? categories.filter((c) => c !== category)
@@ -73,7 +71,7 @@ export function MapSearchPanel({
         >
           すべて
         </button>
-        {CATEGORY_VALUES.map((category) => {
+        {LISTING_CATEGORY_VALUES.map((category) => {
           const pressed = categories.includes(category);
           return (
             <button
@@ -87,7 +85,7 @@ export function MapSearchPanel({
                   : 'border-gray-200 bg-background text-text'
               }`}
             >
-              {CATEGORY_LABELS[category]}
+              {LISTING_CATEGORY_LABELS[category]}
             </button>
           );
         })}

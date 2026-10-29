@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import { CampusMapScreen } from '@/components/campus-map/campus-map-screen';
+import { getCorporateBoothCards } from '@/lib/corporate-booths';
 import { getCampusMapData } from '@/lib/campus-map';
 import { getNavigation } from '@/lib/get-navigation';
-import { isBuildPhase } from '@/lib/isr';
+import { isBuildPhase, loadForIsr } from '@/lib/isr';
 import { getRequestPhase } from '@/lib/request-phase';
 import { getSiteMetadata } from '@/lib/site-metadata';
 import { buildPageMetadata } from '@/lib/page-metadata';
@@ -26,7 +27,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function MapPage() {
-  const data = await getCampusMapData();
+  const [data, booths] = await Promise.all([
+    getCampusMapData(),
+    loadForIsr(getCorporateBoothCards, []),
+  ]);
   // 実行時に取得失敗の結果を描画すると次の再検証までキャッシュされ、古い正常なページを
   // 上書きする。例外にして再検証を失敗させる (ビルド時は CMS が無いので結果のまま描画する)
   if (
@@ -40,5 +44,12 @@ export default async function MapPage() {
 
   // 絞り込み条件は URL から読む必要があり、ここで searchParams を読むとページが動的になるため、
   // クライアントがマウント時に location.search から復元する
-  return <CampusMapScreen data={data} phase={phase} navigation={navigation} />;
+  return (
+    <CampusMapScreen
+      data={data}
+      booths={booths}
+      phase={phase}
+      navigation={navigation}
+    />
+  );
 }
