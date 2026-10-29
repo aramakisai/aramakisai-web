@@ -10,6 +10,8 @@ import {
   MaterialIcon,
 } from '@/components/icons';
 import { DetailColumn } from '@/components/detail-column';
+import { ExchangeQrPanel } from '@/components/exchange-qr-panel';
+import { FetchErrorBlock } from '@/components/fetch-error-block';
 import { HoverLineText } from '@/components/hover-line';
 import { SectionHeading } from '@/components/section-heading';
 import { ExhibitionCard } from '@/components/exhibition-card';
@@ -19,6 +21,7 @@ import type {
   ExhibitionCategory,
 } from '@/lib/exhibitions';
 import { useMypageData } from '@/lib/use-mypage-data';
+import { useVisitorStamps } from '@/lib/use-visitor-stamps';
 import {
   groupStampsByArea,
   type CollectedStamp,
@@ -232,8 +235,17 @@ export function MypageView({
 }: MypageViewProps) {
   // localStorage は hydration 後にしか読めず、読み込み前に空表示を出すと再訪者に誤表示が一瞬出る
   const data = useMypageData();
+  const visitorId =
+    data === null || data === 'unavailable' ? null : (data.visitorId ?? null);
+  const { result: record, reload } = useVisitorStamps(visitorId);
   const saved =
-    data === null ? null : data === 'unavailable' ? [] : data.lists.stamps;
+    data === null || record.status !== 'ready'
+      ? null
+      : record.stamps.map((s) => ({
+          id: s.exhibitionId,
+          category: s.category,
+          savedAt: s.acquiredAt,
+        }));
   const bookmarks =
     data === null ? null : data === 'unavailable' ? [] : data.lists.bookmarks;
   const tab = useSelectedTab();
@@ -306,32 +318,48 @@ export function MypageView({
           id="mypage-panel-stamps"
           aria-labelledby="mypage-tab-stamps"
           hidden={tab !== 'stamps'}
-          className="flex flex-col gap-4"
+          className="flex flex-col gap-6"
         >
-          {saved !== null && !hasStamps && (
-            <p className="text-base leading-[1.7] text-gray-600">
-              スタンプはありません
-            </p>
+          {record.status === 'error' ? (
+            <FetchErrorBlock
+              message="スタンプを取得できませんでした"
+              onReload={reload}
+            />
+          ) : (
+            <div className="flex flex-col gap-4">
+              {saved !== null && !hasStamps && (
+                <p className="text-base leading-[1.7] text-gray-600">
+                  スタンプはありません
+                </p>
+              )}
+              <div>
+                {groups.map((g) => (
+                  <StampArea
+                    key={g.areaId}
+                    name={g.areaName}
+                    percent={g.percent}
+                    stamps={g.stamps}
+                    categoryLabels={categoryLabels}
+                  />
+                ))}
+                {others.length > 0 && (
+                  <StampArea
+                    name="その他"
+                    percent={null}
+                    stamps={others}
+                    categoryLabels={categoryLabels}
+                  />
+                )}
+              </div>
+            </div>
           )}
-          <div>
-            {groups.map((g) => (
-              <StampArea
-                key={g.areaId}
-                name={g.areaName}
-                percent={g.percent}
-                stamps={g.stamps}
-                categoryLabels={categoryLabels}
-              />
-            ))}
-            {others.length > 0 && (
-              <StampArea
-                name="その他"
-                percent={null}
-                stamps={others}
-                categoryLabels={categoryLabels}
-              />
-            )}
-          </div>
+          {visitorId !== null && record.status === 'ready' && (
+            <ExchangeQrPanel
+              visitorId={visitorId}
+              targets={targets}
+              stamps={record.stamps}
+            />
+          )}
         </div>
         <div
           role="tabpanel"

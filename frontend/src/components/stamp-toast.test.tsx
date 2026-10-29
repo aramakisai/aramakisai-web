@@ -20,6 +20,16 @@ describe('StampToast', () => {
     );
   });
 
+  it('error はマイページへのリンクを出さず、文言の改行を保つ', () => {
+    render(<StampToast kind="error" />);
+    const status = screen.getByRole('status');
+    expect(status.textContent).toBe(
+      'スタンプを記録できませんでした。\nもう一度読み取ってください',
+    );
+    expect(status.firstElementChild).toHaveClass('whitespace-pre-line');
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+
   it('message を渡すと kind の既定文言の代わりに出す', () => {
     render(<StampToast kind="added" message="現在地を取得できませんでした" />);
     const status = screen.getByRole('status');

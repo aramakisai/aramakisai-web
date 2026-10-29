@@ -4,6 +4,10 @@ import { ExhibitionCard } from './exhibition-card';
 import type { ExhibitionCardSummary } from '@/lib/exhibitions';
 import { getExhibitionTexture } from '@/lib/exhibition-color';
 
+vi.mock('@/env', () => ({
+  env: { NEXT_PUBLIC_CMS_URL: 'http://localhost:8055' },
+}));
+
 vi.mock('@/lib/cms-asset-url', () => ({
   toAssetUrl: (id: string | null) =>
     id ? `https://example.com/assets/${id}` : null,
@@ -109,5 +113,27 @@ describe('ExhibitionCard', () => {
     expect(link.contains(button)).toBe(false);
     expect(link.parentElement).toBe(button.parentElement);
     expect(link).toHaveAttribute('href', '/exhibitions/1/exhibit');
+  });
+
+  it('links a corporate booth card to its booth detail page', () => {
+    render(
+      <ExhibitionCard exhibition={{ ...baseExhibition, category: 'booth' }} />,
+    );
+
+    expect(screen.getByRole('link')).toHaveAttribute(
+      'href',
+      '/exhibitions/booth/1',
+    );
+  });
+
+  it('hides the bookmark button on a corporate booth card even when bookmarkable', () => {
+    render(
+      <ExhibitionCard
+        exhibition={{ ...baseExhibition, category: 'booth' }}
+        bookmarkable
+      />,
+    );
+
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 });

@@ -208,3 +208,25 @@ describe('MapSearchOverlay', () => {
     expect(wrapper).not.toHaveAttribute('inert');
   });
 });
+
+describe('MapSearchOverlay (企業ブース)', () => {
+  it('lists 企業ブース as the last chip and toggles it as "booth"', () => {
+    mockMatchMedia(false);
+    const setCategories = vi.fn();
+    render(
+      <MapSearchOverlay
+        keywordInput=""
+        setKeywordInput={vi.fn()}
+        categories={['stage']}
+        setCategories={setCategories}
+      />,
+    );
+    const group = screen.getByRole('group', { name: 'カテゴリで絞り込み' });
+    expect(
+      Array.from(group.querySelectorAll('button')).map((b) => b.textContent),
+    ).toEqual(['すべて', 'ステージ', '展示', '出店', 'その他', '企業ブース']);
+
+    fireEvent.click(screen.getByRole('button', { name: '企業ブース' }));
+    expect(setCategories).toHaveBeenCalledWith(['stage', 'booth']);
+  });
+});

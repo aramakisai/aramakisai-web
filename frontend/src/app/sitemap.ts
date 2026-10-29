@@ -3,6 +3,7 @@ import { env } from '@/env';
 import { cms } from '@/lib/cms';
 import { getAnnouncements } from '@/lib/announcements';
 import { getCampusMapLastModified } from '@/lib/campus-map';
+import { getCorporateBoothSitemapEntries } from '@/lib/corporate-booths';
 import { crawlPhase, SITEMAP_CODE_ROUTES } from '@/lib/crawl-targets';
 import { getExhibitionSitemapEntries } from '@/lib/exhibitions';
 import { getFaqItems } from '@/lib/faq';
@@ -94,10 +95,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   if (isPublicPath('/exhibitions', phase)) {
     try {
       const exhibitions = await getExhibitionSitemapEntries();
+      // 企業ブースの取得失敗で学生企画のエントリまで落とさない
+      const booths = await getCorporateBoothSitemapEntries().catch(() => []);
       entries.push({
         url: toUrl('/exhibitions'),
-        lastModified: maxUpdatedAt(exhibitions.map((e) => e.updatedAt)),
+        lastModified: maxUpdatedAt([
+          ...exhibitions.map((e) => e.updatedAt),
+          ...booths.map((b) => b.updatedAt),
+        ]),
       });
+      for (const booth of booths) {
+        const path = `/exhibitions/booth/${booth.id}`;
+        if (isPublicPath(path, phase)) {
+          entries.push({ url: toUrl(path), lastModified: booth.updatedAt });
+        }
+      }
       for (const exhibition of exhibitions) {
         const path = `/exhibitions/${exhibition.id}/${exhibition.category}`;
         if (isPublicPath(path, phase)) {

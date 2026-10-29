@@ -321,3 +321,36 @@ describe('variant signage', () => {
     ).toHaveClass('text-signage-body');
   });
 });
+
+describe('AreaExhibitionList (企業ブース)', () => {
+  it('links a booth card to its booth detail page and names the booth category in the heading', () => {
+    const booth = {
+      id: 7,
+      category: 'booth' as const,
+      displayName: '協賛ブース',
+      organizationName: '協賛企業',
+      location: null,
+      areaIds: [1],
+      thumbnail: null,
+    };
+    const state: AreaExhibitionListState = {
+      kind: 'filtered',
+      areaName: '中央エリア',
+      keyword: '',
+      categories: ['booth'],
+      items: [card({ id: 7, displayName: '学生企画' }), booth],
+    };
+    render(<AreaExhibitionList state={state} />);
+    expect(
+      screen.getByRole('heading', { name: '中央エリア 企業ブース' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /協賛ブース/ })).toHaveAttribute(
+      'href',
+      '/exhibitions/booth/7',
+    );
+    expect(screen.getByRole('link', { name: /学生企画/ })).toHaveAttribute(
+      'href',
+      '/exhibitions/7/exhibit',
+    );
+  });
+});

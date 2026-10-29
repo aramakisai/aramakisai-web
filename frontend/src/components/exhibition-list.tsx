@@ -9,7 +9,7 @@ import {
   paginate,
   parseExhibitionQuery,
   type AreaOption,
-  type ExhibitionCardSummary,
+  type ListingCard,
   type ExhibitionQuery,
 } from '@/lib/exhibitions';
 import { ExhibitionCard } from './exhibition-card';
@@ -20,7 +20,7 @@ import {
 import { ExhibitionPagination } from './exhibition-pagination';
 
 export interface ExhibitionListProps {
-  readonly cards: readonly ExhibitionCardSummary[];
+  readonly cards: readonly ListingCard[];
   readonly areas: readonly AreaOption[];
 }
 

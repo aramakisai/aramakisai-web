@@ -433,17 +433,29 @@ export interface Sponsor {
    */
   tier?: ('planA' | 'planB' | 'planC' | 'planD') | null;
   /**
-   * 出店協賛のみ
+   * 種別で「出店協賛」を選択したときだけ表示する
    */
-  area_id?: (number | null) | MapArea;
-  /**
-   * エリア内番号 (area_id+booth_number UNIQUE)。出店協賛のみ
-   */
-  booth_number?: string | null;
-  /**
-   * 出店協賛のみ
-   */
-  booth_label?: string | null;
+  vendor?: {
+    name?: string | null;
+    description?: string | null;
+    /**
+     * 最大5枚まで。1枚目がサムネイルとして表示されます。
+     */
+    images?: (number | Media)[] | null;
+    open_days?: string[] | null;
+    /**
+     * 割り当てられた出店エリア
+     */
+    area_id?: (number | null) | MapArea;
+    /**
+     * 割り当てられた出店グループ内の番号もしくは教室番号
+     */
+    booth_number?: string | null;
+    /**
+     * 割り当てられた出店エリア名
+     */
+    booth_label?: string | null;
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -1288,9 +1300,17 @@ export interface SponsorsSelect<T extends boolean = true> {
   local_business_hours?: T;
   local_phone?: T;
   tier?: T;
-  area_id?: T;
-  booth_number?: T;
-  booth_label?: T;
+  vendor?:
+    | T
+    | {
+        name?: T;
+        description?: T;
+        images?: T;
+        open_days?: T;
+        area_id?: T;
+        booth_number?: T;
+        booth_label?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }

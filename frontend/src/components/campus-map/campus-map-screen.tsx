@@ -5,7 +5,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { CampusMapArea, CampusMapDataResult } from '@/lib/campus-map';
 import { sendGaEvent } from '@/lib/analytics';
-import { filterExhibitions } from '@/lib/exhibitions';
+import {
+  filterExhibitions,
+  type CorporateBoothCard,
+  type ListingCard,
+} from '@/lib/exhibitions';
 import { BUILD_PHASE, type FestivalPhase } from '@/lib/phase';
 import type { NavigationByPhase } from '@/lib/navigation';
 import { usePhase } from '@/lib/use-phase';
@@ -48,15 +52,19 @@ const AREAS_ERROR_NOTICE =
 // 失敗時の [] を毎レンダー新規生成すると、これを依存配列に含む useMemo が
 // 参照比較で毎回再計算されてしまうため、安定した参照を 1 つだけ持つ
 const EMPTY_AREAS: readonly CampusMapArea[] = [];
+const EMPTY_BOOTHS: readonly CorporateBoothCard[] = [];
 
 export interface CampusMapScreenProps {
   readonly data: CampusMapDataResult;
+  /** 学生企画の後ろに結合して検索・エリア別リストに使う。省略時は学生企画のみ */
+  readonly booths?: readonly CorporateBoothCard[];
   readonly phase?: FestivalPhase;
   readonly navigation: NavigationByPhase;
 }
 
 export function CampusMapScreen({
   data,
+  booths = EMPTY_BOOTHS,
   // MapPage (Server Component) からのみ実際のフェーズが渡る。省略時は
   // BUILD_PHASE を使うことで、フェーズ結線に関与しない既存呼び出し元を壊さない
   phase = BUILD_PHASE,
@@ -113,7 +121,11 @@ export function CampusMapScreen({
       return { kind: 'unselected' };
     }
 
-    const items = filterExhibitions(data.exhibitions.value, {
+    const listings: readonly ListingCard[] = [
+      ...data.exhibitions.value,
+      ...booths,
+    ];
+    const items = filterExhibitions(listings, {
       q: filters.q,
       categories: filters.categories,
       areaIds: filters.selectedAreaId === null ? [] : [filters.selectedAreaId],
@@ -135,7 +147,7 @@ export function CampusMapScreen({
       categories: filters.categories,
       items,
     };
-  }, [data.exhibitions, data.areas, areas, filters]);
+  }, [data.exhibitions, data.areas, areas, booths, filters]);
 
   // エリア選択は area_select で送るため、絞り込みイベントのキーには含めない
   const filterKey = JSON.stringify([filters.q, filters.categories]);

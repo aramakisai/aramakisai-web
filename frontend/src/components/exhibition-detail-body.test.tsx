@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ExhibitionDetailBody } from './exhibition-detail-body';
-import type { ExhibitionDetail } from '@/lib/exhibitions';
+import type { CorporateBoothDetail, ExhibitionDetail } from '@/lib/exhibitions';
 
 vi.mock('@/lib/use-motion-preference', () => ({
   useMotionPreference: () => ({ reduced: false, toggle: vi.fn() }),
@@ -93,5 +93,47 @@ describe('ExhibitionDetailBody site', () => {
     );
     expect(screen.getByText('共有')).toBeInTheDocument();
     expect(screen.getByRole('list', { name: 'リンク' })).toBeInTheDocument();
+  });
+});
+
+describe('ExhibitionDetailBody corporate booth', () => {
+  const booth: CorporateBoothDetail = {
+    id: 7,
+    category: 'booth',
+    displayName: 'たこ焼き出店',
+    organizationName: '株式会社テスト',
+    categories: ['booth'],
+    location: null,
+    areaIds: [],
+    thumbnail: null,
+    description: null,
+    images: [],
+    links: [{ platform: 'website', url: 'https://example.com/' }],
+    openDayKeys: [],
+  };
+  const view = () =>
+    render(
+      <ExhibitionDetailBody
+        exhibition={booth}
+        areas={[]}
+        performances={null}
+        openDays={null}
+      />,
+    );
+
+  it('バッジ・企業名・Web サイトリンクを出す', () => {
+    view();
+    const badge = screen.getByText('企業ブース');
+    expect(badge).toHaveClass('bg-secondary');
+    expect(screen.getByText('株式会社テスト')).toBeInTheDocument();
+    expect(screen.getByRole('list', { name: 'リンク' })).toBeInTheDocument();
+  });
+
+  it('メニューとブックマークを出さない', () => {
+    view();
+    expect(screen.queryByText('メニュー')).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: /ブックマーク|保存/ }),
+    ).toBeNull();
   });
 });
