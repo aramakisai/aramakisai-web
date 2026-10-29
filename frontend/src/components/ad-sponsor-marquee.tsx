@@ -49,7 +49,7 @@ function MarqueeSet({
                       <img
                         src={toAssetUrl(s.logoId, 960) ?? ''}
                         alt={hidden ? '' : s.name}
-                        className={`${LOGO_HEIGHT[block.tier]} w-auto max-w-none`}
+                        className={`${LOGO_HEIGHT[block.tier]} w-auto max-w-none bg-white`}
                       />
                     )}
                   </li>
