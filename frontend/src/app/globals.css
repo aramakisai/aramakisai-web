@@ -849,6 +849,35 @@ html[data-pl] [style*='/images/textures/'] {
   }
 }
 
+/* サイネージの告知。入場・退場は translate、拍は transform、∞の回転は rotate と、プロパティを分けて入れ子の要素ごとに当てる */
+@keyframes notice-gather {
+  from {
+    translate: var(--dx) var(--dy);
+  }
+}
+
+@keyframes notice-leave {
+  to {
+    translate: var(--ex) var(--ey);
+  }
+}
+
+@keyframes notice-beat {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  15% {
+    transform: scale(1.08);
+  }
+}
+
+@keyframes notice-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
 /* TouchLinkGuard が遮断したリンクに data-touch-blocked を付ける。本文と同じ見た目にする */
 a[data-touch-blocked] {
   color: inherit;
