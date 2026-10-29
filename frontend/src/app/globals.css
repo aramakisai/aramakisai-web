@@ -829,6 +829,55 @@ html[data-pl] [style*='/images/textures/'] {
   animation: fade-out 600ms ease-out forwards;
 }
 
+/* サイネージ背景の泡。上昇 (外側) と横揺れ・回転 (内側) を別要素の transform に分け、互いの合成を避ける */
+@keyframes bubble-rise {
+  from {
+    transform: translateY(var(--rise-from));
+  }
+  to {
+    transform: translateY(var(--rise-to));
+  }
+}
+
+@keyframes bubble-sway {
+  0%,
+  100% {
+    transform: translateX(calc(var(--sway) * -1)) rotate(-8deg);
+  }
+  50% {
+    transform: translateX(var(--sway)) rotate(8deg);
+  }
+}
+
+/* サイネージの告知。入場・退場は translate、拍は transform、∞の回転は rotate と、プロパティを分けて入れ子の要素ごとに当てる */
+@keyframes notice-gather {
+  from {
+    translate: var(--dx) var(--dy);
+  }
+}
+
+@keyframes notice-leave {
+  to {
+    translate: var(--ex) var(--ey);
+  }
+}
+
+@keyframes notice-beat {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  15% {
+    transform: scale(1.08);
+  }
+}
+
+@keyframes notice-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
 /* TouchLinkGuard が遮断したリンクに data-touch-blocked を付ける。本文と同じ見た目にする */
 a[data-touch-blocked] {
   color: inherit;

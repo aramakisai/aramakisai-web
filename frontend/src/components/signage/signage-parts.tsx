@@ -22,11 +22,11 @@ export function SignageIcon({ name }: { readonly name: string }) {
 export function SignageDayDate({
   eventDays,
   now,
-  baseClass = 'bg-background',
+  baseClass = '',
 }: {
   readonly eventDays: readonly EventDay[];
   readonly now: Date;
-  /** CrossFade の各レイヤーの地。置き先の背景色と揃えないと日付の裏に別色の長方形が出る */
+  /** CrossFade の各レイヤーの地。省くと透明になり背景図形が透けるため、旧レイヤーは fade-out で消す。不透明な面の上に置くときだけ指定する */
   readonly baseClass?: string;
 }) {
   const day = eventDayIndex(eventDays, now);
@@ -34,6 +34,7 @@ export function SignageDayDate({
   return (
     <CrossFade
       transitionKey={date}
+      fadePrevious={baseClass === ''}
       layerClassName={`flex items-center gap-3 ${baseClass} font-display text-[28px] leading-none font-bold text-text`}
     >
       {day !== null && (

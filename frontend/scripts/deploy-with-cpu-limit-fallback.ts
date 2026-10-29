@@ -16,7 +16,7 @@ export interface FallbackConfig {
 export interface DeployWithFallbackOptions {
   command: string[];
   run: (command: string[]) => Promise<RunResult>;
-  makeFallbackConfig: () => FallbackConfig;
+  makeFallbackConfig: (configPath: string) => FallbackConfig;
   warn?: (message: string) => void;
 }
 
@@ -32,6 +32,26 @@ export function stripLimitsTable(toml: string): string {
   return toml.replace(/^\[limits\][^\n]*\n(?:(?!\[)[^\n]*\n?)*/m, '');
 }
 
+/** `--config <path>` / `--config=<path>` の指定を取り出す。 */
+export function configPathOf(command: string[]): string | undefined {
+  const i = command.findIndex(
+    (a) => a === '--config' || a.startsWith('--config='),
+  );
+  if (i < 0) return undefined;
+  return command[i].startsWith('--config=')
+    ? command[i].slice('--config='.length)
+    : command[i + 1];
+}
+
+export function stripConfigArg(command: string[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < command.length; i++) {
+    if (command[i] === '--config') i++;
+    else if (!command[i].startsWith('--config=')) out.push(command[i]);
+  }
+  return out;
+}
+
 export async function deployWithCpuLimitFallback(
   options: DeployWithFallbackOptions,
 ): Promise<number> {
@@ -42,12 +62,13 @@ export async function deployWithCpuLimitFallback(
     return first.code;
   }
 
-  const fallback = makeFallbackConfig();
+  const fallback = makeFallbackConfig(configPathOf(command) ?? 'wrangler.toml');
   try {
     warn(
       '::warning::Free プランのため CPU 上限 (limits.cpu_ms) なしでデプロイを再実行する',
     );
-    return (await run([...command, '--config', fallback.path])).code;
+    return (await run([...stripConfigArg(command), '--config', fallback.path]))
+      .code;
   } finally {
     fallback.cleanup();
   }
@@ -105,7 +126,7 @@ async function main(): Promise<void> {
   process.exitCode = await deployWithCpuLimitFallback({
     command,
     run: runAndTee,
-    makeFallbackConfig: () => makeFallbackConfigFile('wrangler.toml'),
+    makeFallbackConfig: makeFallbackConfigFile,
   });
 }
 

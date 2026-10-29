@@ -3,15 +3,16 @@
 import { useEffect, useState } from 'react';
 import { TextLink } from './text-link';
 
-export type StampToastKind = 'added' | 'exists' | 'bookmarked';
+export type StampToastKind = 'added' | 'exists' | 'bookmarked' | 'error';
 
 const MESSAGES: Readonly<Record<StampToastKind, string>> = {
   added: 'スタンプを取得しました',
   exists: '取得済みのスタンプです',
   bookmarked: 'ブックマークしました',
+  error: 'スタンプを記録できませんでした。\nもう一度読み取ってください',
 };
 
-const LINK_HREFS: Readonly<Record<StampToastKind, string>> = {
+const LINK_HREFS: Readonly<Record<Exclude<StampToastKind, 'error'>, string>> = {
   added: '/mypage',
   exists: '/mypage',
   bookmarked: '/mypage#bookmarks',
@@ -63,10 +64,10 @@ export function StampToast({
           : 'translate-y-2 opacity-0 motion-reduce:translate-y-0'
       }`}
     >
-      <span className="text-sm leading-[1.6] text-background">
+      <span className="text-sm leading-[1.6] whitespace-pre-line text-background">
         {message ?? MESSAGES[kind]}
       </span>
-      {showLink && (
+      {showLink && kind !== 'error' && (
         <TextLink href={LINK_HREFS[kind]} tone="inverse">
           マイページ
         </TextLink>

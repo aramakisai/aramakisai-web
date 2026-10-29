@@ -15,6 +15,8 @@ interface CrossFadeProps {
   readonly className?: string;
   /** 新レイヤーの下に旧が透けないよう、下地と同じ色の背景クラスを渡す */
   readonly layerClassName?: string;
+  /** 下地が透明なとき、旧レイヤーを新の fade-in と同時に fade-out させて重なりを消す */
+  readonly fadePrevious?: boolean;
 }
 
 /**
@@ -27,6 +29,7 @@ export function CrossFade({
   enabled = true,
   className = '',
   layerClassName = '',
+  fadePrevious = false,
 }: CrossFadeProps) {
   // 旧レイヤーは切替時点の children を保持するため、フェード中は props の更新が反映されない
   const [current, setCurrent] = useState<Layer>({
@@ -40,12 +43,16 @@ export function CrossFade({
     setCurrent({ key: transitionKey, node: children });
   }
 
-  const layer = `h-full w-full [grid-area:1/1] ${enabled ? 'fade-in' : ''} ${layerClassName}`;
+  const base = `h-full w-full [grid-area:1/1] ${layerClassName}`;
+  const layer = `${base} ${enabled ? 'fade-in' : ''}`;
 
   return (
     <div className={`grid ${className}`}>
       {previous && (
-        <div key={previous.key} className={layer}>
+        <div
+          key={previous.key}
+          className={fadePrevious ? `${base} fade-out` : layer}
+        >
           {previous.node}
         </div>
       )}
