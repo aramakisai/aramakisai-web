@@ -52,14 +52,17 @@ describe('analytics', () => {
       expect((window as W).dataLayer).toBeUndefined();
     });
 
-    it.each(['/signage', '/signage/foo'])('%s では何も積まない', async (p) => {
-      goto(p);
-      const a = await load();
-      a.sendGaEvent('timetable', { result: 'date_corrected' });
-      a.trackPageView();
-      expect(a.isGaEnabled()).toBe(false);
-      expect((window as W).dataLayer).toBeUndefined();
-    });
+    it.each(['/signage', '/signage/foo', '/staff', '/staff/visitors/x'])(
+      '%s では何も積まない',
+      async (p) => {
+        goto(p);
+        const a = await load();
+        a.sendGaEvent('timetable', { result: 'date_corrected' });
+        a.trackPageView();
+        expect(a.isGaEnabled()).toBe(false);
+        expect((window as W).dataLayer).toBeUndefined();
+      },
+    );
   });
 
   describe('初期化順', () => {

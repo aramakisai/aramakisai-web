@@ -30,13 +30,13 @@ function message(id: number, category: StampCategory): Uint8Array<ArrayBuffer> {
   return encoder.encode(`${id}:${category}`);
 }
 
-function toBase64Url(bytes: Uint8Array): string {
+export function toBase64Url(bytes: Uint8Array): string {
   let bin = '';
   for (const b of bytes) bin += String.fromCharCode(b);
   return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-function fromBase64Url(value: string): Uint8Array<ArrayBuffer> | null {
+export function fromBase64Url(value: string): Uint8Array<ArrayBuffer> | null {
   if (!/^[A-Za-z0-9_-]+$/.test(value)) return null;
   try {
     const bin = atob(value.replace(/-/g, '+').replace(/_/g, '/'));

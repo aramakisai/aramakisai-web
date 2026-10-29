@@ -2,87 +2,36 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   MYPAGE_CHANGE_EVENT,
   addBookmark,
-  addStamp,
   parseMypageData,
   readMypageData,
   readMypageRaw,
+  readVisitorId,
   removeBookmark,
+  saveVisitorId,
 } from './mypage-storage';
 
 const KEY = 'aramakisai_mypage';
+const ID = '3b241101-e2bb-4255-8caf-4136c566a962';
 
 describe('mypage-storage', () => {
   beforeEach(() => window.localStorage.clear());
   afterEach(() => vi.restoreAllMocks());
 
   it('未保存は空のリスト', () => {
-    expect(readMypageData()).toEqual({
-      version: 1,
-      lists: { stamps: [], bookmarks: [] },
-    });
-  });
-
-  it('追加すると added、保存形式は版番号と名前付きリスト', () => {
-    expect(addStamp(12, 'exhibit')).toBe('added');
-    const raw = JSON.parse(window.localStorage.getItem(KEY)!);
-    expect(raw.version).toBe(1);
-    expect(raw.lists.stamps).toHaveLength(1);
-    expect(raw.lists.stamps[0]).toMatchObject({ id: 12, category: 'exhibit' });
-    expect(Number.isNaN(Date.parse(raw.lists.stamps[0].savedAt))).toBe(false);
-  });
-
-  it('同じ組は exists で重複せず、別カテゴリは別の組', () => {
-    addStamp(12, 'exhibit');
-    expect(addStamp(12, 'exhibit')).toBe('exists');
-    expect(addStamp(12, 'vendor')).toBe('added');
-    expect(readMypageData()!.lists.stamps).toHaveLength(2);
+    expect(readMypageData()).toEqual({ version: 1, lists: { bookmarks: [] } });
   });
 
   it('壊れたJSONは空のリストとして読み、追加で上書きできる', () => {
     window.localStorage.setItem(KEY, '{broken');
-    expect(readMypageData()).toEqual({
-      version: 1,
-      lists: { stamps: [], bookmarks: [] },
-    });
-    expect(addStamp(1, 'other')).toBe('added');
-  });
-
-  it('不正な要素は捨てる', () => {
-    window.localStorage.setItem(
-      KEY,
-      JSON.stringify({
-        version: 1,
-        lists: {
-          stamps: [
-            { id: 1, category: 'exhibit', savedAt: '2026-11-03T10:00:00.000Z' },
-            { id: 2, category: 'stage', savedAt: '2026-11-03T10:00:00.000Z' },
-            {
-              id: -1,
-              category: 'exhibit',
-              savedAt: '2026-11-03T10:00:00.000Z',
-            },
-            { id: 3, category: 'exhibit' },
-            null,
-            'x',
-          ],
-        },
-      }),
-    );
-    expect(readMypageData()!.lists.stamps.map((s) => s.id)).toEqual([1]);
+    expect(readMypageData()).toEqual({ version: 1, lists: { bookmarks: [] } });
+    expect(addBookmark(1, 'other')).toBe('added');
   });
 
   it('版番号が違う・形が違う値は空として扱う', () => {
     window.localStorage.setItem(KEY, JSON.stringify({ version: 2, lists: {} }));
-    expect(readMypageData()!.lists.stamps).toEqual([]);
+    expect(readMypageData()!.lists.bookmarks).toEqual([]);
     window.localStorage.setItem(KEY, '[]');
-    expect(readMypageData()!.lists.stamps).toEqual([]);
-  });
-
-  it('書き込みが失敗する環境では unavailable', () => {
-    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
-      throw new DOMException('quota', 'QuotaExceededError');
-    });
-    expect(addStamp(1, 'exhibit')).toBe('unavailable');
+    expect(readMypageData()!.lists.bookmarks).toEqual([]);
   });
 
   it('読み込みが例外になる環境では null と unavailable', () => {
@@ -90,7 +39,67 @@ describe('mypage-storage', () => {
       throw new DOMException('blocked', 'SecurityError');
     });
     expect(readMypageData()).toBeNull();
-    expect(addStamp(1, 'exhibit')).toBe('unavailable');
+    expect(addBookmark(1, 'exhibit')).toBe('unavailable');
+    expect(readVisitorId()).toBe('unavailable');
+  });
+
+  describe('visitorId', () => {
+    it('未保存は null、保存すると読める', () => {
+      expect(readVisitorId()).toBeNull();
+      expect(saveVisitorId(ID)).toBe('saved');
+      expect(readVisitorId()).toBe(ID);
+    });
+
+    it('ブックマークの追加・削除の後も残る', () => {
+      saveVisitorId(ID);
+      addBookmark(1, 'exhibit');
+      removeBookmark(1, 'exhibit');
+      addBookmark(2, 'stage');
+      expect(readVisitorId()).toBe(ID);
+    });
+
+    it('匿名IDの保存はブックマークを消さない', () => {
+      addBookmark(1, 'exhibit');
+      saveVisitorId(ID);
+      expect(readMypageData()!.lists.bookmarks).toHaveLength(1);
+    });
+
+    it('UUID v4 でない値は捨てる', () => {
+      window.localStorage.setItem(
+        KEY,
+        JSON.stringify({ version: 1, visitorId: 'nope', lists: {} }),
+      );
+      expect(readVisitorId()).toBeNull();
+    });
+
+    it('既存の stamps 配列は読み込み時に捨て、書き込みでも残さない', () => {
+      window.localStorage.setItem(
+        KEY,
+        JSON.stringify({
+          version: 1,
+          lists: {
+            stamps: [{ id: 1, category: 'exhibit', savedAt: 'x' }],
+            bookmarks: [],
+          },
+        }),
+      );
+      expect(readMypageData()!.lists).toEqual({ bookmarks: [] });
+      saveVisitorId(ID);
+      expect(
+        JSON.parse(window.localStorage.getItem(KEY)!).lists.stamps,
+      ).toBeUndefined();
+    });
+
+    it('書き込み例外で unavailable、イベントは発火しない', () => {
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new DOMException('quota', 'QuotaExceededError');
+      });
+      const fn = vi.fn();
+      window.addEventListener(MYPAGE_CHANGE_EVENT, fn);
+      expect(saveVisitorId(ID)).toBe('unavailable');
+      expect(fn).not.toHaveBeenCalled();
+      window.removeEventListener(MYPAGE_CHANGE_EVENT, fn);
+    });
   });
 
   describe('bookmarks', () => {
@@ -105,37 +114,10 @@ describe('mypage-storage', () => {
       ]);
     });
 
-    it('stage はブックマークできるがスタンプでは捨てられる', () => {
-      expect(addBookmark(2, 'stage')).toBe('added');
-      window.localStorage.setItem(
-        KEY,
-        JSON.stringify({
-          version: 1,
-          lists: {
-            stamps: [{ id: 2, category: 'stage', savedAt: 'x' }],
-            bookmarks: [{ id: 2, category: 'stage', savedAt: 'x' }],
-          },
-        }),
-      );
-      const d = readMypageData()!;
-      expect(d.lists.stamps).toEqual([]);
-      expect(d.lists.bookmarks).toHaveLength(1);
-    });
-
-    it('スタンプ記録後もブックマークが残り、逆も同じ', () => {
-      addBookmark(1, 'stage');
-      addStamp(5, 'exhibit');
-      expect(readMypageData()!.lists.bookmarks).toHaveLength(1);
-      removeBookmark(9, 'other');
-      addBookmark(3, 'other');
-      removeBookmark(3, 'other');
-      expect(readMypageData()!.lists.stamps).toHaveLength(1);
-    });
-
     it('bookmarks 欠落は空、壊れた要素は捨てる', () => {
       window.localStorage.setItem(
         KEY,
-        JSON.stringify({ version: 1, lists: { stamps: [] } }),
+        JSON.stringify({ version: 1, lists: {} }),
       );
       expect(readMypageData()!.lists.bookmarks).toEqual([]);
       window.localStorage.setItem(
@@ -153,8 +135,6 @@ describe('mypage-storage', () => {
         }),
       );
       expect(readMypageData()!.lists.bookmarks.map((b) => b.id)).toEqual([1]);
-      window.localStorage.setItem(KEY, '{broken');
-      expect(readMypageData()!.lists.bookmarks).toEqual([]);
     });
 
     it('書き込み例外で unavailable', () => {
@@ -170,12 +150,11 @@ describe('mypage-storage', () => {
       const fn = vi.fn();
       window.addEventListener(MYPAGE_CHANGE_EVENT, fn);
       addBookmark(1, 'exhibit');
-      addStamp(1, 'exhibit');
       removeBookmark(1, 'exhibit');
+      expect(fn).toHaveBeenCalledTimes(2);
+      addBookmark(1, 'exhibit');
+      addBookmark(1, 'exhibit');
       expect(fn).toHaveBeenCalledTimes(3);
-      addBookmark(1, 'exhibit');
-      addBookmark(1, 'exhibit');
-      expect(fn).toHaveBeenCalledTimes(4);
       window.removeEventListener(MYPAGE_CHANGE_EVENT, fn);
     });
   });

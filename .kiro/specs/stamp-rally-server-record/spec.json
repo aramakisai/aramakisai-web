@@ -1,0 +1,22 @@
+{
+  "feature_name": "stamp-rally-server-record",
+  "created_at": "2026-10-27T12:07:52Z",
+  "updated_at": "2026-10-29T06:00:00Z",
+  "language": "ja",
+  "phase": "tasks-generated",
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": true
+    },
+    "design": {
+      "generated": true,
+      "approved": true
+    },
+    "tasks": {
+      "generated": true,
+      "approved": true
+    }
+  },
+  "ready_for_implementation": true
+}

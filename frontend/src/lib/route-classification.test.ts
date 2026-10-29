@@ -48,6 +48,12 @@ const INTENTIONALLY_PRIVATE_ROUTES: readonly string[] = [
   '/signage/touch/parking',
   '/signage/touch/topics',
   '/signage/touch/topics/[id]',
+  '/staff',
+  '/staff/auth/failed',
+  '/staff/auth/forbidden',
+  '/staff/exchanges',
+  '/staff/scan',
+  '/staff/visitors/[visitorId]',
   '/e2e-error-trigger',
   '/e2e-error-trigger-fullscreen',
 ];

@@ -43,7 +43,7 @@ export function SignageLeftColumn({
               transitionKey={String(page.pageIndex)}
               enabled={page.pageCount > 1}
               className="w-full"
-              layerClassName="bg-background"
+              fadePrevious
             >
               <div className="flex w-full flex-col gap-5">
                 {page.items.map(({ stage, colorIndex, performance }) => (
@@ -58,7 +58,8 @@ export function SignageLeftColumn({
                     <CrossFade
                       transitionKey={String(performance?.id ?? 'none')}
                       className="w-full"
-                      layerClassName="flex flex-col gap-1 bg-background"
+                      layerClassName="flex flex-col gap-1"
+                      fadePrevious
                     >
                       {performance ? (
                         <>
