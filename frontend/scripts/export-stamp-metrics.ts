@@ -12,6 +12,19 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 type Row = Record<string, string | number>;
 
+const HOUR_MS = 3_600_000;
+const JST_MS = 9 * HOUR_MS;
+const GRAPHQL_LIMIT = 10_000;
+
+const iso = (ms: number) => new Date(ms).toISOString().slice(0, 19) + 'Z';
+// 日本時間の [from 0 時, to 翌日 0 時) を UTC で表す
+const utcRange = (from: string, to: string): [string, string] => [
+  iso(Date.parse(from) - JST_MS),
+  iso(Date.parse(to) + 24 * HOUR_MS - JST_MS),
+];
+const jstDate = (datetimeHour: string) =>
+  new Date(Date.parse(datetimeHour) + JST_MS).toISOString().slice(0, 10);
+
 const csv = (header: string[], rows: Row[]) =>
   [
     header.join(','),
@@ -35,6 +48,14 @@ async function call(
   return res.json() as Promise<any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
+// limit に達した応答は切り捨てられている可能性があるため黙って使わない
+function checkLimit(rows: unknown[], what: string) {
+  if (rows.length >= GRAPHQL_LIMIT)
+    throw new Error(
+      `${what} の取得件数が上限 ${GRAPHQL_LIMIT} に達しました。期間を短くしてください`,
+    );
+}
+
 async function d1Rows(
   fetchImpl: typeof fetch,
   token: string,
@@ -44,8 +65,9 @@ async function d1Rows(
   from: string,
   to: string,
 ): Promise<Row[]> {
+  const [utcFrom, utcTo] = utcRange(from, to);
   const group = (name: string, fields: string) =>
-    `${name}(limit: 100, filter: {databaseId: "${databaseId}", date_geq: "${from}", date_leq: "${to}"}) { dimensions { date } ${fields} }`;
+    `${name}(limit: ${GRAPHQL_LIMIT}, filter: {databaseId: "${databaseId}", datetimeHour_geq: "${utcFrom}", datetimeHour_lt: "${utcTo}"}) { dimensions { datetimeHour } ${fields} }`;
   const query = (g: string) =>
     JSON.stringify({
       query: `{ viewer { accounts(filter: {accountTag: "${account}"}) { ${g} } } }`,
@@ -60,7 +82,9 @@ async function d1Rows(
     );
     if (json.errors?.length)
       throw new Error(`GraphQL エラー: ${json.errors[0].message}`);
-    return (json.data.viewer.accounts[0][name] ?? []) as any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+    const rows = (json.data.viewer.accounts[0][name] ?? []) as any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+    checkLimit(rows, name);
+    return rows;
   };
   const usage = await get(
     'd1AnalyticsAdaptiveGroups',
@@ -70,15 +94,28 @@ async function d1Rows(
     'd1StorageAdaptiveGroups',
     'max { databaseSizeBytes }',
   );
-  const size = new Map(
-    storage.map((s) => [s.dimensions.date, s.max.databaseSizeBytes]),
-  );
-  return usage.map((u) => ({
-    date: u.dimensions.date,
-    env,
-    ...u.sum,
-    databaseSizeBytes: size.get(u.dimensions.date) ?? '',
-  }));
+  const size = new Map<string, number>();
+  for (const x of storage) {
+    const d = jstDate(x.dimensions.datetimeHour);
+    size.set(d, Math.max(size.get(d) ?? 0, x.max.databaseSizeBytes));
+  }
+  const days = new Map<string, Row>();
+  for (const u of usage) {
+    const d = jstDate(u.dimensions.datetimeHour);
+    const cur = days.get(d) ?? {
+      date: d,
+      env,
+      readQueries: 0,
+      writeQueries: 0,
+      rowsRead: 0,
+      rowsWritten: 0,
+      queryBatchResponseBytes: 0,
+      databaseSizeBytes: size.get(d) ?? '',
+    };
+    for (const k of Object.keys(u.sum)) cur[k] = Number(cur[k]) + u.sum[k];
+    days.set(d, cur);
+  }
+  return [...days.values()].sort((a, b) => (a.date < b.date ? -1 : 1));
 }
 
 const HOSTS: Record<string, string> = {
@@ -132,7 +169,8 @@ async function staffPageRows(
   const hosts = Object.keys(HOSTS).filter((h) => !env || HOSTS[h] === env);
   const sums = new Map<string, Row>();
   for (const [wFrom, wTo] of windows(from, to)) {
-    const query = `{ viewer { zones(filter: {zoneTag: "${zoneId}"}) { httpRequestsAdaptiveGroups(limit: 10000, filter: {date_geq: "${wFrom}", date_leq: "${wTo}", clientRequestHTTPHost_in: [${hosts.map((h) => `"${h}"`).join(',')}], clientRequestPath_like: "/staff%"}) { count dimensions { date clientRequestHTTPHost clientRequestPath } sum { edgeResponseBytes } } } } }`;
+    const [utcFrom, utcTo] = utcRange(wFrom, wTo);
+    const query = `{ viewer { zones(filter: {zoneTag: "${zoneId}"}) { httpRequestsAdaptiveGroups(limit: ${GRAPHQL_LIMIT}, filter: {datetimeHour_geq: "${utcFrom}", datetimeHour_lt: "${utcTo}", clientRequestHTTPHost_in: [${hosts.map((h) => `"${h}"`).join(',')}], clientRequestPath_like: "/staff%"}) { count dimensions { datetimeHour clientRequestHTTPHost clientRequestPath } sum { edgeResponseBytes } } } } }`;
     const json = await call(
       fetchImpl,
       `${API}/graphql`,
@@ -142,14 +180,17 @@ async function staffPageRows(
     );
     if (json.errors?.length)
       throw new Error(`GraphQL エラー: ${json.errors[0].message}`);
-    for (const g of json.data.viewer.zones[0]?.httpRequestsAdaptiveGroups ??
-      []) {
+    const groups = (json.data.viewer.zones[0]?.httpRequestsAdaptiveGroups ??
+      []) as any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+    checkLimit(groups, 'httpRequestsAdaptiveGroups');
+    for (const g of groups) {
+      const date = jstDate(g.dimensions.datetimeHour);
       const e = HOSTS[g.dimensions.clientRequestHTTPHost];
       const endpoint = staffEndpoint(g.dimensions.clientRequestPath);
       if (!e || !endpoint || (env && e !== env)) continue;
-      const key = `${g.dimensions.date},${e},${endpoint}`;
+      const key = `${date},${e},${endpoint}`;
       const cur = sums.get(key) ?? {
-        date: g.dimensions.date,
+        date,
         env: e,
         endpoint,
         requests: 0,
@@ -166,8 +207,10 @@ async function staffPageRows(
 }
 
 // _sample_interval で重み付けしないと AE のサンプリング時に件数・平均がずれる
-const endpointSql = (from: string, to: string, env?: string) => `SELECT
-  formatDateTime(timestamp, '%Y-%m-%d') AS date, blob1 AS env, blob2 AS endpoint, blob3 AS outcome,
+const endpointSql = (from: string, to: string, env?: string) => {
+  const [utcFrom, utcTo] = utcRange(from, to);
+  return `SELECT
+  formatDateTime(toStartOfInterval(timestamp + INTERVAL '9' HOUR, INTERVAL '1' DAY), '%Y-%m-%d') AS date, blob1 AS env, blob2 AS endpoint, blob3 AS outcome,
   SUM(_sample_interval) AS requests,
   SUM(_sample_interval * double1) AS requestBytes,
   SUM(_sample_interval * double2) AS responseBytes,
@@ -178,10 +221,11 @@ const endpointSql = (from: string, to: string, env?: string) => `SELECT
   SUM(_sample_interval * double6) AS rowsWritten,
   SUM(_sample_interval * double7) AS d1Failed
 FROM ${DATASET}
-WHERE timestamp >= toDateTime('${from} 00:00:00') AND timestamp < toDateTime('${to} 00:00:00') + INTERVAL '1' DAY${env ? ` AND blob1 = '${env}'` : ''}
+WHERE timestamp >= toDateTime('${utcFrom.slice(0, 19).replace('T', ' ')}') AND timestamp < toDateTime('${utcTo.slice(0, 19).replace('T', ' ')}')${env ? ` AND blob1 = '${env}'` : ''}
 GROUP BY date, env, endpoint, outcome
 ORDER BY date, env, endpoint, outcome
 FORMAT JSON`;
+};
 
 export async function exportStampMetrics(
   argv: string[],
