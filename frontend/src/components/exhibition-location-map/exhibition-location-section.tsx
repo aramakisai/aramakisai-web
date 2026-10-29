@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { CampusMapArea } from '@/lib/campus-map';
-import type { ExhibitionDetail } from '@/lib/exhibitions';
+import type { ListingDetail } from '@/lib/exhibitions';
 import {
   buildAreaMapHref,
   resolveTargetAreas,
@@ -10,7 +10,7 @@ import { PlaceIcon } from '@/components/icons';
 import { ExhibitionLocationMap } from './exhibition-location-map';
 
 export interface ExhibitionLocationSectionProps {
-  readonly exhibition: ExhibitionDetail;
+  readonly exhibition: ListingDetail;
   /** 取得済みの区画データ。取得の成否は呼び出し元が解決し、失敗時は空配列を渡す */
   readonly areas: readonly CampusMapArea[];
   readonly variant?: 'site' | 'signage';

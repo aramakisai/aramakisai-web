@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import type { CampusMapArea } from '@/lib/campus-map';
-import type { ExhibitionDetail } from '@/lib/exhibitions';
+import type { CorporateBoothDetail, ExhibitionDetail } from '@/lib/exhibitions';
 import type { ExhibitionLocationMapProps } from './exhibition-location-map';
 
 // exhibition-location-map.ts は campus-map.ts 経由で cms.ts (env.ts の起動時検証を含む) に
@@ -156,5 +156,30 @@ describe('ExhibitionLocationSection', () => {
       'data-area-names',
       'Aゾーン,Bゾーン',
     );
+  });
+});
+
+describe('ExhibitionLocationSection corporate booth', () => {
+  it('企業ブースのエリアを解決し構内マップへの導線を出す', () => {
+    const booth: CorporateBoothDetail = {
+      id: 7,
+      category: 'booth',
+      displayName: '出店',
+      organizationName: '株式会社テスト',
+      categories: ['booth'],
+      location: 'Aゾーン・ブース3',
+      areaIds: [1],
+      thumbnail: null,
+      description: null,
+      images: [],
+      links: [],
+      openDayKeys: [],
+    };
+    render(<ExhibitionLocationSection exhibition={booth} areas={[area()]} />);
+
+    expect(screen.getByText('Aゾーン・ブース3')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: '構内マップで見る' }),
+    ).toHaveAttribute('href', '/map?area=1');
   });
 });
