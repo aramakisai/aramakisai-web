@@ -94,6 +94,22 @@ function fakeFetch() {
         },
       });
     }
+    const aeSql = String(init?.body);
+    if (aeSql.includes('AS exhibitionId')) {
+      return Response.json({
+        data: [
+          {
+            date: '2026-11-14',
+            hour: '13',
+            env: 'dev',
+            exhibitionId: '5',
+            category: 'exhibit',
+            outcome: 'added',
+            requests: 7,
+          },
+        ],
+      });
+    }
     return Response.json({
       data: [
         {
@@ -147,6 +163,30 @@ describe('exportStampMetrics', () => {
     );
     expect(sql[1]).toContain("timestamp >= toDateTime('2026-11-13 15:00:00')");
     expect(sql[1]).toContain("timestamp < toDateTime('2026-11-15 15:00:00')");
+  });
+
+  it('企画×時刻の stamps_hourly.csv と SQL を出す', async () => {
+    const out = mkdtempSync(join(tmpdir(), 'metrics-'));
+    const f = fakeFetch();
+    await exportStampMetrics(args(out), env, f as unknown as typeof fetch);
+    expect(readFileSync(join(out, 'stamps_hourly.csv'), 'utf8')).toBe(
+      'date,hour,env,exhibitionId,category,outcome,requests\n' +
+        '2026-11-14,13,dev,5,exhibit,added,7\n',
+    );
+    const sql = f.mock.calls
+      .map(([, i]) => String(i?.body))
+      .find((b) => b.includes('AS exhibitionId'))!;
+    expect(sql).toContain(
+      "toStartOfInterval(timestamp + INTERVAL '9' HOUR, INTERVAL '1' HOUR), '%H') AS hour",
+    );
+    expect(sql).toContain("blob2 = 'verify'");
+    expect(sql).toContain('SUM(_sample_interval) AS requests');
+    expect(sql).toContain('blob5 AS exhibitionId, blob6 AS category');
+    expect(sql).toContain("timestamp >= toDateTime('2026-11-13 15:00:00')");
+    expect(sql).toContain("AND blob1 = 'dev'");
+    expect(sql).toContain(
+      'GROUP BY date, hour, env, exhibitionId, category, outcome',
+    );
   });
 
   it('日本時間の範囲を UTC の datetimeHour で問い合わせる', async () => {

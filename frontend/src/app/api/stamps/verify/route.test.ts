@@ -99,6 +99,36 @@ describe('POST /api/stamps/verify', () => {
     expect(points.at(-1)!.doubles![6]).toBe(1);
   });
 
+  it('exists・failed でも企画 ID とカテゴリを計測する', async () => {
+    await post(await body());
+    await post(await body());
+    expect(points[1]!.blobs).toEqual([
+      'preview',
+      'verify',
+      'exists',
+      '200',
+      '5',
+      'exhibit',
+    ]);
+    await d1.db.prepare('DROP TABLE stamps').run();
+    await post(await body());
+    expect(points[2]!.blobs).toEqual([
+      'preview',
+      'verify',
+      'failed',
+      '200',
+      '5',
+      'exhibit',
+    ]);
+  });
+
+  it('invalid では企画 ID とカテゴリを計測しない', async () => {
+    await post(await body({ signature: 'x'.repeat(43) }));
+    await post('{bad');
+    for (const p of points) expect(p.blobs!.slice(4)).toEqual(['', '']);
+    expect(points).toHaveLength(2);
+  });
+
   it('env 不備なら failed', async () => {
     ctx.env = {};
     expect(await (await post(await body())).json()).toEqual({
@@ -127,13 +157,22 @@ describe('POST /api/stamps/verify', () => {
       'verify',
       'rate_limited',
       '429',
+      '',
+      '',
     ]);
   });
 
   it('1 リクエストにつき計測 1 点、匿名IDは含めない', async () => {
     await post(await body());
     expect(points).toHaveLength(1);
-    expect(points[0]!.blobs).toEqual(['preview', 'verify', 'added', '200']);
+    expect(points[0]!.blobs).toEqual([
+      'preview',
+      'verify',
+      'added',
+      '200',
+      '5',
+      'exhibit',
+    ]);
     expect(JSON.stringify(points[0])).not.toContain(V1);
   });
 

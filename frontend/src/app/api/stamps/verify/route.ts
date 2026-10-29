@@ -59,6 +59,8 @@ export async function POST(request: Request): Promise<Response> {
           outcome: 'failed',
           usage: r.usage,
           d1Failed: true,
+          exhibitionId: id,
+          category,
         };
       }
       return {
@@ -66,6 +68,8 @@ export async function POST(request: Request): Promise<Response> {
         body: { result: r.value },
         outcome: r.value,
         usage: r.usage,
+        exhibitionId: id,
+        category,
       };
     },
   );

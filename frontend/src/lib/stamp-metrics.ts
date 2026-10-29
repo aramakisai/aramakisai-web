@@ -20,13 +20,22 @@ export interface RequestMeasure {
   readonly totalMs: number;
   readonly usage: D1Usage | null;
   readonly d1Failed?: boolean;
+  readonly exhibitionId?: number;
+  readonly category?: string;
 }
 
 export function recordRequest(env: StampEnv, m: RequestMeasure): void {
   try {
     env.STAMP_METRICS.writeDataPoint({
       indexes: [m.endpoint],
-      blobs: [env.STAMP_ENV, m.endpoint, m.outcome, String(m.status)],
+      blobs: [
+        env.STAMP_ENV,
+        m.endpoint,
+        m.outcome,
+        String(m.status),
+        m.exhibitionId === undefined ? '' : String(m.exhibitionId),
+        m.category ?? '',
+      ],
       doubles: [
         m.requestBytes,
         m.responseBytes,

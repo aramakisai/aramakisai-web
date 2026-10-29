@@ -228,6 +228,20 @@ ORDER BY date, env, endpoint, outcome
 FORMAT JSON`;
 };
 
+const hourlySql = (from: string, to: string, env?: string) => {
+  const [utcFrom, utcTo] = utcRange(from, to);
+  return `SELECT
+  formatDateTime(toStartOfInterval(timestamp + INTERVAL '9' HOUR, INTERVAL '1' HOUR), '%Y-%m-%d') AS date,
+  formatDateTime(toStartOfInterval(timestamp + INTERVAL '9' HOUR, INTERVAL '1' HOUR), '%H') AS hour,
+  blob1 AS env, blob5 AS exhibitionId, blob6 AS category, blob3 AS outcome,
+  SUM(_sample_interval) AS requests
+FROM ${DATASET}
+WHERE blob2 = 'verify' AND timestamp >= toDateTime('${utcFrom.slice(0, 19).replace('T', ' ')}') AND timestamp < toDateTime('${utcTo.slice(0, 19).replace('T', ' ')}')${env ? ` AND blob1 = '${env}'` : ''}
+GROUP BY date, hour, env, exhibitionId, category, outcome
+ORDER BY date, hour, env, exhibitionId, category, outcome
+FORMAT JSON`;
+};
+
 export async function exportStampMetrics(
   argv: string[],
   env: Record<string, string | undefined>,
@@ -270,6 +284,15 @@ export async function exportStampMetrics(
       endpointSql(from, to, values.env),
       'text/plain',
     );
+
+    const hourly = await call(
+      fetchImpl,
+      `${API}/accounts/${account}/analytics_engine/sql`,
+      token,
+      hourlySql(from, to, values.env),
+      'text/plain',
+    );
+    checkLimit(hourly.data, 'stamps_hourly');
 
     const staffPages = await staffPageRows(
       fetchImpl,
@@ -319,6 +342,21 @@ export async function exportStampMetrics(
           ...r,
           date: String(r.date).slice(0, 10),
         })),
+      ),
+    );
+    writeFileSync(
+      join(dir, 'stamps_hourly.csv'),
+      csv(
+        [
+          'date',
+          'hour',
+          'env',
+          'exhibitionId',
+          'category',
+          'outcome',
+          'requests',
+        ],
+        hourly.data as Row[],
       ),
     );
     writeFileSync(

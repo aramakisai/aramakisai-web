@@ -25,9 +25,26 @@ describe('recordRequest', () => {
     expect(write).toHaveBeenCalledTimes(1);
     expect(write).toHaveBeenCalledWith({
       indexes: ['verify'],
-      blobs: ['dev', 'verify', 'added', '200'],
+      blobs: ['dev', 'verify', 'added', '200', '', ''],
       doubles: [120, 18, 30, 12, 1, 2, 0],
     });
+  });
+
+  it('企画 ID とカテゴリを blob5・blob6 に入れる', () => {
+    const write = vi.fn();
+    recordRequest(envWith(write), {
+      ...base,
+      exhibitionId: 5,
+      category: 'exhibit',
+    });
+    expect(write.mock.calls[0][0].blobs).toEqual([
+      'dev',
+      'verify',
+      'added',
+      '200',
+      '5',
+      'exhibit',
+    ]);
   });
 
   it('D1 を使わないときは D1 の値を 0 にする', () => {
