@@ -206,6 +206,7 @@ async function staffPageRows(
     .map(([, r]) => r);
 }
 
+// responseBytes の -1 は未計測の印。SUM すると件数分の負数になり意味を失う
 // _sample_interval で重み付けしないと AE のサンプリング時に件数・平均がずれる
 const endpointSql = (from: string, to: string, env?: string) => {
   const [utcFrom, utcTo] = utcRange(from, to);
@@ -213,7 +214,7 @@ const endpointSql = (from: string, to: string, env?: string) => {
   formatDateTime(toStartOfInterval(timestamp + INTERVAL '9' HOUR, INTERVAL '1' DAY), '%Y-%m-%d') AS date, blob1 AS env, blob2 AS endpoint, blob3 AS outcome,
   SUM(_sample_interval) AS requests,
   SUM(_sample_interval * double1) AS requestBytes,
-  SUM(_sample_interval * double2) AS responseBytes,
+  if(MIN(double2) < 0, -1.0, SUM(_sample_interval * double2)) AS responseBytes,
   SUM(_sample_interval * double3) / SUM(_sample_interval) AS totalMsAvg,
   quantileWeighted(0.9)(double3, _sample_interval) AS totalMsP90,
   SUM(_sample_interval * double4) / SUM(_sample_interval) AS d1DurationMsAvg,

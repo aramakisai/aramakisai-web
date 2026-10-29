@@ -163,6 +163,19 @@ describe('exportStampMetrics', () => {
     }
   });
 
+  it('未計測の印 -1 を含む endpoint の responseBytes は合計せず -1 のまま出す', async () => {
+    const out = mkdtempSync(join(tmpdir(), 'metrics-'));
+    const f = fakeFetch();
+    await exportStampMetrics(args(out), env, f as unknown as typeof fetch);
+    const sql = String(
+      f.mock.calls.find(([u]) => String(u).includes('analytics_engine'))![1]
+        ?.body,
+    );
+    expect(sql).toContain(
+      'if(MIN(double2) < 0, -1.0, SUM(_sample_interval * double2)) AS responseBytes',
+    );
+  });
+
   it('GraphQL の取得件数が上限に達したら 1 を返す', async () => {
     const out = mkdtempSync(join(tmpdir(), 'metrics-'));
     const f = vi.fn(async () =>
