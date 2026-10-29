@@ -171,9 +171,12 @@ export function aggregate(
       };
     }),
     areas: areaStats,
-    distribution: Array.from({ length: targets.length }, (_, i) => ({
-      stampCount: i + 1,
-      visitorCount: distribution.get(i + 1) ?? 0,
-    })),
+    distribution: Array.from(
+      { length: Math.max(targets.length, ...distribution.keys()) },
+      (_, i) => ({
+        stampCount: i + 1,
+        visitorCount: distribution.get(i + 1) ?? 0,
+      }),
+    ),
   };
 }

@@ -554,7 +554,7 @@ function isComplete(targets: readonly MypageStampTarget[], stamps: readonly Stam
 - エリアの取得率は参加端末ごとに `groupStampsByArea` で求め、その `percent` を平均する (9.3)
 - カタログに無い企画・areaId が null の企画は `areaId: null` (「エリア不明」) に数える (5.5, 9.4)。スタンプ数には含める
 - `MypageStampTarget` に `organizationName` を足し、`toStampTargets` でカードの `organizationName` を写す。`TargetStat` はその値と `areaId` を持つ (9.6)
-- `distribution` は 1 から `targets.length` までのすべてのスタンプ数を持ち、該当端末が 0 のスタンプ数も `visitorCount: 0` で含める (9.7。グラフの横軸を詰めないため)
+- `distribution` は 1 から「`targets.length` と端末ごとのスタンプ数の最大値の大きい方」までのすべてのスタンプ数を持ち (非公開になった企画のスタンプを持つ端末を範囲外に落とさないため)、該当端末が 0 のスタンプ数も `visitorCount: 0` で含める (9.7。グラフの横軸を詰めないため)
 
 ### Runtime
 

@@ -99,6 +99,16 @@ describe('aggregate', () => {
       { stampCount: 4, visitorCount: 0 },
     ]);
   });
+  it('対象数を超えるスタンプ数の端末も分布に含め、間は 0 台で埋める', () => {
+    const many = [1, 2, 3, 4, 5, 6].map((id) => v('c', id));
+    const e = aggregate(targets, areas, {
+      stamps: many,
+      activeExchangeCount: 0,
+    });
+    expect(e.distribution.map((x) => x.stampCount)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(e.distribution[5]).toEqual({ stampCount: 6, visitorCount: 1 });
+    expect(e.distribution[4]).toEqual({ stampCount: 5, visitorCount: 0 });
+  });
   it('企画ごとに団体名とエリアを持つ', () => {
     expect(d.targets.find((x) => x.exhibitionId === 3)).toMatchObject({
       organizationName: '団体3',
