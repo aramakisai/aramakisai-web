@@ -219,3 +219,70 @@ describe('.github/workflows/frontend-ci.yml — CPU limit fallback', () => {
     }
   });
 });
+
+describe('.github/workflows/frontend-ci.yml — D1 migrations and stamp secrets', () => {
+  const MIGRATE = 'wrangler d1 migrations apply STAMP_DB --remote';
+  const DEPLOYS: Record<string, string> = {
+    'deploy-preview': 'wrangler versions upload',
+    'deploy-dev': 'wrangler deploy --env=dev',
+    'deploy-prod': 'opennextjs-cloudflare deploy',
+  };
+
+  it.each([
+    ['deploy-preview', `${MIGRATE} --env=dev`, 'staging'],
+    ['deploy-dev', `${MIGRATE} --env=dev`, 'staging'],
+    ['deploy-prod', MIGRATE, 'prod'],
+  ])(
+    '%s applies migrations to the right DB before deploying',
+    (job, cmd, env) => {
+      const commands = runCommands(loadWorkflow().jobs[job]);
+      const migrateIdx = commands.findIndex(
+        (c) =>
+          c.includes(cmd + '\n') || c.endsWith(cmd) || c.includes(cmd + ' '),
+      );
+      const deployIdx = commands.findIndex((c) => c.includes(DEPLOYS[job]));
+      expect(migrateIdx).toBeGreaterThanOrEqual(0);
+      expect(commands[migrateIdx]).toContain(`--env=${env} --`);
+      if (job === 'deploy-prod')
+        expect(commands[migrateIdx]).not.toContain('--env=dev');
+      expect(deployIdx).toBeGreaterThan(migrateIdx);
+    },
+  );
+
+  it('preview uploads with a temporary config that points STAMP_DB at the dev DB', () => {
+    const commands = runCommands(loadWorkflow().jobs['deploy-preview']);
+    const writeIdx = commands.findIndex((c) =>
+      c.includes('write-preview-wrangler-config.ts .wrangler.preview.toml'),
+    );
+    const uploadIdx = commands.findIndex((c) =>
+      c.includes('wrangler versions upload --config .wrangler.preview.toml'),
+    );
+    expect(writeIdx).toBeGreaterThanOrEqual(0);
+    expect(uploadIdx).toBeGreaterThan(writeIdx);
+  });
+
+  it.each([
+    ['deploy-preview', 'preview'],
+    ['deploy-dev', 'dev'],
+    ['deploy-prod', 'prod'],
+  ])('%s writes STAMP_ENV=%s into the secrets file', (job, value) => {
+    const joined = runCommands(loadWorkflow().jobs[job]).join('\n');
+    expect(joined).toContain(`"STAMP_ENV": "${value}"`);
+    for (const other of ['preview', 'dev', 'prod'].filter((v) => v !== value)) {
+      expect(joined).not.toContain(`"STAMP_ENV": "${other}"`);
+    }
+  });
+
+  it('adds STAFF_OIDC_CLIENT_SECRET from Infisical prod for prod and dev only', () => {
+    const workflow = loadWorkflow();
+    for (const job of ['deploy-dev', 'deploy-prod']) {
+      const step = runCommands(workflow.jobs[job]).find((c) =>
+        c.includes('STAFF_OIDC_CLIENT_SECRET'),
+      );
+      expect(step).toContain('--env=prod --');
+    }
+    expect(
+      runCommands(workflow.jobs['deploy-preview']).join('\n'),
+    ).not.toContain('STAFF_OIDC_CLIENT_SECRET');
+  });
+});
