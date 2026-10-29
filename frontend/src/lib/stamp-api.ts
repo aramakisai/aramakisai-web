@@ -9,6 +9,8 @@ export interface StampReply {
   readonly outcome: string;
   readonly usage?: D1Usage | null;
   readonly d1Failed?: boolean;
+  readonly exhibitionId?: number;
+  readonly category?: string;
 }
 
 const encoder = new TextEncoder();
@@ -51,6 +53,8 @@ export async function runStampApi(
     totalMs: Date.now() - startedAt,
     usage: reply.usage ?? null,
     d1Failed: reply.d1Failed,
+    exhibitionId: reply.exhibitionId,
+    category: reply.category,
   });
   return new Response(payload, {
     status: reply.status,

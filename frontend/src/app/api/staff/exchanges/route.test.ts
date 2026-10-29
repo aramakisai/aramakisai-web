@@ -230,6 +230,8 @@ describe('POST /api/staff/exchanges', () => {
       'staff_register',
       'registered',
       '200',
+      '',
+      '',
     ]);
   });
 });
