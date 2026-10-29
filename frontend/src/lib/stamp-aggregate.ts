@@ -1,21 +1,7 @@
 import type { AreaOption } from './exhibitions';
-import {
-  groupStampsByArea,
-  type MypageStampTarget,
-} from './stamp-progress';
+import { groupStampsByArea, type MypageStampTarget } from './stamp-progress';
+import type { AllRecords, StampRecord } from './stamp-db';
 import type { StampCategory } from './stamp-signature';
-
-// stamp-db.ts の StampRecord / AllRecords と構造が同じ。純粋関数を D1 の型から切り離すため別に持つ
-export interface StampRecord {
-  readonly exhibitionId: number;
-  readonly category: StampCategory;
-  readonly acquiredAt: string;
-}
-
-export interface AllRecords {
-  readonly stamps: readonly (StampRecord & { readonly visitorId: string })[];
-  readonly activeExchangeCount: number;
-}
 
 export interface AreaCount {
   readonly areaId: number | null;
@@ -134,8 +120,14 @@ export function aggregate(
     unknownCollected += unknown;
     for (const a of grouped.areas) {
       areaMeta.set(a.areaId, a.areaName);
-      areaCollected.set(a.areaId, (areaCollected.get(a.areaId) ?? 0) + a.collected);
-      areaPercentSum.set(a.areaId, (areaPercentSum.get(a.areaId) ?? 0) + a.percent);
+      areaCollected.set(
+        a.areaId,
+        (areaCollected.get(a.areaId) ?? 0) + a.collected,
+      );
+      areaPercentSum.set(
+        a.areaId,
+        (areaPercentSum.get(a.areaId) ?? 0) + a.percent,
+      );
     }
   }
 

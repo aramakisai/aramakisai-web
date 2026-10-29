@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ExchangeQrPanel } from './exchange-qr-panel';
 import type { MypageStampTarget } from '@/lib/stamp-progress';
-import type { StampRecord } from '@/lib/stamp-aggregate';
+import type { StampRecord } from '@/lib/stamp-db';
 
 const VID = '11111111-1111-4111-8111-111111111111';
 const TARGETS: MypageStampTarget[] = [

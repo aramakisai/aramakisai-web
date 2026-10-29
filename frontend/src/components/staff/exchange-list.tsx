@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { cancelExchangeRequest } from '@/lib/staff-exchange-api';
 import type { ExchangeRecord } from '@/lib/stamp-db';
 import { StaffActionButton } from './staff-action-button';
 
@@ -28,9 +29,7 @@ export function ExchangeList({
     setPending(id);
     setFailed(false);
     try {
-      const res = await fetch(`/api/staff/exchanges/${id}/cancel`, {
-        method: 'POST',
-      });
+      const res = await cancelExchangeRequest(id);
       if (!res.ok) throw new Error('cancel failed');
       const { exchange } = (await res.json()) as { exchange: ExchangeRecord };
       setRows((cur) =>

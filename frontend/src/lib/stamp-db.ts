@@ -1,26 +1,7 @@
 import type { StampCategory } from './stamp-signature';
+import type { D1Binding, D1Statement } from './cloudflare-env';
 
-// D1Database の必要部分だけを構造的に受ける。Next 側の型設定に Workers の型を持ち込まないため
-interface StampD1Meta {
-  readonly rows_read?: number;
-  readonly rows_written?: number;
-  readonly duration?: number;
-  readonly changes?: number;
-}
-interface StampD1Result<T> {
-  readonly results: T[];
-  readonly meta: StampD1Meta;
-}
-interface StampD1Statement {
-  bind(...values: unknown[]): StampD1Statement;
-  run(): Promise<{ readonly meta: StampD1Meta }>;
-}
-export interface StampD1 {
-  prepare(sql: string): StampD1Statement;
-  batch<T = unknown>(
-    statements: StampD1Statement[],
-  ): Promise<StampD1Result<T>[]>;
-}
+type BatchResult = Awaited<ReturnType<D1Binding['batch']>>[number];
 
 export interface D1Usage {
   readonly rowsRead: number;
@@ -123,7 +104,7 @@ const EXCHANGE_COLUMNS =
   'exchange_id, visitor_id, exchanged_at, exchanged_by, cancelled_at, cancelled_by';
 const STAMP_COLUMNS = 'visitor_id, exhibition_id, category, acquired_at';
 
-function sumUsage(metas: readonly StampD1Meta[]): D1Usage {
+function sumUsage(metas: readonly Record<string, number>[]): D1Usage {
   return {
     rowsRead: metas.reduce((n, m) => n + (m.rows_read ?? 0), 0),
     rowsWritten: metas.reduce((n, m) => n + (m.rows_written ?? 0), 0),
@@ -133,14 +114,14 @@ function sumUsage(metas: readonly StampD1Meta[]): D1Usage {
 
 const ZERO_USAGE: D1Usage = { rowsRead: 0, rowsWritten: 0, durationMs: 0 };
 
-export function createStampRepository(db: StampD1): StampRepository {
+export function createStampRepository(db: D1Binding): StampRepository {
   // D1 の例外を外に出さず、成功時は meta を合算して添える
   async function run<T>(
-    statements: StampD1Statement[],
-    build: (results: StampD1Result<never>[]) => T | Promise<T>,
+    statements: D1Statement[],
+    build: (results: BatchResult[]) => T | Promise<T>,
   ): Promise<DbResult<T>> {
     try {
-      const results = (await db.batch(statements)) as StampD1Result<never>[];
+      const results = (await db.batch(statements)) as BatchResult[];
       return {
         ok: true,
         value: await build(results),
@@ -151,8 +132,7 @@ export function createStampRepository(db: StampD1): StampRepository {
     }
   }
 
-  const rows = <R>(r: StampD1Result<never> | undefined) =>
-    (r?.results ?? []) as R[];
+  const rows = <R>(r: BatchResult | undefined) => (r?.results ?? []) as R[];
 
   return {
     recordStamp: (visitorId, exhibitionId, category, now) =>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { StampRecord } from './stamp-aggregate';
+import type { StampRecord } from './stamp-db';
 
 export type VisitorStamps =
   | { readonly status: 'loading' }

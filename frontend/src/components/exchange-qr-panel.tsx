@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { FetchErrorBlock } from '@/components/fetch-error-block';
 import { SectionHeading } from '@/components/section-heading';
-import { isComplete, type StampRecord } from '@/lib/stamp-aggregate';
+import { isComplete } from '@/lib/stamp-aggregate';
+import type { StampRecord } from '@/lib/stamp-db';
 import type { MypageStampTarget } from '@/lib/stamp-progress';
 
 // 署名の有効期限 (300 秒) に対し、窓口で提示している最中に切れないよう余裕を持って取り直す

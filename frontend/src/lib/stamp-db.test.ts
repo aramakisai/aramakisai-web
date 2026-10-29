@@ -3,7 +3,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { getPlatformProxy } from 'wrangler';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createStampRepository, type StampD1 } from './stamp-db';
+import type { D1Binding } from './cloudflare-env';
+import { createStampRepository } from './stamp-db';
 
 const V1 = '11111111-1111-4111-8111-111111111111';
 const V2 = '22222222-2222-4222-8222-222222222222';
@@ -18,7 +19,7 @@ const migration = readFileSync(
 
 let dir: string;
 let dispose: () => Promise<void>;
-let db: StampD1;
+let db: D1Binding;
 
 beforeAll(async () => {
   dir = mkdtempSync(join(tmpdir(), 'stamp-db-'));
@@ -27,7 +28,7 @@ beforeAll(async () => {
     config,
     `name = "t"\ncompatibility_date = "2026-01-01"\n[[d1_databases]]\nbinding = "STAMP_DB"\ndatabase_name = "t"\ndatabase_id = "00000000-0000-0000-0000-000000000000"\n`,
   );
-  const proxy = await getPlatformProxy<{ STAMP_DB: StampD1 }>({
+  const proxy = await getPlatformProxy<{ STAMP_DB: D1Binding }>({
     configPath: config,
     persist: false,
   });

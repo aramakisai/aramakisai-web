@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { getPlatformProxy } from 'wrangler';
-import type { StampD1 } from '@/lib/stamp-db';
+import type { D1Binding } from '@/lib/cloudflare-env';
 
 const migration = readFileSync(
   join(__dirname, '../../migrations/0001_stamp_rally.sql'),
@@ -16,7 +16,7 @@ export async function openTestD1() {
     config,
     `name = "t"\ncompatibility_date = "2026-01-01"\n[[d1_databases]]\nbinding = "STAMP_DB"\ndatabase_name = "t"\ndatabase_id = "00000000-0000-0000-0000-000000000000"\n`,
   );
-  const proxy = await getPlatformProxy<{ STAMP_DB: StampD1 }>({
+  const proxy = await getPlatformProxy<{ STAMP_DB: D1Binding }>({
     configPath: config,
     persist: false,
   });
@@ -34,7 +34,10 @@ export async function openTestD1() {
     async reset() {
       await db.prepare('DROP TABLE IF EXISTS stamps').run();
       await db.prepare('DROP TABLE IF EXISTS exchanges').run();
-      for (const stmt of migration.split(';').map((s) => s.trim()).filter(Boolean)) {
+      for (const stmt of migration
+        .split(';')
+        .map((s) => s.trim())
+        .filter(Boolean)) {
         await db.prepare(stmt).run();
       }
     },
