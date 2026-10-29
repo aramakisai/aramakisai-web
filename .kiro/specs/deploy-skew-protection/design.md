@@ -263,6 +263,10 @@ function classifyR2GetFailure(stderr: string): 'not-found' | 'error';
   - ランタイムの script が見つからない場合は、同じセッション内で 1 回だけにする。sessionStorage が使えない環境では再読み込みしない
 - `/_next/static/` 以外の取得失敗(画像・地図タイル・外部スクリプト)では再読み込みしない
 - `navigator.onLine === false` のときは再読み込みしない。オフラインや電波の弱い環境での取得失敗は旧ビルドが原因ではなく、読み込み直すとオフラインのエラー画面へ遷移して入力中の内容が失われるため
+- 別文書へのページ遷移が始まってから 5 秒以内の失敗では再読み込みせず、sessionStorage にも書かない。`navigation` の `navigate` イベントで `destination.sameDocument` が false のときの時刻を記録して判定する
+  - 旧タブでリンクを押すと、Next 16 は新ビルドの RSC をデコードする途中でクライアント参照のチャンクを `<script>` で先読みし、その後で buildId の不一致を検知して遷移先へハードナビゲーション(`location.assign`)する。先読みが失敗すると、遷移の確定前に再読み込みが走って遷移を上書きし、遷移先でなく現在のページが読み込み直される(dev で再現済み)。遷移中は Next のハードナビゲーションに任せる
+  - `navigation` が無いブラウザ(Navigation API 非対応)では、この判定をせず従来どおり再読み込みする
+  - pushState によるソフトナビゲーションは `sameDocument` が true なので対象外
 - 置き場所は、`src/app/layout.tsx` の `<head>` 内の `MOTION_INIT_SCRIPT` と同じ位置にする。layout に書いた要素は、Next が出力するスタイルシートと async の script より後ろに並ぶ(本番の HTML で実測)。そのため、登録より前に起きる初期読み込みの失敗は検知できない。対象は、hydrate 後の遅延チャンクと CSS の取得失敗とする。旧タブで起きる失敗はこちらに当たる
 - 外部への要求は発生させない(Requirement 5.1)
 
@@ -321,6 +325,8 @@ export const CHUNK_RELOAD_STORAGE_KEY = 'aramakisai_chunk_reload_build';
   - `/images/x.webp` の img で error → reload されない
   - `ChunkLoadError` の unhandledrejection → reload される
   - `navigator.onLine === false` のときの失敗 → reload されない
+  - 別文書への `navigate` イベントの 5 秒以内の失敗 → reload されず、sessionStorage にも書かれない。5 秒を過ぎた失敗と、`sameDocument` が true の `navigate` の後の失敗 → reload される
+  - `navigation` が無い環境 → 従来どおり reload される
 - `frontend-ci-deploy.workflow.test.ts`
   - deploy-prod と deploy-dev で、Build < pack < upload < restore < deploy_site の順に並ぶこと。publish はジョブの最後のステップで、deploy-prod ではリレーのデプロイより後にあること
   - publish の条件が `always() && steps.deploy_site.outcome == 'success'` であること
