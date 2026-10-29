@@ -11,11 +11,10 @@ import { isStudentExhibitor, toCmsUser } from '../access/roles';
 import { purgeEdgeCacheAfterChange, purgeEdgeCacheAfterDelete } from '../hooks/media-edge-purge';
 
 /**
- * フロントエンドが要求する表示幅に合わせ、一覧用thumbnailと既存2サイズを生成する。
+ * フロントエンドが要求する表示幅に合わせたサイズを生成する。
  * 無指定は原本 (WebP 変換済み) が受け持つ。
  */
 export const IMAGE_SIZES = [
-  { name: 'thumbnail', width: 320 },
   { name: 'hero', width: 1920 },
   { name: 'card', width: 960 },
 ] as const;

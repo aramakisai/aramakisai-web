@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { act, render } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RegionalSponsor } from '@/lib/regional-sponsors';
 
@@ -46,10 +46,8 @@ const sponsor: RegionalSponsor = {
   imageDecorative: false,
   message: null,
   businessHours: null,
-  closedDays: null,
   phone: null,
   websiteUrl: null,
-  order: 0,
 };
 
 const baseProps = {
@@ -76,34 +74,6 @@ describe('RegionalSponsorBottomSheet', () => {
       configurable: true,
       value: 844,
     });
-  });
-
-  it('reports the measured height unchanged while showing the detail', () => {
-    render(
-      <RegionalSponsorBottomSheet
-        {...baseProps}
-        selectedSponsor={sponsor}
-        snap="detail"
-      />,
-    );
-
-    act(() => {
-      (mocks.shellProps?.onHeightChange as (height: number) => void)(380);
-    });
-
-    expect(baseProps.onHeightChange).toHaveBeenCalledWith(380);
-  });
-
-  it('reports the measured height unchanged while showing the list', () => {
-    render(
-      <RegionalSponsorBottomSheet {...baseProps} selectedSponsor={null} />,
-    );
-
-    act(() => {
-      (mocks.shellProps?.onHeightChange as (height: number) => void)(380);
-    });
-
-    expect(baseProps.onHeightChange).toHaveBeenCalledWith(380);
   });
 
   it('does not expose the detail snap until a sponsor is selected', () => {

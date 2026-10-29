@@ -23,21 +23,7 @@ describe('map tile profiles', () => {
     expect(getMapTileProfile('campus')).toBe(CAMPUS_MAP_TILE_PROFILE);
   });
 
-  it('regional profileは年度別協賛データに依存しない固定サービス契約を公開する', () => {
-    expect(REGIONAL_MAP_TILE_PROFILE).toMatchObject({
-      id: 'regional',
-      minZoom: 10.5,
-      maxZoom: 17,
-      minNativeZoom: 11,
-      maxNativeZoom: 16,
-      publicDirectory: 'public/regional-map-tiles',
-      urlTemplate: '/regional-map-tiles/{z}/{x}/{y}.webp',
-      expectedMaxTileCount: 6_984,
-      expectedMaxBytes: 64 * 1024 * 1024,
-    });
-    const [[south, west], [north, east]] = REGIONAL_MAP_TILE_PROFILE.bounds;
-    expect(south).toBeLessThan(north);
-    expect(west).toBeLessThan(east);
+  it('regional profileを名前で引ける', () => {
     expect(getMapTileProfile('regional')).toBe(REGIONAL_MAP_TILE_PROFILE);
   });
 

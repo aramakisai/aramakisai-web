@@ -375,42 +375,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "sizes_thumbnail_url": {
-          "name": "sizes_thumbnail_url",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "sizes_thumbnail_width": {
-          "name": "sizes_thumbnail_width",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "sizes_thumbnail_height": {
-          "name": "sizes_thumbnail_height",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "sizes_thumbnail_mime_type": {
-          "name": "sizes_thumbnail_mime_type",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "sizes_thumbnail_filesize": {
-          "name": "sizes_thumbnail_filesize",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "sizes_thumbnail_filename": {
-          "name": "sizes_thumbnail_filename",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": false
-        },
         "sizes_hero_url": {
           "name": "sizes_hero_url",
           "type": "varchar",
@@ -541,21 +505,6 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "media_sizes_thumbnail_sizes_thumbnail_filename_idx": {
-          "name": "media_sizes_thumbnail_sizes_thumbnail_filename_idx",
-          "columns": [
-            {
-              "expression": "sizes_thumbnail_filename",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -1447,26 +1396,14 @@
         },
         "business_category": {
           "name": "business_category",
-          "type": "varchar",
+          "type": "enum_sponsors_business_category",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": false
         },
         "address": {
           "name": "address",
           "type": "varchar",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "local_import_id": {
-          "name": "local_import_id",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "local_map_category": {
-          "name": "local_map_category",
-          "type": "enum_sponsors_local_map_category",
-          "typeSchema": "public",
           "primaryKey": false,
           "notNull": false
         },
@@ -1488,39 +1425,14 @@
           "primaryKey": false,
           "notNull": false
         },
-        "local_image_alt": {
-          "name": "local_image_alt",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "local_image_decorative": {
-          "name": "local_image_decorative",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": false,
-          "default": false
-        },
         "local_business_hours": {
           "name": "local_business_hours",
           "type": "varchar",
           "primaryKey": false,
           "notNull": false
         },
-        "local_closed_days": {
-          "name": "local_closed_days",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": false
-        },
         "local_phone": {
           "name": "local_phone",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "local_image_checksum": {
-          "name": "local_image_checksum",
           "type": "varchar",
           "primaryKey": false,
           "notNull": false
@@ -1592,21 +1504,6 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "sponsors_local_import_id_idx": {
-          "name": "sponsors_local_import_id_idx",
-          "columns": [
-            {
-              "expression": "local_import_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -8116,8 +8013,8 @@
         "other"
       ]
     },
-    "public.enum_sponsors_local_map_category": {
-      "name": "enum_sponsors_local_map_category",
+    "public.enum_sponsors_business_category": {
+      "name": "enum_sponsors_business_category",
       "schema": "public",
       "values": [
         "hospital",
@@ -8413,6 +8310,6 @@
     "tables": {},
     "columns": {}
   },
-  "id": "3937f986-8856-46cb-940f-8361fe8900fa",
+  "id": "8060747d-d2e9-47fe-8998-e96f53bef970",
   "prevId": "00000000-0000-0000-0000-000000000000"
 }

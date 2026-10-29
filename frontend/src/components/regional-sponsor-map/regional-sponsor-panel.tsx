@@ -3,6 +3,7 @@
 import type { RegionalSponsorCategory } from '@/lib/regional-sponsor-categories';
 import type { RegionalSponsor } from '@/lib/regional-sponsors';
 import { RegionalSponsorDetail } from './regional-sponsor-detail';
+import { RegionalSponsorError } from './regional-sponsor-error';
 import { RegionalSponsorList } from './regional-sponsor-list';
 import { RegionalSponsorSearch } from './regional-sponsor-search';
 
@@ -25,7 +26,7 @@ export interface RegionalSponsorPanelProps {
   readonly onScrollTopChange: (scrollTop: number) => void;
   readonly onLocationScrollTopChange: (scrollTop: number) => void;
   readonly onLocationBack: () => void;
-  readonly onSelect: (sponsor: RegionalSponsor) => void;
+  readonly onSelect: (sponsorId: number) => void;
   readonly onBack: () => void;
 }
 
@@ -44,25 +45,10 @@ export function RegionalSponsorPanel(props: RegionalSponsorPanelProps) {
           onBack={props.onBack}
         />
       ) : props.error ? (
-        <div
-          className="mt-6 rounded-lg border border-warning bg-orange-50 p-4"
-          role="alert"
-        >
-          <p className="text-sm leading-6 text-text">
-            地域協賛情報を取得できませんでした。
-          </p>
-          <button
-            type="button"
-            onClick={props.onRetry}
-            className="mt-3 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-          >
-            再試行
-          </button>
-        </div>
+        <RegionalSponsorError className="mt-6" onRetry={props.onRetry} />
       ) : props.locationSponsors ? (
         <RegionalSponsorList
           sponsors={props.locationSponsors}
-          selectedSponsorId={null}
           initialScrollTop={props.locationListScrollTop}
           onScrollTopChange={props.onLocationScrollTopChange}
           onSelect={props.onSelect}
@@ -80,7 +66,6 @@ export function RegionalSponsorPanel(props: RegionalSponsorPanelProps) {
           </div>
           <RegionalSponsorList
             sponsors={props.sponsors}
-            selectedSponsorId={null}
             initialScrollTop={props.listScrollTop}
             onScrollTopChange={props.onScrollTopChange}
             onSelect={props.onSelect}

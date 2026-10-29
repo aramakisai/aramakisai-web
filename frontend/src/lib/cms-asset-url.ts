@@ -3,7 +3,6 @@ import type { Attachment } from './home-page-types';
 
 /** CMS が生成する派生サイズ。幅は cms/src/collections/media.ts の IMAGE_SIZES と一致させる。 */
 const GENERATED_SIZES = [
-  { name: 'thumbnail', width: 320 },
   { name: 'card', width: 960 },
   { name: 'hero', width: 1920 },
 ] as const;

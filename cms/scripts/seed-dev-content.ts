@@ -227,14 +227,14 @@ async function main() {
   const SPONSORS = [
     { name: 'アラマキ電機株式会社', type: ['ad'], tier: 'planA' },
     { name: '荒牧信用金庫', type: ['ad'], tier: 'planB' },
-    { name: '△△不動産グループ', type: ['ad', 'local'], tier: 'planA', businessCategory: '不動産', address: '群馬県前橋市荒牧町1-1' },
-    { name: '荒牧商店会', type: ['local'], businessCategory: '商店会', address: '群馬県前橋市荒牧町2-3' },
-    { name: 'まちの八百屋 みどり', type: ['local'], businessCategory: '青果店', address: '群馬県前橋市荒牧町3-5' },
+    { name: '△△不動産グループ', type: ['ad', 'local'], tier: 'planA', businessCategory: 'life', address: '群馬県前橋市荒牧町1-1' },
+    { name: '荒牧商店会', type: ['local'], businessCategory: 'shop', address: '群馬県前橋市荒牧町2-3' },
+    { name: 'まちの八百屋 みどり', type: ['local'], businessCategory: 'food', address: '群馬県前橋市荒牧町3-5' },
     { name: 'たい焼き本舗', type: ['vendor'] },
     { name: '唐揚げ専門店 からりん', type: ['vendor'] },
     { name: '地域清掃ボランティア団体', type: ['other'] },
     { name: '荒牧サポーターズクラブ', type: ['other'] },
-    { name: '県内工務店ネットワーク', type: ['local', 'vendor'], businessCategory: '建設業', address: '群馬県前橋市荒牧町4-8' },
+    { name: '県内工務店ネットワーク', type: ['local', 'vendor'], businessCategory: 'life', address: '群馬県前橋市荒牧町4-8' },
     { name: 'フードトラックA', type: ['vendor'] },
     { name: '総合スポンサーX株式会社', type: ['ad', 'other'], tier: 'planC' },
   ] as const;

@@ -44,24 +44,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Resolve profile outputs
-        id: profile
-        run: |
-          case "$MAP_TILE_PROFILE" in
-            campus)
-              echo "output-directory=rendered-tiles" >> "$GITHUB_OUTPUT"
-              echo "artifact-name=map-tiles" >> "$GITHUB_OUTPUT"
-              ;;
-            regional)
-              echo "output-directory=regional-map-tiles" >> "$GITHUB_OUTPUT"
-              echo "artifact-name=regional-map-tiles" >> "$GITHUB_OUTPUT"
-              ;;
-            *)
-              echo "::error::profile must be campus or regional"
-              exit 1
-              ;;
-          esac
-
       # 選択profileから算出した枚数がprofileの上限を超える場合、
       # このステップが非ゼロで終了し、後続のレンダリングステップは走らない。
       - name: Calculate tile bounds
@@ -197,9 +179,9 @@ jobs:
       # 自前でメタタイル形式をパースせずに済むため、この形式で個別ファイルを揃える
       - name: Fetch rendered tiles via HTTP
         run: |
-          mkdir -p "${{ steps.profile.outputs.output-directory }}"
+          mkdir -p "${{ inputs.profile }}-map-tiles"
           MAP_TILE_SERVER_URL=http://localhost:8080 \
-            MAP_TILES_OUT_DIR="$PWD/${{ steps.profile.outputs.output-directory }}" \
+            MAP_TILES_OUT_DIR="$PWD/${{ inputs.profile }}-map-tiles" \
             pnpm exec tsx scripts/fetch-map-tiles.ts --profile "$MAP_TILE_PROFILE"
 
       - name: Install cwebp
@@ -210,14 +192,14 @@ jobs:
       # 配信形式を webp にすることで転送量を抑える (design.md 参照)。変換ロジックは
       # スクリプト側に置き、YAML には呼び出しだけを書く
       - name: Convert rendered tiles to webp
-        run: MAP_TILES_DIR="$PWD/${{ steps.profile.outputs.output-directory }}" pnpm exec tsx scripts/convert-map-tiles-to-webp.ts --profile "$MAP_TILE_PROFILE"
+        run: MAP_TILES_DIR="$PWD/${{ inputs.profile }}-map-tiles" pnpm exec tsx scripts/convert-map-tiles-to-webp.ts --profile "$MAP_TILE_PROFILE"
 
       - name: Verify rendered tiles
-        run: MAP_TILES_DIR="$PWD/${{ steps.profile.outputs.output-directory }}" pnpm exec tsx scripts/verify-map-tiles.ts --profile "$MAP_TILE_PROFILE"
+        run: MAP_TILES_DIR="$PWD/${{ inputs.profile }}-map-tiles" pnpm exec tsx scripts/verify-map-tiles.ts --profile "$MAP_TILE_PROFILE"
 
       - name: Upload tiles artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.profile.outputs.artifact-name }}
-          path: frontend/${{ steps.profile.outputs.output-directory }}
+          name: ${{ inputs.profile }}-map-tiles
+          path: frontend/${{ inputs.profile }}-map-tiles
           retention-days: 14

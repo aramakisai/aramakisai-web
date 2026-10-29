@@ -8,7 +8,6 @@ import {
   calculateMapTileBounds,
   resolveMapTileProfileFromArgs,
 } from './map-tile-bounds';
-import type { MapTileProfile } from '../src/lib/map-tile-profile';
 
 // 品質を上げるほど容量が増える。80 は cwebp の既定値で、地図タイル程度の情報量では
 // 目視での劣化がほぼ気にならない一方、容量はほぼ半減する。変える場合はここ 1 箇所でよい
@@ -97,36 +96,14 @@ export async function convertMapTilesToWebp(
   return { convertedCount, failures };
 }
 
-export function convertMapTileProfileToWebp(
-  profile: MapTileProfile,
-  tilesDir: string,
-  options: ConvertMapTilesOptions,
-): Promise<ConvertMapTilesResult> {
-  return convertMapTilesToWebp(
-    tileCoordsFromBoundsResult(calculateMapTileBounds(profile)),
-    tilesDir,
-    options,
-  );
-}
-
 async function main(): Promise<void> {
-  let profile: MapTileProfile;
-  try {
-    profile = resolveMapTileProfileFromArgs(process.argv.slice(2));
-  } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error));
-    process.exitCode = 1;
-    return;
-  }
+  const profile = resolveMapTileProfileFromArgs(process.argv.slice(2));
   const tilesDir =
     process.env.MAP_TILES_DIR ??
-    path.join(
-      __dirname,
-      '..',
-      profile.id === 'campus' ? 'rendered-tiles' : 'regional-map-tiles',
-    );
+    path.join(__dirname, '..', `${profile.id}-map-tiles`);
 
-  const result = await convertMapTileProfileToWebp(profile, tilesDir, {
+  const coords = tileCoordsFromBoundsResult(calculateMapTileBounds(profile));
+  const result = await convertMapTilesToWebp(coords, tilesDir, {
     runCwebp: createCwebpRunner(),
   });
 

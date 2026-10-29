@@ -6,11 +6,11 @@ import type { FitBoundsOptions, Marker as LeafletMarker } from 'leaflet';
 import { Marker, useMapEvents } from 'react-leaflet';
 import {
   clusterProjectedSponsors,
-  locationKeyOf,
+  locationIdsOf,
   type MarkerGroup,
 } from '@/lib/regional-sponsor-clustering';
 import { getRegionalSponsorCategoryPresentation } from '@/lib/regional-sponsor-categories';
-import type { RegionalMapConfig } from '@/lib/regional-map-config';
+import { prefersReducedMotion } from '@/lib/use-motion-preference';
 import type { RegionalSponsor } from '@/lib/regional-sponsors';
 
 // Leaflet はマーカーの z-index を「画面の y 座標 + zIndexOffset」にする。順位差が
@@ -21,27 +21,17 @@ const RANK_STEP = 100_000;
 interface RegionalSponsorMarkerLayerProps {
   readonly sponsors: readonly RegionalSponsor[];
   readonly selectedSponsorId: number | null;
-  readonly profile: RegionalMapConfig;
+  readonly maxZoom: number;
   readonly markerSize: 32 | 48;
   readonly visibleAreaOptions: (container: HTMLElement) => FitBoundsOptions;
   readonly onSelectSponsor: (sponsorId: number) => void;
-  readonly onSelectLocation: (locationKey: string) => void;
+  readonly onSelectLocation: (sponsorIds: readonly number[]) => void;
 }
 
-function pinIcon(sponsor: RegionalSponsor, size: number, selected: boolean) {
-  const { pinAsset } = getRegionalSponsorCategoryPresentation(sponsor.category);
+function icon(src: string, size: number, className: string) {
   return divIcon({
-    className: `regional-sponsor-pin ${selected ? 'regional-sponsor-pin--selected' : ''}`,
-    html: `<img aria-hidden="true" alt="" src="${pinAsset}">`,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size],
-  });
-}
-
-function clusterIcon(size: number) {
-  return divIcon({
-    className: 'regional-sponsor-cluster',
-    html: '<img aria-hidden="true" alt="" src="/images/regional-sponsor-map/pin-neutral.svg">',
+    className,
+    html: `<img aria-hidden="true" alt="" src="${src}">`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size],
   });
@@ -71,7 +61,7 @@ function applyAccessibility(
 export function RegionalSponsorMarkerLayer({
   sponsors,
   selectedSponsorId,
-  profile,
+  maxZoom,
   markerSize,
   visibleAreaOptions,
   onSelectSponsor,
@@ -92,7 +82,7 @@ export function RegionalSponsorMarkerLayer({
   const groups = clusterProjectedSponsors(projectedSponsors, {
     radius: markerSize,
     zoom,
-    maxZoom: profile.maxZoom,
+    maxZoom,
     selectedSponsorId,
   });
   // 重なったピンは一覧の並びで後のものを前面に出す。選択中は常に最前面
@@ -110,9 +100,6 @@ export function RegionalSponsorMarkerLayer({
     const { paddingTopLeft, paddingBottomRight } = visibleAreaOptions(
       map.getContainer(),
     );
-    const reducedMotion =
-      typeof window.matchMedia === 'function' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     map.fitBounds(
       latLngBounds(
         group.sponsors.map(({ latitude, longitude }) => [latitude, longitude]),
@@ -120,8 +107,8 @@ export function RegionalSponsorMarkerLayer({
       {
         paddingTopLeft,
         paddingBottomRight,
-        maxZoom: profile.maxZoom,
-        ...(reducedMotion ? { animate: false } : {}),
+        maxZoom,
+        ...(prefersReducedMotion() ? { animate: false } : {}),
       },
     );
   };
@@ -129,65 +116,59 @@ export function RegionalSponsorMarkerLayer({
   return (
     <>
       {groups.map((group) => {
-        if (group.kind === 'single') {
-          const { sponsor } = group;
-          const label = `${sponsor.name}、${getRegionalSponsorCategoryPresentation(sponsor.category).label}`;
-          const activate = () => onSelectSponsor(sponsor.id);
-          return (
-            <Marker
-              key={group.id}
-              ref={(marker) => {
-                if (marker)
-                  applyAccessibility(marker, label, group.selected, activate);
-              }}
-              position={[sponsor.latitude, sponsor.longitude]}
-              icon={pinIcon(sponsor, markerSize, group.selected)}
-              keyboard={false}
-              alt={label}
-              title={label}
-              zIndexOffset={group.selected ? selectedOffset : rankOf(group)}
-              eventHandlers={{
-                add: (event) =>
-                  applyAccessibility(
-                    event.target as LeafletMarker,
-                    label,
-                    group.selected,
-                    activate,
-                  ),
-                click: activate,
-              }}
-            />
-          );
-        }
-        const sponsorLabels = group.sponsors
-          .map(
-            (sponsor) =>
-              `${sponsor.name}（${getRegionalSponsorCategoryPresentation(sponsor.category).label}）`,
-          )
-          .join('、');
-        const label = `${group.sponsors.length}件の地域協賛：${sponsorLabels}。${group.kind === 'cluster' ? '選択して拡大' : '選択して一覧を表示'}`;
-        const activate =
-          group.kind === 'cluster'
+        const single = group.kind === 'single';
+        const members = single ? [group.sponsor] : group.sponsors;
+        const label = single
+          ? `${group.sponsor.name}、${getRegionalSponsorCategoryPresentation(group.sponsor.category).label}`
+          : `${members.length}件の地域協賛：${members
+              .map(
+                (sponsor) =>
+                  `${sponsor.name}（${getRegionalSponsorCategoryPresentation(sponsor.category).label}）`,
+              )
+              .join(
+                '、',
+              )}。${group.kind === 'cluster' ? '選択して拡大' : '選択して一覧を表示'}`;
+        const selected = single && group.selected;
+        const activate = single
+          ? () => onSelectSponsor(group.sponsor.id)
+          : group.kind === 'cluster'
             ? () => openCluster(group)
-            : () => onSelectLocation(locationKeyOf(group.sponsors));
+            : () => onSelectLocation(locationIdsOf(group.sponsors));
+        const position: [number, number] = single
+          ? [group.sponsor.latitude, group.sponsor.longitude]
+          : [group.anchor.latitude, group.anchor.longitude];
         return (
           <Marker
             key={group.id}
             ref={(marker) => {
-              if (marker) applyAccessibility(marker, label, false, activate);
+              if (marker) applyAccessibility(marker, label, selected, activate);
             }}
-            position={[group.anchor.latitude, group.anchor.longitude]}
-            icon={clusterIcon(markerSize)}
+            position={position}
+            icon={
+              single
+                ? icon(
+                    getRegionalSponsorCategoryPresentation(
+                      group.sponsor.category,
+                    ).pinAsset,
+                    markerSize,
+                    `regional-sponsor-pin ${selected ? 'regional-sponsor-pin--selected' : ''}`,
+                  )
+                : icon(
+                    '/images/regional-sponsor-map/pin-neutral.svg',
+                    markerSize,
+                    'regional-sponsor-cluster',
+                  )
+            }
             keyboard={false}
             alt={label}
             title={label}
-            zIndexOffset={rankOf(group)}
+            zIndexOffset={selected ? selectedOffset : rankOf(group)}
             eventHandlers={{
               add: (event) =>
                 applyAccessibility(
                   event.target as LeafletMarker,
                   label,
-                  false,
+                  selected,
                   activate,
                 ),
               click: activate,

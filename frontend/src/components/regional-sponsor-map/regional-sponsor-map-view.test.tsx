@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { RegionalMapConfig } from '@/lib/regional-map-config';
+import { REGIONAL_MAP_TILE_PROFILE as profile } from '@/lib/map-tile-profile';
 
 const mocks = vi.hoisted(() => ({
   mapProps: [] as Record<string, unknown>[],
@@ -52,24 +52,8 @@ vi.mock('./regional-sponsor-marker-layer', () => ({
 
 import { RegionalSponsorMapView } from './regional-sponsor-map-view';
 
-const profile: RegionalMapConfig = {
-  id: 'regional',
-  bounds: [
-    [36, 139],
-    [37, 140],
-  ],
-  minZoom: 8,
-  maxZoom: 18,
-  minNativeZoom: 8,
-  maxNativeZoom: 16,
-  publicDirectory: 'public/regional-map-tiles',
-  urlTemplate: '/regional-map-tiles/{z}/{x}/{y}.webp',
-  expectedMaxTileCount: 100,
-  expectedMaxBytes: 1_000_000,
-  initialCenter: [36.43068, 139.044795],
-  initialZoom: 15.5,
-  focusZoom: 15.5,
-};
+const fitOptionsOf = (name: 'fitOptions') =>
+  (mocks.viewportProps.at(-1)![name] as () => unknown)();
 
 const baseProps = {
   sponsors: [],
@@ -85,30 +69,26 @@ beforeEach(() => {
 });
 
 describe('RegionalSponsorMapView', () => {
-  it('fixture profileの自前タイル・範囲・zoom・出典・余白をLeafletへ接続する', () => {
-    render(<RegionalSponsorMapView profile={profile} {...baseProps} />);
+  it('地域profileの自前タイル・範囲・zoom・出典・余白をLeafletへ接続する', () => {
+    render(<RegionalSponsorMapView {...baseProps} />);
 
     expect(mocks.tileProps.at(-1)).toMatchObject({
       url: '/regional-map-tiles/{z}/{x}/{y}.webp',
-      minNativeZoom: 8,
-      maxNativeZoom: 16,
+      minNativeZoom: profile.minNativeZoom,
+      maxNativeZoom: profile.maxNativeZoom,
       errorTileUrl: expect.stringContaining('data:image/gif'),
     });
     expect(mocks.viewportProps.at(-1)).toMatchObject({
-      minZoom: 8,
+      minZoom: profile.minZoom,
       minZoomPadding: undefined,
-      extendMaxBoundsByPadding: false,
-      initialCenter: profile.initialCenter,
-      initialZoom: 15.5,
+      maxBoundsPadding: undefined,
       focusCenter: null,
       focusKey: null,
-      focusZoom: 15.5,
+      focusZoom: profile.maxNativeZoom,
       maxBounds: profile.bounds,
-      fitOptions: expect.objectContaining({ paddingTopLeft: [396, 24] }),
     });
-    expect(mocks.mapProps.at(-1)).toMatchObject({
-      center: profile.initialCenter,
-      zoom: 15.5,
+    expect(fitOptionsOf('fitOptions')).toMatchObject({
+      paddingTopLeft: [396, 24],
     });
     expect(mocks.markerProps.at(-1)).toMatchObject({ markerSize: 48 });
     expect(mocks.attributionProps.at(-1)).toEqual({
@@ -121,7 +101,6 @@ describe('RegionalSponsorMapView', () => {
   it('passes the selected sponsor position to the shared viewport controller', () => {
     render(
       <RegionalSponsorMapView
-        profile={profile}
         {...baseProps}
         sponsors={[
           {
@@ -136,10 +115,8 @@ describe('RegionalSponsorMapView', () => {
             imageDecorative: false,
             message: null,
             businessHours: null,
-            closedDays: null,
             phone: null,
             websiteUrl: null,
-            order: 0,
           },
         ]}
         selectedSponsorId={101}
@@ -149,14 +126,13 @@ describe('RegionalSponsorMapView', () => {
     expect(mocks.viewportProps.at(-1)).toMatchObject({
       focusCenter: [36.5, 139.2],
       focusKey: 101,
-      focusZoom: 15.5,
+      focusZoom: profile.maxNativeZoom,
     });
   });
 
   it('スマートフォンは32pxピン・左下出典・上部とsheetのfit余白を使う', () => {
     render(
       <RegionalSponsorMapView
-        profile={profile}
         {...baseProps}
         isDesktop={false}
         mobileBottomInset={380}
@@ -165,12 +141,11 @@ describe('RegionalSponsorMapView', () => {
     expect(mocks.markerProps.at(-1)).toMatchObject({ markerSize: 32 });
     expect(mocks.viewportProps.at(-1)).toMatchObject({
       minZoomPadding: { x: 0, y: 380 },
-      extendMaxBoundsByPadding: true,
       maxBoundsPadding: expect.any(Function),
-      fitOptions: expect.objectContaining({
-        paddingTopLeft: [16, 136],
-        paddingBottomRight: [16, 396],
-      }),
+    });
+    expect(fitOptionsOf('fitOptions')).toMatchObject({
+      paddingTopLeft: [16, 136],
+      paddingBottomRight: [16, 396],
     });
     expect(mocks.attributionProps.at(-1)).toEqual({
       position: 'bottomleft',
@@ -182,7 +157,7 @@ describe('RegionalSponsorMapView', () => {
   });
 
   it('loading、透明error tile、失敗通知、再読込を一覧を覆わず提供する', () => {
-    render(<RegionalSponsorMapView profile={profile} {...baseProps} />);
+    render(<RegionalSponsorMapView {...baseProps} />);
     expect(screen.getByText('地図を読み込んでいます…')).toBeInTheDocument();
     const events = mocks.tileProps.at(-1)!.eventHandlers as Record<
       string,
@@ -200,11 +175,5 @@ describe('RegionalSponsorMapView', () => {
     fireEvent.click(screen.getByRole('button', { name: '地図を再読み込み' }));
     expect(screen.getByText('地図を読み込んでいます…')).toBeInTheDocument();
     expect(mocks.tileProps.length).toBeGreaterThan(1);
-  });
-
-  it('正式設定が未確定なら架空boundsを使わず準備中表示を保つ', () => {
-    render(<RegionalSponsorMapView profile={null} {...baseProps} />);
-    expect(screen.getByRole('status')).toHaveTextContent('地域地図は準備中');
-    expect(screen.queryByTestId('leaflet-map')).not.toBeInTheDocument();
   });
 });

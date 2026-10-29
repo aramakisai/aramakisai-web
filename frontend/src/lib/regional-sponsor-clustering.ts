@@ -37,16 +37,11 @@ export function coordinateKey(sponsor: {
   return `${sponsor.latitude}:${sponsor.longitude}`;
 }
 
-/** 地点のまとまりの識別キー。まとまりは座標の完全一致ではなく画面上の近さで決まるため企業IDで表す */
-export function locationKeyOf(sponsors: readonly { readonly id: number }[]) {
-  return sponsors
-    .map(({ id }) => id)
-    .sort((a, b) => a - b)
-    .join(',');
-}
-
-export function locationSponsorIds(key: string): ReadonlySet<number> {
-  return new Set(key.split(',').map(Number));
+/** 地点のまとまりの識別子。まとまりは座標の完全一致ではなく画面上の近さで決まるため企業IDで表す */
+export function locationIdsOf(
+  sponsors: readonly { readonly id: number }[],
+): readonly number[] {
+  return sponsors.map(({ id }) => id).sort((a, b) => a - b);
 }
 
 interface CoordinateGroup {
@@ -114,26 +109,17 @@ export function clusterProjectedSponsors(
     return root;
   };
 
-  const cells = new Map<string, number[]>();
   for (let index = 0; index < points.length; index += 1) {
     const point = points[index]!;
-    const cellX = Math.floor(point.x / radius);
-    const cellY = Math.floor(point.y / radius);
-    for (let x = cellX - 1; x <= cellX + 1; x += 1) {
-      for (let y = cellY - 1; y <= cellY + 1; y += 1) {
-        for (const otherIndex of cells.get(`${x}:${y}`) ?? []) {
-          const other = points[otherIndex]!;
-          if (Math.hypot(point.x - other.x, point.y - other.y) <= radius) {
-            const rootA = find(index);
-            const rootB = find(otherIndex);
-            if (rootA !== rootB)
-              parent[Math.max(rootA, rootB)] = Math.min(rootA, rootB);
-          }
-        }
+    for (let otherIndex = 0; otherIndex < index; otherIndex += 1) {
+      const other = points[otherIndex]!;
+      if (Math.hypot(point.x - other.x, point.y - other.y) <= radius) {
+        const rootA = find(index);
+        const rootB = find(otherIndex);
+        if (rootA !== rootB)
+          parent[Math.max(rootA, rootB)] = Math.min(rootA, rootB);
       }
     }
-    const key = `${cellX}:${cellY}`;
-    cells.set(key, [...(cells.get(key) ?? []), index]);
   }
 
   const grouped = new Map<number, CoordinateGroup[]>();
@@ -159,7 +145,7 @@ export function clusterProjectedSponsors(
       members.length === 1 || zoom >= maxZoom ? 'location' : 'cluster';
     return {
       kind,
-      id: `${kind}:${locationKeyOf(sponsors)}`,
+      id: `${kind}:${locationIdsOf(sponsors).join(',')}`,
       sponsors,
       anchor: nearestToMean(sponsors),
     };

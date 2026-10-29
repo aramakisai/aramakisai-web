@@ -53,6 +53,3 @@ node_modules/
 # 本番 Directus から退避したコンテンツ。切り替え後に手で投入するための一時データ
 seed/
 .cms-base-*
-
-# 地域協賛の正式受領データと検証成果
-/import-data/regional-sponsors/

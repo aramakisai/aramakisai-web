@@ -2,7 +2,6 @@ import { useLayoutEffect, useRef } from 'react';
 import type { ReactNode, Ref } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { RegionalMapConfig } from '@/lib/regional-map-config';
 import type { RegionalSponsor } from '@/lib/regional-sponsors';
 
 const mocks = vi.hoisted(() => ({
@@ -29,28 +28,24 @@ vi.mock('react-leaflet', () => ({
   },
   Marker: ({
     ref,
-    title,
     zIndexOffset,
     eventHandlers,
     icon,
     keyboard,
   }: {
-    ref?: Ref<{ getElement: () => HTMLButtonElement | null }>;
-    title: string;
+    ref?: Ref<{ getElement: () => HTMLDivElement | null }>;
     zIndexOffset?: number;
     eventHandlers: {
       add?: (event: {
-        target: { getElement: () => HTMLButtonElement | null };
+        target: { getElement: () => HTMLDivElement | null };
       }) => void;
       click: () => void;
     };
-    icon: {
-      options: { html?: string | HTMLElement | false; className?: string };
-    };
+    icon: { options: { html?: string | HTMLElement | false } };
     keyboard?: boolean;
     children?: ReactNode;
   }) => {
-    const elementRef = useRef<HTMLButtonElement>(null);
+    const elementRef = useRef<HTMLDivElement>(null);
     useLayoutEffect(() => {
       const marker = { getElement: () => elementRef.current };
       if (typeof ref === 'function') ref(marker);
@@ -60,46 +55,18 @@ vi.mock('react-leaflet', () => ({
       };
     }, [eventHandlers, ref]);
     return (
-      <button
+      <div
         ref={elementRef}
-        type="button"
-        aria-label={title}
-        aria-current={
-          String(icon.options.className).includes('--selected')
-            ? 'true'
-            : undefined
-        }
         data-icon-html={String(icon.options.html)}
         data-z-index={zIndexOffset}
         data-leaflet-keyboard={String(keyboard)}
         onClick={eventHandlers.click}
-      >
-        {title}
-      </button>
+      />
     );
   },
 }));
 
 import { RegionalSponsorMarkerLayer } from './regional-sponsor-marker-layer';
-
-const profile: RegionalMapConfig = {
-  id: 'regional',
-  bounds: [
-    [36, 139],
-    [37, 140],
-  ],
-  minZoom: 8,
-  maxZoom: 18,
-  minNativeZoom: 8,
-  maxNativeZoom: 16,
-  publicDirectory: 'public/regional-map-tiles',
-  urlTemplate: '/regional-map-tiles/{z}/{x}/{y}.webp',
-  expectedMaxTileCount: 10,
-  expectedMaxBytes: 10,
-  initialCenter: [36.43068, 139.044795],
-  initialZoom: 15.5,
-  focusZoom: 15.5,
-};
 
 function sponsor(
   id: number,
@@ -118,15 +85,13 @@ function sponsor(
     imageDecorative: false,
     message: null,
     businessHours: null,
-    closedDays: null,
     phone: null,
     websiteUrl: null,
-    order: id,
   };
 }
 
 const baseProps = {
-  profile,
+  maxZoom: 18,
   markerSize: 48 as const,
   visibleAreaOptions: () => ({
     paddingTopLeft: [12, 34] as [number, number],
@@ -145,6 +110,7 @@ beforeEach(() => {
   baseProps.onSelectSponsor.mockReset();
   baseProps.onSelectLocation.mockReset();
   vi.unstubAllGlobals();
+  vi.stubGlobal('matchMedia', () => ({ matches: false }));
 });
 
 describe('RegionalSponsorMarkerLayer', () => {
@@ -157,6 +123,8 @@ describe('RegionalSponsorMarkerLayer', () => {
       />,
     );
     const pin = screen.getByRole('button', { name: 'テスト専用1、病院' });
+    expect(pin).toHaveAttribute('role', 'button');
+    expect(pin).toHaveAttribute('tabindex', '0');
     expect(pin).toHaveAttribute('aria-current', 'true');
     expect(pin).toHaveAttribute(
       'data-icon-html',
@@ -164,6 +132,21 @@ describe('RegionalSponsorMarkerLayer', () => {
     );
     fireEvent.click(pin);
     expect(baseProps.onSelectSponsor).toHaveBeenCalledWith(1);
+  });
+
+  it('選択を解除すると aria-current が外れる', () => {
+    const sponsors = [sponsor(1, 36.4, 139.1)];
+    const { rerender } = render(
+      <RegionalSponsorMarkerLayer
+        {...baseProps}
+        sponsors={sponsors}
+        selectedSponsorId={1}
+      />,
+    );
+    const pin = screen.getByRole('button', { name: 'テスト専用1、病院' });
+    expect(pin).toHaveAttribute('aria-current', 'true');
+    rerender(<RegionalSponsorMarkerLayer {...baseProps} sponsors={sponsors} />);
+    expect(pin).not.toHaveAttribute('aria-current');
   });
 
   it.each(['Enter', ' '])('%sで単独ピンを一度だけ選択する', (key) => {
@@ -182,7 +165,7 @@ describe('RegionalSponsorMarkerLayer', () => {
     expect(pin).toHaveAttribute('data-leaflet-keyboard', 'false');
   });
 
-  it('異なる座標のclusterを初回の余白と maxZoom 17 相当の上限で拡大する', () => {
+  it('異なる座標のclusterを初回の余白と maxZoom 18 の上限で拡大する', () => {
     render(
       <RegionalSponsorMarkerLayer
         {...baseProps}
@@ -240,7 +223,7 @@ describe('RegionalSponsorMarkerLayer', () => {
       expect.stringContaining('pin-neutral.svg'),
     );
     fireEvent.click(pin);
-    expect(baseProps.onSelectLocation).toHaveBeenCalledWith('1,2');
+    expect(baseProps.onSelectLocation).toHaveBeenCalledWith([1, 2]);
     expect(mocks.fitBounds).not.toHaveBeenCalled();
     expect(baseProps.onSelectSponsor).not.toHaveBeenCalled();
   });
@@ -277,7 +260,7 @@ describe('RegionalSponsorMarkerLayer', () => {
         name: '2件の地域協賛：テスト専用1（病院）、テスト専用2（ショップ）。選択して一覧を表示',
       }),
     );
-    expect(baseProps.onSelectLocation).toHaveBeenCalledWith('1,2');
+    expect(baseProps.onSelectLocation).toHaveBeenCalledWith([1, 2]);
     expect(mocks.fitBounds).not.toHaveBeenCalled();
   });
 
@@ -295,19 +278,6 @@ describe('RegionalSponsorMarkerLayer', () => {
     expect(
       screen.getByRole('button', { name: 'テスト専用2、ショップ' }),
     ).toBeInTheDocument();
-  });
-
-  it('重なったピンは一覧の並びで後のものを前面にする', () => {
-    mocks.zoom = 18;
-    render(
-      <RegionalSponsorMarkerLayer
-        {...baseProps}
-        sponsors={[sponsor(1, 36.4, 139.1), sponsor(2, 37.4, 139.11)]}
-      />,
-    );
-    const z = (name: string) =>
-      Number(screen.getByRole('button', { name }).dataset.zIndex);
-    expect(z('テスト専用2、ショップ')).toBeGreaterThan(z('テスト専用1、病院'));
   });
 
   it('画面で下にあるピンでも順位が後なら前面になり、選択中は常に最前面になる', () => {

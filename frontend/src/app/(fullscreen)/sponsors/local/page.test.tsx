@@ -1,9 +1,6 @@
-import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { RegionalSponsorMapDataResult } from '@/lib/regional-sponsors';
 import type { SiteMetadata } from '@/lib/site-metadata';
-import RegionalSponsorMapPage, { generateMetadata, revalidate } from './page';
-import * as regionalSponsorsModule from '@/lib/regional-sponsors';
+import { generateMetadata, revalidate } from './page';
 import * as siteMetadataModule from '@/lib/site-metadata';
 
 vi.mock('@/lib/regional-sponsors', async (importOriginal) => {
@@ -52,20 +49,6 @@ beforeEach(() => {
 });
 
 describe('RegionalSponsorMapPage', () => {
-  it.each<RegionalSponsorMapDataResult>([
-    { ok: true, sponsors: [] },
-    { ok: false, error: 'unavailable' },
-  ])('正常・0件・取得失敗の結果を全画面client境界へ渡す', async (data) => {
-    vi.mocked(
-      regionalSponsorsModule.getRegionalSponsorMapData,
-    ).mockResolvedValue(data);
-    render(await RegionalSponsorMapPage());
-    expect(
-      screen.getByTestId('regional-sponsor-map-screen'),
-    ).toBeInTheDocument();
-    expect(props.at(-1)).toMatchObject({ data, phase: 'pre_event' });
-  });
-
   it('既存方針と同じ60秒更新を使う', () => {
     expect(revalidate).toBe(60);
   });
