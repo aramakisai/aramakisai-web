@@ -198,8 +198,6 @@ function ShapeView({
     );
   }
 
-  // 回転の中心は図形の箱の中心ではなく Figma の箱の中心。半円は下半分だけ、三角は正三角形の箱で描かれる
-  const box = shapeBox(shape);
   return (
     <div
       data-notice-shape=""
@@ -222,10 +220,10 @@ function ShapeView({
           <div
             className="absolute"
             style={{
-              left: box.left,
-              top: box.top,
-              width: box.width,
-              height: box.height,
+              left: -shape.size / 2,
+              top: -shape.size / 2,
+              width: shape.size,
+              height: shape.size,
             }}
           >
             <ShapeFill
@@ -239,18 +237,6 @@ function ShapeView({
       </div>
     </div>
   );
-}
-
-function shapeBox(shape: Extract<NoticeShape, { size: number }>) {
-  const s = shape.size;
-  if (shape.kind === 'semicircle') {
-    return { left: -s / 2, top: -0.75 * s, width: s, height: s };
-  }
-  if (shape.kind === 'triangle') {
-    const w = (Math.sqrt(3) / 2) * s;
-    return { left: -w / 2, top: -s / 2, width: w, height: 0.75 * s };
-  }
-  return { left: -s / 2, top: -s / 2, width: s, height: s };
 }
 
 export function SignageStageNotice({
