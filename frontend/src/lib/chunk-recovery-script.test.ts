@@ -12,15 +12,17 @@ let reload: ReturnType<typeof vi.fn>;
 let listeners: [string, EventListener][];
 
 // location.reload は jsdom で差し替えられないため、スクリプトの自由変数を引数で束縛して実行する
-function runScript() {
+function runScript(nav: { onLine: boolean } = { onLine: true }) {
   const add = (type: string, fn: EventListener, capture?: boolean) => {
     listeners.push([type, fn]);
     window.addEventListener(type, fn, capture);
   };
-  new Function('location', 'addEventListener', CHUNK_RECOVERY_SCRIPT)(
-    { reload },
-    add,
-  );
+  new Function(
+    'location',
+    'addEventListener',
+    'navigator',
+    CHUNK_RECOVERY_SCRIPT,
+  )({ reload }, add, nav);
 }
 
 function setRuntime(path: string | null) {
@@ -149,4 +151,12 @@ it('読み込み直し後 (スクリプト再実行、sessionStorage 保持) の
   runScript();
   failLoad('script', '/_next/static/chunks/y.js');
   expect(reload).toHaveBeenCalledTimes(1);
+});
+
+it('navigator.onLine === false のときの失敗では reload されず sessionStorage にも書かれない', () => {
+  setRuntime(RUNTIME_A);
+  runScript({ onLine: false });
+  failLoad('script', '/_next/static/chunks/x.js');
+  expect(reload).not.toHaveBeenCalled();
+  expect(sessionStorage.getItem(CHUNK_RELOAD_STORAGE_KEY)).toBeNull();
 });
