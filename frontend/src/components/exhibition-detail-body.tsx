@@ -76,6 +76,7 @@ export function ExhibitionDetailBody({
           <ExhibitionGallery
             images={exhibition.images}
             fallbackAlt={exhibition.displayName}
+            enlargeable
           />
         </div>
 
