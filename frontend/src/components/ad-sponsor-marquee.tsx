@@ -14,12 +14,21 @@ const SPEED_PX_PER_SEC = 90;
 const TIER_STYLE: Readonly<
   Record<Exclude<MarqueeTier, 'planD'>, { logo: string; text: string }>
 > = {
-  planA: { logo: 'h-[79.2px] lg:h-[132px]', text: 'text-[14.4px] lg:text-2xl' },
-  planB: { logo: 'h-[62.4px] lg:h-[104px]', text: 'text-[14.4px] lg:text-2xl' },
-  planC: { logo: 'h-[49.6px] lg:h-[82.667px]', text: 'text-xs lg:text-xl' },
+  planA: {
+    logo: 'h-[79.2px] lg:h-[132px]',
+    text: 'text-[14.4px] lg:text-2xl [--name-gap:3.26px] lg:[--name-gap:5.67px]',
+  },
+  planB: {
+    logo: 'h-[62.4px] lg:h-[104px]',
+    text: 'text-[14.4px] lg:text-2xl [--name-gap:3.26px] lg:[--name-gap:5.67px]',
+  },
+  planC: {
+    logo: 'h-[49.6px] lg:h-[82.667px]',
+    text: 'text-xs lg:text-xl [--name-gap:3.67px] lg:[--name-gap:4.67px]',
+  },
 };
 
-// 社名の直下に下線を出す。truncate は線ごと切れないよう内側の span に掛ける
+// 社名の直下に下線を出す。--name-gap はグリフ下端から線までを 1.67px にするための、親ボックス下端からの距離 (行高 1em のグリフ下端は文字サイズごとに端数が違うため em にできない)。truncate は線ごと切れないよう内側の span に掛ける
 function NameText({
   name,
   className,
@@ -31,8 +40,11 @@ function NameText({
 }) {
   return (
     <span className={`relative inline-block max-w-full ${className}`}>
-      <span className="block truncate">{name}</span>
-      {linked && <HoverLine gap={4} />}
+      <span className="relative flow-root">
+        {/* overflow:hidden は padding box で切るため、leading-none で行高が字面より低くても下端が欠けないよう padding で逃がし、負の margin で高さを戻す */}
+        <span className="block truncate pb-[0.3em] -mb-[0.3em]">{name}</span>
+        {linked && <HoverLine gap="var(--name-gap)" />}
+      </span>
     </span>
   );
 }
@@ -64,7 +76,7 @@ export function SponsorItem({
       <NameText
         name={s.name}
         linked={linked}
-        className="h-[17.28px] whitespace-nowrap text-xs leading-none text-text lg:h-[28.8px] lg:text-base"
+        className="h-[17.28px] whitespace-nowrap text-xs leading-none text-text [--name-gap:3.67px] lg:h-[28.8px] lg:text-base lg:[--name-gap:4.67px]"
       />
     );
   } else if (s.logoId === null) {
@@ -73,7 +85,7 @@ export function SponsorItem({
       <NameText
         name={s.name}
         linked={linked}
-        className="text-2xl leading-none text-text"
+        className="text-2xl leading-none text-text [--name-gap:5.67px]"
       />
     ) : (
       <span

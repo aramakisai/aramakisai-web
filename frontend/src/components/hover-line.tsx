@@ -11,13 +11,20 @@ export function HoverLine({
   gap,
 }: {
   readonly variant?: keyof typeof SCALE_CLASS;
-  /** 親ボックス下端から線の上端までの距離 (px)。省略すると線の下端を親の下端に合わせる */
-  readonly gap?: number;
+  /** 親ボックス下端から線の上端までの距離 (px、または em 等の CSS 長さ)。省略すると線の下端を親の下端に合わせる */
+  readonly gap?: number | string;
 }) {
   return (
     <span
       aria-hidden="true"
-      style={gap === undefined ? undefined : { bottom: -(gap + 1) }}
+      style={
+        gap === undefined
+          ? undefined
+          : {
+              bottom:
+                typeof gap === 'number' ? -(gap + 1) : `calc(-1px - ${gap})`,
+            }
+      }
       className={`mansai-spectrum-line absolute inset-x-0 bottom-0 h-px origin-left scale-x-0 opacity-70 transition-transform duration-200 motion-reduce:transition-none ${SCALE_CLASS[variant]}`}
     />
   );
