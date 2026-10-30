@@ -11,14 +11,17 @@ export interface MarqueeBlock {
 /** 1 列あたりの件数。D は社名の行 */
 export const MARQUEE_COLUMN_SIZE: Readonly<Record<MarqueeTier, number>> = {
   planA: 2,
-  planB: 3,
-  planC: 4,
-  planD: 5,
+  planB: 2,
+  planC: 3,
+  planD: 4,
 };
 
 const LOGO_TIERS = ['planA', 'planB', 'planC'] as const;
 
-/** A→B→C→D のブロックに分ける。A〜C でもロゴが無い協賛は D (社名) に回す。空のブロックは作らない */
+/**
+ * A→B→C→D のブロックに分ける。空のブロックは作らない。
+ * A〜C はロゴが無くても自プランに置く (表示側が社名で代替し、プランの大きさ序列を保つ)。tier 未設定は D。
+ */
 export function buildMarqueeBlocks(
   sponsors: readonly SponsorListItem[],
 ): MarqueeBlock[] {
@@ -30,7 +33,7 @@ export function buildMarqueeBlocks(
   };
   for (const s of sponsors) {
     const tier = LOGO_TIERS.find((t) => t === s.tier);
-    groups[tier && s.logoId !== null ? tier : 'planD'].push(s);
+    groups[tier ?? 'planD'].push(s);
   }
   return (['planA', 'planB', 'planC', 'planD'] as const)
     .filter((tier) => groups[tier].length > 0)
