@@ -3,6 +3,60 @@ import { toAssetUrl } from '@/lib/cms-asset-url';
 import type { AdSponsorsByTier, AdTier } from '@/lib/advertising-sponsors';
 import { HoverLineText } from './hover-line';
 
+export function AdvertisingSponsorsContent({
+  sponsors,
+  personalSponsors,
+}: {
+  readonly sponsors: AdSponsorsByTier;
+  readonly personalSponsors: readonly { id: number; name: string }[];
+}) {
+  return (
+    <div className="mx-auto w-full max-w-[1152px] px-4 pt-4 pb-12 text-text lg:pt-12 lg:pb-20">
+      <div className="flex flex-col items-center gap-3 text-center lg:gap-4">
+        <h1 className="py-0 font-display text-[32px] font-extrabold leading-[1.25] tracking-[0.64px]">
+          広告協賛
+        </h1>
+        <p className="max-w-[900px] text-base leading-[1.7]">
+          荒牧祭2026の開催にあたり、ご協賛いただいた企業・団体の皆様に心より御礼申し上げます。
+        </p>
+      </div>
+      <div className="mt-8 lg:mt-12">
+        <AdvertisingSponsors sponsors={sponsors} />
+      </div>
+      <hr className="my-8 h-px border-0 bg-gray-200 lg:my-12" />
+      <section
+        aria-labelledby="personal-sponsors-heading"
+        className="flex flex-col gap-5 lg:gap-6"
+      >
+        <h2
+          id="personal-sponsors-heading"
+          className="py-0 text-center font-display text-[20px] font-extrabold leading-[1.3]"
+        >
+          個人協賛者様
+        </h2>
+        <p className="text-center text-base leading-[1.7]">
+          荒牧祭2026への温かいご支援に心より感謝申し上げます。
+        </p>
+        {personalSponsors.length > 0 && (
+          <ul
+            aria-labelledby="personal-sponsors-heading"
+            className="grid grid-cols-2 gap-x-4 gap-y-3 lg:grid-cols-3 lg:gap-x-6 lg:gap-y-4"
+          >
+            {personalSponsors.map(({ id, name }) => (
+              <li
+                key={id}
+                className="min-w-0 break-words text-sm leading-[1.6]"
+              >
+                {name.endsWith('様') ? name : `${name}様`}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
+}
+
 const tiers: readonly AdTier[] = ['planA', 'planB', 'planC', 'planD'];
 
 const tierStyles: Record<AdTier, { grid: string; card: string; logo: string }> =

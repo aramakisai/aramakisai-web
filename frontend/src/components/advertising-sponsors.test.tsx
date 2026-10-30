@@ -1,7 +1,10 @@
 import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { AdSponsor, AdSponsorsByTier } from '@/lib/advertising-sponsors';
-import { AdvertisingSponsors } from './advertising-sponsors';
+import {
+  AdvertisingSponsors,
+  AdvertisingSponsorsContent,
+} from './advertising-sponsors';
 import tailwindConfig from '../../tailwind.config';
 
 vi.mock('@/lib/cms-asset-url', () => ({
@@ -23,6 +26,85 @@ const groups: AdSponsorsByTier = {
   planC: [sponsor(4, 'planC')],
   planD: [sponsor(5, 'planD'), sponsor(6, 'planD')],
 };
+
+describe('AdvertisingSponsorsContent', () => {
+  it('指定された本文の順序で全個人名を敬称付きで表示する', () => {
+    const { container } = render(
+      <AdvertisingSponsorsContent
+        sponsors={groups}
+        personalSponsors={[
+          { id: 1, name: '田中' },
+          { id: 2, name: '佐藤様' },
+          { id: 3, name: '非常に長い協賛者の表示名'.repeat(5) },
+        ]}
+      />,
+    );
+    const title = screen.getByRole('heading', { level: 1, name: '広告協賛' });
+    const companyThanks = screen.getByText(
+      '荒牧祭2026の開催にあたり、ご協賛いただいた企業・団体の皆様に心より御礼申し上げます。',
+    );
+    const companyList = container.querySelector('[data-tier="planD"]')!;
+    const divider = screen.getByRole('separator');
+    const personalHeading = screen.getByRole('heading', {
+      level: 2,
+      name: '個人協賛者様',
+    });
+    const personalThanks = screen.getByText(
+      '荒牧祭2026への温かいご支援に心より感謝申し上げます。',
+    );
+    const personalList = screen.getByRole('list', { name: '個人協賛者様' });
+    const ordered = [
+      title,
+      companyThanks,
+      companyList,
+      divider,
+      personalHeading,
+      personalThanks,
+      personalList,
+    ];
+    for (let i = 1; i < ordered.length; i++) {
+      expect(
+        ordered[i - 1].compareDocumentPosition(ordered[i]) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
+    const items = within(personalList).getAllByRole('listitem');
+    expect(items.map((item) => item.textContent)).toEqual([
+      '田中様',
+      '佐藤様',
+      `${'非常に長い協賛者の表示名'.repeat(5)}様`,
+    ]);
+    expect(items[2]).toHaveClass('break-words', 'min-w-0');
+    expect(personalList).toHaveClass(
+      'grid-cols-2',
+      'lg:grid-cols-3',
+      'gap-x-4',
+      'gap-y-3',
+      'lg:gap-x-6',
+      'lg:gap-y-4',
+    );
+    expect(screen.queryByText(/匿名|もっと見る/)).not.toBeInTheDocument();
+  });
+
+  it('データがない場合も架空の人名や空状態文言を追加しない', () => {
+    render(
+      <AdvertisingSponsorsContent
+        sponsors={{ planA: [], planB: [], planC: [], planD: [] }}
+        personalSponsors={[]}
+      />,
+    );
+    expect(
+      screen.getByRole('heading', { level: 1, name: '広告協賛' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 2, name: '個人協賛者様' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/匿名|登録されていません|もっと見る/),
+    ).not.toBeInTheDocument();
+  });
+});
 
 describe('AdvertisingSponsors', () => {
   it('AからDの順と各配列の順を保ち、ロゴまたは企業名だけを表示する', () => {
