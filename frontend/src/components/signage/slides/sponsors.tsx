@@ -45,15 +45,23 @@ export function SponsorsSlide({
                   <div
                     className={`flex w-full items-center justify-center ${LOGO_HEIGHT[row.tier]}`}
                   >
-                    <img
-                      src={toAssetUrl(s.logoId, 960) ?? ''}
-                      alt={s.name}
-                      className="max-h-full max-w-full object-contain"
-                    />
+                    {s.logoId === null ? (
+                      <span className="w-full truncate text-center text-[24px] leading-none text-text">
+                        {s.name}
+                      </span>
+                    ) : (
+                      <img
+                        src={toAssetUrl(s.logoId, 960) ?? ''}
+                        alt={s.name}
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    )}
                   </div>
-                  <p className="w-full truncate text-center text-[24px] leading-none text-text">
-                    {s.name}
-                  </p>
+                  {s.logoId !== null && (
+                    <p className="w-full truncate text-center text-[24px] leading-none text-text">
+                      {s.name}
+                    </p>
+                  )}
                 </li>
               ) : (
                 <li

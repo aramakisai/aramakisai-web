@@ -514,7 +514,17 @@ describe('Page (開催中フェーズ)', () => {
     vi.mocked(sponsorsModule.getSponsors).mockResolvedValue({
       ok: true,
       value: {
-        ad: [{ id: 1, name: 'S1', logoId: null, url: null, tier: 'planD' }],
+        ad: [
+          {
+            id: 1,
+            name: 'S1',
+            logoId: null,
+            logoWidth: null,
+            logoHeight: null,
+            url: null,
+            tier: 'planD',
+          },
+        ],
         local: [],
         vendor: [],
         other: [],

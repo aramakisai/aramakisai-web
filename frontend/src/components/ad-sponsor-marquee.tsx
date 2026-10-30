@@ -2,6 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 import { useEffect, useRef, useState } from 'react';
+import { HoverLine } from './hover-line';
 import { toAssetUrl } from '@/lib/cms-asset-url';
 import { buildMarqueeBlocks, type MarqueeTier } from '@/lib/sponsor-marquee';
 import type { SponsorListItem } from '@/lib/sponsors';
@@ -9,12 +10,141 @@ import type { SponsorListItem } from '@/lib/sponsors';
 // 90px/秒の等速。周期 = 1 セット幅 ÷ 速度
 const SPEED_PX_PER_SEC = 90;
 
-// SP は PC の 0.6 倍
-const LOGO_HEIGHT: Readonly<Record<Exclude<MarqueeTier, 'planD'>, string>> = {
-  planA: 'h-[57.6px] lg:h-24',
-  planB: 'h-[35.2px] lg:h-[58.667px]',
-  planC: 'h-6 lg:h-10',
+// SP は PC の 0.6 倍。社名文字サイズはロゴ無し時の代替表示用
+const TIER_STYLE: Readonly<
+  Record<Exclude<MarqueeTier, 'planD'>, { logo: string; text: string }>
+> = {
+  planA: {
+    logo: 'h-[79.2px] lg:h-[132px]',
+    text: 'text-[14.4px] lg:text-2xl [--name-gap:-0.23px] lg:[--name-gap:-0.32px]',
+  },
+  planB: {
+    logo: 'h-[62.4px] lg:h-[104px]',
+    text: 'text-[14.4px] lg:text-2xl [--name-gap:-0.23px] lg:[--name-gap:-0.32px]',
+  },
+  planC: {
+    logo: 'h-[49.6px] lg:h-[82.667px]',
+    text: 'text-xs lg:text-xl [--name-gap:0.43px] lg:[--name-gap:0.18px]',
+  },
 };
+
+// 社名の直下に下線を出す。--name-gap は字の見える下端 (インク下端) から線までを 1.67px にするための、親ボックス下端からの距離 (行高 1em のインク下端は文字サイズごとに端数が違うため em にできない)。truncate は線ごと切れないよう内側の span に掛ける
+function NameText({
+  name,
+  className,
+  linked,
+}: {
+  readonly name: string;
+  readonly className: string;
+  readonly linked: boolean;
+}) {
+  return (
+    <span className={`relative inline-block max-w-full ${className}`}>
+      <span className="relative flow-root">
+        {/* overflow:hidden は padding box で切るため、leading-none で行高が字面より低くても下端が欠けないよう padding で逃がし、負の margin で高さを戻す */}
+        <span className="block truncate pb-[0.3em] -mb-[0.3em]">{name}</span>
+        {linked && <HoverLine gap="var(--name-gap)" />}
+      </span>
+    </span>
+  );
+}
+
+export function SponsorItem({
+  sponsor: s,
+  tier,
+  hidden,
+  grid,
+}: {
+  readonly sponsor: SponsorListItem;
+  readonly tier: MarqueeTier;
+  readonly hidden?: boolean;
+  /** PC の A グリッド用。セルに内接させ、ロゴ無しは 1 行で省略する */
+  readonly grid?: boolean;
+}) {
+  const linked = Boolean(s.url);
+  const sized = Boolean(grid && s.logoWidth && s.logoHeight);
+  // 小さい元画像も 132px 高のセルに内接するよう拡大する。比と最大幅で高さ 132 を超えない
+  const fit: React.CSSProperties | undefined = sized
+    ? {
+        aspectRatio: `${s.logoWidth} / ${s.logoHeight}`,
+        maxWidth: `calc(132px * ${s.logoWidth} / ${s.logoHeight})`,
+      }
+    : undefined;
+  let content: React.ReactNode;
+  if (tier === 'planD') {
+    content = (
+      <NameText
+        name={s.name}
+        linked={linked}
+        className="h-[17.28px] whitespace-nowrap text-xs leading-none text-text [--name-gap:0.43px] lg:h-[28.8px] lg:text-base lg:[--name-gap:1.68px]"
+      />
+    );
+  } else if (s.logoId === null) {
+    const style = TIER_STYLE[tier];
+    content = grid ? (
+      <NameText
+        name={s.name}
+        linked={linked}
+        className="text-2xl leading-none text-text [--name-gap:-0.32px]"
+      />
+    ) : (
+      <span
+        className={`flex ${style.logo} items-center justify-center whitespace-nowrap leading-none text-text ${style.text}`}
+      >
+        <NameText name={s.name} linked={linked} className="" />
+      </span>
+    );
+  } else {
+    content = (
+      <img
+        src={toAssetUrl(s.logoId, 960) ?? ''}
+        alt={hidden ? '' : s.name}
+        style={fit}
+        className={`${
+          !grid
+            ? `${TIER_STYLE[tier].logo} w-auto max-w-none`
+            : sized
+              ? 'h-auto w-full'
+              : 'max-h-[132px] max-w-full'
+        } block bg-white ${linked ? 'hover-card-shadow' : ''}`}
+      />
+    );
+  }
+  if (!s.url) return content;
+  return (
+    <a
+      href={s.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      tabIndex={hidden ? -1 : undefined}
+      style={sized ? { maxWidth: fit?.maxWidth } : undefined}
+      className={
+        grid ? `group flex ${sized ? 'w-full' : 'max-w-full'}` : 'group block'
+      }
+    >
+      {content}
+    </a>
+  );
+}
+
+/** PC 専用。広告協賛 A を固定の 3 列グリッドで並べる */
+export function AdSponsorTopGrid({
+  sponsors,
+}: {
+  readonly sponsors: readonly SponsorListItem[];
+}) {
+  const tops = sponsors.filter((s) => s.tier === 'planA');
+  if (tops.length === 0) return null;
+  return (
+    <ul className="hidden grid-cols-3 gap-6 lg:grid">
+      {tops.map((s) => (
+        <li key={s.id} className="flex h-[132px] items-center justify-center">
+          <SponsorItem sponsor={s} tier="planA" grid />
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 function MarqueeSet({
   sponsors,
@@ -34,24 +164,18 @@ function MarqueeSet({
       {buildMarqueeBlocks(sponsors).map((block) => (
         <ul
           key={block.tier}
-          className="flex h-[124.8px] items-center gap-6 lg:h-[208px] lg:gap-10"
+          className={`flex h-[168px] items-center gap-6 lg:h-[280px] lg:gap-10 ${block.tier === 'planA' ? 'lg:hidden' : ''}`}
         >
           {block.columns.map((column) => (
             <li key={column[0]!.id}>
               <ul className="flex flex-col items-center gap-[9.6px] lg:gap-4">
                 {column.map((s) => (
                   <li key={s.id}>
-                    {block.tier === 'planD' ? (
-                      <span className="flex h-[17.28px] items-center whitespace-nowrap text-xs leading-none text-text lg:h-[28.8px] lg:text-base">
-                        {s.name}
-                      </span>
-                    ) : (
-                      <img
-                        src={toAssetUrl(s.logoId, 960) ?? ''}
-                        alt={hidden ? '' : s.name}
-                        className={`${LOGO_HEIGHT[block.tier]} w-auto max-w-none bg-white`}
-                      />
-                    )}
+                    <SponsorItem
+                      sponsor={s}
+                      tier={block.tier}
+                      hidden={hidden}
+                    />
                   </li>
                 ))}
               </ul>
@@ -82,8 +206,13 @@ export function AdSponsorMarquee({
     return () => observer.disconnect();
   }, [sponsors]);
 
+  const aOnly = sponsors.every((s) => s.tier === 'planA');
+
+  // pb-10: shadow/card の下方向の広がり (offset 20 + blur 25 - spread 5) が overflow-hidden で切れないための余白。-mb-10 で後続要素との間隔は変えない
   return (
-    <div className="overflow-hidden motion-reduce:overflow-x-auto">
+    <div
+      className={`-mb-10 overflow-hidden pb-10 motion-reduce:overflow-x-auto ${aOnly ? 'lg:hidden' : ''}`}
+    >
       <div
         data-testid="ad-sponsor-marquee-track"
         className={`flex w-max ${width > 0 ? 'animate-[sponsor-marquee_var(--marquee-duration)_linear_infinite] motion-reduce:animate-none' : ''}`}
