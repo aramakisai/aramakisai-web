@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { toAssetUrl } from '@/lib/cms-asset-url';
 import type { AdSponsorsByTier, AdTier } from '@/lib/advertising-sponsors';
+import { HoverLineText } from './hover-line';
 
 const tiers: readonly AdTier[] = ['planA', 'planB', 'planC', 'planD'];
 
@@ -42,29 +43,60 @@ export function AdvertisingSponsors({
 
         return (
           <ul key={tier} data-tier={tier} className={`grid ${style.grid}`}>
-            {group.map((sponsor) =>
-              tier === 'planD' ? (
+            {group.map((sponsor) => {
+              const url = sponsor.url;
+              if (tier === 'planD')
+                return (
+                  <li
+                    key={sponsor.id}
+                    className="min-w-0 break-words text-sm leading-[1.6] text-text"
+                  >
+                    {url ? (
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group/row inline-block max-w-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text"
+                      >
+                        <HoverLineText gap={3}>{sponsor.name}</HoverLineText>
+                        <span className="sr-only">新しいタブで開きます</span>
+                      </a>
+                    ) : (
+                      sponsor.name
+                    )}
+                  </li>
+                );
+
+              const logo = (
+                <div className={`${style.logo} overflow-hidden rounded`}>
+                  <img
+                    src={toAssetUrl(sponsor.logoId, 960) ?? undefined}
+                    alt={sponsor.name}
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+              );
+              return (
                 <li
                   key={sponsor.id}
-                  className="min-w-0 break-words text-sm leading-[1.6] text-text"
+                  className={`flex min-w-0 items-center justify-center rounded-lg border border-[#e6e6e6] bg-white ${style.card} ${url ? 'transition-colors duration-200 ease-out hover:border-[#d3d3d3] motion-reduce:transition-none' : ''}`}
                 >
-                  {sponsor.name}
+                  {url ? (
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex h-full w-full items-center justify-center rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text"
+                    >
+                      {logo}
+                      <span className="sr-only">新しいタブで開きます</span>
+                    </a>
+                  ) : (
+                    logo
+                  )}
                 </li>
-              ) : (
-                <li
-                  key={sponsor.id}
-                  className={`flex min-w-0 items-center justify-center rounded-lg border border-[#e6e6e6] bg-white ${style.card}`}
-                >
-                  <div className={`${style.logo} overflow-hidden rounded`}>
-                    <img
-                      src={toAssetUrl(sponsor.logoId, 960) ?? undefined}
-                      alt={sponsor.name}
-                      className="h-full w-full object-contain"
-                    />
-                  </div>
-                </li>
-              ),
-            )}
+              );
+            })}
           </ul>
         );
       })}

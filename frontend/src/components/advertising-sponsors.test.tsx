@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { AdSponsor, AdSponsorsByTier } from '@/lib/advertising-sponsors';
 import { AdvertisingSponsors } from './advertising-sponsors';
+import tailwindConfig from '../../tailwind.config';
 
 vi.mock('@/lib/cms-asset-url', () => ({
   toAssetUrl: (id: string | null, width?: number) =>
@@ -108,5 +109,75 @@ describe('AdvertisingSponsors', () => {
     );
     expect(screen.queryByRole('list')).not.toBeInTheDocument();
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
+  });
+
+  it('URLがあるロゴカード全体とDの企業名を安全な新規タブリンクにする', () => {
+    const linked: AdSponsorsByTier = {
+      ...groups,
+      planA: [
+        { ...groups.planA[0], url: 'https://example.com/a' },
+        groups.planA[1],
+      ],
+      planB: [{ ...groups.planB[0], url: 'http://example.com/b' }],
+      planC: [{ ...groups.planC[0], url: 'https://example.com/c' }],
+      planD: [
+        { ...groups.planD[0], url: 'https://example.com/d' },
+        groups.planD[1],
+      ],
+    };
+    render(<AdvertisingSponsors sponsors={linked} />);
+    const links = screen.getAllByRole('link');
+    expect(links).toHaveLength(4);
+    for (const link of links) {
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+      expect(within(link).getByText('新しいタブで開きます')).toHaveClass(
+        'sr-only',
+      );
+      expect(link.querySelector('svg')).toBeNull();
+      expect(link).toHaveClass(
+        'focus-visible:outline-2',
+        'focus-visible:outline-text',
+      );
+    }
+    for (const [index, href] of [
+      'https://example.com/a',
+      'http://example.com/b',
+      'https://example.com/c',
+    ].entries()) {
+      expect(links[index]).toHaveAttribute('href', href);
+      expect(within(links[index]).getByRole('img')).toBeInTheDocument();
+      expect(links[index]).toHaveClass('h-full', 'w-full');
+      expect(links[index].parentElement).toHaveClass(
+        'hover:border-[#d3d3d3]',
+        'motion-reduce:transition-none',
+      );
+    }
+    expect(links[3]).toHaveAttribute('href', 'https://example.com/d');
+    expect(links[3]).toHaveClass('group/row');
+    expect(links[3].querySelector('.mansai-spectrum-line')).toBeInTheDocument();
+    const unlinkedLogo = screen.getByAltText('企業2').closest('li');
+    expect(unlinkedLogo?.querySelector('a')).toBeNull();
+    expect(unlinkedLogo).not.toHaveClass('hover:border-[#d3d3d3]');
+    const unlinkedText = screen.getByText('企業6').closest('li');
+    expect(unlinkedText?.querySelector('a')).toBeNull();
+    expect(unlinkedText?.querySelector('.mansai-spectrum-line')).toBeNull();
+  });
+
+  it('フォーカス色は既存のtextトークンを使い、白背景と3:1以上のコントラストを保つ', () => {
+    const colors = tailwindConfig.theme?.extend?.colors as Record<
+      string,
+      string
+    >;
+    const channels = colors.text.match(/[\da-f]{2}/gi)?.map((channel) => {
+      const value = parseInt(channel, 16) / 255;
+      return value <= 0.04045
+        ? value / 12.92
+        : ((value + 0.055) / 1.055) ** 2.4;
+    });
+    expect(channels).toHaveLength(3);
+    const luminance =
+      0.2126 * channels![0] + 0.7152 * channels![1] + 0.0722 * channels![2];
+    expect(1.05 / (luminance + 0.05)).toBeGreaterThanOrEqual(3);
   });
 });
