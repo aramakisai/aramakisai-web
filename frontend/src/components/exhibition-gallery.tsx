@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 import { useEffect, useRef, useState } from 'react';
-import { toAssetUrl } from '@/lib/cms-asset-url';
+import { toAssetUrl, toCardImageUrl, toHeroImage } from '@/lib/cms-asset-url';
 import type { ExhibitionImage } from '@/lib/exhibitions';
 import { useMotionPreference } from '@/lib/use-motion-preference';
 import { CrossFade } from './cross-fade';
@@ -67,8 +67,10 @@ export function ExhibitionGallery({
       layerClassName="bg-gray-200"
     >
       <img
-        src={toAssetUrl(selected.id, 1920) ?? undefined}
+        src={toHeroImage(selected)?.src}
         alt={selectedAlt}
+        decoding="async"
+        fetchPriority="high"
         className="h-full w-full object-contain"
       />
     </CrossFade>
@@ -119,8 +121,10 @@ export function ExhibitionGallery({
               }`}
             >
               <img
-                src={toAssetUrl(image.id, 960) ?? undefined}
+                src={toCardImageUrl(image) ?? undefined}
                 alt=""
+                loading="lazy"
+                decoding="async"
                 aria-hidden="true"
                 className="h-full w-full object-cover"
               />

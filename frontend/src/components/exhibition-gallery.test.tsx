@@ -14,10 +14,18 @@ import type { ExhibitionImage } from '@/lib/exhibitions';
 
 vi.mock('@/lib/analytics', () => ({ sendGaEvent: vi.fn() }));
 
-vi.mock('@/lib/cms-asset-url', () => ({
-  toAssetUrl: (id: string | null, width?: number) =>
-    id ? `https://example.com/assets/${id}${width ? `/${width}` : ''}` : null,
-}));
+vi.mock('@/lib/cms-asset-url', () => {
+  const toAssetUrl = (id: string | null, width?: number) =>
+    id ? `https://example.com/assets/${id}${width ? `/${width}` : ''}` : null;
+  return {
+    toAssetUrl,
+    toCardImageUrl: (image: { id: string }) => toAssetUrl(image.id, 960),
+    toHeroImage: (image: { id: string }) => {
+      const src = toAssetUrl(image.id, 1920);
+      return src ? { src } : null;
+    },
+  };
+});
 
 // jsdom は <dialog> の showModal/close を実装しない
 beforeAll(() => {
