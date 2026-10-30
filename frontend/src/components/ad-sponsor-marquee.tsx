@@ -50,6 +50,14 @@ export function SponsorItem({
   readonly grid?: boolean;
 }) {
   const linked = Boolean(s.url);
+  const sized = Boolean(grid && s.logoWidth && s.logoHeight);
+  // 小さい元画像も 132px 高のセルに内接するよう拡大する。比と最大幅で高さ 132 を超えない
+  const fit: React.CSSProperties | undefined = sized
+    ? {
+        aspectRatio: `${s.logoWidth} / ${s.logoHeight}`,
+        maxWidth: `calc(132px * ${s.logoWidth} / ${s.logoHeight})`,
+      }
+    : undefined;
   let content: React.ReactNode;
   if (tier === 'planD') {
     content = (
@@ -79,10 +87,13 @@ export function SponsorItem({
       <img
         src={toAssetUrl(s.logoId, 960) ?? ''}
         alt={hidden ? '' : s.name}
+        style={fit}
         className={`${
-          grid
-            ? 'max-h-[132px] max-w-full'
-            : `${TIER_STYLE[tier].logo} w-auto max-w-none`
+          !grid
+            ? `${TIER_STYLE[tier].logo} w-auto max-w-none`
+            : sized
+              ? 'h-auto w-full'
+              : 'max-h-[132px] max-w-full'
         } block bg-white ${linked ? 'hover-card-shadow' : ''}`}
       />
     );
@@ -94,7 +105,10 @@ export function SponsorItem({
       target="_blank"
       rel="noopener noreferrer"
       tabIndex={hidden ? -1 : undefined}
-      className={grid ? 'group flex max-w-full' : 'group block'}
+      style={sized ? { maxWidth: fit?.maxWidth } : undefined}
+      className={
+        grid ? `group flex ${sized ? 'w-full' : 'max-w-full'}` : 'group block'
+      }
     >
       {content}
     </a>
@@ -182,10 +196,10 @@ export function AdSponsorMarquee({
 
   const aOnly = sponsors.every((s) => s.tier === 'planA');
 
-  // pb-10: shadow/card の下方向の広がり (offset 20 + blur 25 - spread 5) が overflow-hidden で切れないための余白
+  // pb-10: shadow/card の下方向の広がり (offset 20 + blur 25 - spread 5) が overflow-hidden で切れないための余白。-mb-10 で後続要素との間隔は変えない
   return (
     <div
-      className={`overflow-hidden pb-10 motion-reduce:overflow-x-auto ${aOnly ? 'lg:hidden' : ''}`}
+      className={`-mb-10 overflow-hidden pb-10 motion-reduce:overflow-x-auto ${aOnly ? 'lg:hidden' : ''}`}
     >
       <div
         data-testid="ad-sponsor-marquee-track"

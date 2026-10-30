@@ -6,7 +6,15 @@ const sp = (
   id: number,
   tier: string | null,
   logo: string | null = `l${id}`,
-): SponsorListItem => ({ id, name: `s${id}`, logoId: logo, url: null, tier });
+): SponsorListItem => ({
+  id,
+  name: `s${id}`,
+  logoId: logo,
+  logoWidth: null,
+  logoHeight: null,
+  url: null,
+  tier,
+});
 
 const ids = (b: ReturnType<typeof buildMarqueeBlocks>[number]) =>
   b.columns.map((c) => c.map((s) => s.id));
