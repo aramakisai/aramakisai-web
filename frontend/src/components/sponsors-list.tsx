@@ -1,7 +1,7 @@
 import type { RegionalSponsor } from '@/lib/regional-sponsors';
 import { pickRandom } from '@/lib/pick-random';
 import type { SponsorListItem } from '@/lib/sponsors';
-import { AdSponsorMarquee } from './ad-sponsor-marquee';
+import { AdSponsorMarquee, AdSponsorTopGrid } from './ad-sponsor-marquee';
 import { LocalSponsorCard } from './local-sponsor-card';
 import { SectionHeading } from './section-heading';
 import { TextLink } from './text-link';
@@ -23,6 +23,7 @@ export function SponsorsList({ adSponsors, localSponsors }: SponsorsListProps) {
         <SectionHeading level="h3" className="!mb-0">
           広告協賛
         </SectionHeading>
+        <AdSponsorTopGrid sponsors={adSponsors} />
         {adSponsors.length > 0 && <AdSponsorMarquee sponsors={adSponsors} />}
         <TextLink href="/sponsors/ad" className="self-end">
           広告協賛へ

@@ -2,6 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 import { useEffect, useRef, useState } from 'react';
+import { HoverLine } from './hover-line';
 import { toAssetUrl } from '@/lib/cms-asset-url';
 import { buildMarqueeBlocks, type MarqueeTier } from '@/lib/sponsor-marquee';
 import type { SponsorListItem } from '@/lib/sponsors';
@@ -18,29 +19,59 @@ const TIER_STYLE: Readonly<
   planC: { logo: 'h-[49.6px] lg:h-[82.667px]', text: 'text-xs lg:text-xl' },
 };
 
-function SponsorItem({
+// 社名の直下に下線を出す。truncate は線ごと切れないよう内側の span に掛ける
+function NameText({
+  name,
+  className,
+  linked,
+}: {
+  readonly name: string;
+  readonly className: string;
+  readonly linked: boolean;
+}) {
+  return (
+    <span className={`relative inline-block max-w-full ${className}`}>
+      <span className="block truncate">{name}</span>
+      {linked && <HoverLine gap={4} />}
+    </span>
+  );
+}
+
+export function SponsorItem({
   sponsor: s,
   tier,
   hidden,
+  grid,
 }: {
   readonly sponsor: SponsorListItem;
   readonly tier: MarqueeTier;
   readonly hidden?: boolean;
+  /** PC の A グリッド用。セルに内接させ、ロゴ無しは 1 行で省略する */
+  readonly grid?: boolean;
 }) {
+  const linked = Boolean(s.url);
   let content: React.ReactNode;
   if (tier === 'planD') {
     content = (
-      <span className="flex h-[17.28px] items-center whitespace-nowrap text-xs leading-none text-text lg:h-[28.8px] lg:text-base">
-        {s.name}
-      </span>
+      <NameText
+        name={s.name}
+        linked={linked}
+        className="h-[17.28px] whitespace-nowrap text-xs leading-none text-text lg:h-[28.8px] lg:text-base"
+      />
     );
   } else if (s.logoId === null) {
     const style = TIER_STYLE[tier];
-    content = (
+    content = grid ? (
+      <NameText
+        name={s.name}
+        linked={linked}
+        className="text-2xl leading-none text-text"
+      />
+    ) : (
       <span
         className={`flex ${style.logo} items-center justify-center whitespace-nowrap leading-none text-text ${style.text}`}
       >
-        {s.name}
+        <NameText name={s.name} linked={linked} className="" />
       </span>
     );
   } else {
@@ -48,7 +79,11 @@ function SponsorItem({
       <img
         src={toAssetUrl(s.logoId, 960) ?? ''}
         alt={hidden ? '' : s.name}
-        className={`${TIER_STYLE[tier].logo} w-auto max-w-none bg-white`}
+        className={`${
+          grid
+            ? 'max-h-[132px] max-w-full'
+            : `${TIER_STYLE[tier].logo} w-auto max-w-none`
+        } block bg-white ${linked ? 'hover-card-shadow' : ''}`}
       />
     );
   }
@@ -59,10 +94,29 @@ function SponsorItem({
       target="_blank"
       rel="noopener noreferrer"
       tabIndex={hidden ? -1 : undefined}
-      className="block"
+      className={grid ? 'group flex max-w-full' : 'group block'}
     >
       {content}
     </a>
+  );
+}
+
+/** PC 専用。広告協賛 A を固定の 3 列グリッドで並べる */
+export function AdSponsorTopGrid({
+  sponsors,
+}: {
+  readonly sponsors: readonly SponsorListItem[];
+}) {
+  const tops = sponsors.filter((s) => s.tier === 'planA');
+  if (tops.length === 0) return null;
+  return (
+    <ul className="hidden grid-cols-3 gap-6 lg:grid">
+      {tops.map((s) => (
+        <li key={s.id} className="flex h-[132px] items-center justify-center">
+          <SponsorItem sponsor={s} tier="planA" grid />
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -84,7 +138,7 @@ function MarqueeSet({
       {buildMarqueeBlocks(sponsors).map((block) => (
         <ul
           key={block.tier}
-          className="flex h-[168px] items-center gap-6 lg:h-[280px] lg:gap-10"
+          className={`flex h-[168px] items-center gap-6 lg:h-[280px] lg:gap-10 ${block.tier === 'planA' ? 'lg:hidden' : ''}`}
         >
           {block.columns.map((column) => (
             <li key={column[0]!.id}>
@@ -126,8 +180,13 @@ export function AdSponsorMarquee({
     return () => observer.disconnect();
   }, [sponsors]);
 
+  const aOnly = sponsors.every((s) => s.tier === 'planA');
+
+  // pb-10: shadow/card の下方向の広がり (offset 20 + blur 25 - spread 5) が overflow-hidden で切れないための余白
   return (
-    <div className="overflow-hidden motion-reduce:overflow-x-auto">
+    <div
+      className={`overflow-hidden pb-10 motion-reduce:overflow-x-auto ${aOnly ? 'lg:hidden' : ''}`}
+    >
       <div
         data-testid="ad-sponsor-marquee-track"
         className={`flex w-max ${width > 0 ? 'animate-[sponsor-marquee_var(--marquee-duration)_linear_infinite] motion-reduce:animate-none' : ''}`}
