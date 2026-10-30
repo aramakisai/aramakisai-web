@@ -79,6 +79,8 @@ function sponsor(overrides: Partial<SponsorListItem> = {}): SponsorListItem {
     name: '企業',
     tier: 'planA',
     logoId: '1',
+    logoWidth: null,
+    logoHeight: null,
     url: null,
     ...overrides,
   };
