@@ -55,8 +55,10 @@ describe('buildRobotsPlan', () => {
 });
 
 describe('SITEMAP_CODE_ROUTES', () => {
-  it('ルート実体を持たない広告協賛は除外し、実体を持つ地域協賛を含む', () => {
-    expect(SITEMAP_CODE_ROUTES).not.toContain('/sponsors/ad');
+  it('実体を持つ広告協賛と地域協賛を含む', () => {
+    expect(
+      SITEMAP_CODE_ROUTES.filter((path) => path === '/sponsors/ad'),
+    ).toHaveLength(1);
     expect(SITEMAP_CODE_ROUTES).toContain('/sponsors/local');
   });
 
