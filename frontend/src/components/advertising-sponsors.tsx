@@ -64,17 +64,17 @@ const tierStyles: Record<AdTier, { grid: string; card: string; logo: string }> =
     planA: {
       grid: 'grid-cols-1 gap-3 lg:grid-cols-2 lg:gap-6',
       card: 'aspect-[7/3]',
-      logo: 'w-[calc(100%*300/358)] aspect-[300/110] lg:w-[calc(100%*460/548)] lg:aspect-[460/170]',
+      logo: 'w-[calc((100%_+_2px)*300/358)] aspect-[300/110] lg:w-[calc((100%_+_2px)*460/548)] lg:aspect-[460/170]',
     },
     planB: {
       grid: 'grid-cols-2 gap-3 lg:grid-cols-3 lg:gap-6',
       card: 'aspect-[2/1]',
-      logo: 'w-[calc(100%*145/173)] aspect-[145/60] lg:w-[calc(100%*300/357)] lg:aspect-[300/120]',
+      logo: 'w-[calc((100%_+_2px)*145/173)] aspect-[145/60] lg:w-[calc((100%_+_2px)*300/357)] lg:aspect-[300/120]',
     },
     planC: {
       grid: 'grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4',
       card: 'aspect-[2/1]',
-      logo: 'w-[calc(100%*135/173)] aspect-[135/54] lg:w-[calc(100%*220/268)] lg:aspect-[220/86]',
+      logo: 'w-[calc((100%_+_2px)*135/173)] aspect-[135/54] lg:w-[calc((100%_+_2px)*220/268)] lg:aspect-[220/86]',
     },
     planD: {
       grid: 'grid-cols-2 gap-x-4 gap-y-3 lg:grid-cols-3 lg:gap-x-6 lg:gap-y-4',

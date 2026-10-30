@@ -157,16 +157,16 @@ describe('AdvertisingSponsors', () => {
     expect(within(c).getByRole('listitem')).toHaveClass('aspect-[2/1]');
     expect(screen.getByAltText('企業1')).toHaveClass('object-contain');
     expect(screen.getByAltText('企業1').parentElement).toHaveClass(
-      'w-[calc(100%*300/358)]',
-      'lg:w-[calc(100%*460/548)]',
+      'w-[calc((100%_+_2px)*300/358)]',
+      'lg:w-[calc((100%_+_2px)*460/548)]',
     );
     expect(screen.getByAltText('企業3').parentElement).toHaveClass(
-      'w-[calc(100%*145/173)]',
-      'lg:w-[calc(100%*300/357)]',
+      'w-[calc((100%_+_2px)*145/173)]',
+      'lg:w-[calc((100%_+_2px)*300/357)]',
     );
     expect(screen.getByAltText('企業4').parentElement).toHaveClass(
-      'w-[calc(100%*135/173)]',
-      'lg:w-[calc(100%*220/268)]',
+      'w-[calc((100%_+_2px)*135/173)]',
+      'lg:w-[calc((100%_+_2px)*220/268)]',
     );
     expect(screen.getByAltText('企業1').parentElement).toHaveClass(
       'aspect-[300/110]',
