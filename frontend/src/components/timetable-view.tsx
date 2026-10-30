@@ -6,7 +6,10 @@ import { sendGaEvent } from '@/lib/analytics';
 import { HoverLineText } from './hover-line';
 import { ChevronRightIcon, PlayCircleIcon } from './icons';
 import { TimetableGrid } from './timetable-grid';
-import { STAGE_BAND_CLASSES } from './timetable-stage-colors';
+import {
+  STAGE_BAND_CLASSES,
+  STAGE_TINT_CLASSES,
+} from './timetable-stage-colors';
 import { formatEventDayTime, toJstDateKey } from '@/lib/event-day';
 import { useNow } from '@/lib/use-now';
 import {
@@ -57,6 +60,11 @@ export function TimetableView({
   const stageId = visibleStages.some((v) => v.stage.id === selectedStageId)
     ? selectedStageId
     : (visibleStages[0]?.stage.id ?? null);
+  const tintClass =
+    STAGE_TINT_CLASSES[
+      (visibleStages.find((v) => v.stage.id === stageId)?.colorIndex ?? 0) %
+        STAGE_TINT_CLASSES.length
+    ];
   const stagePerformances = dayPerformances.filter(
     (p) => p.stageId === stageId,
   );
@@ -134,6 +142,7 @@ export function TimetableView({
                   key={p.id}
                   performance={p}
                   active={isPerformanceActive(p.slot, now)}
+                  tintClass={tintClass}
                 />
               ))}
             </ul>
@@ -149,7 +158,9 @@ export function TimetableView({
 function ListRow({
   performance: p,
   active,
+  tintClass,
 }: {
+  readonly tintClass: string;
   readonly performance: TimetablePerformance;
   readonly active: boolean;
 }) {
@@ -171,17 +182,26 @@ function ListRow({
           </span>
         )}
         <span className="text-base leading-[1.6]">
-          {p.href ? <HoverLineText gap={3}>{p.name}</HoverLineText> : p.name}
+          {p.href ? (
+            <HoverLineText gap={3}>{p.projectName ?? p.name}</HoverLineText>
+          ) : (
+            p.name
+          )}
         </span>
+        {p.projectName && (
+          <span className="text-xs leading-[1.4] text-gray-600">{p.name}</span>
+        )}
       </span>
       {p.href && <ChevronRightIcon size={20} />}
     </>
   );
   // 強調は塗りを画面幅まで広げ、その分 px を足して文字位置を他の行と揃える
-  const row = `group/row flex items-center gap-3 p-4 text-text ${active ? 'px-8' : ''}`;
+  const row = `group/row flex items-center gap-3 p-4 px-8 text-text`;
   const current = active ? { 'aria-current': 'true' as const } : {};
   return (
-    <li className={`border-b border-gray-200 ${active ? '-mx-4 bg-info' : ''}`}>
+    <li
+      className={`border-b border-gray-200 -mx-4 ${active ? 'bg-info' : tintClass}`}
+    >
       {p.href ? (
         <Link href={p.href} className={row} {...current}>
           {content}

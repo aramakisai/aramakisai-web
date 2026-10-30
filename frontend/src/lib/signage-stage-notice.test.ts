@@ -18,6 +18,7 @@ function perf(
     id,
     stageId,
     name,
+    projectName: null,
     href: null,
     slot: { dateKey: date, startAt, endAt: startAt },
   };

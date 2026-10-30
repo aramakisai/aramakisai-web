@@ -97,6 +97,22 @@ describe('toTimetable', () => {
     expect(p.href).toBe('/exhibitions/7/stage');
   });
 
+  it('公開団体のステージ企画名を projectName に持つ。未入力と団体なしは null', () => {
+    const pubWith = (stageName: string | null) =>
+      ({
+        id: 7,
+        status: 'published',
+        organization_name: '軽音部',
+        stage: { name: stageName },
+      }) as never;
+    const names = build([
+      slot(1, { exhibition_id: pubWith('春ライブ') }),
+      slot(2, { exhibition_id: pubWith('') }),
+      slot(3),
+    ]).performances.map((p) => p.projectName);
+    expect(names).toEqual(['春ライブ', null, null]);
+  });
+
   it('団体なしは表示名で遷移先なし', () => {
     const p = build([slot(1)]).performances[0];
     expect(p).toMatchObject({ name: '表示名', href: null });

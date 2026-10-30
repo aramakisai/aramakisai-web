@@ -142,6 +142,7 @@ describe('TimetableGrid variant', () => {
     id,
     stageId: 1,
     name,
+    projectName: null,
     href: '/exhibitions/1/stage',
     slot: { dateKey: '2026-11-14', startAt: jst(s), endAt: jst(e) },
   });
