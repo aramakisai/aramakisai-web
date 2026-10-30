@@ -13,6 +13,7 @@ import { CAMPUS_MAP_CONFIG, MAP_ATTRIBUTION } from '@/lib/campus-map-config';
 import type { CampusMapArea, CampusMapPoint } from '@/lib/campus-map';
 import { toAreaBounds } from '@/lib/exhibition-location-map';
 import { AreaPolygonLayer } from './area-polygon-layer';
+import { MapTilePrefetch } from './map-tile-prefetch';
 import { MapPointMarker } from './map-point-marker';
 import { MapUserLocation } from './map-user-location';
 import { MapViewportSync } from './map-viewport-sync';
@@ -184,6 +185,7 @@ export function CampusMapView({
         errorTileUrl={TRANSPARENT_TILE_URL}
         eventHandlers={tileEventHandlers}
       />
+      <MapTilePrefetch />
       <MapViewportSync
         fitBounds={fitBounds}
         bottomInset={fitBottomInset}
