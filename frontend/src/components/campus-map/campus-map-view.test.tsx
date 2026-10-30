@@ -55,6 +55,8 @@ vi.mock('./map-zoom-control', () => ({
   },
 }));
 
+vi.mock('./map-tile-prefetch', () => ({ MapTilePrefetch: () => null }));
+
 vi.mock('./map-user-location', () => ({
   MapUserLocation: () => <div data-testid="map-user-location" />,
 }));
