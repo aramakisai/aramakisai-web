@@ -16,19 +16,19 @@ const TIER_STYLE: Readonly<
 > = {
   planA: {
     logo: 'h-[79.2px] lg:h-[132px]',
-    text: 'text-[14.4px] lg:text-2xl [--name-gap:3.26px] lg:[--name-gap:5.67px]',
+    text: 'text-[14.4px] lg:text-2xl [--name-gap:-0.23px] lg:[--name-gap:-0.32px]',
   },
   planB: {
     logo: 'h-[62.4px] lg:h-[104px]',
-    text: 'text-[14.4px] lg:text-2xl [--name-gap:3.26px] lg:[--name-gap:5.67px]',
+    text: 'text-[14.4px] lg:text-2xl [--name-gap:-0.23px] lg:[--name-gap:-0.32px]',
   },
   planC: {
     logo: 'h-[49.6px] lg:h-[82.667px]',
-    text: 'text-xs lg:text-xl [--name-gap:3.67px] lg:[--name-gap:4.67px]',
+    text: 'text-xs lg:text-xl [--name-gap:0.43px] lg:[--name-gap:0.18px]',
   },
 };
 
-// 社名の直下に下線を出す。--name-gap はグリフ下端から線までを 1.67px にするための、親ボックス下端からの距離 (行高 1em のグリフ下端は文字サイズごとに端数が違うため em にできない)。truncate は線ごと切れないよう内側の span に掛ける
+// 社名の直下に下線を出す。--name-gap は字の見える下端 (インク下端) から線までを 1.67px にするための、親ボックス下端からの距離 (行高 1em のインク下端は文字サイズごとに端数が違うため em にできない)。truncate は線ごと切れないよう内側の span に掛ける
 function NameText({
   name,
   className,
@@ -76,7 +76,7 @@ export function SponsorItem({
       <NameText
         name={s.name}
         linked={linked}
-        className="h-[17.28px] whitespace-nowrap text-xs leading-none text-text [--name-gap:3.67px] lg:h-[28.8px] lg:text-base lg:[--name-gap:4.67px]"
+        className="h-[17.28px] whitespace-nowrap text-xs leading-none text-text [--name-gap:0.43px] lg:h-[28.8px] lg:text-base lg:[--name-gap:1.68px]"
       />
     );
   } else if (s.logoId === null) {
@@ -85,7 +85,7 @@ export function SponsorItem({
       <NameText
         name={s.name}
         linked={linked}
-        className="text-2xl leading-none text-text [--name-gap:5.67px]"
+        className="text-2xl leading-none text-text [--name-gap:-0.32px]"
       />
     ) : (
       <span
