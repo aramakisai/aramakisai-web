@@ -68,6 +68,25 @@ describe('Header', () => {
     expect(within(nav).queryByText('協賛')).not.toBeInTheDocument();
   });
 
+  test('開催中の PC とモバイルでお知らせから広告協賛へ到達できる', () => {
+    render(<Header phase="live" navigation={navigationItemsByPhase} />);
+    const pc = screen.getByRole('navigation', { name: 'メインナビゲーション' });
+    const pcSubmenu = within(pc).getByRole('list', {
+      name: 'お知らせのサブメニュー',
+    });
+    expect(
+      within(pcSubmenu).getByRole('link', { name: '広告協賛' }),
+    ).toHaveAttribute('href', '/sponsors/ad');
+    fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
+    const mobile = screen.getByRole('navigation', {
+      name: 'モバイルナビゲーション',
+    });
+    fireEvent.click(within(mobile).getByRole('button', { name: /お知らせ/ }));
+    expect(
+      within(mobile).getByRole('link', { name: '広告協賛' }),
+    ).toHaveAttribute('href', '/sponsors/ad');
+  });
+
   test('href を持つ項目は現在地のとき aria-current を付ける', () => {
     mockedUsePathname.mockReturnValue('/announcements');
     render(<Header phase="pre_event" navigation={navigationItemsByPhase} />);

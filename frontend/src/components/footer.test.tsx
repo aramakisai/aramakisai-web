@@ -88,6 +88,7 @@ describe('Footer', () => {
       ['タイムテーブル', '/timetable'],
       ['お知らせ一覧', '/announcements'],
       ['トピック', '/topics'],
+      ['広告協賛', '/sponsors/ad'],
     ]);
   });
 
@@ -109,6 +110,19 @@ describe('Footer', () => {
       '地域協賛',
     ]);
   });
+
+  test.each(['pre_event', 'live'] as const)(
+    '%s のフッターから広告協賛に到達できる',
+    async (phase) => {
+      await renderFooter(phase);
+      const siteGuide = screen.getByRole('navigation', {
+        name: 'フッターサイト案内',
+      });
+      expect(
+        within(siteGuide).getByRole('link', { name: '広告協賛' }),
+      ).toHaveAttribute('href', '/sponsors/ad');
+    },
+  );
 
   test('ご案内ブロックは「ご案内」の子項目からお問い合わせを除いたものを表示する (両フェーズ共通)', async () => {
     await renderFooter('live');
