@@ -35,6 +35,7 @@ import * as migration_20261026_152813_navigation from './20261026_152813_navigat
 import * as migration_20261027_074658_parking_camera_endpoint from './20261027_074658_parking_camera_endpoint';
 import * as migration_20261028_040027_regional_sponsor_map_schema from './20261028_040027_regional_sponsor_map_schema';
 import * as migration_20261029_133248_sponsors_vendor_group from './20261029_133248_sponsors_vendor_group';
+import * as migration_20261030_041936_personal_sponsors from './20261030_041936_personal_sponsors';
 
 export const migrations = [
   {
@@ -220,6 +221,11 @@ export const migrations = [
   {
     up: migration_20261029_133248_sponsors_vendor_group.up,
     down: migration_20261029_133248_sponsors_vendor_group.down,
-    name: '20261029_133248_sponsors_vendor_group'
+    name: '20261029_133248_sponsors_vendor_group',
+  },
+  {
+    up: migration_20261030_041936_personal_sponsors.up,
+    down: migration_20261030_041936_personal_sponsors.down,
+    name: '20261030_041936_personal_sponsors'
   },
 ];
