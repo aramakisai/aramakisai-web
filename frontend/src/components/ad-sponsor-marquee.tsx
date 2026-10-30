@@ -9,12 +9,62 @@ import type { SponsorListItem } from '@/lib/sponsors';
 // 90px/秒の等速。周期 = 1 セット幅 ÷ 速度
 const SPEED_PX_PER_SEC = 90;
 
-// SP は PC の 0.6 倍
-const LOGO_HEIGHT: Readonly<Record<Exclude<MarqueeTier, 'planD'>, string>> = {
-  planA: 'h-[57.6px] lg:h-24',
-  planB: 'h-[35.2px] lg:h-[58.667px]',
-  planC: 'h-6 lg:h-10',
+// SP は PC の 0.6 倍。社名文字サイズはロゴ無し時の代替表示用
+const TIER_STYLE: Readonly<
+  Record<Exclude<MarqueeTier, 'planD'>, { logo: string; text: string }>
+> = {
+  planA: { logo: 'h-[79.2px] lg:h-[132px]', text: 'text-[14.4px] lg:text-2xl' },
+  planB: { logo: 'h-[62.4px] lg:h-[104px]', text: 'text-[14.4px] lg:text-2xl' },
+  planC: { logo: 'h-[49.6px] lg:h-[82.667px]', text: 'text-xs lg:text-xl' },
 };
+
+function SponsorItem({
+  sponsor: s,
+  tier,
+  hidden,
+}: {
+  readonly sponsor: SponsorListItem;
+  readonly tier: MarqueeTier;
+  readonly hidden?: boolean;
+}) {
+  let content: React.ReactNode;
+  if (tier === 'planD') {
+    content = (
+      <span className="flex h-[17.28px] items-center whitespace-nowrap text-xs leading-none text-text lg:h-[28.8px] lg:text-base">
+        {s.name}
+      </span>
+    );
+  } else if (s.logoId === null) {
+    const style = TIER_STYLE[tier];
+    content = (
+      <span
+        className={`flex ${style.logo} items-center justify-center whitespace-nowrap leading-none text-text ${style.text}`}
+      >
+        {s.name}
+      </span>
+    );
+  } else {
+    content = (
+      <img
+        src={toAssetUrl(s.logoId, 960) ?? ''}
+        alt={hidden ? '' : s.name}
+        className={`${TIER_STYLE[tier].logo} w-auto max-w-none bg-white`}
+      />
+    );
+  }
+  if (!s.url) return content;
+  return (
+    <a
+      href={s.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      tabIndex={hidden ? -1 : undefined}
+      className="block"
+    >
+      {content}
+    </a>
+  );
+}
 
 function MarqueeSet({
   sponsors,
@@ -34,24 +84,18 @@ function MarqueeSet({
       {buildMarqueeBlocks(sponsors).map((block) => (
         <ul
           key={block.tier}
-          className="flex h-[124.8px] items-center gap-6 lg:h-[208px] lg:gap-10"
+          className="flex h-[168px] items-center gap-6 lg:h-[280px] lg:gap-10"
         >
           {block.columns.map((column) => (
             <li key={column[0]!.id}>
               <ul className="flex flex-col items-center gap-[9.6px] lg:gap-4">
                 {column.map((s) => (
                   <li key={s.id}>
-                    {block.tier === 'planD' ? (
-                      <span className="flex h-[17.28px] items-center whitespace-nowrap text-xs leading-none text-text lg:h-[28.8px] lg:text-base">
-                        {s.name}
-                      </span>
-                    ) : (
-                      <img
-                        src={toAssetUrl(s.logoId, 960) ?? ''}
-                        alt={hidden ? '' : s.name}
-                        className={`${LOGO_HEIGHT[block.tier]} w-auto max-w-none bg-white`}
-                      />
-                    )}
+                    <SponsorItem
+                      sponsor={s}
+                      tier={block.tier}
+                      hidden={hidden}
+                    />
                   </li>
                 ))}
               </ul>
