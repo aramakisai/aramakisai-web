@@ -1,123 +1,4 @@
-import { createServer, type Server } from 'node:http';
 import { expect, test, type Page } from '@playwright/test';
-
-const CMS_ORIGIN = 'http://127.0.0.1:18055';
-const APP_ORIGIN = 'http://127.0.0.1:3011';
-// 異なる縦横比を画像領域に収められることを確認する合成ロゴ。
-const LOGO = Buffer.from(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="100"><rect width="400" height="100" fill="navy"/></svg>',
-);
-const TALL_LOGO = Buffer.from(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="400"><rect width="100" height="400" fill="navy"/></svg>',
-);
-
-const sponsors = [
-  ...(['planA', 'planB', 'planC'] as const).flatMap((tier, groupIndex) =>
-    Array.from({ length: groupIndex + 2 }, (_, index) => ({
-      id: 100 + groupIndex * 10 + index,
-      name: `架空${tier}-${index + 1}`,
-      type: ['ad'],
-      tier,
-      logo: 100 + groupIndex * 10 + index,
-      url: index === 0 ? 'https://example.invalid/sponsor' : null,
-      _order: `0${index}`,
-    })).reverse(),
-  ),
-  ...[
-    { id: 201, name: '架空Dリンク', url: 'https://example.invalid/d' },
-    {
-      id: 202,
-      name: '架空D企業名がとても長くても省略せず折り返して表示されます',
-      url: null,
-    },
-    { id: 203, name: '架空D無効URL', url: 'javascript:alert(1)' },
-  ]
-    .map((item, index) => ({
-      ...item,
-      type: ['ad'],
-      tier: 'planD',
-      logo: null,
-      _order: `0${index}`,
-    }))
-    .reverse(),
-  {
-    id: 301,
-    name: '架空ロゴなしC',
-    type: ['ad'],
-    tier: 'planC',
-    logo: null,
-    url: 'https://example.invalid/noname',
-    _order: '09',
-  },
-  {
-    id: 300,
-    name: '地域のみ企業',
-    type: ['local'],
-    tier: null,
-    logo: null,
-    url: null,
-    _order: '00',
-  },
-];
-const personal = [
-  {
-    id: 3,
-    name: '架空の長い個人協賛者名が省略されず折り返して表示されます',
-    _order: '03',
-  },
-  { id: 2, name: '架空二郎様', _order: '02' },
-  { id: 1, name: '架空一郎', _order: '01' },
-].map((item) => ({
-  ...item,
-  type: ['personal'],
-  tier: null,
-  logo: null,
-  url: null,
-}));
-
-let cmsServer: Server | undefined;
-
-async function startCmsFixture(): Promise<void> {
-  if (
-    process.env.E2E_LOCAL_APP !== '1' ||
-    process.env.NEXT_PUBLIC_CMS_URL !== CMS_ORIGIN ||
-    process.env.NEXT_PUBLIC_SITE_URL !== APP_ORIGIN ||
-    process.env.E2E_BASE_URL !== APP_ORIGIN
-  ) {
-    throw new Error(
-      '広告協賛 fixture は専用の loopback 環境でのみ実行できます',
-    );
-  }
-  const server = createServer((request, response) => {
-    const url = new URL(request.url ?? '/', CMS_ORIGIN);
-    if (url.pathname.startsWith('/api/media/serve/')) {
-      response.writeHead(200, {
-        'Content-Type': 'image/svg+xml',
-        'Access-Control-Allow-Origin': '*',
-      });
-      response.end(
-        url.pathname.startsWith('/api/media/serve/110/') ? TALL_LOGO : LOGO,
-      );
-      return;
-    }
-    if (url.pathname === '/api/sponsors') {
-      const type = url.searchParams.get('where[type][equals]');
-      const docs = [...sponsors, ...personal]
-        .filter((doc) => !type || doc.type.includes(type))
-        .sort((a, b) => a._order.localeCompare(b._order));
-      response.writeHead(200, { 'Content-Type': 'application/json' });
-      response.end(JSON.stringify({ docs, totalDocs: docs.length }));
-      return;
-    }
-    response.writeHead(404, { 'Content-Type': 'application/json' });
-    response.end('{}');
-  });
-  await new Promise<void>((resolve, reject) => {
-    server.once('error', reject);
-    server.listen(18055, '127.0.0.1', resolve);
-  });
-  cmsServer = server;
-}
 
 async function openPage(page: Page, width: number): Promise<void> {
   await page.setViewportSize({ width, height: 900 });
@@ -152,15 +33,6 @@ test.describe('広告協賛 fixture E2E', { tag: '@local-fixture' }, () => {
   );
   test.describe.configure({ mode: 'serial' });
   test.setTimeout(120_000);
-  test.beforeAll(startCmsFixture);
-  test.afterAll(async () => {
-    if (cmsServer) {
-      await new Promise<void>((resolve, reject) => {
-        cmsServer!.close((error) => (error ? reject(error) : resolve()));
-        cmsServer!.closeAllConnections();
-      });
-    }
-  });
 
   for (const width of [1440, 1023, 390]) {
     test(`${width}px の列・カード寸法・配置`, async ({ page }) => {
@@ -267,9 +139,9 @@ test.describe('広告協賛 fixture E2E', { tag: '@local-fixture' }, () => {
       .poll(() =>
         noLogo
           .locator('.mansai-spectrum-line')
-          .evaluate((el) => getComputedStyle(el).transform),
+          .evaluate((el) => getComputedStyle(el).scale),
       )
-      .toBe('matrix(1, 0, 0, 1, 0, 0)');
+      .toBe('1');
     expect(await noLogo.evaluate(shadow)).toBe('none');
     for (
       let i = 0;
