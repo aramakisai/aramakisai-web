@@ -25,6 +25,11 @@ export interface MapViewportControllerProps {
   readonly focusZoom?: number;
   /** 選択位置へ寄せるときの余白 */
   readonly focusFitOptions?: MapFitOptions;
+  /**
+   * 焦点合わせの下余白に足す px。シートが伸びる向きではコンテナが縮むのが移動の途中以降になるため、
+   * 縮んだ後に見える領域の中央へ向かうよう、行き先の高さとの差を渡す
+   */
+  readonly focusExtraBottom?: () => number;
   /** 変わったとき、選択中の位置を現在のズームのまま見えている領域の中央へ平行移動する */
   readonly refocusKey?: string | number | null;
   readonly maxBounds: LatLngBoundsExpression;
@@ -55,6 +60,7 @@ export function MapViewportController({
   focusKey,
   focusZoom,
   focusFitOptions,
+  focusExtraBottom,
   refocusKey,
   maxBounds,
   minZoom,
@@ -71,11 +77,13 @@ export function MapViewportController({
   // シートの高さが動くたびに fitOptions 等が作り直されるため、effect を張り直さず最新値を参照する
   const fitOptionsRef = useRef(fitOptions);
   const focusFitOptionsRef = useRef(focusFitOptions);
+  const focusExtraBottomRef = useRef(focusExtraBottom);
   const initialFitOptionsRef = useRef(initialFitOptions);
   const minZoomPaddingRef = useRef(minZoomPadding);
   const maxBoundsPaddingRef = useRef(maxBoundsPadding);
   const syncPaddingRef = useRef<(() => void) | null>(null);
   const focusMovingRef = useRef(false);
+  const moveEndListenerRef = useRef<(() => void) | null>(null);
   const paddingDirtyRef = useRef(false);
   const normalizedFocusCenter =
     focusCenter == null ? null : latLng(focusCenter);
@@ -85,6 +93,7 @@ export function MapViewportController({
   useLayoutEffect(() => {
     fitOptionsRef.current = fitOptions;
     focusFitOptionsRef.current = focusFitOptions;
+    focusExtraBottomRef.current = focusExtraBottom;
     initialFitOptionsRef.current = initialFitOptions;
     minZoomPaddingRef.current = minZoomPadding;
     maxBoundsPaddingRef.current = maxBoundsPadding;
@@ -125,7 +134,8 @@ export function MapViewportController({
     const onZoomEnd = () => applyMaxBounds(map.getZoom());
     if (extendMaxBounds) map.on('zoomend', onZoomEnd);
     const applyMinZoom = () => {
-      map.invalidateSize({ animate: false });
+      // コンテナは上端固定で下端だけが動く。既定の pan:true は中心を保つため内容を Δ/2 ずらしてしまう
+      map.invalidateSize({ animate: false, pan: false });
       const minZoomPadding = minZoomPaddingRef.current;
       const boundsZoom = minZoomPadding
         ? map.getBoundsZoom(maxBounds, true, minZoomPadding)
@@ -162,15 +172,37 @@ export function MapViewportController({
         map.fitBounds(fitBounds, resolveFitOptions());
       }
     };
+    // ズームのアニメーション中に invalidateSize すると、Leaflet の SVG レンダラが
+    // 古い bounds と新しいサイズを混ぜて計算し、ポリゴンだけがタイルから遅れる。
+    // 移動中の resize は終了後に1回だけ反映する
+    let resizeDeferred = false;
+    const onResizeWhenIdle = () => {
+      if (focusMovingRef.current) {
+        paddingDirtyRef.current = true;
+      } else if (
+        (map as unknown as { _animatingZoom?: boolean })._animatingZoom
+      ) {
+        resizeDeferred = true;
+      } else {
+        onResize();
+      }
+    };
+    const onZoomEndFlush = () => {
+      if (!resizeDeferred) return;
+      resizeDeferred = false;
+      onResize();
+    };
+    map.on('zoomend', onZoomEndFlush);
     syncPaddingRef.current = () => {
       applyMaxBounds(map.getZoom());
       onResize();
     };
-    const observer = new ResizeObserver(onResize);
+    const observer = new ResizeObserver(onResizeWhenIdle);
     observer.observe(container);
     return () => {
       syncPaddingRef.current = null;
       if (extendMaxBounds) map.off('zoomend', onZoomEnd);
+      map.off('zoomend', onZoomEndFlush);
       observer.disconnect();
       container.removeEventListener('pointerdown', markInteracted);
       container.removeEventListener('wheel', markInteracted);
@@ -220,7 +252,13 @@ export function MapViewportController({
       lastFocusKeyRef.current === focusKey;
     lastRefocusKeyRef.current = refocusKey;
     if (lastFocusKeyRef.current === focusKey && !refocus) return;
-    map.stop();
+    // 移動中でも stop() はしない。zoomSnap への丸めが取り消せないズームアニメーションを残し、
+    // 続く flyTo と並走して古い中心へ戻してしまう。flyTo 自身が進行中の移動を止める
+    const wasMoving = focusMovingRef.current;
+    if (moveEndListenerRef.current) {
+      map.off('moveend', moveEndListenerRef.current);
+      moveEndListenerRef.current = null;
+    }
     lastFocusKeyRef.current = focusKey;
     // 選択は利用者の操作とみなし、以後のリサイズで全体表示へ戻さない
     interactedRef.current = true;
@@ -231,7 +269,7 @@ export function MapViewportController({
     const paddingTopLeft = point(resolvedFitOptions.paddingTopLeft ?? [0, 0]);
     const paddingBottomRight = point(
       resolvedFitOptions.paddingBottomRight ?? [0, 0],
-    );
+    ).add([0, focusExtraBottomRef.current?.() ?? 0]);
     const visibleCenterOffset = paddingTopLeft
       .subtract(paddingBottomRight)
       .divideBy(2);
@@ -252,21 +290,24 @@ export function MapViewportController({
               .subtract(map.project(map.getCenter(), zoom))
               .round()
           : null;
-      if (offset && offset.x === 0 && offset.y === 0) return;
-      if (offset && map.getSize().contains(offset)) {
+      if (!wasMoving && offset && offset.x === 0 && offset.y === 0) return;
+      if (!wasMoving && offset && map.getSize().contains(offset)) {
         map.panBy(offset, { duration: 0.6 });
       } else {
         map.flyTo(adjustedCenter, zoom, { duration: 0.6 });
       }
       focusMovingRef.current = true;
       // 次の選択の stop() や利用者の操作で打ち切られた場合も moveend は発火する
-      map.once('moveend', () => {
+      const onMoveEnd = () => {
+        moveEndListenerRef.current = null;
         focusMovingRef.current = false;
         if (paddingDirtyRef.current) {
           paddingDirtyRef.current = false;
           syncPaddingRef.current?.();
         }
-      });
+      };
+      moveEndListenerRef.current = onMoveEnd;
+      map.once('moveend', onMoveEnd);
     }
   }, [focusKey, focusLatitude, focusLongitude, focusZoom, map, refocusKey]);
 

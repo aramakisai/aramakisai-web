@@ -6,6 +6,8 @@ import type {
   MapArea,
 } from '@/cms-types';
 import { cms, type CmsFetchError } from './cms';
+import type { ImageUrls } from './cms-asset-url';
+import { toAttachment } from './cms-media';
 import { toJstDateKey } from './event-day';
 
 export type ExhibitionCategory = 'stage' | 'exhibit' | 'vendor' | 'other';
@@ -37,8 +39,7 @@ export const LISTING_CATEGORY_LABELS: Readonly<
   Record<ListingCategory, string>
 > = { ...CATEGORY_LABELS, booth: '企業ブース' };
 
-export interface ExhibitionImage {
-  readonly id: string;
+export interface ExhibitionImage extends ImageUrls {
   readonly alt: string;
 }
 
@@ -316,7 +317,14 @@ function toExhibitionImage(
   media: number | Media,
   alt: string,
 ): ExhibitionImage {
-  return { id: String(typeof media === 'object' ? media.id : media), alt };
+  const attachment = toAttachment(media);
+  return {
+    id: attachment?.id ?? String(media),
+    url: attachment?.url,
+    cardUrl: attachment?.cardUrl,
+    heroUrl: attachment?.heroUrl,
+    alt,
+  };
 }
 
 interface JoinContext {
@@ -515,7 +523,8 @@ export async function getExhibitionCatalog(): Promise<ExhibitionCatalog> {
         where: { status: { equals: 'published' } },
         sort: ['id'],
         limit: 0,
-        depth: 0,
+        // media を populate して実ファイル URL を得る
+        depth: 1,
       }),
       fetchJoinSources(),
     ]);
@@ -593,7 +602,7 @@ export async function getExhibitionDetail(
   category: ExhibitionCategory,
 ): Promise<ExhibitionDetailResult> {
   const exhibitionResult = await cms.findById('student_exhibitions', id, {
-    depth: 0,
+    depth: 1,
   });
   if (!exhibitionResult.ok) {
     if (exhibitionResult.error.kind === 'network') {

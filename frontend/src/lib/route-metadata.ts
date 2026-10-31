@@ -4,10 +4,12 @@ export type CodeRoutePath =
   | '/exhibitions'
   | '/topics'
   | '/map'
+  | '/sponsors/ad'
   | '/sponsors/local'
   | '/faq'
   | '/timetable'
   | '/parking'
+  | '/access'
   | '/mypage';
 
 export interface RouteMetadataEntry {
@@ -45,6 +47,11 @@ export const ROUTE_METADATA: Readonly<
     description:
       '荒牧祭の会場となる構内マップです。企画やステージの場所を検索できます。',
   },
+  '/sponsors/ad': {
+    title: '広告協賛',
+    description:
+      '荒牧祭2026にご協賛いただいた企業・団体と個人の皆様をご紹介します。',
+  },
   '/sponsors/local': {
     title: '地域協賛マップ',
     description:
@@ -63,6 +70,11 @@ export const ROUTE_METADATA: Readonly<
     title: '駐車場空き情報',
     description:
       '荒牧祭の駐車場の空き状況を確認できます。混雑状況を見てご来場の際の参考にしてください。',
+  },
+  '/access': {
+    title: 'アクセス',
+    description:
+      '荒牧祭の会場への行き方と、前橋駅行・群馬大学行のバス時刻表です。',
   },
   '/mypage': {
     title: 'マイページ',

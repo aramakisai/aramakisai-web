@@ -8,10 +8,18 @@ vi.mock('@/env', () => ({
   env: { NEXT_PUBLIC_CMS_URL: 'http://localhost:8055' },
 }));
 
-vi.mock('@/lib/cms-asset-url', () => ({
-  toAssetUrl: (id: string | null) =>
-    id ? `https://example.com/assets/${id}` : null,
-}));
+vi.mock('@/lib/cms-asset-url', () => {
+  const toAssetUrl = (id: string | null) =>
+    id ? `https://example.com/assets/${id}` : null;
+  return {
+    toAssetUrl,
+    toCardImageUrl: (image: { id: string }) => toAssetUrl(image.id),
+    toHeroImage: (image: { id: string }) => {
+      const src = toAssetUrl(image.id);
+      return src ? { src } : null;
+    },
+  };
+});
 
 vi.mock('./bookmark-button', () => ({
   BookmarkButton: () => <button type="button">bookmark</button>,

@@ -1,28 +1,41 @@
 'use client';
 
 import 'leaflet/dist/leaflet.css';
-import { useEffect, useMemo, useRef, type Ref } from 'react';
+import { useCallback, useEffect, useMemo, useRef, type Ref } from 'react';
 import { AttributionControl, MapContainer, TileLayer } from 'react-leaflet';
-import type {
-  LatLngBoundsExpression,
-  LatLngExpression,
-  Map as LeafletMap,
+import {
+  svg,
+  type LatLngBoundsExpression,
+  type LatLngExpression,
+  type Map as LeafletMap,
 } from 'leaflet';
 import { sendGaEvent } from '@/lib/analytics';
-import { CAMPUS_MAP_CONFIG, MAP_ATTRIBUTION } from '@/lib/campus-map-config';
+import {
+  CAMPUS_MAP_CONFIG,
+  CAMPUS_MAP_TILE_PROFILE,
+  MAP_ATTRIBUTION,
+} from '@/lib/campus-map-config';
 import type { CampusMapArea, CampusMapPoint } from '@/lib/campus-map';
-import { toAreaBounds } from '@/lib/exhibition-location-map';
+import {
+  excludeOutlierAreas,
+  toAreaBounds,
+} from '@/lib/exhibition-location-map';
 import { AreaPolygonLayer } from './area-polygon-layer';
+import { MapEmptyTap } from '@/components/map/map-empty-tap';
+import { MapTilePrefetch } from '@/components/map/map-tile-prefetch';
 import { MapPointMarker } from './map-point-marker';
-import { MapUserLocation } from './map-user-location';
+import { MapUserLocation } from '@/components/map/map-user-location';
 import { MapViewportSync } from './map-viewport-sync';
-import { MapZoomControl } from './map-zoom-control';
-import { useIsAboveMapBreakpoint } from './use-is-above-map-breakpoint';
+import { MapZoomControl } from '@/components/map/map-zoom-control';
+import { useIsAboveMapBreakpoint } from '@/components/map/use-is-above-map-breakpoint';
 
 // leaflet の型は mutable なタプルを要求するため、readonly な設定値をここでキャストする
 const CAMPUS_BOUNDS =
   CAMPUS_MAP_CONFIG.campusBounds as unknown as LatLngBoundsExpression;
 const BOUNDS = CAMPUS_MAP_CONFIG.bounds as unknown as LatLngBoundsExpression;
+
+// 縮小中は clip 済みの描画を CSS で縮めるだけなので、既定 (0.1) では表示範囲の外が空く
+const POLYGON_RENDERER = svg({ padding: 1 });
 
 // 1x1 透明 GIF。読み込みに失敗したタイルを破損画像として表示させない (要件 8.3)
 const TRANSPARENT_TILE_URL =
@@ -44,8 +57,12 @@ export interface CampusMapViewProps {
   readonly fitBottomInset?: number;
   /** 左パネルと下部の操作部品が地図の上に浮く端末用で、可視領域の中央へ全エリアを置けるよう maxBounds を辺の長さの割合だけ広げる */
   readonly maxBoundsPad?: number;
+  /** 敷地から離れた孤立エリアを初期表示の範囲計算から除き、主要エリア群を可視領域の中央へ置く。除外したエリアは画面外になりうる */
+  readonly fitExcludeOutliers?: boolean;
   /** 表示範囲のタイルを読み終えたとき(Leaflet の GridLayer load)に呼ぶ */
   readonly onTilesLoaded?: () => void;
+  /** シートが伸びる間に遅れて縮む地図コンテナの分(px)。選択位置への移動の下余白に足す */
+  readonly getPendingInset?: () => number;
 }
 
 // navigation entry はドキュメントの最初の URL のまま変わらないため、/map 直接表示後に別ページから
@@ -84,7 +101,9 @@ export function CampusMapView({
   mapRef,
   fitBottomInset,
   maxBoundsPad = 0,
+  fitExcludeOutliers = false,
   onTilesLoaded,
+  getPendingInset,
 }: CampusMapViewProps) {
   const { minZoom, maxZoom, minNativeZoom, maxNativeZoom, tileUrlTemplate } =
     CAMPUS_MAP_CONFIG;
@@ -92,11 +111,12 @@ export function CampusMapView({
   // 敷地の外接矩形ではなく実際のエリア群に合わせる。エリア取得失敗時だけ敷地全体へ戻す
   const fitBounds = useMemo<LatLngBoundsExpression>(() => {
     if (areas.length === 0) return CAMPUS_BOUNDS;
+    const target = fitExcludeOutliers ? excludeOutlierAreas(areas) : areas;
     const { southWest, northEast } = toAreaBounds(
-      areas as [CampusMapArea, ...CampusMapArea[]],
+      target as [CampusMapArea, ...CampusMapArea[]],
     );
     return [southWest, northEast] as unknown as LatLngBoundsExpression;
-  }, [areas]);
+  }, [areas, fitExcludeOutliers]);
   const focusCenter = useMemo<LatLngExpression | null>(() => {
     const area = areas.find((a) => a.id === selectedAreaId);
     if (!area) return null;
@@ -150,13 +170,21 @@ export function CampusMapView({
   }, []);
 
   // 選択中のエリアの再選択は解除として扱う (要件 2.6)。URL の書き換えは呼び出し元に委ねる
-  const handleAreaClick = (areaId: number) => {
-    onSelectArea(areaId === selectedAreaId ? null : areaId);
-  };
+  const handleAreaClick = useCallback(
+    (areaId: number) => {
+      onSelectArea(areaId === selectedAreaId ? null : areaId);
+    },
+    [onSelectArea, selectedAreaId],
+  );
+
+  const handleEmptyTap = useCallback(() => {
+    if (selectedAreaId !== null) onSelectArea(null);
+  }, [onSelectArea, selectedAreaId]);
 
   return (
     <MapContainer
       bounds={fitBounds}
+      renderer={POLYGON_RENDERER}
       minZoom={minZoom}
       maxZoom={maxZoom}
       maxBounds={maxBounds}
@@ -184,11 +212,14 @@ export function CampusMapView({
         errorTileUrl={TRANSPARENT_TILE_URL}
         eventHandlers={tileEventHandlers}
       />
+      <MapTilePrefetch profile={CAMPUS_MAP_TILE_PROFILE} />
+      <MapEmptyTap onTap={handleEmptyTap} />
       <MapViewportSync
         fitBounds={fitBounds}
         bottomInset={fitBottomInset}
         focusCenter={focusCenter}
         focusKey={selectedAreaId}
+        focusExtraBottom={getPendingInset}
         refocusKey={isAboveBreakpoint ? 'desktop' : 'mobile'}
       />
       <AreaPolygonLayer
@@ -217,7 +248,9 @@ export function CampusMapView({
         prefix={false}
       />
       {showZoomControl && <MapZoomControl />}
-      {showUserLocation && <MapUserLocation />}
+      {showUserLocation && (
+        <MapUserLocation bounds={CAMPUS_MAP_CONFIG.campusBounds} />
+      )}
     </MapContainer>
   );
 }

@@ -36,7 +36,7 @@ function NotFoundContent({ pageTitle }: { pageTitle: string }) {
   return (
     <div className="space-y-6 text-center">
       <title>{pageTitle}</title>
-      <p className="text-warning text-6xl font-extrabold">404</p>
+      <p className="text-warning text-6xl font-black">404</p>
       <h1 className="text-3xl font-bold">ページが見つかりません</h1>
       <p className="text-gray-600">
         お探しのページは移動または削除された可能性があります。

@@ -1,6 +1,6 @@
 import { publishedFilter } from './announcements';
 import { cms } from './cms';
-import { toAttachments, toMediaId } from './cms-media';
+import { toAttachment, toAttachments, toMediaId } from './cms-media';
 import { toEventDays } from './event-day';
 import {
   HomePageContent,
@@ -26,9 +26,8 @@ export async function getHomePage(): Promise<HomePageContent> {
       sort: ['-published_at'],
       limit: 0,
       // トップでは一覧カードにしか使わないため本文 HTML を取らない。
-      // image は depth 0 で id のまま返り、toMediaId がそのまま扱える
       select: { title: true, image: true },
-      depth: 0,
+      depth: 1,
     }),
   ]);
   const meta = metaResult.ok ? metaResult.value : null;
@@ -61,6 +60,7 @@ export async function getHomePage(): Promise<HomePageContent> {
     title: t.title,
     body: t.body_html ?? null,
     imageId: toMediaId(t.image),
+    image: toAttachment(t.image),
   }));
 
   return {

@@ -55,6 +55,8 @@ describe('getSponsors', () => {
       id: 1,
       name: '広告のみ',
       logoId: '11',
+      logoWidth: null,
+      logoHeight: null,
       url: 'https://ad.example.com',
       tier: 'planA',
     });
@@ -72,7 +74,7 @@ describe('getSponsors', () => {
     expect(collection).toBe('sponsors');
     expect(query.sort).toEqual(['_order']);
     expect(query.limit).toBe(0);
-    expect(query.depth).toBe(0);
+    expect(query.depth).toBe(1);
   });
 
   it('ttlSeconds を cms.findMany へ渡し、省略時は渡さない', async () => {
@@ -122,6 +124,8 @@ describe('mergeSponsorLogos', () => {
       id: 3,
       name: '広告と地域',
       logoId: '13',
+      logoWidth: null,
+      logoHeight: null,
       url: null,
       tier: null,
     };
@@ -129,6 +133,8 @@ describe('mergeSponsorLogos', () => {
       id: 2,
       name: '地域のみ',
       logoId: null,
+      logoWidth: null,
+      logoHeight: null,
       url: null,
       tier: null,
     };
@@ -136,6 +142,8 @@ describe('mergeSponsorLogos', () => {
       id: 3,
       name: '広告と地域',
       logoId: '13',
+      logoWidth: null,
+      logoHeight: null,
       url: null,
       tier: null,
     };
@@ -154,5 +162,25 @@ describe('mergeSponsorLogos', () => {
     expect(
       mergeSponsorLogos({ ad: [], local: [], vendor: [], other: [] }),
     ).toEqual([]);
+  });
+
+  it('個人協賛 (type=personal) は走査せず、トップ・サイネージに含めない', () => {
+    const personal = {
+      id: 9,
+      name: '個人',
+      logoId: null,
+      logoWidth: null,
+      logoHeight: null,
+      url: null,
+      tier: null,
+    };
+    const byType = {
+      ad: [],
+      local: [],
+      vendor: [],
+      other: [],
+      personal: [personal],
+    } as unknown as Parameters<typeof mergeSponsorLogos>[0];
+    expect(mergeSponsorLogos(byType)).toEqual([]);
   });
 });

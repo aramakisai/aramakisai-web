@@ -14,6 +14,9 @@ export interface SponsorListItem {
   id: number;
   name: string;
   logoId: string | null;
+  /** depth:1 で Media が展開されたときだけ入る。ID のままなら null */
+  logoWidth: number | null;
+  logoHeight: number | null;
   url: string | null;
   tier: string | null;
 }
@@ -31,6 +34,10 @@ function mapSponsor(s: Sponsor): SponsorListItem {
     id: s.id,
     name: s.name,
     logoId: toMediaId(s.logo),
+    logoWidth:
+      typeof s.logo === 'object' && s.logo ? (s.logo.width ?? null) : null,
+    logoHeight:
+      typeof s.logo === 'object' && s.logo ? (s.logo.height ?? null) : null,
     url: s.url ?? null,
     tier: s.tier ?? null,
   };
@@ -41,7 +48,7 @@ export async function getSponsors(
 ): Promise<GetSponsorsResult> {
   const result = await cms.findMany(
     'sponsors',
-    { sort: ['_order'], limit: 0, depth: 0 },
+    { sort: ['_order'], limit: 0, depth: 1 },
     options,
   );
   if (!result.ok) return { ok: false };

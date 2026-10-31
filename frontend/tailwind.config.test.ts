@@ -110,9 +110,9 @@ describe('下部ナビゲーション用の文字サイズトークン (body-xs)
 });
 
 describe('書体トークン', () => {
-  it('font-sans はシステムフォント、font-display が LINE Seed JP を先頭にする', () => {
+  it('font-sans はシステムフォント、font-display が Noto Sans JP を先頭にする', () => {
     expect(fontFamily.sans[0]).toBe('system-ui');
-    expect(fontFamily.display[0]).toBe('LINE Seed JP');
+    expect(fontFamily.display[0]).toBe('var(--font-noto-sans-jp)');
   });
 
   it('明朝体のトークンを持たない', () => {

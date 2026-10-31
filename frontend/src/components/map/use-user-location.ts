@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { CAMPUS_MAP_CONFIG } from '@/lib/campus-map-config';
 
 export interface UserLocation {
   readonly latitude: number;
@@ -14,7 +13,14 @@ export type UserLocationState =
   | { readonly kind: 'idle' }
   | { readonly kind: 'watching'; readonly location: UserLocation | null };
 
+export type UserLocationBounds = readonly [
+  readonly [south: number, west: number],
+  readonly [north: number, east: number],
+];
+
 export interface UseUserLocationOptions {
+  /** この範囲外の現在地は利用不可として扱う */
+  readonly bounds: UserLocationBounds;
   /** 監視を始めてから最初の範囲内の位置で1回だけ呼ぶ */
   readonly onFirstLocation: (location: UserLocation) => void;
 }
@@ -41,8 +47,12 @@ export interface UseUserLocationResult {
   readonly start: () => void;
 }
 
-export function isWithinCampus(latitude: number, longitude: number): boolean {
-  const [[south, west], [north, east]] = CAMPUS_MAP_CONFIG.campusBounds;
+export function isWithinBounds(
+  bounds: UserLocationBounds,
+  latitude: number,
+  longitude: number,
+): boolean {
+  const [[south, west], [north, east]] = bounds;
   return (
     latitude >= south &&
     latitude <= north &&
@@ -52,6 +62,7 @@ export function isWithinCampus(latitude: number, longitude: number): boolean {
 }
 
 export function useUserLocation({
+  bounds,
   onFirstLocation,
 }: UseUserLocationOptions): UseUserLocationResult {
   const [state, setState] = useState<UserLocationState>({ kind: 'idle' });
@@ -60,6 +71,8 @@ export function useUserLocation({
   );
   const onFirstRef = useRef(onFirstLocation);
   onFirstRef.current = onFirstLocation;
+  const boundsRef = useRef(bounds);
+  boundsRef.current = bounds;
   // 現在の監視の watch ID とセッション ID。clearWatch 前にキューへ積まれた
   // コールバックが後から届いても、セッション不一致で捨てる
   const watchIdRef = useRef<number | null>(null);
@@ -98,7 +111,9 @@ export function useUserLocation({
     watchIdRef.current = navigator.geolocation.watchPosition(
       ({ coords }) => {
         if (session !== sessionRef.current) return;
-        if (!isWithinCampus(coords.latitude, coords.longitude)) {
+        if (
+          !isWithinBounds(boundsRef.current, coords.latitude, coords.longitude)
+        ) {
           fail('out_of_campus');
           return;
         }

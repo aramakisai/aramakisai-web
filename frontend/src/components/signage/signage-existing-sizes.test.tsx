@@ -44,6 +44,7 @@ describe('待機中サイネージの文字の大きさ', () => {
               id: 1,
               stageId: 1,
               name: 'ダンスサークル',
+              projectName: null,
               href: null,
               slot: {
                 dateKey: '2026-11-02',

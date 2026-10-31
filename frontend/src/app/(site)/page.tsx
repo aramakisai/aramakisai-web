@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { getAccessSettings } from '@/lib/access-settings';
 import { getHomePage } from '@/lib/home-page';
 import { HeroSection } from '@/components/hero-section';
 import { AboutSection } from '@/components/about-section';
@@ -129,6 +130,7 @@ export default async function Page() {
           id: t.id,
           title: t.title,
           imageId: t.imageId,
+          image: t.image,
         }))}
         variant="scroll"
       />
@@ -138,10 +140,11 @@ export default async function Page() {
   if (phase === 'live') {
     // 企画一覧・協賛はトップページ以外でも使う汎用の取得層のため、開催中フェーズでのみ
     // ここから呼ぶ (getHomePage には含めない、design.md Requirement 3)
-    const [exhibitions, adSponsors, localSponsors] = await Promise.all([
+    const [exhibitions, adSponsors, localSponsors, access] = await Promise.all([
       getFeaturedExhibitions(),
       getAdSponsors(),
       getLocalSponsors(),
+      getAccessSettings().catch(() => null),
     ]);
 
     return (
@@ -187,7 +190,7 @@ export default async function Page() {
           descriptionHtml={content.theme?.descriptionHtml ?? null}
         />
 
-        <AccessSection />
+        <AccessSection summary={access?.summary ?? ''} />
 
         <SponsorsList adSponsors={adSponsors} localSponsors={localSponsors} />
       </div>

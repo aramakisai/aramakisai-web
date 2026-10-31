@@ -53,7 +53,7 @@ function NoticeText({
       {single ? <Chip notice={single} /> : null}
       <p className={LABEL}>まもなく</p>
       {single ? (
-        <p className="line-clamp-2 w-full font-display text-[96px] leading-[1.1] font-extrabold break-words text-text">
+        <p className="line-clamp-2 w-full font-display text-[96px] leading-[1.1] font-black break-words text-text">
           {single.name}
         </p>
       ) : (
@@ -65,7 +65,7 @@ function NoticeText({
               className="flex h-[62px] items-center gap-6"
             >
               <Chip notice={n} />
-              <p className="min-w-0 flex-1 truncate font-display text-[56px] leading-[1.1] font-extrabold text-text">
+              <p className="min-w-0 flex-1 truncate font-display text-[56px] leading-[1.1] font-black text-text">
                 {n.name}
               </p>
             </div>

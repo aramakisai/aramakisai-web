@@ -23,9 +23,10 @@ export function NavIndicator({
   readonly sub?: boolean;
   readonly className?: string;
 }) {
+  // focus-within だとマウス操作後のプログラム的フォーカス (フォーカストラップ) でも点灯するため、キーボード由来の focus-visible に限る
   const hover = sub
     ? 'group-hover/sub:scale-x-100 group-hover/sub:opacity-80 group-focus-visible/sub:scale-x-100 group-focus-visible/sub:opacity-80'
-    : 'group-hover:scale-x-100 group-hover:opacity-80 group-focus-within:scale-x-100 group-focus-within:opacity-80';
+    : 'group-hover:scale-x-100 group-hover:opacity-80 group-focus-visible:scale-x-100 group-focus-visible:opacity-80 group-has-[:focus-visible]:scale-x-100 group-has-[:focus-visible]:opacity-80';
   return (
     <span
       aria-hidden="true"

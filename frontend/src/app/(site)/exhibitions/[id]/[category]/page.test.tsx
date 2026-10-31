@@ -51,10 +51,18 @@ vi.mock('@/lib/use-motion-preference', () => ({
   useMotionPreference: () => ({ reduced: false, toggle: vi.fn() }),
 }));
 
-vi.mock('@/lib/cms-asset-url', () => ({
-  toAssetUrl: (id: string | null, width?: number) =>
-    id ? `https://cms.example.com/assets/${id}/${width}` : null,
-}));
+vi.mock('@/lib/cms-asset-url', () => {
+  const toAssetUrl = (id: string | null, width?: number) =>
+    id ? `https://cms.example.com/assets/${id}/${width}` : null;
+  return {
+    toAssetUrl,
+    toCardImageUrl: (image: { id: string }) => toAssetUrl(image.id, 960),
+    toHeroImage: (image: { id: string }) => {
+      const src = toAssetUrl(image.id, 1920);
+      return src ? { src } : null;
+    },
+  };
+});
 
 vi.mock('@/env', () => ({
   env: {

@@ -18,6 +18,7 @@ const perf = (
   id,
   stageId,
   name,
+  projectName: null,
   href,
   slot: { dateKey: '2026-11-14', startAt: jst(start), endAt: jst(end) },
 });

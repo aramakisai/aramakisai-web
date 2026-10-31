@@ -1,8 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
-import type { CSSProperties } from 'react';
 import Link from 'next/link';
-import { getExhibitionTexture } from '@/lib/exhibition-color';
-import { toAssetUrl } from '@/lib/cms-asset-url';
+import { exhibitionTextureStyle } from '@/lib/exhibition-color';
+import { toCardImageUrl } from '@/lib/cms-asset-url';
 import { listingHref, type ListingCard } from '@/lib/exhibitions';
 import { BookmarkButton } from './bookmark-button';
 import { ImageIcon, PlaceIcon } from './icons';
@@ -11,31 +10,23 @@ export interface ExhibitionCardProps {
   readonly exhibition: ListingCard;
   readonly bookmarkable?: boolean;
   readonly variant?: 'site' | 'signage';
+  /** ファーストビューの画像。遅延読み込みせず優先して取得する */
+  readonly priority?: boolean;
 }
 
 export function ExhibitionCard({
   exhibition,
   bookmarkable = false,
   variant = 'site',
+  priority = false,
 }: ExhibitionCardProps) {
-  const { texture, position, rotation } = getExhibitionTexture(
-    exhibition.displayName,
-  );
-  // globals.css の html[data-pl] 規則が url に含まれる /images/textures/ を目印に load まで止める。
-  // 原画は地の幅の 1.2 倍の正方形に敷いて回し、カードの地で切り抜く (地の縦が横の 0.66 倍 (= √(1.2²−1)) 以内なら隅が欠けない)。
-  // 背景の幅は回す前の地の幅 × 2.5 (= 正方形の幅の 250%/1.2)
-  const textureStyle: CSSProperties = {
-    transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
-    backgroundImage: `url(/images/textures/pamphlet/${texture}.webp)`,
-    backgroundSize: `calc(250% / 1.2) auto`,
-    backgroundPosition: `${position[0]}% ${position[1]}%`,
-  };
+  const textureStyle = exhibitionTextureStyle(exhibition.displayName);
 
   // 企業ブースは ブックマーク・スタンプの保存形式 (学生企画のカテゴリ) の対象外
   const showBookmark = bookmarkable && exhibition.category !== 'booth';
   const signage = variant === 'signage';
   const thumbnailUrl = exhibition.thumbnail
-    ? toAssetUrl(exhibition.thumbnail.id, 960)
+    ? toCardImageUrl(exhibition.thumbnail)
     : null;
 
   return (
@@ -49,6 +40,9 @@ export function ExhibitionCard({
             <img
               src={thumbnailUrl}
               alt={exhibition.thumbnail!.alt}
+              loading={priority ? undefined : 'lazy'}
+              fetchPriority={priority ? 'high' : undefined}
+              decoding="async"
               className="absolute inset-0 h-full w-full object-contain"
             />
           ) : (

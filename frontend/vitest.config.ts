@@ -21,7 +21,7 @@ export default defineConfig({
     environmentMatchGlobs: [
       ['**/*.test.tsx', 'jsdom'],
       ['src/lib/use-focus-trap.test.ts', 'jsdom'],
-      ['src/components/campus-map/use-user-location.test.ts', 'jsdom'],
+      ['src/components/map/use-user-location.test.ts', 'jsdom'],
       ['src/lib/use-motion-preference.test.ts', 'jsdom'],
       ['src/lib/use-now.test.ts', 'jsdom'],
       ['src/lib/mypage-storage.test.ts', 'jsdom'],

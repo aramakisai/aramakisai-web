@@ -47,7 +47,7 @@ function optionalText(value: unknown): string | null {
   return trimmed === '' ? null : trimmed;
 }
 
-function websiteUrl(value: unknown): string | null {
+export function websiteUrl(value: unknown): string | null {
   const text = optionalText(value);
   if (text === null) return null;
   try {

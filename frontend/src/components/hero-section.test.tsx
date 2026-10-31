@@ -312,7 +312,7 @@ describe('HeroSection', () => {
       }
     });
 
-    test('renders the theme word in LINE Seed JP Thin at the Figma-measured sizes (SP 72px, PC 120px)', () => {
+    test('renders the theme word in Noto Sans JP Thin at the Figma-measured sizes (SP 72px, PC 120px)', () => {
       const { container } = render(<HeroSection {...fullProps} />);
 
       const mobile = screen.getByTestId('hero-content-mobile');
@@ -330,7 +330,7 @@ describe('HeroSection', () => {
       expect(container.innerHTML).not.toContain('font-mincho');
     });
 
-    test('renders the countdown in LINE Seed JP bold (no serif reference)', () => {
+    test('renders the countdown in Noto Sans JP bold (no serif reference)', () => {
       render(<HeroSection {...fullProps} />);
 
       const mobile = screen.getByTestId('hero-content-mobile');

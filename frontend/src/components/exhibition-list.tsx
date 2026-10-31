@@ -41,6 +41,9 @@ function readQueryFromLocation(): ExhibitionQuery {
   });
 }
 
+// lg:grid-cols-4 の 1 行目
+const FIRST_ROW_COUNT = 4;
+
 export function ExhibitionList({ cards, areas }: ExhibitionListProps) {
   // サーバー描画 (ISR のキャッシュ) は URL を知らないため全件・1 ページ目で始まり、
   // マウント時に URL から復元する
@@ -108,9 +111,10 @@ export function ExhibitionList({ cards, areas }: ExhibitionListProps) {
           </p>
           {/* items-start がないと行内の最も高いカードに合わせて伸び、グラデーション帯の
             下に背景色が残って角丸が効かなくなる。 */}
-          <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-4">
-            {paginated.items.map((exhibition) => (
+          <div className="grid grid-cols-1 items-start gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {paginated.items.map((exhibition, index) => (
               <ExhibitionCard
+                priority={index < FIRST_ROW_COUNT}
                 key={`${exhibition.id}-${exhibition.category}`}
                 exhibition={exhibition}
                 bookmarkable

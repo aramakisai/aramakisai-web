@@ -17,7 +17,8 @@ export function collectObstacles(
   root: HTMLElement,
 ): Omit<PlacementInput, 'pathname' | 'platform'> {
   const scrollY = window.scrollY;
-  const width = window.innerWidth;
+  // innerWidth はスクロールバーを含み、装飾レイヤー (コンテナ幅) より広くなる
+  const width = document.documentElement.clientWidth;
   const height = root.getBoundingClientRect().height;
 
   const headerEl = root.querySelector('header');

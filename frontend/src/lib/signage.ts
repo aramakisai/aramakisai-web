@@ -161,14 +161,14 @@ function paginateRows(rows: readonly SponsorRow[], height: number) {
   return pages;
 }
 
-/** プランA→B→C→社名(D・未設定・ロゴなし)の順に、プランごと別ページにする。1ページに複数プランを混ぜない */
+/** プランA→B→C→社名(D・未設定)の順に、プランごと別ページにする。1ページに複数プランを混ぜない */
 export function paginateSponsors(
   sponsors: readonly SignageSponsor[],
 ): readonly (readonly SponsorRow[])[] {
   const pages: SponsorRow[][] = [];
   for (const tier of LOGO_TIERS) {
     const spec = LOGO_ROW_SPEC[tier];
-    const logos = sponsors.filter((s) => s.tier === tier && s.logoId !== null);
+    const logos = sponsors.filter((s) => s.tier === tier);
     const rows = chunk(logos, spec.columns).map((items): SponsorRow => ({
       kind: 'logo',
       tier,
@@ -177,9 +177,7 @@ export function paginateSponsors(
     pages.push(...paginateRows(rows, spec.height));
   }
   const rest = sponsors.filter(
-    (s) =>
-      s.logoId === null ||
-      !(LOGO_TIERS as readonly string[]).includes(s.tier ?? ''),
+    (s) => !(LOGO_TIERS as readonly string[]).includes(s.tier ?? ''),
   );
   const nameRows = chunk(rest, NAME_ROW_SPEC.columns).map(
     (items): SponsorRow => ({ kind: 'names', items }),

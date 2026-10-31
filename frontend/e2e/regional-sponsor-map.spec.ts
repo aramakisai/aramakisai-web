@@ -1,172 +1,9 @@
-import { createServer, type Server } from 'node:http';
 import { expect, test, type Page } from '@playwright/test';
 import { REGIONAL_MAP_TILE_PROFILE } from '../src/lib/map-tile-profile';
-
-const CMS_PORT = 18055;
-const CMS_ORIGIN = `http://127.0.0.1:${CMS_PORT}`;
-const ONE_PIXEL_PNG = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ZQmcAAAAASUVORK5CYII=',
-  'base64',
-);
-
-type CmsMode = 'ok' | 'error';
-let cmsMode: CmsMode = 'ok';
-let cmsServer: Server;
-
-const baseSponsor = {
-  type: ['local'],
-  logo: null,
-  url: null,
-  description: null,
-  business_category: null,
-  local_image: null,
-  local_business_hours: null,
-  local_phone: null,
-  tier: null,
-  area_id: null,
-  booth_number: null,
-  booth_label: null,
-  updatedAt: '2026-10-22T00:00:00.000Z',
-  createdAt: '2026-10-22T00:00:00.000Z',
-};
-
-const sponsorFixtures = [
-  {
-    ...baseSponsor,
-    id: 101,
-    _order: 'a01',
-    name: 'テスト専用あらまき病院',
-    business_category: 'hospital',
-    local_latitude: 36.41,
-    local_longitude: 139.1,
-    address: '群馬県テスト市中央1-1',
-    local_image: { id: 201, alt: 'テスト専用病院の外観' },
-    description: '地域のみなさまを応援します。\nテスト専用メッセージです。',
-    local_business_hours: '9:00〜17:00\n日曜定休',
-    local_phone: '027-000-0000',
-    url: 'https://example.invalid/hospital',
-  },
-  {
-    ...baseSponsor,
-    id: 102,
-    _order: 'a02',
-    name: 'テスト専用くらし商店',
-    business_category: 'life',
-    local_latitude: 36.43,
-    local_longitude: 139.16,
-    address: '群馬県テスト市くらし2-2',
-  },
-  {
-    ...baseSponsor,
-    id: 103,
-    _order: 'a03',
-    name: 'テスト専用自動車工房',
-    business_category: 'car',
-    local_latitude: 36.38,
-    local_longitude: 139.16,
-    address: '群馬県テスト市くるま3-3',
-    local_image: { id: 202, alt: '読込失敗確認用画像' },
-  },
-  {
-    ...baseSponsor,
-    id: 104,
-    _order: 'a04',
-    name: 'テスト専用学習塾',
-    business_category: 'education',
-    local_latitude: 36.45,
-    local_longitude: 139.08,
-    address: '群馬県テスト市まなび4-4',
-  },
-  {
-    ...baseSponsor,
-    id: 105,
-    _order: 'a05',
-    name: 'テスト専用食堂A',
-    business_category: 'food',
-    local_latitude: 36.405,
-    local_longitude: 139.125,
-    address: '群馬県テスト市同一座標5-5',
-  },
-  {
-    ...baseSponsor,
-    id: 106,
-    _order: 'a06',
-    name: 'テスト専用食堂B',
-    business_category: 'food',
-    local_latitude: 36.405,
-    local_longitude: 139.125,
-    address: '群馬県テスト市同一座標5-5',
-  },
-  {
-    ...baseSponsor,
-    id: 107,
-    _order: 'a07',
-    name: 'テスト専用雑貨店',
-    business_category: 'shop',
-    local_latitude: 36.37,
-    local_longitude: 139.075,
-    address: '群馬県テスト市おみせ7-7',
-  },
-  {
-    ...baseSponsor,
-    id: 109,
-    _order: 'a09',
-    name: 'テスト専用雑貨店B',
-    business_category: 'shop',
-    local_latitude: 36.37003,
-    local_longitude: 139.075,
-    address: '群馬県テスト市おみせ7-7',
-  },
-  {
-    ...baseSponsor,
-    id: 108,
-    _order: 'a08',
-    name: '除外確認用不正fixture',
-    business_category: 'shop',
-    local_latitude: 999,
-    local_longitude: 139.1,
-    address: '公開されないテスト専用住所',
-  },
-];
-
-function startCmsFixtureServer(): Promise<void> {
-  cmsServer = createServer((request, response) => {
-    const url = new URL(request.url ?? '/', CMS_ORIGIN);
-    response.setHeader('Access-Control-Allow-Origin', '*');
-    if (url.pathname === '/api/sponsors') {
-      if (cmsMode === 'error') {
-        response.writeHead(503, { 'Content-Type': 'application/json' });
-        response.end(JSON.stringify({ error: 'fixture unavailable' }));
-        return;
-      }
-      response.writeHead(200, { 'Content-Type': 'application/json' });
-      response.end(
-        JSON.stringify({
-          docs: sponsorFixtures,
-          totalDocs: sponsorFixtures.length,
-        }),
-      );
-      return;
-    }
-    if (url.pathname.startsWith('/api/media/serve/201/')) {
-      response.writeHead(200, { 'Content-Type': 'image/png' });
-      response.end(ONE_PIXEL_PNG);
-      return;
-    }
-    response.writeHead(404, { 'Content-Type': 'application/json' });
-    response.end(JSON.stringify({ error: 'fixture not found' }));
-  });
-  return new Promise((resolve, reject) => {
-    cmsServer.once('error', reject);
-    cmsServer.listen(CMS_PORT, '127.0.0.1', resolve);
-  });
-}
-
-function stopCmsFixtureServer(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    cmsServer.close((error) => (error ? reject(error) : resolve()));
-  });
-}
+import {
+  ONE_PIXEL_PNG,
+  setRegionalCmsMode,
+} from './fixtures/cms-fixture-server';
 
 async function useFixtureTiles(page: Page): Promise<void> {
   await page.route('**/regional-map-tiles/**', (route) =>
@@ -201,33 +38,20 @@ async function expectMapControlsAboveSheet(page: Page): Promise<void> {
         const zoom = document.querySelector<HTMLElement>(
           '.leaflet-control-zoom',
         );
-        const corners = [
-          ...document.querySelectorAll<HTMLElement>(
-            '.regional-sponsor-map .leaflet-bottom',
-          ),
-        ];
-        if (!sheet || !attribution || !zoom || corners.length === 0) {
-          return false;
-        }
+        if (!sheet || !attribution || !zoom) return false;
         const sheetBox = sheet.getBoundingClientRect();
         const controls = [attribution, zoom].map((element) =>
           element.getBoundingClientRect(),
         );
         return (
+          // 地図コンテナはシート上端から角丸の 16px だけシートの下に潜る
           controls.every(
             (box) =>
               box.width > 0 &&
               box.height > 0 &&
               box.top >= 0 &&
-              box.bottom <= sheetBox.top,
-          ) &&
-          corners.every((corner) => {
-            const style = getComputedStyle(corner);
-            return (
-              parseFloat(style.bottom) >= sheetBox.height - 0.5 &&
-              style.transitionDuration === '0s'
-            );
-          })
+              box.bottom <= sheetBox.top + 16,
+          )
         );
       }),
     )
@@ -277,28 +101,27 @@ async function expectSelectedPinBetweenOverlays(page: Page): Promise<void> {
     .toBe(true);
 }
 
+// PC パネルと SP シートは両方描画され、使わない側は非表示になる。文言で引く要素は表示中のものに絞る
 test.describe('地域協賛マップ fixture E2E', { tag: '@local-fixture' }, () => {
   test.describe.configure({ mode: 'serial' });
   test.setTimeout(120_000);
 
-  test.beforeAll(async () => startCmsFixtureServer());
-  test.afterAll(async () => stopCmsFixtureServer());
   test.beforeEach(async ({ page }) => {
-    cmsMode = 'ok';
+    await setRegionalCmsMode('ok');
     await useFixtureTiles(page);
   });
 
   test('CMS取得失敗を通知し、再試行で一覧を復元する', async ({ page }) => {
-    cmsMode = 'error';
+    await setRegionalCmsMode('error');
     await page.goto('/sponsors/local', { waitUntil: 'domcontentloaded' });
     await expect(
       page.getByRole('alert').filter({
         hasText: '地域協賛情報を取得できませんでした。',
       }),
     ).toBeVisible();
-    cmsMode = 'ok';
+    await setRegionalCmsMode('ok');
     await page.getByRole('button', { name: '再試行' }).click();
-    await expect(page.getByText('8件')).toBeVisible();
+    await expect(page.getByText('8件').locator('visible=true')).toBeVisible();
   });
 
   test('PCで検索・カテゴリ・詳細の操作で見出しへフォーカスが移る', async ({
@@ -306,7 +129,10 @@ test.describe('地域協賛マップ fixture E2E', { tag: '@local-fixture' }, ()
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await openMap(page);
-    await page.getByPlaceholder('店舗名・カテゴリ・住所で検索').fill('中央1-1');
+    await page
+      .getByPlaceholder('店舗名・カテゴリ・住所で検索')
+      .locator('visible=true')
+      .fill('中央1-1');
     await page.getByRole('button', { name: '病院', exact: true }).click();
     await page
       .getByRole('button', { name: /テスト専用あらまき病院.*詳細を表示/ })
@@ -389,8 +215,8 @@ test.describe('地域協賛マップ fixture E2E', { tag: '@local-fixture' }, ()
     });
   }
 
-  test('PC 800×1000 の初期表示でタイル範囲外が見えない', async ({ page }) => {
-    await page.setViewportSize({ width: 800, height: 1000 });
+  test('PC 1100×900 の初期表示でタイル範囲外が見えない', async ({ page }) => {
+    await page.setViewportSize({ width: 1100, height: 900 });
     await openMap(page);
     await expect(page.locator('.leaflet-marker-icon').first()).toBeVisible();
     const [[south, west], [north, east]] = REGIONAL_MAP_TILE_PROFILE.bounds;
@@ -479,7 +305,7 @@ test.describe('地域協賛マップ fixture E2E', { tag: '@local-fixture' }, ()
     ).toHaveCount(0);
   });
 
-  test('スマートフォンで地点の一覧を一覧snapで開き、詳細からシートの戻り先へ戻る', async ({
+  test('スマートフォンで地点の一覧を開き、詳細からシートの戻り先へ戻る', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -491,23 +317,25 @@ test.describe('地域協賛マップ fixture E2E', { tag: '@local-fixture' }, ()
       page.getByRole('heading', { name: 'この地点の地域協賛2件' }),
     ).toBeFocused();
     await expect(
-      page.getByRole('button', { name: /現在: 一覧/ }),
+      page.getByRole('button', { name: /現在: 標準/ }),
     ).toBeVisible();
     await expect(
-      page.getByPlaceholder('店舗名・カテゴリ・住所で検索'),
+      page
+        .getByPlaceholder('店舗名・カテゴリ・住所で検索')
+        .locator('visible=true'),
     ).toBeVisible();
     await page
       .getByRole('button', { name: /テスト専用食堂A.*詳細を表示/ })
       .click();
     await expect(
-      page.getByRole('button', { name: /現在: 詳細/ }),
+      page.getByRole('button', { name: /現在: 標準/ }),
     ).toBeVisible();
     await page.getByRole('button', { name: '店舗一覧に戻る' }).click();
     await expect(
       page.getByRole('heading', { name: 'この地点の地域協賛2件' }),
     ).toBeVisible();
     await expect(
-      page.getByRole('button', { name: /現在: 一覧/ }),
+      page.getByRole('button', { name: /現在: 標準/ }),
     ).toBeVisible();
   });
 
@@ -520,18 +348,28 @@ test.describe('地域協賛マップ fixture E2E', { tag: '@local-fixture' }, ()
     );
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/sponsors/local', { waitUntil: 'domcontentloaded' });
-    await expect(
-      page.getByText(/地図タイルを読み込めませんでした/),
-    ).toBeVisible({
+    await expect(page.locator('.leaflet-container')).toBeVisible({
       timeout: 20_000,
     });
 
-    const search = page.getByPlaceholder('店舗名・カテゴリ・住所で検索');
+    const search = page
+      .getByPlaceholder('店舗名・カテゴリ・住所で検索')
+      .locator('visible=true');
+    const cards = page
+      .getByRole('button', { name: /詳細を表示/ })
+      .locator('visible=true');
+    const placeholder = page
+      .getByTestId('sponsor-image-placeholder')
+      .locator('visible=true');
     await search.fill('くらし商店');
-    await expect(page.getByTestId('sponsor-image-placeholder')).toBeVisible();
+    await expect(cards).toHaveCount(1);
+    await expect(cards).toContainText('くらし商店');
+    await expect(placeholder).toBeVisible();
     await search.fill('自動車工房');
-    await expect(page.getByTestId('sponsor-image-placeholder')).toBeVisible();
-    await expect(page.getByText('1件')).toBeVisible();
+    await expect(cards).toHaveCount(1);
+    await expect(cards).toContainText('自動車工房');
+    await expect(placeholder).toBeVisible();
+    await expect(page.getByText('1件').locator('visible=true')).toBeVisible();
   });
 
   test('スマートフォンでsheet・カテゴリ・focus・横幅を保持する', async ({
@@ -541,7 +379,7 @@ test.describe('地域協賛マップ fixture E2E', { tag: '@local-fixture' }, ()
     await openMap(page);
     const sheet = page.getByTestId('map-bottom-sheet');
     await expect(
-      page.getByRole('button', { name: /現在: 一覧/ }),
+      page.getByRole('button', { name: /現在: 標準/ }),
     ).toBeVisible();
     await expectMapControlsAboveSheet(page);
     expect(
@@ -552,18 +390,13 @@ test.describe('地域協賛マップ fixture E2E', { tag: '@local-fixture' }, ()
       ),
     ).toBe(true);
 
-    const listGrabber = page.getByRole('button', { name: /現在: 一覧/ });
+    const listGrabber = page.getByRole('button', { name: /現在: 標準/ });
     await listGrabber.focus();
     await page.keyboard.press('ArrowUp');
-    await expect(
-      page.getByRole('button', { name: /現在: 展開/ }),
-    ).toBeVisible();
-    await expect(page.getByRole('button', { name: /現在: 詳細/ })).toHaveCount(
-      0,
-    );
+    await expect(page.getByRole('button', { name: /現在: 大/ })).toBeVisible();
     await page.keyboard.press('ArrowDown');
     await expect(
-      page.getByRole('button', { name: /現在: 一覧/ }),
+      page.getByRole('button', { name: /現在: 標準/ }),
     ).toBeVisible();
 
     const card = page.getByRole('button', {
@@ -576,28 +409,27 @@ test.describe('地域協賛マップ fixture E2E', { tag: '@local-fixture' }, ()
     await expectMapControlsAboveSheet(page);
     await expectSelectedPinBetweenOverlays(page);
     const detailImage = await page
-      .locator('article .aspect-video')
+      .locator('article .aspect-video:visible')
       .boundingBox();
     expect(detailImage!.width / detailImage!.height).toBeCloseTo(16 / 9, 1);
 
+    // 詳細を開いても選択前の高さを維持する。縮めると内容は操作対象外になり、戻すと戻る操作が使える
     const detailHeight = await sheet.evaluate(
       (element) => element.getBoundingClientRect().height,
     );
-    const detailGrabber = page.getByRole('button', { name: /現在: 詳細/ });
+    const detailGrabber = page.getByRole('button', { name: /現在: 標準/ });
     await detailGrabber.focus();
     await page.keyboard.press('ArrowDown');
     await expect(
-      page.getByRole('button', { name: /現在: 一覧/ }),
+      page.getByRole('button', { name: /現在: 最小/ }),
     ).toBeVisible();
     await expectMapControlsAboveSheet(page);
-    await page.keyboard.press('ArrowDown');
-    await expect(
-      page.getByRole('button', { name: /現在: 縮小/ }),
-    ).toBeVisible();
-    await expectMapControlsAboveSheet(page);
-    expect(
-      await sheet.evaluate((element) => element.getBoundingClientRect().height),
-    ).toBeLessThan(detailHeight);
+    await expect
+      .poll(() =>
+        sheet.evaluate((element) => element.getBoundingClientRect().height),
+      )
+      .toBeLessThan(detailHeight);
+    await page.keyboard.press('ArrowUp');
     const back = page.getByRole('button', { name: '店舗一覧に戻る' });
     await expect(back).toBeVisible();
     await back.focus();

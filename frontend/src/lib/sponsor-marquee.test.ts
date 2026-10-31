@@ -6,7 +6,15 @@ const sp = (
   id: number,
   tier: string | null,
   logo: string | null = `l${id}`,
-): SponsorListItem => ({ id, name: `s${id}`, logoId: logo, url: null, tier });
+): SponsorListItem => ({
+  id,
+  name: `s${id}`,
+  logoId: logo,
+  logoWidth: null,
+  logoHeight: null,
+  url: null,
+  tier,
+});
 
 const ids = (b: ReturnType<typeof buildMarqueeBlocks>[number]) =>
   b.columns.map((c) => c.map((s) => s.id));
@@ -27,7 +35,7 @@ describe('buildMarqueeBlocks', () => {
     ]);
   });
 
-  it('列あたり A=2 / B=3 / C=4 / D=5 件で上から詰める', () => {
+  it('列あたり A=2 / B=2 / C=3 / D=4 件で上から詰める', () => {
     const mk = (tier: string, n: number, base: number) =>
       Array.from({ length: n }, (_, i) =>
         sp(base + i, tier, tier === 'planD' ? null : undefined),
@@ -39,16 +47,30 @@ describe('buildMarqueeBlocks', () => {
       ...mk('planD', 6, 40),
     ]);
     expect(ids(blocks[0])).toEqual([[10, 11], [12]]);
-    expect(ids(blocks[1])).toEqual([[20, 21, 22], [23]]);
-    expect(ids(blocks[2])).toEqual([[30, 31, 32, 33], [34]]);
-    expect(ids(blocks[3])).toEqual([[40, 41, 42, 43, 44], [45]]);
+    expect(ids(blocks[1])).toEqual([
+      [20, 21],
+      [22, 23],
+    ]);
+    expect(ids(blocks[2])).toEqual([
+      [30, 31, 32],
+      [33, 34],
+    ]);
+    expect(ids(blocks[3])).toEqual([
+      [40, 41, 42, 43],
+      [44, 45],
+    ]);
   });
 
-  it('A〜C でもロゴが無い協賛・tier 未設定は D に回す', () => {
-    const blocks = buildMarqueeBlocks([sp(1, 'planA', null), sp(2, null)]);
-    expect(blocks).toHaveLength(1);
-    expect(blocks[0].tier).toBe('planD');
-    expect(ids(blocks[0])).toEqual([[1, 2]]);
+  it('A〜C はロゴが無くても自プランに置き、tier 未設定は D に回す', () => {
+    const blocks = buildMarqueeBlocks([
+      sp(1, 'planA', null),
+      sp(2, 'planC', null),
+      sp(3, null),
+    ]);
+    expect(blocks.map((b) => b.tier)).toEqual(['planA', 'planC', 'planD']);
+    expect(ids(blocks[0])).toEqual([[1]]);
+    expect(ids(blocks[1])).toEqual([[2]]);
+    expect(ids(blocks[2])).toEqual([[3]]);
   });
 
   it('0 件なら空', () => {

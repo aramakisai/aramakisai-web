@@ -1,6 +1,11 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { isWithinCampus, useUserLocation } from './use-user-location';
+import { CAMPUS_MAP_CONFIG } from '@/lib/campus-map-config';
+import { isWithinBounds, useUserLocation } from './use-user-location';
+
+const bounds = CAMPUS_MAP_CONFIG.campusBounds;
+const isWithinCampus = (lat: number, lng: number) =>
+  isWithinBounds(bounds, lat, lng);
 
 type Success = (pos: GeolocationPosition) => void;
 type Failure = (err: GeolocationPositionError) => void;
@@ -45,7 +50,7 @@ beforeEach(() => {
   });
 });
 
-describe('isWithinCampus', () => {
+describe('isWithinBounds', () => {
   test('内側・境界上・外側', () => {
     expect(isWithinCampus(INSIDE.lat, INSIDE.lng)).toBe(true);
     expect(isWithinCampus(36.42745, 139.04137)).toBe(true);
@@ -59,7 +64,7 @@ describe('isWithinCampus', () => {
 describe('useUserLocation', () => {
   test('マウントだけでは watchPosition を呼ばない', () => {
     const { result } = renderHook(() =>
-      useUserLocation({ onFirstLocation: vi.fn() }),
+      useUserLocation({ bounds, onFirstLocation: vi.fn() }),
     );
     expect(watchPosition).not.toHaveBeenCalled();
     expect(result.current.state).toEqual({ kind: 'idle' });
@@ -68,7 +73,9 @@ describe('useUserLocation', () => {
 
   test('start で開始し、範囲内の位置で更新、初回通知は1回だけ', () => {
     const onFirstLocation = vi.fn();
-    const { result } = renderHook(() => useUserLocation({ onFirstLocation }));
+    const { result } = renderHook(() =>
+      useUserLocation({ bounds, onFirstLocation }),
+    );
     act(() => result.current.start());
     expect(watchPosition).toHaveBeenCalledWith(
       expect.any(Function),
@@ -93,7 +100,9 @@ describe('useUserLocation', () => {
 
   test('範囲外の位置で停止し out_of_campus が記録される', () => {
     const onFirstLocation = vi.fn();
-    const { result } = renderHook(() => useUserLocation({ onFirstLocation }));
+    const { result } = renderHook(() =>
+      useUserLocation({ bounds, onFirstLocation }),
+    );
     act(() => result.current.start());
     emit(1, OUTSIDE.lat, OUTSIDE.lng);
     expect(clearWatch).toHaveBeenCalledWith(1);
@@ -111,7 +120,7 @@ describe('useUserLocation', () => {
     [3, 'timeout'],
   ])('エラー code %i は %s として記録され停止する', (code, reason) => {
     const { result } = renderHook(() =>
-      useUserLocation({ onFirstLocation: vi.fn() }),
+      useUserLocation({ bounds, onFirstLocation: vi.fn() }),
     );
     act(() => result.current.start());
     fail(1, code);
@@ -123,7 +132,7 @@ describe('useUserLocation', () => {
   test('geolocation 非対応なら watch せず unsupported が記録される', () => {
     delete (navigator as unknown as Record<string, unknown>).geolocation;
     const { result } = renderHook(() =>
-      useUserLocation({ onFirstLocation: vi.fn() }),
+      useUserLocation({ bounds, onFirstLocation: vi.fn() }),
     );
     act(() => result.current.start());
     expect(result.current.state).toEqual({ kind: 'idle' });
@@ -135,7 +144,7 @@ describe('useUserLocation', () => {
 
   test('watching 中の start では再登録しない', () => {
     const { result } = renderHook(() =>
-      useUserLocation({ onFirstLocation: vi.fn() }),
+      useUserLocation({ bounds, onFirstLocation: vi.fn() }),
     );
     act(() => result.current.start());
     act(() => result.current.start());
@@ -144,7 +153,7 @@ describe('useUserLocation', () => {
 
   test('アンマウントで clearWatch する', () => {
     const { result, unmount } = renderHook(() =>
-      useUserLocation({ onFirstLocation: vi.fn() }),
+      useUserLocation({ bounds, onFirstLocation: vi.fn() }),
     );
     act(() => result.current.start());
     unmount();
@@ -153,7 +162,9 @@ describe('useUserLocation', () => {
 
   test('停止後に古いセッションのコールバックが来ても無視する', () => {
     const onFirstLocation = vi.fn();
-    const { result } = renderHook(() => useUserLocation({ onFirstLocation }));
+    const { result } = renderHook(() =>
+      useUserLocation({ bounds, onFirstLocation }),
+    );
     act(() => result.current.start());
     fail(1);
     expect(result.current.lastFailure?.seq).toBe(1);

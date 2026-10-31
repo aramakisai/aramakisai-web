@@ -199,7 +199,7 @@
   h5,
   h6 {
     @apply font-display;
-    font-weight: 800;
+    font-weight: 900;
     letter-spacing: 0.02em;
     text-wrap: balance;
     word-break: auto-phrase;
@@ -742,12 +742,6 @@
 .regional-sponsor-cluster:focus-visible > img {
   outline: 3px solid #ebb03c;
   outline-offset: 3px;
-}
-
-@media (max-width: 767px) {
-  .regional-sponsor-map .leaflet-bottom {
-    bottom: var(--regional-map-bottom-inset, 0px);
-  }
 }
 
 .leaflet-tooltip.map-point-tooltip.leaflet-tooltip-top::before {

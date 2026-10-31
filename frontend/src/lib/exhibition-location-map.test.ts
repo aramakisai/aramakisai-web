@@ -3,6 +3,7 @@ import type { CampusMapArea } from './campus-map';
 import type { MultiPolygonGeometry } from './campus-map-geometry';
 import {
   buildAreaMapHref,
+  excludeOutlierAreas,
   resolveTargetAreas,
   toAreaBounds,
 } from './exhibition-location-map';
@@ -140,5 +141,54 @@ describe('buildAreaMapHref', () => {
     const area = makeArea(5);
 
     expect(buildAreaMapHref(area)).toBe('/map?area=5');
+  });
+});
+
+describe('excludeOutlierAreas', () => {
+  // [緯度中心, 経度中心] の本番相当値 (馬術場だけが北に孤立)
+  const centers: readonly [string, number, number][] = [
+    ['A', 36.43129, 139.045995],
+    ['B', 36.430665, 139.04543],
+    ['C', 36.430845, 139.04495],
+    ['D', 36.430855, 139.0444],
+    ['E', 36.43113, 139.04512],
+    ['2', 36.43025, 139.045105],
+    ['3', 36.429995, 139.045495],
+    ['5', 36.430165, 139.04341],
+    ['6', 36.43061, 139.043535],
+    ['野外', 36.43113, 139.04512],
+    ['武道', 36.42941, 139.044135],
+    ['屋内', 36.42982, 139.043975],
+    ['キッチン', 36.43106, 139.044245],
+    ['弓道', 36.429615, 139.04308],
+    ['馬術', 36.433105, 139.0439],
+    ['本部', 36.430865, 139.04514],
+  ];
+  const toAreas = (list: typeof centers) =>
+    list.map(([, lat, lng], i) =>
+      makeArea(i + 1, { geometry: squareGeometry(lng, lat) }),
+    );
+
+  it('北に孤立したエリアだけを除く', () => {
+    const areas = toAreas(centers);
+
+    const result = excludeOutlierAreas(areas);
+
+    expect(result).toHaveLength(areas.length - 1);
+    expect(result).not.toContain(areas[14]);
+  });
+
+  it('外れ値がなければ全件を返す', () => {
+    const areas = toAreas(centers.filter(([name]) => name !== '馬術'));
+
+    expect(excludeOutlierAreas(areas)).toHaveLength(areas.length);
+  });
+
+  it('少数件でも落ちず、0 件にならない', () => {
+    expect(excludeOutlierAreas([])).toEqual([]);
+    const one = [makeArea(1)];
+    expect(excludeOutlierAreas(one)).toEqual(one);
+    const two = [makeArea(1), makeArea(2)];
+    expect(excludeOutlierAreas(two).length).toBeGreaterThan(0);
   });
 });

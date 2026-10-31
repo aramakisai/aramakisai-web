@@ -394,8 +394,51 @@ describe('MapViewportController', () => {
       />,
     );
 
-    expect(map.stop).toHaveBeenCalledTimes(2);
+    expect(map.stop).toHaveBeenCalledTimes(1);
     expect(map.flyTo).toHaveBeenCalledTimes(1);
+  });
+
+  describe('連続する選択', () => {
+    beforeEach(() => {
+      map.getBoundsZoom.mockReturnValue(12);
+      map.getZoom.mockReturnValue(16);
+      map.getSize.mockReturnValue(point(390, 844));
+      map.getCenter.mockReturnValue({ lat: 0, lng: 0 });
+      map.project.mockImplementation(({ lat }: { lat: number }) =>
+        lat === 0 ? point(500, 400) : point(520, 420),
+      );
+      map.unproject.mockReturnValue({ lat: 36.41, lng: 139.1 });
+    });
+
+    it('移動中の次の選択は stop() せず、panBy でなく flyTo で乗り換え、古い moveend の購読を外す', () => {
+      const props = {
+        focusZoom: 16,
+        maxBounds,
+        minZoom: 10.5,
+        fitOptions: () => fitOptions,
+      };
+      const { rerender } = render(
+        <MapViewportController
+          {...props}
+          focusCenter={[36.41, 139.1]}
+          focusKey={1}
+        />,
+      );
+      expect(map.panBy).toHaveBeenCalledTimes(1);
+      const firstListener = map.once.mock.calls[0]![1];
+
+      rerender(
+        <MapViewportController
+          {...props}
+          focusCenter={[36.42, 139.2]}
+          focusKey={2}
+        />,
+      );
+      expect(map.stop).not.toHaveBeenCalled();
+      expect(map.panBy).toHaveBeenCalledTimes(1);
+      expect(map.flyTo).toHaveBeenCalledTimes(1);
+      expect(map.off).toHaveBeenCalledWith('moveend', firstListener);
+    });
   });
 
   it('maxBoundsPaddingがあれば余白の分だけ最大範囲を広げ、zoomendで現在のzoomに張り直す', () => {
@@ -563,6 +606,84 @@ describe('MapViewportController', () => {
       renderSelection();
       expect(map.panBy).not.toHaveBeenCalled();
       expect(map.flyTo).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('下余白に focusExtraBottom の分を足した可視領域の中央へ向かう', () => {
+    map.getBoundsZoom.mockReturnValue(12);
+    map.getZoom.mockReturnValue(16);
+    map.getSize.mockReturnValue(point(390, 844));
+    map.getCenter.mockReturnValue({ lat: 0, lng: 0 });
+    map.project.mockImplementation(({ lat }: { lat: number }) =>
+      lat === 0 ? point(500, 400) : point(520, 420),
+    );
+    map.unproject.mockReturnValue({ lat: 36.41, lng: 139.1 });
+    render(
+      <MapViewportController
+        focusCenter={[36.41, 139.1]}
+        focusKey={1}
+        focusZoom={16}
+        maxBounds={maxBounds}
+        minZoom={10.5}
+        fitOptions={() => fitOptions}
+        focusFitOptions={() => ({
+          paddingTopLeft: [0, 0],
+          paddingBottomRight: [0, 20],
+        })}
+        focusExtraBottom={() => 100}
+      />,
+    );
+    // 下余白は 20+100。可視領域の中心が 60px 上にあるぶん、中心点は下へ寄る
+    expect(map.unproject.mock.calls[0]![0].y).toBe(420 + 60);
+  });
+
+  describe('ズーム・移動中のリサイズ', () => {
+    function mountWithObserver() {
+      map.getBoundsZoom.mockReturnValue(14);
+      render(
+        <MapViewportController
+          fitBounds={initialBounds}
+          maxBounds={maxBounds}
+          minZoom={12}
+          fitOptions={() => fitOptions}
+        />,
+      );
+      map.invalidateSize.mockClear();
+      map.fitBounds.mockClear();
+      return MockResizeObserver.instances.at(-1)!;
+    }
+    const zoomEndHandlers = () =>
+      map.on.mock.calls
+        .filter(([event]) => event === 'zoomend')
+        .map(([, handler]) => handler as () => void);
+
+    it('ズームのアニメーション中は反映を保留し、zoomend の後に1回だけ反映する', () => {
+      const observer = mountWithObserver();
+      Object.assign(map, { _animatingZoom: true });
+
+      observer.trigger();
+      observer.trigger();
+      expect(map.invalidateSize).not.toHaveBeenCalled();
+      expect(map.fitBounds).not.toHaveBeenCalled();
+
+      Object.assign(map, { _animatingZoom: false });
+      for (const handler of zoomEndHandlers()) handler();
+      expect(map.invalidateSize).toHaveBeenCalledTimes(1);
+      expect(map.fitBounds).toHaveBeenCalledTimes(1);
+
+      for (const handler of zoomEndHandlers()) handler();
+      expect(map.invalidateSize).toHaveBeenCalledTimes(1);
+      delete (map as { _animatingZoom?: boolean })._animatingZoom;
+    });
+
+    it('アニメーションしていなければ即座に、内容を動かさず(pan:false)反映する', () => {
+      const observer = mountWithObserver();
+      observer.trigger();
+      expect(map.invalidateSize).toHaveBeenCalledTimes(1);
+      expect(map.invalidateSize).toHaveBeenCalledWith({
+        animate: false,
+        pan: false,
+      });
     });
   });
 });
