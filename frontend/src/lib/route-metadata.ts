@@ -8,6 +8,7 @@ export type CodeRoutePath =
   | '/faq'
   | '/timetable'
   | '/parking'
+  | '/access'
   | '/mypage';
 
 export interface RouteMetadataEntry {
@@ -63,6 +64,11 @@ export const ROUTE_METADATA: Readonly<
     title: '駐車場空き情報',
     description:
       '荒牧祭の駐車場の空き状況を確認できます。混雑状況を見てご来場の際の参考にしてください。',
+  },
+  '/access': {
+    title: 'アクセス',
+    description:
+      '荒牧祭の会場への行き方と、群馬大学荒牧・前橋自動車教習所前のバス時刻表・発車案内です。',
   },
   '/mypage': {
     title: 'マイページ',
