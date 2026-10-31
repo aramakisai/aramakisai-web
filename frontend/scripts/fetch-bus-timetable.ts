@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { parse } from 'csv-parse/sync';
 import { strFromU8, unzipSync } from 'fflate';
 import type {
+  BusCampusBoundDeparture,
   BusDirection,
   BusScheduledDeparture,
   BusService,
@@ -32,6 +33,8 @@ const KNOWN_MAEBASHI_VIA = new Set([
   '群大病院',
   '南橘団地',
 ]);
+const MAEBASHI_STATION_STOP = '200718_02';
+const CAMPUS_DESTINATION = '群馬大学荒牧';
 const PASS_THROUGH = new Set(['前橋駅', '群馬大学荒牧']);
 
 type Row = Record<string, string>;
@@ -69,6 +72,58 @@ function splitHeadsign(headsign: string): {
     : { destination: headsign, via: null };
 }
 
+const routeName = (routes: Map<string, string>, trip: Row): string =>
+  (routes.get(trip.route_id) ?? '').split(/\s/)[0];
+
+function extractCampusBound(
+  version: string,
+  stopTimes: Row[],
+  trips: Map<string, Row>,
+  routes: Map<string, string>,
+): BusCampusBoundDeparture[] {
+  const byTrip = new Map<string, Row[]>();
+  for (const st of stopTimes) {
+    const list = byTrip.get(st.trip_id) ?? [];
+    list.push(st);
+    byTrip.set(st.trip_id, list);
+  }
+  let seenStation = false;
+  const result: BusCampusBoundDeparture[] = [];
+  for (const [tripId, list] of byTrip) {
+    for (const origin of list) {
+      if (origin.stop_id !== MAEBASHI_STATION_STOP) continue;
+      seenStation = true;
+      if (origin.pickup_type === '1') continue;
+      const seq = Number(origin.stop_sequence);
+      const alights = list.filter(
+        (st) =>
+          TARGET_STOPS[st.stop_id] &&
+          st.drop_off_type !== '1' &&
+          Number(st.stop_sequence) > seq,
+      );
+      if (alights.length === 0) continue;
+      const trip = trips.get(tripId);
+      if (!trip)
+        throw new Error(`${version}: trips.txt に ${tripId} がありません`);
+      result.push({
+        tripId,
+        serviceId: trip.service_id,
+        route: routeName(routes, trip),
+        time: origin.departure_time.slice(0, 5),
+        alightStop: alights.some((st) => st.stop_id === '200273_01')
+          ? 'gunma_univ_aramaki'
+          : 'driving_school',
+      });
+    }
+  }
+  if (!seenStation) {
+    throw new Error(
+      `${version}: 前橋駅 2番のりば (${MAEBASHI_STATION_STOP}) が見つかりません`,
+    );
+  }
+  return result;
+}
+
 export function extractVersion(
   version: string,
   zip: Uint8Array,
@@ -86,7 +141,8 @@ export function extractVersion(
 
   const seenStops = new Set<string>();
   const departures: BusScheduledDeparture[] = [];
-  for (const st of readCsv(files, 'stop_times.txt')) {
+  const stopTimes = readCsv(files, 'stop_times.txt');
+  for (const st of stopTimes) {
     const stop = TARGET_STOPS[st.stop_id];
     if (!stop) continue;
     seenStops.add(st.stop_id);
@@ -104,6 +160,8 @@ export function extractVersion(
     const { destination, via } = splitHeadsign(
       st.stop_headsign || trip.trip_headsign,
     );
+    // 前橋自動車教習所前から次の群馬大学荒牧で終点になる便は、会場付近から帰る来場者が乗らない
+    if (destination === CAMPUS_DESTINATION) continue;
     if (direction === 'maebashi') {
       const rest = (via ?? '')
         .split('・')
@@ -118,7 +176,7 @@ export function extractVersion(
     departures.push({
       tripId: st.trip_id,
       serviceId: trip.service_id,
-      route: (routes.get(trip.route_id) ?? '').split(/\s/)[0],
+      route: routeName(routes, trip),
       destination,
       via,
       direction,
@@ -142,7 +200,18 @@ export function extractVersion(
       a.stopSequence - b.stopSequence,
   );
 
-  const used = new Set(departures.map((d) => d.serviceId));
+  const campusBound = extractCampusBound(version, stopTimes, trips, routes);
+  campusBound.sort(
+    (a, b) =>
+      a.time.localeCompare(b.time) ||
+      a.serviceId.localeCompare(b.serviceId) ||
+      a.tripId.localeCompare(b.tripId),
+  );
+
+  const used = new Set([
+    ...departures.map((d) => d.serviceId),
+    ...campusBound.map((d) => d.serviceId),
+  ]);
   const exceptions = readCsv(files, 'calendar_dates.txt');
   const dates = (id: string, type: string) =>
     exceptions
@@ -190,6 +259,7 @@ export function extractVersion(
     validTo: isoDate(info.feed_end_date),
     services,
     departures,
+    campusBound,
   };
 }
 

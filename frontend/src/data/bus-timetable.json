@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-10-31T07:08:50.498Z",
+  "fetchedAt": "2026-10-31T12:23:07.240Z",
   "versions": [
     {
       "version": "20260919",
@@ -301,17 +301,6 @@
           "time": "07:04"
         },
         {
-          "tripId": "平日_06時45分_系統580",
-          "serviceId": "平日",
-          "route": "22G",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 16,
-          "time": "07:04"
-        },
-        {
           "tripId": "平日_06時56分_系統267",
           "serviceId": "平日",
           "route": "22A",
@@ -321,17 +310,6 @@
           "stop": "driving_school",
           "stopSequence": 18,
           "time": "07:15"
-        },
-        {
-          "tripId": "平日_06時58分_系統586",
-          "serviceId": "平日",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "07:22"
         },
         {
           "tripId": "平日_07時22分_系統581",
@@ -485,17 +463,6 @@
           "direction": "maebashi",
           "stop": "driving_school",
           "stopSequence": 18,
-          "time": "07:48"
-        },
-        {
-          "tripId": "平日_07時23分_系統586",
-          "serviceId": "平日",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
           "time": "07:48"
         },
         {
@@ -653,17 +620,6 @@
           "time": "07:58"
         },
         {
-          "tripId": "平日_07時40分_系統580",
-          "serviceId": "平日",
-          "route": "22G",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 16,
-          "time": "08:00"
-        },
-        {
           "tripId": "平日_07時38分_系統266",
           "serviceId": "平日",
           "route": "22B",
@@ -673,61 +629,6 @@
           "stop": "gunma_univ_aramaki",
           "stopSequence": 17,
           "time": "08:00"
-        },
-        {
-          "tripId": "土曜_07時40分_系統586",
-          "serviceId": "土曜",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "08:02"
-        },
-        {
-          "tripId": "年末・年始_07時40分_系統586",
-          "serviceId": "年末・年始",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "08:02"
-        },
-        {
-          "tripId": "日祝_07時40分_系統586",
-          "serviceId": "日祝",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "08:02"
-        },
-        {
-          "tripId": "特別ダイヤ１_07時40分_系統586",
-          "serviceId": "特別ダイヤ１",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "08:02"
-        },
-        {
-          "tripId": "平日_07時42分_系統586",
-          "serviceId": "平日",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "08:07"
         },
         {
           "tripId": "土曜_07時50分_系統267",
@@ -1038,17 +939,6 @@
           "time": "08:19"
         },
         {
-          "tripId": "平日_08時00分_系統580",
-          "serviceId": "平日",
-          "route": "22G",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 16,
-          "time": "08:20"
-        },
-        {
           "tripId": "土曜_08時05分_系統265",
           "serviceId": "土曜",
           "route": "22B",
@@ -1269,17 +1159,6 @@
           "time": "08:34"
         },
         {
-          "tripId": "平日_08時13分_系統586",
-          "serviceId": "平日",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "08:38"
-        },
-        {
           "tripId": "平日_08時25分_系統267",
           "serviceId": "平日",
           "route": "22A",
@@ -1366,50 +1245,6 @@
           "stop": "driving_school",
           "stopSequence": 2,
           "time": "08:49"
-        },
-        {
-          "tripId": "土曜_08時28分_系統586",
-          "serviceId": "土曜",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "08:51"
-        },
-        {
-          "tripId": "年末・年始_08時28分_系統586",
-          "serviceId": "年末・年始",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "08:51"
-        },
-        {
-          "tripId": "日祝_08時28分_系統586",
-          "serviceId": "日祝",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "08:51"
-        },
-        {
-          "tripId": "特別ダイヤ１_08時28分_系統586",
-          "serviceId": "特別ダイヤ１",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "08:51"
         },
         {
           "tripId": "平日_08時29分_系統266",
@@ -1553,17 +1388,6 @@
           "stop": "driving_school",
           "stopSequence": 2,
           "time": "09:02"
-        },
-        {
-          "tripId": "平日_08時40分_系統586",
-          "serviceId": "平日",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "09:05"
         },
         {
           "tripId": "平日_08時56分_系統273",
@@ -1808,17 +1632,6 @@
           "time": "09:22"
         },
         {
-          "tripId": "平日_09時05分_系統586",
-          "serviceId": "平日",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "09:30"
-        },
-        {
           "tripId": "土曜_09時15分_系統267",
           "serviceId": "土曜",
           "route": "22A",
@@ -1872,50 +1685,6 @@
           "stop": "driving_school",
           "stopSequence": 16,
           "time": "09:37"
-        },
-        {
-          "tripId": "土曜_09時17分_系統586",
-          "serviceId": "土曜",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "09:39"
-        },
-        {
-          "tripId": "年末・年始_09時17分_系統586",
-          "serviceId": "年末・年始",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "09:39"
-        },
-        {
-          "tripId": "日祝_09時17分_系統586",
-          "serviceId": "日祝",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "09:39"
-        },
-        {
-          "tripId": "特別ダイヤ１_09時17分_系統586",
-          "serviceId": "特別ダイヤ１",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "09:39"
         },
         {
           "tripId": "平日_09時17分_系統270",
@@ -2092,17 +1861,6 @@
           "stop": "driving_school",
           "stopSequence": 2,
           "time": "09:50"
-        },
-        {
-          "tripId": "平日_09時27分_系統586",
-          "serviceId": "平日",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "09:52"
         },
         {
           "tripId": "土曜_09時30分_系統266",
@@ -2369,17 +2127,6 @@
           "time": "10:33"
         },
         {
-          "tripId": "平日_10時10分_系統586",
-          "serviceId": "平日",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "10:35"
-        },
-        {
           "tripId": "平日_10時30分_系統273",
           "serviceId": "平日",
           "route": "22E",
@@ -2611,17 +2358,6 @@
           "time": "10:57"
         },
         {
-          "tripId": "平日_10時40分_系統584",
-          "serviceId": "平日",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 23,
-          "time": "11:12"
-        },
-        {
           "tripId": "平日_10時56分_系統267",
           "serviceId": "平日",
           "route": "22A",
@@ -2796,61 +2532,6 @@
           "stop": "driving_school",
           "stopSequence": 2,
           "time": "11:27"
-        },
-        {
-          "tripId": "平日_11時10分_系統586",
-          "serviceId": "平日",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "11:35"
-        },
-        {
-          "tripId": "土曜_11時10分_系統584",
-          "serviceId": "土曜",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 23,
-          "time": "11:41"
-        },
-        {
-          "tripId": "年末・年始_11時10分_系統584",
-          "serviceId": "年末・年始",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 23,
-          "time": "11:41"
-        },
-        {
-          "tripId": "日祝_11時10分_系統584",
-          "serviceId": "日祝",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 23,
-          "time": "11:41"
-        },
-        {
-          "tripId": "特別ダイヤ１_11時10分_系統584",
-          "serviceId": "特別ダイヤ１",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 23,
-          "time": "11:41"
         },
         {
           "tripId": "平日_11時13分_系統261",
@@ -3084,17 +2765,6 @@
           "time": "12:00"
         },
         {
-          "tripId": "平日_11時40分_系統584",
-          "serviceId": "平日",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 23,
-          "time": "12:12"
-        },
-        {
           "tripId": "平日_11時56分_系統267",
           "serviceId": "平日",
           "route": "22A",
@@ -3269,17 +2939,6 @@
           "stop": "driving_school",
           "stopSequence": 19,
           "time": "12:33"
-        },
-        {
-          "tripId": "平日_12時10分_系統586",
-          "serviceId": "平日",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "12:35"
         },
         {
           "tripId": "平日_12時26分_系統267",
@@ -3502,17 +3161,6 @@
           "time": "12:57"
         },
         {
-          "tripId": "平日_12時40分_系統584",
-          "serviceId": "平日",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 23,
-          "time": "13:12"
-        },
-        {
           "tripId": "平日_12時43分_系統261",
           "serviceId": "平日",
           "route": "22A",
@@ -3654,61 +3302,6 @@
           "stop": "driving_school",
           "stopSequence": 2,
           "time": "13:27"
-        },
-        {
-          "tripId": "平日_13時10分_系統582",
-          "serviceId": "平日",
-          "route": "22H",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 20,
-          "time": "13:37"
-        },
-        {
-          "tripId": "土曜_13時10分_系統584",
-          "serviceId": "土曜",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 23,
-          "time": "13:41"
-        },
-        {
-          "tripId": "年末・年始_13時10分_系統584",
-          "serviceId": "年末・年始",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 23,
-          "time": "13:41"
-        },
-        {
-          "tripId": "日祝_13時10分_系統584",
-          "serviceId": "日祝",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 23,
-          "time": "13:41"
-        },
-        {
-          "tripId": "特別ダイヤ１_13時10分_系統584",
-          "serviceId": "特別ダイヤ１",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 23,
-          "time": "13:41"
         },
         {
           "tripId": "平日_13時26分_系統267",
@@ -3929,17 +3522,6 @@
           "stop": "driving_school",
           "stopSequence": 2,
           "time": "13:57"
-        },
-        {
-          "tripId": "平日_13時40分_系統584",
-          "serviceId": "平日",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 23,
-          "time": "14:12"
         },
         {
           "tripId": "平日_13時43分_系統261",
@@ -4173,17 +3755,6 @@
           "time": "14:33"
         },
         {
-          "tripId": "平日_14時10分_系統586",
-          "serviceId": "平日",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "14:35"
-        },
-        {
           "tripId": "平日_14時26分_系統267",
           "serviceId": "平日",
           "route": "22A",
@@ -4415,17 +3986,6 @@
           "time": "15:09"
         },
         {
-          "tripId": "平日_14時40分_系統584",
-          "serviceId": "平日",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 23,
-          "time": "15:12"
-        },
-        {
           "tripId": "土曜_14時55分_系統268",
           "serviceId": "土曜",
           "route": "22A",
@@ -4591,17 +4151,6 @@
           "time": "15:22"
         },
         {
-          "tripId": "平日_15時10分_系統580",
-          "serviceId": "平日",
-          "route": "22G",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 16,
-          "time": "15:30"
-        },
-        {
           "tripId": "平日_15時17分_系統265",
           "serviceId": "平日",
           "route": "22B",
@@ -4622,50 +4171,6 @@
           "stop": "driving_school",
           "stopSequence": 19,
           "time": "15:40"
-        },
-        {
-          "tripId": "土曜_15時00分_系統672",
-          "serviceId": "土曜",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 27,
-          "time": "15:41"
-        },
-        {
-          "tripId": "年末・年始_15時00分_系統672",
-          "serviceId": "年末・年始",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 27,
-          "time": "15:41"
-        },
-        {
-          "tripId": "日祝_15時00分_系統672",
-          "serviceId": "日祝",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 27,
-          "time": "15:41"
-        },
-        {
-          "tripId": "特別ダイヤ１_15時00分_系統672",
-          "serviceId": "特別ダイヤ１",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 27,
-          "time": "15:41"
         },
         {
           "tripId": "平日_15時27分_系統266",
@@ -4886,17 +4391,6 @@
           "stop": "driving_school",
           "stopSequence": 2,
           "time": "16:02"
-        },
-        {
-          "tripId": "平日_15時37分_系統582",
-          "serviceId": "平日",
-          "route": "22H",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 20,
-          "time": "16:04"
         },
         {
           "tripId": "平日_15時48分_系統268",
@@ -5537,17 +5031,6 @@
           "time": "17:28"
         },
         {
-          "tripId": "平日_17時05分_系統582",
-          "serviceId": "平日",
-          "route": "22H",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 20,
-          "time": "17:32"
-        },
-        {
           "tripId": "平日_17時17分_系統266",
           "serviceId": "平日",
           "route": "22B",
@@ -5821,17 +5304,6 @@
           "stop": "driving_school",
           "stopSequence": 18,
           "time": "18:23"
-        },
-        {
-          "tripId": "平日_17時57分_系統582",
-          "serviceId": "平日",
-          "route": "22H",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 20,
-          "time": "18:24"
         },
         {
           "tripId": "平日_18時04分_系統262",
@@ -6481,6 +5953,1555 @@
           "stop": "driving_school",
           "stopSequence": 16,
           "time": "23:13"
+        }
+      ],
+      "campusBound": [
+        {
+          "tripId": "平日_06時30分_系統268",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "06:30",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_06時45分_系統580",
+          "serviceId": "平日",
+          "route": "22G",
+          "time": "06:45",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_06時58分_系統586",
+          "serviceId": "平日",
+          "route": "22K",
+          "time": "06:58",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_07時12分_系統268",
+          "serviceId": "土曜",
+          "route": "22A",
+          "time": "07:12",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "年末・年始_07時12分_系統268",
+          "serviceId": "年末・年始",
+          "route": "22A",
+          "time": "07:12",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_07時12分_系統268",
+          "serviceId": "日祝",
+          "route": "22A",
+          "time": "07:12",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_07時12分_系統268",
+          "serviceId": "特別ダイヤ１",
+          "route": "22A",
+          "time": "07:12",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_07時20分_系統262",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "07:20",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_07時23分_系統586",
+          "serviceId": "平日",
+          "route": "22K",
+          "time": "07:23",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_07時30分_系統264",
+          "serviceId": "土曜",
+          "route": "22B",
+          "time": "07:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_07時30分_系統264",
+          "serviceId": "年末・年始",
+          "route": "22B",
+          "time": "07:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "日祝_07時30分_系統264",
+          "serviceId": "日祝",
+          "route": "22B",
+          "time": "07:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "特別ダイヤ１_07時30分_系統264",
+          "serviceId": "特別ダイヤ１",
+          "route": "22B",
+          "time": "07:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_07時38分_系統266",
+          "serviceId": "平日",
+          "route": "22B",
+          "time": "07:38",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_07時40分_系統586",
+          "serviceId": "土曜",
+          "route": "22K",
+          "time": "07:40",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_07時40分_系統580",
+          "serviceId": "平日",
+          "route": "22G",
+          "time": "07:40",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_07時40分_系統586",
+          "serviceId": "年末・年始",
+          "route": "22K",
+          "time": "07:40",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "日祝_07時40分_系統586",
+          "serviceId": "日祝",
+          "route": "22K",
+          "time": "07:40",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "特別ダイヤ１_07時40分_系統586",
+          "serviceId": "特別ダイヤ１",
+          "route": "22K",
+          "time": "07:40",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_07時42分_系統586",
+          "serviceId": "平日",
+          "route": "22K",
+          "time": "07:42",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_07時53分_系統266",
+          "serviceId": "土曜",
+          "route": "22B",
+          "time": "07:53",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_07時53分_系統266",
+          "serviceId": "年末・年始",
+          "route": "22B",
+          "time": "07:53",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "日祝_07時53分_系統266",
+          "serviceId": "日祝",
+          "route": "22B",
+          "time": "07:53",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "特別ダイヤ１_07時53分_系統266",
+          "serviceId": "特別ダイヤ１",
+          "route": "22B",
+          "time": "07:53",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_07時55分_系統264",
+          "serviceId": "平日",
+          "route": "22B",
+          "time": "07:55",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_07時57分_系統270",
+          "serviceId": "平日",
+          "route": "22F",
+          "time": "07:57",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_08時00分_系統580",
+          "serviceId": "平日",
+          "route": "22G",
+          "time": "08:00",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_08時10分_系統266",
+          "serviceId": "平日",
+          "route": "22B",
+          "time": "08:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_08時13分_系統266",
+          "serviceId": "土曜",
+          "route": "22B",
+          "time": "08:13",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_08時13分_系統586",
+          "serviceId": "平日",
+          "route": "22K",
+          "time": "08:13",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_08時13分_系統266",
+          "serviceId": "年末・年始",
+          "route": "22B",
+          "time": "08:13",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "日祝_08時13分_系統266",
+          "serviceId": "日祝",
+          "route": "22B",
+          "time": "08:13",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "特別ダイヤ１_08時13分_系統266",
+          "serviceId": "特別ダイヤ１",
+          "route": "22B",
+          "time": "08:13",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_08時28分_系統586",
+          "serviceId": "土曜",
+          "route": "22K",
+          "time": "08:28",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_08時28分_系統586",
+          "serviceId": "年末・年始",
+          "route": "22K",
+          "time": "08:28",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "日祝_08時28分_系統586",
+          "serviceId": "日祝",
+          "route": "22K",
+          "time": "08:28",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "特別ダイヤ１_08時28分_系統586",
+          "serviceId": "特別ダイヤ１",
+          "route": "22K",
+          "time": "08:28",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_08時29分_系統266",
+          "serviceId": "平日",
+          "route": "22B",
+          "time": "08:29",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_08時40分_系統268",
+          "serviceId": "土曜",
+          "route": "22A",
+          "time": "08:40",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_08時40分_系統586",
+          "serviceId": "平日",
+          "route": "22K",
+          "time": "08:40",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_08時40分_系統268",
+          "serviceId": "年末・年始",
+          "route": "22A",
+          "time": "08:40",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_08時40分_系統268",
+          "serviceId": "日祝",
+          "route": "22A",
+          "time": "08:40",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_08時40分_系統268",
+          "serviceId": "特別ダイヤ１",
+          "route": "22A",
+          "time": "08:40",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_08時57分_系統264",
+          "serviceId": "平日",
+          "route": "22B",
+          "time": "08:57",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_08時58分_系統264",
+          "serviceId": "土曜",
+          "route": "22B",
+          "time": "08:58",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_08時58分_系統264",
+          "serviceId": "年末・年始",
+          "route": "22B",
+          "time": "08:58",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "日祝_08時58分_系統264",
+          "serviceId": "日祝",
+          "route": "22B",
+          "time": "08:58",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "特別ダイヤ１_08時58分_系統264",
+          "serviceId": "特別ダイヤ１",
+          "route": "22B",
+          "time": "08:58",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_09時05分_系統586",
+          "serviceId": "平日",
+          "route": "22K",
+          "time": "09:05",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_09時17分_系統586",
+          "serviceId": "土曜",
+          "route": "22K",
+          "time": "09:17",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_09時17分_系統270",
+          "serviceId": "平日",
+          "route": "22F",
+          "time": "09:17",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_09時17分_系統586",
+          "serviceId": "年末・年始",
+          "route": "22K",
+          "time": "09:17",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "日祝_09時17分_系統586",
+          "serviceId": "日祝",
+          "route": "22K",
+          "time": "09:17",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "特別ダイヤ１_09時17分_系統586",
+          "serviceId": "特別ダイヤ１",
+          "route": "22K",
+          "time": "09:17",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_09時27分_系統586",
+          "serviceId": "平日",
+          "route": "22K",
+          "time": "09:27",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_09時30分_系統266",
+          "serviceId": "土曜",
+          "route": "22B",
+          "time": "09:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_09時30分_系統266",
+          "serviceId": "年末・年始",
+          "route": "22B",
+          "time": "09:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "日祝_09時30分_系統266",
+          "serviceId": "日祝",
+          "route": "22B",
+          "time": "09:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "特別ダイヤ１_09時30分_系統266",
+          "serviceId": "特別ダイヤ１",
+          "route": "22B",
+          "time": "09:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_09時40分_系統268",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "09:40",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_09時50分_系統270",
+          "serviceId": "平日",
+          "route": "22F",
+          "time": "09:50",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_10時01分_系統268",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "10:01",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_10時02分_系統268",
+          "serviceId": "土曜",
+          "route": "22A",
+          "time": "10:02",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "年末・年始_10時02分_系統268",
+          "serviceId": "年末・年始",
+          "route": "22A",
+          "time": "10:02",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_10時02分_系統268",
+          "serviceId": "日祝",
+          "route": "22A",
+          "time": "10:02",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_10時02分_系統268",
+          "serviceId": "特別ダイヤ１",
+          "route": "22A",
+          "time": "10:02",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_10時10分_系統644",
+          "serviceId": "土曜",
+          "route": "22L",
+          "time": "10:10",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_10時10分_系統586",
+          "serviceId": "平日",
+          "route": "22K",
+          "time": "10:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_10時10分_系統644",
+          "serviceId": "年末・年始",
+          "route": "22L",
+          "time": "10:10",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_10時10分_系統644",
+          "serviceId": "日祝",
+          "route": "22L",
+          "time": "10:10",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_10時10分_系統644",
+          "serviceId": "特別ダイヤ１",
+          "route": "22L",
+          "time": "10:10",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_10時27分_系統268",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "10:27",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_10時30分_系統264",
+          "serviceId": "土曜",
+          "route": "22B",
+          "time": "10:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_10時30分_系統264",
+          "serviceId": "年末・年始",
+          "route": "22B",
+          "time": "10:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "日祝_10時30分_系統264",
+          "serviceId": "日祝",
+          "route": "22B",
+          "time": "10:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "特別ダイヤ１_10時30分_系統264",
+          "serviceId": "特別ダイヤ１",
+          "route": "22B",
+          "time": "10:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_10時40分_系統584",
+          "serviceId": "平日",
+          "route": "22M",
+          "time": "10:40",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_10時57分_系統268",
+          "serviceId": "土曜",
+          "route": "22A",
+          "time": "10:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_10時57分_系統262",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "10:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "年末・年始_10時57分_系統268",
+          "serviceId": "年末・年始",
+          "route": "22A",
+          "time": "10:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_10時57分_系統268",
+          "serviceId": "日祝",
+          "route": "22A",
+          "time": "10:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_10時57分_系統268",
+          "serviceId": "特別ダイヤ１",
+          "route": "22A",
+          "time": "10:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_11時10分_系統584",
+          "serviceId": "土曜",
+          "route": "22M",
+          "time": "11:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_11時10分_系統586",
+          "serviceId": "平日",
+          "route": "22K",
+          "time": "11:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_11時10分_系統584",
+          "serviceId": "年末・年始",
+          "route": "22M",
+          "time": "11:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "日祝_11時10分_系統584",
+          "serviceId": "日祝",
+          "route": "22M",
+          "time": "11:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "特別ダイヤ１_11時10分_系統584",
+          "serviceId": "特別ダイヤ１",
+          "route": "22M",
+          "time": "11:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_11時28分_系統266",
+          "serviceId": "平日",
+          "route": "22B",
+          "time": "11:28",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_11時40分_系統262",
+          "serviceId": "土曜",
+          "route": "22A",
+          "time": "11:40",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_11時40分_系統584",
+          "serviceId": "平日",
+          "route": "22M",
+          "time": "11:40",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_11時40分_系統262",
+          "serviceId": "年末・年始",
+          "route": "22A",
+          "time": "11:40",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_11時40分_系統262",
+          "serviceId": "日祝",
+          "route": "22A",
+          "time": "11:40",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_11時40分_系統262",
+          "serviceId": "特別ダイヤ１",
+          "route": "22A",
+          "time": "11:40",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_11時57分_系統262",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "11:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_12時10分_系統644",
+          "serviceId": "土曜",
+          "route": "22L",
+          "time": "12:10",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_12時10分_系統586",
+          "serviceId": "平日",
+          "route": "22K",
+          "time": "12:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_12時10分_系統644",
+          "serviceId": "年末・年始",
+          "route": "22L",
+          "time": "12:10",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_12時10分_系統644",
+          "serviceId": "日祝",
+          "route": "22L",
+          "time": "12:10",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_12時10分_系統644",
+          "serviceId": "特別ダイヤ１",
+          "route": "22L",
+          "time": "12:10",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_12時27分_系統268",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "12:27",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_12時30分_系統266",
+          "serviceId": "土曜",
+          "route": "22B",
+          "time": "12:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_12時30分_系統266",
+          "serviceId": "年末・年始",
+          "route": "22B",
+          "time": "12:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "日祝_12時30分_系統266",
+          "serviceId": "日祝",
+          "route": "22B",
+          "time": "12:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "特別ダイヤ１_12時30分_系統266",
+          "serviceId": "特別ダイヤ１",
+          "route": "22B",
+          "time": "12:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_12時40分_系統584",
+          "serviceId": "平日",
+          "route": "22M",
+          "time": "12:40",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_12時47分_系統662",
+          "serviceId": "土曜",
+          "route": "22A",
+          "time": "12:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_12時57分_系統266",
+          "serviceId": "平日",
+          "route": "22B",
+          "time": "12:57",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_12時47分_系統662",
+          "serviceId": "年末・年始",
+          "route": "22A",
+          "time": "12:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_12時47分_系統662",
+          "serviceId": "日祝",
+          "route": "22A",
+          "time": "12:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_12時47分_系統662",
+          "serviceId": "特別ダイヤ１",
+          "route": "22A",
+          "time": "12:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_13時10分_系統584",
+          "serviceId": "土曜",
+          "route": "22M",
+          "time": "13:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_13時10分_系統582",
+          "serviceId": "平日",
+          "route": "22H",
+          "time": "13:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_13時10分_系統584",
+          "serviceId": "年末・年始",
+          "route": "22M",
+          "time": "13:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "日祝_13時10分_系統584",
+          "serviceId": "日祝",
+          "route": "22M",
+          "time": "13:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "特別ダイヤ１_13時10分_系統584",
+          "serviceId": "特別ダイヤ１",
+          "route": "22M",
+          "time": "13:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_13時27分_系統262",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "13:27",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_13時30分_系統262",
+          "serviceId": "土曜",
+          "route": "22A",
+          "time": "13:30",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "年末・年始_13時30分_系統262",
+          "serviceId": "年末・年始",
+          "route": "22A",
+          "time": "13:30",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_13時30分_系統262",
+          "serviceId": "日祝",
+          "route": "22A",
+          "time": "13:30",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_13時30分_系統262",
+          "serviceId": "特別ダイヤ１",
+          "route": "22A",
+          "time": "13:30",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_13時40分_系統584",
+          "serviceId": "平日",
+          "route": "22M",
+          "time": "13:40",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_13時57分_系統268",
+          "serviceId": "土曜",
+          "route": "22A",
+          "time": "13:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_13時57分_系統266",
+          "serviceId": "平日",
+          "route": "22B",
+          "time": "13:57",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_13時57分_系統268",
+          "serviceId": "年末・年始",
+          "route": "22A",
+          "time": "13:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_13時57分_系統268",
+          "serviceId": "日祝",
+          "route": "22A",
+          "time": "13:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_13時57分_系統268",
+          "serviceId": "特別ダイヤ１",
+          "route": "22A",
+          "time": "13:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_14時10分_系統644",
+          "serviceId": "土曜",
+          "route": "22L",
+          "time": "14:10",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_14時10分_系統586",
+          "serviceId": "平日",
+          "route": "22K",
+          "time": "14:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_14時10分_系統644",
+          "serviceId": "年末・年始",
+          "route": "22L",
+          "time": "14:10",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_14時10分_系統644",
+          "serviceId": "日祝",
+          "route": "22L",
+          "time": "14:10",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_14時10分_系統644",
+          "serviceId": "特別ダイヤ１",
+          "route": "22L",
+          "time": "14:10",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_14時27分_系統262",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "14:27",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_14時30分_系統266",
+          "serviceId": "土曜",
+          "route": "22B",
+          "time": "14:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_14時30分_系統266",
+          "serviceId": "年末・年始",
+          "route": "22B",
+          "time": "14:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "日祝_14時30分_系統266",
+          "serviceId": "日祝",
+          "route": "22B",
+          "time": "14:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "特別ダイヤ１_14時30分_系統266",
+          "serviceId": "特別ダイヤ１",
+          "route": "22B",
+          "time": "14:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_14時40分_系統584",
+          "serviceId": "平日",
+          "route": "22M",
+          "time": "14:40",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_14時55分_系統268",
+          "serviceId": "土曜",
+          "route": "22A",
+          "time": "14:55",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "年末・年始_14時55分_系統268",
+          "serviceId": "年末・年始",
+          "route": "22A",
+          "time": "14:55",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_14時55分_系統268",
+          "serviceId": "日祝",
+          "route": "22A",
+          "time": "14:55",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_14時55分_系統268",
+          "serviceId": "特別ダイヤ１",
+          "route": "22A",
+          "time": "14:55",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_14時57分_系統268",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "14:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_15時00分_系統672",
+          "serviceId": "土曜",
+          "route": "22M",
+          "time": "15:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_15時10分_系統580",
+          "serviceId": "平日",
+          "route": "22G",
+          "time": "15:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_15時00分_系統672",
+          "serviceId": "年末・年始",
+          "route": "22M",
+          "time": "15:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "日祝_15時00分_系統672",
+          "serviceId": "日祝",
+          "route": "22M",
+          "time": "15:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "特別ダイヤ１_15時00分_系統672",
+          "serviceId": "特別ダイヤ１",
+          "route": "22M",
+          "time": "15:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_15時27分_系統266",
+          "serviceId": "平日",
+          "route": "22B",
+          "time": "15:27",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_15時30分_系統262",
+          "serviceId": "土曜",
+          "route": "22A",
+          "time": "15:30",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "年末・年始_15時30分_系統262",
+          "serviceId": "年末・年始",
+          "route": "22A",
+          "time": "15:30",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_15時30分_系統262",
+          "serviceId": "日祝",
+          "route": "22A",
+          "time": "15:30",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_15時30分_系統262",
+          "serviceId": "特別ダイヤ１",
+          "route": "22A",
+          "time": "15:30",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_15時37分_系統582",
+          "serviceId": "平日",
+          "route": "22H",
+          "time": "15:37",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_15時48分_系統268",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "15:48",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_15時40分_系統666",
+          "serviceId": "土曜",
+          "route": "22A",
+          "time": "15:50",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "年末・年始_15時40分_系統666",
+          "serviceId": "年末・年始",
+          "route": "22A",
+          "time": "15:50",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_15時40分_系統666",
+          "serviceId": "日祝",
+          "route": "22A",
+          "time": "15:50",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_15時40分_系統666",
+          "serviceId": "特別ダイヤ１",
+          "route": "22A",
+          "time": "15:50",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_16時05分_系統268",
+          "serviceId": "土曜",
+          "route": "22A",
+          "time": "16:05",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_16時05分_系統268",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "16:05",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "年末・年始_16時05分_系統268",
+          "serviceId": "年末・年始",
+          "route": "22A",
+          "time": "16:05",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_16時05分_系統268",
+          "serviceId": "日祝",
+          "route": "22A",
+          "time": "16:05",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_16時05分_系統268",
+          "serviceId": "特別ダイヤ１",
+          "route": "22A",
+          "time": "16:05",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_16時18分_系統642",
+          "serviceId": "土曜",
+          "route": "22L",
+          "time": "16:18",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "年末・年始_16時18分_系統642",
+          "serviceId": "年末・年始",
+          "route": "22L",
+          "time": "16:18",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_16時18分_系統642",
+          "serviceId": "日祝",
+          "route": "22L",
+          "time": "16:18",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_16時18分_系統642",
+          "serviceId": "特別ダイヤ１",
+          "route": "22L",
+          "time": "16:18",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_16時27分_系統262",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "16:27",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_16時30分_系統266",
+          "serviceId": "土曜",
+          "route": "22B",
+          "time": "16:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_16時30分_系統266",
+          "serviceId": "年末・年始",
+          "route": "22B",
+          "time": "16:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "日祝_16時30分_系統266",
+          "serviceId": "日祝",
+          "route": "22B",
+          "time": "16:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "特別ダイヤ１_16時30分_系統266",
+          "serviceId": "特別ダイヤ１",
+          "route": "22B",
+          "time": "16:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_16時50分_系統268",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "16:50",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_16時57分_系統262",
+          "serviceId": "土曜",
+          "route": "22A",
+          "time": "16:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "年末・年始_16時57分_系統262",
+          "serviceId": "年末・年始",
+          "route": "22A",
+          "time": "16:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_16時57分_系統262",
+          "serviceId": "日祝",
+          "route": "22A",
+          "time": "16:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_16時57分_系統262",
+          "serviceId": "特別ダイヤ１",
+          "route": "22A",
+          "time": "16:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_17時05分_系統582",
+          "serviceId": "平日",
+          "route": "22H",
+          "time": "17:05",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_17時17分_系統266",
+          "serviceId": "平日",
+          "route": "22B",
+          "time": "17:17",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_17時41分_系統266",
+          "serviceId": "土曜",
+          "route": "22B",
+          "time": "17:41",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_17時41分_系統268",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "17:41",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "年末・年始_17時41分_系統266",
+          "serviceId": "年末・年始",
+          "route": "22B",
+          "time": "17:41",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "日祝_17時41分_系統266",
+          "serviceId": "日祝",
+          "route": "22B",
+          "time": "17:41",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "特別ダイヤ１_17時41分_系統266",
+          "serviceId": "特別ダイヤ１",
+          "route": "22B",
+          "time": "17:41",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_17時48分_系統272",
+          "serviceId": "平日",
+          "route": "22E",
+          "time": "17:48",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_17時57分_系統268",
+          "serviceId": "土曜",
+          "route": "22A",
+          "time": "17:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_17時57分_系統582",
+          "serviceId": "平日",
+          "route": "22H",
+          "time": "17:57",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_17時57分_系統268",
+          "serviceId": "年末・年始",
+          "route": "22A",
+          "time": "17:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_17時57分_系統268",
+          "serviceId": "日祝",
+          "route": "22A",
+          "time": "17:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_17時57分_系統268",
+          "serviceId": "特別ダイヤ１",
+          "route": "22A",
+          "time": "17:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_18時04分_系統262",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "18:04",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_18時20分_系統268",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "18:20",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_18時37分_系統268",
+          "serviceId": "土曜",
+          "route": "22A",
+          "time": "18:37",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "年末・年始_18時37分_系統268",
+          "serviceId": "年末・年始",
+          "route": "22A",
+          "time": "18:37",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_18時37分_系統268",
+          "serviceId": "日祝",
+          "route": "22A",
+          "time": "18:37",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_18時37分_系統268",
+          "serviceId": "特別ダイヤ１",
+          "route": "22A",
+          "time": "18:37",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_18時45分_系統268",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "18:45",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_18時56分_系統532",
+          "serviceId": "土曜",
+          "route": "22C",
+          "time": "18:56",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "年末・年始_18時56分_系統532",
+          "serviceId": "年末・年始",
+          "route": "22C",
+          "time": "18:56",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_18時56分_系統532",
+          "serviceId": "日祝",
+          "route": "22C",
+          "time": "18:56",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_18時56分_系統532",
+          "serviceId": "特別ダイヤ１",
+          "route": "22C",
+          "time": "18:56",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_19時00分_系統532",
+          "serviceId": "平日",
+          "route": "22C",
+          "time": "19:00",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_19時27分_系統268",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "19:27",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_19時50分_系統268",
+          "serviceId": "土曜",
+          "route": "22A",
+          "time": "19:50",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_19時50分_系統532",
+          "serviceId": "平日",
+          "route": "22C",
+          "time": "19:50",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "年末・年始_19時50分_系統268",
+          "serviceId": "年末・年始",
+          "route": "22A",
+          "time": "19:50",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_19時50分_系統268",
+          "serviceId": "日祝",
+          "route": "22A",
+          "time": "19:50",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_19時50分_系統268",
+          "serviceId": "特別ダイヤ１",
+          "route": "22A",
+          "time": "19:50",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_20時02分_系統532",
+          "serviceId": "平日",
+          "route": "22C",
+          "time": "20:02",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_20時30分_系統532",
+          "serviceId": "土曜",
+          "route": "22C",
+          "time": "20:30",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "年末・年始_20時30分_系統532",
+          "serviceId": "年末・年始",
+          "route": "22C",
+          "time": "20:30",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_20時30分_系統532",
+          "serviceId": "日祝",
+          "route": "22C",
+          "time": "20:30",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_20時30分_系統532",
+          "serviceId": "特別ダイヤ１",
+          "route": "22C",
+          "time": "20:30",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_20時35分_系統268",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "20:35",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_21時24分_系統532",
+          "serviceId": "土曜",
+          "route": "22C",
+          "time": "21:24",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "年末・年始_21時24分_系統532",
+          "serviceId": "年末・年始",
+          "route": "22C",
+          "time": "21:24",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_21時24分_系統532",
+          "serviceId": "日祝",
+          "route": "22C",
+          "time": "21:24",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_21時24分_系統532",
+          "serviceId": "特別ダイヤ１",
+          "route": "22C",
+          "time": "21:24",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_21時35分_系統532",
+          "serviceId": "平日",
+          "route": "22C",
+          "time": "21:35",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_22時17分_系統268",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "22:17",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_22時53分_系統268",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "22:53",
+          "alightStop": "driving_school"
         }
       ]
     },
@@ -6782,17 +7803,6 @@
           "time": "07:04"
         },
         {
-          "tripId": "平日_06時45分_系統580",
-          "serviceId": "平日",
-          "route": "22G",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 16,
-          "time": "07:04"
-        },
-        {
           "tripId": "平日_06時56分_系統267",
           "serviceId": "平日",
           "route": "22A",
@@ -6802,17 +7812,6 @@
           "stop": "driving_school",
           "stopSequence": 18,
           "time": "07:15"
-        },
-        {
-          "tripId": "平日_06時58分_系統586",
-          "serviceId": "平日",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "07:22"
         },
         {
           "tripId": "平日_07時22分_系統581",
@@ -6966,17 +7965,6 @@
           "direction": "maebashi",
           "stop": "driving_school",
           "stopSequence": 18,
-          "time": "07:48"
-        },
-        {
-          "tripId": "平日_07時23分_系統586",
-          "serviceId": "平日",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
           "time": "07:48"
         },
         {
@@ -7134,17 +8122,6 @@
           "time": "07:58"
         },
         {
-          "tripId": "平日_07時40分_系統580",
-          "serviceId": "平日",
-          "route": "22G",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 16,
-          "time": "08:00"
-        },
-        {
           "tripId": "平日_07時38分_系統266",
           "serviceId": "平日",
           "route": "22B",
@@ -7154,61 +8131,6 @@
           "stop": "gunma_univ_aramaki",
           "stopSequence": 17,
           "time": "08:00"
-        },
-        {
-          "tripId": "土曜_07時40分_系統586",
-          "serviceId": "土曜",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "08:02"
-        },
-        {
-          "tripId": "年末・年始_07時40分_系統586",
-          "serviceId": "年末・年始",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "08:02"
-        },
-        {
-          "tripId": "日祝_07時40分_系統586",
-          "serviceId": "日祝",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "08:02"
-        },
-        {
-          "tripId": "特別ダイヤ１_07時40分_系統586",
-          "serviceId": "特別ダイヤ１",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "08:02"
-        },
-        {
-          "tripId": "平日_07時42分_系統586",
-          "serviceId": "平日",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "08:07"
         },
         {
           "tripId": "土曜_07時50分_系統267",
@@ -7519,17 +8441,6 @@
           "time": "08:19"
         },
         {
-          "tripId": "平日_08時00分_系統580",
-          "serviceId": "平日",
-          "route": "22G",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 16,
-          "time": "08:20"
-        },
-        {
           "tripId": "土曜_08時05分_系統265",
           "serviceId": "土曜",
           "route": "22B",
@@ -7750,17 +8661,6 @@
           "time": "08:34"
         },
         {
-          "tripId": "平日_08時13分_系統586",
-          "serviceId": "平日",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "08:38"
-        },
-        {
           "tripId": "平日_08時25分_系統267",
           "serviceId": "平日",
           "route": "22A",
@@ -7847,50 +8747,6 @@
           "stop": "driving_school",
           "stopSequence": 2,
           "time": "08:49"
-        },
-        {
-          "tripId": "土曜_08時28分_系統586",
-          "serviceId": "土曜",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "08:51"
-        },
-        {
-          "tripId": "年末・年始_08時28分_系統586",
-          "serviceId": "年末・年始",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "08:51"
-        },
-        {
-          "tripId": "日祝_08時28分_系統586",
-          "serviceId": "日祝",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "08:51"
-        },
-        {
-          "tripId": "特別ダイヤ１_08時28分_系統586",
-          "serviceId": "特別ダイヤ１",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "08:51"
         },
         {
           "tripId": "平日_08時29分_系統266",
@@ -8034,17 +8890,6 @@
           "stop": "driving_school",
           "stopSequence": 2,
           "time": "09:02"
-        },
-        {
-          "tripId": "平日_08時40分_系統586",
-          "serviceId": "平日",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "09:05"
         },
         {
           "tripId": "平日_08時56分_系統273",
@@ -8289,17 +9134,6 @@
           "time": "09:22"
         },
         {
-          "tripId": "平日_09時05分_系統586",
-          "serviceId": "平日",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "09:30"
-        },
-        {
           "tripId": "土曜_09時15分_系統267",
           "serviceId": "土曜",
           "route": "22A",
@@ -8353,50 +9187,6 @@
           "stop": "driving_school",
           "stopSequence": 16,
           "time": "09:37"
-        },
-        {
-          "tripId": "土曜_09時17分_系統586",
-          "serviceId": "土曜",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "09:39"
-        },
-        {
-          "tripId": "年末・年始_09時17分_系統586",
-          "serviceId": "年末・年始",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "09:39"
-        },
-        {
-          "tripId": "日祝_09時17分_系統586",
-          "serviceId": "日祝",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "09:39"
-        },
-        {
-          "tripId": "特別ダイヤ１_09時17分_系統586",
-          "serviceId": "特別ダイヤ１",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "09:39"
         },
         {
           "tripId": "平日_09時17分_系統270",
@@ -8573,17 +9363,6 @@
           "stop": "driving_school",
           "stopSequence": 2,
           "time": "09:50"
-        },
-        {
-          "tripId": "平日_09時27分_系統586",
-          "serviceId": "平日",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "09:52"
         },
         {
           "tripId": "土曜_09時30分_系統266",
@@ -8850,17 +9629,6 @@
           "time": "10:33"
         },
         {
-          "tripId": "平日_10時10分_系統586",
-          "serviceId": "平日",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "10:35"
-        },
-        {
           "tripId": "平日_10時30分_系統273",
           "serviceId": "平日",
           "route": "22E",
@@ -9092,17 +9860,6 @@
           "time": "10:57"
         },
         {
-          "tripId": "平日_10時40分_系統584",
-          "serviceId": "平日",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 23,
-          "time": "11:12"
-        },
-        {
           "tripId": "平日_10時56分_系統267",
           "serviceId": "平日",
           "route": "22A",
@@ -9277,61 +10034,6 @@
           "stop": "driving_school",
           "stopSequence": 2,
           "time": "11:27"
-        },
-        {
-          "tripId": "平日_11時10分_系統586",
-          "serviceId": "平日",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "11:35"
-        },
-        {
-          "tripId": "土曜_11時10分_系統584",
-          "serviceId": "土曜",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 23,
-          "time": "11:41"
-        },
-        {
-          "tripId": "年末・年始_11時10分_系統584",
-          "serviceId": "年末・年始",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 23,
-          "time": "11:41"
-        },
-        {
-          "tripId": "日祝_11時10分_系統584",
-          "serviceId": "日祝",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 23,
-          "time": "11:41"
-        },
-        {
-          "tripId": "特別ダイヤ１_11時10分_系統584",
-          "serviceId": "特別ダイヤ１",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 23,
-          "time": "11:41"
         },
         {
           "tripId": "平日_11時13分_系統261",
@@ -9565,17 +10267,6 @@
           "time": "12:00"
         },
         {
-          "tripId": "平日_11時40分_系統584",
-          "serviceId": "平日",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 23,
-          "time": "12:12"
-        },
-        {
           "tripId": "平日_11時56分_系統267",
           "serviceId": "平日",
           "route": "22A",
@@ -9750,17 +10441,6 @@
           "stop": "driving_school",
           "stopSequence": 19,
           "time": "12:33"
-        },
-        {
-          "tripId": "平日_12時10分_系統586",
-          "serviceId": "平日",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "12:35"
         },
         {
           "tripId": "平日_12時26分_系統267",
@@ -9983,17 +10663,6 @@
           "time": "12:57"
         },
         {
-          "tripId": "平日_12時40分_系統584",
-          "serviceId": "平日",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 23,
-          "time": "13:12"
-        },
-        {
           "tripId": "平日_12時43分_系統261",
           "serviceId": "平日",
           "route": "22A",
@@ -10135,61 +10804,6 @@
           "stop": "driving_school",
           "stopSequence": 2,
           "time": "13:27"
-        },
-        {
-          "tripId": "平日_13時10分_系統582",
-          "serviceId": "平日",
-          "route": "22H",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 20,
-          "time": "13:37"
-        },
-        {
-          "tripId": "土曜_13時10分_系統584",
-          "serviceId": "土曜",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 23,
-          "time": "13:41"
-        },
-        {
-          "tripId": "年末・年始_13時10分_系統584",
-          "serviceId": "年末・年始",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 23,
-          "time": "13:41"
-        },
-        {
-          "tripId": "日祝_13時10分_系統584",
-          "serviceId": "日祝",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 23,
-          "time": "13:41"
-        },
-        {
-          "tripId": "特別ダイヤ１_13時10分_系統584",
-          "serviceId": "特別ダイヤ１",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 23,
-          "time": "13:41"
         },
         {
           "tripId": "平日_13時26分_系統267",
@@ -10410,17 +11024,6 @@
           "stop": "driving_school",
           "stopSequence": 2,
           "time": "13:57"
-        },
-        {
-          "tripId": "平日_13時40分_系統584",
-          "serviceId": "平日",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 23,
-          "time": "14:12"
         },
         {
           "tripId": "平日_13時43分_系統261",
@@ -10654,17 +11257,6 @@
           "time": "14:33"
         },
         {
-          "tripId": "平日_14時10分_系統586",
-          "serviceId": "平日",
-          "route": "22K",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 19,
-          "time": "14:35"
-        },
-        {
           "tripId": "平日_14時26分_系統267",
           "serviceId": "平日",
           "route": "22A",
@@ -10896,17 +11488,6 @@
           "time": "15:09"
         },
         {
-          "tripId": "平日_14時40分_系統584",
-          "serviceId": "平日",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 23,
-          "time": "15:12"
-        },
-        {
           "tripId": "土曜_14時55分_系統268",
           "serviceId": "土曜",
           "route": "22A",
@@ -11072,17 +11653,6 @@
           "time": "15:22"
         },
         {
-          "tripId": "平日_15時10分_系統580",
-          "serviceId": "平日",
-          "route": "22G",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 16,
-          "time": "15:30"
-        },
-        {
           "tripId": "平日_15時17分_系統265",
           "serviceId": "平日",
           "route": "22B",
@@ -11103,50 +11673,6 @@
           "stop": "driving_school",
           "stopSequence": 19,
           "time": "15:40"
-        },
-        {
-          "tripId": "土曜_15時00分_系統672",
-          "serviceId": "土曜",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 27,
-          "time": "15:41"
-        },
-        {
-          "tripId": "年末・年始_15時00分_系統672",
-          "serviceId": "年末・年始",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 27,
-          "time": "15:41"
-        },
-        {
-          "tripId": "日祝_15時00分_系統672",
-          "serviceId": "日祝",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 27,
-          "time": "15:41"
-        },
-        {
-          "tripId": "特別ダイヤ１_15時00分_系統672",
-          "serviceId": "特別ダイヤ１",
-          "route": "22M",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 27,
-          "time": "15:41"
         },
         {
           "tripId": "平日_15時27分_系統266",
@@ -11367,17 +11893,6 @@
           "stop": "driving_school",
           "stopSequence": 2,
           "time": "16:02"
-        },
-        {
-          "tripId": "平日_15時37分_系統582",
-          "serviceId": "平日",
-          "route": "22H",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 20,
-          "time": "16:04"
         },
         {
           "tripId": "平日_15時48分_系統268",
@@ -12018,17 +12533,6 @@
           "time": "17:28"
         },
         {
-          "tripId": "平日_17時05分_系統582",
-          "serviceId": "平日",
-          "route": "22H",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 20,
-          "time": "17:32"
-        },
-        {
           "tripId": "平日_17時17分_系統266",
           "serviceId": "平日",
           "route": "22B",
@@ -12302,17 +12806,6 @@
           "stop": "driving_school",
           "stopSequence": 18,
           "time": "18:23"
-        },
-        {
-          "tripId": "平日_17時57分_系統582",
-          "serviceId": "平日",
-          "route": "22H",
-          "destination": "群馬大学荒牧",
-          "via": null,
-          "direction": "shibukawa",
-          "stop": "driving_school",
-          "stopSequence": 20,
-          "time": "18:24"
         },
         {
           "tripId": "平日_18時04分_系統262",
@@ -12962,6 +13455,1555 @@
           "stop": "driving_school",
           "stopSequence": 16,
           "time": "23:13"
+        }
+      ],
+      "campusBound": [
+        {
+          "tripId": "平日_06時30分_系統268",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "06:30",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_06時45分_系統580",
+          "serviceId": "平日",
+          "route": "22G",
+          "time": "06:45",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_06時58分_系統586",
+          "serviceId": "平日",
+          "route": "22K",
+          "time": "06:58",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_07時12分_系統268",
+          "serviceId": "土曜",
+          "route": "22A",
+          "time": "07:12",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "年末・年始_07時12分_系統268",
+          "serviceId": "年末・年始",
+          "route": "22A",
+          "time": "07:12",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_07時12分_系統268",
+          "serviceId": "日祝",
+          "route": "22A",
+          "time": "07:12",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_07時12分_系統268",
+          "serviceId": "特別ダイヤ１",
+          "route": "22A",
+          "time": "07:12",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_07時20分_系統262",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "07:20",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_07時23分_系統586",
+          "serviceId": "平日",
+          "route": "22K",
+          "time": "07:23",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_07時30分_系統264",
+          "serviceId": "土曜",
+          "route": "22B",
+          "time": "07:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_07時30分_系統264",
+          "serviceId": "年末・年始",
+          "route": "22B",
+          "time": "07:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "日祝_07時30分_系統264",
+          "serviceId": "日祝",
+          "route": "22B",
+          "time": "07:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "特別ダイヤ１_07時30分_系統264",
+          "serviceId": "特別ダイヤ１",
+          "route": "22B",
+          "time": "07:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_07時38分_系統266",
+          "serviceId": "平日",
+          "route": "22B",
+          "time": "07:38",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_07時40分_系統586",
+          "serviceId": "土曜",
+          "route": "22K",
+          "time": "07:40",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_07時40分_系統580",
+          "serviceId": "平日",
+          "route": "22G",
+          "time": "07:40",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_07時40分_系統586",
+          "serviceId": "年末・年始",
+          "route": "22K",
+          "time": "07:40",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "日祝_07時40分_系統586",
+          "serviceId": "日祝",
+          "route": "22K",
+          "time": "07:40",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "特別ダイヤ１_07時40分_系統586",
+          "serviceId": "特別ダイヤ１",
+          "route": "22K",
+          "time": "07:40",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_07時42分_系統586",
+          "serviceId": "平日",
+          "route": "22K",
+          "time": "07:42",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_07時53分_系統266",
+          "serviceId": "土曜",
+          "route": "22B",
+          "time": "07:53",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_07時53分_系統266",
+          "serviceId": "年末・年始",
+          "route": "22B",
+          "time": "07:53",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "日祝_07時53分_系統266",
+          "serviceId": "日祝",
+          "route": "22B",
+          "time": "07:53",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "特別ダイヤ１_07時53分_系統266",
+          "serviceId": "特別ダイヤ１",
+          "route": "22B",
+          "time": "07:53",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_07時55分_系統264",
+          "serviceId": "平日",
+          "route": "22B",
+          "time": "07:55",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_07時57分_系統270",
+          "serviceId": "平日",
+          "route": "22F",
+          "time": "07:57",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_08時00分_系統580",
+          "serviceId": "平日",
+          "route": "22G",
+          "time": "08:00",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_08時10分_系統266",
+          "serviceId": "平日",
+          "route": "22B",
+          "time": "08:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_08時13分_系統266",
+          "serviceId": "土曜",
+          "route": "22B",
+          "time": "08:13",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_08時13分_系統586",
+          "serviceId": "平日",
+          "route": "22K",
+          "time": "08:13",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_08時13分_系統266",
+          "serviceId": "年末・年始",
+          "route": "22B",
+          "time": "08:13",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "日祝_08時13分_系統266",
+          "serviceId": "日祝",
+          "route": "22B",
+          "time": "08:13",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "特別ダイヤ１_08時13分_系統266",
+          "serviceId": "特別ダイヤ１",
+          "route": "22B",
+          "time": "08:13",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_08時28分_系統586",
+          "serviceId": "土曜",
+          "route": "22K",
+          "time": "08:28",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_08時28分_系統586",
+          "serviceId": "年末・年始",
+          "route": "22K",
+          "time": "08:28",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "日祝_08時28分_系統586",
+          "serviceId": "日祝",
+          "route": "22K",
+          "time": "08:28",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "特別ダイヤ１_08時28分_系統586",
+          "serviceId": "特別ダイヤ１",
+          "route": "22K",
+          "time": "08:28",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_08時29分_系統266",
+          "serviceId": "平日",
+          "route": "22B",
+          "time": "08:29",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_08時40分_系統268",
+          "serviceId": "土曜",
+          "route": "22A",
+          "time": "08:40",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_08時40分_系統586",
+          "serviceId": "平日",
+          "route": "22K",
+          "time": "08:40",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_08時40分_系統268",
+          "serviceId": "年末・年始",
+          "route": "22A",
+          "time": "08:40",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_08時40分_系統268",
+          "serviceId": "日祝",
+          "route": "22A",
+          "time": "08:40",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_08時40分_系統268",
+          "serviceId": "特別ダイヤ１",
+          "route": "22A",
+          "time": "08:40",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_08時57分_系統264",
+          "serviceId": "平日",
+          "route": "22B",
+          "time": "08:57",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_08時58分_系統264",
+          "serviceId": "土曜",
+          "route": "22B",
+          "time": "08:58",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_08時58分_系統264",
+          "serviceId": "年末・年始",
+          "route": "22B",
+          "time": "08:58",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "日祝_08時58分_系統264",
+          "serviceId": "日祝",
+          "route": "22B",
+          "time": "08:58",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "特別ダイヤ１_08時58分_系統264",
+          "serviceId": "特別ダイヤ１",
+          "route": "22B",
+          "time": "08:58",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_09時05分_系統586",
+          "serviceId": "平日",
+          "route": "22K",
+          "time": "09:05",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_09時17分_系統586",
+          "serviceId": "土曜",
+          "route": "22K",
+          "time": "09:17",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_09時17分_系統270",
+          "serviceId": "平日",
+          "route": "22F",
+          "time": "09:17",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_09時17分_系統586",
+          "serviceId": "年末・年始",
+          "route": "22K",
+          "time": "09:17",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "日祝_09時17分_系統586",
+          "serviceId": "日祝",
+          "route": "22K",
+          "time": "09:17",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "特別ダイヤ１_09時17分_系統586",
+          "serviceId": "特別ダイヤ１",
+          "route": "22K",
+          "time": "09:17",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_09時27分_系統586",
+          "serviceId": "平日",
+          "route": "22K",
+          "time": "09:27",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_09時30分_系統266",
+          "serviceId": "土曜",
+          "route": "22B",
+          "time": "09:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_09時30分_系統266",
+          "serviceId": "年末・年始",
+          "route": "22B",
+          "time": "09:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "日祝_09時30分_系統266",
+          "serviceId": "日祝",
+          "route": "22B",
+          "time": "09:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "特別ダイヤ１_09時30分_系統266",
+          "serviceId": "特別ダイヤ１",
+          "route": "22B",
+          "time": "09:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_09時40分_系統268",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "09:40",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_09時50分_系統270",
+          "serviceId": "平日",
+          "route": "22F",
+          "time": "09:50",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_10時01分_系統268",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "10:01",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_10時02分_系統268",
+          "serviceId": "土曜",
+          "route": "22A",
+          "time": "10:02",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "年末・年始_10時02分_系統268",
+          "serviceId": "年末・年始",
+          "route": "22A",
+          "time": "10:02",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_10時02分_系統268",
+          "serviceId": "日祝",
+          "route": "22A",
+          "time": "10:02",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_10時02分_系統268",
+          "serviceId": "特別ダイヤ１",
+          "route": "22A",
+          "time": "10:02",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_10時10分_系統644",
+          "serviceId": "土曜",
+          "route": "22L",
+          "time": "10:10",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_10時10分_系統586",
+          "serviceId": "平日",
+          "route": "22K",
+          "time": "10:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_10時10分_系統644",
+          "serviceId": "年末・年始",
+          "route": "22L",
+          "time": "10:10",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_10時10分_系統644",
+          "serviceId": "日祝",
+          "route": "22L",
+          "time": "10:10",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_10時10分_系統644",
+          "serviceId": "特別ダイヤ１",
+          "route": "22L",
+          "time": "10:10",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_10時27分_系統268",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "10:27",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_10時30分_系統264",
+          "serviceId": "土曜",
+          "route": "22B",
+          "time": "10:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_10時30分_系統264",
+          "serviceId": "年末・年始",
+          "route": "22B",
+          "time": "10:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "日祝_10時30分_系統264",
+          "serviceId": "日祝",
+          "route": "22B",
+          "time": "10:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "特別ダイヤ１_10時30分_系統264",
+          "serviceId": "特別ダイヤ１",
+          "route": "22B",
+          "time": "10:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_10時40分_系統584",
+          "serviceId": "平日",
+          "route": "22M",
+          "time": "10:40",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_10時57分_系統268",
+          "serviceId": "土曜",
+          "route": "22A",
+          "time": "10:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_10時57分_系統262",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "10:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "年末・年始_10時57分_系統268",
+          "serviceId": "年末・年始",
+          "route": "22A",
+          "time": "10:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_10時57分_系統268",
+          "serviceId": "日祝",
+          "route": "22A",
+          "time": "10:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_10時57分_系統268",
+          "serviceId": "特別ダイヤ１",
+          "route": "22A",
+          "time": "10:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_11時10分_系統584",
+          "serviceId": "土曜",
+          "route": "22M",
+          "time": "11:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_11時10分_系統586",
+          "serviceId": "平日",
+          "route": "22K",
+          "time": "11:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_11時10分_系統584",
+          "serviceId": "年末・年始",
+          "route": "22M",
+          "time": "11:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "日祝_11時10分_系統584",
+          "serviceId": "日祝",
+          "route": "22M",
+          "time": "11:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "特別ダイヤ１_11時10分_系統584",
+          "serviceId": "特別ダイヤ１",
+          "route": "22M",
+          "time": "11:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_11時28分_系統266",
+          "serviceId": "平日",
+          "route": "22B",
+          "time": "11:28",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_11時40分_系統262",
+          "serviceId": "土曜",
+          "route": "22A",
+          "time": "11:40",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_11時40分_系統584",
+          "serviceId": "平日",
+          "route": "22M",
+          "time": "11:40",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_11時40分_系統262",
+          "serviceId": "年末・年始",
+          "route": "22A",
+          "time": "11:40",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_11時40分_系統262",
+          "serviceId": "日祝",
+          "route": "22A",
+          "time": "11:40",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_11時40分_系統262",
+          "serviceId": "特別ダイヤ１",
+          "route": "22A",
+          "time": "11:40",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_11時57分_系統262",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "11:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_12時10分_系統644",
+          "serviceId": "土曜",
+          "route": "22L",
+          "time": "12:10",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_12時10分_系統586",
+          "serviceId": "平日",
+          "route": "22K",
+          "time": "12:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_12時10分_系統644",
+          "serviceId": "年末・年始",
+          "route": "22L",
+          "time": "12:10",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_12時10分_系統644",
+          "serviceId": "日祝",
+          "route": "22L",
+          "time": "12:10",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_12時10分_系統644",
+          "serviceId": "特別ダイヤ１",
+          "route": "22L",
+          "time": "12:10",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_12時27分_系統268",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "12:27",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_12時30分_系統266",
+          "serviceId": "土曜",
+          "route": "22B",
+          "time": "12:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_12時30分_系統266",
+          "serviceId": "年末・年始",
+          "route": "22B",
+          "time": "12:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "日祝_12時30分_系統266",
+          "serviceId": "日祝",
+          "route": "22B",
+          "time": "12:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "特別ダイヤ１_12時30分_系統266",
+          "serviceId": "特別ダイヤ１",
+          "route": "22B",
+          "time": "12:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_12時40分_系統584",
+          "serviceId": "平日",
+          "route": "22M",
+          "time": "12:40",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_12時47分_系統662",
+          "serviceId": "土曜",
+          "route": "22A",
+          "time": "12:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_12時57分_系統266",
+          "serviceId": "平日",
+          "route": "22B",
+          "time": "12:57",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_12時47分_系統662",
+          "serviceId": "年末・年始",
+          "route": "22A",
+          "time": "12:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_12時47分_系統662",
+          "serviceId": "日祝",
+          "route": "22A",
+          "time": "12:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_12時47分_系統662",
+          "serviceId": "特別ダイヤ１",
+          "route": "22A",
+          "time": "12:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_13時10分_系統584",
+          "serviceId": "土曜",
+          "route": "22M",
+          "time": "13:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_13時10分_系統582",
+          "serviceId": "平日",
+          "route": "22H",
+          "time": "13:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_13時10分_系統584",
+          "serviceId": "年末・年始",
+          "route": "22M",
+          "time": "13:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "日祝_13時10分_系統584",
+          "serviceId": "日祝",
+          "route": "22M",
+          "time": "13:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "特別ダイヤ１_13時10分_系統584",
+          "serviceId": "特別ダイヤ１",
+          "route": "22M",
+          "time": "13:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_13時27分_系統262",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "13:27",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_13時30分_系統262",
+          "serviceId": "土曜",
+          "route": "22A",
+          "time": "13:30",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "年末・年始_13時30分_系統262",
+          "serviceId": "年末・年始",
+          "route": "22A",
+          "time": "13:30",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_13時30分_系統262",
+          "serviceId": "日祝",
+          "route": "22A",
+          "time": "13:30",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_13時30分_系統262",
+          "serviceId": "特別ダイヤ１",
+          "route": "22A",
+          "time": "13:30",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_13時40分_系統584",
+          "serviceId": "平日",
+          "route": "22M",
+          "time": "13:40",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_13時57分_系統268",
+          "serviceId": "土曜",
+          "route": "22A",
+          "time": "13:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_13時57分_系統266",
+          "serviceId": "平日",
+          "route": "22B",
+          "time": "13:57",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_13時57分_系統268",
+          "serviceId": "年末・年始",
+          "route": "22A",
+          "time": "13:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_13時57分_系統268",
+          "serviceId": "日祝",
+          "route": "22A",
+          "time": "13:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_13時57分_系統268",
+          "serviceId": "特別ダイヤ１",
+          "route": "22A",
+          "time": "13:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_14時10分_系統644",
+          "serviceId": "土曜",
+          "route": "22L",
+          "time": "14:10",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_14時10分_系統586",
+          "serviceId": "平日",
+          "route": "22K",
+          "time": "14:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_14時10分_系統644",
+          "serviceId": "年末・年始",
+          "route": "22L",
+          "time": "14:10",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_14時10分_系統644",
+          "serviceId": "日祝",
+          "route": "22L",
+          "time": "14:10",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_14時10分_系統644",
+          "serviceId": "特別ダイヤ１",
+          "route": "22L",
+          "time": "14:10",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_14時27分_系統262",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "14:27",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_14時30分_系統266",
+          "serviceId": "土曜",
+          "route": "22B",
+          "time": "14:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_14時30分_系統266",
+          "serviceId": "年末・年始",
+          "route": "22B",
+          "time": "14:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "日祝_14時30分_系統266",
+          "serviceId": "日祝",
+          "route": "22B",
+          "time": "14:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "特別ダイヤ１_14時30分_系統266",
+          "serviceId": "特別ダイヤ１",
+          "route": "22B",
+          "time": "14:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_14時40分_系統584",
+          "serviceId": "平日",
+          "route": "22M",
+          "time": "14:40",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_14時55分_系統268",
+          "serviceId": "土曜",
+          "route": "22A",
+          "time": "14:55",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "年末・年始_14時55分_系統268",
+          "serviceId": "年末・年始",
+          "route": "22A",
+          "time": "14:55",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_14時55分_系統268",
+          "serviceId": "日祝",
+          "route": "22A",
+          "time": "14:55",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_14時55分_系統268",
+          "serviceId": "特別ダイヤ１",
+          "route": "22A",
+          "time": "14:55",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_14時57分_系統268",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "14:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_15時00分_系統672",
+          "serviceId": "土曜",
+          "route": "22M",
+          "time": "15:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_15時10分_系統580",
+          "serviceId": "平日",
+          "route": "22G",
+          "time": "15:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_15時00分_系統672",
+          "serviceId": "年末・年始",
+          "route": "22M",
+          "time": "15:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "日祝_15時00分_系統672",
+          "serviceId": "日祝",
+          "route": "22M",
+          "time": "15:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "特別ダイヤ１_15時00分_系統672",
+          "serviceId": "特別ダイヤ１",
+          "route": "22M",
+          "time": "15:10",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_15時27分_系統266",
+          "serviceId": "平日",
+          "route": "22B",
+          "time": "15:27",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_15時30分_系統262",
+          "serviceId": "土曜",
+          "route": "22A",
+          "time": "15:30",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "年末・年始_15時30分_系統262",
+          "serviceId": "年末・年始",
+          "route": "22A",
+          "time": "15:30",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_15時30分_系統262",
+          "serviceId": "日祝",
+          "route": "22A",
+          "time": "15:30",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_15時30分_系統262",
+          "serviceId": "特別ダイヤ１",
+          "route": "22A",
+          "time": "15:30",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_15時37分_系統582",
+          "serviceId": "平日",
+          "route": "22H",
+          "time": "15:37",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_15時48分_系統268",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "15:48",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_15時40分_系統666",
+          "serviceId": "土曜",
+          "route": "22A",
+          "time": "15:50",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "年末・年始_15時40分_系統666",
+          "serviceId": "年末・年始",
+          "route": "22A",
+          "time": "15:50",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_15時40分_系統666",
+          "serviceId": "日祝",
+          "route": "22A",
+          "time": "15:50",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_15時40分_系統666",
+          "serviceId": "特別ダイヤ１",
+          "route": "22A",
+          "time": "15:50",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_16時05分_系統268",
+          "serviceId": "土曜",
+          "route": "22A",
+          "time": "16:05",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_16時05分_系統268",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "16:05",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "年末・年始_16時05分_系統268",
+          "serviceId": "年末・年始",
+          "route": "22A",
+          "time": "16:05",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_16時05分_系統268",
+          "serviceId": "日祝",
+          "route": "22A",
+          "time": "16:05",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_16時05分_系統268",
+          "serviceId": "特別ダイヤ１",
+          "route": "22A",
+          "time": "16:05",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_16時18分_系統642",
+          "serviceId": "土曜",
+          "route": "22L",
+          "time": "16:18",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "年末・年始_16時18分_系統642",
+          "serviceId": "年末・年始",
+          "route": "22L",
+          "time": "16:18",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_16時18分_系統642",
+          "serviceId": "日祝",
+          "route": "22L",
+          "time": "16:18",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_16時18分_系統642",
+          "serviceId": "特別ダイヤ１",
+          "route": "22L",
+          "time": "16:18",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_16時27分_系統262",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "16:27",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_16時30分_系統266",
+          "serviceId": "土曜",
+          "route": "22B",
+          "time": "16:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_16時30分_系統266",
+          "serviceId": "年末・年始",
+          "route": "22B",
+          "time": "16:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "日祝_16時30分_系統266",
+          "serviceId": "日祝",
+          "route": "22B",
+          "time": "16:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "特別ダイヤ１_16時30分_系統266",
+          "serviceId": "特別ダイヤ１",
+          "route": "22B",
+          "time": "16:30",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_16時50分_系統268",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "16:50",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_16時57分_系統262",
+          "serviceId": "土曜",
+          "route": "22A",
+          "time": "16:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "年末・年始_16時57分_系統262",
+          "serviceId": "年末・年始",
+          "route": "22A",
+          "time": "16:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_16時57分_系統262",
+          "serviceId": "日祝",
+          "route": "22A",
+          "time": "16:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_16時57分_系統262",
+          "serviceId": "特別ダイヤ１",
+          "route": "22A",
+          "time": "16:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_17時05分_系統582",
+          "serviceId": "平日",
+          "route": "22H",
+          "time": "17:05",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_17時17分_系統266",
+          "serviceId": "平日",
+          "route": "22B",
+          "time": "17:17",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "土曜_17時41分_系統266",
+          "serviceId": "土曜",
+          "route": "22B",
+          "time": "17:41",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_17時41分_系統268",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "17:41",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "年末・年始_17時41分_系統266",
+          "serviceId": "年末・年始",
+          "route": "22B",
+          "time": "17:41",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "日祝_17時41分_系統266",
+          "serviceId": "日祝",
+          "route": "22B",
+          "time": "17:41",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "特別ダイヤ１_17時41分_系統266",
+          "serviceId": "特別ダイヤ１",
+          "route": "22B",
+          "time": "17:41",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "平日_17時48分_系統272",
+          "serviceId": "平日",
+          "route": "22E",
+          "time": "17:48",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_17時57分_系統268",
+          "serviceId": "土曜",
+          "route": "22A",
+          "time": "17:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_17時57分_系統582",
+          "serviceId": "平日",
+          "route": "22H",
+          "time": "17:57",
+          "alightStop": "gunma_univ_aramaki"
+        },
+        {
+          "tripId": "年末・年始_17時57分_系統268",
+          "serviceId": "年末・年始",
+          "route": "22A",
+          "time": "17:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_17時57分_系統268",
+          "serviceId": "日祝",
+          "route": "22A",
+          "time": "17:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_17時57分_系統268",
+          "serviceId": "特別ダイヤ１",
+          "route": "22A",
+          "time": "17:57",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_18時04分_系統262",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "18:04",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_18時20分_系統268",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "18:20",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_18時37分_系統268",
+          "serviceId": "土曜",
+          "route": "22A",
+          "time": "18:37",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "年末・年始_18時37分_系統268",
+          "serviceId": "年末・年始",
+          "route": "22A",
+          "time": "18:37",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_18時37分_系統268",
+          "serviceId": "日祝",
+          "route": "22A",
+          "time": "18:37",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_18時37分_系統268",
+          "serviceId": "特別ダイヤ１",
+          "route": "22A",
+          "time": "18:37",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_18時45分_系統268",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "18:45",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_18時56分_系統532",
+          "serviceId": "土曜",
+          "route": "22C",
+          "time": "18:56",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "年末・年始_18時56分_系統532",
+          "serviceId": "年末・年始",
+          "route": "22C",
+          "time": "18:56",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_18時56分_系統532",
+          "serviceId": "日祝",
+          "route": "22C",
+          "time": "18:56",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_18時56分_系統532",
+          "serviceId": "特別ダイヤ１",
+          "route": "22C",
+          "time": "18:56",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_19時00分_系統532",
+          "serviceId": "平日",
+          "route": "22C",
+          "time": "19:00",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_19時27分_系統268",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "19:27",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_19時50分_系統268",
+          "serviceId": "土曜",
+          "route": "22A",
+          "time": "19:50",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_19時50分_系統532",
+          "serviceId": "平日",
+          "route": "22C",
+          "time": "19:50",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "年末・年始_19時50分_系統268",
+          "serviceId": "年末・年始",
+          "route": "22A",
+          "time": "19:50",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_19時50分_系統268",
+          "serviceId": "日祝",
+          "route": "22A",
+          "time": "19:50",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_19時50分_系統268",
+          "serviceId": "特別ダイヤ１",
+          "route": "22A",
+          "time": "19:50",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_20時02分_系統532",
+          "serviceId": "平日",
+          "route": "22C",
+          "time": "20:02",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_20時30分_系統532",
+          "serviceId": "土曜",
+          "route": "22C",
+          "time": "20:30",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "年末・年始_20時30分_系統532",
+          "serviceId": "年末・年始",
+          "route": "22C",
+          "time": "20:30",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_20時30分_系統532",
+          "serviceId": "日祝",
+          "route": "22C",
+          "time": "20:30",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_20時30分_系統532",
+          "serviceId": "特別ダイヤ１",
+          "route": "22C",
+          "time": "20:30",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_20時35分_系統268",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "20:35",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "土曜_21時24分_系統532",
+          "serviceId": "土曜",
+          "route": "22C",
+          "time": "21:24",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "年末・年始_21時24分_系統532",
+          "serviceId": "年末・年始",
+          "route": "22C",
+          "time": "21:24",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "日祝_21時24分_系統532",
+          "serviceId": "日祝",
+          "route": "22C",
+          "time": "21:24",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "特別ダイヤ１_21時24分_系統532",
+          "serviceId": "特別ダイヤ１",
+          "route": "22C",
+          "time": "21:24",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_21時35分_系統532",
+          "serviceId": "平日",
+          "route": "22C",
+          "time": "21:35",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_22時17分_系統268",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "22:17",
+          "alightStop": "driving_school"
+        },
+        {
+          "tripId": "平日_22時53分_系統268",
+          "serviceId": "平日",
+          "route": "22A",
+          "time": "22:53",
+          "alightStop": "driving_school"
         }
       ]
     }
