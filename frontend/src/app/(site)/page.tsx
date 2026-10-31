@@ -1,4 +1,7 @@
 import type { Metadata } from 'next';
+import busTimetable from '@/data/bus-timetable.json';
+import { departuresOn, type BusTimetableFile } from '@/lib/bus-timetable';
+import { getAccessSettings } from '@/lib/access-settings';
 import { getHomePage } from '@/lib/home-page';
 import { HeroSection } from '@/components/hero-section';
 import { AboutSection } from '@/components/about-section';
@@ -14,7 +17,11 @@ import { AccessSection } from '@/components/access-section';
 import { toHeroImage } from '@/lib/cms-asset-url';
 import { HomePageContent } from '@/lib/home-page-types';
 import { getRequestPhase } from '@/lib/request-phase';
-import { formatEventDaysSummary, getDaysUntilEventDay } from '@/lib/event-day';
+import {
+  formatEventDaysSummary,
+  getDaysUntilEventDay,
+  toJstDateKey,
+} from '@/lib/event-day';
 import {
   getExhibitionListData,
   parseExhibitionQuery,
@@ -139,10 +146,11 @@ export default async function Page() {
   if (phase === 'live') {
     // 企画一覧・協賛はトップページ以外でも使う汎用の取得層のため、開催中フェーズでのみ
     // ここから呼ぶ (getHomePage には含めない、design.md Requirement 3)
-    const [exhibitions, adSponsors, localSponsors] = await Promise.all([
+    const [exhibitions, adSponsors, localSponsors, access] = await Promise.all([
       getFeaturedExhibitions(),
       getAdSponsors(),
       getLocalSponsors(),
+      getAccessSettings(),
     ]);
 
     return (
@@ -188,7 +196,14 @@ export default async function Page() {
           descriptionHtml={content.theme?.descriptionHtml ?? null}
         />
 
-        <AccessSection />
+        <AccessSection
+          summary={access.summary}
+          departures={departuresOn(
+            busTimetable as unknown as BusTimetableFile,
+            toJstDateKey(new Date().toISOString()),
+          )}
+          fetchedAt={busTimetable.fetchedAt}
+        />
 
         <SponsorsList adSponsors={adSponsors} localSponsors={localSponsors} />
       </div>

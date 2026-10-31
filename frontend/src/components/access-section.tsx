@@ -1,9 +1,22 @@
 import { TextLink } from './text-link';
 import { SandboxedEmbed } from './sandboxed-embed';
 import { SectionHeading } from './section-heading';
-import { ACCESS_SUMMARY, CAMPUS_MAP_EMBED_URL, VENUE_NAME } from '@/lib/venue';
+import { BusDepartureBoard } from './bus/bus-departure-board';
+import type { BusScheduledDeparture } from '@/lib/bus-timetable';
+import { CAMPUS_MAP_EMBED_URL, VENUE_NAME } from '@/lib/venue';
 
-export function AccessSection() {
+export interface AccessSectionProps {
+  readonly summary: string;
+  /** JST の今日の発車一覧 */
+  readonly departures: readonly BusScheduledDeparture[];
+  readonly fetchedAt: string;
+}
+
+export function AccessSection({
+  summary,
+  departures,
+  fetchedAt,
+}: AccessSectionProps) {
   return (
     <section className="mx-auto w-full max-w-[1440px] px-4 py-8 lg:px-20 lg:py-12">
       <SectionHeading level="h2">アクセス</SectionHeading>
@@ -16,7 +29,7 @@ export function AccessSection() {
               className="h-full w-full border-0"
             />
           </div>
-          <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <div className="flex min-w-0 flex-1 flex-col gap-4">
             <p
               data-testid="access-venue-name"
               className="text-base leading-[170%] text-text"
@@ -27,8 +40,13 @@ export function AccessSection() {
               data-testid="access-summary"
               className="text-sm leading-[160%] whitespace-pre-wrap text-text"
             >
-              {ACCESS_SUMMARY}
+              {summary}
             </p>
+            <BusDepartureBoard
+              departures={departures}
+              fetchedAt={fetchedAt}
+              renderedAt={new Date().toISOString()}
+            />
           </div>
         </div>
         <div className="flex justify-end">
