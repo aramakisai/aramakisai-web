@@ -35,6 +35,10 @@ import * as migration_20261026_152813_navigation from './20261026_152813_navigat
 import * as migration_20261027_074658_parking_camera_endpoint from './20261027_074658_parking_camera_endpoint';
 import * as migration_20261028_040027_regional_sponsor_map_schema from './20261028_040027_regional_sponsor_map_schema';
 import * as migration_20261029_133248_sponsors_vendor_group from './20261029_133248_sponsors_vendor_group';
+import * as migration_20261030_103246_add_media_small_size from './20261030_103246_add_media_small_size';
+import * as migration_20261031_104936_sponsors_type_personal from './20261031_104936_sponsors_type_personal';
+import * as migration_20261031_055622_site_settings_access from './20261031_055622_site_settings_access';
+import * as migration_20261031_134723_remove_access_page from './20261031_134723_remove_access_page';
 
 export const migrations = [
   {
@@ -220,6 +224,26 @@ export const migrations = [
   {
     up: migration_20261029_133248_sponsors_vendor_group.up,
     down: migration_20261029_133248_sponsors_vendor_group.down,
-    name: '20261029_133248_sponsors_vendor_group'
+    name: '20261029_133248_sponsors_vendor_group',
+  },
+  {
+    up: migration_20261030_103246_add_media_small_size.up,
+    down: migration_20261030_103246_add_media_small_size.down,
+    name: '20261030_103246_add_media_small_size',
+  },
+  {
+    up: migration_20261031_104936_sponsors_type_personal.up,
+    down: migration_20261031_104936_sponsors_type_personal.down,
+    name: '20261031_104936_sponsors_type_personal',
+  },
+  {
+    up: migration_20261031_055622_site_settings_access.up,
+    down: migration_20261031_055622_site_settings_access.down,
+    name: '20261031_055622_site_settings_access',
+  },
+  {
+    up: migration_20261031_134723_remove_access_page.up,
+    down: migration_20261031_134723_remove_access_page.down,
+    name: '20261031_134723_remove_access_page'
   },
 ];

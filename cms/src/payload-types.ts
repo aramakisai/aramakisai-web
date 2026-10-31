@@ -267,6 +267,14 @@ export interface Media {
       filesize?: number | null;
       filename?: string | null;
     };
+    small?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
   };
 }
 /**
@@ -410,7 +418,7 @@ export interface Page {
 export interface Sponsor {
   id: number;
   _order?: string | null;
-  type: ('ad' | 'local' | 'vendor' | 'other')[];
+  type: ('ad' | 'local' | 'vendor' | 'other' | 'personal')[];
   name: string;
   logo?: (number | null) | Media;
   url?: string | null;
@@ -1232,6 +1240,16 @@ export interface MediaSelect<T extends boolean = true> {
               filesize?: T;
               filename?: T;
             };
+        small?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
       };
 }
 /**
@@ -1769,6 +1787,28 @@ export interface SiteSetting {
    * SNS共有時の既定画像。未設定時はサイト同梱の既定画像を使用
    */
   og_image?: (number | null) | Media;
+  access_summary?: string | null;
+  access_content?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  access_content_html?: string | null;
+  access_embed_url?: string | null;
+  /**
+   * iframe の高さ(px)。未指定時は 16:9
+   */
+  access_embed_height?: number | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1896,6 +1936,11 @@ export interface SiteSettingsSelect<T extends boolean = true> {
         end?: T;
       };
   og_image?: T;
+  access_summary?: T;
+  access_content?: T;
+  access_content_html?: T;
+  access_embed_url?: T;
+  access_embed_height?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

@@ -2,6 +2,7 @@ import type { CollectionBeforeValidateHook } from 'payload'
 import { ValidationError } from 'payload'
 
 import { blankToNull, type ConstraintViolation, hasValue } from './constraints'
+import { isHttpUrl } from './http-url'
 
 type LocalSponsorDoc = Record<string, unknown> & {
   readonly type?: unknown
@@ -36,16 +37,11 @@ export function validateLocalSponsorMap(doc: LocalSponsorDoc): readonly Constrai
   if (!isLocal(doc)) return []
 
   const violations: ConstraintViolation[] = []
-  if (hasValue(doc.url)) {
-    try {
-      const parsed = new URL(String(doc.url))
-      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') throw new Error()
-    } catch {
-      violations.push({
-        field: 'url',
-        message: 'Webサイト URL は http または https の絶対URLにしてください',
-      })
-    }
+  if (hasValue(doc.url) && !isHttpUrl(doc.url)) {
+    violations.push({
+      field: 'url',
+      message: 'Webサイト URL は http または https の絶対URLにしてください',
+    })
   }
   return violations
 }

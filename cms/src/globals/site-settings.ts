@@ -2,6 +2,7 @@ import { lexicalHTMLField } from '@payloadcms/richtext-lexical';
 import type { GlobalConfig } from 'payload';
 
 import { validateMonitorEnd, validateMonitorStart } from '../lib/parking-monitor';
+import { richTextHTMLConverters } from '../lib/rich-text-html-converters';
 import { signageNotifyGlobalHook } from '../lib/signage-notify';
 
 export const SiteSettings: GlobalConfig = {
@@ -143,6 +144,35 @@ export const SiteSettings: GlobalConfig = {
               relationTo: 'media',
               label: '既定 OG 画像',
               admin: { description: 'SNS共有時の既定画像。未設定時はサイト同梱の既定画像を使用' },
+            },
+          ],
+        },
+        {
+          label: 'アクセス',
+          fields: [
+            {
+              name: 'access_summary',
+              type: 'textarea',
+              label: 'トップページの案内文',
+            },
+            { name: 'access_content', type: 'richText', label: 'アクセスページの本文' },
+            lexicalHTMLField({
+              htmlFieldName: 'access_content_html',
+              lexicalFieldName: 'access_content',
+              storeInDB: true,
+              converters: richTextHTMLConverters,
+            }),
+            {
+              name: 'access_embed_url',
+              type: 'text',
+              maxLength: 500,
+              label: '地図の埋め込み URL',
+            },
+            {
+              name: 'access_embed_height',
+              type: 'number',
+              label: '地図の埋め込み高さ',
+              admin: { description: 'iframe の高さ(px)。未指定時は 16:9' },
             },
           ],
         },
