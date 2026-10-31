@@ -41,7 +41,7 @@ export async function Footer() {
         className="absolute inset-0 bg-bansai-sage/[0.18]"
       />
 
-      <div className="relative z-10 mx-auto flex max-w-5xl flex-col px-4 pt-12 pb-8 lg:px-0 lg:pt-16">
+      <div className="relative z-10 mx-auto flex max-w-[1056px] flex-col px-4 pt-12 pb-8 lg:pt-16">
         <div className="flex flex-col lg:flex-row lg:justify-between">
           <nav
             aria-label="フッターサイト案内"
