@@ -23,6 +23,7 @@ const timetable: Timetable = {
       stageId: 1,
       slot: slot('13:40', '14:30'),
       name: 'ダンス',
+      projectName: null,
       href: '/x',
     },
     {
@@ -30,6 +31,7 @@ const timetable: Timetable = {
       stageId: 2,
       slot: slot('12:30', '13:00'),
       name: '軽音',
+      projectName: null,
       href: null,
     },
   ],
@@ -76,6 +78,7 @@ test('4ステージ以上は3つずつのページで、列幅を3列ぶんに�
       stageId: id,
       slot: slot('13:00', '14:00'),
       name: `P${id}`,
+      projectName: null,
       href: null,
     })),
   };
