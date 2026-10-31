@@ -10,6 +10,7 @@ export interface MapBottomSheetProps {
   readonly selectedAreaId?: number | null;
   /** 段の切替ごとに、行き先の高さ (px) を1回呼ぶ。地図側コントロールの余白追従に使う */
   readonly onTargetHeightChange?: (height: number) => void;
+  readonly onTargetHeightIntent?: (height: number) => void;
 }
 
 export function MapBottomSheet({
@@ -17,6 +18,7 @@ export function MapBottomSheet({
   notice,
   selectedAreaId = null,
   onTargetHeightChange,
+  onTargetHeightIntent,
 }: MapBottomSheetProps) {
   return (
     <BaseMapBottomSheet
@@ -24,6 +26,7 @@ export function MapBottomSheet({
       collapsed={state.kind !== 'filtered'}
       selectedKey={selectedAreaId}
       onTargetHeightChange={onTargetHeightChange}
+      onTargetHeightIntent={onTargetHeightIntent}
     >
       <AreaExhibitionList state={state} notice={notice} />
     </BaseMapBottomSheet>

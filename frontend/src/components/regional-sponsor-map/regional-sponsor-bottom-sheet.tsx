@@ -8,10 +8,12 @@ import {
 
 export interface RegionalSponsorBottomSheetProps extends RegionalSponsorContentProps {
   readonly onTargetHeightChange?: (height: number) => void;
+  readonly onTargetHeightIntent?: (height: number) => void;
 }
 
 export function RegionalSponsorBottomSheet({
   onTargetHeightChange,
+  onTargetHeightIntent,
   ...content
 }: RegionalSponsorBottomSheetProps) {
   return (
@@ -20,6 +22,7 @@ export function RegionalSponsorBottomSheet({
       collapsed={!!content.error}
       selectedKey={content.selectedSponsor?.id ?? null}
       onTargetHeightChange={onTargetHeightChange}
+      onTargetHeightIntent={onTargetHeightIntent}
     >
       <RegionalSponsorContent {...content} scope="sheet" />
     </MapBottomSheet>

@@ -84,8 +84,12 @@ export function CampusMapScreen({
     },
     [commitArea],
   );
-  const { bottomInset, onTargetHeightChange: handleSheetHeightChange } =
-    useMapSheetInset();
+  const {
+    bottomInset,
+    onTargetHeightChange: handleSheetHeightChange,
+    onTargetHeightIntent,
+    getPendingInset,
+  } = useMapSheetInset();
 
   const areas: readonly CampusMapArea[] =
     data.areas.kind === 'loaded' ? data.areas.value : EMPTY_AREAS;
@@ -179,6 +183,7 @@ export function CampusMapScreen({
         notice={areaNotice}
         selectedAreaId={filters.selectedAreaId}
         onTargetHeightChange={handleSheetHeightChange}
+        onTargetHeightIntent={onTargetHeightIntent}
       />
       <div
         data-testid="map-viewport"
@@ -190,6 +195,7 @@ export function CampusMapScreen({
           points={data.points}
           selectedAreaId={filters.selectedAreaId}
           onSelectArea={selectArea}
+          getPendingInset={getPendingInset}
         />
       </div>
       <PhasedBottomNavigation />

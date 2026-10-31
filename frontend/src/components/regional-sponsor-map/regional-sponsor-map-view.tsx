@@ -37,6 +37,7 @@ export interface RegionalSponsorMapViewProps {
   readonly selectedSponsorId: number | null;
   readonly onSelectSponsor: (sponsorId: number) => void;
   readonly onSelectLocation: (sponsorIds: readonly number[]) => void;
+  readonly getPendingInset?: () => number;
 }
 
 export function RegionalSponsorMapView({
@@ -45,6 +46,7 @@ export function RegionalSponsorMapView({
   selectedSponsorId,
   onSelectSponsor,
   onSelectLocation,
+  getPendingInset,
 }: RegionalSponsorMapViewProps) {
   const isAboveBreakpoint = useIsAboveMapBreakpoint();
   const markerSize = isAboveBreakpoint ? 48 : 32;
@@ -113,6 +115,7 @@ export function RegionalSponsorMapView({
         focusKey={selectedSponsorId}
         focusZoom={FOCUS_ZOOM}
         focusFitOptions={fitOptions}
+        focusExtraBottom={getPendingInset}
         refocusKey={isAboveBreakpoint ? 'desktop' : 'mobile'}
       />
       <RegionalSponsorMarkerLayer

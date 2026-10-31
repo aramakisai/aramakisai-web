@@ -56,6 +56,8 @@ export interface CampusMapViewProps {
   readonly fitExcludeOutliers?: boolean;
   /** 表示範囲のタイルを読み終えたとき(Leaflet の GridLayer load)に呼ぶ */
   readonly onTilesLoaded?: () => void;
+  /** シートが伸びる間に遅れて縮む地図コンテナの分(px)。選択位置への移動の下余白に足す */
+  readonly getPendingInset?: () => number;
 }
 
 // navigation entry はドキュメントの最初の URL のまま変わらないため、/map 直接表示後に別ページから
@@ -96,6 +98,7 @@ export function CampusMapView({
   maxBoundsPad = 0,
   fitExcludeOutliers = false,
   onTilesLoaded,
+  getPendingInset,
 }: CampusMapViewProps) {
   const { minZoom, maxZoom, minNativeZoom, maxNativeZoom, tileUrlTemplate } =
     CAMPUS_MAP_CONFIG;
@@ -205,6 +208,7 @@ export function CampusMapView({
         bottomInset={fitBottomInset}
         focusCenter={focusCenter}
         focusKey={selectedAreaId}
+        focusExtraBottom={getPendingInset}
         refocusKey={isAboveBreakpoint ? 'desktop' : 'mobile'}
       />
       <AreaPolygonLayer

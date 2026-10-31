@@ -32,6 +32,8 @@ export interface MapBottomSheetShellProps {
    * シートが非表示 (PC 幅) のときは 0
    */
   readonly onTargetHeightChange?: (height: number) => void;
+  /** onTargetHeightChange と同じ高さを、伸びる向きの遅延なしで即時に通知する */
+  readonly onTargetHeightIntent?: (height: number) => void;
   readonly contentClassName?: string;
   readonly outerClassName?: string;
   readonly sheetShadowClassName?: string;
@@ -51,6 +53,7 @@ export function MapBottomSheetShell({
   restSnapId,
   onSnapChange,
   onTargetHeightChange,
+  onTargetHeightIntent,
   contentClassName,
   outerClassName,
   sheetShadowClassName = 'shadow-xl',
@@ -173,6 +176,7 @@ export function MapBottomSheetShell({
     const height = hidden
       ? 0
       : currentSnap.resolveHeightPx(measureSnapContext());
+    onTargetHeightIntent?.(height);
     if (pendingRef.current && pendingRef.current.height !== height) {
       pendingRef.current.cancel();
     }

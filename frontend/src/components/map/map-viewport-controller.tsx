@@ -25,6 +25,11 @@ export interface MapViewportControllerProps {
   readonly focusZoom?: number;
   /** 選択位置へ寄せるときの余白 */
   readonly focusFitOptions?: MapFitOptions;
+  /**
+   * 焦点合わせの下余白に足す px。シートが伸びる向きではコンテナが縮むのが移動の途中以降になるため、
+   * 縮んだ後に見える領域の中央へ向かうよう、行き先の高さとの差を渡す
+   */
+  readonly focusExtraBottom?: () => number;
   /** 変わったとき、選択中の位置を現在のズームのまま見えている領域の中央へ平行移動する */
   readonly refocusKey?: string | number | null;
   readonly maxBounds: LatLngBoundsExpression;
@@ -55,6 +60,7 @@ export function MapViewportController({
   focusKey,
   focusZoom,
   focusFitOptions,
+  focusExtraBottom,
   refocusKey,
   maxBounds,
   minZoom,
@@ -71,6 +77,7 @@ export function MapViewportController({
   // シートの高さが動くたびに fitOptions 等が作り直されるため、effect を張り直さず最新値を参照する
   const fitOptionsRef = useRef(fitOptions);
   const focusFitOptionsRef = useRef(focusFitOptions);
+  const focusExtraBottomRef = useRef(focusExtraBottom);
   const initialFitOptionsRef = useRef(initialFitOptions);
   const minZoomPaddingRef = useRef(minZoomPadding);
   const maxBoundsPaddingRef = useRef(maxBoundsPadding);
@@ -85,6 +92,7 @@ export function MapViewportController({
   useLayoutEffect(() => {
     fitOptionsRef.current = fitOptions;
     focusFitOptionsRef.current = focusFitOptions;
+    focusExtraBottomRef.current = focusExtraBottom;
     initialFitOptionsRef.current = initialFitOptions;
     minZoomPaddingRef.current = minZoomPadding;
     maxBoundsPaddingRef.current = maxBoundsPadding;
@@ -125,7 +133,8 @@ export function MapViewportController({
     const onZoomEnd = () => applyMaxBounds(map.getZoom());
     if (extendMaxBounds) map.on('zoomend', onZoomEnd);
     const applyMinZoom = () => {
-      map.invalidateSize({ animate: false });
+      // コンテナは上端固定で下端だけが動く。既定の pan:true は中心を保つため内容を Δ/2 ずらしてしまう
+      map.invalidateSize({ animate: false, pan: false });
       const minZoomPadding = minZoomPaddingRef.current;
       const boundsZoom = minZoomPadding
         ? map.getBoundsZoom(maxBounds, true, minZoomPadding)
@@ -253,7 +262,7 @@ export function MapViewportController({
     const paddingTopLeft = point(resolvedFitOptions.paddingTopLeft ?? [0, 0]);
     const paddingBottomRight = point(
       resolvedFitOptions.paddingBottomRight ?? [0, 0],
-    );
+    ).add([0, focusExtraBottomRef.current?.() ?? 0]);
     const visibleCenterOffset = paddingTopLeft
       .subtract(paddingBottomRight)
       .divideBy(2);

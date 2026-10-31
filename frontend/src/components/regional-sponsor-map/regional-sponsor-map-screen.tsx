@@ -73,7 +73,12 @@ export function RegionalSponsorMapScreen({
   const navClass = useMapNavClass();
   const sponsors = data.ok ? data.sponsors : EMPTY_SPONSORS;
   const state = useRegionalSponsorMapState(sponsors);
-  const { bottomInset, onTargetHeightChange } = useMapSheetInset();
+  const {
+    bottomInset,
+    onTargetHeightChange,
+    onTargetHeightIntent,
+    getPendingInset,
+  } = useMapSheetInset();
   const { clearFocusTarget, focusTargetId, selectedSponsorId } = state;
 
   useEffect(() => {
@@ -134,6 +139,7 @@ export function RegionalSponsorMapScreen({
       <RegionalSponsorBottomSheet
         {...shared}
         onTargetHeightChange={onTargetHeightChange}
+        onTargetHeightIntent={onTargetHeightIntent}
       />
       <div
         data-testid="map-viewport"
@@ -146,6 +152,7 @@ export function RegionalSponsorMapScreen({
           selectedSponsorId={state.selectedSponsorId}
           onSelectSponsor={state.selectFromPin}
           onSelectLocation={state.openLocation}
+          getPendingInset={getPendingInset}
         />
       </div>
       <PhasedBottomNavigation />

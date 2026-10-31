@@ -16,6 +16,7 @@ export function MapViewportSync({
   focusCenter,
   focusKey,
   refocusKey,
+  focusExtraBottom,
 }: {
   readonly fitBounds: LatLngBoundsExpression;
   /** 地図の下に重なって浮く操作部品の高さ。その分を避けて合わせる */
@@ -23,6 +24,7 @@ export function MapViewportSync({
   readonly focusCenter: LatLngExpression | null;
   readonly focusKey: number | null;
   readonly refocusKey: string;
+  readonly focusExtraBottom?: () => number;
 }) {
   const resolveFitOptions = useCallback(
     (container: HTMLElement) => computeMapFitOptions(container, bottomInset),
@@ -40,6 +42,7 @@ export function MapViewportSync({
       focusZoom={CAMPUS_MAP_CONFIG.maxNativeZoom}
       focusFitOptions={resolveFitOptions}
       refocusKey={refocusKey}
+      focusExtraBottom={focusExtraBottom}
     />
   );
 }

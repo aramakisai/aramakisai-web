@@ -15,6 +15,7 @@ export interface MapBottomSheetProps {
   readonly selectedKey?: number | string | null;
   /** 段の切替ごとに、行き先の高さ (px) を1回呼ぶ。地図側コントロールの余白追従に使う */
   readonly onTargetHeightChange?: (height: number) => void;
+  readonly onTargetHeightIntent?: (height: number) => void;
 }
 
 type SheetSnapId = 'minimum' | 'fit' | 'standard' | 'large' | 'full';
@@ -70,6 +71,7 @@ export function MapBottomSheet({
   collapsed,
   selectedKey = null,
   onTargetHeightChange,
+  onTargetHeightIntent,
 }: MapBottomSheetProps) {
   const restSnapId: SheetSnapId = collapsed ? 'fit' : 'standard';
   const snaps = useMemo(
@@ -119,6 +121,7 @@ export function MapBottomSheet({
       restSnapId={restSnapId}
       onSnapChange={(next) => setSnapId(next as SheetSnapId)}
       onTargetHeightChange={onTargetHeightChange}
+      onTargetHeightIntent={onTargetHeightIntent}
       outerClassName="[clip-path:inset(-100px_-100px_0_-100px)]"
       sheetShadowClassName="shadow-card"
     >
