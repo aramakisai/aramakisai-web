@@ -44,6 +44,14 @@ class MockIntersectionObserver {
   }
 }
 
+// 配置は clientWidth (スクロールバーを除く)、PC/SP 判定は innerWidth を読む
+function setViewportWidth(width: number) {
+  vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(width);
+  vi.spyOn(document.documentElement, 'clientWidth', 'get').mockReturnValue(
+    width,
+  );
+}
+
 function stubRect(
   el: Element,
   rect: { x: number; y: number; width: number; height: number },
@@ -100,13 +108,16 @@ function Harness() {
   );
 }
 
+let rerenderHarness: () => void = () => {};
+
 /** ヘッダー・本文・フッターの計測値を固定し、装飾レイヤーの再計測を1度走らせる。 */
 async function renderAndMeasure(shapes: PlacedShape[]) {
   vi.spyOn(placementLib, 'placeBackgroundShapes').mockReturnValue(
     placementResult(shapes),
   );
 
-  const { container } = render(<Harness />);
+  const { container, rerender } = render(<Harness />);
+  rerenderHarness = () => rerender(<Harness />);
   const containerEl = document.getElementById(PAGE_CONTAINER_ID)!;
   const headerEl = container.querySelector('header')!;
   const sectionEl = container.querySelector('section')!;
@@ -117,7 +128,7 @@ async function renderAndMeasure(shapes: PlacedShape[]) {
   stubRect(footerEl, { x: 0, y: 1080, width: 1440, height: 120 });
   // jsdom の既定 innerWidth (1024) と異なる値にする。幅が変わらないリサイズは
   // 計算し直さない (要件 9.3 の裏返し) ため、初回計測との差を作る必要がある
-  vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(1440);
+  setViewportWidth(1440);
 
   act(() => {
     window.dispatchEvent(new Event('resize'));
@@ -167,11 +178,38 @@ function firePointerMove(clientX: number, clientY: number) {
   });
 }
 
+interface MockAnimation {
+  target: HTMLElement;
+  keyframes: Keyframe[];
+  options: KeyframeAnimationOptions;
+  cancel: ReturnType<typeof vi.fn>;
+  onfinish: (() => void) | null;
+}
+let animations: MockAnimation[] = [];
+
 beforeEach(() => {
   vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
+  animations = [];
+  // jsdom は Web Animations API を持たない
+  HTMLElement.prototype.animate = function (
+    this: HTMLElement,
+    keyframes: Keyframe[],
+    options: KeyframeAnimationOptions,
+  ) {
+    const anim: MockAnimation = {
+      target: this,
+      keyframes,
+      options,
+      cancel: vi.fn(),
+      onfinish: null,
+    };
+    animations.push(anim);
+    return anim as unknown as Animation;
+  } as unknown as HTMLElement['animate'];
 });
 
 afterEach(() => {
+  delete (HTMLElement.prototype as Partial<HTMLElement>).animate;
   vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
@@ -196,35 +234,105 @@ const RAF_FAKE_TIMERS = [
 /** 入場アニメーションを完了させ、揺れの計算対象 (ready) にする。 */
 function completeEntry(io: MockIntersectionObserver, el: HTMLElement) {
   io.trigger(el, true);
-  act(() => {
-    vi.advanceTimersByTime(entryDurationMs('L'));
-  });
+  act(() => animations.forEach((a) => a.onfinish?.()));
 }
 
 describe('BackgroundShapes の動き', () => {
-  it('入場アニメーションは図形につき 1 回だけ発火する', async () => {
+  it('入場は内側要素の Web Animations で、図形につき 1 回だけ発火する', async () => {
     const els = await renderAndMeasure([shape({ cy: 300 })]);
     const el = els[0];
+    const inner = el.firstElementChild as HTMLElement;
 
     const io = await findActiveIO(el);
+    // 交差判定は定位置の外側要素で行う (入場の起点が画面外でも判定が変わらない)
+    expect(matchingIOs(inner)).toHaveLength(0);
+    // 入場前の図形は不透明度 0
+    expect(inner.style.opacity).toBe('0');
 
-    vi.useFakeTimers();
     io.trigger(el, true);
     expect(io.unobserve).toHaveBeenCalledTimes(1);
-    expect(el.style.transition).not.toBe('');
-
-    act(() => {
-      vi.advanceTimersByTime(entryDurationMs('L'));
-    });
-    // 入場完了後は transition がリセットされ、以後の揺れ (transform の直接書き換え) と
-    // 衝突しない
+    expect(animations).toHaveLength(1);
+    const [anim] = animations;
+    expect(anim.target).toBe(inner);
+    expect(anim.options.duration).toBe(entryDurationMs('L'));
+    expect(anim.options.easing).toBe('cubic-bezier(0.16, 0.84, 0.44, 1)');
+    expect(anim.keyframes[0].opacity).toBe(0);
+    expect(anim.keyframes[1].opacity).toBe(1);
+    // 命令的な transition・transform を外側要素に書き込まない
     expect(el.style.transition).toBe('');
+    expect(el.style.transform).toBe('rotate(0deg)');
 
-    // 現実の IntersectionObserver では unobserve 後にコールバックは届かないが、
-    // 万一届いても再処理しないことを確認する (1 図形につき 1 回のガード)。
-    // ガードが無いと 2 回目の trigger で transition が再設定され '' でなくなる
+    act(() => anim.onfinish?.());
+    expect(inner.style.opacity).toBe('');
+
+    // 万一 2 回目が届いても再処理しない
     io.trigger(el, true);
-    expect(el.style.transition).toBe('');
+    expect(animations).toHaveLength(1);
+  });
+
+  it('入場中にモーション停止にすると Animation を取り消し、不透明度 1 の定位置になる', async () => {
+    const els = await renderAndMeasure([shape({ cy: 300 })]);
+    const el = els[0];
+    const inner = el.firstElementChild as HTMLElement;
+    const io = await findActiveIO(el);
+    io.trigger(el, true);
+
+    useMotionPreferenceMock.mockReturnValue({ reduced: true, toggle: vi.fn() });
+    act(() => rerenderHarness());
+
+    expect(animations[0].cancel).toHaveBeenCalled();
+    expect(inner.style.opacity).toBe('');
+    expect(el.style.transform).toBe('rotate(0deg)');
+  });
+
+  it('入場済みの図形は停止→再生で入場し直さない', async () => {
+    const els = await renderAndMeasure([shape({ cy: 300 })]);
+    const el = els[0];
+    const inner = el.firstElementChild as HTMLElement;
+    const io = await findActiveIO(el);
+    io.trigger(el, true);
+    act(() => animations[0].onfinish?.());
+
+    useMotionPreferenceMock.mockReturnValue({ reduced: true, toggle: vi.fn() });
+    act(() => rerenderHarness());
+    useMotionPreferenceMock.mockReturnValue({
+      reduced: false,
+      toggle: vi.fn(),
+    });
+    act(() => rerenderHarness());
+
+    expect(inner.style.opacity).toBe('');
+    expect(animations).toHaveLength(1);
+    // 再生後に交差通知が来ても入場しない
+    const io2 = await findActiveIO(el);
+    io2.trigger(el, true);
+    expect(animations).toHaveLength(1);
+  });
+
+  it('∞ は 2 つの輪がそれぞれ入場し、2 つ目だけ 150ms 遅れる', async () => {
+    const els = await renderAndMeasure([
+      {
+        tier: 'Inf',
+        kind: 'ring',
+        size: 140,
+        cx: 200,
+        cy: 300,
+        rot: 0,
+        texture: null,
+        texturePos: null,
+        textureRot: null,
+        colors: ['ochre', 'olive'],
+      },
+    ]);
+    const el = els[0];
+    const rings = el.querySelectorAll<HTMLElement>('[data-bg-ring]');
+    expect(rings[0].style.opacity).toBe('0');
+    const io = await findActiveIO(el);
+    io.trigger(el, true);
+
+    expect(animations.map((a) => a.target)).toEqual([rings[0], rings[1]]);
+    expect(animations.map((a) => a.options.delay)).toEqual([0, 150]);
+    expect(animations.map((a) => a.options.duration)).toEqual([1400, 1400]);
   });
 
   it('モーション停止指定の間は入場アニメーションも揺れも行わない', async () => {
@@ -310,12 +418,7 @@ describe('BackgroundShapes の動き', () => {
     const io = await findActiveIO(el);
     vi.useFakeTimers({ toFake: [...RAF_FAKE_TIMERS] });
     io.trigger(el, true);
-    // 2 つ目の輪は 150ms 遅延するため、入場所要時間 (1400ms) + 150ms 経過させる
-    act(() => {
-      vi.advanceTimersByTime(entryDurationMs('Inf') + 150);
-    });
-    expect(rings[0].style.transition).toBe('');
-    expect(rings[1].style.transition).toBe('');
+    act(() => animations.forEach((a) => a.onfinish?.()));
 
     stubRect(el, { x: 200, y: 300, width: 260, height: 140 });
     firePointerMove(200, 320);
