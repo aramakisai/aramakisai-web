@@ -92,7 +92,7 @@ function StageName({
   readonly className: string;
 }) {
   return (
-    <div className={`font-display font-extrabold leading-[1.2] ${className}`}>
+    <div className={`font-display font-black leading-[1.2] ${className}`}>
       {lines.map((l) => (
         <p key={l}>{l}</p>
       ))}
@@ -106,7 +106,7 @@ function Heading({ className }: { readonly className: string }) {
       className={`flex items-center font-display leading-none whitespace-nowrap ${className}`}
     >
       <SignageIcon name="warning" />
-      <span className="font-extrabold">緊急地震速報</span>
+      <span className="font-black">緊急地震速報</span>
     </div>
   );
 }
@@ -117,7 +117,7 @@ function TrainingMark({ className }: { readonly className: string }) {
       data-quake-training
       className={`flex items-center justify-center rounded-[8px] bg-text px-6 py-4 ${className}`}
     >
-      <span className="font-display text-[96px] leading-none font-extrabold whitespace-nowrap text-background">
+      <span className="font-display text-[96px] leading-none font-black whitespace-nowrap text-background">
         訓練
       </span>
     </div>
@@ -147,7 +147,7 @@ function Values({
         <div className="flex flex-col gap-1">
           <p className="font-display text-[24px] font-bold">{row.label}</p>
           <p
-            className={`font-display font-extrabold ${small ? 'text-[36px] leading-[1.2]' : 'text-[64px]'}`}
+            className={`font-display font-black ${small ? 'text-[36px] leading-[1.2]' : 'text-[64px]'}`}
           >
             {row.value}
           </p>
@@ -182,7 +182,7 @@ function DefaultCopy({ stage }: { readonly stage: SignageQuakeStage }) {
   const copy = QUAKE_DEFAULT_COPY[stage];
   return (
     <div className="flex h-full w-full flex-col items-center justify-center gap-8 p-16 text-center text-text">
-      <p className="w-full font-display text-[96px] leading-[1.1] font-extrabold">
+      <p className="w-full font-display text-[96px] leading-[1.1] font-black">
         {copy.heading}
       </p>
       <div className="flex flex-col gap-2 font-display text-[40px] leading-[1.3] font-bold">

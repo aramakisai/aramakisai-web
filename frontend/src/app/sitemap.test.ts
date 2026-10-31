@@ -117,11 +117,16 @@ describe('sitemap (pre_event)', () => {
     expect(topicsModule.getTopics).toHaveBeenCalled();
   });
 
-  it('ルート実体の無い広告協賛は除外し、地域協賛mapを収録する', async () => {
+  it('広告協賛を1件収録し固定ページとして検索せず、地域協賛mapも収録する', async () => {
     const result = await sitemap();
     const urls = urlsOf(result);
 
-    expect(urls).not.toContain(`${SITE_URL}/sponsors/ad`);
+    expect(
+      urls.filter((url) => url === `${SITE_URL}/sponsors/ad`),
+    ).toHaveLength(1);
+    expect(
+      vi.mocked(staticPageModule.getPageSlugsUpdatedAt).mock.calls[0][0],
+    ).not.toContain('sponsors/ad');
     expect(urls).toContain(`${SITE_URL}/sponsors/local`);
   });
 
@@ -223,6 +228,13 @@ describe('sitemap (pre_event)', () => {
 describe('sitemap (live)', () => {
   beforeEach(async () => {
     await setPhase('live');
+  });
+
+  it('開催中も広告協賛を1件収録する', async () => {
+    const urls = urlsOf(await sitemap());
+    expect(
+      urls.filter((url) => url === `${SITE_URL}/sponsors/ad`),
+    ).toHaveLength(1);
   });
 
   it('開催中は企画・トピック・構内マップを収録する', async () => {

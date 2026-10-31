@@ -20,7 +20,7 @@ const localImage = fieldOf(Sponsors.fields, 'local_image');
 const localPhone = fieldOf(Sponsors.fields, 'local_phone');
 
 describe('type フィールド', () => {
-  it('4 択の複数選択かつ必須で、既定値を持たない', () => {
+  it('5 択の複数選択かつ必須で、既定値を持たない', () => {
     expect(type.type).toBe('select');
     expect(type.hasMany).toBe(true);
     expect(type.required).toBe(true);
@@ -30,6 +30,7 @@ describe('type フィールド', () => {
       'local',
       'vendor',
       'other',
+      'personal',
     ]);
   });
 });
