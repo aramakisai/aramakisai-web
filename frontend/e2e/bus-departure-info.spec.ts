@@ -40,6 +40,8 @@ function trackRequests(page: Page, origin: string) {
   const sameOriginData: string[] = [];
   page.on('request', (req: Request) => {
     const url = new URL(req.url());
+    // Next.js のリンクのプリフェッチ (本番ビルドのみ) は時刻表とは無関係
+    if (req.headers()['next-router-prefetch']) return;
     if (url.host === ODPT_HOST) odpt.push(url.pathname);
     else if (
       url.origin === origin &&

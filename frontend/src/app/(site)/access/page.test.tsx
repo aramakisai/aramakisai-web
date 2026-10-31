@@ -41,6 +41,17 @@ describe('AccessPage', () => {
     });
   });
 
+  it('アクセス設定の取得に失敗しても例外を投げず時刻表と出典は出る', async () => {
+    vi.mocked(getAccessSettings).mockRejectedValue(new Error('cms down'));
+
+    render(await AccessPage());
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'アクセス' }),
+    ).toBeTruthy();
+    expect(screen.getByTestId('bus-data-notice')).toBeTruthy();
+  });
+
   it('h1・サイト設定の本文と地図・関越交通へのリンクを出す', async () => {
     render(await AccessPage());
 

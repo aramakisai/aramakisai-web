@@ -144,7 +144,7 @@ export default async function Page() {
       getFeaturedExhibitions(),
       getAdSponsors(),
       getLocalSponsors(),
-      getAccessSettings(),
+      getAccessSettings().catch(() => null),
     ]);
 
     return (
@@ -190,7 +190,7 @@ export default async function Page() {
           descriptionHtml={content.theme?.descriptionHtml ?? null}
         />
 
-        <AccessSection summary={access.summary} />
+        <AccessSection summary={access?.summary ?? ''} />
 
         <SponsorsList adSponsors={adSponsors} localSponsors={localSponsors} />
       </div>

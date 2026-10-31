@@ -9,7 +9,7 @@ import { HoverLine } from '@/components/hover-line';
 import { JsonLd } from '@/components/json-ld';
 import { OpenInNewIcon } from '@/components/icons';
 import { StaticPageView } from '@/components/static-page-view';
-import { getAccessSettings } from '@/lib/access-settings';
+import { getAccessSettings, type AccessSettings } from '@/lib/access-settings';
 import type { BusTimetableFile } from '@/lib/bus-timetable';
 import { buildPageMetadata } from '@/lib/page-metadata';
 import { ROUTE_METADATA } from '@/lib/route-metadata';
@@ -18,6 +18,13 @@ import { buildBreadcrumbJsonLd } from '@/lib/structured-data';
 import { env } from '@/env';
 
 const KAN_ETSU_BUS_URL = 'https://kan-etsu.net/pages/23/';
+// ビルド時に CMS へ届かなくても prerender を止めず、時刻表と出典だけは出す
+const EMPTY_ACCESS = (): AccessSettings => ({
+  summary: '',
+  contentHtml: '',
+  embedUrl: null,
+  embedHeight: null,
+});
 const file = busTimetable as unknown as BusTimetableFile;
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -36,7 +43,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function AccessPage() {
   const [access, site] = await Promise.all([
-    getAccessSettings(),
+    getAccessSettings().catch(EMPTY_ACCESS),
     getSiteMetadata(),
   ]);
   const eventDays = site.festival?.eventDays ?? [];
