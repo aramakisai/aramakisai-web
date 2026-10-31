@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      '@fontsource/line-seed-jp':
-        specifier: ^5.3.1
-        version: 5.3.1
       '@opennextjs/cloudflare':
         specifier: 1.20.13
         version: 1.20.13(next@16.4.2(@babel/core@7.29.7)(@playwright/test@1.61.1)(@types/node@22.20.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(wrangler@4.151.3(@types/node@22.20.0))
@@ -915,9 +912,6 @@ packages:
     resolution: {integrity: sha512-43/qtrDUokr7LJqoF2c3+RInu/t4zfrpYdoSDfYyhg52rwLV6TnOvdG4fXm7IkSB3wErkcmJS9iEhjVtOSEjjA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
-  '@fontsource/line-seed-jp@5.3.1':
-    resolution: {integrity: sha512-RMlfYZaXyB0WCMruwGtHAexGncfC0lZ9JLdh3nYz2QA1vrCZlIkTa1KSg1jxqNRSBxnVQveT6/7c/C5v/SlgKQ==}
-
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
     engines: {node: '>=18.18.0'}
@@ -1415,6 +1409,7 @@ packages:
   '@smithy/core@3.27.0':
     resolution: {integrity: sha512-TaucK0nuk6rq7eiOZXgDFY6UvnWmCwlIEG3VJoauCorqYJhHjrC6N9t7lG9RgMB8OZtrDScF0Ct3HMgG3H/1Pg==}
     engines: {node: '>=18.0.0'}
+    deprecated: Deprecated due to a bug in custom logger data redaction. See https://github.com/aws/aws-sdk-js-v3/issues/8393.
 
   '@smithy/credential-provider-imds@4.4.3':
     resolution: {integrity: sha512-5o8KlbNqWj43fyIpIzsRV+AMI51l2AHkBYad9IN3YwRgKlXOcPcNpoB7XOAOdPsv8S4DKhjyw/gr5vcR7gcLYw==}
@@ -5360,8 +5355,6 @@ snapshots:
     dependencies:
       '@eslint/core': 0.17.0
       levn: 0.4.1
-
-  '@fontsource/line-seed-jp@5.3.1': {}
 
   '@humanfs/core@0.19.2':
     dependencies:

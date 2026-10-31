@@ -1,9 +1,6 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
-import '@fontsource/line-seed-jp/100.css';
-import '@fontsource/line-seed-jp/400.css';
-import '@fontsource/line-seed-jp/700.css';
-import '@fontsource/line-seed-jp/800.css';
+import { Noto_Sans_JP } from 'next/font/google';
 import './globals.css';
 import { getSiteMetadata } from '@/lib/site-metadata';
 import { buildPageMetadata } from '@/lib/page-metadata';
@@ -12,6 +9,14 @@ import { DEV_OVERRIDE_ENABLED } from '@/lib/phase';
 import { GoogleAnalytics } from '@/components/google-analytics';
 import { PhaseToggle } from '@/components/phase-toggle';
 import { env } from '@/env';
+
+// 日本語は unicode-range 分割が 100 本以上あり preload できないため無効にする
+const notoSansJp = Noto_Sans_JP({
+  subsets: ['latin'],
+  preload: false,
+  display: 'swap',
+  variable: '--font-noto-sans-jp',
+});
 
 // Material Symbols は next/font/google の対象フォント一覧に無く (アイコン名によるサブセット
 // 指定 (icon_names) を next/font がサポートしないため)、通常の <link> で読み込む。
@@ -120,7 +125,12 @@ export default function RootLayout({
   const phaseToggle = DEV_OVERRIDE_ENABLED ? <PhaseToggle /> : null;
 
   return (
-    <html lang="ja" data-scroll-behavior="smooth" suppressHydrationWarning>
+    <html
+      lang="ja"
+      data-scroll-behavior="smooth"
+      className={notoSansJp.variable}
+      suppressHydrationWarning
+    >
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link

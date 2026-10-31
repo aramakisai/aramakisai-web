@@ -53,7 +53,7 @@ const config: Config = {
       },
       spacing: {},
       fontFamily: {
-        // 本文は端末のフォントを使い、LINE Seed JP (Webフォント) は見出しとヒーローだけに使う
+        // 本文は端末のフォントを使い、Noto Sans JP (Webフォント) は見出しとヒーローだけに使う
         sans: [
           'system-ui',
           '-apple-system',
@@ -65,7 +65,7 @@ const config: Config = {
           'sans-serif',
         ],
         display: [
-          'LINE Seed JP',
+          'var(--font-noto-sans-jp)',
           'system-ui',
           '-apple-system',
           'Hiragino Sans',
