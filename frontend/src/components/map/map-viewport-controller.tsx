@@ -83,6 +83,7 @@ export function MapViewportController({
   const maxBoundsPaddingRef = useRef(maxBoundsPadding);
   const syncPaddingRef = useRef<(() => void) | null>(null);
   const focusMovingRef = useRef(false);
+  const moveEndListenerRef = useRef<(() => void) | null>(null);
   const paddingDirtyRef = useRef(false);
   const normalizedFocusCenter =
     focusCenter == null ? null : latLng(focusCenter);
@@ -251,7 +252,13 @@ export function MapViewportController({
       lastFocusKeyRef.current === focusKey;
     lastRefocusKeyRef.current = refocusKey;
     if (lastFocusKeyRef.current === focusKey && !refocus) return;
-    map.stop();
+    // 移動中でも stop() はしない。zoomSnap への丸めが取り消せないズームアニメーションを残し、
+    // 続く flyTo と並走して古い中心へ戻してしまう。flyTo 自身が進行中の移動を止める
+    const wasMoving = focusMovingRef.current;
+    if (moveEndListenerRef.current) {
+      map.off('moveend', moveEndListenerRef.current);
+      moveEndListenerRef.current = null;
+    }
     lastFocusKeyRef.current = focusKey;
     // 選択は利用者の操作とみなし、以後のリサイズで全体表示へ戻さない
     interactedRef.current = true;
@@ -283,21 +290,24 @@ export function MapViewportController({
               .subtract(map.project(map.getCenter(), zoom))
               .round()
           : null;
-      if (offset && offset.x === 0 && offset.y === 0) return;
-      if (offset && map.getSize().contains(offset)) {
+      if (!wasMoving && offset && offset.x === 0 && offset.y === 0) return;
+      if (!wasMoving && offset && map.getSize().contains(offset)) {
         map.panBy(offset, { duration: 0.6 });
       } else {
         map.flyTo(adjustedCenter, zoom, { duration: 0.6 });
       }
       focusMovingRef.current = true;
       // 次の選択の stop() や利用者の操作で打ち切られた場合も moveend は発火する
-      map.once('moveend', () => {
+      const onMoveEnd = () => {
+        moveEndListenerRef.current = null;
         focusMovingRef.current = false;
         if (paddingDirtyRef.current) {
           paddingDirtyRef.current = false;
           syncPaddingRef.current?.();
         }
-      });
+      };
+      moveEndListenerRef.current = onMoveEnd;
+      map.once('moveend', onMoveEnd);
     }
   }, [focusKey, focusLatitude, focusLongitude, focusZoom, map, refocusKey]);
 

@@ -394,8 +394,51 @@ describe('MapViewportController', () => {
       />,
     );
 
-    expect(map.stop).toHaveBeenCalledTimes(2);
+    expect(map.stop).toHaveBeenCalledTimes(1);
     expect(map.flyTo).toHaveBeenCalledTimes(1);
+  });
+
+  describe('連続する選択', () => {
+    beforeEach(() => {
+      map.getBoundsZoom.mockReturnValue(12);
+      map.getZoom.mockReturnValue(16);
+      map.getSize.mockReturnValue(point(390, 844));
+      map.getCenter.mockReturnValue({ lat: 0, lng: 0 });
+      map.project.mockImplementation(({ lat }: { lat: number }) =>
+        lat === 0 ? point(500, 400) : point(520, 420),
+      );
+      map.unproject.mockReturnValue({ lat: 36.41, lng: 139.1 });
+    });
+
+    it('移動中の次の選択は stop() せず、panBy でなく flyTo で乗り換え、古い moveend の購読を外す', () => {
+      const props = {
+        focusZoom: 16,
+        maxBounds,
+        minZoom: 10.5,
+        fitOptions: () => fitOptions,
+      };
+      const { rerender } = render(
+        <MapViewportController
+          {...props}
+          focusCenter={[36.41, 139.1]}
+          focusKey={1}
+        />,
+      );
+      expect(map.panBy).toHaveBeenCalledTimes(1);
+      const firstListener = map.once.mock.calls[0]![1];
+
+      rerender(
+        <MapViewportController
+          {...props}
+          focusCenter={[36.42, 139.2]}
+          focusKey={2}
+        />,
+      );
+      expect(map.stop).not.toHaveBeenCalled();
+      expect(map.panBy).toHaveBeenCalledTimes(1);
+      expect(map.flyTo).toHaveBeenCalledTimes(1);
+      expect(map.off).toHaveBeenCalledWith('moveend', firstListener);
+    });
   });
 
   it('maxBoundsPaddingがあれば余白の分だけ最大範囲を広げ、zoomendで現在のzoomに張り直す', () => {
