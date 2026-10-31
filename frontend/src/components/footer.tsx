@@ -42,7 +42,7 @@ export async function Footer() {
       />
 
       <div className="relative z-10 mx-auto flex max-w-[1056px] flex-col px-4 pt-12 pb-8 lg:pt-16">
-        <div className="flex flex-col lg:flex-row lg:justify-between">
+        <div className="flex flex-col md:flex-row md:justify-between">
           <nav
             aria-label="フッターサイト案内"
             className="flex flex-col gap-[18px]"
@@ -55,7 +55,7 @@ export async function Footer() {
 
           <nav
             aria-label="フッターご案内"
-            className="mt-9 flex flex-col gap-[18px] lg:mt-0"
+            className="mt-9 flex flex-col gap-[18px] md:mt-0"
           >
             <h2 className={sectionHeadingClass}>ご案内</h2>
             <ul className="flex flex-col">
@@ -65,7 +65,7 @@ export async function Footer() {
 
           <nav
             aria-label="フッターサポート"
-            className="mt-[37px] flex flex-col gap-[18px] lg:mt-0"
+            className="mt-[37px] flex flex-col gap-[18px] md:mt-0"
           >
             <h2 className={sectionHeadingClass}>サポート</h2>
             <ul className="flex flex-col">
@@ -88,7 +88,7 @@ export async function Footer() {
           </nav>
         </div>
 
-        <div className="mt-[38px] flex flex-col gap-[43px] lg:flex-row lg:items-start lg:justify-between lg:gap-0">
+        <div className="mt-[38px] flex flex-col gap-[43px] md:flex-row md:items-start md:justify-between md:gap-0">
           <div className="flex flex-col gap-[27px]">
             <img
               src="/images/logo-2026.webp"
@@ -124,11 +124,11 @@ export async function Footer() {
           {snsLinks.length > 0 && (
             <section
               aria-labelledby="footer-sns-heading"
-              className="flex flex-col items-start gap-7 lg:items-end"
+              className="flex flex-col items-start gap-7 md:items-end"
             >
               <h2
                 id="footer-sns-heading"
-                className={`${sectionHeadingClass} lg:-mt-0.5 lg:text-right`}
+                className={`${sectionHeadingClass} md:-mt-0.5 md:text-right`}
               >
                 公式SNS
               </h2>
