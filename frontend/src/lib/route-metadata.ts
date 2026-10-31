@@ -68,7 +68,7 @@ export const ROUTE_METADATA: Readonly<
   '/access': {
     title: 'アクセス',
     description:
-      '荒牧祭の会場への行き方と、群馬大学荒牧・前橋自動車教習所前のバス時刻表・発車案内です。',
+      '荒牧祭の会場への行き方と、前橋駅行・群馬大学行のバス時刻表です。',
   },
   '/mypage': {
     title: 'マイページ',

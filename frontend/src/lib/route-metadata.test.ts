@@ -20,6 +20,12 @@ describe('ROUTE_METADATA', () => {
     expect(Object.keys(ROUTE_METADATA).sort()).toEqual([...ROUTES].sort());
   });
 
+  it("'/access' の description は時刻表のみを述べる", () => {
+    expect(ROUTE_METADATA['/access'].description).toBe(
+      '荒牧祭の会場への行き方と、前橋駅行・群馬大学行のバス時刻表です。',
+    );
+  });
+
   it("'/' の title は null (サイトタイトルそのものを使う)", () => {
     expect(ROUTE_METADATA['/'].title).toBeNull();
   });
