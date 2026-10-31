@@ -7,11 +7,11 @@ import { MaterialIcon } from '@/components/icons';
 import { HoverLine } from '@/components/hover-line';
 import { RegionalSponsorBackButton } from './regional-sponsor-back-button';
 import { SponsorImage } from './sponsor-image';
+import { useResetMapScroll } from './use-map-scroll-root';
 
 export interface RegionalSponsorDetailProps {
   readonly sponsor: RegionalSponsor;
   readonly onBack: () => void;
-  readonly bodyInert?: boolean;
   /** Figma の縦間隔は PC パネル 16px、スマートフォンのシート 14px */
   readonly variant?: 'panel' | 'sheet';
 }
@@ -19,7 +19,6 @@ export interface RegionalSponsorDetailProps {
 export function RegionalSponsorDetail({
   sponsor,
   onBack,
-  bodyInert = false,
   variant = 'panel',
 }: RegionalSponsorDetailProps) {
   const articleRef = useRef<HTMLElement>(null);
@@ -35,19 +34,21 @@ export function RegionalSponsorDetail({
     sponsor.phone !== null ||
     websiteUrl !== null;
 
+  useResetMapScroll(articleRef, sponsor.id);
   useEffect(() => {
-    if (articleRef.current) articleRef.current.scrollTop = 0;
-    headingRef.current?.focus({ preventScroll: true });
+    // パネルとシートの両方が描画される。使わない側(aria-hidden/inert)へフォーカスを渡さない
+    if (!articleRef.current?.closest('[aria-hidden="true"], [inert]')) {
+      headingRef.current?.focus({ preventScroll: true });
+    }
   }, [sponsor.id]);
 
   return (
     <article
       ref={articleRef}
-      className={`flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain pb-5 ${gap} ${variant === 'sheet' ? '-mt-1' : ''}`}
-      data-map-sheet-scroll
+      className={`flex flex-col pb-5 ${gap} ${variant === 'sheet' ? '-mt-1' : ''}`}
     >
       <RegionalSponsorBackButton onBack={onBack} />
-      <div inert={bodyInert} className={`flex flex-col ${gap}`}>
+      <div className={`flex flex-col ${gap}`}>
         <SponsorImage
           sponsor={sponsor}
           variant="detail"

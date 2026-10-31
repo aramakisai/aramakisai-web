@@ -2,26 +2,32 @@
 
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect } from 'react';
+import type { CSSProperties } from 'react';
 import { PhasedBottomNavigation } from '@/components/phased-chrome';
 import { MapMenuButton } from '@/components/map/map-menu-button';
-import { useIsAboveMapBreakpoint } from '@/components/map/use-is-above-map-breakpoint';
+import { MapSearchOverlay } from '@/components/map/map-search-overlay';
+import {
+  MAP_VIEWPORT_CLASS,
+  useMapNavClass,
+  useMapSheetInset,
+} from '@/components/map/use-map-sheet-inset';
 import type {
   RegionalSponsor,
   RegionalSponsorMapDataResult,
 } from '@/lib/regional-sponsors';
 import type { NavigationByPhase } from '@/lib/navigation';
 import { BUILD_PHASE, type FestivalPhase } from '@/lib/phase';
-import { usePhase } from '@/lib/use-phase';
 import { RegionalSponsorBottomSheet } from './regional-sponsor-bottom-sheet';
 import { RegionalSponsorPanel } from './regional-sponsor-panel';
-import { RegionalSponsorSearch } from './regional-sponsor-search';
+import { REGIONAL_SPONSOR_SEARCH_PROPS } from './regional-sponsor-search';
 import {
   LIST_TITLE_ID,
   LOCATION_LIST_TITLE_ID,
   useRegionalSponsorMapState,
 } from './use-regional-sponsor-map-state';
 
+// Client Component の中で動的読み込みする理由と読み込み表示は構内マップと同じ
 const RegionalSponsorMapView = dynamic(
   () =>
     import('./regional-sponsor-map-view').then(
@@ -31,8 +37,8 @@ const RegionalSponsorMapView = dynamic(
     ssr: false,
     loading: () => (
       <div
-        className="flex h-full w-full items-center justify-center bg-gray-100 text-sm text-gray-600"
         role="status"
+        className="flex h-[calc(100dvh-var(--map-nav))] w-full items-center justify-center bg-gray-100 text-text"
       >
         地図を読み込んでいます…
       </div>
@@ -41,6 +47,16 @@ const RegionalSponsorMapView = dynamic(
 );
 
 const EMPTY_SPONSORS: readonly RegionalSponsor[] = [];
+
+// パネルとシートの両方が描画され、使わない側は aria-hidden/inert になるため、生きている方を選ぶ
+function findVisible(focusId: string): HTMLElement | null {
+  for (const el of document.querySelectorAll<HTMLElement>(
+    `[data-focus-id="${focusId}"]`,
+  )) {
+    if (!el.closest('[aria-hidden="true"], [inert]')) return el;
+  }
+  return null;
+}
 
 export interface RegionalSponsorMapScreenProps {
   readonly data: RegionalSponsorMapDataResult;
@@ -54,15 +70,10 @@ export function RegionalSponsorMapScreen({
   navigation,
 }: RegionalSponsorMapScreenProps) {
   const router = useRouter();
-  // 値は PhasedBottomSpacer の高さと揃える。会場マップの --map-nav と同じ扱い
-  const navClass =
-    usePhase().phase === 'live'
-      ? '[--map-nav:calc(4rem+env(safe-area-inset-bottom))] lg:[--map-nav:0px]'
-      : '[--map-nav:0px]';
-  const isDesktop = useIsAboveMapBreakpoint();
+  const navClass = useMapNavClass();
   const sponsors = data.ok ? data.sponsors : EMPTY_SPONSORS;
   const state = useRegionalSponsorMapState(sponsors);
-  const [mobileBottomInset, setMobileBottomInset] = useState(0);
+  const { bottomInset, onHeightChange } = useMapSheetInset();
   const { clearFocusTarget, focusTargetId, selectedSponsorId } = state;
 
   useEffect(() => {
@@ -70,29 +81,19 @@ export function RegionalSponsorMapScreen({
     const frame = requestAnimationFrame(() => {
       // 元カードが一覧から消えていれば、いま表示中の一覧の見出しへ寄せる
       const target =
-        document.getElementById(focusTargetId) ??
-        document.getElementById(LOCATION_LIST_TITLE_ID) ??
-        document.getElementById(LIST_TITLE_ID);
-      if (target instanceof HTMLElement) target.focus();
+        findVisible(focusTargetId) ??
+        findVisible(LOCATION_LIST_TITLE_ID) ??
+        findVisible(LIST_TITLE_ID);
+      target?.focus();
       clearFocusTarget();
     });
     return () => cancelAnimationFrame(frame);
   }, [clearFocusTarget, focusTargetId, selectedSponsorId]);
 
-  // 選択と同じ commit で地図が移動先を決めるため、state を経由せず最新値を渡す
-  const sheetTargetHeightRef = useRef<number | null>(null);
-  const onSheetTargetHeightChange = useCallback((height: number) => {
-    sheetTargetHeightRef.current = height;
-  }, []);
-  const getSheetTargetHeight = useCallback(
-    () => sheetTargetHeightRef.current,
-    [],
-  );
   const emptyMessage =
     data.ok && data.sponsors.length === 0
       ? '掲載可能な地域協賛情報はありません。'
       : undefined;
-  const retry = () => router.refresh();
 
   const shared = {
     sponsors: state.filteredSponsors,
@@ -102,7 +103,7 @@ export function RegionalSponsorMapScreen({
     locationListScrollTop: state.locationListScrollTop,
     emptyMessage,
     error: !data.ok,
-    onRetry: retry,
+    onRetry: () => router.refresh(),
     onScrollTopChange: state.setListScrollTop,
     onLocationScrollTopChange: state.setLocationListScrollTop,
     onLocationBack: state.returnFromLocation,
@@ -112,54 +113,38 @@ export function RegionalSponsorMapScreen({
 
   return (
     <main
-      className={`fixed inset-0 min-h-0 min-w-0 overflow-hidden bg-gray-100 ${navClass}`}
       aria-label="地域協賛マップ"
+      className={`relative h-dvh w-full ${navClass}`}
     >
-      <div className="absolute inset-x-0 top-0 bottom-[var(--map-nav,0px)]">
+      <MapMenuButton phase={phase} navigation={navigation} />
+      <MapSearchOverlay
+        keywordInput={state.keywordInput}
+        setKeywordInput={state.setKeywordInput}
+        categories={state.selectedCategories}
+        setCategories={state.setCategories}
+        {...REGIONAL_SPONSOR_SEARCH_PROPS}
+      />
+      <RegionalSponsorPanel
+        {...shared}
+        keyword={state.keywordInput}
+        categories={state.selectedCategories}
+        onKeywordChange={state.setKeywordInput}
+        onCategoriesChange={state.setCategories}
+      />
+      <RegionalSponsorBottomSheet {...shared} onHeightChange={onHeightChange} />
+      <div
+        data-testid="map-viewport"
+        className={MAP_VIEWPORT_CLASS}
+        style={{ '--map-bottom-inset': `${bottomInset}px` } as CSSProperties}
+      >
         <RegionalSponsorMapView
           sponsors={state.filteredSponsors}
+          fitSponsors={sponsors}
           selectedSponsorId={state.selectedSponsorId}
-          isDesktop={isDesktop}
-          mobileBottomInset={mobileBottomInset}
-          getMobileSheetTargetHeight={getSheetTargetHeight}
-          controlsHidden={!isDesktop && state.mobileSheetSnap === 'expanded'}
           onSelectSponsor={state.selectFromPin}
           onSelectLocation={state.openLocation}
         />
       </div>
-
-      <MapMenuButton phase={phase} navigation={navigation} />
-      {isDesktop ? (
-        <RegionalSponsorPanel
-          {...shared}
-          query={state.query}
-          selectedCategories={state.selectedCategories}
-          onQueryChange={state.setQuery}
-          onCategoryToggle={state.toggleCategory}
-        />
-      ) : (
-        <>
-          <div
-            data-regional-search-overlay
-            className="fixed left-[max(1rem,env(safe-area-inset-left))] right-[max(1rem,env(safe-area-inset-right))] top-[max(1rem,env(safe-area-inset-top))] z-[1000]"
-          >
-            <RegionalSponsorSearch
-              mobile
-              query={state.query}
-              selectedCategories={state.selectedCategories}
-              onQueryChange={state.setQuery}
-              onCategoryToggle={state.toggleCategory}
-            />
-          </div>
-          <RegionalSponsorBottomSheet
-            {...shared}
-            snap={state.mobileSheetSnap}
-            onSnapChange={state.setMobileSheetSnap}
-            onHeightChange={setMobileBottomInset}
-            onTargetHeightChange={onSheetTargetHeightChange}
-          />
-        </>
-      )}
       <PhasedBottomNavigation />
     </main>
   );

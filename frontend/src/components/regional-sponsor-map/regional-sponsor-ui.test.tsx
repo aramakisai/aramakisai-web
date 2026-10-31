@@ -4,8 +4,9 @@ import type { RegionalSponsorCategory } from '@/lib/regional-sponsor-categories'
 import type { RegionalSponsor } from '@/lib/regional-sponsors';
 import { RegionalSponsorCard } from './regional-sponsor-card';
 import { RegionalSponsorDetail } from './regional-sponsor-detail';
+import { MapSearchOverlay } from '@/components/map/map-search-overlay';
 import { RegionalSponsorList } from './regional-sponsor-list';
-import { RegionalSponsorSearch } from './regional-sponsor-search';
+import { REGIONAL_SPONSOR_SEARCH_PROPS } from './regional-sponsor-search';
 import { SponsorImage } from './sponsor-image';
 
 vi.mock('@/lib/cms-asset-url', () => ({
@@ -89,6 +90,7 @@ describe('SponsorImage / RegionalSponsorCard', () => {
     const onSelect = vi.fn();
     render(
       <RegionalSponsorCard
+        scope="panel"
         sponsor={sponsor({ category })}
         onSelect={onSelect}
       />,
@@ -106,6 +108,7 @@ describe('RegionalSponsorList / RegionalSponsorDetail', () => {
     const onScroll = vi.fn();
     const { rerender } = render(
       <RegionalSponsorList
+        scope="panel"
         sponsors={[
           sponsor({ id: 2, name: '先' }),
           sponsor({ id: 1, name: '後' }),
@@ -122,6 +125,7 @@ describe('RegionalSponsorList / RegionalSponsorDetail', () => {
 
     rerender(
       <RegionalSponsorList
+        scope="panel"
         sponsors={[]}
         initialScrollTop={0}
         onScrollTopChange={onScroll}
@@ -178,43 +182,42 @@ describe('RegionalSponsorList / RegionalSponsorDetail', () => {
   });
 });
 
-describe('RegionalSponsorSearch', () => {
-  it('検索と「すべて」を含む7操作を提供し、選択をaria-pressedで示す', () => {
-    const onQueryChange = vi.fn();
-    const onCategoryToggle = vi.fn();
+describe('地域協賛の検索設定', () => {
+  it('共通の検索欄に協賛の文言とカテゴリを渡し、7操作を提供する', () => {
+    window.matchMedia = vi.fn().mockReturnValue({
+      matches: false,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    });
+    const setKeywordInput = vi.fn();
+    const setCategories = vi.fn();
     render(
-      <RegionalSponsorSearch
-        query=""
-        selectedCategories={new Set(['hospital'])}
-        onQueryChange={onQueryChange}
-        onCategoryToggle={onCategoryToggle}
+      <MapSearchOverlay
+        keywordInput=""
+        setKeywordInput={setKeywordInput}
+        categories={['hospital']}
+        setCategories={setCategories}
+        {...REGIONAL_SPONSOR_SEARCH_PROPS}
       />,
     );
     expect(
       screen.getByRole('searchbox', { name: /店舗名・カテゴリ・住所/ }),
-    ).toBeInTheDocument();
+    ).toHaveAttribute('placeholder', '店舗名・カテゴリ・住所で検索');
     expect(
       screen.getByRole('group', { name: 'カテゴリで絞り込む' }),
     ).toBeInTheDocument();
     expect(screen.getAllByRole('button')).toHaveLength(7);
-    expect(screen.getByRole('button', { name: /病院/ })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: '病院' })).toHaveAttribute(
       'aria-pressed',
       'true',
-    );
-    expect(screen.getByRole('button', { name: /病院/ })).not.toHaveTextContent(
-      '✓',
-    );
-    expect(screen.getByRole('button', { name: /病院/ })).toHaveClass(
-      'bg-primary',
-    );
-    expect(screen.getByRole('button', { name: /生活/ })).toHaveClass(
-      'bg-white',
     );
     fireEvent.change(screen.getByRole('searchbox'), {
       target: { value: 'テスト' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /すべて/ }));
-    expect(onQueryChange).toHaveBeenCalledWith('テスト');
-    expect(onCategoryToggle).toHaveBeenCalledWith('all');
+    fireEvent.click(screen.getByRole('button', { name: '生活' }));
+    fireEvent.click(screen.getByRole('button', { name: 'すべて' }));
+    expect(setKeywordInput).toHaveBeenCalledWith('テスト');
+    expect(setCategories).toHaveBeenNthCalledWith(1, ['hospital', 'life']);
+    expect(setCategories).toHaveBeenNthCalledWith(2, []);
   });
 });

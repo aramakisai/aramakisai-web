@@ -89,7 +89,15 @@ function matchMedia(matches: boolean) {
   });
 }
 
+// PC パネルの一覧は外側のスクロール領域(data-map-scroll-root)がスクロールする
+function panelScrollRoot() {
+  return screen
+    .getByTestId('regional-sponsor-desktop-panel')
+    .querySelector<HTMLElement>('[data-map-scroll-root]')!;
+}
+
 beforeEach(() => {
+  window.history.replaceState(null, '', '/sponsors/local');
   mocks.refresh.mockReset();
   mocks.mapProps.length = 0;
   vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
@@ -122,7 +130,9 @@ describe('RegionalSponsorMapScreen', () => {
     expect(screen.getByTestId('regional-sponsor-desktop-panel')).toHaveClass(
       'w-[348px]',
     );
-    expect(screen.queryByTestId('map-bottom-sheet')).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId('map-bottom-sheet').closest('[aria-hidden="true"]'),
+    ).not.toBeNull();
     fireEvent.change(screen.getByRole('searchbox'), {
       target: { value: 'テスト' },
     });
@@ -170,12 +180,12 @@ describe('RegionalSponsorMapScreen', () => {
         screen.queryByRole('heading', { name: 'テスト専用店舗' }),
       ).not.toBeInTheDocument(),
     );
-    expect(screen.getByText('0件')).toBeInTheDocument();
+    expect(screen.getAllByText('0件').length).toBeGreaterThan(0);
     expect(screen.getByText('地図 0件')).toBeInTheDocument();
     expect(searchbox).toHaveFocus();
   });
 
-  it('スマートフォンでは上部操作と45dvhの一覧sheet、詳細用snapを使う', async () => {
+  it('スマートフォンでは検索欄とシートだけが操作対象で、検索条件を URL に載せる', async () => {
     matchMedia(false);
     render(
       <RegionalSponsorMapScreen
@@ -185,17 +195,46 @@ describe('RegionalSponsorMapScreen', () => {
     );
     expect(screen.getAllByRole('searchbox')).toHaveLength(1);
     expect(
-      screen.queryByTestId('regional-sponsor-desktop-panel'),
-    ).not.toBeInTheDocument();
-    expect(screen.getByTestId('map-bottom-sheet').style.height).toBe(
-      'calc((100dvh - var(--map-nav, 0px)) * 0.45)',
-    );
+      screen.getByTestId('regional-sponsor-desktop-panel'),
+    ).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.getByTestId('map-bottom-sheet').style.height).toBe('380px');
     fireEvent.click(
       screen.getByRole('button', { name: /テスト専用店舗.*詳細/ }),
     );
+    expect(window.location.search).toBe('?sponsor=1');
+    fireEvent.change(screen.getByRole('searchbox'), {
+      target: { value: 'テスト' },
+    });
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: /現在: 詳細/ })).toBeVisible(),
+      expect(window.location.search).toBe(
+        '?q=%E3%83%86%E3%82%B9%E3%83%88&sponsor=1',
+      ),
     );
+  });
+
+  it('URL の条件をマウント時に復元する', () => {
+    window.history.replaceState(
+      null,
+      '',
+      '/sponsors/local?category=hospital&sponsor=2',
+    );
+    matchMedia(true);
+    render(
+      <RegionalSponsorMapScreen
+        navigation={navigationItemsByPhase}
+        data={{
+          ok: true,
+          sponsors: [
+            sponsor(),
+            sponsor({ id: 2, name: 'テスト病院', category: 'hospital' }),
+          ],
+        }}
+      />,
+    );
+    expect(
+      screen.getByRole('heading', { name: 'テスト病院' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('地図 1件')).toBeInTheDocument();
   });
 
   it('詳細から戻っても一覧scroll位置を復元する', async () => {
@@ -209,17 +248,13 @@ describe('RegionalSponsorMapScreen', () => {
         }}
       />,
     );
-    const list = screen.getByTestId('regional-sponsor-list-scroll');
+    const list = panelScrollRoot();
     fireEvent.scroll(list, { target: { scrollTop: 120 } });
     fireEvent.click(
       screen.getByRole('button', { name: /テスト専用店舗.*詳細/ }),
     );
     fireEvent.click(screen.getByRole('button', { name: '店舗一覧に戻る' }));
-    await waitFor(() =>
-      expect(screen.getByTestId('regional-sponsor-list-scroll').scrollTop).toBe(
-        120,
-      ),
-    );
+    await waitFor(() => expect(panelScrollRoot().scrollTop).toBe(120));
   });
 
   it('0件とCMS取得失敗を区別し、失敗時の再試行でrouter.refreshする', () => {
@@ -231,8 +266,8 @@ describe('RegionalSponsorMapScreen', () => {
       />,
     );
     expect(
-      screen.getByText('掲載可能な地域協賛情報はありません。'),
-    ).toBeInTheDocument();
+      screen.getAllByText('掲載可能な地域協賛情報はありません。').length,
+    ).toBeGreaterThan(0);
 
     rerender(
       <RegionalSponsorMapScreen
@@ -294,15 +329,15 @@ describe('RegionalSponsorMapScreen', () => {
         expect(screen.getByRole('heading', { name: '地域協賛' })).toHaveFocus(),
       );
       expect(screen.getByRole('searchbox')).toHaveValue('地点');
-      expect(screen.getByText('3件')).toBeInTheDocument();
+      expect(screen.getAllByText('3件').length).toBeGreaterThan(0);
     });
 
     it('詳細の戻り先は地点の一覧で、起点カードへfocusし、地点の一覧のscrollを復元する', async () => {
       matchMedia(true);
       renderScreen();
       fireEvent.click(screen.getByText('location-select'));
-      const list = await screen.findByTestId('regional-sponsor-list-scroll');
-      fireEvent.scroll(list, { target: { scrollTop: 80 } });
+      await screen.findByRole('heading', { name: 'この地点の地域協賛2件' });
+      fireEvent.scroll(panelScrollRoot(), { target: { scrollTop: 80 } });
       fireEvent.click(screen.getByRole('button', { name: /同地点B/ }));
       expect(
         screen.getByRole('heading', { name: '同地点B' }),
@@ -315,28 +350,18 @@ describe('RegionalSponsorMapScreen', () => {
       expect(
         screen.getByRole('heading', { name: 'この地点の地域協賛2件' }),
       ).toBeInTheDocument();
-      expect(screen.getByTestId('regional-sponsor-list-scroll').scrollTop).toBe(
-        80,
-      );
+      expect(panelScrollRoot().scrollTop).toBe(80);
     });
 
     it('地点の一覧に新しく入るときは先頭から表示する', async () => {
       matchMedia(true);
       renderScreen();
       fireEvent.click(screen.getByText('location-select'));
-      fireEvent.scroll(
-        await screen.findByTestId('regional-sponsor-list-scroll'),
-        {
-          target: { scrollTop: 80 },
-        },
-      );
+      await screen.findByRole('heading', { name: 'この地点の地域協賛2件' });
+      fireEvent.scroll(panelScrollRoot(), { target: { scrollTop: 80 } });
       fireEvent.click(screen.getByRole('button', { name: '店舗一覧に戻る' }));
       fireEvent.click(await screen.findByText('location-select'));
-      await waitFor(() =>
-        expect(
-          screen.getByTestId('regional-sponsor-list-scroll').scrollTop,
-        ).toBe(0),
-      );
+      await waitFor(() => expect(panelScrollRoot().scrollTop).toBe(0));
     });
 
     it('地点の一覧の表示中にピンから詳細を開くと、全体の一覧へ戻る', async () => {
@@ -363,7 +388,7 @@ describe('RegionalSponsorMapScreen', () => {
       expect(
         await screen.findByRole('heading', { name: '地域協賛' }),
       ).toBeInTheDocument();
-      expect(screen.getByText('1件')).toBeInTheDocument();
+      expect(screen.getAllByText('1件').length).toBeGreaterThan(0);
     });
 
     it('地点の一覧から開いた詳細が対象外になっても、地点に該当が残れば地点の一覧へ戻る', async () => {
