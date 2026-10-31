@@ -54,7 +54,7 @@ export function RegionalSponsorList({
           <h1
             id={titleId}
             tabIndex={-1}
-            className="py-0 font-display text-2xl font-extrabold leading-[31.2px] text-text focus:outline-none"
+            className="py-0 font-display text-2xl font-black leading-[31.2px] text-text focus:outline-none"
           >
             {location ? (
               <>
