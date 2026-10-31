@@ -37,6 +37,7 @@ import * as migration_20261028_040027_regional_sponsor_map_schema from './202610
 import * as migration_20261029_133248_sponsors_vendor_group from './20261029_133248_sponsors_vendor_group';
 import * as migration_20261030_103246_add_media_small_size from './20261030_103246_add_media_small_size';
 import * as migration_20261031_055622_site_settings_access from './20261031_055622_site_settings_access';
+import * as migration_20261031_134723_remove_access_page from './20261031_134723_remove_access_page';
 
 export const migrations = [
   {
@@ -232,6 +233,11 @@ export const migrations = [
   {
     up: migration_20261031_055622_site_settings_access.up,
     down: migration_20261031_055622_site_settings_access.down,
-    name: '20261031_055622_site_settings_access'
+    name: '20261031_055622_site_settings_access',
+  },
+  {
+    up: migration_20261031_134723_remove_access_page.up,
+    down: migration_20261031_134723_remove_access_page.down,
+    name: '20261031_134723_remove_access_page'
   },
 ];
