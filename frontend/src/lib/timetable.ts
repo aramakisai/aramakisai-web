@@ -58,6 +58,8 @@ export interface TimetablePerformance {
   readonly slot: TimetableSlot;
   /** 公開団体の団体名、団体なしは表示名 */
   readonly name: string;
+  /** 公開団体のステージ企画名。団体なし・未入力は null */
+  readonly projectName: string | null;
   /** 公開団体なら '/exhibitions/{id}/stage'、それ以外は null */
   readonly href: string | null;
 }
@@ -121,13 +123,19 @@ function toSlot(p: PerformanceSlot): TimetableSlot | null {
 /** 出演枠の表示名と遷移先。公開団体でなく表示名も無ければ null (枠ごと除く) */
 function toLabel(
   p: PerformanceSlot,
-): { name: string; href: string | null } | null {
+): { name: string; projectName: string | null; href: string | null } | null {
   const ex = p.exhibition_id;
   if (ex && typeof ex === 'object' && ex.status === 'published') {
     const name = ex.organization_name || p.title;
-    return name ? { name, href: `/exhibitions/${ex.id}/stage` } : null;
+    return name
+      ? {
+          name,
+          projectName: ex.stage?.name?.trim() || null,
+          href: `/exhibitions/${ex.id}/stage`,
+        }
+      : null;
   }
-  return p.title ? { name: p.title, href: null } : null;
+  return p.title ? { name: p.title, projectName: null, href: null } : null;
 }
 
 function idOf(v: number | { id: number }): number {
