@@ -3,15 +3,23 @@
 import { useEffect, useRef } from 'react';
 import { useMap, useMapEvents } from 'react-leaflet';
 import type { Map as LeafletMap } from 'leaflet';
-import { CAMPUS_MAP_CONFIG } from '@/lib/campus-map-config';
+import type { MapTileProfile } from '@/lib/map-tile-profile';
+
+export type PrefetchTileProfile = Pick<
+  MapTileProfile,
+  'minNativeZoom' | 'maxNativeZoom' | 'urlTemplate'
+>;
 
 // TileLayer の既定値。同じ TileLayer は tileSize を上書きしていない
 const TILE_SIZE = 256;
 
 // Leaflet は Math.round(zoom) でタイルの段を選ぶ。段が切り替わった直後は新しい段が未取得で
 // 旧い段の引き伸ばしが見え、ベクタだけ先に動いて見えるため、隣の段を表示範囲ぶん先に取っておく
-function prefetch(map: LeafletMap, seen: Set<string>) {
-  const { minNativeZoom, maxNativeZoom, tileUrlTemplate } = CAMPUS_MAP_CONFIG;
+function prefetch(
+  map: LeafletMap,
+  seen: Set<string>,
+  { minNativeZoom, maxNativeZoom, urlTemplate }: PrefetchTileProfile,
+) {
   const current = Math.min(
     maxNativeZoom,
     Math.max(minNativeZoom, Math.round(map.getZoom())),
@@ -31,7 +39,7 @@ function prefetch(map: LeafletMap, seen: Set<string>) {
         y <= Math.floor(se.y / TILE_SIZE);
         y++
       ) {
-        const url = tileUrlTemplate
+        const url = urlTemplate
           .replace('{z}', String(z))
           .replace('{x}', String(x))
           .replace('{y}', String(y));
@@ -43,15 +51,19 @@ function prefetch(map: LeafletMap, seen: Set<string>) {
   }
 }
 
-export function MapTilePrefetch() {
+export function MapTilePrefetch({
+  profile,
+}: {
+  readonly profile: PrefetchTileProfile;
+}) {
   const map = useMap();
   const seen = useRef(new Set<string>());
   useMapEvents({
-    moveend: () => prefetch(map, seen.current),
-    zoomend: () => prefetch(map, seen.current),
+    moveend: () => prefetch(map, seen.current, profile),
+    zoomend: () => prefetch(map, seen.current, profile),
   });
   useEffect(() => {
-    prefetch(map, seen.current);
-  }, [map]);
+    prefetch(map, seen.current, profile);
+  }, [map, profile]);
   return null;
 }

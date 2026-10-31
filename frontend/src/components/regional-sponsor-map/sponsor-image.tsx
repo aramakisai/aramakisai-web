@@ -21,7 +21,8 @@ export function SponsorImage({
 
   useEffect(() => setFailed(false), [url]);
 
-  const commonClass = `flex items-center justify-center overflow-hidden border border-gray-200 bg-white ${variant === 'card' ? 'rounded-lg' : 'rounded-xl'} ${className}`;
+  // カードでは枠・角丸・地色を親(画像領域)に任せ、画像だけを敷く
+  const commonClass = `flex items-center justify-center overflow-hidden ${variant === 'card' ? '' : 'rounded-xl border border-gray-200 bg-white'} ${className}`;
   if (!url || failed) {
     return (
       <div
@@ -35,7 +36,11 @@ export function SponsorImage({
         aria-hidden={sponsor.imageDecorative || undefined}
         data-testid="sponsor-image-placeholder"
       >
-        <MaterialIcon name="hide_image" size={30} className="text-gray-400" />
+        <MaterialIcon
+          name="hide_image"
+          size={variant === 'card' ? 40 : 30}
+          className="text-gray-400"
+        />
       </div>
     );
   }

@@ -744,12 +744,6 @@
   outline-offset: 3px;
 }
 
-@media (max-width: 767px) {
-  .regional-sponsor-map .leaflet-bottom {
-    bottom: var(--regional-map-bottom-inset, 0px);
-  }
-}
-
 .leaflet-tooltip.map-point-tooltip.leaflet-tooltip-top::before {
   bottom: -7px;
   border-top-color: #e7e5e4;

@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import {
   drawTexturePosition,
   drawTextureRotation,
@@ -46,4 +47,19 @@ export function getExhibitionTexture(name: string): {
   const texture = TEXTURES[Math.floor(rng() * TEXTURES.length)];
   const position = drawTexturePosition(rng);
   return { texture, position, rotation: drawTextureRotation(rng) };
+}
+
+/**
+ * globals.css の html[data-pl] 規則が url に含まれる /images/textures/ を目印に load まで止める。
+ * 原画は地の幅の 1.2 倍の正方形に敷いて回し、カードの地で切り抜く (地の縦が横の 0.66 倍 (= √(1.2²−1)) 以内なら隅が欠けない)。
+ * 背景の幅は回す前の地の幅 × 2.5 (= 正方形の幅の 250%/1.2)
+ */
+export function exhibitionTextureStyle(name: string): CSSProperties {
+  const { texture, position, rotation } = getExhibitionTexture(name);
+  return {
+    transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
+    backgroundImage: `url(/images/textures/pamphlet/${texture}.webp)`,
+    backgroundSize: `calc(250% / 1.2) auto`,
+    backgroundPosition: `${position[0]}% ${position[1]}%`,
+  };
 }

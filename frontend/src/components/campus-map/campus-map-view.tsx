@@ -1,7 +1,7 @@
 'use client';
 
 import 'leaflet/dist/leaflet.css';
-import { useEffect, useMemo, useRef, type Ref } from 'react';
+import { useCallback, useEffect, useMemo, useRef, type Ref } from 'react';
 import { AttributionControl, MapContainer, TileLayer } from 'react-leaflet';
 import {
   svg,
@@ -10,19 +10,24 @@ import {
   type Map as LeafletMap,
 } from 'leaflet';
 import { sendGaEvent } from '@/lib/analytics';
-import { CAMPUS_MAP_CONFIG, MAP_ATTRIBUTION } from '@/lib/campus-map-config';
+import {
+  CAMPUS_MAP_CONFIG,
+  CAMPUS_MAP_TILE_PROFILE,
+  MAP_ATTRIBUTION,
+} from '@/lib/campus-map-config';
 import type { CampusMapArea, CampusMapPoint } from '@/lib/campus-map';
 import {
   excludeOutlierAreas,
   toAreaBounds,
 } from '@/lib/exhibition-location-map';
 import { AreaPolygonLayer } from './area-polygon-layer';
-import { MapTilePrefetch } from './map-tile-prefetch';
+import { MapEmptyTap } from '@/components/map/map-empty-tap';
+import { MapTilePrefetch } from '@/components/map/map-tile-prefetch';
 import { MapPointMarker } from './map-point-marker';
-import { MapUserLocation } from './map-user-location';
+import { MapUserLocation } from '@/components/map/map-user-location';
 import { MapViewportSync } from './map-viewport-sync';
-import { MapZoomControl } from './map-zoom-control';
-import { useIsAboveMapBreakpoint } from './use-is-above-map-breakpoint';
+import { MapZoomControl } from '@/components/map/map-zoom-control';
+import { useIsAboveMapBreakpoint } from '@/components/map/use-is-above-map-breakpoint';
 
 // leaflet の型は mutable なタプルを要求するため、readonly な設定値をここでキャストする
 const CAMPUS_BOUNDS =
@@ -56,6 +61,8 @@ export interface CampusMapViewProps {
   readonly fitExcludeOutliers?: boolean;
   /** 表示範囲のタイルを読み終えたとき(Leaflet の GridLayer load)に呼ぶ */
   readonly onTilesLoaded?: () => void;
+  /** シートが伸びる間に遅れて縮む地図コンテナの分(px)。選択位置への移動の下余白に足す */
+  readonly getPendingInset?: () => number;
 }
 
 // navigation entry はドキュメントの最初の URL のまま変わらないため、/map 直接表示後に別ページから
@@ -96,6 +103,7 @@ export function CampusMapView({
   maxBoundsPad = 0,
   fitExcludeOutliers = false,
   onTilesLoaded,
+  getPendingInset,
 }: CampusMapViewProps) {
   const { minZoom, maxZoom, minNativeZoom, maxNativeZoom, tileUrlTemplate } =
     CAMPUS_MAP_CONFIG;
@@ -162,9 +170,16 @@ export function CampusMapView({
   }, []);
 
   // 選択中のエリアの再選択は解除として扱う (要件 2.6)。URL の書き換えは呼び出し元に委ねる
-  const handleAreaClick = (areaId: number) => {
-    onSelectArea(areaId === selectedAreaId ? null : areaId);
-  };
+  const handleAreaClick = useCallback(
+    (areaId: number) => {
+      onSelectArea(areaId === selectedAreaId ? null : areaId);
+    },
+    [onSelectArea, selectedAreaId],
+  );
+
+  const handleEmptyTap = useCallback(() => {
+    if (selectedAreaId !== null) onSelectArea(null);
+  }, [onSelectArea, selectedAreaId]);
 
   return (
     <MapContainer
@@ -197,12 +212,14 @@ export function CampusMapView({
         errorTileUrl={TRANSPARENT_TILE_URL}
         eventHandlers={tileEventHandlers}
       />
-      <MapTilePrefetch />
+      <MapTilePrefetch profile={CAMPUS_MAP_TILE_PROFILE} />
+      <MapEmptyTap onTap={handleEmptyTap} />
       <MapViewportSync
         fitBounds={fitBounds}
         bottomInset={fitBottomInset}
         focusCenter={focusCenter}
         focusKey={selectedAreaId}
+        focusExtraBottom={getPendingInset}
         refocusKey={isAboveBreakpoint ? 'desktop' : 'mobile'}
       />
       <AreaPolygonLayer
@@ -231,7 +248,9 @@ export function CampusMapView({
         prefix={false}
       />
       {showZoomControl && <MapZoomControl />}
-      {showUserLocation && <MapUserLocation />}
+      {showUserLocation && (
+        <MapUserLocation bounds={CAMPUS_MAP_CONFIG.campusBounds} />
+      )}
     </MapContainer>
   );
 }

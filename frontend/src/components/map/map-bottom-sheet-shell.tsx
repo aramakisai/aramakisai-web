@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import type { KeyboardEvent, MouseEvent, PointerEvent, ReactNode } from 'react';
-import { useIsAboveMapBreakpoint } from '../campus-map/use-is-above-map-breakpoint';
+import { useIsAboveMapBreakpoint } from './use-is-above-map-breakpoint';
 
 export interface MapBottomSheetSnapContext {
   readonly viewportHeight: number;
@@ -26,12 +27,14 @@ export interface MapBottomSheetShellProps {
   readonly snapId: string;
   readonly restSnapId: string;
   readonly onSnapChange: (snapId: string) => void;
-  readonly onHeightChange?: (height: number) => void;
   /**
-   * 現在の snap が transition で行き着く高さ。onHeightChange は transition 中の高さを
-   * 逐次通知するため、移動先の高さで地図の位置を決めたい画面はこちらを使う
+   * 現在の snap が transition で行き着く高さ。transition 中の実高さを地図の余白に流すと
+   * 地図が毎フレーム伸縮してズームが往復するため、移動先の高さだけを通知する。
+   * シートが非表示 (PC 幅) のときは 0
    */
   readonly onTargetHeightChange?: (height: number) => void;
+  /** onTargetHeightChange と同じ高さを、伸びる向きの遅延なしで即時に通知する */
+  readonly onTargetHeightIntent?: (height: number) => void;
   readonly contentClassName?: string;
   readonly outerClassName?: string;
   readonly sheetShadowClassName?: string;
@@ -50,8 +53,8 @@ export function MapBottomSheetShell({
   snapId,
   restSnapId,
   onSnapChange,
-  onHeightChange,
   onTargetHeightChange,
+  onTargetHeightIntent,
   contentClassName,
   outerClassName,
   sheetShadowClassName = 'shadow-xl',
@@ -129,26 +132,126 @@ export function MapBottomSheetShell({
       ? drag.startHeight < maxSnapPx() - 1
       : draggedUpBy < 0 && drag.startScrollTop <= 0);
 
-  // snap の切替と同じ commit で地図側が読めるよう、描画前に通知する
+  // height:auto からの transition は、同じ commit で入れ替わった内容の高さ (絞り込み直後は
+  // 一覧全体) を起点に始まってしまう。内容が替わる前の実高さを起点に固定し直す
+  const prevSnapRef = useRef(currentSnap);
+  const lastHeightRef = useRef<number | null>(null);
+  // ドラッグ解放は handlePointerUp が高さを直接決める。その分は固定し直さない
+  const releasedDragRef = useRef(false);
   useLayoutEffect(() => {
-    onTargetHeightChange?.(currentSnap.resolveHeightPx(measureSnapContext()));
+    const el = sheetRef.current;
+    if (!el) return;
+    const prev = prevSnapRef.current;
+    prevSnapRef.current = currentSnap;
+    const from = lastHeightRef.current;
+    const released = releasedDragRef.current;
+    releasedDragRef.current = false;
+    if (
+      prev !== currentSnap &&
+      prev.height === 'auto' &&
+      from !== null &&
+      !released
+    ) {
+      el.style.transition = 'none';
+      el.style.height = `${from}px`;
+      void el.offsetHeight;
+      el.style.transition = '';
+      el.style.height = currentSnap.height;
+    }
   });
-
+  // commit 時点の実寸は、auto への transition の開始直後だと移動前の高さのままになる。
+  // 描画のたびに追従する ResizeObserver の値なら、いつ再選択されても直前に見えていた高さになる
   useEffect(() => {
     const el = sheetRef.current;
-    if (!el || !onHeightChange || typeof ResizeObserver === 'undefined') {
-      return;
-    }
-    const observer = new ResizeObserver((entries) => {
-      const target = entries[0]?.target;
-      if (target instanceof HTMLElement) {
-        onHeightChange(target.getBoundingClientRect().height);
-      }
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => {
+      lastHeightRef.current = el.getBoundingClientRect().height;
     });
     observer.observe(el);
-    onHeightChange(el.getBoundingClientRect().height);
     return () => observer.disconnect();
-  }, [onHeightChange]);
+  }, []);
+
+  // 地図は通知された高さの分だけ縮む。伸びる向きでは、transition の途中で地図だけが先に縮むと
+  // シートとの間が空くため、height の transition が終わってから通知する。縮む向きは即時
+  const notifiedHeightRef = useRef<number | null>(null);
+  const pendingRef = useRef<{ height: number; cancel: () => void } | null>(
+    null,
+  );
+  useLayoutEffect(() => {
+    // ドラッグ中の高さは pointermove が通知する。ここで段の高さへ戻すと下げた分が打ち消される。
+    // 解放後は setElevated の再描画で段の高さへ揃う
+    if (dragRef.current?.claimed) return;
+    const el = sheetRef.current;
+    const hidden =
+      !!outerRef.current &&
+      getComputedStyle(outerRef.current).display === 'none';
+    const height = hidden
+      ? 0
+      : currentSnap.resolveHeightPx(measureSnapContext());
+    onTargetHeightIntent?.(height);
+    if (pendingRef.current && pendingRef.current.height !== height) {
+      pendingRef.current.cancel();
+    }
+    if (pendingRef.current || height === notifiedHeightRef.current) return;
+    const notify = () => {
+      pendingRef.current = null;
+      notifiedHeightRef.current = height;
+      onTargetHeightChange?.(height);
+    };
+    const growing =
+      notifiedHeightRef.current !== null && height > notifiedHeightRef.current;
+    const transitioning =
+      !!el &&
+      !hidden &&
+      parseFloat(getComputedStyle(el).transitionDuration) > 0 &&
+      Math.abs(el.getBoundingClientRect().height - height) >= 1;
+    if (!growing || !transitioning || !el) {
+      notify();
+      return;
+    }
+    const finish = (event: Event) => {
+      // 途中での再選択は起点を固定し直すため旧 transition が cancel され、直後に新しい transition が走る。
+      // その cancel を終了と見なすと、シートが伸びる前に地図が縮んで間が空く
+      if (
+        event.type === 'transitioncancel' &&
+        el
+          .getAnimations?.()
+          .some(
+            (animation) =>
+              animation instanceof CSSTransition &&
+              animation.transitionProperty === 'height' &&
+              animation.playState === 'running',
+          )
+      ) {
+        return;
+      }
+      if (
+        event.target === el &&
+        (event.type === 'transitioncancel' ||
+          (event as TransitionEvent).propertyName === 'height')
+      ) {
+        cancel();
+        notify();
+      }
+    };
+    const cancel = () => {
+      el.removeEventListener('transitionend', finish);
+      el.removeEventListener('transitioncancel', finish);
+      pendingRef.current = null;
+    };
+    el.addEventListener('transitionend', finish);
+    el.addEventListener('transitioncancel', finish);
+    pendingRef.current = { height, cancel };
+  });
+  useEffect(() => () => pendingRef.current?.cancel(), []);
+
+  // SSR 後の初回描画と URL からの状態復元が済むまで transition を掛けない。
+  // 掛けると復元後の高さへ SSR の高さから伸びる動きが見えてしまう
+  const [animated, setAnimated] = useState(false);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setAnimated(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   // iOS Safari は最初の touchmove でスクロールかどうかを決めるため非 passive で処理する
   useEffect(() => {
@@ -230,6 +333,17 @@ export function MapBottomSheetShell({
       Math.max(Math.min(...snapHeights), drag.startHeight + draggedUpBy),
     );
     el.style.height = `${next}px`;
+    // 地図が縮んだままシートだけが下がると、間の背景が白く見える。下がる向きは即時通知の方向なので追従させる
+    if (
+      notifiedHeightRef.current !== null &&
+      next < notifiedHeightRef.current
+    ) {
+      pendingRef.current?.cancel();
+      notifiedHeightRef.current = next;
+      onTargetHeightIntent?.(next);
+      // 次の描画を待つと、速く下げたときに1フレーム分の間が空く
+      flushSync(() => onTargetHeightChange?.(next));
+    }
     drag.samples.push({ t: performance.now(), y: event.clientY });
   };
 
@@ -285,6 +399,7 @@ export function MapBottomSheetShell({
     el.style.transition = '';
     void el.offsetHeight;
     el.style.height = target.height;
+    releasedDragRef.current = true;
     onSnapChange(target.id);
     setTimeout(() => setElevated(false), 300);
   };
@@ -329,7 +444,8 @@ export function MapBottomSheetShell({
       <div
         ref={sheetRef}
         data-testid="map-bottom-sheet"
-        className={`pointer-events-auto w-full select-none bg-white [clip-path:inset(-40px_-40px_0_-40px)] ${sheetPaddingClassName} ${sheetShadowClassName} transition-[height] duration-300 ease-out motion-reduce:transition-none [interpolate-size:allow-keywords] ${currentSnap.fullScreen && !elevated ? '' : 'rounded-t-2xl'} ${currentSnap.overflow === 'auto' ? 'overflow-y-auto' : 'overflow-hidden'}`}
+        data-map-scroll-root
+        className={`pointer-events-auto w-full select-none bg-white [clip-path:inset(-40px_-40px_0_-40px)] ${sheetPaddingClassName} ${sheetShadowClassName} ${animated ? 'transition-[height] duration-300 ease-out motion-reduce:transition-none' : ''} [interpolate-size:allow-keywords] ${currentSnap.fullScreen && !elevated ? '' : 'rounded-t-2xl'} ${currentSnap.overflow === 'auto' ? 'overflow-y-auto' : 'overflow-hidden'}`}
         style={{ height: currentSnap.height }}
         onPointerDown={handlePointerDown}
         onClickCapture={handleClickCapture}
