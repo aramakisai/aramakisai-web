@@ -159,18 +159,6 @@ describe('BusDepartureBoard', () => {
     expect(html).toContain('14:20');
   });
 
-  test('5 分以上古いリアルタイム情報の生成時刻は出さない', () => {
-    realtime = {
-      tripUpdates: new Map(),
-      vehicles: new Map(),
-      generatedAt: jst(14, 10).getTime() / 1000,
-      tripUpdatesAt: jst(14, 10).getTime() / 1000,
-      vehiclesAt: jst(14, 10).getTime() / 1000,
-    };
-    renderAt(jst(14, 17));
-    expect(screen.queryByText(/遅延情報の生成時刻/)).toBeNull();
-  });
-
   test('列見出しと出典を出す', () => {
     renderAt(jst(14, 17));
     for (const t of ['発車時刻', '系統', '行先・のりば', '発車まで']) {

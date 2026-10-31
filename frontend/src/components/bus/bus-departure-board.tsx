@@ -1,7 +1,7 @@
 'use client';
 
 import { BusDataNotice } from './bus-data-notice';
-import { isRealtimeFresh, nextBusDepartures } from '@/lib/bus-next-departures';
+import { nextBusDepartures } from '@/lib/bus-next-departures';
 import type { BusScheduledDeparture } from '@/lib/bus-timetable';
 import { useBusRealtime } from '@/lib/use-bus-realtime';
 import { useNow } from '@/lib/use-now';
@@ -27,11 +27,6 @@ export function BusDepartureBoard({
   const now = useNow(renderedAt);
   const realtime = useBusRealtime();
   const boards = nextBusDepartures(departures, realtime, now, 1);
-  // リアルタイム情報が古くて使われない場合は生成時刻も出さない
-  const generatedAt =
-    realtime && isRealtimeFresh(realtime.generatedAt, now)
-      ? realtime.generatedAt
-      : null;
 
   return (
     <div
@@ -108,11 +103,7 @@ export function BusDepartureBoard({
           );
         })}
       </div>
-      <BusDataNotice
-        timetableFetchedAt={fetchedAt}
-        realtimeGeneratedAt={generatedAt}
-        variant="page"
-      />
+      <BusDataNotice timetableFetchedAt={fetchedAt} variant="page" />
     </div>
   );
 }

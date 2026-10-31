@@ -3,9 +3,7 @@ import { toJstParts } from '@/lib/event-day';
 
 export interface BusDataNoticeProps {
   readonly timetableFetchedAt: string;
-  /** epoch 秒。リアルタイム情報が無い・古くて使えないときは null */
-  readonly realtimeGeneratedAt: number | null;
-  readonly variant: 'page' | 'signage';
+  readonly variant: 'page' | 'short';
 }
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
@@ -15,20 +13,11 @@ function formatFetchedAt(iso: string): string {
   return `${year}/${pad2(month)}/${pad2(date)} ${pad2(hours)}:${pad2(minutes)}`;
 }
 
-function formatGeneratedAt(epochSec: number): string {
-  const { hours, minutes } = toJstParts(
-    new Date(epochSec * 1000).toISOString(),
-  );
-  // JST は UTC+9 で分単位に揃うため、秒は UTC と同じ
-  return `${pad2(hours)}:${pad2(minutes)}:${pad2(epochSec % 60)}`;
-}
-
 export function BusDataNotice({
   timetableFetchedAt,
-  realtimeGeneratedAt,
   variant,
 }: BusDataNoticeProps) {
-  if (variant === 'signage') {
+  if (variant === 'short') {
     return (
       <p data-testid="bus-data-notice" className="text-gray-600">
         データ: 関越交通(CC BY 4.0)・公共交通オープンデータセンター
@@ -51,9 +40,6 @@ export function BusDataNotice({
         へお願いします。
       </p>
       <p>時刻表の取得日時: {formatFetchedAt(timetableFetchedAt)}</p>
-      {realtimeGeneratedAt !== null && (
-        <p>遅延情報の生成時刻: {formatGeneratedAt(realtimeGeneratedAt)}</p>
-      )}
     </div>
   );
 }

@@ -87,9 +87,8 @@ export function SignageBusInfo({ boards }: SignageBusInfoProps) {
       </div>
       <div className="text-[12px] leading-none whitespace-nowrap portrait:text-[18px]">
         <BusDataNotice
-          variant="signage"
+          variant="short"
           timetableFetchedAt={busTimetable.fetchedAt}
-          realtimeGeneratedAt={null}
         />
       </div>
     </div>
