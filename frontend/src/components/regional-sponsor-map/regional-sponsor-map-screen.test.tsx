@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/sponsors/local',
+  useSearchParams: () => new URLSearchParams(),
   useRouter: () => ({ refresh: mocks.refresh }),
 }));
 

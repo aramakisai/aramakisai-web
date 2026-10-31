@@ -17,6 +17,7 @@ export interface UseMapFiltersResult {
   readonly setKeywordInput: (value: string) => void;
   readonly setCategories: (categories: readonly ListingCategory[]) => void;
   readonly selectArea: (areaId: number | null) => void;
+  readonly syncFromLocation: () => void;
 }
 
 const EMPTY_FILTERS: CampusMapFilters = {
@@ -34,11 +35,12 @@ function parse(params: URLSearchParams): CampusMapFilters {
 }
 
 export function useMapFilters(): UseMapFiltersResult {
-  const { filters, keywordInput, setKeywordInput, update } = useMapUrlState({
-    empty: EMPTY_FILTERS,
-    parse,
-    build: buildCampusMapHref,
-  });
+  const { filters, keywordInput, setKeywordInput, update, syncFromLocation } =
+    useMapUrlState({
+      empty: EMPTY_FILTERS,
+      parse,
+      build: buildCampusMapHref,
+    });
   const setCategories = useCallback(
     (categories: readonly ListingCategory[]) => update({ categories }),
     [update],
@@ -47,5 +49,12 @@ export function useMapFilters(): UseMapFiltersResult {
     (selectedAreaId: number | null) => update({ selectedAreaId }),
     [update],
   );
-  return { filters, keywordInput, setKeywordInput, setCategories, selectArea };
+  return {
+    filters,
+    keywordInput,
+    setKeywordInput,
+    setCategories,
+    selectArea,
+    syncFromLocation,
+  };
 }

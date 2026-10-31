@@ -21,6 +21,7 @@ import { PhasedBottomNavigation } from '@/components/phased-chrome';
 import type { AreaExhibitionListState } from './area-exhibition-list';
 import { MapBottomSheet } from './map-bottom-sheet';
 import { MapMenuButton } from '@/components/map/map-menu-button';
+import { MapUrlSync } from '@/components/map/map-url-sync';
 import { MapSearchOverlay } from './map-search-overlay';
 import { MapSidePanel } from './map-side-panel';
 import { useMapFilters } from './use-map-filters';
@@ -76,6 +77,7 @@ export function CampusMapScreen({
     setKeywordInput,
     setCategories,
     selectArea: commitArea,
+    syncFromLocation,
   } = useMapFilters();
   const selectArea = useCallback(
     (areaId: number | null) => {
@@ -170,6 +172,7 @@ export function CampusMapScreen({
 
   return (
     <div className={`relative h-dvh w-full ${navClass}`}>
+      <MapUrlSync onChange={syncFromLocation} />
       <MapMenuButton phase={phase} navigation={navigation} />
       <MapSearchOverlay
         keywordInput={keywordInput}

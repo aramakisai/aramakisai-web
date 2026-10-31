@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import type { CSSProperties } from 'react';
 import { PhasedBottomNavigation } from '@/components/phased-chrome';
 import { MapMenuButton } from '@/components/map/map-menu-button';
+import { MapUrlSync } from '@/components/map/map-url-sync';
 import { MapSearchOverlay } from '@/components/map/map-search-overlay';
 import {
   MAP_VIEWPORT_CLASS,
@@ -121,6 +122,7 @@ export function RegionalSponsorMapScreen({
       aria-label="地域協賛マップ"
       className={`relative h-dvh w-full ${navClass}`}
     >
+      <MapUrlSync onChange={state.syncFromLocation} />
       <MapMenuButton phase={phase} navigation={navigation} />
       <MapSearchOverlay
         keywordInput={state.keywordInput}

@@ -12,7 +12,10 @@ vi.hoisted(() => {
 const sendGaEvent = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/analytics', () => ({ sendGaEvent }));
 
-vi.mock('next/navigation', () => ({ usePathname: () => '/map' }));
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/map',
+  useSearchParams: () => new URLSearchParams(),
+}));
 
 vi.mock('@/env', () => ({
   env: {

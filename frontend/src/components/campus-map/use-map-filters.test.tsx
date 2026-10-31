@@ -114,6 +114,31 @@ describe('useMapFilters', () => {
     expect(result.current.filters.q).toBe('ろぼっと');
   });
 
+  test('popstate 無しの URL 変更でも syncFromLocation で選択が URL に合う', () => {
+    const { result } = renderHook(() => useMapFilters());
+    act(() => result.current.selectArea(54));
+
+    window.history.replaceState(null, '', '/map');
+    act(() => result.current.syncFromLocation());
+
+    expect(result.current.filters.selectedAreaId).toBeNull();
+  });
+
+  test('自分の commit の直後に syncFromLocation を呼んでも入力中のデバウンスを消さない', () => {
+    const { result } = renderHook(() => useMapFilters());
+    act(() => result.current.selectArea(7));
+    act(() => result.current.setKeywordInput('x'));
+
+    act(() => result.current.syncFromLocation());
+    act(() => vi.advanceTimersByTime(300));
+
+    expect(result.current.filters).toEqual({
+      q: 'x',
+      categories: [],
+      selectedAreaId: 7,
+    });
+  });
+
   test('エリア選択の直後にキーワードのデバウンスが確定しても選択中エリアを保つ', () => {
     const { result } = renderHook(() => useMapFilters());
 
@@ -166,7 +191,7 @@ describe('useMapFilters', () => {
     act(() => result.current.setKeywordInput('保留中'));
 
     act(() => {
-      window.history.pushState(null, '', '/map');
+      window.history.pushState(null, '', '/map?area=1');
       window.dispatchEvent(new PopStateEvent('popstate'));
     });
     pushStateSpy.mockClear();

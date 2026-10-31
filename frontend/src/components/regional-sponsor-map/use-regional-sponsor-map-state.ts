@@ -17,11 +17,12 @@ export const LOCATION_LIST_TITLE_ID = 'regional-sponsor-location-list-title';
 export function useRegionalSponsorMapState(
   sponsors: readonly RegionalSponsor[],
 ) {
-  const { filters, keywordInput, setKeywordInput, update } = useMapUrlState({
-    empty: EMPTY_REGIONAL_SPONSOR_MAP_FILTERS,
-    parse: parseRegionalSponsorMapQuery,
-    build: buildRegionalSponsorMapHref,
-  });
+  const { filters, keywordInput, setKeywordInput, update, syncFromLocation } =
+    useMapUrlState({
+      empty: EMPTY_REGIONAL_SPONSOR_MAP_FILTERS,
+      parse: parseRegionalSponsorMapQuery,
+      build: buildRegionalSponsorMapHref,
+    });
   // スクロールのたびに画面全体と全マーカーを再描画しないよう state にしない。一覧のマウント時にだけ読む
   const listScrollTop = useRef(0);
   const locationListScrollTop = useRef(0);
@@ -109,6 +110,7 @@ export function useRegionalSponsorMapState(
     setCategories,
     selectFromCard,
     selectFromPin,
+    syncFromLocation,
     openLocation,
     returnFromDetail,
     returnFromLocation,

@@ -52,17 +52,22 @@ export function useMapUrlState<S extends { readonly q: string }>({
     setKeywordInput(restored.q);
   }, []);
 
-  useEffect(() => {
-    const handlePopState = () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      const next = readLocation();
-      filtersRef.current = next;
-      setFilters(next);
-      setKeywordInput(next.q);
-    };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+  // Next の Link による同一ページ内の遷移は popstate を出さずに URL だけを書き換えるため、
+  // useSearchParams の変化からも呼ばれる。自分の commit による通知は URL と状態が一致するので
+  // 何もせず、入力中のデバウンスを消さない
+  const syncFromLocation = useCallback(() => {
+    const next = readLocation();
+    if (buildRef.current(next) === buildRef.current(filtersRef.current)) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    filtersRef.current = next;
+    setFilters(next);
+    setKeywordInput(next.q);
   }, []);
+
+  useEffect(() => {
+    window.addEventListener('popstate', syncFromLocation);
+    return () => window.removeEventListener('popstate', syncFromLocation);
+  }, [syncFromLocation]);
 
   useEffect(() => {
     return () => {
@@ -91,5 +96,6 @@ export function useMapUrlState<S extends { readonly q: string }>({
     keywordInput,
     setKeywordInput: handleSetKeywordInput,
     update,
+    syncFromLocation,
   };
 }
