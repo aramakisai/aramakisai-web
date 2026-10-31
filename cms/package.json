@@ -22,11 +22,13 @@
     "migrate:status": "cross-env NODE_OPTIONS=--no-deprecation payload migrate:status",
     "db:up": "docker compose up -d db",
     "db:down": "docker compose down",
+    "backfill:media-small": "cross-env NODE_OPTIONS=--import=tsx/esm node scripts/backfill-media-small.ts",
     "seed:dev:exhibitions": "cross-env NODE_OPTIONS=--import=tsx/esm node scripts/seed-dev-exhibitions.ts",
     "seed:dev:content": "cross-env NODE_OPTIONS=--import=tsx/esm node scripts/seed-dev-content.ts",
     "seed:dev": "pnpm run seed:dev:content && pnpm run seed:dev:exhibitions"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1118.0",
     "@payloadcms/db-postgres": "3.88.0",
     "@payloadcms/email-nodemailer": "3.88.0",
     "@payloadcms/next": "3.88.0",
