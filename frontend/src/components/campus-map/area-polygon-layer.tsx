@@ -96,6 +96,8 @@ function AreaPolygon({
       ref={groupRef}
       data={area.geometry}
       style={style}
+      // 地図の click に伝えると空き地点のタップと見分けられず、選択直後に解除されてしまう
+      bubblingMouseEvents={false}
       eventHandlers={eventHandlers}
     />
   );

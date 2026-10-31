@@ -6,6 +6,7 @@ import { latLngBounds } from 'leaflet';
 import type { FitBoundsOptions, LatLngBoundsExpression } from 'leaflet';
 import { AttributionControl, MapContainer, TileLayer } from 'react-leaflet';
 import { computeMapFitOptions } from '@/components/map/map-fit-options';
+import { MapEmptyTap } from '@/components/map/map-empty-tap';
 import { MapTilePrefetch } from '@/components/map/map-tile-prefetch';
 import { MapUserLocation } from '@/components/map/map-user-location';
 import { MapViewportController } from '@/components/map/map-viewport-controller';
@@ -37,6 +38,7 @@ export interface RegionalSponsorMapViewProps {
   readonly selectedSponsorId: number | null;
   readonly onSelectSponsor: (sponsorId: number) => void;
   readonly onSelectLocation: (sponsorIds: readonly number[]) => void;
+  readonly onEmptyTap: () => void;
   readonly getPendingInset?: () => number;
 }
 
@@ -46,6 +48,7 @@ export function RegionalSponsorMapView({
   selectedSponsorId,
   onSelectSponsor,
   onSelectLocation,
+  onEmptyTap,
   getPendingInset,
 }: RegionalSponsorMapViewProps) {
   const isAboveBreakpoint = useIsAboveMapBreakpoint();
@@ -102,6 +105,7 @@ export function RegionalSponsorMapView({
         errorTileUrl={TRANSPARENT_TILE_URL}
       />
       <MapTilePrefetch profile={profile} />
+      <MapEmptyTap onTap={onEmptyTap} />
       <MapViewportController
         fitBounds={fitBounds}
         maxBounds={BOUNDS}

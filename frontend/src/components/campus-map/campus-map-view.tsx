@@ -20,6 +20,7 @@ import {
   toAreaBounds,
 } from '@/lib/exhibition-location-map';
 import { AreaPolygonLayer } from './area-polygon-layer';
+import { MapEmptyTap } from '@/components/map/map-empty-tap';
 import { MapTilePrefetch } from '@/components/map/map-tile-prefetch';
 import { MapPointMarker } from './map-point-marker';
 import { MapUserLocation } from '@/components/map/map-user-location';
@@ -172,6 +173,10 @@ export function CampusMapView({
     [onSelectArea, selectedAreaId],
   );
 
+  const handleEmptyTap = useCallback(() => {
+    if (selectedAreaId !== null) onSelectArea(null);
+  }, [onSelectArea, selectedAreaId]);
+
   return (
     <MapContainer
       bounds={fitBounds}
@@ -203,6 +208,7 @@ export function CampusMapView({
         eventHandlers={tileEventHandlers}
       />
       <MapTilePrefetch profile={CAMPUS_MAP_TILE_PROFILE} />
+      <MapEmptyTap onTap={handleEmptyTap} />
       <MapViewportSync
         fitBounds={fitBounds}
         bottomInset={fitBottomInset}

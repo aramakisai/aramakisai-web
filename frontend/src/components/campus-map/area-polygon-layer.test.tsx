@@ -295,4 +295,15 @@ describe('AreaPolygonLayer', () => {
     expect(geoJsonProps.at(-1)!.style).toBe(first.style);
     expect(geoJsonProps.at(-1)!.eventHandlers).toBe(first.eventHandlers);
   });
+
+  it('ポリゴンのタップを地図の click へ伝えない', () => {
+    render(
+      <AreaPolygonLayer
+        areas={[area({ id: 7 })]}
+        selectedAreaId={null}
+        onAreaClick={vi.fn()}
+      />,
+    );
+    expect(geoJsonProps.at(-1)!.bubblingMouseEvents).toBe(false);
+  });
 });

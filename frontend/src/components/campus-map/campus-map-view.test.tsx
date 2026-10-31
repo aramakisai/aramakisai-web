@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { sendGaEvent } from '@/lib/analytics';
 import { CAMPUS_MAP_CONFIG, MAP_ATTRIBUTION } from '@/lib/campus-map-config';
@@ -55,6 +55,12 @@ vi.mock('@/components/map/map-zoom-control', () => ({
   },
 }));
 
+vi.mock('@/components/map/map-empty-tap', () => ({
+  MapEmptyTap: ({ onTap }: { onTap: () => void }) => (
+    <button data-testid="empty-tap" onClick={onTap} />
+  ),
+}));
+
 vi.mock('@/components/map/map-tile-prefetch', () => ({
   MapTilePrefetch: () => null,
 }));
@@ -102,6 +108,28 @@ function area(overrides: Partial<CampusMapArea>): CampusMapArea {
 describe('CampusMapView', () => {
   beforeEach(() => {
     mockMatchMedia(false);
+  });
+
+  it('空き地点のタップは選択中だけ解除し、未選択では何もしない', () => {
+    const onSelectArea = vi.fn();
+    const { rerender } = render(
+      <CampusMapView
+        areas={[]}
+        selectedAreaId={null}
+        onSelectArea={onSelectArea}
+      />,
+    );
+    fireEvent.click(screen.getByTestId('empty-tap'));
+    expect(onSelectArea).not.toHaveBeenCalled();
+    rerender(
+      <CampusMapView
+        areas={[]}
+        selectedAreaId={3}
+        onSelectArea={onSelectArea}
+      />,
+    );
+    fireEvent.click(screen.getByTestId('empty-tap'));
+    expect(onSelectArea).toHaveBeenCalledExactlyOnceWith(null);
   });
 
   it('初期表示範囲・ズーム範囲・表示範囲の上限を設定値から渡し、ズームを連続的にする', () => {

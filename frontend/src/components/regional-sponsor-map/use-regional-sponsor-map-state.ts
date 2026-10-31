@@ -78,6 +78,11 @@ export function useRegionalSponsorMapState(
     setLocationIds(null);
     update({ selectedSponsorId: sponsorId });
   };
+  const closeFromMap = () => {
+    setFocusTargetId(null);
+    setLocationIds(null);
+    if (filters.selectedSponsorId !== null) update({ selectedSponsorId: null });
+  };
   const openLocation = (ids: readonly number[]) => {
     setLocationIds(ids);
     if (filters.selectedSponsorId !== null) update({ selectedSponsorId: null });
@@ -110,6 +115,7 @@ export function useRegionalSponsorMapState(
     setCategories,
     selectFromCard,
     selectFromPin,
+    closeFromMap,
     syncFromLocation,
     openLocation,
     returnFromDetail,

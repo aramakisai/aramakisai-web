@@ -153,6 +153,7 @@ export function RegionalSponsorMapScreen({
           fitSponsors={sponsors}
           selectedSponsorId={state.selectedSponsorId}
           onSelectSponsor={state.selectFromPin}
+          onEmptyTap={state.closeFromMap}
           onSelectLocation={state.openLocation}
           getPendingInset={getPendingInset}
         />

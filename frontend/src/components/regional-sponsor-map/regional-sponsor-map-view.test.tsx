@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { REGIONAL_MAP_TILE_PROFILE as profile } from '@/lib/map-tile-profile';
 
@@ -44,6 +44,12 @@ vi.mock('@/components/map/map-viewport-controller', () => ({
     mocks.viewportProps.push(props);
     return null;
   },
+}));
+
+vi.mock('@/components/map/map-empty-tap', () => ({
+  MapEmptyTap: ({ onTap }: { onTap: () => void }) => (
+    <button data-testid="empty-tap" onClick={onTap} />
+  ),
 }));
 
 vi.mock('@/components/map/map-zoom-control', () => ({
@@ -101,6 +107,7 @@ const baseProps = {
   selectedSponsorId: null,
   onSelectSponsor: vi.fn(),
   onSelectLocation: vi.fn(),
+  onEmptyTap: vi.fn(),
 };
 
 beforeEach(() => {
@@ -143,6 +150,13 @@ describe('RegionalSponsorMapView', () => {
       prefix: false,
     });
     expect(screen.getByTestId('zoom-control')).toBeInTheDocument();
+  });
+
+  it('地図の空き地点のタップを onEmptyTap へ渡す', () => {
+    const onEmptyTap = vi.fn();
+    render(<RegionalSponsorMapView {...baseProps} onEmptyTap={onEmptyTap} />);
+    fireEvent.click(screen.getByTestId('empty-tap'));
+    expect(onEmptyTap).toHaveBeenCalledTimes(1);
   });
 
   it('初期表示は全ピンの範囲に fit し、操作するまでリサイズで再 fit できるよう fitBounds で渡す', () => {
