@@ -34,6 +34,7 @@ export interface TopicSummary {
   title: string;
   body: string | null;
   imageId: string | null;
+  image?: Attachment | null;
   /** 既存呼び出し側 (home-page.ts) との互換のため任意にしている */
   metaDescription?: string | null;
   updatedAt?: string;

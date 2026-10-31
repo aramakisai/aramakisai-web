@@ -112,6 +112,7 @@ export function TouchMap({ data }: { readonly data: CampusMapDataResult }) {
           mapRef={mapRef}
           fitBottomInset={FIT_BOTTOM_INSET}
           maxBoundsPad={MAX_BOUNDS_PAD}
+          fitExcludeOutliers
           onTilesLoaded={reportReady}
         />
       </div>

@@ -11,8 +11,12 @@ import type {
 import { sendGaEvent } from '@/lib/analytics';
 import { CAMPUS_MAP_CONFIG, MAP_ATTRIBUTION } from '@/lib/campus-map-config';
 import type { CampusMapArea, CampusMapPoint } from '@/lib/campus-map';
-import { toAreaBounds } from '@/lib/exhibition-location-map';
+import {
+  excludeOutlierAreas,
+  toAreaBounds,
+} from '@/lib/exhibition-location-map';
 import { AreaPolygonLayer } from './area-polygon-layer';
+import { MapTilePrefetch } from './map-tile-prefetch';
 import { MapPointMarker } from './map-point-marker';
 import { MapUserLocation } from './map-user-location';
 import { MapViewportSync } from './map-viewport-sync';
@@ -44,6 +48,8 @@ export interface CampusMapViewProps {
   readonly fitBottomInset?: number;
   /** 左パネルと下部の操作部品が地図の上に浮く端末用で、可視領域の中央へ全エリアを置けるよう maxBounds を辺の長さの割合だけ広げる */
   readonly maxBoundsPad?: number;
+  /** 敷地から離れた孤立エリアを初期表示の範囲計算から除き、主要エリア群を可視領域の中央へ置く。除外したエリアは画面外になりうる */
+  readonly fitExcludeOutliers?: boolean;
   /** 表示範囲のタイルを読み終えたとき(Leaflet の GridLayer load)に呼ぶ */
   readonly onTilesLoaded?: () => void;
 }
@@ -84,6 +90,7 @@ export function CampusMapView({
   mapRef,
   fitBottomInset,
   maxBoundsPad = 0,
+  fitExcludeOutliers = false,
   onTilesLoaded,
 }: CampusMapViewProps) {
   const { minZoom, maxZoom, minNativeZoom, maxNativeZoom, tileUrlTemplate } =
@@ -92,11 +99,12 @@ export function CampusMapView({
   // 敷地の外接矩形ではなく実際のエリア群に合わせる。エリア取得失敗時だけ敷地全体へ戻す
   const fitBounds = useMemo<LatLngBoundsExpression>(() => {
     if (areas.length === 0) return CAMPUS_BOUNDS;
+    const target = fitExcludeOutliers ? excludeOutlierAreas(areas) : areas;
     const { southWest, northEast } = toAreaBounds(
-      areas as [CampusMapArea, ...CampusMapArea[]],
+      target as [CampusMapArea, ...CampusMapArea[]],
     );
     return [southWest, northEast] as unknown as LatLngBoundsExpression;
-  }, [areas]);
+  }, [areas, fitExcludeOutliers]);
   const focusCenter = useMemo<LatLngExpression | null>(() => {
     const area = areas.find((a) => a.id === selectedAreaId);
     if (!area) return null;
@@ -184,6 +192,7 @@ export function CampusMapView({
         errorTileUrl={TRANSPARENT_TILE_URL}
         eventHandlers={tileEventHandlers}
       />
+      <MapTilePrefetch />
       <MapViewportSync
         fitBounds={fitBounds}
         bottomInset={fitBottomInset}

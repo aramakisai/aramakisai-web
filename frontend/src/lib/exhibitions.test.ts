@@ -792,7 +792,7 @@ describe('getExhibitionDetail', () => {
     expect(vi.mocked(cms.findById).mock.calls[0]).toEqual([
       'student_exhibitions',
       1,
-      { depth: 0 },
+      { depth: 1 },
     ]);
     expect(result).toEqual({
       kind: 'found',
