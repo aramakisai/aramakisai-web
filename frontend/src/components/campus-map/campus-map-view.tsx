@@ -3,10 +3,11 @@
 import 'leaflet/dist/leaflet.css';
 import { useEffect, useMemo, useRef, type Ref } from 'react';
 import { AttributionControl, MapContainer, TileLayer } from 'react-leaflet';
-import type {
-  LatLngBoundsExpression,
-  LatLngExpression,
-  Map as LeafletMap,
+import {
+  svg,
+  type LatLngBoundsExpression,
+  type LatLngExpression,
+  type Map as LeafletMap,
 } from 'leaflet';
 import { sendGaEvent } from '@/lib/analytics';
 import { CAMPUS_MAP_CONFIG, MAP_ATTRIBUTION } from '@/lib/campus-map-config';
@@ -27,6 +28,9 @@ import { useIsAboveMapBreakpoint } from './use-is-above-map-breakpoint';
 const CAMPUS_BOUNDS =
   CAMPUS_MAP_CONFIG.campusBounds as unknown as LatLngBoundsExpression;
 const BOUNDS = CAMPUS_MAP_CONFIG.bounds as unknown as LatLngBoundsExpression;
+
+// 縮小中は clip 済みの描画を CSS で縮めるだけなので、既定 (0.1) では表示範囲の外が空く
+const POLYGON_RENDERER = svg({ padding: 1 });
 
 // 1x1 透明 GIF。読み込みに失敗したタイルを破損画像として表示させない (要件 8.3)
 const TRANSPARENT_TILE_URL =
@@ -165,6 +169,7 @@ export function CampusMapView({
   return (
     <MapContainer
       bounds={fitBounds}
+      renderer={POLYGON_RENDERER}
       minZoom={minZoom}
       maxZoom={maxZoom}
       maxBounds={maxBounds}
