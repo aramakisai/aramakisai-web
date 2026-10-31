@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { KeyboardEvent, MouseEvent, PointerEvent, ReactNode } from 'react';
-import { useIsAboveMapBreakpoint } from '../campus-map/use-is-above-map-breakpoint';
+import { useIsAboveMapBreakpoint } from './use-is-above-map-breakpoint';
 
 export interface MapBottomSheetSnapContext {
   readonly viewportHeight: number;
@@ -329,6 +329,7 @@ export function MapBottomSheetShell({
       <div
         ref={sheetRef}
         data-testid="map-bottom-sheet"
+        data-map-scroll-root
         className={`pointer-events-auto w-full select-none bg-white [clip-path:inset(-40px_-40px_0_-40px)] ${sheetPaddingClassName} ${sheetShadowClassName} transition-[height] duration-300 ease-out motion-reduce:transition-none [interpolate-size:allow-keywords] ${currentSnap.fullScreen && !elevated ? '' : 'rounded-t-2xl'} ${currentSnap.overflow === 'auto' ? 'overflow-y-auto' : 'overflow-hidden'}`}
         style={{ height: currentSnap.height }}
         onPointerDown={handlePointerDown}

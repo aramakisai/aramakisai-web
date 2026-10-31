@@ -7,7 +7,7 @@ import { latLngBounds, point } from 'leaflet';
 import type { FitBoundsOptions, LatLngBoundsExpression, Point } from 'leaflet';
 import { AttributionControl, MapContainer, TileLayer } from 'react-leaflet';
 import { MapViewportController } from '@/components/map/map-viewport-controller';
-import { MapZoomControl } from '@/components/campus-map/map-zoom-control';
+import { MapZoomControl } from '@/components/map/map-zoom-control';
 import { CAMPUS_MAP_CONFIG, MAP_ATTRIBUTION } from '@/lib/campus-map-config';
 import { REGIONAL_MAP_TILE_PROFILE as profile } from '@/lib/map-tile-profile';
 import type { RegionalSponsor } from '@/lib/regional-sponsors';

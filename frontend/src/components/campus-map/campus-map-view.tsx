@@ -9,19 +9,23 @@ import type {
   Map as LeafletMap,
 } from 'leaflet';
 import { sendGaEvent } from '@/lib/analytics';
-import { CAMPUS_MAP_CONFIG, MAP_ATTRIBUTION } from '@/lib/campus-map-config';
+import {
+  CAMPUS_MAP_CONFIG,
+  CAMPUS_MAP_TILE_PROFILE,
+  MAP_ATTRIBUTION,
+} from '@/lib/campus-map-config';
 import type { CampusMapArea, CampusMapPoint } from '@/lib/campus-map';
 import {
   excludeOutlierAreas,
   toAreaBounds,
 } from '@/lib/exhibition-location-map';
 import { AreaPolygonLayer } from './area-polygon-layer';
-import { MapTilePrefetch } from './map-tile-prefetch';
+import { MapTilePrefetch } from '@/components/map/map-tile-prefetch';
 import { MapPointMarker } from './map-point-marker';
-import { MapUserLocation } from './map-user-location';
+import { MapUserLocation } from '@/components/map/map-user-location';
 import { MapViewportSync } from './map-viewport-sync';
-import { MapZoomControl } from './map-zoom-control';
-import { useIsAboveMapBreakpoint } from './use-is-above-map-breakpoint';
+import { MapZoomControl } from '@/components/map/map-zoom-control';
+import { useIsAboveMapBreakpoint } from '@/components/map/use-is-above-map-breakpoint';
 
 // leaflet の型は mutable なタプルを要求するため、readonly な設定値をここでキャストする
 const CAMPUS_BOUNDS =
@@ -192,7 +196,7 @@ export function CampusMapView({
         errorTileUrl={TRANSPARENT_TILE_URL}
         eventHandlers={tileEventHandlers}
       />
-      <MapTilePrefetch />
+      <MapTilePrefetch profile={CAMPUS_MAP_TILE_PROFILE} />
       <MapViewportSync
         fitBounds={fitBounds}
         bottomInset={fitBottomInset}
@@ -226,7 +230,9 @@ export function CampusMapView({
         prefix={false}
       />
       {showZoomControl && <MapZoomControl />}
-      {showUserLocation && <MapUserLocation />}
+      {showUserLocation && (
+        <MapUserLocation bounds={CAMPUS_MAP_CONFIG.campusBounds} />
+      )}
     </MapContainer>
   );
 }

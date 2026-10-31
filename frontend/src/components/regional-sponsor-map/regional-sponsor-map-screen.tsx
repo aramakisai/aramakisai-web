@@ -4,8 +4,8 @@ import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { PhasedBottomNavigation } from '@/components/phased-chrome';
-import { MapMenuButton } from '@/components/campus-map/map-menu-button';
-import { useIsAboveMapBreakpoint } from '@/components/campus-map/use-is-above-map-breakpoint';
+import { MapMenuButton } from '@/components/map/map-menu-button';
+import { useIsAboveMapBreakpoint } from '@/components/map/use-is-above-map-breakpoint';
 import type {
   RegionalSponsor,
   RegionalSponsorMapDataResult,

@@ -1,8 +1,13 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { CSSProperties } from 'react';
+import {
+  MAP_VIEWPORT_CLASS,
+  useMapNavClass,
+  useMapSheetInset,
+} from '@/components/map/use-map-sheet-inset';
 import type { CampusMapArea, CampusMapDataResult } from '@/lib/campus-map';
 import { sendGaEvent } from '@/lib/analytics';
 import {
@@ -12,11 +17,10 @@ import {
 } from '@/lib/exhibitions';
 import { BUILD_PHASE, type FestivalPhase } from '@/lib/phase';
 import type { NavigationByPhase } from '@/lib/navigation';
-import { usePhase } from '@/lib/use-phase';
 import { PhasedBottomNavigation } from '@/components/phased-chrome';
 import type { AreaExhibitionListState } from './area-exhibition-list';
 import { MapBottomSheet } from './map-bottom-sheet';
-import { MapMenuButton } from './map-menu-button';
+import { MapMenuButton } from '@/components/map/map-menu-button';
 import { MapSearchOverlay } from './map-search-overlay';
 import { MapSidePanel } from './map-side-panel';
 import { useMapFilters } from './use-map-filters';
@@ -37,11 +41,6 @@ const CampusMapView = dynamic(
     ),
   },
 );
-
-// シートが全画面近くまで伸びても地図コンテナが潰れないよう、追従はこの高さで止める
-const MAP_FOLLOW_MAX_VH = 55;
-// 角丸の裏が空かないよう、地図はシート上端からこの分だけシートの下に潜らせる
-const SHEET_RADIUS_PX = 16;
 
 const EXHIBITIONS_ERROR_MESSAGE =
   '出展物の取得に失敗しました。しばらくしてから再度お試しください。';
@@ -70,12 +69,7 @@ export function CampusMapScreen({
   phase = BUILD_PHASE,
   navigation,
 }: CampusMapScreenProps) {
-  // 下部ナビの表示条件 (live かつ 1024px 未満) と同じ条件で、その高さ分だけ下端を空ける。
-  // 値は PhasedBottomSpacer の h-[calc(4rem+...)] と揃える
-  const navClass =
-    usePhase().phase === 'live'
-      ? '[--map-nav:calc(4rem+env(safe-area-inset-bottom))] lg:[--map-nav:0px]'
-      : '[--map-nav:0px]';
+  const navClass = useMapNavClass();
   const {
     filters,
     keywordInput,
@@ -90,16 +84,8 @@ export function CampusMapScreen({
     },
     [commitArea],
   );
-  const [bottomInset, setBottomInset] = useState(0);
-  const handleSheetHeightChange = useCallback((height: number) => {
-    setBottomInset(
-      Math.max(
-        0,
-        Math.min(height, (window.innerHeight * MAP_FOLLOW_MAX_VH) / 100) -
-          SHEET_RADIUS_PX,
-      ),
-    );
-  }, []);
+  const { bottomInset, onHeightChange: handleSheetHeightChange } =
+    useMapSheetInset();
 
   const areas: readonly CampusMapArea[] =
     data.areas.kind === 'loaded' ? data.areas.value : EMPTY_AREAS;
@@ -194,13 +180,9 @@ export function CampusMapScreen({
         selectedAreaId={filters.selectedAreaId}
         onHeightChange={handleSheetHeightChange}
       />
-      {/*
-       * SP では地図コンテナ自体をシート上端までに縮め、fitBounds・maxBounds がシートに
-       * 隠れない可視領域基準になるようにする。コントロールは潜らせた分だけ持ち上げる
-       */}
       <div
         data-testid="map-viewport"
-        className="h-[calc(100dvh-var(--map-nav)-var(--map-bottom-inset))] lg:h-[calc(100dvh-var(--map-nav))] max-lg:[&_.leaflet-bottom]:mb-4"
+        className={MAP_VIEWPORT_CLASS}
         style={{ '--map-bottom-inset': `${bottomInset}px` } as CSSProperties}
       >
         <CampusMapView

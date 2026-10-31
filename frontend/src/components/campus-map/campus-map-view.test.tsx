@@ -48,16 +48,18 @@ vi.mock('./area-polygon-layer', () => ({
   },
 }));
 
-vi.mock('./map-zoom-control', () => ({
+vi.mock('@/components/map/map-zoom-control', () => ({
   MapZoomControl: () => {
     mapZoomControlRenderCount += 1;
     return <div data-testid="map-zoom-control" />;
   },
 }));
 
-vi.mock('./map-tile-prefetch', () => ({ MapTilePrefetch: () => null }));
+vi.mock('@/components/map/map-tile-prefetch', () => ({
+  MapTilePrefetch: () => null,
+}));
 
-vi.mock('./map-user-location', () => ({
+vi.mock('@/components/map/map-user-location', () => ({
   MapUserLocation: () => <div data-testid="map-user-location" />,
 }));
 

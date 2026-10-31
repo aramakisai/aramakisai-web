@@ -39,7 +39,7 @@ vi.mock('@/components/map/map-viewport-controller', () => ({
   },
 }));
 
-vi.mock('@/components/campus-map/map-zoom-control', () => ({
+vi.mock('@/components/map/map-zoom-control', () => ({
   MapZoomControl: () => <div data-testid="zoom-control" />,
 }));
 

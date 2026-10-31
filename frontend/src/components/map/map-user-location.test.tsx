@@ -46,6 +46,7 @@ vi.mock('react-leaflet', () => ({
   },
 }));
 
+import { CAMPUS_MAP_CONFIG } from '@/lib/campus-map-config';
 import { MapUserLocation } from './map-user-location';
 
 const LOCATION = { latitude: 36.43, longitude: 139.0, accuracy: 25 };
@@ -80,7 +81,9 @@ describe('MapUserLocation', () => {
   });
 
   it('現在地ボタンを bottomright のコントロール角に置き、アンマウントで取り除く', () => {
-    const { unmount } = render(<MapUserLocation />);
+    const { unmount } = render(
+      <MapUserLocation bounds={CAMPUS_MAP_CONFIG.campusBounds} />,
+    );
     const corner = document.querySelector('.leaflet-bottom.leaflet-right')!;
     const control = corner.querySelector('.map-locate-control');
     expect(control).not.toBeNull();
@@ -90,24 +93,26 @@ describe('MapUserLocation', () => {
   });
 
   it('ボタンの名前と押下状態が取得状態に追従する', () => {
-    const { rerender } = render(<MapUserLocation />);
+    const { rerender } = render(
+      <MapUserLocation bounds={CAMPUS_MAP_CONFIG.campusBounds} />,
+    );
     const button = screen.getByRole('button', { name: '現在地を表示' });
     expect(button).toHaveAttribute('aria-pressed', 'false');
     expect(button.style.color).toBe('');
     setHook({ state: { kind: 'watching', location: null } });
-    rerender(<MapUserLocation />);
+    rerender(<MapUserLocation bounds={CAMPUS_MAP_CONFIG.campusBounds} />);
     expect(button).toHaveAttribute('aria-pressed', 'true');
     expect(button.style.color).toBe('rgb(235, 176, 60)');
   });
 
   it('未取得でクリックすると取得を開始する', () => {
-    render(<MapUserLocation />);
+    render(<MapUserLocation bounds={CAMPUS_MAP_CONFIG.campusBounds} />);
     fireEvent.click(screen.getByRole('button', { name: '現在地を表示' }));
     expect(start).toHaveBeenCalledTimes(1);
   });
 
   it('button は Enter で押せる要素である', () => {
-    render(<MapUserLocation />);
+    render(<MapUserLocation bounds={CAMPUS_MAP_CONFIG.campusBounds} />);
     const button = screen.getByRole('button', { name: '現在地を表示' });
     expect(button.tagName).toBe('BUTTON');
     expect(button).toHaveAttribute('type', 'button');
@@ -117,7 +122,7 @@ describe('MapUserLocation', () => {
     setHook({ state: { kind: 'watching', location: LOCATION } });
     const panTo = vi.spyOn(map, 'panTo');
     const zoom = map.getZoom();
-    render(<MapUserLocation />);
+    render(<MapUserLocation bounds={CAMPUS_MAP_CONFIG.campusBounds} />);
     fireEvent.click(screen.getByRole('button', { name: '現在地を表示' }));
     expect(panTo).toHaveBeenCalledWith([36.43, 139.0], { animate: true });
     expect(map.getZoom()).toBe(zoom);
@@ -127,7 +132,7 @@ describe('MapUserLocation', () => {
   it('取得中で現在地がまだ無いときのクリックは何もしない', () => {
     setHook({ state: { kind: 'watching', location: null } });
     const panTo = vi.spyOn(map, 'panTo');
-    render(<MapUserLocation />);
+    render(<MapUserLocation bounds={CAMPUS_MAP_CONFIG.campusBounds} />);
     fireEvent.click(screen.getByRole('button', { name: '現在地を表示' }));
     expect(panTo).not.toHaveBeenCalled();
     expect(start).not.toHaveBeenCalled();
@@ -135,7 +140,7 @@ describe('MapUserLocation', () => {
 
   it('初回通知で縮尺を変えず中心を移す', () => {
     const panTo = vi.spyOn(map, 'panTo');
-    render(<MapUserLocation />);
+    render(<MapUserLocation bounds={CAMPUS_MAP_CONFIG.campusBounds} />);
     hook.options.onFirstLocation(LOCATION);
     expect(panTo).toHaveBeenCalledWith([36.43, 139.0], { animate: true });
   });
@@ -147,7 +152,7 @@ describe('MapUserLocation', () => {
     motion.reduced = reduced;
     setHook({ state: { kind: 'watching', location: LOCATION } });
     const panTo = vi.spyOn(map, 'panTo');
-    render(<MapUserLocation />);
+    render(<MapUserLocation bounds={CAMPUS_MAP_CONFIG.campusBounds} />);
     hook.options.onFirstLocation(LOCATION);
     fireEvent.click(screen.getByRole('button', { name: '現在地を表示' }));
     expect(panTo).toHaveBeenCalledTimes(2);
@@ -157,14 +162,14 @@ describe('MapUserLocation', () => {
 
   it('現在地が無いときはマーカーを描かない', () => {
     setHook({ state: { kind: 'watching', location: null } });
-    render(<MapUserLocation />);
+    render(<MapUserLocation bounds={CAMPUS_MAP_CONFIG.campusBounds} />);
     expect(screen.queryByTestId('circle')).toBeNull();
     expect(screen.queryByTestId('marker')).toBeNull();
   });
 
   it('現在地があるときだけ、z-index 625 の専用の層に精度円と点を操作不能で描く', () => {
     setHook({ state: { kind: 'watching', location: LOCATION } });
-    render(<MapUserLocation />);
+    render(<MapUserLocation bounds={CAMPUS_MAP_CONFIG.campusBounds} />);
     expect(paneProps.at(-1)!.style).toEqual({ zIndex: 625 });
     const circle = circleProps.at(-1)!;
     expect(circle.radius).toBe(25);
@@ -182,14 +187,16 @@ describe('MapUserLocation', () => {
   });
 
   it('失敗が無いうちはトーストを出さない', () => {
-    render(<MapUserLocation />);
+    render(<MapUserLocation bounds={CAMPUS_MAP_CONFIG.campusBounds} />);
     expect(screen.queryByRole('status')).toBeNull();
   });
 
   it('失敗時は body 直下にリンク無しのトーストを出し、失敗が増えると出し直す', () => {
     vi.useFakeTimers();
     setHook({ lastFailure: { reason: 'denied', seq: 1 } });
-    const { rerender } = render(<MapUserLocation />);
+    const { rerender } = render(
+      <MapUserLocation bounds={CAMPUS_MAP_CONFIG.campusBounds} />,
+    );
     const toast = screen.getByRole('status');
     expect(toast).toHaveTextContent('現在地を取得できませんでした');
     expect(within(toast).queryByRole('link')).toBeNull();
@@ -202,7 +209,7 @@ describe('MapUserLocation', () => {
       });
       expect(screen.queryByRole('status')).toBeNull();
       setHook({ lastFailure: { reason: 'denied', seq: 2 } });
-      rerender(<MapUserLocation />);
+      rerender(<MapUserLocation bounds={CAMPUS_MAP_CONFIG.campusBounds} />);
       expect(screen.getByRole('status')).toBeInTheDocument();
     } finally {
       vi.useRealTimers();
@@ -210,7 +217,7 @@ describe('MapUserLocation', () => {
   });
 
   it('ボタン押下で start を送り、初回の位置で located を精度区分と時間付きで送る', () => {
-    render(<MapUserLocation />);
+    render(<MapUserLocation bounds={CAMPUS_MAP_CONFIG.campusBounds} />);
     fireEvent.click(screen.getByRole('button', { name: '現在地を表示' }));
     expect(sendGaEvent).toHaveBeenCalledWith('user_location', {
       result: 'start',
@@ -230,7 +237,7 @@ describe('MapUserLocation', () => {
     [20, '20to50'],
     [100, 'ge100'],
   ])('精度 %i m は %s', (accuracy, bucket) => {
-    render(<MapUserLocation />);
+    render(<MapUserLocation bounds={CAMPUS_MAP_CONFIG.campusBounds} />);
     act(() => hook.options.onFirstLocation({ ...LOCATION, accuracy }));
     expect(sendGaEvent).toHaveBeenLastCalledWith(
       'user_location',
@@ -246,7 +253,7 @@ describe('MapUserLocation', () => {
     'unsupported',
   ] as const)('失敗理由 %s を送り、トースト文言は同じ', (reason) => {
     setHook({ lastFailure: { reason, seq: 1 } });
-    render(<MapUserLocation />);
+    render(<MapUserLocation bounds={CAMPUS_MAP_CONFIG.campusBounds} />);
     expect(sendGaEvent).toHaveBeenCalledWith('user_location', {
       result: reason,
     });

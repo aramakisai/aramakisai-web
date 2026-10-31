@@ -10,7 +10,11 @@ import { sendGaEvent } from '@/lib/analytics';
 import { useMotionPreference } from '@/lib/use-motion-preference';
 import { StampToast } from '@/components/stamp-toast';
 import tailwindConfig from '../../../tailwind.config';
-import { useUserLocation, type UserLocation } from './use-user-location';
+import {
+  useUserLocation,
+  type UserLocation,
+  type UserLocationBounds,
+} from './use-user-location';
 
 const THEME_COLORS = tailwindConfig.theme?.extend?.colors as Record<
   'location' | 'location-accuracy' | 'primary',
@@ -46,7 +50,11 @@ function accuracyBucket(accuracy: number) {
   return 'ge100';
 }
 
-export function MapUserLocation() {
+export function MapUserLocation({
+  bounds,
+}: {
+  readonly bounds: UserLocationBounds;
+}) {
   const map = useMap();
   const { reduced } = useMotionPreference();
   const [container, setContainer] = useState<HTMLElement | null>(null);
@@ -56,6 +64,7 @@ export function MapUserLocation() {
   const panToLocation = ({ latitude, longitude }: UserLocation) =>
     map.panTo([latitude, longitude], { animate: !reduced });
   const { state, lastFailure, start } = useUserLocation({
+    bounds,
     onFirstLocation: (location) => {
       panToLocation(location);
       sendGaEvent('user_location', {

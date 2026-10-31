@@ -54,7 +54,7 @@ vi.mock('next/dynamic', () => ({
 
 // メニュー自体のfocus trap・全ナビゲーションは専用テストで検証済み。
 // この統合テストでは地域協賛画面の状態遷移だけを負荷競合なく検証する。
-vi.mock('@/components/campus-map/map-menu-button', () => ({
+vi.mock('@/components/map/map-menu-button', () => ({
   MapMenuButton: () => <button type="button">メニューを開く</button>,
 }));
 
