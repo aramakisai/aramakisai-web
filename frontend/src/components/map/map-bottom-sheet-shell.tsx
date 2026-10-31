@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import type { KeyboardEvent, MouseEvent, PointerEvent, ReactNode } from 'react';
 import { useIsAboveMapBreakpoint } from './use-is-above-map-breakpoint';
 
@@ -157,10 +158,18 @@ export function MapBottomSheetShell({
       el.style.transition = '';
       el.style.height = currentSnap.height;
     }
-    // 起点が要るのは fit (auto) から出るときだけ。他の段では実寸を読まない
-    lastHeightRef.current =
-      currentSnap.height === 'auto' ? el.getBoundingClientRect().height : null;
   });
+  // commit 時点の実寸は、auto への transition の開始直後だと移動前の高さのままになる。
+  // 描画のたびに追従する ResizeObserver の値なら、いつ再選択されても直前に見えていた高さになる
+  useEffect(() => {
+    const el = sheetRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => {
+      lastHeightRef.current = el.getBoundingClientRect().height;
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   // 地図は通知された高さの分だけ縮む。伸びる向きでは、transition の途中で地図だけが先に縮むと
   // シートとの間が空くため、height の transition が終わってから通知する。縮む向きは即時
@@ -169,6 +178,9 @@ export function MapBottomSheetShell({
     null,
   );
   useLayoutEffect(() => {
+    // ドラッグ中の高さは pointermove が通知する。ここで段の高さへ戻すと下げた分が打ち消される。
+    // 解放後は setElevated の再描画で段の高さへ揃う
+    if (dragRef.current?.claimed) return;
     const el = sheetRef.current;
     const hidden =
       !!outerRef.current &&
@@ -198,6 +210,21 @@ export function MapBottomSheetShell({
       return;
     }
     const finish = (event: Event) => {
+      // 途中での再選択は起点を固定し直すため旧 transition が cancel され、直後に新しい transition が走る。
+      // その cancel を終了と見なすと、シートが伸びる前に地図が縮んで間が空く
+      if (
+        event.type === 'transitioncancel' &&
+        el
+          .getAnimations?.()
+          .some(
+            (animation) =>
+              animation instanceof CSSTransition &&
+              animation.transitionProperty === 'height' &&
+              animation.playState === 'running',
+          )
+      ) {
+        return;
+      }
       if (
         event.target === el &&
         (event.type === 'transitioncancel' ||
@@ -306,6 +333,17 @@ export function MapBottomSheetShell({
       Math.max(Math.min(...snapHeights), drag.startHeight + draggedUpBy),
     );
     el.style.height = `${next}px`;
+    // 地図が縮んだままシートだけが下がると、間の背景が白く見える。下がる向きは即時通知の方向なので追従させる
+    if (
+      notifiedHeightRef.current !== null &&
+      next < notifiedHeightRef.current
+    ) {
+      pendingRef.current?.cancel();
+      notifiedHeightRef.current = next;
+      onTargetHeightIntent?.(next);
+      // 次の描画を待つと、速く下げたときに1フレーム分の間が空く
+      flushSync(() => onTargetHeightChange?.(next));
+    }
     drag.samples.push({ t: performance.now(), y: event.clientY });
   };
 

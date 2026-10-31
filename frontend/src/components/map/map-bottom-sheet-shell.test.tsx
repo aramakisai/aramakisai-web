@@ -379,7 +379,21 @@ describe('MapBottomSheetShell', () => {
     const rect = vi
       .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
       .mockReturnValue({ height: 120 } as DOMRect);
+    const observers: (() => void)[] = [];
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(callback: () => void) {
+          observers.push(callback);
+        }
+        observe = vi.fn();
+        disconnect = vi.fn();
+      },
+    );
     const { rerender } = render(tree('fit'));
+    // 実寸は描画に追従する ResizeObserver の値から取る。commit 時点の実寸は移動前の高さのことがある
+    for (const notify of observers) notify();
+    rect.mockReturnValue({ height: 360 } as DOMRect);
     const sheet = screen.getByTestId('map-bottom-sheet');
     const written: string[] = [];
     let current = sheet.style.height;
@@ -397,6 +411,41 @@ describe('MapBottomSheetShell', () => {
     // 先頭は React の反映。その後に実高さへ固定し直してから移動先へ向ける
     expect(written).toEqual(['360px', '120px', '360px']);
     rect.mockRestore();
+    vi.unstubAllGlobals();
+  });
+
+  it('グラバーを下げている間、地図がシートの上端より縮んだままにならないよう下がる分を即時に通知する', () => {
+    window.matchMedia = vi.fn().mockReturnValue({
+      matches: false,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    });
+    const onTargetHeightChange = vi.fn();
+    render(
+      <MapBottomSheetShell
+        snaps={regionalSnaps}
+        snapId="list"
+        restSnapId="list"
+        onSnapChange={vi.fn()}
+        onTargetHeightChange={onTargetHeightChange}
+      >
+        <p>内容</p>
+      </MapBottomSheetShell>,
+    );
+    const sheet = screen.getByTestId('map-bottom-sheet');
+    const grabber = screen.getByRole('button');
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      height: 360,
+    } as DOMRect);
+    onTargetHeightChange.mockClear();
+
+    firePointer(grabber, 'pointerdown', { clientY: 400 });
+    firePointer(window as unknown as Element, 'pointermove', { clientY: 380 });
+    firePointer(window as unknown as Element, 'pointermove', { clientY: 400 });
+    firePointer(window as unknown as Element, 'pointermove', { clientY: 560 });
+    expect(sheet.style.height).toBe('180px');
+    expect(onTargetHeightChange).toHaveBeenLastCalledWith(180);
+    vi.restoreAllMocks();
   });
 
   describe('transition 中の通知', () => {
@@ -455,6 +504,28 @@ describe('MapBottomSheetShell', () => {
       end(sheet);
       expect(onTargetHeightChange).toHaveBeenCalledTimes(1);
       expect(onTargetHeightChange).toHaveBeenCalledWith(620);
+      vi.restoreAllMocks();
+    });
+
+    it('新しい height の transition が走っている間の transitioncancel は終了と見なさない', () => {
+      const { rerender, tree, onTargetHeightChange } = setup();
+      onTargetHeightChange.mockClear();
+      rerender(tree('detail'));
+      const sheet = screen.getByTestId('map-bottom-sheet');
+      const cancel = () => fireEvent(sheet, new Event('transitioncancel'));
+      class FakeTransition {
+        transitionProperty = 'height';
+        playState = 'running';
+      }
+      vi.stubGlobal('CSSTransition', FakeTransition);
+      Object.assign(sheet, { getAnimations: () => [new FakeTransition()] });
+      cancel();
+      expect(onTargetHeightChange).not.toHaveBeenCalled();
+
+      Object.assign(sheet, { getAnimations: () => [] });
+      cancel();
+      expect(onTargetHeightChange).toHaveBeenCalledWith(620);
+      vi.unstubAllGlobals();
       vi.restoreAllMocks();
     });
 

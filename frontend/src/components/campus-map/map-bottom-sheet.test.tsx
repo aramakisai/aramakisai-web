@@ -455,8 +455,14 @@ describe('MapBottomSheet', () => {
     it('reports the destination height once per snap change, never the in-transition height', () => {
       mockMatchMedia(false);
       const onTargetHeightChange = vi.fn();
-      const resizeObserver = vi.fn();
-      vi.stubGlobal('ResizeObserver', resizeObserver);
+      // シートの実寸追従用の ResizeObserver が通知に使われないこと (行き先の高さだけが渡ること) を確かめる
+      vi.stubGlobal(
+        'ResizeObserver',
+        class {
+          observe = vi.fn();
+          disconnect = vi.fn();
+        },
+      );
       const filtered: AreaExhibitionListState = {
         kind: 'filtered',
         areaName: 'Aゾーン',
@@ -478,7 +484,7 @@ describe('MapBottomSheet', () => {
       );
 
       expect(onTargetHeightChange).toHaveBeenLastCalledWith(380);
-      expect(resizeObserver).not.toHaveBeenCalled();
+      expect(onTargetHeightChange).toHaveBeenCalledTimes(2);
 
       vi.unstubAllGlobals();
     });
