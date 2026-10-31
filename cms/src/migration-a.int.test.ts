@@ -50,7 +50,12 @@ async function withOldSchema(
         // findGlobal は現行の定義の全列を読むので、足りない列を補う
         await db.execute(sql`
           ALTER TABLE "site_settings" ADD COLUMN "parking_monitor_start" varchar DEFAULT '09:00';
-          ALTER TABLE "site_settings" ADD COLUMN "parking_monitor_end" varchar DEFAULT '17:30';`);
+          ALTER TABLE "site_settings" ADD COLUMN "parking_monitor_end" varchar DEFAULT '17:30';
+          ALTER TABLE "site_settings" ADD COLUMN "access_summary" varchar;
+          ALTER TABLE "site_settings" ADD COLUMN "access_content" jsonb;
+          ALTER TABLE "site_settings" ADD COLUMN "access_content_html" varchar;
+          ALTER TABLE "site_settings" ADD COLUMN "access_embed_url" varchar;
+          ALTER TABLE "site_settings" ADD COLUMN "access_embed_height" numeric;`);
       },
       down: () => mig.down(args),
     });
