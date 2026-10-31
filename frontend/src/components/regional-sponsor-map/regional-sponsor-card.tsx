@@ -48,7 +48,7 @@ export function RegionalSponsorCard({
             {category.label}
           </span>
           {/* ExhibitionCard の h4 と同じ見出し書体。button 内に見出し要素は置けないため span で当てる */}
-          <span className="line-clamp-2 h-[2lh] font-display font-black tracking-[0.02em] text-balance text-text [word-break:auto-phrase]">
+          <span className="line-clamp-2 h-[2lh] font-display text-[20px] leading-[140%] font-black tracking-[0.02em] text-balance text-text [word-break:auto-phrase]">
             {sponsor.name}
           </span>
           {sponsor.address && (
