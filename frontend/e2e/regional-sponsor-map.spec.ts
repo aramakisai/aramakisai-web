@@ -355,14 +355,20 @@ test.describe('地域協賛マップ fixture E2E', { tag: '@local-fixture' }, ()
     const search = page
       .getByPlaceholder('店舗名・カテゴリ・住所で検索')
       .locator('visible=true');
+    const cards = page
+      .getByRole('button', { name: /詳細を表示/ })
+      .locator('visible=true');
+    const placeholder = page
+      .getByTestId('sponsor-image-placeholder')
+      .locator('visible=true');
     await search.fill('くらし商店');
-    await expect(
-      page.getByTestId('sponsor-image-placeholder').locator('visible=true'),
-    ).toBeVisible();
+    await expect(cards).toHaveCount(1);
+    await expect(cards).toContainText('くらし商店');
+    await expect(placeholder).toBeVisible();
     await search.fill('自動車工房');
-    await expect(
-      page.getByTestId('sponsor-image-placeholder').locator('visible=true'),
-    ).toBeVisible();
+    await expect(cards).toHaveCount(1);
+    await expect(cards).toContainText('自動車工房');
+    await expect(placeholder).toBeVisible();
     await expect(page.getByText('1件').locator('visible=true')).toBeVisible();
   });
 
