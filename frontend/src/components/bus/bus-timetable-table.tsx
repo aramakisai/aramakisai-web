@@ -1,4 +1,5 @@
 import {
+  campusBoundOn,
   departuresOn,
   type BusScheduledDeparture,
   type BusTimetableFile,
@@ -18,6 +19,7 @@ interface Cell {
 }
 
 const HOURS = [10, 11, 12, 13, 14, 15, 16, 17, 18];
+const CAMPUS_BOUND_HOURS = [9, 10, 11, 12, 13, 14, 15, 16];
 const MIN_COLUMNS = 3;
 // 行先が前橋駅のほか、けやきウォーク前橋行きなども前橋駅を通るので、記号は経由だけで決める
 const NON_MARKER_VIA = new Set(['前橋駅', '群馬大学荒牧']);
@@ -65,7 +67,13 @@ function hourlyCells(
 
 const CELL = 'border-b border-r border-gray-200 px-4 py-3 text-left align-top';
 
-function Table({ rows }: { rows: Map<number, Cell[]> }) {
+function Table({
+  rows,
+  hours,
+}: {
+  rows: Map<number, Cell[]>;
+  hours: readonly number[];
+}) {
   const columns = Math.max(
     MIN_COLUMNS,
     ...[...rows.values()].map((c) => c.length),
@@ -84,7 +92,7 @@ function Table({ rows }: { rows: Map<number, Cell[]> }) {
         </tr>
       </thead>
       <tbody>
-        {HOURS.map((hour) => {
+        {hours.map((hour) => {
           const cells = rows.get(hour) ?? [];
           return (
             <tr key={hour}>
@@ -108,14 +116,27 @@ function Table({ rows }: { rows: Map<number, Cell[]> }) {
   );
 }
 
-export function BusTimetableTable({ file, eventDays }: BusTimetableTableProps) {
-  // 発車が同じ開催日は 1 つの表にまとめる
-  const groups = new Map<
-    string,
-    { labels: string[]; rows: Map<number, Cell[]> }
-  >();
+type Rows = Map<number, Cell[]>;
+
+// 便が同じ開催日は 1 つの表にまとめ、見出しに両日を書く
+function DaySections({
+  title,
+  testId,
+  hours,
+  eventDays,
+  rowsOn,
+  legend,
+}: {
+  title: string;
+  testId: string;
+  hours: readonly number[];
+  eventDays: readonly EventDay[];
+  rowsOn: (date: string) => Rows;
+  legend: React.ReactNode;
+}) {
+  const groups = new Map<string, { labels: string[]; rows: Rows }>();
   for (const day of eventDays) {
-    const rows = hourlyCells(departuresOn(file, toJstDateKey(day.startAt)));
+    const rows = rowsOn(toJstDateKey(day.startAt));
     if (rows.size === 0) continue;
     const key = JSON.stringify([...rows]);
     const g = groups.get(key) ?? { labels: [], rows };
@@ -125,10 +146,7 @@ export function BusTimetableTable({ file, eventDays }: BusTimetableTableProps) {
   if (groups.size === 0) return null;
 
   return (
-    <section
-      data-testid="bus-timetable"
-      className="flex flex-col gap-6 text-text"
-    >
+    <section data-testid={testId} className="flex flex-col gap-6 text-text">
       {[...groups.values()].map((g, i) => {
         const date = (
           <p className="text-[16px] font-bold leading-[1.8]">
@@ -139,24 +157,76 @@ export function BusTimetableTable({ file, eventDays }: BusTimetableTableProps) {
           <div key={g.labels.join()} className="flex flex-col gap-6">
             {i === 0 ? (
               <div className="flex flex-col gap-4">
-                <h2 className="py-0 text-[25px] leading-[1.25]">
-                  前橋駅行バス時刻表
-                </h2>
+                <h2 className="py-0 text-[25px] leading-[1.25]">{title}</h2>
                 {date}
               </div>
             ) : (
               date
             )}
-            <Table rows={g.rows} />
-            <div className="text-[14px] leading-[1.8]">
-              <p>下線太字は群馬大学荒牧発、それ以外は前橋自動車教習所前発</p>
-              <p>◯ 南橘団地・群大病院経由</p>
-              <p>☆ 群大病院経由</p>
-              <p>△ 南橘団地経由</p>
-            </div>
+            <Table rows={g.rows} hours={hours} />
+            <div className="text-[14px] leading-[1.8]">{legend}</div>
           </div>
         );
       })}
     </section>
+  );
+}
+
+export function BusTimetableTable({ file, eventDays }: BusTimetableTableProps) {
+  return (
+    <DaySections
+      title="前橋駅行バス時刻表"
+      testId="bus-timetable"
+      hours={HOURS}
+      eventDays={eventDays}
+      rowsOn={(date) => hourlyCells(departuresOn(file, date))}
+      legend={
+        <>
+          <p>下線太字は群馬大学荒牧発、それ以外は前橋自動車教習所前発</p>
+          <p>◯ 南橘団地・群大病院経由</p>
+          <p>☆ 群大病院経由</p>
+          <p>△ 南橘団地経由</p>
+        </>
+      }
+    />
+  );
+}
+
+function campusBoundCells(trips: ReturnType<typeof campusBoundOn>): Rows {
+  const rows: Rows = new Map();
+  for (const t of trips) {
+    const [h, m] = t.time.split(':');
+    const hour = Number(h);
+    if (!CAMPUS_BOUND_HOURS.includes(hour)) continue;
+    rows.set(hour, [
+      ...(rows.get(hour) ?? []),
+      {
+        minute: m,
+        symbol: '',
+        fromCampus: t.alightStop === 'gunma_univ_aramaki',
+      },
+    ]);
+  }
+  for (const cells of rows.values()) {
+    cells.sort((a, b) => a.minute.localeCompare(b.minute));
+  }
+  return rows;
+}
+
+export function BusCampusBoundTable({
+  file,
+  eventDays,
+}: BusTimetableTableProps) {
+  return (
+    <DaySections
+      title="群馬大学行バス時刻表"
+      testId="bus-campus-bound-timetable"
+      hours={CAMPUS_BOUND_HOURS}
+      eventDays={eventDays}
+      rowsOn={(date) => campusBoundCells(campusBoundOn(file, date))}
+      legend={
+        <p>下線太字は群馬大学荒牧で降車、それ以外は前橋自動車教習所前で降車</p>
+      }
+    />
   );
 }

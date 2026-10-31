@@ -1,11 +1,12 @@
 import { render, screen, within } from '@testing-library/react';
 import { describe, expect, test } from 'vitest';
 import type {
+  BusCampusBoundDeparture,
   BusScheduledDeparture,
   BusService,
   BusTimetableFile,
 } from '@/lib/bus-timetable';
-import { BusTimetableTable } from './bus-timetable-table';
+import { BusCampusBoundTable, BusTimetableTable } from './bus-timetable-table';
 
 const SAT: BusService = {
   id: '土曜',
@@ -52,6 +53,7 @@ function trip(
 function file(
   departures: BusScheduledDeparture[],
   services = [SAT, SUN],
+  campusBound: BusCampusBoundDeparture[] = [],
 ): BusTimetableFile {
   return {
     fetchedAt: '2026-10-30T10:30:00.000Z',
@@ -62,6 +64,7 @@ function file(
         validTo: '2027-09-18',
         services,
         departures,
+        campusBound,
       },
     ],
   };
@@ -161,6 +164,80 @@ describe('BusTimetableTable', () => {
   test('その日に合う版が無ければ表を出さない', () => {
     const { container } = render(
       <BusTimetableTable
+        file={{ fetchedAt: '2026-10-30T10:30:00.000Z', versions: [] }}
+        eventDays={DAYS}
+      />,
+    );
+    expect(container.innerHTML).toBe('');
+  });
+});
+
+describe('BusCampusBoundTable', () => {
+  let n = 0;
+  const cb = (
+    serviceId: string,
+    time: string,
+    alightStop: 'gunma_univ_aramaki' | 'driving_school' = 'driving_school',
+  ): BusCampusBoundDeparture => ({
+    tripId: `c${n++}`,
+    serviceId,
+    route: '22B',
+    time,
+    alightStop,
+  });
+  const both = (t: [string, string, 'gunma_univ_aramaki'?][]) =>
+    t.flatMap(([time, , a]) => [cb('土曜', time, a), cb('日祝', time, a)]);
+  const render_ = (c: BusCampusBoundDeparture[]) =>
+    render(
+      <BusCampusBoundTable file={file([], [SAT, SUN], c)} eventDays={DAYS} />,
+    );
+
+  test('前橋駅の発車時刻を 9〜16 時の行に時ごとの分で並べる', () => {
+    render_(
+      both([
+        ['09:30', ''],
+        ['09:17', ''],
+        ['10:05', ''],
+        ['08:50', ''],
+        ['17:00', ''],
+      ]),
+    );
+    expect(screen.getByText('群馬大学行バス時刻表')).toBeTruthy();
+    expect(rowCells('9')).toEqual(['9', '17', '30', '']);
+    expect(rowCells('16')).toEqual(['16', '', '', '']);
+    expect(screen.getAllByRole('row')).toHaveLength(1 + 8);
+  });
+
+  test('荒牧で降車する便は下線太字、それ以外は通常の太さで、凡例を出す', () => {
+    render_(
+      both([
+        ['11:10', '', 'gunma_univ_aramaki'],
+        ['11:40', ''],
+      ]),
+    );
+    const row = screen.getByRole('row', { name: /^11\s/ });
+    expect(row.querySelector('td:nth-child(2)')!.className).toMatch(
+      /font-bold.*underline|underline.*font-bold/,
+    );
+    expect(row.querySelector('td:nth-child(3)')!.className).not.toMatch(
+      /underline|font-bold/,
+    );
+    expect(
+      screen.getByText(
+        '下線太字は群馬大学荒牧で降車、それ以外は前橋自動車教習所前で降車',
+      ),
+    ).toBeTruthy();
+  });
+
+  test('両日が同じなら 1 つの表にまとめ、見出しに両日を書く', () => {
+    render_(both([['10:00', '']]));
+    expect(screen.getAllByRole('table')).toHaveLength(1);
+    expect(screen.getByText('11月14日(土)・11月15日(日)')).toBeTruthy();
+  });
+
+  test('その日に合う版が無ければ表を出さない', () => {
+    const { container } = render(
+      <BusCampusBoundTable
         file={{ fetchedAt: '2026-10-30T10:30:00.000Z', versions: [] }}
         eventDays={DAYS}
       />,
