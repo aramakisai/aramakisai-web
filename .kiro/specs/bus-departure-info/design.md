@@ -170,10 +170,11 @@ sequenceDiagram
   participant C as ckan.odpt.org
   participant O as api-public.odpt.org
   GA->>S: 毎日 1 回実行
-  S->>C: package_show でリソース一覧を取得
+  S->>C: データセットページ (HTML) から版の日付を取得
   loop 版ごと
     S->>O: AllLines.zip?date=YYYYMMDD
     O-->>S: 302 → zip
+    S->>S: feed_info.txt から有効期間を読む
   end
   S->>S: 抜き出して bus-timetable.json を書く
   GA->>GA: 差分があれば dev 向け PR を作る(既存 PR があれば更新)
@@ -252,7 +253,10 @@ flowchart TD
 | Requirements | 1.1, 1.3, 1.5 |
 
 **Responsibilities & Constraints**
-- `https://ckan.odpt.org/api/3/action/package_show?id=kan_etsu_transportation_all_lines` のリソースから、各版の日付と zip の URL を得る
+- 版の日付は `https://ckan.odpt.org/dataset/kan_etsu_transportation_all_lines` の HTML にあるリソース名 `関越交通バス-YYYYMMDD` から得る。ckan.odpt.org の API (`/api/3/action/package_show` 等) は 301 で `/dataset` へ転送され JSON を返さないため
+- zip は `https://api-public.odpt.org/api/v4/files/odpt/Kan_etsuTransportation/AllLines.zip?date=YYYYMMDD` から取得する
+- 版の有効期間は zip 内の `feed_info.txt` の `feed_start_date`・`feed_end_date` を使う
+- HTML から版を 1 つも読み取れない、`feed_info.txt` に有効期間が無いときは失敗して JSON を書かない(ページの書式変更を黙って見逃さないため)
 - 抜き出し規則:
   - 停留所 `200273_01`(群馬大学荒牧)、`200722_01`・`200722_02`(前橋自動車教習所前)
   - `pickup_type` が `1` の停車を除く
@@ -267,7 +271,7 @@ flowchart TD
 
 ##### Batch / Job Contract
 - Trigger: `pnpm --filter frontend bus:timetable`(手動)、`bus-timetable-update.yml`(毎日 05:00 JST と `workflow_dispatch`)
-- Input / validation: CKAN のリソース一覧、各版の zip
+- Input / validation: CKAN のデータセットページ (HTML)、各版の zip
 - Output / destination: `frontend/src/data/bus-timetable.json`
 - Idempotency & recovery: 同じ入力から同じ出力を作る。失敗時は既存の JSON を変えない
 
