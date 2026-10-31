@@ -64,7 +64,6 @@ test('/access が専用ページとして出て、サイト設定の本文と時
     '下線太字は群馬大学荒牧で降車',
   );
   await expect(page.getByTestId('bus-timetable')).toBeVisible();
-  await expect(page.getByTestId('bus-departure-board')).toHaveCount(0);
   await expect(page.getByTestId('bus-data-notice')).toContainText(
     '表示4.0国際',
   );

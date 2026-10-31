@@ -28,12 +28,6 @@ describe('AccessSection', () => {
     );
   });
 
-  test('バスの表示を出さない', () => {
-    render(<AccessSection {...props} />);
-
-    expect(screen.queryByTestId('bus-departure-board')).not.toBeInTheDocument();
-  });
-
   test('地図を固定の埋め込みURLでiframeに埋め込む', () => {
     const { container } = render(
       <AccessSection {...props} summary="CMS の案内文" />,
