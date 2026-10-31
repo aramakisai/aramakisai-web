@@ -1,14 +1,16 @@
 import type { Metadata } from 'next';
 import busTimetable from '@/data/bus-timetable.json';
-import { BusDepartureBoard } from '@/components/bus/bus-departure-board';
-import { BusTimetableTable } from '@/components/bus/bus-timetable-table';
+import { BusDataNotice } from '@/components/bus/bus-data-notice';
+import {
+  BusCampusBoundTable,
+  BusTimetableTable,
+} from '@/components/bus/bus-timetable-table';
 import { HoverLine } from '@/components/hover-line';
 import { JsonLd } from '@/components/json-ld';
 import { OpenInNewIcon } from '@/components/icons';
 import { StaticPageView } from '@/components/static-page-view';
 import { getAccessSettings } from '@/lib/access-settings';
-import { departuresOn, type BusTimetableFile } from '@/lib/bus-timetable';
-import { toJstDateKey } from '@/lib/event-day';
+import type { BusTimetableFile } from '@/lib/bus-timetable';
 import { buildPageMetadata } from '@/lib/page-metadata';
 import { ROUTE_METADATA } from '@/lib/route-metadata';
 import { getSiteMetadata } from '@/lib/site-metadata';
@@ -37,6 +39,7 @@ export default async function AccessPage() {
     getAccessSettings(),
     getSiteMetadata(),
   ]);
+  const eventDays = site.festival?.eventDays ?? [];
   const title = ROUTE_METADATA['/access'].title ?? 'アクセス';
 
   const breadcrumb = buildBreadcrumbJsonLd(
@@ -57,18 +60,8 @@ export default async function AccessPage() {
         embedHeight={access.embedHeight}
         embedTitle="会場周辺の地図"
       >
-        <BusDepartureBoard
-          departures={departuresOn(
-            file,
-            toJstDateKey(new Date().toISOString()),
-          )}
-          fetchedAt={file.fetchedAt}
-          renderedAt={new Date().toISOString()}
-        />
-        <BusTimetableTable
-          file={file}
-          eventDays={site.festival?.eventDays ?? []}
-        />
+        <BusCampusBoundTable file={file} eventDays={eventDays} />
+        <BusTimetableTable file={file} eventDays={eventDays} />
         <a
           href={KAN_ETSU_BUS_URL}
           target="_blank"
@@ -79,6 +72,7 @@ export default async function AccessPage() {
           <OpenInNewIcon size={20} />
           <HoverLine />
         </a>
+        <BusDataNotice timetableFetchedAt={file.fetchedAt} variant="page" />
       </StaticPageView>
     </>
   );

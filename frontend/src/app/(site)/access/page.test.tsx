@@ -46,7 +46,7 @@ describe('AccessPage', () => {
     expect(screen.getByTitle('会場周辺の地図').getAttribute('src')).toBe(
       'https://maps.example.com/embed',
     );
-    expect(screen.getByTestId('bus-departure-board')).toBeTruthy();
+    expect(screen.queryByTestId('bus-departure-board')).toBeNull();
     expect(
       screen
         .getByRole('link', { name: /関越交通 路線バスの時刻表/ })
@@ -61,6 +61,17 @@ describe('AccessPage', () => {
     expect(
       screen.getByRole('link', { name: /関越交通 路線バスの時刻表/ }),
     ).toBeTruthy();
+  });
+
+  it('関越交通へのリンクの直後に出典の全文を置く', async () => {
+    render(await AccessPage());
+
+    const link = screen.getByRole('link', {
+      name: /関越交通 路線バスの時刻表/,
+    });
+    const notice = screen.getByTestId('bus-data-notice');
+    expect(link.nextElementSibling).toBe(notice);
+    expect(notice.textContent).toContain('時刻表の取得日時: 2026/10/30 19:30');
   });
 
   it('メタデータは /access の定数を使う', async () => {
