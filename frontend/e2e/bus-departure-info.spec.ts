@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Request } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 import { checkCmsReachable } from '../scripts/cms-check';
 
 // Depends on CMS collections: site_settings
@@ -14,6 +15,25 @@ test.beforeAll(async () => {
     throw new Error(`CMS dependency error: ${result.detail}`);
   }
 });
+
+// 本物の ODPT に通信しないよう、リポジトリの fixture を返す
+async function mockOdpt(page: Page) {
+  const fixture = (name: string) =>
+    readFileSync(`src/lib/__fixtures__/${name}.pb`);
+  await page.route(`https://${ODPT_HOST}/**`, (route) => {
+    const path = new URL(route.request().url()).pathname;
+    const name = path.endsWith('trip_update')
+      ? 'gtfs-rt-trip-update'
+      : 'gtfs-rt-vehicle';
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/x-protobuf',
+      // CORS ヘッダが無いとブラウザが fulfill した応答を読めない
+      headers: { 'access-control-allow-origin': '*' },
+      body: fixture(name),
+    });
+  });
+}
 
 function trackRequests(page: Page, origin: string) {
   const odpt: string[] = [];
@@ -102,6 +122,7 @@ test.describe('サイネージのリアルタイム情報の取得', () => {
     page,
     baseURL,
   }) => {
+    await mockOdpt(page);
     const { odpt } = trackRequests(page, new URL(baseURL!).origin);
     await page.goto('/signage');
     await expect
@@ -125,6 +146,7 @@ test.describe('サイネージのリアルタイム情報の取得', () => {
 });
 
 test('サイネージに発車案内と短い出典が出る', async ({ page }) => {
+  await mockOdpt(page);
   await page.goto('/signage');
   const row = page
     .getByTestId('bus-departure-row')
