@@ -1,0 +1,147 @@
+name: Bus Timetable Update
+
+on:
+  schedule:
+    # 05:00 JST
+    - cron: '0 20 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bus-timetable-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    name: Update bus timetable and open PR
+    runs-on: ubuntu-latest
+    env:
+      INFISICAL_UNIVERSAL_AUTH_CLIENT_ID: ${{ secrets.INFISICAL_CLIENT_ID }}
+      INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+      BRANCH: chore/bus-timetable-update
+      DATA_FILE: frontend/src/data/bus-timetable.json
+    steps:
+      # schedule はデフォルトブランチで走るため、PR の base である dev を明示して取得する
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Fetch bus timetable
+        working-directory: frontend
+        run: pnpm bus:timetable
+
+      - name: Detect changes
+        id: diff
+        run: |
+          if git diff --quiet -- "$DATA_FILE"; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install Infisical CLI
+        if: steps.diff.outputs.changed == 'true'
+        uses: ./.github/actions/setup-infisical
+
+      - name: Fetch GitHub App credentials from Infisical
+        if: steps.diff.outputs.changed == 'true'
+        id: app_creds
+        run: |
+          INFISICAL_TOKEN=$(infisical login --method=universal-auth \
+            --client-id="$INFISICAL_UNIVERSAL_AUTH_CLIENT_ID" \
+            --client-secret="$INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET" \
+            --plain --silent)
+          PROJECT_ID=$(python3 -c "import json;print(json.load(open('.infisical.json'))['workspaceId'])")
+          infisical run --token="$INFISICAL_TOKEN" --projectId="$PROJECT_ID" --env=prod -- bash -c '
+            echo "::add-mask::$GH_APP_ID"
+            # ::add-mask:: は 1 行目しか登録せず 2 行目以降を平文でログに出すため、行ごとにマスクする
+            while IFS= read -r line; do
+              [ -n "$line" ] && echo "::add-mask::$line"
+            done <<< "$GH_APP_PRIVATE_KEY"
+            echo "app_id=$GH_APP_ID" >> "$GITHUB_OUTPUT"
+            {
+              echo "private_key<<EOF"
+              echo "$GH_APP_PRIVATE_KEY"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          '
+
+      # GITHUB_TOKEN で作った PR では frontend-ci が起動しないため、GitHub App のトークンを使う
+      - name: Generate installation token
+        if: steps.diff.outputs.changed == 'true'
+        id: app_token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ steps.app_creds.outputs.app_id }}
+          private-key: ${{ steps.app_creds.outputs.private_key }}
+          owner: aramakisai
+          repositories: aramakisai-web
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Build PR body
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          git show "HEAD:$DATA_FILE" > "$RUNNER_TEMP/old.json"
+          python3 - "$RUNNER_TEMP/old.json" "$DATA_FILE" > "$RUNNER_TEMP/pr-body.md" <<'PY'
+          import json, sys
+          def load(p):
+              return {v["version"]: v for v in json.load(open(p))["versions"]}
+          old, new = load(sys.argv[1]), load(sys.argv[2])
+          def lines(keys, src):
+              return [f"- {k} ({src[k]['validFrom']} 〜 {src[k]['validTo']})" for k in sorted(keys)] or ["- なし"]
+          print("## 概要\n\nODPT の時刻表 GTFS から `bus-timetable.json` を再生成しました。\n")
+          print("## 追加された版\n")
+          print("\n".join(lines(new.keys() - old.keys(), new)))
+          print("\n## 削除された版\n")
+          print("\n".join(lines(old.keys() - new.keys(), old)))
+          print("\n## 内容が変わった版\n")
+          print("\n".join(lines([k for k in new.keys() & old.keys() if new[k] != old[k]], new)))
+          PY
+
+      - name: Push branch and create or update PR
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+          git checkout -B "$BRANCH"
+          git add "$DATA_FILE"
+          git commit -m "chore(frontend): バス時刻表を更新する"
+          # dev から作り直した内容で常に上書きする。このブランチは自動更新専用
+          git push --force origin "$BRANCH"
+
+          EXISTING=$(gh pr list --repo "$GITHUB_REPOSITORY" --base dev --head "$BRANCH" --state open \
+            --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            gh pr edit "$EXISTING" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/pr-body.md"
+            exit 0
+          fi
+
+          gh pr create \
+            --repo "$GITHUB_REPOSITORY" \
+            --base dev \
+            --head "$BRANCH" \
+            --title "chore(frontend): バス時刻表を更新する" \
+            --body-file "$RUNNER_TEMP/pr-body.md"
