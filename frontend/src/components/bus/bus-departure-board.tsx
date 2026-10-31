@@ -16,6 +16,8 @@ export interface BusDepartureBoardProps {
 
 /** 列幅は列見出しと全便で位置を揃えるため固定。SP は 1 段目を 326 幅に収めるため間隔を詰める */
 const COLUMN_GAP = 'gap-1 sm:gap-2';
+/** 行先 9 文字 (最長「道の駅まえばし赤城」) の実測幅 147px を省略せず収める幅。SP は右列に「まもなく」(65.3px) を残すため 148px を上限とする */
+const DEST_COL = 'w-[148px]';
 
 export function BusDepartureBoard({
   departures,
@@ -52,7 +54,7 @@ export function BusDepartureBoard({
       >
         <span className="w-[52px] shrink-0">発車時刻</span>
         <span className="w-[47px] shrink-0">系統</span>
-        <span className="w-[144px] shrink-0">行先・のりば</span>
+        <span className={`${DEST_COL} shrink-0`}>行先・のりば</span>
         <span className="min-w-px flex-1 text-right">発車まで</span>
       </div>
       <div className="flex w-full flex-col gap-2">
@@ -84,8 +86,8 @@ export function BusDepartureBoard({
               <span className="flex w-[47px] shrink-0 items-center justify-center rounded-[4px] bg-primary px-[6px] py-[2px] text-[16px] leading-[normal] font-bold whitespace-nowrap text-text">
                 {d.route}
               </span>
-              <span className="flex w-[144px] shrink-0 flex-col gap-[2px]">
-                <span className="truncate text-[16px] leading-[22px] font-bold text-text">
+              <span className={`flex ${DEST_COL} shrink-0 flex-col gap-[2px]`}>
+                <span className="text-[16px] leading-[22px] font-bold whitespace-nowrap text-text">
                   {d.destination}
                 </span>
                 <span className="text-[12px] leading-[normal] whitespace-nowrap text-gray-600">
@@ -93,7 +95,7 @@ export function BusDepartureBoard({
                 </span>
               </span>
               <span className="flex min-w-px flex-1 flex-col items-end self-stretch justify-center text-right text-warning">
-                <span className="text-[16px] leading-[22px] font-bold [font-variant-numeric:tabular-nums]">
+                <span className="text-[16px] leading-[22px] font-bold whitespace-nowrap [font-variant-numeric:tabular-nums]">
                   {d.minutesLeft === 0 ? 'まもなく' : `${d.minutesLeft}分`}
                 </span>
                 {d.delayMinutes > 0 && (

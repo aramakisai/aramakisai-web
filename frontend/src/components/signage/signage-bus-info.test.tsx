@@ -30,6 +30,19 @@ const boards = (
 ];
 
 describe('SignageBusInfo', () => {
+  test('行先列は 9 文字ぶん (横 190px・縦 304px) で見出しと揃う', () => {
+    render(
+      <SignageBusInfo
+        boards={boards([dep({ destination: '道の駅まえばし赤城' })], [])}
+      />,
+    );
+    const col = screen.getByText('道の駅まえばし赤城').parentElement;
+    for (const el of [col, screen.getByText('行先・のりば')]) {
+      expect(el?.className).toContain('w-[190px]');
+      expect(el?.className).toContain('portrait:w-[304px]');
+    }
+  });
+
   test('定刻の便は発車時刻・系統・行先・のりば・発車までを出し、遅れは出さない', () => {
     render(
       <SignageBusInfo

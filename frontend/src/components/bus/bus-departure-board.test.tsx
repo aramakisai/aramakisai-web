@@ -58,6 +58,29 @@ function renderAt(now: Date) {
 }
 
 describe('BusDepartureBoard', () => {
+  test('行先は省略せず、列見出しと行先列は 9 文字が収まる同じ幅', () => {
+    const now = jst(14, 17);
+    vi.setSystemTime(now);
+    render(
+      <BusDepartureBoard
+        departures={[
+          dep({
+            tripId: 'x',
+            time: '14:20',
+            destination: '道の駅まえばし赤城',
+          }),
+        ]}
+        fetchedAt={FETCHED}
+        renderedAt={now.toISOString()}
+      />,
+    );
+    const dest = screen.getByText('道の駅まえばし赤城');
+    expect(dest.className).not.toContain('truncate');
+    const col = dest.parentElement as HTMLElement;
+    expect(col.className).toContain('w-[148px]');
+    expect(screen.getByText('行先・のりば').className).toContain('w-[148px]');
+  });
+
   test('方面ごとに次の 1 便を、時刻・系統・行先・正式なのりば名・発車までで出す', () => {
     renderAt(jst(14, 17));
     const rows = screen.getAllByTestId('bus-departure-row');

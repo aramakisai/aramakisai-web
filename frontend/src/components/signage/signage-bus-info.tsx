@@ -22,7 +22,7 @@ export function SignageBusInfo({ boards }: SignageBusInfoProps) {
       <div className="flex w-full items-center gap-2 overflow-clip text-[12px] leading-none text-gray-600 portrait:gap-3 portrait:text-[18px]">
         <span className="w-16 shrink-0 portrait:w-[103px]">発車時刻</span>
         <span className="w-[55px] shrink-0 portrait:w-[89px]">系統</span>
-        <span className="w-[180px] shrink-0 portrait:w-[288px]">
+        <span className="w-[190px] shrink-0 portrait:w-[304px]">
           行先・のりば
         </span>
         <span className="min-w-px flex-1 text-right">発車まで</span>
@@ -63,7 +63,7 @@ export function SignageBusInfo({ boards }: SignageBusInfoProps) {
                   <span className="flex w-[55px] shrink-0 items-center justify-center rounded-[4px] bg-primary px-[6px] py-px text-[20px] leading-none font-bold whitespace-nowrap text-text portrait:w-[89px] portrait:px-[10px] portrait:py-[2px] portrait:text-[32px]">
                     {d.route}
                   </span>
-                  <span className="flex w-[180px] shrink-0 flex-col gap-[2px] overflow-clip portrait:w-[288px]">
+                  <span className="flex w-[190px] shrink-0 flex-col gap-[2px] overflow-clip portrait:w-[304px]">
                     <span className="flex h-[22px] items-center text-[20px] leading-none font-bold whitespace-nowrap text-text portrait:h-9 portrait:text-[32px]">
                       {d.destination}
                     </span>
