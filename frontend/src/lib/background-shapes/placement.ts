@@ -347,3 +347,133 @@ export function placeBackgroundShapes(input: PlacementInput): PlacementResult {
 
   return { shapes: resultShapes, target, deficit };
 }
+
+/**
+ * 装飾範囲が下へ伸びたとき、既存の図形 (非表示中のものも含む) は動かさず、
+ * [coveredBottom, decorBottom] にだけ同じ手順で図形を追加する。個数は伸びた後の
+ * 装飾可能高で求めた目安から既存の同種の個数を引いた数。∞ の下限 1 は適用しない。
+ * 種を coveredBottom にも依存させるのは、伸びるたびに同じ乱数列を繰り返さないため。
+ */
+export function extendBackgroundShapes(
+  input: PlacementInput,
+  existing: readonly PlacedShape[],
+  coveredBottom: number,
+): PlacedShape[] {
+  const { pathname, platform, width, height, decorTop, decorBottom } = input;
+  const decorHeight = decorBottom - decorTop;
+  const R = RANGES[platform];
+  const rng = new Rng(`${pathname}#${coveredBottom}`);
+
+  const placed: PlacedCircle[] = existing.map((s) => ({
+    cx: s.cx,
+    cy: s.cy,
+    r: s.tier === 'Inf' ? infRadius(s.size) : bboxRadius(s.size),
+  }));
+  const countOf = (tier: Tier) =>
+    existing.filter((s) => s.tier === tier).length;
+
+  const targetL = Math.max(1, Math.round(decorHeight / AVG_L_GAP[platform]));
+  const addInf = Math.max(0, Math.floor(height / INF_PITCH) - countOf('Inf'));
+  const addL = Math.max(0, targetL - countOf('L'));
+  const addS = Math.max(
+    0,
+    Math.max(Math.floor(decorHeight / S_PITCH), 5 - targetL) - countOf('S'),
+  );
+
+  const place = (
+    initial: number,
+    sizeMin: number,
+    radiusOf: (size: number) => number,
+    cyLo: number,
+    cyHi: number,
+  ) =>
+    placeWithShrink(initial, sizeMin, radiusOf, (size, r) => {
+      const overflow = 0.4 * size;
+      const cx = rng.uniform(-overflow, width + overflow);
+      const cy = rng.uniform(cyLo, cyHi);
+      if (!shapeFits(cx, cy, r, width, decorTop, decorBottom, overflow))
+        return null;
+      if (!collisionOk(cx, cy, r, placed, GUTTER)) return null;
+      return { cx, cy, r };
+    });
+
+  const out: PlacedShape[] = [];
+  const solid = (
+    tier: 'L' | 'S',
+    kind: ShapeKind,
+    rot: number,
+    found: PlacedCircle & { size: number },
+    textures: readonly TextureId[],
+  ) => {
+    placed.push({ cx: found.cx, cy: found.cy, r: found.r });
+    const texture = rng.pick(textures);
+    out.push({
+      tier,
+      kind,
+      size: round2(found.size),
+      cx: round2(found.cx),
+      cy: round2(found.cy),
+      rot: round2(rot),
+      texture,
+      texturePos: drawTexturePosition(() => rng.f()),
+      textureRot: drawTextureRotation(() => rng.f()),
+      colors: null,
+    });
+  };
+
+  for (let n = 0; n < addInf; n++) {
+    const c1 = rng.pick(TOKENS);
+    const c2 = rng.pick(TOKENS.filter((c) => c !== c1));
+    const rot = rng.uniform(-12, 12);
+    const found = place(
+      rng.uniform(...R.D),
+      R.D[0],
+      infRadius,
+      coveredBottom,
+      decorBottom,
+    );
+    if (!found) continue;
+    placed.push({ cx: found.cx, cy: found.cy, r: found.r });
+    out.push({
+      tier: 'Inf',
+      kind: 'ring',
+      size: round2(found.size),
+      cx: round2(found.cx),
+      cy: round2(found.cy),
+      rot: round2(rot),
+      texture: null,
+      texturePos: null,
+      textureRot: null,
+      colors: [c1, c2],
+    });
+  }
+
+  const segH = (decorBottom - coveredBottom) / Math.max(addL, 1);
+  for (let i = 0; i < addL; i++) {
+    const kind = rng.pick(KINDS);
+    const rot = rng.randint(360);
+    const found = place(
+      rng.uniform(...R.L),
+      R.L[0],
+      bboxRadius,
+      coveredBottom + i * segH,
+      coveredBottom + (i + 1) * segH,
+    );
+    if (found) solid('L', kind, rot, found, TEX);
+  }
+
+  for (let i = 0; i < addS; i++) {
+    const kind = rng.pick(KINDS);
+    const rot = rng.randint(360);
+    const found = place(
+      rng.uniform(...R.S),
+      R.S[0],
+      bboxRadius,
+      coveredBottom,
+      decorBottom,
+    );
+    if (found) solid('S', kind, rot, found, S_TEX);
+  }
+
+  return out;
+}
