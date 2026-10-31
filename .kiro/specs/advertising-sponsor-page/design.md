@@ -134,7 +134,7 @@ type PersonalSponsor = Readonly<{ id: number; name: string }>;
 | 個人見出し→感謝文→一覧 | 24 | 20 |
 | カード角丸 | 8 | 8 |
 
-有効なHTTP(S) URLのみA〜Cのカード全体、Dの文字を `<a target="_blank" rel="noopener noreferrer">` にする。無効・空欄は同じ内容の非リンクとし、アイコンを追加しない。リンクのフォーカスリングを既存トークンで表示する。A〜Cのロゴカードは枠線を変化させず、トップの協賛表示 (`frontend/src/components/ad-sponsor-marquee.tsx` の `SponsorItem`) と同じく既存ユーティリティ `hover-card-shadow` (ホバーで `shadow-card` の影) を付ける (Figma `1409:38` の既定枠 `#e6e6e6` のまま)。ロゴ未登録のA〜Cカード (企業名表示) は影を付けず、トップのロゴ未登録表示と同じく企業名の下に `HoverLine` 系の下線を出す。Dの企業名の下線は既存の `HoverLineText` (`frontend/src/components/hover-line.tsx`) を用い、`TextLink` の矢印は使わない。非リンクにはHover・focusを付けない。既存のモーション停止設定に従う。通常文字4.5:1、大きな文字・フォーカス3:1以上を実測する。
+有効なHTTP(S) URLのみA〜Cのカード全体、Dの文字を `<a target="_blank" rel="noopener noreferrer">` にする。無効・空欄は同じ内容の非リンクとし、アイコンを追加しない。リンクのフォーカスリングを既存トークンで表示する。A〜Cのロゴカードは枠線を変化させず、トップの協賛表示 (`frontend/src/components/ad-sponsor-marquee.tsx` の `SponsorItem`) と同じく既存ユーティリティ `hover-card-shadow` (ホバーで `shadow-card` の影) を付ける (Figma `1409:38` の既定枠 `#e6e6e6` のまま)。ロゴ未登録のA〜Cカード (企業名表示) は影を付けず、トップのロゴ未登録表示と同じく企業名の下に `HoverLine` 系の下線を出す。Dの企業名の下線は既存の `HoverLineText` (`frontend/src/components/hover-line.tsx`) を用い、`TextLink` の矢印は使わない。非リンクにはHover・focusを付けない。既存のモーション停止設定に従う。通常文字4.5:1、大きな文字3:1以上を実測する。フォーカスリングはサイト共通の `outline-primary` に従う。
 
 ### ナビゲーション・SEO
 
