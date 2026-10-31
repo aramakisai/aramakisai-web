@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-10-31T06:36:26.908Z",
+  "fetchedAt": "2026-10-31T07:08:50.498Z",
   "versions": [
     {
       "version": "20260919",
@@ -67,6 +67,27 @@
           ]
         },
         {
+          "id": "年末・年始",
+          "weekdays": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+          ],
+          "startDate": "2026-09-19",
+          "endDate": "2027-09-18",
+          "added": [
+            "2026-12-30",
+            "2026-12-31",
+            "2027-01-02",
+            "2027-01-03"
+          ],
+          "removed": []
+        },
+        {
           "id": "日祝",
           "weekdays": [
             false,
@@ -104,6 +125,24 @@
             "2027-01-02",
             "2027-01-03"
           ]
+        },
+        {
+          "id": "特別ダイヤ１",
+          "weekdays": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+          ],
+          "startDate": "2026-09-19",
+          "endDate": "2027-09-18",
+          "added": [
+            "2027-01-01"
+          ],
+          "removed": []
         }
       ],
       "departures": [
@@ -6510,6 +6549,27 @@
           ]
         },
         {
+          "id": "年末・年始",
+          "weekdays": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+          ],
+          "startDate": "2026-11-16",
+          "endDate": "2027-11-15",
+          "added": [
+            "2026-12-30",
+            "2026-12-31",
+            "2027-01-02",
+            "2027-01-03"
+          ],
+          "removed": []
+        },
+        {
           "id": "日祝",
           "weekdays": [
             false,
@@ -6546,6 +6606,24 @@
             "2027-01-02",
             "2027-01-03"
           ]
+        },
+        {
+          "id": "特別ダイヤ１",
+          "weekdays": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+          ],
+          "startDate": "2026-11-16",
+          "endDate": "2027-11-15",
+          "added": [
+            "2027-01-01"
+          ],
+          "removed": []
         }
       ],
       "departures": [

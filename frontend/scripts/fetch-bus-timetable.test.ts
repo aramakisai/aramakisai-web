@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { strToU8, zipSync } from 'fflate';
+import { activeServiceIds } from '../src/lib/bus-timetable';
 import {
   buildTimetableFile,
   extractVersion,
@@ -12,6 +13,7 @@ function makeZip(
   stopTimes: string[][],
   trips: string[][],
   feedEnd = '20270918',
+  extraDates: string[][] = [],
 ): Uint8Array {
   return zipSync({
     'feed_info.txt': strToU8(
@@ -70,6 +72,7 @@ function makeZip(
         ['土曜', '20261103', '2'],
         ['日祝', '20261103', '1'],
         ['未使用', '20261103', '2'],
+        ...extraDates,
       ]),
     ),
   });
@@ -183,6 +186,38 @@ describe('extractVersion', () => {
         removed: [],
       },
     ]);
+  });
+
+  it('calendar.txt に無く calendar_dates.txt だけで定義された運行日区分は、追加日だけで運行する', () => {
+    const v = extractVersion(
+      '20260919',
+      makeZip(
+        [
+          ['t5', '07:00:00', '200273_01', '3', '前橋駅', '0'],
+          ['t5', '07:05:00', '200722_01', '4', '前橋駅', '0'],
+          ['t5', '07:10:00', '200722_02', '5', '前橋駅', '0'],
+        ],
+        [['r22a', '年末年始', 't5', '前橋駅', '1']],
+        '20270918',
+        [
+          ['年末年始', '20270102', '1'],
+          ['年末年始', '20261230', '1'],
+        ],
+      ),
+    );
+    expect(v.services).toEqual([
+      {
+        id: '年末年始',
+        weekdays: [false, false, false, false, false, false, false],
+        startDate: '2026-09-19',
+        endDate: '2027-09-18',
+        added: ['2026-12-30', '2027-01-02'],
+        removed: [],
+      },
+    ]);
+    expect([...activeServiceIds(v, '2026-12-30')]).toEqual(['年末年始']);
+    expect([...activeServiceIds(v, '2027-01-02')]).toEqual(['年末年始']);
+    expect([...activeServiceIds(v, '2027-01-03')]).toEqual([]);
   });
 
   it('前橋方面で記号表に無い経由が現れたら失敗する', () => {

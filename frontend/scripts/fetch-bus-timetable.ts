@@ -144,34 +144,45 @@ export function extractVersion(
 
   const used = new Set(departures.map((d) => d.serviceId));
   const exceptions = readCsv(files, 'calendar_dates.txt');
-  const services: BusService[] = readCsv(files, 'calendar.txt')
-    .filter((c) => used.has(c.service_id))
-    .map((c) => {
-      const dates = (type: string) =>
-        exceptions
-          .filter(
-            (e) => e.service_id === c.service_id && e.exception_type === type,
-          )
-          .map((e) => isoDate(e.date))
-          .sort();
-      return {
-        id: c.service_id,
-        weekdays: [
-          c.monday,
-          c.tuesday,
-          c.wednesday,
-          c.thursday,
-          c.friday,
-          c.saturday,
-          c.sunday,
-        ].map((v) => v === '1') as unknown as BusService['weekdays'],
-        startDate: isoDate(c.start_date),
-        endDate: isoDate(c.end_date),
-        added: dates('1'),
-        removed: dates('2'),
-      };
-    })
-    .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  const dates = (id: string, type: string) =>
+    exceptions
+      .filter((e) => e.service_id === id && e.exception_type === type)
+      .map((e) => isoDate(e.date))
+      .sort();
+  const calendar = readCsv(files, 'calendar.txt').filter((c) =>
+    used.has(c.service_id),
+  );
+  const regular: BusService[] = calendar.map((c) => ({
+    id: c.service_id,
+    weekdays: [
+      c.monday,
+      c.tuesday,
+      c.wednesday,
+      c.thursday,
+      c.friday,
+      c.saturday,
+      c.sunday,
+    ].map((v) => v === '1') as unknown as BusService['weekdays'],
+    startDate: isoDate(c.start_date),
+    endDate: isoDate(c.end_date),
+    added: dates(c.service_id, '1'),
+    removed: dates(c.service_id, '2'),
+  }));
+  // 年末年始などは calendar.txt に行が無く calendar_dates.txt の追加日だけで定義される
+  const inCalendar = new Set(calendar.map((c) => c.service_id));
+  const exceptionOnly: BusService[] = [...used]
+    .filter((id) => !inCalendar.has(id))
+    .map((id) => ({
+      id,
+      weekdays: [false, false, false, false, false, false, false],
+      startDate: isoDate(info.feed_start_date),
+      endDate: isoDate(info.feed_end_date),
+      added: dates(id, '1'),
+      removed: dates(id, '2'),
+    }));
+  const services = [...regular, ...exceptionOnly].sort((a, b) =>
+    a.id < b.id ? -1 : a.id > b.id ? 1 : 0,
+  );
 
   return {
     version,
