@@ -1,6 +1,6 @@
 import type { SponsorListItem } from './sponsors';
 import type { PersonalSponsor } from '@/cms-types';
-import { cms } from './cms';
+import { cms, type CmsFetchOptions } from './cms';
 
 export type AdTier = 'planA' | 'planB' | 'planC' | 'planD';
 export type AdSponsor = Readonly<{
@@ -12,14 +12,14 @@ export type AdSponsor = Readonly<{
 }>;
 export type AdSponsorsByTier = Readonly<Record<AdTier, readonly AdSponsor[]>>;
 
-export async function getPersonalSponsors(): Promise<
-  readonly Pick<PersonalSponsor, 'id' | 'name'>[]
-> {
-  const result = await cms.findMany('personal_sponsors', {
-    sort: ['_order'],
-    limit: 0,
-    depth: 0,
-  });
+export async function getPersonalSponsors(
+  options?: CmsFetchOptions,
+): Promise<readonly Pick<PersonalSponsor, 'id' | 'name'>[]> {
+  const result = await cms.findMany(
+    'personal_sponsors',
+    { sort: ['_order'], limit: 0, depth: 0 },
+    options,
+  );
   if (!result.ok) throw new Error('Failed to load personal sponsors');
   return result.value.docs.flatMap(({ id, name }) => {
     const trimmedName = name.trim();

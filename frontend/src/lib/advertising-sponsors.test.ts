@@ -8,6 +8,19 @@ vi.mock('./cms', () => ({ cms: { findMany: vi.fn() } }));
 
 describe('getPersonalSponsors', () => {
   afterEach(() => vi.resetAllMocks());
+  it('passes the page-specific TTL to CMS', async () => {
+    vi.mocked(cms.findMany).mockResolvedValueOnce({
+      ok: true,
+      value: { totalDocs: 0, docs: [] },
+    });
+    await getPersonalSponsors({ ttlSeconds: 1 });
+    expect(cms.findMany).toHaveBeenCalledWith(
+      'personal_sponsors',
+      { sort: ['_order'], limit: 0, depth: 0 },
+      { ttlSeconds: 1 },
+    );
+  });
+
   it('表示順を維持し空白名を除外して ID と表示名だけを返す', async () => {
     vi.mocked(cms.findMany).mockResolvedValueOnce({
       ok: true,
@@ -38,11 +51,11 @@ describe('getPersonalSponsors', () => {
       { id: 3, name: '太郎様' },
       { id: 1, name: '次郎' },
     ]);
-    expect(cms.findMany).toHaveBeenCalledWith('personal_sponsors', {
-      sort: ['_order'],
-      limit: 0,
-      depth: 0,
-    });
+    expect(cms.findMany).toHaveBeenCalledWith(
+      'personal_sponsors',
+      { sort: ['_order'], limit: 0, depth: 0 },
+      undefined,
+    );
   });
 
   it('登録がないときは空配列を返す', async () => {
@@ -51,11 +64,11 @@ describe('getPersonalSponsors', () => {
       value: { totalDocs: 0, docs: [] },
     });
     expect(await getPersonalSponsors()).toEqual([]);
-    expect(cms.findMany).toHaveBeenCalledWith('personal_sponsors', {
-      sort: ['_order'],
-      limit: 0,
-      depth: 0,
-    });
+    expect(cms.findMany).toHaveBeenCalledWith(
+      'personal_sponsors',
+      { sort: ['_order'], limit: 0, depth: 0 },
+      undefined,
+    );
   });
 
   it('CMS が取得失敗を返す場合は例外として伝播する', async () => {
