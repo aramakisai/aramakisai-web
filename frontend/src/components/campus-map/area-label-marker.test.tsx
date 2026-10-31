@@ -161,4 +161,30 @@ describe('AreaLabelMarker', () => {
     expect(lastIconHtml()).not.toContain('ecg_heart');
     expect(lastIconHtml()).not.toContain('>wc<');
   });
+
+  it('表示内容が変わらない再描画では icon と eventHandlers を作り直さない', () => {
+    const onSelect = vi.fn();
+    const { rerender } = render(
+      <AreaLabelMarker
+        name="Aゾーン"
+        geometry={GEOMETRY}
+        selected={false}
+        onSelect={onSelect}
+      />,
+    );
+    const first = markerProps.at(-1)!;
+    rerender(
+      <AreaLabelMarker
+        name="Aゾーン"
+        geometry={GEOMETRY}
+        selected={false}
+        onSelect={() => onSelect()}
+      />,
+    );
+    const second = markerProps.at(-1)!;
+    expect(second.icon).toBe(first.icon);
+    expect(second.eventHandlers).toBe(first.eventHandlers);
+    (second.eventHandlers as { click: () => void }).click();
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
 });

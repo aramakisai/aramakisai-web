@@ -273,4 +273,26 @@ describe('AreaPolygonLayer', () => {
     );
     expect(onAreaClick).not.toHaveBeenCalled();
   });
+
+  it('選択状態が変わらない再描画では style と eventHandlers を作り直さない', () => {
+    const a = area({ id: 7 });
+    const onAreaClick = vi.fn();
+    const { rerender } = render(
+      <AreaPolygonLayer
+        areas={[a]}
+        selectedAreaId={null}
+        onAreaClick={onAreaClick}
+      />,
+    );
+    const first = geoJsonProps.at(-1)!;
+    rerender(
+      <AreaPolygonLayer
+        areas={[a]}
+        selectedAreaId={null}
+        onAreaClick={onAreaClick}
+      />,
+    );
+    expect(geoJsonProps.at(-1)!.style).toBe(first.style);
+    expect(geoJsonProps.at(-1)!.eventHandlers).toBe(first.eventHandlers);
+  });
 });

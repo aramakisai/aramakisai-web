@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { GeoJSON } from 'react-leaflet';
 import type { GeoJSON as LeafletGeoJSON, Path, PathOptions } from 'leaflet';
 import type { CampusMapArea } from '@/lib/campus-map';
@@ -54,12 +54,19 @@ function attachKeyboardSelection(
 function AreaPolygon({
   area,
   selected,
-  onSelect,
+  onAreaClick,
 }: {
   readonly area: CampusMapArea;
   readonly selected: boolean;
-  readonly onSelect: () => void;
+  readonly onAreaClick: (areaId: number) => void;
 }) {
+  // style / eventHandlers が毎回新しい参照だと、再描画のたびに setStyle とイベントの付け直しが走る
+  const onSelect = useCallback(
+    () => onAreaClick(area.id),
+    [onAreaClick, area.id],
+  );
+  const style = useMemo(() => buildAreaStyle(area, selected), [area, selected]);
+  const eventHandlers = useMemo(() => ({ click: onSelect }), [onSelect]);
   const groupRef = useRef<LeafletGeoJSON | null>(null);
 
   useEffect(() => {
@@ -88,8 +95,8 @@ function AreaPolygon({
     <GeoJSON
       ref={groupRef}
       data={area.geometry}
-      style={buildAreaStyle(area, selected)}
-      eventHandlers={{ click: onSelect }}
+      style={style}
+      eventHandlers={eventHandlers}
     />
   );
 }
@@ -106,7 +113,7 @@ export function AreaPolygonLayer({
           key={area.id}
           area={area}
           selected={area.id === selectedAreaId}
-          onSelect={() => onAreaClick(area.id)}
+          onAreaClick={onAreaClick}
         />
       ))}
       {areas.map((area) => (

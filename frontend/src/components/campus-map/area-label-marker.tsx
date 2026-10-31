@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo, useRef } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { divIcon, type DivIcon } from 'leaflet';
 import { Marker } from 'react-leaflet';
@@ -64,17 +65,28 @@ export function AreaLabelMarker({
   hasToilet = false,
 }: AreaLabelMarkerProps) {
   const [latitude, longitude] = polygonCentroid(geometry);
+  // 毎回新しい icon / eventHandlers を渡すと、再描画のたびに setIcon とイベントの付け直しが走る
+  const icon = useMemo(
+    () => buildLabelIcon(name, selected, hasAed, hasToilet),
+    [name, selected, hasAed, hasToilet],
+  );
+  const onSelectRef = useRef(onSelect);
+  onSelectRef.current = onSelect;
+  const eventHandlers = useMemo(
+    () => ({ click: () => onSelectRef.current?.() }),
+    [],
+  );
 
   return (
     <Marker
       position={[latitude, longitude]}
-      icon={buildLabelIcon(name, selected, hasAed, hasToilet)}
+      icon={icon}
       // ラベルはポリゴンの外へはみ出すことがあり、素通りさせるとはみ出し部分を押しても
       // 選択できない。クリックはポリゴンと同じ選択処理へ流す。キーボード操作は
       // ポリゴン側が担うため、フォーカス停止位置が二重にならないよう keyboard は切る
       interactive
       keyboard={false}
-      eventHandlers={{ click: () => onSelect?.() }}
+      eventHandlers={eventHandlers}
     />
   );
 }

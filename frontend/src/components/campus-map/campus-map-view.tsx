@@ -1,7 +1,7 @@
 'use client';
 
 import 'leaflet/dist/leaflet.css';
-import { useEffect, useMemo, useRef, type Ref } from 'react';
+import { useCallback, useEffect, useMemo, useRef, type Ref } from 'react';
 import { AttributionControl, MapContainer, TileLayer } from 'react-leaflet';
 import type {
   LatLngBoundsExpression,
@@ -162,9 +162,12 @@ export function CampusMapView({
   }, []);
 
   // 選択中のエリアの再選択は解除として扱う (要件 2.6)。URL の書き換えは呼び出し元に委ねる
-  const handleAreaClick = (areaId: number) => {
-    onSelectArea(areaId === selectedAreaId ? null : areaId);
-  };
+  const handleAreaClick = useCallback(
+    (areaId: number) => {
+      onSelectArea(areaId === selectedAreaId ? null : areaId);
+    },
+    [onSelectArea, selectedAreaId],
+  );
 
   return (
     <MapContainer
