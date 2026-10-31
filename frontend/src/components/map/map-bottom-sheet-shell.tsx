@@ -328,7 +328,7 @@ export function MapBottomSheetShell({
       <div
         ref={sheetRef}
         data-testid="map-bottom-sheet"
-        className={`pointer-events-auto w-full max-w-2xl select-none bg-white ${sheetPaddingClassName} ${sheetShadowClassName} transition-[height] duration-300 ease-out motion-reduce:transition-none [interpolate-size:allow-keywords] ${currentSnap.fullScreen && !elevated ? '' : 'rounded-t-2xl'} ${currentSnap.overflow === 'auto' ? 'overflow-y-auto' : 'overflow-hidden'}`}
+        className={`pointer-events-auto w-full select-none bg-white ${sheetPaddingClassName} ${sheetShadowClassName} transition-[height] duration-300 ease-out motion-reduce:transition-none [interpolate-size:allow-keywords] ${currentSnap.fullScreen && !elevated ? '' : 'rounded-t-2xl'} ${currentSnap.overflow === 'auto' ? 'overflow-y-auto' : 'overflow-hidden'}`}
         style={{ height: currentSnap.height }}
         onPointerDown={handlePointerDown}
         onClickCapture={handleClickCapture}
