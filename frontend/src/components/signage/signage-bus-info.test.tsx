@@ -30,6 +30,23 @@ const boards = (
 ];
 
 describe('SignageBusInfo', () => {
+  test('同系統・同時刻で停留所が違う便が並んでも key が衝突しない', () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    render(
+      <SignageBusInfo
+        boards={boards(
+          [
+            dep({ stopName: '群馬大学荒牧' }),
+            dep({ stopName: '前橋自動車教習所前' }),
+          ],
+          [],
+        )}
+      />,
+    );
+    expect(error).not.toHaveBeenCalled();
+    error.mockRestore();
+  });
+
   test('表全体を 1 つのグリッドにし、px の決め打ちの列幅を持たない', () => {
     const { container } = render(
       <SignageBusInfo

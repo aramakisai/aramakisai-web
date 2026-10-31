@@ -61,7 +61,7 @@ export function SignageBusInfo({ boards }: SignageBusInfoProps) {
               ]
             : board.departures.map((d) => (
                 <div
-                  key={`${board.direction}-${d.route}-${d.scheduledAt}`}
+                  key={`${board.direction}-${d.route}-${d.scheduledAt}-${d.stopName}`}
                   data-testid="bus-departure-row"
                   className="contents"
                 >
