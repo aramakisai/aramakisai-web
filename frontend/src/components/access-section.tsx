@@ -29,7 +29,7 @@ export function AccessSection({ summary }: AccessSectionProps) {
             </p>
             <p
               data-testid="access-summary"
-              className="text-sm leading-[1.8] whitespace-pre-wrap text-text"
+              className="text-sm leading-[1.8] tracking-[0.02em] whitespace-pre-wrap text-text"
             >
               {summary}
             </p>
