@@ -130,7 +130,7 @@ function toLabel(
     return name
       ? {
           name,
-          projectName: ex.stage?.name || null,
+          projectName: ex.stage?.name?.trim() || null,
           href: `/exhibitions/${ex.id}/stage`,
         }
       : null;

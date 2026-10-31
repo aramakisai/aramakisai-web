@@ -109,8 +109,9 @@ describe('toTimetable', () => {
       slot(1, { exhibition_id: pubWith('春ライブ') }),
       slot(2, { exhibition_id: pubWith('') }),
       slot(3),
+      slot(4, { exhibition_id: pubWith(' ') }),
     ]).performances.map((p) => p.projectName);
-    expect(names).toEqual(['春ライブ', null, null]);
+    expect(names).toEqual(['春ライブ', null, null, null]);
   });
 
   it('団体なしは表示名で遷移先なし', () => {
