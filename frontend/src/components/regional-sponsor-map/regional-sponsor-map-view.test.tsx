@@ -163,8 +163,8 @@ describe('RegionalSponsorMapView', () => {
   it('fit の余白は構内マップの算出を使い、寄せ先にも同じ余白を使う', () => {
     render(<RegionalSponsorMapView {...baseProps} />);
     expect(fitOptionsOf('fitOptions')).toMatchObject({
-      paddingTopLeft: [32, 32],
-      paddingBottomRight: [32, 32 + 16],
+      paddingTopLeft: [32, 32 + 48],
+      paddingBottomRight: [96, 32 + 16],
       animate: false,
     });
     expect(fitOptionsOf('focusFitOptions')).toEqual(fitOptionsOf('fitOptions'));

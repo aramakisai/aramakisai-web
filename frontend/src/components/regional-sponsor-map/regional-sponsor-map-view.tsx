@@ -58,11 +58,17 @@ export function RegionalSponsorMapView({
   );
   // 地図コンテナ自体が SP ではシート上端までに縮むため、シートの高さは余白に足さない
   const fitOptions = useCallback(
-    (container: HTMLElement): FitBoundsOptions => ({
-      ...computeMapFitOptions(container, 0),
-      maxZoom: FIT_MAX_ZOOM,
-    }),
-    [],
+    (container: HTMLElement): FitBoundsOptions => {
+      const base = computeMapFitOptions(container, 0);
+      const [left, top] = base.paddingTopLeft as [number, number];
+      return {
+        ...base,
+        // ピンは下端中央アンカーなので、座標を余白内に置くだけでは画像上端が画面外へ出る
+        paddingTopLeft: [left, top + markerSize],
+        maxZoom: FIT_MAX_ZOOM,
+      };
+    },
+    [markerSize],
   );
   const selectedSponsor =
     selectedSponsorId == null
