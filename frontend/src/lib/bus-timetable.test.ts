@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   activeServiceIds,
+  campusBoundOn,
   departuresOn,
   selectVersion,
+  type BusCampusBoundDeparture,
   type BusScheduledDeparture,
   type BusService,
   type BusTimetableFile,
@@ -37,6 +39,17 @@ function dep(over: Partial<BusScheduledDeparture>): BusScheduledDeparture {
   };
 }
 
+function cb(over: Partial<BusCampusBoundDeparture>): BusCampusBoundDeparture {
+  return {
+    tripId: 'c',
+    serviceId: '平日',
+    route: '22B',
+    time: '09:00',
+    alightStop: 'gunma_univ_aramaki',
+    ...over,
+  };
+}
+
 function version(over: Partial<BusTimetableVersion>): BusTimetableVersion {
   return {
     version: '20260919',
@@ -62,6 +75,11 @@ function version(over: Partial<BusTimetableVersion>): BusTimetableVersion {
       dep({ tripId: 'w', serviceId: '平日' }),
       dep({ tripId: 's', serviceId: '土曜' }),
       dep({ tripId: 'h', serviceId: '日祝' }),
+    ],
+    campusBound: [
+      cb({ tripId: 's2', serviceId: '土曜', time: '10:30' }),
+      cb({ tripId: 's1', serviceId: '土曜', time: '09:17' }),
+      cb({ tripId: 'h1', serviceId: '日祝', time: '09:20' }),
     ],
     ...over,
   };
@@ -132,5 +150,19 @@ describe('departuresOn', () => {
   });
   it('版が無い日は空', () => {
     expect(departuresOn(f, '2028-01-01')).toEqual([]);
+  });
+});
+
+describe('campusBoundOn', () => {
+  const f = file(version({}));
+  it('同じ版・運行日で絞り、前橋駅の発車時刻順に返す', () => {
+    expect(campusBoundOn(f, '2026-11-14').map((d) => d.tripId)).toEqual([
+      's1',
+      's2',
+    ]);
+    expect(campusBoundOn(f, '2026-11-15').map((d) => d.tripId)).toEqual(['h1']);
+  });
+  it('版が無い日は空', () => {
+    expect(campusBoundOn(f, '2028-01-01')).toEqual([]);
   });
 });

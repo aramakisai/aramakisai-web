@@ -31,12 +31,22 @@ export interface BusScheduledDeparture {
   time: string;
 }
 
+export interface BusCampusBoundDeparture {
+  tripId: string;
+  serviceId: string;
+  route: string;
+  /** 前橋駅 2番のりばの発車時刻 */
+  time: string;
+  alightStop: BusStop;
+}
+
 export interface BusTimetableVersion {
   version: string;
   validFrom: string;
   validTo: string;
   services: BusService[];
   departures: BusScheduledDeparture[];
+  campusBound: BusCampusBoundDeparture[];
 }
 
 export interface BusTimetableFile {
@@ -87,4 +97,16 @@ export function departuresOn(
   if (!version) return [];
   const ids = activeServiceIds(version, date);
   return version.departures.filter((d) => ids.has(d.serviceId));
+}
+
+export function campusBoundOn(
+  file: BusTimetableFile,
+  date: string,
+): readonly BusCampusBoundDeparture[] {
+  const version = selectVersion(file, date);
+  if (!version) return [];
+  const ids = activeServiceIds(version, date);
+  return version.campusBound
+    .filter((d) => ids.has(d.serviceId))
+    .sort((a, b) => a.time.localeCompare(b.time));
 }
