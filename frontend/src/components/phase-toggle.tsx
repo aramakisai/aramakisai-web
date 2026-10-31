@@ -44,7 +44,7 @@ export function PhaseToggle() {
       : '';
 
   return (
-    <div className={`fixed bottom-4 left-4 z-50 text-sm ${bottomClass}`}>
+    <div className={`fixed bottom-4 left-4 z-[1200] text-sm ${bottomClass}`}>
       {open && (
         <div className="mb-2 flex flex-col gap-2 rounded-md border border-gray-200 bg-background p-3 shadow-card">
           <button

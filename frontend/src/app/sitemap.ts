@@ -28,6 +28,7 @@ const OWN_HANDLING_ROUTES: readonly string[] = [
   '/parking',
   '/access',
   '/sponsors/local',
+  '/sponsors/ad',
 ];
 
 function toUrl(path: string): string {
@@ -146,6 +147,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   if (isPublicPath('/sponsors/local', phase)) {
     entries.push({ url: toUrl('/sponsors/local') });
+  }
+
+  if (isPublicPath('/sponsors/ad', phase)) {
+    entries.push({ url: toUrl('/sponsors/ad') });
   }
 
   if (isPublicPath('/faq', phase)) {

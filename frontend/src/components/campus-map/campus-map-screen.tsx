@@ -200,7 +200,7 @@ export function CampusMapScreen({
        */}
       <div
         data-testid="map-viewport"
-        className="h-[calc(100dvh-var(--map-nav)-var(--map-bottom-inset))] md:h-[calc(100dvh-var(--map-nav))] max-md:[&_.leaflet-bottom]:mb-4"
+        className="h-[calc(100dvh-var(--map-nav)-var(--map-bottom-inset))] lg:h-[calc(100dvh-var(--map-nav))] max-lg:[&_.leaflet-bottom]:mb-4"
         style={{ '--map-bottom-inset': `${bottomInset}px` } as CSSProperties}
       >
         <CampusMapView

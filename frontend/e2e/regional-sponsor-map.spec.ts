@@ -1,172 +1,9 @@
-import { createServer, type Server } from 'node:http';
 import { expect, test, type Page } from '@playwright/test';
 import { REGIONAL_MAP_TILE_PROFILE } from '../src/lib/map-tile-profile';
-
-const CMS_PORT = 18055;
-const CMS_ORIGIN = `http://127.0.0.1:${CMS_PORT}`;
-const ONE_PIXEL_PNG = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ZQmcAAAAASUVORK5CYII=',
-  'base64',
-);
-
-type CmsMode = 'ok' | 'error';
-let cmsMode: CmsMode = 'ok';
-let cmsServer: Server;
-
-const baseSponsor = {
-  type: ['local'],
-  logo: null,
-  url: null,
-  description: null,
-  business_category: null,
-  local_image: null,
-  local_business_hours: null,
-  local_phone: null,
-  tier: null,
-  area_id: null,
-  booth_number: null,
-  booth_label: null,
-  updatedAt: '2026-10-22T00:00:00.000Z',
-  createdAt: '2026-10-22T00:00:00.000Z',
-};
-
-const sponsorFixtures = [
-  {
-    ...baseSponsor,
-    id: 101,
-    _order: 'a01',
-    name: 'テスト専用あらまき病院',
-    business_category: 'hospital',
-    local_latitude: 36.41,
-    local_longitude: 139.1,
-    address: '群馬県テスト市中央1-1',
-    local_image: { id: 201, alt: 'テスト専用病院の外観' },
-    description: '地域のみなさまを応援します。\nテスト専用メッセージです。',
-    local_business_hours: '9:00〜17:00\n日曜定休',
-    local_phone: '027-000-0000',
-    url: 'https://example.invalid/hospital',
-  },
-  {
-    ...baseSponsor,
-    id: 102,
-    _order: 'a02',
-    name: 'テスト専用くらし商店',
-    business_category: 'life',
-    local_latitude: 36.43,
-    local_longitude: 139.16,
-    address: '群馬県テスト市くらし2-2',
-  },
-  {
-    ...baseSponsor,
-    id: 103,
-    _order: 'a03',
-    name: 'テスト専用自動車工房',
-    business_category: 'car',
-    local_latitude: 36.38,
-    local_longitude: 139.16,
-    address: '群馬県テスト市くるま3-3',
-    local_image: { id: 202, alt: '読込失敗確認用画像' },
-  },
-  {
-    ...baseSponsor,
-    id: 104,
-    _order: 'a04',
-    name: 'テスト専用学習塾',
-    business_category: 'education',
-    local_latitude: 36.45,
-    local_longitude: 139.08,
-    address: '群馬県テスト市まなび4-4',
-  },
-  {
-    ...baseSponsor,
-    id: 105,
-    _order: 'a05',
-    name: 'テスト専用食堂A',
-    business_category: 'food',
-    local_latitude: 36.405,
-    local_longitude: 139.125,
-    address: '群馬県テスト市同一座標5-5',
-  },
-  {
-    ...baseSponsor,
-    id: 106,
-    _order: 'a06',
-    name: 'テスト専用食堂B',
-    business_category: 'food',
-    local_latitude: 36.405,
-    local_longitude: 139.125,
-    address: '群馬県テスト市同一座標5-5',
-  },
-  {
-    ...baseSponsor,
-    id: 107,
-    _order: 'a07',
-    name: 'テスト専用雑貨店',
-    business_category: 'shop',
-    local_latitude: 36.37,
-    local_longitude: 139.075,
-    address: '群馬県テスト市おみせ7-7',
-  },
-  {
-    ...baseSponsor,
-    id: 109,
-    _order: 'a09',
-    name: 'テスト専用雑貨店B',
-    business_category: 'shop',
-    local_latitude: 36.37003,
-    local_longitude: 139.075,
-    address: '群馬県テスト市おみせ7-7',
-  },
-  {
-    ...baseSponsor,
-    id: 108,
-    _order: 'a08',
-    name: '除外確認用不正fixture',
-    business_category: 'shop',
-    local_latitude: 999,
-    local_longitude: 139.1,
-    address: '公開されないテスト専用住所',
-  },
-];
-
-function startCmsFixtureServer(): Promise<void> {
-  cmsServer = createServer((request, response) => {
-    const url = new URL(request.url ?? '/', CMS_ORIGIN);
-    response.setHeader('Access-Control-Allow-Origin', '*');
-    if (url.pathname === '/api/sponsors') {
-      if (cmsMode === 'error') {
-        response.writeHead(503, { 'Content-Type': 'application/json' });
-        response.end(JSON.stringify({ error: 'fixture unavailable' }));
-        return;
-      }
-      response.writeHead(200, { 'Content-Type': 'application/json' });
-      response.end(
-        JSON.stringify({
-          docs: sponsorFixtures,
-          totalDocs: sponsorFixtures.length,
-        }),
-      );
-      return;
-    }
-    if (url.pathname.startsWith('/api/media/serve/201/')) {
-      response.writeHead(200, { 'Content-Type': 'image/png' });
-      response.end(ONE_PIXEL_PNG);
-      return;
-    }
-    response.writeHead(404, { 'Content-Type': 'application/json' });
-    response.end(JSON.stringify({ error: 'fixture not found' }));
-  });
-  return new Promise((resolve, reject) => {
-    cmsServer.once('error', reject);
-    cmsServer.listen(CMS_PORT, '127.0.0.1', resolve);
-  });
-}
-
-function stopCmsFixtureServer(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    cmsServer.close((error) => (error ? reject(error) : resolve()));
-  });
-}
+import {
+  ONE_PIXEL_PNG,
+  setRegionalCmsMode,
+} from './fixtures/cms-fixture-server';
 
 async function useFixtureTiles(page: Page): Promise<void> {
   await page.route('**/regional-map-tiles/**', (route) =>
@@ -281,22 +118,20 @@ test.describe('地域協賛マップ fixture E2E', { tag: '@local-fixture' }, ()
   test.describe.configure({ mode: 'serial' });
   test.setTimeout(120_000);
 
-  test.beforeAll(async () => startCmsFixtureServer());
-  test.afterAll(async () => stopCmsFixtureServer());
   test.beforeEach(async ({ page }) => {
-    cmsMode = 'ok';
+    await setRegionalCmsMode('ok');
     await useFixtureTiles(page);
   });
 
   test('CMS取得失敗を通知し、再試行で一覧を復元する', async ({ page }) => {
-    cmsMode = 'error';
+    await setRegionalCmsMode('error');
     await page.goto('/sponsors/local', { waitUntil: 'domcontentloaded' });
     await expect(
       page.getByRole('alert').filter({
         hasText: '地域協賛情報を取得できませんでした。',
       }),
     ).toBeVisible();
-    cmsMode = 'ok';
+    await setRegionalCmsMode('ok');
     await page.getByRole('button', { name: '再試行' }).click();
     await expect(page.getByText('8件')).toBeVisible();
   });
@@ -389,8 +224,8 @@ test.describe('地域協賛マップ fixture E2E', { tag: '@local-fixture' }, ()
     });
   }
 
-  test('PC 800×1000 の初期表示でタイル範囲外が見えない', async ({ page }) => {
-    await page.setViewportSize({ width: 800, height: 1000 });
+  test('PC 1100×900 の初期表示でタイル範囲外が見えない', async ({ page }) => {
+    await page.setViewportSize({ width: 1100, height: 900 });
     await openMap(page);
     await expect(page.locator('.leaflet-marker-icon').first()).toBeVisible();
     const [[south, west], [north, east]] = REGIONAL_MAP_TILE_PROFILE.bounds;
@@ -595,9 +430,11 @@ test.describe('地域協賛マップ fixture E2E', { tag: '@local-fixture' }, ()
       page.getByRole('button', { name: /現在: 縮小/ }),
     ).toBeVisible();
     await expectMapControlsAboveSheet(page);
-    expect(
-      await sheet.evaluate((element) => element.getBoundingClientRect().height),
-    ).toBeLessThan(detailHeight);
+    await expect
+      .poll(() =>
+        sheet.evaluate((element) => element.getBoundingClientRect().height),
+      )
+      .toBeLessThan(detailHeight);
     const back = page.getByRole('button', { name: '店舗一覧に戻る' });
     await expect(back).toBeVisible();
     await back.focus();

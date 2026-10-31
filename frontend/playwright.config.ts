@@ -17,6 +17,8 @@ const useLocalApp = !!process.env.CI && process.env.E2E_LOCAL_APP === '1';
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
+  // fixture CMS は固定ポートを 1 つの CMS として参照されるため、全 spec で共有して 1 回だけ起動する
+  globalSetup: useLocalApp ? './e2e/fixtures/global-setup.ts' : undefined,
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? [['html', { open: 'never' }], ['github']] : 'list',
   webServer: useLocalApp

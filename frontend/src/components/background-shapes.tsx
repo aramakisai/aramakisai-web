@@ -9,7 +9,10 @@ import {
   type CSSProperties,
 } from 'react';
 import { usePathname } from 'next/navigation';
-import { placeBackgroundShapes } from '@/lib/background-shapes/placement';
+import {
+  extendBackgroundShapes,
+  placeBackgroundShapes,
+} from '@/lib/background-shapes/placement';
 import { filterForObstacles } from '@/lib/background-shapes/reuse';
 import { collectObstacles } from '@/lib/background-shapes/obstacles';
 import type {
@@ -91,17 +94,19 @@ export function ShapeFill({
   texture,
   pos,
   rot,
+  opacity,
 }: {
   kind: ShapeKind;
   texture: TextureId;
   pos: readonly [number, number];
   rot: number;
+  opacity?: number;
 }) {
   const { className, clipPath } = SHAPE_CLIP[kind];
   return (
     <div
       className={`relative size-full overflow-hidden ${className}`}
-      style={{ clipPath }}
+      style={{ clipPath, opacity }}
     >
       <div
         className="absolute top-1/2 left-1/2 aspect-square"
@@ -123,36 +128,32 @@ function outerStyle(
   width: number,
   height: number,
   rotationDeg: number,
-  entryOffset: EntryOffset | undefined,
   hidden: boolean,
 ): CSSProperties {
-  const translate = entryOffset
-    ? `translate(${entryOffset.dx}px, ${entryOffset.dy}px) `
-    : '';
   return {
     position: 'absolute',
     left,
     top,
     width,
     height,
-    transform: `${translate}rotate(${rotationDeg}deg)`,
+    transform: `rotate(${rotationDeg}deg)`,
     visibility: hidden ? 'hidden' : 'visible',
   };
 }
 
 /**
- * L・S を描画する。位置・回転・入場の移動は外側要素 (ref 対象、揺れの
- * transform もここへ直接書き込まれる) に、質感の塗りは内側要素に持たせる
- * (design.md ShapeView 節)。
+ * L・S を描画する。位置・回転は外側要素 (ref 対象、揺れの transform もここへ
+ * 直接書き込まれる) に、質感の塗りと入場の移動・不透明度は内側要素に持たせる。
+ * 入場の起点は画面外になりうるため、交差判定は定位置に置いた外側要素で行う。
  */
 function SolidShapeView({
   shape,
-  entryOffset,
+  pending,
   hidden,
   elRef,
 }: {
   shape: Extract<PlacedShape, { tier: 'L' | 'S' }>;
-  entryOffset: EntryOffset | undefined;
+  pending: boolean;
   hidden: boolean;
   elRef: (el: HTMLDivElement | null) => void;
 }) {
@@ -168,11 +169,11 @@ function SolidShapeView({
         shape.size,
         shape.size,
         shape.rot,
-        entryOffset,
         hidden,
       )}
     >
       <ShapeFill
+        opacity={pending ? 0 : undefined}
         kind={shape.kind}
         texture={shape.texture}
         pos={shape.texturePos}
@@ -188,13 +189,13 @@ export function InfRing({
   diameter,
   color,
   elRef,
-  transform,
+  opacity,
 }: {
   index: 0 | 1;
   diameter: number;
   color: RingColor;
   elRef?: (el: HTMLDivElement | null) => void;
-  transform?: string;
+  opacity?: number;
 }) {
   return (
     <div
@@ -208,7 +209,7 @@ export function InfRing({
         height: diameter,
         borderStyle: 'solid',
         borderWidth: diameter * 0.1,
-        transform,
+        opacity,
       }}
     />
   );
@@ -223,13 +224,13 @@ export function InfRing({
  */
 function InfShapeView({
   shape,
-  ringEntryOffsets,
+  pending,
   hidden,
   elRef,
   ringRefs,
 }: {
   shape: Extract<PlacedShape, { tier: 'Inf' }>;
-  ringEntryOffsets: readonly [EntryOffset, EntryOffset] | undefined;
+  pending: boolean;
   hidden: boolean;
   elRef: (el: HTMLDivElement | null) => void;
   ringRefs: readonly [
@@ -251,98 +252,159 @@ function InfShapeView({
         width,
         D,
         shape.rot,
-        undefined,
         hidden,
       )}
     >
-      {([0, 1] as const).map((i) => {
-        const offset = ringEntryOffsets?.[i];
-        return (
-          <InfRing
-            key={i}
-            index={i}
-            diameter={D}
-            color={shape.colors[i]}
-            elRef={ringRefs[i]}
-            transform={
-              offset ? `translate(${offset.dx}px, ${offset.dy}px)` : undefined
-            }
-          />
-        );
-      })}
+      {([0, 1] as const).map((i) => (
+        <InfRing
+          key={i}
+          index={i}
+          diameter={D}
+          color={shape.colors[i]}
+          elRef={ringRefs[i]}
+          opacity={pending ? 0 : undefined}
+        />
+      ))}
     </div>
   );
 }
 
+interface EntryRecord {
+  anims: { anim: Animation; target: HTMLElement }[];
+  remaining: number;
+}
+
+function cancelEntry(record: EntryRecord) {
+  for (const { anim, target } of record.anims) {
+    anim.cancel();
+    target.style.opacity = '';
+  }
+}
+
 /**
- * 図形の入場 (初回だけ画面外寄りの起点から定位置へ寄せる) と、入場後のポインター・
- * スクロール入力によるばねの揺れを 1 つの `requestAnimationFrame` ループで駆動する。
- * DOM 要素へは ref 経由で直接 style を書き込み、揺れの毎フレーム更新で React の
- * 再描画を発生させない。∞ は外側要素 (揺れ・回転) と 2 つの輪 (入場) で
- * アニメーション対象が分かれるため、輪の ref・入場処理だけ分岐する
+ * 図形の入場 (初回だけ画面外寄りの起点から定位置へ寄せつつ不透明度 0→1) と、入場後の
+ * ポインター・スクロール入力によるばねの揺れを 1 つの `requestAnimationFrame` ループで
+ * 駆動する。入場は Web Animations API で内側要素 (∞ は 2 つの輪) に掛け、停止・再実行・
+ * 破棄の cancel で定位置・不透明度 1 に戻る (style への書き込みを残さない)。揺れは外側要素
+ * へ ref 経由で直接 style を書き込み、毎フレームの更新で React の再描画を発生させない
  */
 function useShapeMotion(
   shapes: readonly PlacedShape[],
   entryOffsets: EntryOffset[],
   motionParams: ShapeMotionParams[],
   reduced: boolean,
+  entered: WeakSet<PlacedShape>,
 ) {
   const elsRef = useRef<(HTMLDivElement | null)[]>([]);
   const ringElsRef = useRef<((HTMLDivElement | null)[] | undefined)[]>([]);
+  // 入場中の Animation と揺れのばね状態は図形をキーに effect の外で持つ。図形の追加で
+  // effect が張り直されても、入場を打ち切らず揺れを 0 に戻さないため
+  const runningRef = useRef(new Map<PlacedShape, EntryRecord>());
+  const springsRef = useRef(new Map<PlacedShape, SpringState>());
+  const settledRef = useRef(new WeakSet<PlacedShape>());
+
+  useEffect(() => {
+    const running = runningRef.current;
+    return () => {
+      for (const record of running.values()) cancelEntry(record);
+      running.clear();
+    };
+  }, []);
 
   useEffect(() => {
     elsRef.current.length = shapes.length;
     ringElsRef.current.length = shapes.length;
+    const running = runningRef.current;
+    const springs = springsRef.current;
+    const settled = settledRef.current;
     // モーション停止指定の間は入場もばねの揺れも行わない。図形は定位置のまま静止する
-    if (reduced) return;
+    if (reduced) {
+      for (const record of running.values()) cancelEntry(record);
+      running.clear();
+      springs.clear();
+      return;
+    }
+
+    const current = new Set(shapes);
+    for (const [shape, record] of running) {
+      if (!current.has(shape)) {
+        cancelEntry(record);
+        running.delete(shape);
+      }
+    }
+    for (const shape of springs.keys()) {
+      if (!current.has(shape)) springs.delete(shape);
+    }
 
     const els = elsRef.current;
-    // triggered: 入場アニメーションを開始済みか (1 図形につき 1 回のガード)。
-    // ready: 入場アニメーションが終わり揺れの対象になったか
-    const triggered = new Array<boolean>(shapes.length).fill(false);
-    const ready = new Array<boolean>(shapes.length).fill(false);
-    const timeouts: ReturnType<typeof setTimeout>[] = [];
+    // ready: 入場が済み揺れの対象になったか。入場済みの図形 (停止からの復帰・図形の追加で
+    // この effect が張り直されたとき) は入場し直さず、そのまま揺れの対象にする
+    const ready = shapes.map(
+      (shape) => entered.has(shape) && !running.has(shape),
+    );
+
+    const entryTargets = (index: number): HTMLElement[] => {
+      if (shapes[index].tier === 'Inf') {
+        return (ringElsRef.current[index] ?? []).filter(
+          (el): el is HTMLDivElement => el !== null,
+        );
+      }
+      const inner = els[index]?.firstElementChild;
+      return inner instanceof HTMLElement ? [inner] : [];
+    };
 
     const startEntry = (index: number) => {
       const shape = shapes[index];
+      entered.add(shape);
+      const targets = entryTargets(index);
       const duration = entryDurationMs(shape.tier);
-      const ringEls = ringElsRef.current[index];
-
-      if (shape.tier === 'Inf' && ringEls) {
-        const [r1, r2] = infRingEntryOffsets(index);
-        const offsets = [r1, r2];
-        for (let ri = 0; ri < 2; ri++) {
-          const ringEl = ringEls[ri];
-          if (!ringEl) continue;
-          const offset = offsets[ri];
-          const delay = offset.delayMs ? ` ${offset.delayMs}ms` : '';
-          ringEl.style.transition = `transform ${duration}ms ${ENTRY_EASING}${delay}`;
-          ringEl.style.transform = 'translate(0px, 0px)';
-        }
-        const maxDelay = Math.max(r1.delayMs, r2.delayMs);
-        timeouts.push(
-          setTimeout(() => {
-            for (const ringEl of ringEls) {
-              if (ringEl) ringEl.style.transition = '';
-            }
-            ready[index] = true;
-          }, duration + maxDelay),
-        );
+      const offsets =
+        shape.tier === 'Inf'
+          ? infRingEntryOffsets(index)
+          : [entryOffsets[index]];
+      if (targets.length === 0) {
+        ready[index] = true;
         return;
       }
-
-      const el = els[index];
-      if (!el) return;
-      const offset = entryOffsets[index];
-      const delay = offset.delayMs ? ` ${offset.delayMs}ms` : '';
-      el.style.transition = `transform ${duration}ms ${ENTRY_EASING}${delay}`;
-      el.style.transform = `rotate(${shape.rot}deg)`;
-      timeouts.push(
-        setTimeout(() => {
-          el.style.transition = '';
-          ready[index] = true;
-        }, duration + offset.delayMs),
-      );
+      const record: EntryRecord = { anims: [], remaining: targets.length };
+      running.set(shape, record);
+      const done = () => {
+        if (--record.remaining > 0) return;
+        running.delete(shape);
+        settled.add(shape);
+      };
+      targets.forEach((target, i) => {
+        const offset = offsets[i];
+        if (typeof target.animate !== 'function') {
+          target.style.opacity = '';
+          done();
+          return;
+        }
+        // 外側要素が回転しているため、L・S の移動は回転の逆変換で挟んでページ座標系の
+        // 向きで動かす。∞ の輪は外側要素の局所 x 軸方向に動かす
+        const at = (dx: number, dy: number) =>
+          shape.tier === 'Inf'
+            ? `translate(${dx}px, ${dy}px)`
+            : `rotate(${-shape.rot}deg) translate(${dx}px, ${dy}px) rotate(${shape.rot}deg)`;
+        const anim = target.animate(
+          [
+            { transform: at(offset.dx, offset.dy), opacity: 0 },
+            { transform: at(0, 0), opacity: 1 },
+          ],
+          {
+            duration,
+            delay: offset.delayMs,
+            easing: ENTRY_EASING,
+            fill: 'both',
+          },
+        );
+        record.anims.push({ anim, target });
+        anim.onfinish = () => {
+          target.style.opacity = '';
+          anim.cancel();
+          done();
+        };
+      });
     };
 
     // 未対応環境 (旧ブラウザ・IntersectionObserver 非対応の jsdom 等) では入場の
@@ -357,31 +419,34 @@ function useShapeMotion(
                 const el = entry.target as HTMLDivElement;
                 io?.unobserve(el);
                 const index = els.indexOf(el);
-                if (index === -1 || triggered[index]) continue;
-                triggered[index] = true;
+                if (index === -1 || entered.has(shapes[index])) continue;
                 startEntry(index);
               }
             },
             { threshold: INTERSECTION_THRESHOLD },
           );
 
-    if (io) {
-      for (const el of els) if (el) io.observe(el);
-    } else {
-      for (let i = 0; i < shapes.length; i++) {
-        const el = els[i];
-        if (!el) continue;
-        el.style.transform = `rotate(${shapes[i].rot}deg)`;
+    shapes.forEach((shape, i) => {
+      if (ready[i] || entered.has(shape)) return;
+      const el = els[i];
+      if (!el) return;
+      if (io) {
+        io.observe(el);
+      } else {
+        entered.add(shape);
+        for (const target of entryTargets(i)) target.style.opacity = '';
         ready[i] = true;
       }
-    }
+    });
 
-    const springStates: SpringState[] = shapes.map(() => ({
-      x: 0,
-      y: 0,
-      vx: 0,
-      vy: 0,
-    }));
+    const springStates: SpringState[] = shapes.map((shape) => {
+      let state = springs.get(shape);
+      if (!state) {
+        state = { x: 0, y: 0, vx: 0, vy: 0 };
+        springs.set(shape, state);
+      }
+      return state;
+    });
     let pointer = { x: 0, y: 0 };
     let isTouch = false;
     let lastPointerMoveAt = 0;
@@ -409,7 +474,7 @@ function useShapeMotion(
       );
 
       for (let i = 0; i < shapes.length; i++) {
-        if (!ready[i]) continue;
+        if (!ready[i] && !settled.has(shapes[i])) continue;
         const el = els[i];
         if (!el) continue;
 
@@ -502,12 +567,11 @@ function useShapeMotion(
 
     return () => {
       io?.disconnect();
-      for (const timeout of timeouts) clearTimeout(timeout);
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('scroll', onScroll);
       if (rafId !== null) cancelAnimationFrame(rafId);
     };
-  }, [shapes, entryOffsets, motionParams, reduced]);
+  }, [shapes, entryOffsets, motionParams, reduced, entered]);
 
   const registerEl = useCallback(
     (index: number) => (el: HTMLDivElement | null) => {
@@ -528,11 +592,13 @@ function useShapeMotion(
 }
 
 function ShapeList({
+  pathname,
   shapes,
   hidden,
   sections,
   reduced,
 }: {
+  pathname: string;
   shapes: readonly PlacedShape[];
   hidden: ReadonlySet<number>;
   sections: readonly SectionRect[];
@@ -550,11 +616,15 @@ function ShapeList({
     () => shapes.map(deriveShapeMotionParams),
     [shapes],
   );
+  // 入場済みの図形。停止→再生や図形の追加で effect が張り直されても入場し直さない。
+  // 図形の配置し直しでは shape オブジェクトが作り直されるので自然にリセットされる
+  const [entered] = useState(() => new WeakSet<PlacedShape>());
   const { registerEl, registerRingEl } = useShapeMotion(
     shapes,
     entryOffsets,
     motionParams,
     reduced,
+    entered,
   );
 
   return (
@@ -562,19 +632,19 @@ function ShapeList({
       {shapes.map((shape, index) =>
         shape.tier === 'Inf' ? (
           <InfShapeView
-            key={index}
+            key={`${pathname}:${index}`}
             shape={shape}
             hidden={hidden.has(index)}
-            ringEntryOffsets={reduced ? undefined : infRingEntryOffsets(index)}
+            pending={!reduced && !entered.has(shape)}
             elRef={registerEl(index)}
             ringRefs={[registerRingEl(index, 0), registerRingEl(index, 1)]}
           />
         ) : (
           <SolidShapeView
-            key={index}
+            key={`${pathname}:${index}`}
             shape={shape}
             hidden={hidden.has(index)}
-            entryOffset={reduced ? undefined : entryOffsets[index]}
+            pending={!reduced && !entered.has(shape)}
             elRef={registerEl(index)}
           />
         ),
@@ -587,14 +657,15 @@ const ZERO_DEFICIT: Readonly<Record<Tier, number>> = { Inf: 0, L: 0, S: 0 };
 const EMPTY_HIDDEN: ReadonlySet<number> = new Set();
 
 interface MeasureState {
-  // pathname と幅が同じ間は base (配置結果) の参照を変えない (要件 9.1, 9.3)。
-  // useShapeMotion の effect が base の参照に張り付いているため、間引きは
-  // base を作り直さず hidden (base 内の非表示インデックス集合) だけで表す
-  key: { pathname: string; width: number };
+  // pathname・幅・ヒーロー下端が同じ間は base (配置結果) の参照を作り直さない (要件 9.1, 9.3)。
+  // 間引きは base を作り直さず hidden (base 内の非表示インデックス集合) だけで表す
+  key: { pathname: string; width: number; decorTop: number };
   base: readonly PlacedShape[];
   hidden: ReadonlySet<number>;
   sections: SectionRect[];
   deficit: Readonly<Record<Tier, number>>;
+  // 現在の配置が覆っている装飾範囲の下端。縮んだ後に再び伸びても覆い済みの範囲へは追加しない
+  coveredBottom: number;
 }
 
 function currentInput(pathname: string): PlacementInput | null {
@@ -605,7 +676,7 @@ function currentInput(pathname: string): PlacementInput | null {
   return { pathname, platform, ...collectObstacles(containerEl) };
 }
 
-/** 配置をやり直す (初回、または pathname・幅が変わったとき)。 */
+/** 配置をやり直す (初回、または pathname・幅・ヒーロー下端が変わったとき)。 */
 function measureFull(pathname: string): MeasureState | null {
   const input = currentInput(pathname);
   const mainEl = document.getElementById(MAIN_CONTENT_ID);
@@ -613,11 +684,12 @@ function measureFull(pathname: string): MeasureState | null {
 
   const { shapes, deficit } = placeBackgroundShapes(input);
   return {
-    key: { pathname, width: input.width },
+    key: { pathname, width: input.width, decorTop: input.decorTop },
     base: shapes,
     hidden: EMPTY_HIDDEN,
     sections: collectSectionRects(mainEl),
     deficit,
+    coveredBottom: input.decorBottom,
   };
 }
 
@@ -645,26 +717,45 @@ function sameHidden(a: ReadonlySet<number>, b: ReadonlySet<number>): boolean {
 }
 
 /**
- * base (配置・DOM 要素とも) はそのまま、最新の障害物と重なる図形だけを
- * visibility:hidden にする (要件 9.1, 9.2)。∞ の下限個数・4 質感の網羅は
- * 問わないため deficit は更新しない (design.md reuse 節)。
+ * 高さ変化への追従。base の既存の図形 (配置・DOM 要素とも) は動かさず、
+ * - 最新の障害物と重なる図形だけを visibility:hidden にする (要件 9.1, 9.2)
+ * - 装飾範囲が覆い済みの下端より下へ伸びていたら、伸びた範囲にだけ図形を追加する
  *
  * details-content の開閉アニメーションのように 1 回のトランジションで
- * ResizeObserver が何十回も発火する状況でも、shapes (base) の配列参照を
- * 変えなければ useShapeMotion の effect は張り直されない。逆に base を作り
- * 直したり sections をここで更新したりすると、それを検知して effect が
- * 再発火し、非表示にしたい図形だけでなく画面上の全図形の入場アニメーションが
- * 再生されてしまう (ちらつき)。そのため sections も更新しない
- * (一度入場済みの図形に新しい section 座標は不要)
+ * ResizeObserver が何十回も発火する状況でも、追加が無い限り base の参照は変えない。
+ * 追加で effect が張り直されても、入場済みの図形は入場し直さない。
+ * 間引きでは ∞ の下限個数・4 質感の網羅は問わないため deficit は更新しない
+ * (design.md reuse 節)。
+ *
+ * prev の pathname・幅が現在と違う間は、配置し直しの結果を古い配置で
+ * 上書きしないよう何もしない。
  */
 function refilter(prev: MeasureState, pathname: string): MeasureState | null {
   const input = currentInput(pathname);
   if (!input) return null;
+  if (prev.key.pathname !== pathname || prev.key.width !== input.width) {
+    return prev;
+  }
 
-  const hidden = hiddenIndices(prev.base, input);
-  if (sameHidden(hidden, prev.hidden)) return prev;
+  let base = prev.base;
+  let sections = prev.sections;
+  let coveredBottom = prev.coveredBottom;
+  if (input.decorBottom > coveredBottom + 1) {
+    const added = extendBackgroundShapes(input, base, coveredBottom);
+    // 追加が無い間は覆い済みの下端を進めない。トランジション中の細かい伸びで
+    // 範囲を使い切り、後で個数の目安に達したときに追加先が無くなるのを避ける
+    if (added.length > 0) {
+      base = [...base, ...added];
+      coveredBottom = input.decorBottom;
+      const mainEl = document.getElementById(MAIN_CONTENT_ID);
+      if (mainEl) sections = collectSectionRects(mainEl);
+    }
+  }
 
-  return { ...prev, hidden };
+  const hidden = hiddenIndices(base, input);
+  if (base === prev.base && sameHidden(hidden, prev.hidden)) return prev;
+
+  return { ...prev, base, sections, coveredBottom, hidden };
 }
 
 /**
@@ -678,9 +769,11 @@ function refilter(prev: MeasureState, pathname: string): MeasureState | null {
 export function BackgroundShapes() {
   const pathname = usePathname();
   const { reduced } = useMotionPreference();
-  const [state, setState] = useState<MeasureState | null>(null);
-  // resize/ResizeObserver のコールバックは effect 実行時点の state を閉じ込めた
-  // 古い closure から呼ばれうるため、常に最新の state を読めるよう ref も併せ持つ
+  const [measured, setState] = useState<MeasureState | null>(null);
+  // 別ページの配置は fonts.ready を待つ間も描かない
+  const state = measured?.key.pathname === pathname ? measured : null;
+  // resize のコールバックは effect 実行時点の state を閉じ込めた古い closure から
+  // 呼ばれうるため、幅の比較には常に最新の state を読めるよう ref も併せ持つ
   const stateRef = useRef<MeasureState | null>(null);
   stateRef.current = state;
 
@@ -698,11 +791,18 @@ export function BackgroundShapes() {
     }
 
     const onResize = () => {
-      const width = window.innerWidth;
       const current = stateRef.current;
-      // 幅が変わっていなければ計算し直さない (要件 9.3 の裏返し)。初回計測が
-      // まだ済んでいない間は fonts.ready 待ちの runFull に任せる
-      if (!current || current.key.width === width) return;
+      // 初回計測がまだ済んでいない間は fonts.ready 待ちの runFull に任せる。
+      // 高さそのものは条件にしない (モバイルのアドレスバーの出入りで配置し直さないため)
+      if (!current || current.key.pathname !== pathname) return;
+      const input = currentInput(pathname);
+      if (!input) return;
+      if (
+        current.key.width === input.width &&
+        Math.abs(current.key.decorTop - input.decorTop) <= 0.5
+      ) {
+        return;
+      }
       setState(measureFull(pathname));
     };
     window.addEventListener('resize', onResize);
@@ -711,9 +811,7 @@ export function BackgroundShapes() {
     let observer: ResizeObserver | undefined;
     if (typeof ResizeObserver !== 'undefined') {
       observer = new ResizeObserver(() => {
-        const current = stateRef.current;
-        if (!current) return;
-        setState(refilter(current, pathname));
+        setState((prev) => (prev ? refilter(prev, pathname) : prev));
       });
       observer.observe(document.body);
     }
@@ -725,7 +823,7 @@ export function BackgroundShapes() {
     };
   }, [pathname]);
 
-  // state.base/sections は同じ pathname・幅の間ずっと同じ参照 (refilter は
+  // state.base/sections は同じ配置の間ずっと同じ参照 (refilter は追加が無ければ
   // hidden しか更新しない)。state 自体が refilter のたびに新しい object に
   // なっても、ここで読み出す base/sections の参照は変わらないので、それを
   // deps に持つ useShapeMotion の effect は張り直されない
@@ -744,6 +842,7 @@ export function BackgroundShapes() {
       className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
     >
       <ShapeList
+        pathname={pathname}
         shapes={shapes}
         hidden={hidden}
         sections={sections}

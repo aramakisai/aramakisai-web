@@ -43,13 +43,18 @@ afterEach(() => {
 describe('collectObstacles', () => {
   it('decorTop はヘッダー下端、decorBottom はフッター上端になる', () => {
     const { root } = buildPage();
+    // innerWidth はスクロールバーを含む。配置には含めない clientWidth を使う
+    vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(1024);
+    vi.spyOn(document.documentElement, 'clientWidth', 'get').mockReturnValue(
+      1009,
+    );
 
     const { decorTop, decorBottom, height, width } = collectObstacles(root);
 
     expect(decorTop).toBe(80);
     expect(decorBottom).toBe(1800);
     expect(height).toBe(2000);
-    expect(width).toBe(window.innerWidth);
+    expect(width).toBe(1009);
   });
 
   it('[data-bg-hero] があれば decorTop をその下端にする', () => {

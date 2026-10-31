@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 
-// 協賛ページは未実装。静的な sponsors/ad 等ができればそちらが優先される。
+// ad・local 以外の種別は 404。ad は静的ルートが優先される。
 export default function SponsorsPage() {
   notFound();
 }

@@ -23,7 +23,7 @@ const config: Config = {
           300: '#d6d3d1',
           400: '#a8a29e',
           500: '#78716c',
-          600: '#57534e',
+          600: '#44403c',
           700: '#44403c',
           800: '#292524',
         },
@@ -53,24 +53,22 @@ const config: Config = {
       },
       spacing: {},
       fontFamily: {
-        // 本文は端末のフォントを使い、LINE Seed JP (Webフォント) は見出しとヒーローだけに使う
+        // 本文は端末のフォントを使い、Noto Sans JP (Webフォント) は見出しとヒーローだけに使う。スタックに 'Noto Sans JP' を書かないのは、next/font の @font-face 名と衝突して本文まで Web フォントを取得するため
         sans: [
           'system-ui',
           '-apple-system',
           'Hiragino Sans',
           'Hiragino Kaku Gothic ProN',
-          'Noto Sans JP',
           'Yu Gothic UI',
           'Meiryo',
           'sans-serif',
         ],
         display: [
-          'LINE Seed JP',
+          'var(--font-noto-sans-jp)',
           'system-ui',
           '-apple-system',
           'Hiragino Sans',
           'Hiragino Kaku Gothic ProN',
-          'Noto Sans JP',
           'Yu Gothic UI',
           'Meiryo',
           'sans-serif',

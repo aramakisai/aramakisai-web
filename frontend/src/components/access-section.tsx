@@ -13,7 +13,7 @@ export function AccessSection({ summary }: AccessSectionProps) {
       <SectionHeading level="h2">アクセス</SectionHeading>
       <div className="flex flex-col gap-4 lg:gap-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:gap-6">
-          <div className="flex h-[200px] w-full shrink-0 items-center justify-center bg-gray-200 lg:h-[320px] lg:w-[720px]">
+          <div className="flex h-[200px] w-full shrink-0 items-center justify-center bg-gray-200 lg:h-[320px] lg:w-[56.25%]">
             <SandboxedEmbed
               url={CAMPUS_MAP_EMBED_URL}
               title="会場周辺の地図"

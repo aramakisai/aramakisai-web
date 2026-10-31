@@ -40,7 +40,7 @@ export function LayoutSlide({
     body = (
       <div className="flex flex-1 flex-col items-center justify-center gap-8 text-center">
         <p
-          className={`line-clamp-2 w-full text-[96px] leading-[1.1] font-extrabold ${text}`}
+          className={`line-clamp-2 w-full text-[96px] leading-[1.1] font-black ${text}`}
         >
           {title}
         </p>
@@ -57,7 +57,7 @@ export function LayoutSlide({
     body = (
       <div className="flex flex-1 flex-col gap-6 pt-[282px]">
         <p
-          className={`line-clamp-2 w-full text-[96px] leading-[1.1] font-extrabold ${text}`}
+          className={`line-clamp-2 w-full text-[96px] leading-[1.1] font-black ${text}`}
         >
           {title}
         </p>
@@ -75,7 +75,7 @@ export function LayoutSlide({
     body = (
       <div className="flex min-h-0 flex-1 flex-col gap-8">
         <p
-          className={`line-clamp-1 w-full text-[64px] leading-[1.2] font-extrabold ${text}`}
+          className={`line-clamp-1 w-full text-[64px] leading-[1.2] font-black ${text}`}
         >
           {title}
         </p>

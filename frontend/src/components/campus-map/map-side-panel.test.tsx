@@ -33,7 +33,7 @@ function stubMatchMedia(matches: boolean) {
   const listeners = new Set<() => void>();
   const mql = {
     matches,
-    media: '(min-width: 768px)',
+    media: '(min-width: 1024px)',
     addEventListener: (_: string, cb: () => void) => listeners.add(cb),
     removeEventListener: (_: string, cb: () => void) => listeners.delete(cb),
   };
@@ -67,7 +67,7 @@ describe('MapSidePanel', () => {
 
     expect(panel).toHaveAttribute('aria-hidden', 'false');
     expect(panel).not.toHaveAttribute('inert');
-    expect(panel).toHaveClass('hidden', 'md:flex');
+    expect(panel).toHaveClass('hidden', 'lg:flex');
   });
 
   it('is excluded from assistive tech and keyboard focus below the breakpoint', () => {

@@ -39,9 +39,7 @@ export function ExhibitionLocationSection({
   if (variant === 'signage') {
     return (
       <section className="flex flex-col gap-2 border-t border-gray-200 pt-8">
-        <h2 className="py-0 text-signage-heading font-extrabold text-text">
-          場所
-        </h2>
+        <h2 className="py-0 text-signage-heading font-black text-text">場所</h2>
         <p className="flex items-center gap-1 text-signage-meta text-gray-600">
           <PlaceIcon size={24} className="text-gray-600" />
           {caption}
