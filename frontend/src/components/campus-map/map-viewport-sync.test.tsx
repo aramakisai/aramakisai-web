@@ -10,6 +10,8 @@ const map = vi.hoisted(() => ({
   setMinZoom: vi.fn(),
   getBoundsZoom: vi.fn(),
   fitBounds: vi.fn(),
+  on: vi.fn(),
+  off: vi.fn(),
 }));
 
 vi.mock('react-leaflet', () => ({ useMap: () => map }));

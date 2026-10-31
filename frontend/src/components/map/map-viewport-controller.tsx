@@ -162,15 +162,37 @@ export function MapViewportController({
         map.fitBounds(fitBounds, resolveFitOptions());
       }
     };
+    // ズームのアニメーション中に invalidateSize すると、Leaflet の SVG レンダラが
+    // 古い bounds と新しいサイズを混ぜて計算し、ポリゴンだけがタイルから遅れる。
+    // 移動中の resize は終了後に1回だけ反映する
+    let resizeDeferred = false;
+    const onResizeWhenIdle = () => {
+      if (focusMovingRef.current) {
+        paddingDirtyRef.current = true;
+      } else if (
+        (map as unknown as { _animatingZoom?: boolean })._animatingZoom
+      ) {
+        resizeDeferred = true;
+      } else {
+        onResize();
+      }
+    };
+    const onZoomEndFlush = () => {
+      if (!resizeDeferred) return;
+      resizeDeferred = false;
+      onResize();
+    };
+    map.on('zoomend', onZoomEndFlush);
     syncPaddingRef.current = () => {
       applyMaxBounds(map.getZoom());
       onResize();
     };
-    const observer = new ResizeObserver(onResize);
+    const observer = new ResizeObserver(onResizeWhenIdle);
     observer.observe(container);
     return () => {
       syncPaddingRef.current = null;
       if (extendMaxBounds) map.off('zoomend', onZoomEnd);
+      map.off('zoomend', onZoomEndFlush);
       observer.disconnect();
       container.removeEventListener('pointerdown', markInteracted);
       container.removeEventListener('wheel', markInteracted);

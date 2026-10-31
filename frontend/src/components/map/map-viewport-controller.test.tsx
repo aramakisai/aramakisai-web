@@ -565,4 +565,50 @@ describe('MapViewportController', () => {
       expect(map.flyTo).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('ズーム・移動中のリサイズ', () => {
+    function mountWithObserver() {
+      map.getBoundsZoom.mockReturnValue(14);
+      render(
+        <MapViewportController
+          fitBounds={initialBounds}
+          maxBounds={maxBounds}
+          minZoom={12}
+          fitOptions={() => fitOptions}
+        />,
+      );
+      map.invalidateSize.mockClear();
+      map.fitBounds.mockClear();
+      return MockResizeObserver.instances.at(-1)!;
+    }
+    const zoomEndHandlers = () =>
+      map.on.mock.calls
+        .filter(([event]) => event === 'zoomend')
+        .map(([, handler]) => handler as () => void);
+
+    it('ズームのアニメーション中は反映を保留し、zoomend の後に1回だけ反映する', () => {
+      const observer = mountWithObserver();
+      Object.assign(map, { _animatingZoom: true });
+
+      observer.trigger();
+      observer.trigger();
+      expect(map.invalidateSize).not.toHaveBeenCalled();
+      expect(map.fitBounds).not.toHaveBeenCalled();
+
+      Object.assign(map, { _animatingZoom: false });
+      for (const handler of zoomEndHandlers()) handler();
+      expect(map.invalidateSize).toHaveBeenCalledTimes(1);
+      expect(map.fitBounds).toHaveBeenCalledTimes(1);
+
+      for (const handler of zoomEndHandlers()) handler();
+      expect(map.invalidateSize).toHaveBeenCalledTimes(1);
+      delete (map as { _animatingZoom?: boolean })._animatingZoom;
+    });
+
+    it('アニメーションしていなければ即座に反映する', () => {
+      const observer = mountWithObserver();
+      observer.trigger();
+      expect(map.invalidateSize).toHaveBeenCalledTimes(1);
+    });
+  });
 });
