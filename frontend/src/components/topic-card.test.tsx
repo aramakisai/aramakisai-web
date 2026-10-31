@@ -58,7 +58,7 @@ describe('TopicCard', () => {
     expect(title.className).not.toMatch(/\bp-4\b/);
   });
 
-  test('タイトルは LINE Seed JP Bold 20px (見出し既定の ExtraBold を上書き)', () => {
+  test('タイトルは Noto Sans JP Bold 20px (見出し既定の Black を上書き)', () => {
     render(<TopicCard id={5} title="模擬店マップ" imageId={null} />);
 
     const title = screen.getByText('模擬店マップ');

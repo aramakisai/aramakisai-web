@@ -43,7 +43,7 @@ function FaqAccordionItem({
        */}
       <details className="group [interpolate-size:allow-keywords] details-content:h-0 details-content:overflow-hidden details-content:transition-[height,content-visibility] details-content:duration-200 details-content:ease-out details-content:transition-discrete open:details-content:h-auto motion-reduce:details-content:transition-none">
         <summary className="group/row flex cursor-pointer list-none items-start gap-4 py-5 [&::-webkit-details-marker]:hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-          <span className="flex-1 text-[16px] leading-[1.4] font-extrabold tracking-[0.02em] text-text">
+          <span className="flex-1 text-[16px] leading-[1.4] font-black tracking-[0.02em] text-text">
             <HoverLineText gap={5}>{question}</HoverLineText>
           </span>
           <ExpandMoreIcon className="shrink-0 text-gray-600 transition-transform duration-200 ease-out group-open:rotate-180 motion-reduce:transition-none" />

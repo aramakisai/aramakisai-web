@@ -18,6 +18,9 @@ vi.mock('@/lib/site-metadata', () => ({
   })),
 }));
 
+vi.mock('next/font/google', () => ({
+  Noto_Sans_JP: () => ({ variable: '--font-noto-sans-jp' }),
+}));
 vi.mock('next/navigation', () => ({
   useRouter: vi.fn(() => ({ refresh: vi.fn() })),
 }));

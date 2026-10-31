@@ -10,8 +10,9 @@ import type {
 } from '@/lib/background-shapes/types';
 import * as placementLib from '@/lib/background-shapes/placement';
 
+let pathnameValue = '/topics';
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/topics',
+  usePathname: () => pathnameValue,
 }));
 
 // 実際の localStorage/matchMedia は use-motion-preference.test.ts が担う。
@@ -23,6 +24,14 @@ const useMotionPreferenceMock = vi.fn(() => ({
 vi.mock('@/lib/use-motion-preference', () => ({
   useMotionPreference: () => useMotionPreferenceMock(),
 }));
+
+// 配置は clientWidth (スクロールバーを除く)、PC/SP 判定は innerWidth を読む
+function setViewportWidth(width: number) {
+  vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(width);
+  vi.spyOn(document.documentElement, 'clientWidth', 'get').mockReturnValue(
+    width,
+  );
+}
 
 function stubRect(
   el: Element,
@@ -79,6 +88,8 @@ function Harness() {
 }
 
 afterEach(() => {
+  pathnameValue = '/topics';
+  delete (document as { fonts?: unknown }).fonts;
   vi.restoreAllMocks();
   useMotionPreferenceMock.mockReturnValue({ reduced: false, toggle: vi.fn() });
   document.body.innerHTML = '';
@@ -138,7 +149,7 @@ describe('BackgroundShapes', () => {
     stubRect(footerEl, { x: 0, y: 900, width: 1440, height: 200 });
     // jsdom の既定 innerWidth (1024) と異なる値にする。幅が変わらないリサイズは
     // 計算し直さない (要件 9.3 の裏返し) ため、初回計測との差を作る必要がある
-    vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(1440);
+    setViewportWidth(1440);
 
     // マウント時の初回計測はマイクロタスク 1 つ分遅れて走るため、この resize は
     // 実質 no-op (計測前で state が無い)。await でマイクロタスクを進めた時点では
@@ -183,7 +194,7 @@ describe('BackgroundShapes', () => {
     const headerEl = container.querySelector('header')!;
     stubRect(containerEl, { x: 0, y: 0, width: 375, height: 2000 });
     stubRect(headerEl, { x: 0, y: 0, width: 375, height: 64 });
-    vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(375);
+    setViewportWidth(375);
 
     act(() => {
       window.dispatchEvent(new Event('resize'));
@@ -203,7 +214,7 @@ describe('BackgroundShapes', () => {
     const containerEl = document.getElementById(PAGE_CONTAINER_ID)!;
     const headerEl = container.querySelector('header')!;
     stubRect(headerEl, { x: 0, y: 0, width: 375, height: 64 });
-    vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(375);
+    setViewportWidth(375);
 
     stubRect(containerEl, { x: 0, y: 0, width: 375, height: 5000 });
     act(() => {
@@ -214,7 +225,7 @@ describe('BackgroundShapes', () => {
     });
 
     stubRect(containerEl, { x: 0, y: 0, width: 1024, height: 3000 });
-    vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(1024);
+    setViewportWidth(1024);
     act(() => {
       window.dispatchEvent(new Event('resize'));
     });
@@ -246,7 +257,7 @@ describe('BackgroundShapes', () => {
     const headerEl = container.querySelector('header')!;
     stubRect(containerEl, { x: 0, y: 0, width: 1440, height: 1200 });
     stubRect(headerEl, { x: 0, y: 0, width: 1440, height: 80 });
-    vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(1440);
+    setViewportWidth(1440);
 
     act(() => {
       window.dispatchEvent(new Event('resize'));
@@ -298,7 +309,7 @@ describe('計測・配置・保持・間引きの結合 (要件 9.1, 9.3)', () =
     stubRect(containerEl, { x: 0, y: 0, width: 1440, height: 1200 });
     stubRect(headerEl, { x: 0, y: 0, width: 1440, height: 80 });
     stubRect(footerEl, { x: 0, y: 900, width: 1440, height: 200 });
-    vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(1440);
+    setViewportWidth(1440);
 
     act(() => {
       window.dispatchEvent(new Event('resize'));
@@ -344,14 +355,14 @@ describe('計測・配置・保持・間引きの結合 (要件 9.1, 9.3)', () =
     const headerEl = container.querySelector('header')!;
     stubRect(containerEl, { x: 0, y: 0, width: 1440, height: 1200 });
     stubRect(headerEl, { x: 0, y: 0, width: 1440, height: 80 });
-    vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(1440);
+    setViewportWidth(1440);
 
     act(() => {
       window.dispatchEvent(new Event('resize'));
     });
     await waitFor(() => expect(placeSpy).toHaveBeenCalledTimes(1));
 
-    vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(390);
+    setViewportWidth(390);
     act(() => {
       window.dispatchEvent(new Event('resize'));
     });
@@ -374,7 +385,7 @@ describe('計測・配置・保持・間引きの結合 (要件 9.1, 9.3)', () =
     stubRect(containerEl, { x: 0, y: 0, width: 1440, height: 1200 });
     stubRect(headerEl, { x: 0, y: 0, width: 1440, height: 80 });
     stubRect(footerEl, { x: 0, y: 900, width: 1440, height: 200 });
-    vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(1440);
+    setViewportWidth(1440);
 
     act(() => {
       window.dispatchEvent(new Event('resize'));
@@ -416,7 +427,7 @@ describe('計測・配置・保持・間引きの結合 (要件 9.1, 9.3)', () =
     stubRect(containerEl, { x: 0, y: 0, width: 1440, height: 1200 });
     stubRect(headerEl, { x: 0, y: 0, width: 1440, height: 80 });
     stubRect(footerEl, { x: 0, y: 900, width: 1440, height: 200 });
-    vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(1440);
+    setViewportWidth(1440);
 
     act(() => {
       window.dispatchEvent(new Event('resize'));
@@ -454,5 +465,106 @@ describe('計測・配置・保持・間引きの結合 (要件 9.1, 9.3)', () =
       expect(elB.style.visibility).not.toBe('hidden');
     });
     expect(elA.style.transform).toBe('translate(42px, 7px) rotate(0deg)');
+  });
+
+  async function mountAt1440(shapes: PlacedShape[]) {
+    vi.stubGlobal('ResizeObserver', MockResizeObserver);
+    const placeSpy = vi
+      .spyOn(placementLib, 'placeBackgroundShapes')
+      .mockReturnValue(placementResult(shapes));
+    const view = render(<Harness />);
+    const containerEl = document.getElementById(PAGE_CONTAINER_ID)!;
+    const headerEl = view.container.querySelector('header')!;
+    const footerEl = view.container.querySelector('footer')!;
+    stubRect(containerEl, { x: 0, y: 0, width: 1440, height: 1200 });
+    stubRect(headerEl, { x: 0, y: 0, width: 1440, height: 80 });
+    stubRect(footerEl, { x: 0, y: 900, width: 1440, height: 200 });
+    setViewportWidth(1440);
+    act(() => {
+      window.dispatchEvent(new Event('resize'));
+    });
+    await waitFor(() => {
+      expect(document.querySelectorAll('[data-bg-shape]')).toHaveLength(
+        shapes.length,
+      );
+    });
+    return { placeSpy, view, containerEl, headerEl, footerEl };
+  }
+
+  it('配置し直し待ちの間の ResizeObserver は、古い配置を間引いて上書きしない', async () => {
+    const { footerEl } = await mountAt1440([
+      shape({ tier: 'S', size: 80, cx: 800, cy: 300 }),
+    ]);
+    // 幅が変わったが resize の配置し直しはまだ (key が古い)。この状態で古い幅の
+    // 配置に基づく間引きをしてはならない
+    setViewportWidth(390);
+    stubRect(footerEl, { x: 0, y: 900, width: 390, height: 200 });
+    act(() => {
+      MockResizeObserver.instances[0]?.trigger();
+    });
+    const el = document.querySelector('[data-bg-shape]') as HTMLElement;
+    expect(el.style.visibility).not.toBe('hidden');
+  });
+
+  it('ヒーロー下端 (decorTop) だけが変わった resize でも配置し直す', async () => {
+    const { placeSpy, headerEl } = await mountAt1440([
+      shape({ tier: 'S', cx: 100, cy: 300 }),
+    ]);
+    expect(placeSpy).toHaveBeenCalledTimes(1);
+
+    // 幅は同じ。高さ (innerHeight) だけの変化では配置し直さない
+    vi.spyOn(window, 'innerHeight', 'get').mockReturnValue(500);
+    act(() => {
+      window.dispatchEvent(new Event('resize'));
+    });
+    expect(placeSpy).toHaveBeenCalledTimes(1);
+
+    stubRect(headerEl, { x: 0, y: 0, width: 1440, height: 140 });
+    act(() => {
+      window.dispatchEvent(new Event('resize'));
+    });
+    await waitFor(() => expect(placeSpy).toHaveBeenCalledTimes(2));
+    expect(placeSpy.mock.calls.at(-1)?.[0].decorTop).toBe(140);
+  });
+
+  it('装飾範囲が下へ伸びたら伸びた範囲にだけ図形を追加し、覆い済みの下端を進める', async () => {
+    const { footerEl, containerEl } = await mountAt1440([
+      shape({ tier: 'S', size: 80, cx: 100, cy: 300 }),
+    ]);
+    const extendSpy = vi
+      .spyOn(placementLib, 'extendBackgroundShapes')
+      .mockReturnValue([shape({ tier: 'S', size: 80, cx: 300, cy: 1500 })]);
+    const first = document.querySelector('[data-bg-shape]');
+
+    stubRect(containerEl, { x: 0, y: 0, width: 1440, height: 2000 });
+    stubRect(footerEl, { x: 0, y: 1800, width: 1440, height: 200 });
+    act(() => {
+      MockResizeObserver.instances[0]?.trigger();
+    });
+    await waitFor(() => {
+      expect(document.querySelectorAll('[data-bg-shape]')).toHaveLength(2);
+    });
+    expect(extendSpy).toHaveBeenCalledTimes(1);
+    expect(extendSpy.mock.calls[0][2]).toBe(900);
+    // 既存の図形の要素は作り直さない
+    expect(document.querySelector('[data-bg-shape]')).toBe(first);
+
+    act(() => {
+      MockResizeObserver.instances[0]?.trigger();
+    });
+    expect(extendSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('pathname が変わったら、配置し直しを待つ間も旧ページの図形を描かない', async () => {
+    const { view } = await mountAt1440([
+      shape({ tier: 'S', cx: 100, cy: 300 }),
+    ]);
+    Object.defineProperty(document, 'fonts', {
+      value: { ready: new Promise(() => {}) },
+      configurable: true,
+    });
+    pathnameValue = '/faq';
+    view.rerender(<Harness />);
+    expect(document.querySelectorAll('[data-bg-shape]')).toHaveLength(0);
   });
 });

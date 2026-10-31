@@ -41,7 +41,7 @@ export function SignageBusInfo({ boards }: SignageBusInfoProps) {
                 <span className="text-[24px] leading-none font-bold whitespace-nowrap text-text portrait:text-[36px]">
                   {d.destination}
                 </span>
-                <span className="font-display text-[32px] leading-none font-extrabold whitespace-nowrap text-text portrait:w-[150px] portrait:text-[48px]">
+                <span className="font-display text-[32px] leading-none font-black whitespace-nowrap text-text portrait:w-[150px] portrait:text-[48px]">
                   {d.departAt}
                 </span>
                 <span className="hidden w-[120px] shrink-0 text-[28px] leading-none font-bold whitespace-nowrap text-warning portrait:block">
