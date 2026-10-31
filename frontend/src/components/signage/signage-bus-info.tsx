@@ -7,9 +7,12 @@ export interface SignageBusInfoProps {
   readonly boards: readonly DirectionBoard[];
 }
 
+const HEAD = 'self-start leading-none text-gray-600';
+const NUM = '[font-variant-numeric:tabular-nums]';
+
 /**
- * 列幅は列見出しと全便で位置を揃えるため固定。行先は最長 9 文字(横型 20px×9、縦型 32px×9)で
- * 枠の大きさが変わらない幅にする。寸法の違いはすべて`portrait:`で切り替える
+ * 列見出し・便・運行終了を 1 つのグリッドに置き、全行で列の左端を揃える。
+ * 横型と縦型の寸法の違いはすべて`portrait:`で切り替える
  */
 export function SignageBusInfo({ boards }: SignageBusInfoProps) {
   return (
@@ -19,35 +22,40 @@ export function SignageBusInfo({ boards }: SignageBusInfoProps) {
         <span className="font-bold">バス発車案内</span>
         <span className="text-gray-600">荒牧キャンパスエリア</span>
       </div>
-      <div className="flex w-full items-center gap-2 overflow-clip text-[12px] leading-none text-gray-600 portrait:gap-3 portrait:text-[18px]">
-        <span className="w-16 shrink-0 portrait:w-[103px]">発車時刻</span>
-        <span className="w-[55px] shrink-0 portrait:w-[89px]">系統</span>
-        <span className="w-[190px] shrink-0 portrait:w-[304px]">
+      <div
+        data-testid="bus-grid"
+        className="grid w-full grid-cols-[max-content_max-content_minmax(0,1fr)_max-content] gap-x-2 gap-y-1 portrait:gap-x-3 portrait:gap-y-2"
+      >
+        <span
+          className={`${HEAD} text-[12px] whitespace-nowrap portrait:text-[18px]`}
+        >
+          発車時刻
+        </span>
+        <span
+          className={`${HEAD} text-[12px] whitespace-nowrap portrait:text-[18px]`}
+        >
+          系統
+        </span>
+        <span className={`${HEAD} text-[12px] portrait:text-[18px]`}>
           行先・のりば
         </span>
-        <span className="min-w-px flex-1 text-right">発車まで</span>
-      </div>
-      <div className="flex w-full flex-col gap-1 overflow-clip portrait:gap-2">
+        <span className={`${HEAD} text-right text-[12px] portrait:text-[18px]`}>
+          発車まで
+        </span>
         {boards.flatMap((board) =>
           board.departures.length === 0
             ? [
                 <div
                   key={board.direction}
                   data-testid="bus-departure-ended"
-                  className="flex w-full flex-col gap-1 portrait:gap-2"
+                  className="contents"
                 >
-                  <div className="flex h-[38px] w-full items-center overflow-clip portrait:h-[60px]">
-                    <span
-                      aria-hidden="true"
-                      className="h-px w-[72px] shrink-0 portrait:w-[115px]"
-                    />
-                    <span className="min-w-px flex-1 text-[20px] leading-none text-gray-600 portrait:text-[32px]">
-                      本日の運行は終了しました
-                    </span>
-                  </div>
-                  <div
+                  <span className="col-span-3 col-start-2 flex h-[38px] items-center text-[20px] leading-none text-gray-600 portrait:h-[60px] portrait:text-[32px]">
+                    本日の運行は終了しました
+                  </span>
+                  <span
                     aria-hidden="true"
-                    className="hidden h-[60px] w-full portrait:block"
+                    className="col-span-4 hidden h-[60px] portrait:block"
                   />
                 </div>,
               ]
@@ -55,28 +63,32 @@ export function SignageBusInfo({ boards }: SignageBusInfoProps) {
                 <div
                   key={`${board.direction}-${d.route}-${d.scheduledAt}`}
                   data-testid="bus-departure-row"
-                  className="flex w-full items-center gap-2 overflow-clip portrait:gap-3"
+                  className="contents"
                 >
-                  <span className="w-16 shrink-0 text-[20px] leading-none font-bold [font-variant-numeric:tabular-nums] text-text portrait:w-[103px] portrait:text-[32px]">
+                  <span
+                    className={`self-center text-[20px] leading-none font-bold whitespace-nowrap text-text ${NUM} portrait:text-[32px]`}
+                  >
                     {d.scheduledAt}
                   </span>
-                  <span className="flex w-[55px] shrink-0 items-center justify-center rounded-[4px] bg-primary px-[6px] py-px text-[20px] leading-none font-bold whitespace-nowrap text-text portrait:w-[89px] portrait:px-[10px] portrait:py-[2px] portrait:text-[32px]">
+                  <span className="flex items-center justify-center self-center rounded-[4px] bg-primary px-[6px] py-px text-[20px] leading-none font-bold whitespace-nowrap text-text portrait:px-[10px] portrait:py-[2px] portrait:text-[32px]">
                     {d.route}
                   </span>
-                  <span className="flex w-[190px] shrink-0 flex-col gap-[2px] overflow-clip portrait:w-[304px]">
-                    <span className="flex h-[22px] items-center text-[20px] leading-none font-bold whitespace-nowrap text-text portrait:h-9 portrait:text-[32px]">
+                  <span className="flex flex-col gap-[2px] self-start overflow-clip">
+                    <span className="text-[20px] leading-none font-bold [overflow-wrap:anywhere] text-text portrait:text-[32px]">
                       {d.destination}
                     </span>
                     <span className="text-[14px] leading-none whitespace-nowrap text-gray-600 portrait:text-[22px]">
                       {d.stopName} 発
                     </span>
                   </span>
-                  <span className="flex min-w-px flex-1 flex-col items-end gap-[2px] self-stretch justify-center overflow-clip text-right text-warning">
-                    <span className="flex h-[22px] items-center text-[20px] leading-none font-bold [font-variant-numeric:tabular-nums] portrait:h-9 portrait:text-[32px]">
+                  <span className="flex flex-col items-end gap-[2px] self-stretch overflow-clip text-right text-warning">
+                    <span
+                      className={`text-[20px] leading-none font-bold whitespace-nowrap ${NUM} portrait:text-[32px]`}
+                    >
                       {d.minutesLeft === 0 ? 'まもなく' : `${d.minutesLeft}分`}
                     </span>
                     {d.delayMinutes > 0 && (
-                      <span className="text-[14px] leading-none portrait:text-[22px]">
+                      <span className="text-[14px] leading-none whitespace-nowrap portrait:text-[22px]">
                         約{d.delayMinutes}分遅れ
                       </span>
                     )}

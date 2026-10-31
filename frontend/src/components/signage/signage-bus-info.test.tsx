@@ -30,17 +30,30 @@ const boards = (
 ];
 
 describe('SignageBusInfo', () => {
-  test('行先列は 9 文字ぶん (横 190px・縦 304px) で見出しと揃う', () => {
-    render(
+  test('表全体を 1 つのグリッドにし、px の決め打ちの列幅を持たない', () => {
+    const { container } = render(
       <SignageBusInfo
         boards={boards([dep({ destination: '道の駅まえばし赤城' })], [])}
       />,
     );
-    const col = screen.getByText('道の駅まえばし赤城').parentElement;
-    for (const el of [col, screen.getByText('行先・のりば')]) {
-      expect(el?.className).toContain('w-[190px]');
-      expect(el?.className).toContain('portrait:w-[304px]');
-    }
+    const grid = container.querySelector('[data-testid="bus-grid"]');
+    expect(grid?.className).toContain(
+      'grid-cols-[max-content_max-content_minmax(0,1fr)_max-content]',
+    );
+    expect(grid?.contains(screen.getByText('発車時刻'))).toBe(true);
+    expect(grid?.contains(screen.getByText('道の駅まえばし赤城'))).toBe(true);
+    expect(container.innerHTML).not.toMatch(/w-\[(190|304|103|89|55)px\]/);
+  });
+
+  test('長い行先は省略せず折り返せる', () => {
+    render(
+      <SignageBusInfo
+        boards={boards([dep({ destination: 'けやきウォーク前橋' })], [])}
+      />,
+    );
+    const cls = screen.getByText('けやきウォーク前橋').className;
+    expect(cls).not.toContain('truncate');
+    expect(cls).not.toContain('whitespace-nowrap');
   });
 
   test('定刻の便は発車時刻・系統・行先・のりば・発車までを出し、遅れは出さない', () => {
