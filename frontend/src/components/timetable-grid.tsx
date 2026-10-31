@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { useId } from 'react';
+import { useId, type ReactNode } from 'react';
 import { ChevronRightIcon, PlayCircleIcon } from './icons';
 import { formatEventDayTime, toJstDateKey, toJstParts } from '@/lib/event-day';
 import {
@@ -160,7 +160,7 @@ export function TimetableGrid({
       heading={
         <>
           <div className="shrink-0" style={{ width: timeColPx }} />
-          <div className="flex min-w-0 flex-1">
+          <div className="flex min-w-0 flex-1 bg-background">
             {visibleStages.map(({ stage, colorIndex }) => (
               <div
                 key={stage.id}
@@ -285,11 +285,12 @@ function SlotItem({
     : active
       ? 'p-2'
       : 'p-[6px]';
+  // site は余白を内側の div に持たせ、スクロール追従でその div ごと動かす
   const card = `relative block h-full overflow-hidden rounded-sm text-text ${
     active
       ? 'bg-info'
       : `border border-gray-200 ${signage ? 'bg-gray-100' : tintClass}`
-  } ${pad}`;
+  } ${signage ? pad : ''}`;
   const live = active && (
     <>
       <PlayCircleIcon
@@ -356,6 +357,18 @@ function SlotItem({
       : active
         ? 'top-[26.8px]'
         : 'top-[24px]';
+  const wrap = (children: ReactNode, padRight: string) =>
+    signage ? (
+      children
+    ) : (
+      <div
+        // compact は中身がカードとほぼ同じ高さで動かす余地がない
+        {...(compact ? {} : { 'data-sticky-content': '' })}
+        className={`relative ${pad} ${padRight}`}
+      >
+        {children}
+      </div>
+    );
   return (
     // 上下左右の余白は li の padding で取り、top/height は時間軸の目盛りそのものにする
     <li
@@ -368,18 +381,23 @@ function SlotItem({
       {p.href ? (
         <Link
           href={p.href}
-          className={`${card} ${signage ? (active ? 'pr-11' : 'pr-[43px]') : 'pr-9'} hover-card-shadow hover:z-10`}
+          className={`${card} ${signage ? (active ? 'pr-11' : 'pr-[43px]') : ''} hover-card-shadow hover:z-10`}
           {...current}
         >
-          {body}
-          <ChevronRightIcon
-            size={signage ? 28 : 20}
-            className={`absolute ${signage ? '' : 'right-2'} ${chevronTop}`}
-          />
+          {wrap(
+            <>
+              {body}
+              <ChevronRightIcon
+                size={signage ? 28 : 20}
+                className={`absolute ${signage ? '' : 'right-2'} ${chevronTop}`}
+              />
+            </>,
+            'pr-9',
+          )}
         </Link>
       ) : (
         <div className={card} {...current}>
-          {body}
+          {wrap(body, '')}
         </div>
       )}
     </li>
