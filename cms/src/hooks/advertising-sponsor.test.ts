@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { ValidationError } from 'payload'
 
 import { Sponsors } from '../collections/sponsors'
@@ -28,13 +28,12 @@ describe('広告協賛の保存時検証', () => {
     expect(Sponsors.hooks?.beforeValidate).toHaveLength(4)
   })
 
-  it.each(['planA', 'planB', 'planC'])('%s はロゴ必須', (tier) => {
+  it.each(['planA', 'planB', 'planC', 'planD'])('%s はロゴなしでも受理', (tier) => {
     expect(run({ ...valid, tier })).toEqual({ ...valid, tier })
-    expectError({ ...valid, tier, logo: null }, 'logo')
+    expect(run({ ...valid, tier, logo: null })).toMatchObject({ tier, logo: null })
   })
 
-  it('Dはロゴなしでも受理し、名前と有効なプランは必須', () => {
-    expect(run({ ...valid, tier: 'planD', logo: null })).toMatchObject({ tier: 'planD', logo: null })
+  it('名前と有効なプランは必須', () => {
     for (const name of ['', '  ', null]) expectError({ ...valid, name }, 'name')
     for (const tier of [null, '', 'planE']) expectError({ ...valid, tier }, 'tier')
   })
@@ -49,7 +48,7 @@ describe('広告協賛の保存時検証', () => {
 
   it('部分更新の未送信値は保持し、明示的な空値や種別変更は検証する', () => {
     expect(run({ description: '更新' }, valid)).toEqual({ description: '更新' })
-    expectError({ logo: null }, 'logo', valid)
+    expect(run({ logo: null }, valid)).toEqual({ logo: null })
     expectError({ name: ' ' }, 'name', valid)
     expectError({ tier: null }, 'tier', valid)
     expectError({ type: ['local', 'ad'] }, 'tier', { type: ['local'], name: '地域' })
@@ -58,7 +57,7 @@ describe('広告協賛の保存時検証', () => {
 
   it('広告以外に条件を課さず、複数種別に広告を含む場合は検証する', () => {
     expect(run({ type: ['vendor'], name: '既存', tier: null, url: 'invalid' })).toMatchObject({ tier: null })
-    expectError({ ...valid, type: ['local', 'ad'], logo: null }, 'logo')
+    expectError({ ...valid, type: ['local', 'ad'], name: ' ' }, 'name')
     expectError({ ...valid, type: ['local', 'ad'], url: 'bad' }, 'url')
   })
 

@@ -2,7 +2,7 @@ import type { CollectionBeforeValidateHook } from 'payload'
 import { ValidationError } from 'payload'
 
 import { blankToNull, type ConstraintViolation, hasValue } from './constraints'
-import { isValidOptionalHttpUrl } from './http-url'
+import { isHttpUrl } from './http-url'
 
 type LocalSponsorDoc = Record<string, unknown> & {
   readonly type?: unknown
@@ -37,8 +37,7 @@ export function validateLocalSponsorMap(doc: LocalSponsorDoc): readonly Constrai
   if (!isLocal(doc)) return []
 
   const violations: ConstraintViolation[] = []
-  // 保存フックは空白を正規化するが、直接検証時の既存の判定は維持する。
-  if (hasValue(doc.url) && (!hasValue(blankToNull(doc.url)) || !isValidOptionalHttpUrl(doc.url))) {
+  if (hasValue(doc.url) && !isHttpUrl(doc.url)) {
     violations.push({
       field: 'url',
       message: 'Webサイト URL は http または https の絶対URLにしてください',

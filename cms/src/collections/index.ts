@@ -19,7 +19,6 @@ import { ParkingStatuses } from './parking-statuses';
 import { PerformanceSlots } from './performance-slots';
 import { SignageGroups } from './signage-groups';
 import { SignageSlides } from './signage-slides';
-import { PersonalSponsors } from './personal-sponsors';
 import { Sponsors } from './sponsors';
 import { Stages } from './stages';
 import { StudentExhibitions } from './student-exhibitions';
@@ -49,7 +48,6 @@ export const collections: CollectionConfig[] = [
   Topics,
   Pages,
   Sponsors,
-  PersonalSponsors,
   FaqItems,
   MapAreas,
   MapPoints,

@@ -44,6 +44,7 @@ export const Sponsors: CollectionConfig = {
         { label: '地域協賛', value: 'local' },
         { label: '出店協賛', value: 'vendor' },
         { label: 'その他', value: 'other' },
+        { label: '個人協賛', value: 'personal' },
       ],
     },
     {

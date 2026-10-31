@@ -446,6 +446,42 @@
           "type": "varchar",
           "primaryKey": false,
           "notNull": false
+        },
+        "sizes_small_url": {
+          "name": "sizes_small_url",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sizes_small_width": {
+          "name": "sizes_small_width",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sizes_small_height": {
+          "name": "sizes_small_height",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sizes_small_mime_type": {
+          "name": "sizes_small_mime_type",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sizes_small_filesize": {
+          "name": "sizes_small_filesize",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sizes_small_filename": {
+          "name": "sizes_small_filename",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -529,6 +565,21 @@
           "columns": [
             {
               "expression": "sizes_card_filename",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "media_sizes_small_sizes_small_filename_idx": {
+          "name": "media_sizes_small_sizes_small_filename_idx",
+          "columns": [
+            {
+              "expression": "sizes_small_filename",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1832,97 +1883,6 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.personal_sponsors": {
-      "name": "personal_sponsors",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "serial",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "_order": {
-          "name": "_order",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp(3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp(3) with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "personal_sponsors__order_idx": {
-          "name": "personal_sponsors__order_idx",
-          "columns": [
-            {
-              "expression": "_order",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "personal_sponsors_updated_at_idx": {
-          "name": "personal_sponsors_updated_at_idx",
-          "columns": [
-            {
-              "expression": "updated_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "personal_sponsors_created_at_idx": {
-          "name": "personal_sponsors_created_at_idx",
-          "columns": [
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -6226,12 +6186,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "personal_sponsors_id": {
-          "name": "personal_sponsors_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
         "faq_items_id": {
           "name": "faq_items_id",
           "type": "integer",
@@ -6443,21 +6397,6 @@
           "columns": [
             {
               "expression": "sponsors_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "payload_locked_documents_rels_personal_sponsors_id_idx": {
-          "name": "payload_locked_documents_rels_personal_sponsors_id_idx",
-          "columns": [
-            {
-              "expression": "personal_sponsors_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -6764,19 +6703,6 @@
           "tableTo": "sponsors",
           "columnsFrom": [
             "sponsors_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "payload_locked_documents_rels_personal_sponsors_fk": {
-          "name": "payload_locked_documents_rels_personal_sponsors_fk",
-          "tableFrom": "payload_locked_documents_rels",
-          "tableTo": "personal_sponsors",
-          "columnsFrom": [
-            "personal_sponsors_id"
           ],
           "columnsTo": [
             "id"
@@ -8357,7 +8283,8 @@
         "ad",
         "local",
         "vendor",
-        "other"
+        "other",
+        "personal"
       ]
     },
     "public.enum_sponsors_business_category": {
@@ -8657,6 +8584,6 @@
     "tables": {},
     "columns": {}
   },
-  "id": "8d8a64ae-c93c-49e9-8a7d-7fc3d92db6ea",
+  "id": "413e6487-37ed-48e4-bf0b-c3e741319999",
   "prevId": "00000000-0000-0000-0000-000000000000"
 }

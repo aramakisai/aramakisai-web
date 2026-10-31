@@ -1,7 +1,4 @@
-import { blankToNull, hasValue } from './constraints'
-
-export function isValidOptionalHttpUrl(value: unknown): boolean {
-  if (!hasValue(blankToNull(value))) return true
+export function isHttpUrl(value: unknown): boolean {
   try {
     const parsed = new URL(String(value))
     return parsed.protocol === 'http:' || parsed.protocol === 'https:'

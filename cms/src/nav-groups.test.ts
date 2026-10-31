@@ -28,7 +28,7 @@ describe('NAV_GROUPS', () => {
 
   it('分類が要件の表どおり', () => {
     const by = (g: string) => Object.keys(NAV_GROUPS).filter((s) => NAV_GROUPS[s] === g);
-    expect(by('サイト掲載')).toEqual(['announcements', 'topics', 'pages', 'faq_items', 'sponsors', 'personal_sponsors']);
+    expect(by('サイト掲載')).toEqual(['announcements', 'topics', 'pages', 'faq_items', 'sponsors']);
     expect(by('企画・ステージ')).toEqual(['student_exhibitions', 'stages', 'performance_slots']);
     expect(by('会場・マップ')).toEqual(['map_areas', 'map_points', 'parking_lots', 'parking_cameras']);
     expect(by('当日運営')).toEqual(['parking_statuses', 'parking_snapshots', 'lost_items']);

@@ -73,7 +73,6 @@ export interface Config {
     topics: Topic;
     pages: Page;
     sponsors: Sponsor;
-    personal_sponsors: PersonalSponsor;
     faq_items: FaqItem;
     map_areas: MapArea;
     map_points: MapPoint;
@@ -112,7 +111,6 @@ export interface Config {
     topics: TopicsSelect<false> | TopicsSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
     sponsors: SponsorsSelect<false> | SponsorsSelect<true>;
-    personal_sponsors: PersonalSponsorsSelect<false> | PersonalSponsorsSelect<true>;
     faq_items: FaqItemsSelect<false> | FaqItemsSelect<true>;
     map_areas: MapAreasSelect<false> | MapAreasSelect<true>;
     map_points: MapPointsSelect<false> | MapPointsSelect<true>;
@@ -420,7 +418,7 @@ export interface Page {
 export interface Sponsor {
   id: number;
   _order?: string | null;
-  type: ('ad' | 'local' | 'vendor' | 'other')[];
+  type: ('ad' | 'local' | 'vendor' | 'other' | 'personal')[];
   name: string;
   logo?: (number | null) | Media;
   url?: string | null;
@@ -498,17 +496,6 @@ export interface MapArea {
   color?: string | null;
   hasAed?: boolean | null;
   hasToilet?: boolean | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "personal_sponsors".
- */
-export interface PersonalSponsor {
-  id: number;
-  _order?: string | null;
-  name: string;
   updatedAt: string;
   createdAt: string;
 }
@@ -1083,10 +1070,6 @@ export interface PayloadLockedDocument {
         value: number | Sponsor;
       } | null)
     | ({
-        relationTo: 'personal_sponsors';
-        value: number | PersonalSponsor;
-      } | null)
-    | ({
         relationTo: 'faq_items';
         value: number | FaqItem;
       } | null)
@@ -1346,16 +1329,6 @@ export interface SponsorsSelect<T extends boolean = true> {
         booth_number?: T;
         booth_label?: T;
       };
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "personal_sponsors_select".
- */
-export interface PersonalSponsorsSelect<T extends boolean = true> {
-  _order?: T;
-  name?: T;
   updatedAt?: T;
   createdAt?: T;
 }
