@@ -41,7 +41,7 @@ async function setVisibility(page: Page, state: 'hidden' | 'visible') {
   }, state);
 }
 
-test('/access が専用ページとして出て、サイト設定の本文が反映される', async ({
+test('/access が専用ページとして出て、サイト設定の本文と時刻表・出典が出る', async ({
   page,
 }) => {
   const res = await fetch(`${CMS_URL}/api/globals/site_settings?depth=0`);
@@ -54,7 +54,17 @@ test('/access が専用ページとして出て、サイト設定の本文が反
   await page.goto('/access');
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   await expect(page.locator('main')).toContainText(heading!);
-  await expect(page.getByTestId('bus-departure-board')).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: '群馬大学行バス時刻表' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: '前橋駅行バス時刻表' }),
+  ).toBeVisible();
+  await expect(page.getByTestId('bus-campus-bound-timetable')).toContainText(
+    '下線太字は群馬大学荒牧で降車',
+  );
+  await expect(page.getByTestId('bus-timetable')).toBeVisible();
+  await expect(page.getByTestId('bus-departure-board')).toHaveCount(0);
   await expect(page.getByTestId('bus-data-notice')).toContainText(
     '表示4.0国際',
   );
@@ -63,10 +73,8 @@ test('/access が専用ページとして出て、サイト設定の本文が反
   ).toHaveAttribute('href', 'https://kan-etsu.net/pages/23/');
 });
 
-test.describe('リアルタイム情報の取得', () => {
-  test.setTimeout(150_000);
-
-  test('開催中のトップページで ODPT からブラウザが直接取得し、Worker への取得が増えず、裏タブでは止まる', async ({
+test.describe('ODPT へのリクエスト', () => {
+  test('トップページ(開催中)と /access は ODPT にも Worker のデータ取得にも要求を出さない', async ({
     page,
     context,
     baseURL,
@@ -78,26 +86,34 @@ test.describe('リアルタイム情報の取得', () => {
       page,
       new URL(baseURL!).origin,
     );
-    await page.goto('/');
-    await expect(page.getByTestId('bus-departure-board')).toBeVisible();
+    for (const path of ['/', '/access']) {
+      await page.goto(path);
+      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(3_000);
+    }
+    expect(odpt).toEqual([]);
+    expect(sameOriginData).toEqual([]);
+  });
+});
+
+test.describe('サイネージのリアルタイム情報の取得', () => {
+  test.setTimeout(150_000);
+
+  test('ブラウザが ODPT から直接取得し、裏タブでは止まる', async ({
+    page,
+    baseURL,
+  }) => {
+    const { odpt } = trackRequests(page, new URL(baseURL!).origin);
+    await page.goto('/signage');
     await expect
       .poll(() => odpt.length, { message: '初回の取得(2 フィード)' })
       .toBeGreaterThanOrEqual(2);
     expect(odpt.some((p) => p.endsWith('trip_update'))).toBe(true);
     expect(odpt.some((p) => p.endsWith('vehicle'))).toBe(true);
-    await expect(
-      page
-        .getByTestId('bus-departure-row')
-        .or(page.getByTestId('bus-departure-ended'))
-        .first(),
-    ).toBeVisible();
 
-    // 30 秒の次回取得をまたぐ間、ODPT だけが増え、同一オリジン(Worker)への fetch/xhr は 0 件
-    sameOriginData.length = 0;
     const before = odpt.length;
     await page.waitForTimeout(POLL_WINDOW_MS);
     expect(odpt.length).toBeGreaterThan(before);
-    expect(sameOriginData).toEqual([]);
 
     await setVisibility(page, 'hidden');
     const hiddenAt = odpt.length;
