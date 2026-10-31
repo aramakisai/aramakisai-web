@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { nextDepartures } from '@/lib/bus-departures';
-import { BUS_TIMETABLE } from '@/lib/bus-timetable-data';
+import busTimetable from '@/data/bus-timetable.json';
+import { nextBusDepartures } from '@/lib/bus-next-departures';
+import { departuresOn, type BusTimetableFile } from '@/lib/bus-timetable';
+import { toJstDateKey } from '@/lib/event-day';
 import {
   buildPlaylist,
   CANVAS_SIZE,
@@ -20,6 +22,7 @@ import {
   useSignageChannel,
   useSignageFeature,
 } from '@/lib/use-signage-channel';
+import { useBusRealtime } from '@/lib/use-bus-realtime';
 import { usePolling } from '@/lib/use-polling';
 import { SignageBubbles } from './signage-bubbles';
 import { SignageBusInfo } from './signage-bus-info';
@@ -121,8 +124,13 @@ export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
   const canvas = CANVAS_SIZE[orientation];
   const eventDays = data?.eventDays ?? [];
   const rows = data ? stageNow(data.timetable, now) : null;
-  const boards = nextDepartures(
-    BUS_TIMETABLE,
+  const busRealtime = useBusRealtime();
+  const boards = nextBusDepartures(
+    departuresOn(
+      busTimetable as unknown as BusTimetableFile,
+      toJstDateKey(now.toISOString()),
+    ),
+    busRealtime,
     now,
     orientation === 'portrait' ? 2 : 1,
   );

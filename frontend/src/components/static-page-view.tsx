@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { type ReactNode } from 'react';
 import { RichText } from './rich-text';
 import { RichTextImageViewer } from './rich-text-image-viewer';
 import { SandboxedEmbed } from './sandboxed-embed';
@@ -9,6 +9,7 @@ export interface StaticPageViewProps {
   embedUrl: string | null;
   embedTitle: string;
   embedHeight?: number | null;
+  children?: ReactNode;
 }
 
 export function StaticPageView({
@@ -17,6 +18,7 @@ export function StaticPageView({
   embedUrl,
   embedTitle,
   embedHeight = null,
+  children,
 }: StaticPageViewProps) {
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-8">
@@ -30,6 +32,7 @@ export function StaticPageView({
         className={embedHeight ? 'w-full' : 'w-full aspect-video'}
         style={embedHeight ? { height: `${embedHeight}px` } : undefined}
       />
+      {children}
     </div>
   );
 }

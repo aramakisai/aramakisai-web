@@ -20,6 +20,7 @@
     "postinstall": "node scripts/copy-zxing-wasm.mjs",
     "qr:generate": "tsx scripts/generate-exhibition-qr.ts",
     "metrics:stamps": "tsx scripts/export-stamp-metrics.ts",
+    "bus:timetable": "tsx scripts/fetch-bus-timetable.ts",
     "check:build-artifacts": "opennextjs-cloudflare build && tsx scripts/verify-build-artifacts.ts"
   },
   "dependencies": {
@@ -47,9 +48,11 @@
     "@types/react-dom": "19.2.3",
     "@types/sanitize-html": "^2.16.1",
     "@vitejs/plugin-react": "^4.0.0",
+    "csv-parse": "^7.0.3",
     "eslint": "^9.0.0",
     "eslint-config-next": "16.4.2",
     "eslint-config-prettier": "^10.0.0",
+    "fflate": "^0.8.3",
     "jsdom": "^25.0.0",
     "postcss": "^8.5.16",
     "prettier": "^3.0.0",
