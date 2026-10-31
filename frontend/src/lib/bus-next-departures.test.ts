@@ -46,6 +46,8 @@ const rt = (
     updates?: [string, number, number][];
     vehicles?: [string, number][];
     generatedAt?: number | null;
+    tripUpdatesAt?: number | null;
+    vehiclesAt?: number | null;
   },
   now: Date,
 ): BusRealtimeInput => ({
@@ -65,6 +67,8 @@ const rt = (
     over.generatedAt === undefined
       ? Math.floor(now.getTime() / 1000) - 10
       : over.generatedAt,
+  tripUpdatesAt: over.tripUpdatesAt,
+  vehiclesAt: over.vehiclesAt,
 });
 
 const first = (now: Date, r: BusRealtimeInput | null, dir = 0) =>
@@ -189,6 +193,40 @@ describe('nextBusDepartures', () => {
       first(now, rt({ updates: [['a', 5, 300]], generatedAt: fresh }, now))
         .source,
     ).toBe('realtime');
+  });
+
+  it('古いフィードだけ捨て、新しい方のフィードは使う', () => {
+    const now = sat(9, 50);
+    const sec = Math.floor(now.getTime() / 1000);
+    const stale = sec - 300;
+    // 遅れのフィードだけ古い: 遅れは捨て、車両位置(a は 5 番目の停留所へ向かう)は使う
+    const tripStale = rt(
+      {
+        updates: [['a', 5, 300]],
+        vehicles: [['a', 5]],
+        tripUpdatesAt: stale,
+        vehiclesAt: sec - 10,
+      },
+      now,
+    );
+    expect(first(now, tripStale)).toMatchObject({
+      expectedAt: '10:00',
+      source: 'schedule',
+    });
+    // 車両のフィードだけ古い: 車両位置は捨て、遅れは使う
+    const vehicleStale = rt(
+      {
+        updates: [['a', 5, 300]],
+        vehicles: [['a', 6]],
+        tripUpdatesAt: sec - 10,
+        vehiclesAt: stale,
+      },
+      now,
+    );
+    expect(first(now, vehicleStale)).toMatchObject({
+      expectedAt: '10:05',
+      source: 'realtime',
+    });
   });
 
   it('全便発車済みの方面は空', () => {

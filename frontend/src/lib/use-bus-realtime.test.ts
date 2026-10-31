@@ -35,6 +35,7 @@ describe('fetchBusRealtime', () => {
       decodeVehicles(new Uint8Array(fixture('gtfs-rt-vehicle.pb'))),
     ].map((f) => f.generatedAt);
     expect(r.generatedAt).toBe(Math.min(...stamps));
+    expect([r.tripUpdatesAt, r.vehiclesAt]).toEqual(stamps);
     expect(r.tripUpdates.size).toBeGreaterThan(0);
     expect(r.vehicles.size).toBeGreaterThan(0);
   });
@@ -48,6 +49,7 @@ describe('fetchBusRealtime', () => {
     expect(r.tripUpdates.size).toBe(0);
     expect(r.vehicles.size).toBeGreaterThan(0);
     expect(r.generatedAt).not.toBeNull();
+    expect(r.tripUpdatesAt).toBeNull();
   });
 
   it('2 フィードとも取得できなければ null(情報なし)', async () => {

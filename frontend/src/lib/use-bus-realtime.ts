@@ -18,6 +18,9 @@ export interface BusRealtime {
   vehicles: ReadonlyMap<string, RealtimeVehicle>;
   /** header.timestamp(epoch 秒)。2 フィードの古い方 */
   generatedAt: number;
+  /** 各フィードの header.timestamp。取得できなかったフィードは null */
+  tripUpdatesAt: number | null;
+  vehiclesAt: number | null;
 }
 
 async function fetchFeed<T>(
@@ -56,6 +59,8 @@ export async function fetchBusRealtime(): Promise<BusRealtime | null> {
     tripUpdates: indexFirst(trips),
     vehicles: indexFirst(vehicles),
     generatedAt: Math.min(...stamps),
+    tripUpdatesAt: trips?.generatedAt ?? null,
+    vehiclesAt: vehicles?.generatedAt ?? null,
   };
 }
 

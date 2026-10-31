@@ -11,6 +11,9 @@ export interface BusRealtimeInput {
   readonly vehicles: ReadonlyMap<string, RealtimeVehicle>;
   /** epoch 秒 */
   readonly generatedAt: number | null;
+  /** フィードごとの生成時刻(epoch 秒)。省略時は generatedAt。null は取得できなかったフィード */
+  readonly tripUpdatesAt?: number | null;
+  readonly vehiclesAt?: number | null;
 }
 
 export interface NextDeparture {
@@ -60,8 +63,16 @@ export function nextBusDepartures(
   now: Date,
   perDirection: number,
 ): readonly DirectionBoard[] {
-  const rt =
-    realtime && isRealtimeFresh(realtime.generatedAt, now) ? realtime : null;
+  // 遅れと車両位置は別フィードなので、古さも別々に判定する
+  const freshOf = (at: number | null | undefined) =>
+    realtime !== null &&
+    isRealtimeFresh(at === undefined ? realtime.generatedAt : at, now);
+  const tripUpdates = freshOf(realtime?.tripUpdatesAt)
+    ? realtime?.tripUpdates
+    : undefined;
+  const vehicles = freshOf(realtime?.vehiclesAt)
+    ? realtime?.vehicles
+    : undefined;
   const { hours, minutes } = toJstParts(now.toISOString());
   const nowMs =
     (hours * 60 + minutes) * 60_000 +
@@ -82,8 +93,8 @@ export function nextBusDepartures(
   }[] = [];
   for (const [tripId, stops] of byTrip) {
     stops.sort((a, b) => a.stopSequence - b.stopSequence);
-    const vehicle = rt?.vehicles.get(tripId);
-    const update = rt?.tripUpdates.get(tripId);
+    const vehicle = vehicles?.get(tripId);
+    const update = tripUpdates?.get(tripId);
     for (const s of stops) {
       const [h, m] = s.time.split(':').map(Number);
       const scheduledMs = (h * 60 + m) * 60_000;
