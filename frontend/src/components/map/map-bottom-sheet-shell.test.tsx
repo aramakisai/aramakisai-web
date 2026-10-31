@@ -398,4 +398,78 @@ describe('MapBottomSheetShell', () => {
     expect(written).toEqual(['360px', '120px', '360px']);
     rect.mockRestore();
   });
+
+  describe('transition 中の通知', () => {
+    function setup() {
+      window.matchMedia = vi.fn().mockReturnValue({
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      });
+      const onTargetHeightChange = vi.fn();
+      const tree = (snapId: string) => (
+        <MapBottomSheetShell
+          snaps={regionalSnaps}
+          snapId={snapId}
+          restSnapId="list"
+          onSnapChange={vi.fn()}
+          onTargetHeightChange={onTargetHeightChange}
+        >
+          <p>内容</p>
+        </MapBottomSheetShell>
+      );
+      const realGetComputedStyle = window.getComputedStyle.bind(window);
+      vi.spyOn(window, 'getComputedStyle').mockImplementation((el, pseudo) => {
+        const style = realGetComputedStyle(el, pseudo);
+        return el instanceof HTMLElement &&
+          el.dataset.testid === 'map-bottom-sheet'
+          ? ({
+              ...style,
+              transitionDuration: '0.3s',
+              paddingTop: '0',
+              paddingBottom: '0',
+            } as unknown as CSSStyleDeclaration)
+          : style;
+      });
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+        height: 360,
+      } as DOMRect);
+      const view = render(tree('list'));
+      return { ...view, tree, onTargetHeightChange };
+    }
+    const end = (sheet: HTMLElement, propertyName = 'height') => {
+      const event = new Event('transitionend', { bubbles: true });
+      Object.assign(event, { propertyName });
+      fireEvent(sheet, event);
+    };
+
+    it('伸びる向きは height の transition が終わってから通知する', () => {
+      const { rerender, tree, onTargetHeightChange } = setup();
+      onTargetHeightChange.mockClear();
+      rerender(tree('detail'));
+      expect(onTargetHeightChange).not.toHaveBeenCalled();
+
+      const sheet = screen.getByTestId('map-bottom-sheet');
+      end(sheet, 'opacity');
+      expect(onTargetHeightChange).not.toHaveBeenCalled();
+      end(sheet);
+      expect(onTargetHeightChange).toHaveBeenCalledTimes(1);
+      expect(onTargetHeightChange).toHaveBeenCalledWith(620);
+      vi.restoreAllMocks();
+    });
+
+    it('縮む向きは即時に通知し、伸びる途中の保留は取り消す', () => {
+      const { rerender, tree, onTargetHeightChange } = setup();
+      rerender(tree('detail'));
+      onTargetHeightChange.mockClear();
+
+      rerender(tree('collapsed'));
+      expect(onTargetHeightChange).toHaveBeenCalledTimes(1);
+      expect(onTargetHeightChange).toHaveBeenLastCalledWith(112);
+
+      end(screen.getByTestId('map-bottom-sheet'));
+      expect(onTargetHeightChange).toHaveBeenCalledTimes(1);
+      vi.restoreAllMocks();
+    });
+  });
 });

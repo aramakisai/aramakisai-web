@@ -128,20 +128,6 @@ export function MapBottomSheetShell({
       ? drag.startHeight < maxSnapPx() - 1
       : draggedUpBy < 0 && drag.startScrollTop <= 0);
 
-  // snap の切替と同じ commit で地図側が読めるよう、描画前に通知する
-  const notifiedHeightRef = useRef<number | null>(null);
-  useLayoutEffect(() => {
-    const hidden =
-      !!outerRef.current &&
-      getComputedStyle(outerRef.current).display === 'none';
-    const height = hidden
-      ? 0
-      : currentSnap.resolveHeightPx(measureSnapContext());
-    if (height === notifiedHeightRef.current) return;
-    notifiedHeightRef.current = height;
-    onTargetHeightChange?.(height);
-  });
-
   // height:auto からの transition は、同じ commit で入れ替わった内容の高さ (絞り込み直後は
   // 一覧全体) を起点に始まってしまう。内容が替わる前の実高さを起点に固定し直す
   const prevSnapRef = useRef(currentSnap);
@@ -172,6 +158,61 @@ export function MapBottomSheetShell({
     lastHeightRef.current =
       currentSnap.height === 'auto' ? el.getBoundingClientRect().height : null;
   });
+
+  // 地図は通知された高さの分だけ縮む。伸びる向きでは、transition の途中で地図だけが先に縮むと
+  // シートとの間が空くため、height の transition が終わってから通知する。縮む向きは即時
+  const notifiedHeightRef = useRef<number | null>(null);
+  const pendingRef = useRef<{ height: number; cancel: () => void } | null>(
+    null,
+  );
+  useLayoutEffect(() => {
+    const el = sheetRef.current;
+    const hidden =
+      !!outerRef.current &&
+      getComputedStyle(outerRef.current).display === 'none';
+    const height = hidden
+      ? 0
+      : currentSnap.resolveHeightPx(measureSnapContext());
+    if (pendingRef.current && pendingRef.current.height !== height) {
+      pendingRef.current.cancel();
+    }
+    if (pendingRef.current || height === notifiedHeightRef.current) return;
+    const notify = () => {
+      pendingRef.current = null;
+      notifiedHeightRef.current = height;
+      onTargetHeightChange?.(height);
+    };
+    const growing =
+      notifiedHeightRef.current !== null && height > notifiedHeightRef.current;
+    const transitioning =
+      !!el &&
+      !hidden &&
+      parseFloat(getComputedStyle(el).transitionDuration) > 0 &&
+      Math.abs(el.getBoundingClientRect().height - height) >= 1;
+    if (!growing || !transitioning || !el) {
+      notify();
+      return;
+    }
+    const finish = (event: Event) => {
+      if (
+        event.target === el &&
+        (event.type === 'transitioncancel' ||
+          (event as TransitionEvent).propertyName === 'height')
+      ) {
+        cancel();
+        notify();
+      }
+    };
+    const cancel = () => {
+      el.removeEventListener('transitionend', finish);
+      el.removeEventListener('transitioncancel', finish);
+      pendingRef.current = null;
+    };
+    el.addEventListener('transitionend', finish);
+    el.addEventListener('transitioncancel', finish);
+    pendingRef.current = { height, cancel };
+  });
+  useEffect(() => () => pendingRef.current?.cancel(), []);
 
   // SSR 後の初回描画と URL からの状態復元が済むまで transition を掛けない。
   // 掛けると復元後の高さへ SSR の高さから伸びる動きが見えてしまう
