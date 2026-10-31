@@ -1,23 +1,32 @@
 import type { SponsorListItem } from './sponsors';
-import type { PersonalSponsor } from '@/cms-types';
+import type { Sponsor } from '@/cms-types';
 import { cms, type CmsFetchOptions } from './cms';
+import { websiteUrl } from './regional-sponsors';
+import type { MarqueeTier } from './sponsor-marquee';
 
-export type AdTier = 'planA' | 'planB' | 'planC' | 'planD';
 export type AdSponsor = Readonly<{
   id: number;
   name: string;
-  tier: AdTier;
+  tier: MarqueeTier;
   logoId: string | null;
   url: string | null;
 }>;
-export type AdSponsorsByTier = Readonly<Record<AdTier, readonly AdSponsor[]>>;
+export type AdSponsorsByTier = Readonly<
+  Record<MarqueeTier, readonly AdSponsor[]>
+>;
 
 export async function getPersonalSponsors(
   options?: CmsFetchOptions,
-): Promise<readonly Pick<PersonalSponsor, 'id' | 'name'>[]> {
+): Promise<readonly { id: number; name: string }[]> {
   const result = await cms.findMany(
-    'personal_sponsors',
-    { sort: ['_order'], limit: 0, depth: 0 },
+    'sponsors',
+    {
+      // hasMany select の equals は包含判定になる。CmsWhere は配列型で受けるため型だけ合わせる
+      where: { type: { equals: 'personal' as unknown as Sponsor['type'] } },
+      sort: ['_order'],
+      limit: 0,
+      depth: 0,
+    },
     options,
   );
   if (!result.ok) throw new Error('Failed to load personal sponsors');
@@ -27,22 +36,10 @@ export async function getPersonalSponsors(
   });
 }
 
-function normalizeUrl(value: string | null): string | null {
-  if (!value?.trim()) return null;
-  try {
-    const url = new URL(value.trim());
-    return url.protocol === 'http:' || url.protocol === 'https:'
-      ? url.toString()
-      : null;
-  } catch {
-    return null;
-  }
-}
-
 export function groupAdSponsors(
   sponsors: readonly SponsorListItem[],
 ): AdSponsorsByTier {
-  const groups: Record<AdTier, AdSponsor[]> = {
+  const groups: Record<MarqueeTier, AdSponsor[]> = {
     planA: [],
     planB: [],
     planC: [],
@@ -58,13 +55,13 @@ export function groupAdSponsors(
     )
       continue;
     const name = sponsor.name?.trim();
-    if (!name || (tier !== 'planD' && !sponsor.logoId?.trim())) continue;
+    if (!name) continue;
     groups[tier].push({
       id: sponsor.id,
       name,
       tier,
-      logoId: tier === 'planD' ? null : sponsor.logoId,
-      url: normalizeUrl(sponsor.url),
+      logoId: tier === 'planD' ? null : sponsor.logoId?.trim() || null,
+      url: websiteUrl(sponsor.url),
     });
   }
   return groups;

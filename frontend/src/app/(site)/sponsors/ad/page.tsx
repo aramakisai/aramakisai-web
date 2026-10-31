@@ -26,16 +26,12 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AdvertisingSponsorsPage() {
-  const options = { ttlSeconds: 1 };
   const sponsors = await loadForIsr(async () => {
-    const result = await getSponsors(options);
+    const result = await getSponsors();
     if (!result.ok) throw new Error('Failed to load sponsors');
     return groupAdSponsors(result.value.ad);
   }, groupAdSponsors([]));
-  const personalSponsors = await loadForIsr(
-    () => getPersonalSponsors(options),
-    [],
-  );
+  const personalSponsors = await loadForIsr(() => getPersonalSponsors(), []);
 
   return (
     <AdvertisingSponsorsContent

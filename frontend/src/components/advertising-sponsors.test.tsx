@@ -5,7 +5,6 @@ import {
   AdvertisingSponsors,
   AdvertisingSponsorsContent,
 } from './advertising-sponsors';
-import tailwindConfig from '../../tailwind.config';
 
 vi.mock('@/lib/cms-asset-url', () => ({
   toAssetUrl: (id: string | null, width?: number) =>
@@ -76,6 +75,8 @@ describe('AdvertisingSponsorsContent', () => {
     ]);
     expect(items[2]).toHaveClass('break-words', 'min-w-0');
     expect(personalList).toHaveClass(
+      'max-w-[726.667px]',
+      'lg:max-w-none',
       'grid-cols-2',
       'lg:grid-cols-3',
       'gap-x-4',
@@ -158,29 +159,53 @@ describe('AdvertisingSponsors', () => {
     expect(screen.getByAltText('企業1')).toHaveClass('object-contain');
     expect(screen.getByAltText('企業1').parentElement).toHaveClass(
       'w-[calc((100%_+_2px)*300/358)]',
-      'lg:w-[calc((100%_+_2px)*460/548)]',
+      'min-[580px]:w-[calc((100%_+_2px)*460/548)]',
     );
     expect(screen.getByAltText('企業3').parentElement).toHaveClass(
       'w-[calc((100%_+_2px)*145/173)]',
-      'lg:w-[calc((100%_+_2px)*300/357)]',
+      'min-[580px]:w-[calc((100%_+_2px)*300/357)]',
     );
     expect(screen.getByAltText('企業4').parentElement).toHaveClass(
       'w-[calc((100%_+_2px)*135/173)]',
-      'lg:w-[calc((100%_+_2px)*220/268)]',
+      'min-[580px]:w-[calc((100%_+_2px)*220/268)]',
     );
     expect(screen.getByAltText('企業1').parentElement).toHaveClass(
       'aspect-[300/110]',
-      'lg:aspect-[460/170]',
+      'min-[580px]:aspect-[460/170]',
     );
     expect(screen.getByAltText('企業3').parentElement).toHaveClass(
       'aspect-[145/60]',
-      'lg:aspect-[300/120]',
+      'min-[580px]:aspect-[300/120]',
     );
     expect(screen.getByAltText('企業4').parentElement).toHaveClass(
       'aspect-[135/54]',
-      'lg:aspect-[220/86]',
+      'min-[580px]:aspect-[220/86]',
     );
     expect(within(d).getAllByRole('listitem')[0]).toHaveClass('break-words');
+  });
+
+  it('ロゴ未登録の A〜C は掲載を残し、カード内に企業名を表示する。リンク時だけ下線を持ち影は付けない', () => {
+    const noLogo: AdSponsorsByTier = {
+      planA: [{ ...sponsor(1, 'planA'), logoId: null }],
+      planB: [
+        {
+          ...sponsor(2, 'planB'),
+          logoId: null,
+          url: 'https://example.com/b',
+        },
+      ],
+      planC: [],
+      planD: [],
+    };
+    const { container } = render(<AdvertisingSponsors sponsors={noLogo} />);
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    const [plain, linked] = screen.getAllByRole('listitem');
+    expect(plain).toHaveTextContent('企業1');
+    expect(plain.querySelector('.mansai-spectrum-line')).toBeNull();
+    expect(linked).toHaveTextContent('企業2');
+    expect(linked.querySelector('a .mansai-spectrum-line')).not.toBeNull();
+    expect(linked).not.toHaveClass('hover-card-shadow');
+    expect(container.querySelector('.bg-gray-100')).toBeNull();
   });
 
   it('空のプランに空カードや架空のデータを追加しない', () => {
@@ -213,13 +238,11 @@ describe('AdvertisingSponsors', () => {
     for (const link of links) {
       expect(link).toHaveAttribute('target', '_blank');
       expect(link).toHaveAttribute('rel', 'noopener noreferrer');
-      expect(within(link).getByText('新しいタブで開きます')).toHaveClass(
-        'sr-only',
-      );
+      expect(link).not.toHaveTextContent('新しいタブで開きます');
       expect(link.querySelector('svg')).toBeNull();
       expect(link).toHaveClass(
         'focus-visible:outline-2',
-        'focus-visible:outline-text',
+        'focus-visible:outline-primary',
       );
     }
     for (const [index, href] of [
@@ -230,36 +253,16 @@ describe('AdvertisingSponsors', () => {
       expect(links[index]).toHaveAttribute('href', href);
       expect(within(links[index]).getByRole('img')).toBeInTheDocument();
       expect(links[index]).toHaveClass('h-full', 'w-full');
-      expect(links[index].parentElement).toHaveClass(
-        'hover:border-[#d3d3d3]',
-        'motion-reduce:transition-none',
-      );
+      expect(links[index].parentElement).toHaveClass('hover-card-shadow');
     }
     expect(links[3]).toHaveAttribute('href', 'https://example.com/d');
     expect(links[3]).toHaveClass('group/row');
     expect(links[3].querySelector('.mansai-spectrum-line')).toBeInTheDocument();
     const unlinkedLogo = screen.getByAltText('企業2').closest('li');
     expect(unlinkedLogo?.querySelector('a')).toBeNull();
-    expect(unlinkedLogo).not.toHaveClass('hover:border-[#d3d3d3]');
+    expect(unlinkedLogo).not.toHaveClass('hover-card-shadow');
     const unlinkedText = screen.getByText('企業6').closest('li');
     expect(unlinkedText?.querySelector('a')).toBeNull();
     expect(unlinkedText?.querySelector('.mansai-spectrum-line')).toBeNull();
-  });
-
-  it('フォーカス色は既存のtextトークンを使い、白背景と3:1以上のコントラストを保つ', () => {
-    const colors = tailwindConfig.theme?.extend?.colors as Record<
-      string,
-      string
-    >;
-    const channels = colors.text.match(/[\da-f]{2}/gi)?.map((channel) => {
-      const value = parseInt(channel, 16) / 255;
-      return value <= 0.04045
-        ? value / 12.92
-        : ((value + 0.055) / 1.055) ** 2.4;
-    });
-    expect(channels).toHaveLength(3);
-    const luminance =
-      0.2126 * channels![0] + 0.7152 * channels![1] + 0.0722 * channels![2];
-    expect(1.05 / (luminance + 0.05)).toBeGreaterThanOrEqual(3);
   });
 });

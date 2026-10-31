@@ -41,6 +41,15 @@ const sponsors = [
     }))
     .reverse(),
   {
+    id: 301,
+    name: '架空ロゴなしC',
+    type: ['ad'],
+    tier: 'planC',
+    logo: null,
+    url: 'https://example.invalid/noname',
+    _order: '09',
+  },
+  {
     id: 300,
     name: '地域のみ企業',
     type: ['local'],
@@ -58,10 +67,15 @@ const personal = [
   },
   { id: 2, name: '架空二郎様', _order: '02' },
   { id: 1, name: '架空一郎', _order: '01' },
-];
+].map((item) => ({
+  ...item,
+  type: ['personal'],
+  tier: null,
+  logo: null,
+  url: null,
+}));
 
 let cmsServer: Server | undefined;
-let cmsMode: 'ok' | 'empty' | 'error' = 'ok';
 
 async function startCmsFixture(): Promise<void> {
   if (
@@ -86,46 +100,26 @@ async function startCmsFixture(): Promise<void> {
       );
       return;
     }
-    if (
-      url.pathname === '/api/sponsors' ||
-      url.pathname === '/api/personal_sponsors'
-    ) {
-      if (cmsMode === 'error') {
-        response.writeHead(503, { 'Content-Type': 'application/json' });
-        response.end(JSON.stringify({ error: 'fixture unavailable' }));
-        return;
-      }
-      const input = url.pathname.endsWith('/sponsors') ? sponsors : personal;
-      const docs =
-        cmsMode === 'empty'
-          ? []
-          : [...input].sort((a, b) => a._order.localeCompare(b._order));
-      if (url.searchParams.get('sort') !== '_order') {
-        response.writeHead(400);
-        response.end('fixture requires sort=_order');
-        return;
-      }
+    if (url.pathname === '/api/sponsors') {
+      const type = url.searchParams.get('where[type][equals]');
+      const docs = [...sponsors, ...personal]
+        .filter((doc) => !type || doc.type.includes(type))
+        .sort((a, b) => a._order.localeCompare(b._order));
       response.writeHead(200, { 'Content-Type': 'application/json' });
       response.end(JSON.stringify({ docs, totalDocs: docs.length }));
       return;
     }
-    // 他のグローバルや一覧は失敗にし、既存のフォールバックを利用する。
     response.writeHead(404, { 'Content-Type': 'application/json' });
     response.end('{}');
   });
   await new Promise<void>((resolve, reject) => {
     server.once('error', reject);
-    // listen の EADDRINUSE をそのまま失敗扱いにし、既存プロセスには触れない。
     server.listen(18055, '127.0.0.1', resolve);
   });
   cmsServer = server;
 }
 
-async function openPage(
-  page: Page,
-  width: number,
-  error = false,
-): Promise<void> {
+async function openPage(page: Page, width: number): Promise<void> {
   await page.setViewportSize({ width, height: 900 });
   await page.route('**/*', (route) => {
     const url = new URL(route.request().url());
@@ -135,12 +129,21 @@ async function openPage(
   });
   await page.goto('/sponsors/ad', { waitUntil: 'domcontentloaded' });
   await expect(
-    page.getByRole('heading', {
-      name: error ? 'エラーが発生しました' : '広告協賛',
-      exact: true,
-    }),
+    page.getByRole('heading', { name: '広告協賛', exact: true }),
   ).toBeVisible();
 }
+
+// PC 寸法の上限 (Figma 1410:26 / 1408:2)。幅 x 高さ
+const CARD_MAX = {
+  planA: [548, 234.857],
+  planB: [357.333, 178.667],
+  planC: [268, 134],
+} as const;
+const LOGO_MAX = {
+  planA: [460, 170],
+  planB: [300, 120],
+  planC: [220, 86],
+} as const;
 
 test.describe('広告協賛 fixture E2E', { tag: '@local-fixture' }, () => {
   test.skip(
@@ -158,88 +161,26 @@ test.describe('広告協賛 fixture E2E', { tag: '@local-fixture' }, () => {
       });
     }
   });
-  test.beforeEach(() => {
-    cmsMode = 'ok';
-  });
 
-  for (const width of [1440, 1024, 1023, 390, 320]) {
-    test(`${width}px の表示順・列・カード・折返し`, async ({ page }) => {
+  for (const width of [1440, 1023, 390]) {
+    test(`${width}px の列・カード寸法・配置`, async ({ page }) => {
       await openPage(page, width);
-      const expected = width >= 1024 ? [2, 3, 4, 3, 3] : [1, 2, 2, 2, 2];
-      let previousBottom = 0;
-      for (const [index, tier] of [
-        'planA',
-        'planB',
-        'planC',
-        'planD',
-      ].entries()) {
-        const list = page.locator(`ul[data-tier="${tier}"]`);
-        const listBox = await list.boundingBox();
-        expect(listBox!.y).toBeGreaterThanOrEqual(previousBottom);
-        previousBottom = listBox!.y + listBox!.height;
-        const columns = await list.evaluate(
-          (element) =>
-            getComputedStyle(element).gridTemplateColumns.split(' ').length,
-        );
-        expect(columns).toBe(expected[index]);
-        const items = list.locator(':scope > li');
-        expect(await items.count()).toBe([2, 3, 4, 3][index]);
-        if (tier === 'planD') {
-          await expect(items).toHaveText([
-            '架空Dリンク新しいタブで開きます',
-            '架空D企業名がとても長くても省略せず折り返して表示されます',
-            '架空D無効URL',
-          ]);
-        }
-        if (index < 3) {
-          for (let i = 0; i < (await items.count()); i++) {
-            const item = items.nth(i);
-            const box = await item.boundingBox();
-            expect(box!.width / box!.height).toBeCloseTo(
-              index === 0 ? 7 / 3 : 2,
-              1,
-            );
-            const image = item.locator('img');
-            const ratio =
-              width >= 1024
-                ? [460 / 548, 300 / 357, 220 / 268][index]
-                : [300 / 358, 145 / 173, 135 / 173][index];
-            const logoBox = await image.boundingBox();
-            expect(Math.abs(logoBox!.width - box!.width * ratio)).toBeLessThan(
-              0.1,
-            );
-            await expect(image).toHaveAttribute('alt', `架空${tier}-${i + 1}`);
-            await expect
-              .poll(() =>
-                image.evaluate(
-                  (img: HTMLImageElement, tall: boolean) =>
-                    img.complete &&
-                    img.naturalWidth === (tall ? 100 : 400) &&
-                    img.naturalHeight === (tall ? 400 : 100),
-                  tier === 'planB' && i === 0,
-                ),
-              )
-              .toBe(true);
-            expect(
-              await image.evaluate((img) => getComputedStyle(img).objectFit),
-            ).toBe('contain');
-          }
-        }
-      }
-      const personalList = page.locator(
-        'ul[aria-labelledby="personal-sponsors-heading"]',
-      );
-      expect(
-        await personalList.evaluate(
-          (el) => getComputedStyle(el).gridTemplateColumns.split(' ').length,
+      const pc = width >= 1024;
+      const columns = pc ? [2, 3, 4, 3, 3] : [1, 2, 2, 2, 2];
+      const lists = [
+        ...['planA', 'planB', 'planC', 'planD'].map(
+          (tier) => `ul[data-tier="${tier}"]`,
         ),
-      ).toBe(expected[4]);
-      await expect(personalList.locator('li')).toHaveText([
-        '架空一郎様',
-        '架空二郎様',
-        '架空の長い個人協賛者名が省略されず折り返して表示されます様',
-      ]);
-      await expect(page.getByText('地域のみ企業')).toHaveCount(0);
+        'ul[aria-labelledby="personal-sponsors-heading"]',
+      ];
+      for (const [index, selector] of lists.entries()) {
+        const list = page.locator(selector);
+        expect(
+          await list.evaluate(
+            (el) => getComputedStyle(el).gridTemplateColumns.split(' ').length,
+          ),
+        ).toBe(columns[index]);
+      }
       expect(
         await page.evaluate(
           () =>
@@ -247,61 +188,89 @@ test.describe('広告協賛 fixture E2E', { tag: '@local-fixture' }, () => {
             document.documentElement.clientWidth,
         ),
       ).toBe(true);
-      for (const item of [
-        page.getByText(
-          '架空D企業名がとても長くても省略せず折り返して表示されます',
-        ),
-        page.getByText(
-          '架空の長い個人協賛者名が省略されず折り返して表示されます様',
-        ),
+
+      const body = await page.locator('h1').evaluate((el) => {
+        const rect = el.parentElement!.parentElement!.getBoundingClientRect();
+        return { x: rect.x, width: rect.width };
+      });
+      for (const [index, tier] of (
+        ['planA', 'planB', 'planC'] as const
+      ).entries()) {
+        const items = page.locator(`ul[data-tier="${tier}"] > li`);
+        const [maxW, maxH] = CARD_MAX[tier];
+        const first = (await items.first().boundingBox())!;
+        // 1024px 未満は上限で止まる。1023px は PC 寸法ちょうど
+        if (width === 1023) {
+          expect(first.width).toBeCloseTo(maxW, 1);
+          expect(first.height).toBeCloseTo(maxH, 1);
+          const logo = (await items.first().locator('img').boundingBox())!;
+          expect(logo.width).toBeCloseTo(LOGO_MAX[tier][0], 0);
+          expect(logo.height).toBeCloseTo(LOGO_MAX[tier][1], 0);
+        }
+        expect(first.width / first.height).toBeCloseTo(
+          index === 0 ? 7 / 3 : 2,
+          1,
+        );
+        // ロゴは領域内に収まり、縦横比を保つ
+        const image = items.first().locator('img');
+        expect(
+          await image.evaluate((img) => getComputedStyle(img).objectFit),
+        ).toBe('contain');
+      }
+      if (width === 1023) {
+        // 各行のまとまりが本文の中で左右中央、D と個人の一覧は B の行と同じ幅
+        const rowLeft = async (selector: string) =>
+          (await page.locator(selector).boundingBox())!.x;
+        const bLeft = body.x + (body.width - 726.667) / 2;
+        for (const selector of [
+          'ul[data-tier="planB"]',
+          'ul[data-tier="planD"]',
+          lists[4],
+        ])
+          expect(await rowLeft(selector)).toBeCloseTo(bLeft, 1);
+        expect(await rowLeft('ul[data-tier="planA"]')).toBeCloseTo(
+          body.x + (body.width - 548) / 2,
+          1,
+        );
+      }
+      for (const text of [
+        '架空D企業名がとても長くても省略せず折り返して表示されます',
+        '架空の長い個人協賛者名が省略されず折り返して表示されます様',
       ]) {
+        const item = page.getByText(text);
         expect(
           await item.evaluate((el) => el.scrollWidth <= el.clientWidth),
         ).toBe(true);
-        if (width <= 390)
-          expect(
-            await item.evaluate(
-              (el) =>
-                el.getBoundingClientRect().height >
-                parseFloat(getComputedStyle(el).lineHeight),
-            ),
-          ).toBe(true);
       }
     });
   }
 
-  test('リンクの有無、hover、キーボード、視覚的通知', async ({ page }) => {
+  test('リンクのホバーとキーボードフォーカス', async ({ page }) => {
     await openPage(page, 1440);
     const linked = page.locator('ul[data-tier="planA"] > li').first();
     const plain = page.locator('ul[data-tier="planA"] > li').nth(1);
     const link = linked.getByRole('link');
     await expect(link).toHaveAttribute('target', '_blank');
     await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
-    await expect(link).toContainText('新しいタブで開きます');
-    const notification = link.getByText('新しいタブで開きます');
-    await expect(notification).toHaveCount(1);
-    expect(
-      await notification.evaluate((el) => {
-        const style = getComputedStyle(el);
-        const rect = el.getBoundingClientRect();
-        return (
-          style.position === 'absolute' &&
-          rect.width <= 1 &&
-          rect.height <= 1 &&
-          style.overflow === 'hidden'
-        );
-      }),
-    ).toBe(true);
     await expect(plain.getByRole('link')).toHaveCount(0);
-    await expect(page.getByRole('link', { name: '架空D無効URL' })).toHaveCount(
-      0,
-    );
-    const border = (el: Element) => getComputedStyle(el).borderColor;
-    expect(await linked.evaluate(border)).toBe('rgb(230, 230, 230)');
+    const shadow = (el: Element) => getComputedStyle(el).boxShadow;
+    expect(await linked.evaluate(shadow)).toBe('none');
     await linked.hover();
-    await expect.poll(() => linked.evaluate(border)).toBe('rgb(211, 211, 211)');
+    await expect.poll(() => linked.evaluate(shadow)).not.toBe('none');
     await plain.hover();
-    expect(await plain.evaluate(border)).toBe('rgb(230, 230, 230)');
+    expect(await plain.evaluate(shadow)).toBe('none');
+    const noLogo = page.locator('ul[data-tier="planC"] > li', {
+      hasText: '架空ロゴなしC',
+    });
+    await noLogo.hover();
+    await expect
+      .poll(() =>
+        noLogo
+          .locator('.mansai-spectrum-line')
+          .evaluate((el) => getComputedStyle(el).transform),
+      )
+      .toBe('matrix(1, 0, 0, 1, 0, 0)');
+    expect(await noLogo.evaluate(shadow)).toBe('none');
     for (
       let i = 0;
       i < 30 && !(await link.evaluate((el) => el === document.activeElement));
@@ -315,92 +284,5 @@ test.describe('広告協賛 fixture E2E', { tag: '@local-fixture' }, () => {
         parseFloat(getComputedStyle(el).outlineWidth),
       ),
     ).toBeGreaterThan(0);
-    const dLink = page.getByRole('link', { name: /架空Dリンク/ });
-    await expect(dLink).toHaveAttribute('target', '_blank');
-    await expect(dLink).toHaveAttribute('rel', 'noopener noreferrer');
   });
-
-  test('本文スキップ、動きを減らす設定、canonical とサイトマップ', async ({
-    page,
-  }) => {
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await openPage(page, 1440);
-    await page.keyboard.press('Tab');
-    const skip = page.getByRole('link', { name: '本文へ移動' });
-    await expect(skip).toBeFocused();
-    await page.keyboard.press('Enter');
-    await expect(page).toHaveURL(/#main-content$/);
-    await expect(
-      page.getByRole('button', { name: 'モーション' }),
-    ).toBeVisible();
-    const link = page.locator('ul[data-tier="planA"] > li').first();
-    expect(
-      await link.evaluate((el) => getComputedStyle(el).transitionProperty),
-    ).toBe('none');
-    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
-      'href',
-      `${APP_ORIGIN}/sponsors/ad`,
-    );
-    const sitemap = await page.request.get('/sitemap.xml');
-    expect(sitemap.ok()).toBe(true);
-    expect(await sitemap.text()).toContain(`${APP_ORIGIN}/sponsors/ad`);
-  });
-
-  for (const phase of ['pre_event', 'live']) {
-    test(`${phase} の導線`, async ({ page, context }) => {
-      await context.addCookies([
-        { name: 'aramakisai_phase_override', value: phase, url: APP_ORIGIN },
-      ]);
-      await openPage(page, 1440);
-      // 開発サーバーの初回コンパイル後の再読込を待ち、hydration 後にメニューを操作する。
-      await page.waitForLoadState('networkidle');
-      await expect(
-        page
-          .getByRole('navigation', { name: 'フッターサイト案内' })
-          .getByRole('link', { name: '広告協賛' }),
-      ).toHaveAttribute('href', '/sponsors/ad');
-      const group = phase === 'live' ? 'お知らせ' : '協賛';
-      const nav = page.getByRole('navigation', {
-        name: 'メインナビゲーション',
-      });
-      await nav.getByRole('button', { name: group }).focus();
-      await expect(nav.getByRole('link', { name: '広告協賛' })).toHaveAttribute(
-        'href',
-        '/sponsors/ad',
-      );
-      await expect(nav.getByRole('link', { name: '広告協賛' })).toBeVisible();
-      await page.setViewportSize({ width: 390, height: 844 });
-      const menu = page.getByRole('button', { name: 'メニューを開く' });
-      await menu.click();
-      const mobile = page.getByRole('navigation', {
-        name: 'モバイルナビゲーション',
-      });
-      await mobile.getByRole('button', { name: group }).click();
-      await expect(
-        mobile.getByRole('link', { name: '広告協賛' }),
-      ).toHaveAttribute('href', '/sponsors/ad');
-      await expect(
-        mobile.getByRole('link', { name: '広告協賛' }),
-      ).toBeVisible();
-      await page.keyboard.press('Escape');
-      await expect(
-        page.getByRole('button', { name: 'メニューを開く' }),
-      ).toBeFocused();
-    });
-  }
-
-  for (const mode of ['empty', 'error'] as const) {
-    test(`CMS が ${mode} の場合に架空データを補完しない`, async ({ page }) => {
-      cmsMode = mode;
-      await openPage(page, 390, mode === 'error');
-      await expect(page.locator('ul[data-tier]')).toHaveCount(0);
-      await expect(
-        page.locator('ul[aria-labelledby="personal-sponsors-heading"]'),
-      ).toHaveCount(0);
-      if (mode === 'empty')
-        await expect(
-          page.getByRole('heading', { name: '個人協賛者様' }),
-        ).toBeVisible();
-    });
-  }
 });

@@ -55,12 +55,10 @@ describe('広告協賛ページ', () => {
       advertisingModule.groupAdSponsors(ad),
     );
     expect(element.props.personalSponsors).toEqual(personal);
-    expect(sponsorsModule.getSponsors).toHaveBeenCalledExactlyOnceWith({
-      ttlSeconds: 1,
-    });
+    expect(sponsorsModule.getSponsors).toHaveBeenCalledExactlyOnceWith();
     expect(
       advertisingModule.getPersonalSponsors,
-    ).toHaveBeenCalledExactlyOnceWith({ ttlSeconds: 1 });
+    ).toHaveBeenCalledExactlyOnceWith();
     expect(revalidate).toBe(60);
   });
 

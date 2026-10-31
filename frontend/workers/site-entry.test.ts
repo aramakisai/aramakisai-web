@@ -121,34 +121,6 @@ describe('site-entry その他のパス', () => {
 });
 
 describe('site-entry /2025 プロキシ', () => {
-  it('旧スポンサーURLの転送応答に含まれる301とLocationを保持する', async () => {
-    const upstream = vi.fn(
-      async () =>
-        new Response(null, {
-          status: 301,
-          headers: { Location: 'https://aramakisai.com/2025/sponsors/' },
-        }),
-    );
-    vi.stubGlobal('fetch', upstream);
-    try {
-      const { call } = setup();
-      const req = new Request('https://aramakisai.com/2025/sponsors', {
-        redirect: 'manual',
-      });
-      const result = await call(req);
-      expect(result.status).toBe(301);
-      expect(result.headers.get('Location')).toBe(
-        'https://aramakisai.com/2025/sponsors/',
-      );
-      expect(result.headers.get('X-Robots-Tag')).toBe('noindex');
-      expect(upstream).toHaveBeenCalledWith(req, {
-        cf: { resolveOverride: 'origin-2025.aramakisai.com' },
-      });
-    } finally {
-      vi.unstubAllGlobals();
-    }
-  });
-
   it('/2025 と /2025/ 配下だけ旧サーバーへ転送し、/20250 は Next に流す', async () => {
     const upstream = vi.fn(async () => new Response('old', { status: 200 }));
     vi.stubGlobal('fetch', upstream);

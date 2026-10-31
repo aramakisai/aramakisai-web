@@ -8,15 +8,20 @@ vi.mock('./cms', () => ({ cms: { findMany: vi.fn() } }));
 
 describe('getPersonalSponsors', () => {
   afterEach(() => vi.resetAllMocks());
-  it('passes the page-specific TTL to CMS', async () => {
+  it('passes the fetch options to CMS', async () => {
     vi.mocked(cms.findMany).mockResolvedValueOnce({
       ok: true,
       value: { totalDocs: 0, docs: [] },
     });
     await getPersonalSponsors({ ttlSeconds: 1 });
     expect(cms.findMany).toHaveBeenCalledWith(
-      'personal_sponsors',
-      { sort: ['_order'], limit: 0, depth: 0 },
+      'sponsors',
+      {
+        where: { type: { equals: 'personal' } },
+        sort: ['_order'],
+        limit: 0,
+        depth: 0,
+      },
       { ttlSeconds: 1 },
     );
   });
@@ -52,8 +57,13 @@ describe('getPersonalSponsors', () => {
       { id: 1, name: '次郎' },
     ]);
     expect(cms.findMany).toHaveBeenCalledWith(
-      'personal_sponsors',
-      { sort: ['_order'], limit: 0, depth: 0 },
+      'sponsors',
+      {
+        where: { type: { equals: 'personal' } },
+        sort: ['_order'],
+        limit: 0,
+        depth: 0,
+      },
       undefined,
     );
   });
@@ -65,8 +75,13 @@ describe('getPersonalSponsors', () => {
     });
     expect(await getPersonalSponsors()).toEqual([]);
     expect(cms.findMany).toHaveBeenCalledWith(
-      'personal_sponsors',
-      { sort: ['_order'], limit: 0, depth: 0 },
+      'sponsors',
+      {
+        where: { type: { equals: 'personal' } },
+        sort: ['_order'],
+        limit: 0,
+        depth: 0,
+      },
       undefined,
     );
   });
@@ -117,7 +132,7 @@ describe('groupAdSponsors', () => {
     expect(groups.planD[0].logoId).toBeNull();
   });
 
-  it('不正なプラン、空白名と A〜C のロゴ欠落を除き、ロゴなしの D は残す', () => {
+  it('不正なプランと空白名だけを除き、ロゴ未登録の A〜C と D は残す', () => {
     const groups = groupAdSponsors([
       sponsor({ id: 1, tier: null }),
       sponsor({ id: 2, tier: 'other' }),
@@ -129,9 +144,12 @@ describe('groupAdSponsors', () => {
       sponsor({ id: 8, tier: 'planA', logoId: '  ' }),
     ]);
     expect(groups).toEqual({
-      planA: [],
-      planB: [],
-      planC: [],
+      planA: [
+        { id: 4, name: '企業', tier: 'planA', logoId: null, url: null },
+        { id: 8, name: '企業', tier: 'planA', logoId: null, url: null },
+      ],
+      planB: [{ id: 5, name: '企業', tier: 'planB', logoId: null, url: null }],
+      planC: [{ id: 6, name: '企業', tier: 'planC', logoId: null, url: null }],
       planD: [{ id: 7, name: '企業', tier: 'planD', logoId: null, url: null }],
     });
   });

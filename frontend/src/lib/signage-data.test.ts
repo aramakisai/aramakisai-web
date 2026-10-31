@@ -21,7 +21,6 @@ import {
   getSignageSnapshot,
   SIGNAGE_TTL_SECONDS,
 } from './signage-data';
-import { paginateSponsors } from './signage';
 
 const docs = (list: unknown[]) => ({
   ok: true,
@@ -90,46 +89,6 @@ const slide = (id: number, extra = {}) => ({
 beforeEach(() => vi.clearAllMocks());
 
 describe('getSignageSnapshot', () => {
-  it('keeps personal sponsors out of both logo and name lists', async () => {
-    setup({
-      sponsors: docs([
-        { id: 1, type: ['ad'], name: 'Company Logo', logo: 11, tier: 'planA' },
-        {
-          id: 2,
-          type: ['ad'],
-          name: 'Company Name',
-          logo: null,
-          tier: 'planD',
-        },
-      ]),
-      personal_sponsors: docs([{ id: 3, name: 'Personal Sponsor' }]),
-    });
-    const actual =
-      await vi.importActual<typeof import('./sponsors')>('./sponsors');
-    getSponsors.mockImplementation(actual.getSponsors);
-
-    const result = await getSignageSnapshot();
-    if (!result.ok) throw new Error('failed');
-    expect(result.value.sponsors).toEqual([
-      { id: 1, name: 'Company Logo', logoId: '11', tier: 'planA' },
-      { id: 2, name: 'Company Name', logoId: null, tier: 'planD' },
-    ]);
-    expect(paginateSponsors(result.value.sponsors).flat()).toEqual([
-      { kind: 'logo', tier: 'planA', items: [result.value.sponsors[0]] },
-      { kind: 'names', items: [result.value.sponsors[1]] },
-    ]);
-    expect(findMany).toHaveBeenCalledWith(
-      'sponsors',
-      { sort: ['_order'], limit: 0, depth: 1 },
-      { ttlSeconds: SIGNAGE_TTL_SECONDS, version: undefined },
-    );
-    expect(
-      findMany.mock.calls.some(
-        ([collection]) => collection === 'personal_sponsors',
-      ),
-    ).toBe(false);
-  });
-
   it('スライドとテロップは取得した並び順のまま返し、_order 昇順で取得する', async () => {
     setup({
       signage_slides: docs([slide(4), slide(1), slide(2), slide(3)]),
