@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import AccessPage, { dynamic, generateMetadata } from './page';
+import AccessPage, { generateMetadata } from './page';
 import { getAccessSettings } from '@/lib/access-settings';
 
 vi.mock('@/env', () => ({
@@ -34,10 +34,6 @@ describe('AccessPage', () => {
       embedUrl: 'https://maps.example.com/embed',
       embedHeight: null,
     });
-  });
-
-  it('毎リクエスト描画する', () => {
-    expect(dynamic).toBe('force-dynamic');
   });
 
   it('h1・サイト設定の本文と地図・次の便の案内・関越交通へのリンクを出す', async () => {

@@ -15,9 +15,6 @@ import { getSiteMetadata } from '@/lib/site-metadata';
 import { buildBreadcrumbJsonLd } from '@/lib/structured-data';
 import { env } from '@/env';
 
-// 「今日」の発車一覧と CMS の編集を再デプロイなしで反映するため事前描画しない
-export const dynamic = 'force-dynamic';
-
 const KAN_ETSU_BUS_URL = 'https://kan-etsu.net/pages/23/';
 const file = busTimetable as unknown as BusTimetableFile;
 
