@@ -111,7 +111,7 @@ export function ExhibitionList({ cards, areas }: ExhibitionListProps) {
           </p>
           {/* items-start がないと行内の最も高いカードに合わせて伸び、グラデーション帯の
             下に背景色が残って角丸が効かなくなる。 */}
-          <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-4">
+          <div className="grid grid-cols-1 items-start gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {paginated.items.map((exhibition, index) => (
               <ExhibitionCard
                 priority={index < FIRST_ROW_COUNT}
