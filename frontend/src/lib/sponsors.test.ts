@@ -163,4 +163,24 @@ describe('mergeSponsorLogos', () => {
       mergeSponsorLogos({ ad: [], local: [], vendor: [], other: [] }),
     ).toEqual([]);
   });
+
+  it('個人協賛 (type=personal) は走査せず、トップ・サイネージに含めない', () => {
+    const personal = {
+      id: 9,
+      name: '個人',
+      logoId: null,
+      logoWidth: null,
+      logoHeight: null,
+      url: null,
+      tier: null,
+    };
+    const byType = {
+      ad: [],
+      local: [],
+      vendor: [],
+      other: [],
+      personal: [personal],
+    } as unknown as Parameters<typeof mergeSponsorLogos>[0];
+    expect(mergeSponsorLogos(byType)).toEqual([]);
+  });
 });

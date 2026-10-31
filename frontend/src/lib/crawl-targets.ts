@@ -46,8 +46,8 @@ export function buildRobotsPlan(phase: FestivalPhase): RobotsPlan {
   };
 }
 
-// 2 セグメント以上 (例: /sponsors/ad) はトップページ内アンカーで、対応する
-// page.tsx を持たない。1 セグメントのものだけがルート実体 (固定ページ含む) を持つ。
+// 一部の 2 セグメント以上のパスはトップページ内アンカーで page.tsx を持たない。
+// 実体のある二階層ルートは SITEMAP_CODE_ROUTES で個別に追加する。
 function hasRouteEntity(path: string): boolean {
   return path.split('/').length <= 2;
 }
@@ -72,5 +72,6 @@ export const SITEMAP_CODE_ROUTES: readonly string[] = [
   ),
   // 実体を持つ二階層route。トップページ内アンカー扱いで除外しない。
   '/sponsors/local',
+  '/sponsors/ad',
   ...LIVE_ONLY_CODE_ROUTES,
 ];

@@ -5,6 +5,7 @@ import {
   PageMetadataInput,
 } from './page-metadata';
 import type { SiteMetadata } from './site-metadata';
+import { ROUTE_METADATA } from './route-metadata';
 
 vi.mock('@/env', () => ({
   env: { NEXT_PUBLIC_CMS_URL: 'http://localhost:3100' },
@@ -32,6 +33,18 @@ function baseInput(
 }
 
 describe('buildPageMetadata', () => {
+  it('広告協賛のタイトル・説明と canonical を設定する', () => {
+    const route = ROUTE_METADATA['/sponsors/ad'];
+    const metadata = buildPageMetadata(
+      baseInput({ ...route, path: '/sponsors/ad' }),
+    );
+
+    expect(metadata.title).toBe('広告協賛');
+    expect(metadata.description).toBe(
+      '荒牧祭2026にご協賛いただいた企業・団体と個人の皆様をご紹介します。',
+    );
+    expect(metadata.alternates?.canonical).toBe('/sponsors/ad');
+  });
   it('openGraph の全キーを毎回完全な形で返す', () => {
     const metadata = buildPageMetadata(baseInput());
 

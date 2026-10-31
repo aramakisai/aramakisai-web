@@ -418,7 +418,7 @@ export interface Page {
 export interface Sponsor {
   id: number;
   _order?: string | null;
-  type: ('ad' | 'local' | 'vendor' | 'other')[];
+  type: ('ad' | 'local' | 'vendor' | 'other' | 'personal')[];
   name: string;
   logo?: (number | null) | Media;
   url?: string | null;

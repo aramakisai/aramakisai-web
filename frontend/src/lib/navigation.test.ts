@@ -50,6 +50,7 @@ const cmsFixture = {
         children: [
           path('お知らせ一覧', '/announcements'),
           path('トピック', '/topics'),
+          path('広告協賛', '/sponsors/ad'),
         ],
       }),
       parent('ご案内', 'success', {
@@ -161,6 +162,34 @@ describe('navigationFromCms', () => {
 });
 
 describe('navigationItemsByPhase', () => {
+  it('開催中は親項目を増やさず、お知らせの末尾に広告協賛を置く', () => {
+    expect(navigationItemsByPhase.live.map((item) => item.label)).toEqual([
+      '企画一覧',
+      '構内マップ',
+      'タイムテーブル',
+      'お知らせ',
+      'ご案内',
+    ]);
+    expect(
+      navigationItemsByPhase.live.find((item) => item.label === 'お知らせ')
+        ?.children,
+    ).toEqual([
+      { label: 'お知らせ一覧', href: '/announcements' },
+      { label: 'トピック', href: '/topics' },
+      { label: '広告協賛', href: '/sponsors/ad' },
+    ]);
+  });
+
+  it('開催前の協賛グループを維持する', () => {
+    expect(
+      navigationItemsByPhase.pre_event.find((item) => item.label === '協賛')
+        ?.children,
+    ).toEqual([
+      { label: '広告協賛', href: '/sponsors/ad' },
+      { label: '地域協賛', href: '/sponsors/local' },
+    ]);
+  });
+
   it('フッターのサポート列と重複するお問い合わせは hideInFooter を持つ', () => {
     const guidance = navigationItemsByPhase.live.find(
       (item) => item.footerColumn === 'guidance',
