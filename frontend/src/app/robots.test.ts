@@ -8,6 +8,11 @@ vi.mock('@/env', () => ({
   },
 }));
 
+vi.mock('@/lib/phase', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/phase')>()),
+  BUILD_PHASE: 'pre_event',
+}));
+
 describe('robots', () => {
   it('sitemap を絶対 URL で宣言する', () => {
     const result = robots();

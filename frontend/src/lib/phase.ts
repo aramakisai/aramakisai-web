@@ -13,7 +13,7 @@ export interface ResolvedPhase {
 /**
  * 現在のフェーズ。切替はこの定数の変更と再デプロイによってのみ行う。
  */
-export const BUILD_PHASE: FestivalPhase = 'pre_event';
+export const BUILD_PHASE: FestivalPhase = 'live';
 
 /** フェーズオーバーライド Cookie の名称。 */
 export const PHASE_OVERRIDE_COOKIE = 'aramakisai_phase_override';
