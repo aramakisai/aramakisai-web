@@ -37,6 +37,7 @@ describe('getTopics', () => {
         title: 'Topic 1',
         body: 'Body 1',
         imageId: '7',
+        image: expect.objectContaining({ id: '7' }),
         metaDescription: '説明文1',
         updatedAt: '2023-01-02T00:00:00.000Z',
       },
@@ -85,6 +86,7 @@ describe('getTopicById', () => {
       title: 'Topic 1',
       body: 'Body 1',
       imageId: '7',
+      image: expect.objectContaining({ id: '7' }),
       metaDescription: null,
       updatedAt: '2023-01-02T00:00:00.000Z',
     });

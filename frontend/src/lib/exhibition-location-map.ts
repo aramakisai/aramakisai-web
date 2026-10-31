@@ -65,6 +65,46 @@ export function toAreaBounds(
   };
 }
 
+// 線形補間の四分位数。ソート済み配列を渡す
+function quantile(sorted: readonly number[], q: number): number {
+  const pos = (sorted.length - 1) * q;
+  const lo = Math.floor(pos);
+  const hi = Math.ceil(pos);
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+}
+
+/**
+ * 外接矩形の中心が緯度・経度いずれかの軸で Tukey 法の外れ値になるエリアを除く。
+ *
+ * 敷地から離れた孤立エリア 1 件に初期表示の範囲が引き伸ばされ、主要エリア群が偏るのを避ける。
+ * 除外すると 0 件になる場合は全件を返す。
+ */
+export function excludeOutlierAreas(
+  areas: readonly CampusMapArea[],
+): readonly CampusMapArea[] {
+  const centers = areas.map((area) => {
+    const { southWest, northEast } = toAreaBounds([area]);
+    return [
+      (southWest[0] + northEast[0]) / 2,
+      (southWest[1] + northEast[1]) / 2,
+    ] as const;
+  });
+  const fences = [0, 1].map((axis) => {
+    const sorted = centers.map((c) => c[axis]).sort((a, b) => a - b);
+    const q1 = quantile(sorted, 0.25);
+    const q3 = quantile(sorted, 0.75);
+    const iqr = q3 - q1;
+    return [q1 - 1.5 * iqr, q3 + 1.5 * iqr] as const;
+  });
+  const kept = areas.filter((_, i) =>
+    fences.every(([lo, hi], axis) => {
+      const v = centers[i][axis];
+      return v >= lo && v <= hi;
+    }),
+  );
+  return kept.length > 0 ? kept : areas;
+}
+
 /** 指定したエリアを選択状態とする構内マップページの URL を返す */
 export function buildAreaMapHref(area: CampusMapArea): string {
   return buildCampusMapHref({ q: '', categories: [], selectedAreaId: area.id });

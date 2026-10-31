@@ -40,6 +40,7 @@ function perf(
     id,
     stageId,
     name: `p${id}`,
+    projectName: null,
     href: null,
     slot: {
       dateKey: date,
@@ -299,7 +300,8 @@ describe('paginateSponsors', () => {
       sponsor(6, 'planA', false),
     ]);
     expect(kinds(pages)).toEqual([['planA'], ['planB'], ['planC'], ['names']]);
-    expect(pages[3][0].items.map((s) => s.id)).toEqual([4, 5, 6]);
+    expect(pages[0][0].items.map((s) => s.id)).toEqual([1, 6]);
+    expect(pages[3][0].items.map((s) => s.id)).toEqual([4, 5]);
   });
 
   it('列数で行を折り返す(A=3列, B=4列, C=6列, 社名=4列)', () => {

@@ -23,10 +23,18 @@ vi.mock('@/lib/site-metadata', () => ({
   getSiteMetadata: vi.fn(),
 }));
 
-vi.mock('@/lib/cms-asset-url', () => ({
-  toAssetUrl: (id: string | null) =>
-    id ? `https://example.com/assets/${id}` : null,
-}));
+vi.mock('@/lib/cms-asset-url', () => {
+  const toAssetUrl = (id: string | null) =>
+    id ? `https://example.com/assets/${id}` : null;
+  return {
+    toAssetUrl,
+    toCardImageUrl: (image: { id: string }) => toAssetUrl(image.id),
+    toHeroImage: (image: { id: string }) => {
+      const src = toAssetUrl(image.id);
+      return src ? { src } : null;
+    },
+  };
+});
 
 vi.mock('@/env', () => ({
   env: {

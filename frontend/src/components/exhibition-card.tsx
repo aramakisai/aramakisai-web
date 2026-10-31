@@ -2,7 +2,7 @@
 import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import { getExhibitionTexture } from '@/lib/exhibition-color';
-import { toAssetUrl } from '@/lib/cms-asset-url';
+import { toCardImageUrl } from '@/lib/cms-asset-url';
 import { listingHref, type ListingCard } from '@/lib/exhibitions';
 import { BookmarkButton } from './bookmark-button';
 import { ImageIcon, PlaceIcon } from './icons';
@@ -11,12 +11,15 @@ export interface ExhibitionCardProps {
   readonly exhibition: ListingCard;
   readonly bookmarkable?: boolean;
   readonly variant?: 'site' | 'signage';
+  /** ファーストビューの画像。遅延読み込みせず優先して取得する */
+  readonly priority?: boolean;
 }
 
 export function ExhibitionCard({
   exhibition,
   bookmarkable = false,
   variant = 'site',
+  priority = false,
 }: ExhibitionCardProps) {
   const { texture, position, rotation } = getExhibitionTexture(
     exhibition.displayName,
@@ -35,7 +38,7 @@ export function ExhibitionCard({
   const showBookmark = bookmarkable && exhibition.category !== 'booth';
   const signage = variant === 'signage';
   const thumbnailUrl = exhibition.thumbnail
-    ? toAssetUrl(exhibition.thumbnail.id, 960)
+    ? toCardImageUrl(exhibition.thumbnail)
     : null;
 
   return (
@@ -49,6 +52,9 @@ export function ExhibitionCard({
             <img
               src={thumbnailUrl}
               alt={exhibition.thumbnail!.alt}
+              loading={priority ? undefined : 'lazy'}
+              fetchPriority={priority ? 'high' : undefined}
+              decoding="async"
               className="absolute inset-0 h-full w-full object-contain"
             />
           ) : (

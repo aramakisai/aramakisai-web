@@ -74,8 +74,9 @@ describe('SponsorsList', () => {
       />,
     );
 
-    expect(screen.getAllByAltText('Ad 1')).toHaveLength(1);
-    expect(screen.getAllByText('Ad 2')).toHaveLength(2);
+    // A は PC 用グリッドと帯 (SP 用) の両方に入る。表示の出し分けは CSS
+    expect(screen.getAllByAltText('Ad 1')).toHaveLength(2);
+    expect(screen.getAllByText('Ad 2')).toHaveLength(3);
     expect(screen.getAllByText('Ad 3')).toHaveLength(2);
     const track = screen.getByTestId('ad-sponsor-marquee-track');
     expect(track.children).toHaveLength(2);

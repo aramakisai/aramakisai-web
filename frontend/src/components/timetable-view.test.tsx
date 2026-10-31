@@ -17,11 +17,13 @@ function perf(
   end: string,
   name: string,
   href: string | null = null,
+  projectName: string | null = null,
 ): TimetablePerformance {
   return {
     id,
     stageId,
     name,
+    projectName,
     href,
     slot: {
       dateKey,
@@ -126,6 +128,54 @@ describe('TimetableView', () => {
     expect(within(items[0]).queryByTestId('icon-chevron-right')).toBeNull();
   });
 
+  describe('企画名', () => {
+    const withProject: Timetable = {
+      ...timetable,
+      performances: [
+        perf(
+          1,
+          1,
+          '2026-11-14',
+          '10:30',
+          '11:00',
+          '軽音楽部',
+          '/exhibitions/5/stage',
+          '春ライブ',
+        ),
+        perf(2, 1, '2026-11-14', '11:00', '11:10', '短い枠', null, '短企画'),
+        perf(3, 1, '2026-11-14', '12:00', '13:00', '企画名なし'),
+      ],
+    };
+
+    test('PCは企画名を太字、団体名を3行目に出し、企画名なしは団体名だけ', () => {
+      renderView(withProject);
+      const [first, , third] = within(pc()).getAllByRole('listitem');
+      const lines = (el: HTMLElement) =>
+        Array.from(el.querySelectorAll('span.block')).map((n) => n.textContent);
+      expect(lines(first)).toEqual(['春ライブ', '軽音楽部']);
+      expect(lines(third)).toEqual(['企画名なし']);
+    });
+
+    test('PCの15分未満の枠は企画名だけを1行に出す', () => {
+      renderView(withProject);
+      const compact = within(pc()).getAllByRole('listitem')[1];
+      expect(compact).toHaveTextContent('短企画');
+      expect(compact).not.toHaveTextContent('短い枠');
+    });
+
+    test('SPは企画名の下に団体名を出し、下線は企画名にだけ付く', () => {
+      renderView(withProject);
+      const items = within(sp()).getAllByRole('listitem');
+      expect(items[0]).toHaveTextContent('春ライブ');
+      expect(items[0]).toHaveTextContent('軽音楽部');
+      const link = within(items[0]).getByRole('link');
+      const lines = link.querySelectorAll('.mansai-spectrum-line');
+      expect(lines).toHaveLength(1);
+      expect(lines[0].parentElement).toHaveTextContent(/^春ライブ$/);
+      expect(items[2]).toHaveTextContent('企画名なし');
+    });
+  });
+
   test('開催日程が無ければ切替を出さず空表示を1つだけ出す', () => {
     renderView({ ...timetable, days: [], performances: [] }, null);
     expect(screen.queryByRole('group', { name: '開催日' })).toBeNull();
@@ -148,8 +198,15 @@ describe('TimetableGrid (PC)', () => {
   test('列がステージの表示順に並び、空欄には何も描かれない', () => {
     renderView();
     const cols = within(pc()).getAllByRole('region');
-    expect(cols.map((c) => within(c).getByRole('heading').textContent)).toEqual(
-      ['メインステージ', '中庭ステージ'],
+    expect(
+      within(pc())
+        .getAllByRole('heading', { level: 3 })
+        .map((h) => h.textContent),
+    ).toEqual(['メインステージ', '中庭ステージ']);
+    expect(cols.map((c) => c.getAttribute('aria-labelledby'))).toEqual(
+      within(pc())
+        .getAllByRole('heading', { level: 3 })
+        .map((h) => h.id),
     );
     expect(within(cols[1]).getAllByRole('listitem')).toHaveLength(1);
   });
@@ -216,8 +273,8 @@ describe('現在出演中の強調と現在時刻の線', () => {
     const line = screen.getByTestId('timetable-now');
     expect(line).toHaveAttribute('aria-hidden', 'true');
     expect(line).toHaveTextContent('10:05');
-    // 範囲 10:00 開始、48px の見出し + 5分×4px - 線の中心 10.5px
-    expect(line.style.top).toBe('57.5px');
+    // 範囲 10:00 開始、見出しは本体の外 (sticky) なので 5分×4px - 線の中心 10.5px
+    expect(line.style.top).toBe('9.5px');
     unmount();
     renderAt('10:05', '2026-11-15');
     expect(screen.queryByTestId('timetable-now')).toBeNull();
