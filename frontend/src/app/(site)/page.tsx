@@ -129,6 +129,7 @@ export default async function Page() {
           id: t.id,
           title: t.title,
           imageId: t.imageId,
+          image: t.image,
         }))}
         variant="scroll"
       />

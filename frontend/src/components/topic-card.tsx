@@ -1,12 +1,14 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from 'next/link';
-import { toAssetUrl } from '@/lib/cms-asset-url';
+import { toAssetUrl, toCardImageUrl } from '@/lib/cms-asset-url';
+import type { Attachment } from '@/lib/home-page-types';
 import { ImageIcon } from './icons';
 
 export interface TopicCardProps {
   readonly id: number;
   readonly title: string;
   readonly imageId: string | null;
+  readonly image?: Attachment | null;
   readonly variant?: 'site' | 'signage';
 }
 
@@ -14,9 +16,14 @@ export function TopicCard({
   id,
   title,
   imageId,
+  image,
   variant = 'site',
 }: TopicCardProps) {
-  const thumbnailUrl = imageId ? toAssetUrl(imageId, 960) : null;
+  const thumbnailUrl = image
+    ? toCardImageUrl(image)
+    : imageId
+      ? toAssetUrl(imageId, 960)
+      : null;
 
   return (
     <Link
@@ -28,6 +35,8 @@ export function TopicCard({
           <img
             src={thumbnailUrl}
             alt={title}
+            loading="lazy"
+            decoding="async"
             className="h-full w-full object-cover"
           />
         ) : (

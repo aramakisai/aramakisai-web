@@ -28,6 +28,8 @@ export function toAssetUrl(
   return `${env.NEXT_PUBLIC_CMS_URL}/api/media/serve/${fileId}/${pickImageSize(width)}`;
 }
 
+export type ImageUrls = Pick<Attachment, 'id' | 'url' | 'cardUrl' | 'heroUrl'>;
+
 const toAbsolute = (url: string) =>
   url.startsWith('/') ? `${env.NEXT_PUBLIC_CMS_URL}${url}` : url;
 
@@ -35,7 +37,7 @@ const toAbsolute = (url: string) =>
  * REST が返す実ファイル URL を直接使い、serve エンドポイントの 302 を避ける。
  * depth が効かず ID しか無い場合は serve URL にフォールバックする。
  */
-export function toHeroImage(image: Attachment): {
+export function toHeroImage(image: ImageUrls): {
   src: string;
   srcSet?: string;
 } | null {
@@ -49,4 +51,10 @@ export function toHeroImage(image: Attachment): {
     ? `${toAbsolute(image.cardUrl)} 960w, ${toAbsolute(src)} 1920w`
     : undefined;
   return { src: toAbsolute(src), srcSet };
+}
+
+/** toHeroImage と同様に実ファイル URL を直接使う。card が無い (原本が 960 未満) 場合は原本を使う */
+export function toCardImageUrl(image: ImageUrls): string | null {
+  const src = image.cardUrl ?? image.url;
+  return src ? toAbsolute(src) : toAssetUrl(image.id, 960);
 }
