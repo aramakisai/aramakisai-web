@@ -110,6 +110,7 @@ export const navigationItemsByPhase: NavigationByPhase = {
       children: [
         { label: 'お知らせ一覧', href: '/announcements' },
         { label: 'トピック', href: '/topics' },
+        { label: '広告協賛', href: '/sponsors/ad' },
       ],
     },
     GUIDANCE,

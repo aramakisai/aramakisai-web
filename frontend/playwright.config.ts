@@ -17,6 +17,8 @@ const useLocalApp = !!process.env.CI && process.env.E2E_LOCAL_APP === '1';
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
+  // ローカル fixture は CMS の固定ポートを共有するため、ファイル間も直列にする。
+  workers: process.env.E2E_LOCAL_APP === '1' ? 1 : undefined,
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? [['html', { open: 'never' }], ['github']] : 'list',
   webServer: useLocalApp

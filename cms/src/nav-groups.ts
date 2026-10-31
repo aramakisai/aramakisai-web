@@ -7,6 +7,7 @@ export const NAV_GROUPS: Readonly<Record<string, NavGroup>> = {
   pages: 'サイト掲載',
   faq_items: 'サイト掲載',
   sponsors: 'サイト掲載',
+  personal_sponsors: 'サイト掲載',
   student_exhibitions: '企画・ステージ',
   stages: '企画・ステージ',
   performance_slots: '企画・ステージ',

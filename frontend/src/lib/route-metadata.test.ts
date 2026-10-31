@@ -8,6 +8,7 @@ const ROUTES = [
   '/topics',
   '/map',
   '/sponsors/local',
+  '/sponsors/ad',
   '/faq',
   '/timetable',
   '/parking',
@@ -15,8 +16,16 @@ const ROUTES = [
 ] as const;
 
 describe('ROUTE_METADATA', () => {
-  it('10 ルート分すべての定数を持つ', () => {
+  it('11 ルート分すべての定数を持つ', () => {
     expect(Object.keys(ROUTE_METADATA).sort()).toEqual([...ROUTES].sort());
+  });
+
+  it('広告協賛のタイトルと説明は承認済みの文言を使用する', () => {
+    expect(ROUTE_METADATA['/sponsors/ad']).toEqual({
+      title: '広告協賛',
+      description:
+        '荒牧祭2026にご協賛いただいた企業・団体と個人の皆様をご紹介します。',
+    });
   });
 
   it("'/' の title は null (サイトタイトルそのものを使う)", () => {

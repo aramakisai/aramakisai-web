@@ -9,6 +9,7 @@ import { APIError } from 'payload';
 import { denyField, executiveOnlyField } from '../access/payload-access';
 import { isStudentExhibitor, toCmsUser } from '../access/roles';
 import { purgeEdgeCacheAfterChange, purgeEdgeCacheAfterDelete } from '../hooks/media-edge-purge';
+import { guardSponsorLogo } from '../hooks/sponsor-logo-guard';
 
 /**
  * フロントエンドが要求する表示幅に合わせたサイズを生成する。
@@ -135,6 +136,7 @@ export const Media: CollectionConfig = {
   hooks: {
     beforeOperation: [guardPublishedMedia],
     beforeChange: [assignMediaOwner],
+    beforeDelete: [guardSponsorLogo],
     afterDelete: [purgeEdgeCacheAfterDelete],
     afterChange: [
       purgeEdgeCacheAfterChange,
