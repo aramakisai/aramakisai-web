@@ -14,7 +14,7 @@ describe('SiteSettings', () => {
 
   it('名前なしの tabs 1 つで、タブの順序が固定されている', () => {
     expect(SiteSettings.fields).toHaveLength(1);
-    expect(tabs.map((t) => t.label)).toEqual(['基本', 'トップページ', 'About', '連絡先', '駐車場カメラ', 'SEO']);
+    expect(tabs.map((t) => t.label)).toEqual(['基本', 'トップページ', 'About', '連絡先', '駐車場カメラ', 'SEO', 'アクセス']);
   });
 
   it('各タブの項目名と順序', () => {
@@ -25,6 +25,7 @@ describe('SiteSettings', () => {
       ['contact_form_url', 'exhibitor_contact_url', 'sns_links'],
       ['parking_monitor'],
       ['og_image'],
+      ['access_summary', 'access_content', 'access_content_html', 'access_embed_url', 'access_embed_height'],
     ]);
   });
 
@@ -32,7 +33,7 @@ describe('SiteSettings', () => {
     const all = tabs.flatMap(names);
     for (const n of [
       'parking_map', 'hero_image', 'theme_image', 'hero_message', 'hero_message_html', 'site_title',
-      'meta_description', 'venue_name', 'venue_address', 'campus_map_url', 'access_summary',
+      'meta_description', 'venue_name', 'venue_address', 'campus_map_url',
     ]) {
       expect(all).not.toContain(n);
     }
