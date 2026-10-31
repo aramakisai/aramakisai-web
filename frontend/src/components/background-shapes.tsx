@@ -269,6 +269,18 @@ function InfShapeView({
   );
 }
 
+interface EntryRecord {
+  anims: { anim: Animation; target: HTMLElement }[];
+  remaining: number;
+}
+
+function cancelEntry(record: EntryRecord) {
+  for (const { anim, target } of record.anims) {
+    anim.cancel();
+    target.style.opacity = '';
+  }
+}
+
 /**
  * 図形の入場 (初回だけ画面外寄りの起点から定位置へ寄せつつ不透明度 0→1) と、入場後の
  * ポインター・スクロール入力によるばねの揺れを 1 つの `requestAnimationFrame` ループで
@@ -285,18 +297,51 @@ function useShapeMotion(
 ) {
   const elsRef = useRef<(HTMLDivElement | null)[]>([]);
   const ringElsRef = useRef<((HTMLDivElement | null)[] | undefined)[]>([]);
+  // 入場中の Animation と揺れのばね状態は図形をキーに effect の外で持つ。図形の追加で
+  // effect が張り直されても、入場を打ち切らず揺れを 0 に戻さないため
+  const runningRef = useRef(new Map<PlacedShape, EntryRecord>());
+  const springsRef = useRef(new Map<PlacedShape, SpringState>());
+  const settledRef = useRef(new WeakSet<PlacedShape>());
+
+  useEffect(() => {
+    const running = runningRef.current;
+    return () => {
+      for (const record of running.values()) cancelEntry(record);
+      running.clear();
+    };
+  }, []);
 
   useEffect(() => {
     elsRef.current.length = shapes.length;
     ringElsRef.current.length = shapes.length;
+    const running = runningRef.current;
+    const springs = springsRef.current;
+    const settled = settledRef.current;
     // モーション停止指定の間は入場もばねの揺れも行わない。図形は定位置のまま静止する
-    if (reduced) return;
+    if (reduced) {
+      for (const record of running.values()) cancelEntry(record);
+      running.clear();
+      springs.clear();
+      return;
+    }
+
+    const current = new Set(shapes);
+    for (const [shape, record] of running) {
+      if (!current.has(shape)) {
+        cancelEntry(record);
+        running.delete(shape);
+      }
+    }
+    for (const shape of springs.keys()) {
+      if (!current.has(shape)) springs.delete(shape);
+    }
 
     const els = elsRef.current;
     // ready: 入場が済み揺れの対象になったか。入場済みの図形 (停止からの復帰・図形の追加で
     // この effect が張り直されたとき) は入場し直さず、そのまま揺れの対象にする
-    const ready = shapes.map((shape) => entered.has(shape));
-    const running: { anim: Animation; target: HTMLElement }[] = [];
+    const ready = shapes.map(
+      (shape) => entered.has(shape) && !running.has(shape),
+    );
 
     const entryTargets = (index: number): HTMLElement[] => {
       if (shapes[index].tier === 'Inf') {
@@ -317,14 +362,17 @@ function useShapeMotion(
         shape.tier === 'Inf'
           ? infRingEntryOffsets(index)
           : [entryOffsets[index]];
-      let remaining = targets.length;
-      const done = () => {
-        if (--remaining <= 0) ready[index] = true;
-      };
-      if (remaining === 0) {
+      if (targets.length === 0) {
         ready[index] = true;
         return;
       }
+      const record: EntryRecord = { anims: [], remaining: targets.length };
+      running.set(shape, record);
+      const done = () => {
+        if (--record.remaining > 0) return;
+        running.delete(shape);
+        settled.add(shape);
+      };
       targets.forEach((target, i) => {
         const offset = offsets[i];
         if (typeof target.animate !== 'function') {
@@ -350,7 +398,7 @@ function useShapeMotion(
             fill: 'both',
           },
         );
-        running.push({ anim, target });
+        record.anims.push({ anim, target });
         anim.onfinish = () => {
           target.style.opacity = '';
           anim.cancel();
@@ -379,7 +427,7 @@ function useShapeMotion(
           );
 
     shapes.forEach((shape, i) => {
-      if (ready[i]) return;
+      if (ready[i] || entered.has(shape)) return;
       const el = els[i];
       if (!el) return;
       if (io) {
@@ -391,12 +439,14 @@ function useShapeMotion(
       }
     });
 
-    const springStates: SpringState[] = shapes.map(() => ({
-      x: 0,
-      y: 0,
-      vx: 0,
-      vy: 0,
-    }));
+    const springStates: SpringState[] = shapes.map((shape) => {
+      let state = springs.get(shape);
+      if (!state) {
+        state = { x: 0, y: 0, vx: 0, vy: 0 };
+        springs.set(shape, state);
+      }
+      return state;
+    });
     let pointer = { x: 0, y: 0 };
     let isTouch = false;
     let lastPointerMoveAt = 0;
@@ -424,7 +474,7 @@ function useShapeMotion(
       );
 
       for (let i = 0; i < shapes.length; i++) {
-        if (!ready[i]) continue;
+        if (!ready[i] && !settled.has(shapes[i])) continue;
         const el = els[i];
         if (!el) continue;
 
@@ -517,10 +567,6 @@ function useShapeMotion(
 
     return () => {
       io?.disconnect();
-      for (const { anim, target } of running) {
-        anim.cancel();
-        target.style.opacity = '';
-      }
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('scroll', onScroll);
       if (rafId !== null) cancelAnimationFrame(rafId);

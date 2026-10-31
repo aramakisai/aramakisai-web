@@ -309,6 +309,97 @@ describe('BackgroundShapes の動き', () => {
     expect(animations).toHaveLength(1);
   });
 
+  it('入場中に図形が追加されても入場中の Animation は取り消されず、完了で入場済みになる', async () => {
+    const s1 = shape({ cy: 300 });
+    const els = await renderAndMeasure([s1]);
+    const el = els[0];
+    const io = await findActiveIO(el);
+    io.trigger(el, true);
+    expect(animations).toHaveLength(1);
+
+    vi.spyOn(placementLib, 'placeBackgroundShapes').mockReturnValue(
+      placementResult([s1, shape({ cy: 900 })]),
+    );
+    setViewportWidth(1441);
+    act(() => {
+      window.dispatchEvent(new Event('resize'));
+    });
+    await waitFor(() => {
+      expect(document.querySelectorAll('[data-bg-shape]').length).toBe(2);
+    });
+
+    expect(animations[0].cancel).not.toHaveBeenCalled();
+    expect(animations).toHaveLength(1);
+
+    vi.useFakeTimers({ toFake: [...RAF_FAKE_TIMERS] });
+    act(() => animations[0].onfinish?.());
+    stubRect(el, { x: 200, y: 300, width: 300, height: 300 });
+    firePointerMove(200, 320);
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+    // 張り直し後の effect でも揺れの対象 (入場済み) になっている
+    expect(el.style.transform).not.toBe('rotate(0deg)');
+    expect(animations).toHaveLength(1);
+  });
+
+  it('図形の追加で effect が張り直されても揺れの状態は 0 に戻らない', async () => {
+    const s1 = shape({ cy: 300 });
+    const els = await renderAndMeasure([s1]);
+    const el = els[0];
+    const io = await findActiveIO(el);
+    vi.useFakeTimers({ toFake: [...RAF_FAKE_TIMERS] });
+    completeEntry(io, el);
+    stubRect(el, { x: 200, y: 300, width: 300, height: 300 });
+    firePointerMove(200, 320);
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+    const dispOf = () =>
+      Math.hypot(
+        ...(
+          el.style.transform.match(
+            /translate\(([-\d.e]+)px, ([-\d.e]+)px\)/,
+          ) ?? ['', '0', '0']
+        )
+          .slice(1)
+          .map(Number),
+      );
+    const before = dispOf();
+    expect(before).toBeGreaterThan(0.1);
+
+    vi.spyOn(placementLib, 'placeBackgroundShapes').mockReturnValue(
+      placementResult([s1, shape({ cy: 900 })]),
+    );
+    setViewportWidth(1441);
+    act(() => {
+      window.dispatchEvent(new Event('resize'));
+    });
+    expect(document.querySelectorAll('[data-bg-shape]').length).toBe(2);
+
+    act(() => {
+      window.dispatchEvent(new Event('scroll'));
+      vi.advanceTimersByTime(16);
+    });
+    expect(dispOf()).toBeGreaterThan(before * 0.5);
+  });
+
+  it('交差判定は定位置の外側要素で行い、入場の起点がレイヤー外でも定位置が交差すれば入場が始まる', async () => {
+    const els = await renderAndMeasure([shape({ cx: 40, cy: 300 })]);
+    const el = els[0];
+    const inner = el.firstElementChild as HTMLElement;
+    const io = await findActiveIO(el);
+    expect(matchingIOs(inner)).toHaveLength(0);
+    expect(animations).toHaveLength(0);
+
+    io.trigger(el, true);
+    expect(animations).toHaveLength(1);
+    expect(animations[0].target).toBe(inner);
+    expect(animations[0].keyframes[0].transform).not.toBe(
+      animations[0].keyframes[1].transform,
+    );
+  });
+
   it('∞ は 2 つの輪がそれぞれ入場し、2 つ目だけ 150ms 遅れる', async () => {
     const els = await renderAndMeasure([
       {
