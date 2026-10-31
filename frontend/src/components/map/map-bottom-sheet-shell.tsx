@@ -325,10 +325,11 @@ export function MapBottomSheetShell({
       aria-hidden={isAboveBreakpoint}
       inert={isAboveBreakpoint}
     >
+      {/* 下に落ちる影が下部ナビの上に描かれるのを防ぐため、下端より下だけ切り落とす */}
       <div
         ref={sheetRef}
         data-testid="map-bottom-sheet"
-        className={`pointer-events-auto w-full select-none bg-white ${sheetPaddingClassName} ${sheetShadowClassName} transition-[height] duration-300 ease-out motion-reduce:transition-none [interpolate-size:allow-keywords] ${currentSnap.fullScreen && !elevated ? '' : 'rounded-t-2xl'} ${currentSnap.overflow === 'auto' ? 'overflow-y-auto' : 'overflow-hidden'}`}
+        className={`pointer-events-auto w-full select-none bg-white [clip-path:inset(-40px_-40px_0_-40px)] ${sheetPaddingClassName} ${sheetShadowClassName} transition-[height] duration-300 ease-out motion-reduce:transition-none [interpolate-size:allow-keywords] ${currentSnap.fullScreen && !elevated ? '' : 'rounded-t-2xl'} ${currentSnap.overflow === 'auto' ? 'overflow-y-auto' : 'overflow-hidden'}`}
         style={{ height: currentSnap.height }}
         onPointerDown={handlePointerDown}
         onClickCapture={handleClickCapture}
