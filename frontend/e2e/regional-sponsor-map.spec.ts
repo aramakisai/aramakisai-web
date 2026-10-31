@@ -224,8 +224,8 @@ test.describe('地域協賛マップ fixture E2E', { tag: '@local-fixture' }, ()
     });
   }
 
-  test('PC 800×1000 の初期表示でタイル範囲外が見えない', async ({ page }) => {
-    await page.setViewportSize({ width: 800, height: 1000 });
+  test('PC 1100×900 の初期表示でタイル範囲外が見えない', async ({ page }) => {
+    await page.setViewportSize({ width: 1100, height: 900 });
     await openMap(page);
     await expect(page.locator('.leaflet-marker-icon').first()).toBeVisible();
     const [[south, west], [north, east]] = REGIONAL_MAP_TILE_PROFILE.bounds;
