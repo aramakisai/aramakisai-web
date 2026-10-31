@@ -321,7 +321,7 @@ export function MapBottomSheetShell({
   return (
     <div
       ref={outerRef}
-      className={`pointer-events-none fixed inset-x-0 bottom-[var(--map-nav,0px)] flex justify-center md:hidden ${currentSnap.fullScreen || elevated ? 'z-[1100]' : 'z-[1050]'} ${outerClassName ?? ''}`}
+      className={`pointer-events-none fixed inset-x-0 bottom-[var(--map-nav,0px)] flex justify-center lg:hidden ${currentSnap.fullScreen || elevated ? 'z-[1100]' : 'z-[1050]'} ${outerClassName ?? ''}`}
       aria-hidden={isAboveBreakpoint}
       inert={isAboveBreakpoint}
     >

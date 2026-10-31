@@ -137,7 +137,7 @@ describe('MapBottomSheet', () => {
     const state: AreaExhibitionListState = { kind: 'unselected' };
     const { container } = render(<MapBottomSheet state={state} />);
     expect((container.firstChild as HTMLElement).className).toMatch(
-      /md:hidden/,
+      /lg:hidden/,
     );
   });
 
