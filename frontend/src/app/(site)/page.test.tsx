@@ -19,12 +19,6 @@ vi.mock('@/env', () => ({
   },
 }));
 
-vi.mock('@/data/bus-timetable.json', () => ({
-  default: { fetchedAt: '2026-10-30T10:30:00.000Z', versions: [] },
-}));
-
-vi.mock('@/lib/use-bus-realtime', () => ({ useBusRealtime: () => null }));
-
 vi.mock('@/lib/access-settings', () => ({
   getAccessSettings: vi.fn().mockResolvedValue({
     summary: 'サイト設定の案内文',

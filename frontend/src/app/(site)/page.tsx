@@ -1,6 +1,4 @@
 import type { Metadata } from 'next';
-import busTimetable from '@/data/bus-timetable.json';
-import { departuresOn, type BusTimetableFile } from '@/lib/bus-timetable';
 import { getAccessSettings } from '@/lib/access-settings';
 import { getHomePage } from '@/lib/home-page';
 import { HeroSection } from '@/components/hero-section';
@@ -17,11 +15,7 @@ import { AccessSection } from '@/components/access-section';
 import { toHeroImage } from '@/lib/cms-asset-url';
 import { HomePageContent } from '@/lib/home-page-types';
 import { getRequestPhase } from '@/lib/request-phase';
-import {
-  formatEventDaysSummary,
-  getDaysUntilEventDay,
-  toJstDateKey,
-} from '@/lib/event-day';
+import { formatEventDaysSummary, getDaysUntilEventDay } from '@/lib/event-day';
 import {
   getExhibitionListData,
   parseExhibitionQuery,
@@ -196,14 +190,7 @@ export default async function Page() {
           descriptionHtml={content.theme?.descriptionHtml ?? null}
         />
 
-        <AccessSection
-          summary={access.summary}
-          departures={departuresOn(
-            busTimetable as unknown as BusTimetableFile,
-            toJstDateKey(new Date().toISOString()),
-          )}
-          fetchedAt={busTimetable.fetchedAt}
-        />
+        <AccessSection summary={access.summary} />
 
         <SponsorsList adSponsors={adSponsors} localSponsors={localSponsors} />
       </div>

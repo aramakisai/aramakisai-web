@@ -1,15 +1,9 @@
 import { render, screen } from '@testing-library/react';
-import { expect, test, describe, vi } from 'vitest';
+import { expect, test, describe } from 'vitest';
 import { AccessSection } from './access-section';
 import { CAMPUS_MAP_EMBED_URL, VENUE_NAME } from '@/lib/venue';
 
-vi.mock('@/lib/use-bus-realtime', () => ({ useBusRealtime: () => null }));
-
-const props = {
-  summary: '案内',
-  departures: [],
-  fetchedAt: '2026-10-30T10:30:00.000Z',
-};
+const props = { summary: '案内' };
 
 describe('AccessSection', () => {
   test('見出しと導線を表示する', () => {
@@ -34,11 +28,10 @@ describe('AccessSection', () => {
     );
   });
 
-  test('案内文の下に次の便の案内を出す', () => {
+  test('バスの表示を出さない', () => {
     render(<AccessSection {...props} />);
 
-    expect(screen.getByTestId('bus-departure-board')).toBeInTheDocument();
-    expect(screen.getAllByTestId('bus-departure-ended')).toHaveLength(2);
+    expect(screen.queryByTestId('bus-departure-board')).not.toBeInTheDocument();
   });
 
   test('地図を固定の埋め込みURLでiframeに埋め込む', () => {
