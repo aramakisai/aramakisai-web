@@ -132,24 +132,6 @@ function stubMobile() {
   }));
 }
 
-class MockResizeObserver {
-  static instances: MockResizeObserver[] = [];
-  callback: ResizeObserverCallback;
-  constructor(callback: ResizeObserverCallback) {
-    this.callback = callback;
-    MockResizeObserver.instances.push(this);
-  }
-  observe = vi.fn();
-  unobserve = vi.fn();
-  disconnect = vi.fn();
-  trigger(target: Element) {
-    this.callback(
-      [{ target } as ResizeObserverEntry],
-      this as unknown as ResizeObserver,
-    );
-  }
-}
-
 beforeEach(() => {
   state.mapViewProps.length = 0;
   sendGaEvent.mockClear();
@@ -336,8 +318,6 @@ describe('CampusMapScreen', () => {
 
   it('shrinks the map viewport to the bottom sheet top (minus the 16px rounded corner), capped at 55vh', () => {
     stubMobile();
-    MockResizeObserver.instances.length = 0;
-    vi.stubGlobal('ResizeObserver', MockResizeObserver);
     vi.stubGlobal('innerHeight', 800);
 
     const { getByTestId } = render(
@@ -348,20 +328,24 @@ describe('CampusMapScreen', () => {
     );
 
     const viewport = getByTestId('map-viewport');
-    const sheet = getByTestId('map-bottom-sheet');
-    const observer = MockResizeObserver.instances.at(-1);
     const inset = () => viewport.style.getPropertyValue('--map-bottom-inset');
 
-    vi.spyOn(sheet, 'getBoundingClientRect').mockReturnValue({
-      height: 150,
-    } as DOMRect);
-    act(() => observer?.trigger(sheet));
-    expect(inset()).toBe('134px');
+    // 未選択は内容高 (jsdom では 0) の段。行き先の高さで1回決まる
+    expect(inset()).toBe('0px');
 
-    vi.spyOn(sheet, 'getBoundingClientRect').mockReturnValue({
-      height: 800,
-    } as DOMRect); // 全画面: 55vh = 440px で止まる
-    act(() => observer?.trigger(sheet));
+    // 全画面: 55vh = 440px で止まる
+    fireEvent.keyDown(
+      screen.getByRole('button', { name: /シートの高さを変更/ }),
+      { key: 'ArrowUp' },
+    );
+    fireEvent.keyDown(
+      screen.getByRole('button', { name: /シートの高さを変更/ }),
+      { key: 'ArrowUp' },
+    );
+    fireEvent.keyDown(
+      screen.getByRole('button', { name: /シートの高さを変更/ }),
+      { key: 'ArrowUp' },
+    );
     expect(inset()).toBe('424px');
 
     vi.unstubAllGlobals();

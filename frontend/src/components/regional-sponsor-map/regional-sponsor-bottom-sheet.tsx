@@ -7,11 +7,11 @@ import {
 } from './regional-sponsor-content';
 
 export interface RegionalSponsorBottomSheetProps extends RegionalSponsorContentProps {
-  readonly onHeightChange?: (height: number) => void;
+  readonly onTargetHeightChange?: (height: number) => void;
 }
 
 export function RegionalSponsorBottomSheet({
-  onHeightChange,
+  onTargetHeightChange,
   ...content
 }: RegionalSponsorBottomSheetProps) {
   return (
@@ -19,7 +19,7 @@ export function RegionalSponsorBottomSheet({
       // エラーは1行の案内だけなので内容高へ縮める
       collapsed={!!content.error}
       selectedKey={content.selectedSponsor?.id ?? null}
-      onHeightChange={onHeightChange}
+      onTargetHeightChange={onTargetHeightChange}
     >
       <RegionalSponsorContent {...content} scope="sheet" />
     </MapBottomSheet>

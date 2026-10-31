@@ -73,7 +73,7 @@ export function RegionalSponsorMapScreen({
   const navClass = useMapNavClass();
   const sponsors = data.ok ? data.sponsors : EMPTY_SPONSORS;
   const state = useRegionalSponsorMapState(sponsors);
-  const { bottomInset, onHeightChange } = useMapSheetInset();
+  const { bottomInset, onTargetHeightChange } = useMapSheetInset();
   const { clearFocusTarget, focusTargetId, selectedSponsorId } = state;
 
   useEffect(() => {
@@ -131,7 +131,10 @@ export function RegionalSponsorMapScreen({
         onKeywordChange={state.setKeywordInput}
         onCategoriesChange={state.setCategories}
       />
-      <RegionalSponsorBottomSheet {...shared} onHeightChange={onHeightChange} />
+      <RegionalSponsorBottomSheet
+        {...shared}
+        onTargetHeightChange={onTargetHeightChange}
+      />
       <div
         data-testid="map-viewport"
         className={MAP_VIEWPORT_CLASS}

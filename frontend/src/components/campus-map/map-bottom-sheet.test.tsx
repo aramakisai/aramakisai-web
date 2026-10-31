@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
+import { useLayoutEffect } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MapBottomSheet } from './map-bottom-sheet';
 import type { AreaExhibitionListState } from './area-exhibition-list';
@@ -13,24 +14,6 @@ function firePointer(
   const event = new Event(type, { bubbles: true, cancelable: true });
   Object.assign(event, { pointerId: 1, button: 0, clientX: 0, ...props });
   fireEvent(element, event);
-}
-
-class MockResizeObserver {
-  static instances: MockResizeObserver[] = [];
-  callback: ResizeObserverCallback;
-  constructor(callback: ResizeObserverCallback) {
-    this.callback = callback;
-    MockResizeObserver.instances.push(this);
-  }
-  observe = vi.fn();
-  unobserve = vi.fn();
-  disconnect = vi.fn();
-  trigger(target: Element) {
-    this.callback(
-      [{ target } as ResizeObserverEntry],
-      this as unknown as ResizeObserver,
-    );
-  }
 }
 
 vi.mock('@/lib/cms-asset-url', () => ({
@@ -469,27 +452,67 @@ describe('MapBottomSheet', () => {
       expect(sheet.style.height).toBe('55vh');
     });
 
-    it('reports its rendered height via ResizeObserver for the caller to follow', () => {
+    it('reports the destination height once per snap change, never the in-transition height', () => {
       mockMatchMedia(false);
-      const onHeightChange = vi.fn();
-      MockResizeObserver.instances.length = 0;
-      vi.stubGlobal('ResizeObserver', MockResizeObserver);
-      const state: AreaExhibitionListState = { kind: 'unselected' };
-      const { getByTestId } = render(
-        <MapBottomSheet state={state} onHeightChange={onHeightChange} />,
+      const onTargetHeightChange = vi.fn();
+      const resizeObserver = vi.fn();
+      vi.stubGlobal('ResizeObserver', resizeObserver);
+      const filtered: AreaExhibitionListState = {
+        kind: 'filtered',
+        areaName: 'Aゾーン',
+        keyword: '',
+        categories: [],
+        items: [],
+      };
+      const { rerender } = render(
+        <MapBottomSheet
+          state={{ kind: 'unselected' }}
+          onTargetHeightChange={onTargetHeightChange}
+        />,
       );
-      const sheet = getByTestId('map-bottom-sheet');
+      rerender(
+        <MapBottomSheet
+          state={filtered}
+          onTargetHeightChange={onTargetHeightChange}
+        />,
+      );
 
-      expect(onHeightChange).toHaveBeenCalled();
-
-      vi.spyOn(sheet, 'getBoundingClientRect').mockReturnValue({
-        height: 380,
-      } as DOMRect);
-      const observer = MockResizeObserver.instances.at(-1);
-      observer?.trigger(sheet);
-      expect(onHeightChange).toHaveBeenLastCalledWith(380);
+      expect(onTargetHeightChange).toHaveBeenLastCalledWith(380);
+      expect(resizeObserver).not.toHaveBeenCalled();
 
       vi.unstubAllGlobals();
+    });
+
+    it('leaves the old snap in the same commit as the new state (no frame at the old height)', () => {
+      mockMatchMedia(false);
+      const heights: string[] = [];
+      function Probe() {
+        useLayoutEffect(() => {
+          heights.push(
+            document.querySelector<HTMLElement>(
+              '[data-testid="map-bottom-sheet"]',
+            )!.style.height,
+          );
+        });
+        return null;
+      }
+      const filtered: AreaExhibitionListState = {
+        kind: 'filtered',
+        areaName: 'Aゾーン',
+        keyword: '',
+        categories: [],
+        items: [],
+      };
+      const Sheet = ({ state }: { state: AreaExhibitionListState }) => (
+        <>
+          <MapBottomSheet state={state} />
+          <Probe />
+        </>
+      );
+      const { rerender } = render(<Sheet state={filtered} />);
+      heights.length = 0;
+      rerender(<Sheet state={{ kind: 'unselected' }} />);
+      expect(heights[0]).toBe('auto');
     });
   });
 });

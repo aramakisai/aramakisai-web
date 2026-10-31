@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
   MapBottomSheetShell,
@@ -13,8 +13,8 @@ export interface MapBottomSheetProps {
   readonly collapsed: boolean;
   /** 選択中の対象。値が変わって null でなければ minimum/fit から standard へ引き上げる */
   readonly selectedKey?: number | string | null;
-  /** シートの実高さ (px) が変わるたびに呼ばれる。地図側コントロールの余白追従に使う */
-  readonly onHeightChange?: (height: number) => void;
+  /** 段の切替ごとに、行き先の高さ (px) を1回呼ぶ。地図側コントロールの余白追従に使う */
+  readonly onTargetHeightChange?: (height: number) => void;
 }
 
 type SheetSnapId = 'minimum' | 'fit' | 'standard' | 'large' | 'full';
@@ -69,7 +69,7 @@ export function MapBottomSheet({
   children,
   collapsed,
   selectedKey = null,
-  onHeightChange,
+  onTargetHeightChange,
 }: MapBottomSheetProps) {
   const restSnapId: SheetSnapId = collapsed ? 'fit' : 'standard';
   const snaps = useMemo(
@@ -92,23 +92,25 @@ export function MapBottomSheet({
   );
   const [snapId, setSnapId] = useState<SheetSnapId>(restSnapId);
 
-  const prevCollapsedRef = useRef(collapsed);
-  useEffect(() => {
-    if (prevCollapsedRef.current !== collapsed) {
-      prevCollapsedRef.current = collapsed;
-      setSnapId(collapsed ? 'fit' : 'standard');
-    }
-  }, [collapsed]);
+  // 描画後の effect で段を替えると、替わる前の段で1フレーム描かれる
+  // (fit は内容高なので、一覧が出た直後は一覧全体の高さになる)。描画中に state を直す
+  const [prevCollapsed, setPrevCollapsed] = useState(collapsed);
+  if (prevCollapsed !== collapsed) {
+    setPrevCollapsed(collapsed);
+    setSnapId(restSnapId);
+  }
 
   // 最小まで縮めたまま別の対象を選ぶと結果が見えないため標準まで引き上げる。
   // 標準以上なら利用者が選んだ高さを尊重し、選択解除でも動かさない。
-  useEffect(() => {
+  const [prevSelectedKey, setPrevSelectedKey] = useState(selectedKey);
+  if (prevSelectedKey !== selectedKey) {
+    setPrevSelectedKey(selectedKey);
     if (selectedKey !== null) {
       setSnapId((current) =>
         current === 'minimum' || current === 'fit' ? 'standard' : current,
       );
     }
-  }, [selectedKey]);
+  }
 
   return (
     <MapBottomSheetShell
@@ -116,7 +118,7 @@ export function MapBottomSheet({
       snapId={snapId}
       restSnapId={restSnapId}
       onSnapChange={(next) => setSnapId(next as SheetSnapId)}
-      onHeightChange={onHeightChange}
+      onTargetHeightChange={onTargetHeightChange}
       outerClassName="[clip-path:inset(-100px_-100px_0_-100px)]"
       sheetShadowClassName="shadow-card"
     >

@@ -17,7 +17,7 @@ export const MAP_VIEWPORT_CLASS =
 
 export function useMapSheetInset() {
   const [bottomInset, setBottomInset] = useState(0);
-  const onHeightChange = useCallback((height: number) => {
+  const onTargetHeightChange = useCallback((height: number) => {
     setBottomInset(
       Math.max(
         0,
@@ -26,7 +26,7 @@ export function useMapSheetInset() {
       ),
     );
   }, []);
-  return { bottomInset, onHeightChange };
+  return { bottomInset, onTargetHeightChange };
 }
 
 /** 下部ナビの表示条件 (live かつ 1024px 未満) と同じ条件で、その高さ分だけ下端を空ける。値は PhasedBottomSpacer と揃える */

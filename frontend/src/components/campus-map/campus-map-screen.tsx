@@ -84,7 +84,7 @@ export function CampusMapScreen({
     },
     [commitArea],
   );
-  const { bottomInset, onHeightChange: handleSheetHeightChange } =
+  const { bottomInset, onTargetHeightChange: handleSheetHeightChange } =
     useMapSheetInset();
 
   const areas: readonly CampusMapArea[] =
@@ -178,7 +178,7 @@ export function CampusMapScreen({
         state={listState}
         notice={areaNotice}
         selectedAreaId={filters.selectedAreaId}
-        onHeightChange={handleSheetHeightChange}
+        onTargetHeightChange={handleSheetHeightChange}
       />
       <div
         data-testid="map-viewport"
