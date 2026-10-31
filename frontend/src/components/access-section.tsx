@@ -1,9 +1,13 @@
 import { TextLink } from './text-link';
 import { SandboxedEmbed } from './sandboxed-embed';
 import { SectionHeading } from './section-heading';
-import { ACCESS_SUMMARY, CAMPUS_MAP_EMBED_URL, VENUE_NAME } from '@/lib/venue';
+import { CAMPUS_MAP_EMBED_URL, VENUE_NAME } from '@/lib/venue';
 
-export function AccessSection() {
+export interface AccessSectionProps {
+  readonly summary: string;
+}
+
+export function AccessSection({ summary }: AccessSectionProps) {
   return (
     <section className="mx-auto w-full max-w-[1440px] px-4 py-8 lg:px-20 lg:py-12">
       <SectionHeading level="h2">アクセス</SectionHeading>
@@ -16,18 +20,18 @@ export function AccessSection() {
               className="h-full w-full border-0"
             />
           </div>
-          <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <div className="flex min-w-0 flex-1 flex-col gap-4">
             <p
               data-testid="access-venue-name"
-              className="text-base leading-[170%] text-text"
+              className="text-base leading-[1.8] text-text"
             >
               会場：{VENUE_NAME}
             </p>
             <p
               data-testid="access-summary"
-              className="text-sm leading-[160%] whitespace-pre-wrap text-text"
+              className="text-sm leading-[1.8] tracking-[0.02em] whitespace-pre-wrap text-text"
             >
-              {ACCESS_SUMMARY}
+              {summary}
             </p>
           </div>
         </div>

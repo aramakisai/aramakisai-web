@@ -10,7 +10,7 @@ import {
   type SignageNavDestination,
 } from '@/components/primary-nav-card';
 import { env } from '@/env';
-import type { DirectionBoard } from '@/lib/bus-departures';
+import type { DirectionBoard } from '@/lib/bus-next-departures';
 import type { EventDay } from '@/lib/home-page-types';
 import type { SignageTelopItem, StageNowRow } from '@/lib/signage';
 import {

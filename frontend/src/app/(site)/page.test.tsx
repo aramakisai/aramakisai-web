@@ -1,5 +1,5 @@
 import { render, screen, within } from '@testing-library/react';
-import { ACCESS_SUMMARY, CAMPUS_MAP_EMBED_URL, VENUE_NAME } from '@/lib/venue';
+import { CAMPUS_MAP_EMBED_URL, VENUE_NAME } from '@/lib/venue';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Page, { generateMetadata } from './page';
 import * as homePageModule from '@/lib/home-page';
@@ -17,6 +17,15 @@ vi.mock('@/env', () => ({
     NEXT_PUBLIC_CMS_URL: 'http://localhost:8055',
     NEXT_PUBLIC_SITE_URL: 'http://localhost:3000',
   },
+}));
+
+vi.mock('@/lib/access-settings', () => ({
+  getAccessSettings: vi.fn().mockResolvedValue({
+    summary: 'サイト設定の案内文',
+    contentHtml: '',
+    embedUrl: null,
+    embedHeight: null,
+  }),
 }));
 
 vi.mock('@/lib/home-page', () => ({
@@ -495,7 +504,7 @@ describe('Page (開催中フェーズ)', () => {
     ]);
   });
 
-  it('アクセスの会場名・文言・地図をCMSの値に依らず固定値で表示する', async () => {
+  it('アクセスの案内文をサイト設定から、会場名・地図を固定値で表示する', async () => {
     const ui = await Page();
     const { container } = render(ui);
 
@@ -503,7 +512,7 @@ describe('Page (開催中フェーズ)', () => {
       VENUE_NAME,
     );
     expect(screen.getByTestId('access-summary')).toHaveTextContent(
-      ACCESS_SUMMARY,
+      'サイト設定の案内文',
     );
     expect(
       container.querySelector(`iframe[src="${CAMPUS_MAP_EMBED_URL}"]`),

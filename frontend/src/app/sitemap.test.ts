@@ -132,13 +132,13 @@ describe('sitemap (pre_event)', () => {
 
   it('固定ページは実在する slug のみ収録する', async () => {
     vi.mocked(staticPageModule.getPageSlugsUpdatedAt).mockResolvedValue([
-      { slug: 'access', updatedAt: '2026-06-01T00:00:00.000Z' },
+      { slug: 'contact', updatedAt: '2026-06-01T00:00:00.000Z' },
     ]);
 
     const result = await sitemap();
     const urls = urlsOf(result);
 
-    expect(urls).toContain(`${SITE_URL}/access`);
+    expect(urls).toContain(`${SITE_URL}/contact`);
     expect(urls).not.toContain(`${SITE_URL}/privacy`);
   });
 
@@ -213,7 +213,7 @@ describe('sitemap (pre_event)', () => {
       },
     ]);
     vi.mocked(staticPageModule.getPageSlugsUpdatedAt).mockResolvedValue([
-      { slug: 'access', updatedAt: '2026-06-01T00:00:00.000Z' },
+      { slug: 'contact', updatedAt: '2026-06-01T00:00:00.000Z' },
     ]);
 
     const result = await sitemap();
@@ -274,6 +274,12 @@ describe('sitemap (live)', () => {
 
     expect(map).toBeDefined();
     expect(map?.lastModified).toBeUndefined();
+  });
+
+  it('/access を専用ルートとして 1 回だけ収録する', async () => {
+    const urls = urlsOf(await sitemap());
+
+    expect(urls.filter((u) => u === `${SITE_URL}/access`)).toHaveLength(1);
   });
 
   it('開催前も /parking を収録する', async () => {

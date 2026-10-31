@@ -9,6 +9,7 @@ vi.mock('@/env', () => ({
   },
 }));
 
+import type { BusRealtime } from '@/lib/use-bus-realtime';
 import type { SignageSnapshot } from '@/lib/signage';
 import type { SignageChannelState } from '@/lib/use-signage-channel';
 import { SignageScreen } from './signage-screen';
@@ -35,6 +36,46 @@ vi.mock('@/lib/use-signage-channel', async (importOriginal) => ({
   useSignageChannel: () => channel,
 }));
 
+let busRealtime: BusRealtime | null = null;
+vi.mock('@/lib/use-bus-realtime', () => ({
+  useBusRealtime: () => busRealtime,
+}));
+vi.mock('@/data/bus-timetable.json', () => ({
+  default: {
+    fetchedAt: '2026-10-30T10:30:00.000Z',
+    versions: [
+      {
+        version: 'test',
+        validFrom: '2000-01-01',
+        validTo: '2999-12-31',
+        services: [
+          {
+            id: 's',
+            weekdays: [true, true, true, true, true, true, true],
+            startDate: '2000-01-01',
+            endDate: '2999-12-31',
+            added: [],
+            removed: [],
+          },
+        ],
+        departures: [
+          {
+            tripId: 't1',
+            serviceId: 's',
+            route: '22B',
+            destination: '前橋駅',
+            via: null,
+            direction: 'maebashi',
+            stop: 'gunma_univ_aramaki',
+            stopSequence: 3,
+            time: '09:30',
+          },
+        ],
+      },
+    ],
+  },
+}));
+
 let viewport = { width: 500, height: 1330 };
 
 describe('SignageScreen', () => {
@@ -49,6 +90,7 @@ describe('SignageScreen', () => {
     );
     viewport = { width: 500, height: 1330 };
     channel = CHANNEL_IDLE;
+    busRealtime = null;
     vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(
       () => viewport.width,
     );
@@ -104,6 +146,26 @@ describe('SignageScreen', () => {
       <SignageScreen initial={null} renderedAt="2026-11-14T00:00:00Z" />,
     );
     expect(container.textContent).not.toContain('いまのステージ');
+  });
+
+  describe('バス発車案内', () => {
+    it('その日の時刻表から方面ごとの次の便を出し、リアルタイム情報の遅れを反映する', () => {
+      busRealtime = {
+        tripUpdates: new Map([
+          ['t1', { tripId: 't1', stopSequence: 3, delaySeconds: 300 }],
+        ]),
+        vehicles: new Map(),
+        generatedAt: Date.parse('2026-11-14T00:00:00Z') / 1000,
+        tripUpdatesAt: Date.parse('2026-11-14T00:00:00Z') / 1000,
+        vehiclesAt: Date.parse('2026-11-14T00:00:00Z') / 1000,
+      };
+      const { container } = render(
+        <SignageScreen initial={null} renderedAt="2026-11-14T00:00:00Z" />,
+      );
+      expect(container.textContent).toContain('09:30');
+      expect(container.textContent).toContain('約5分遅れ');
+      expect(container.textContent).toContain('本日の運行は終了しました');
+    });
   });
 
   describe('緊急地震速報のオーバーレイ', () => {
