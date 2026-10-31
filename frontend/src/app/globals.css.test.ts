@@ -50,8 +50,8 @@ describe('見出しの既定スタイル (h1〜h6)', () => {
     expect(rule).toBeDefined();
   });
 
-  it('ExtraBold (800) にする (要件 1.2)', () => {
-    expect(declValue(rule!, 'font-weight')).toBe('800');
+  it('Black (900) にする (要件 1.2)', () => {
+    expect(declValue(rule!, 'font-weight')).toBe('900');
   });
 
   it('字間 2% にする (要件 1.2)', () => {

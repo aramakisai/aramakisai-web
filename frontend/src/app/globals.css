@@ -199,7 +199,7 @@
   h5,
   h6 {
     @apply font-display;
-    font-weight: 800;
+    font-weight: 900;
     letter-spacing: 0.02em;
     text-wrap: balance;
     word-break: auto-phrase;

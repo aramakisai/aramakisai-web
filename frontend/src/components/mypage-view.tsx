@@ -81,7 +81,7 @@ function AreaHeader({
   return (
     <>
       <div className="flex min-h-6 items-center gap-2">
-        <span className="flex-1 font-display text-base leading-[1.4] font-extrabold text-text">
+        <span className="flex-1 font-display text-base leading-[1.4] font-black text-text">
           <HoverLineText gap={5}>{name}</HoverLineText>
         </span>
         {percent !== null && (
