@@ -29,7 +29,7 @@ describe('fetchBusRealtime', () => {
       trip_update: () => ok(fixture('gtfs-rt-trip-update.pb')),
       vehicle: () => ok(fixture('gtfs-rt-vehicle.pb')),
     });
-    const r = await fetchBusRealtime();
+    const r = (await fetchBusRealtime())!;
     const stamps = [
       decodeTripUpdates(new Uint8Array(fixture('gtfs-rt-trip-update.pb'))),
       decodeVehicles(new Uint8Array(fixture('gtfs-rt-vehicle.pb'))),
@@ -44,21 +44,18 @@ describe('fetchBusRealtime', () => {
       trip_update: () => new Response('', { status: 500 }),
       vehicle: () => ok(fixture('gtfs-rt-vehicle.pb')),
     });
-    const r = await fetchBusRealtime();
+    const r = (await fetchBusRealtime())!;
     expect(r.tripUpdates.size).toBe(0);
     expect(r.vehicles.size).toBeGreaterThan(0);
     expect(r.generatedAt).not.toBeNull();
   });
 
-  it('デコードに失敗したフィードも空になる', async () => {
+  it('2 フィードとも取得できなければ null(情報なし)', async () => {
     mockFetch({
       trip_update: () => ok(Buffer.from([0xff, 0xff, 0xff])),
       vehicle: () => new Error('network'),
     });
-    const r = await fetchBusRealtime();
-    expect(r.tripUpdates.size).toBe(0);
-    expect(r.vehicles.size).toBe(0);
-    expect(r.generatedAt).toBeNull();
+    expect(await fetchBusRealtime()).toBeNull();
   });
 });
 

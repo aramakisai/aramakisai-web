@@ -43,12 +43,12 @@ describe('getAccessSettings', () => {
     });
   });
 
-  it('取得に失敗したら空の設定を返す', async () => {
+  it('取得に失敗したら throw する', async () => {
     vi.mocked(cms.findGlobal).mockResolvedValue({
       ok: false,
       error: { kind: 'network', status: 500 },
     } as never);
 
-    expect((await getAccessSettings()).summary).toBe('');
+    await expect(getAccessSettings()).rejects.toThrow();
   });
 });

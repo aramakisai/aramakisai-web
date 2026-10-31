@@ -1,3 +1,4 @@
+import { renderToString } from 'react-dom/server';
 import { act, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { BusRealtime } from '@/lib/use-bus-realtime';
@@ -47,7 +48,13 @@ afterEach(() => vi.useRealTimers());
 
 function renderAt(now: Date) {
   vi.setSystemTime(now);
-  render(<BusDepartureBoard departures={departures} fetchedAt={FETCHED} />);
+  render(
+    <BusDepartureBoard
+      departures={departures}
+      fetchedAt={FETCHED}
+      renderedAt={now.toISOString()}
+    />,
+  );
 }
 
 describe('BusDepartureBoard', () => {
@@ -111,6 +118,28 @@ describe('BusDepartureBoard', () => {
     });
     expect(screen.queryByText('14:20')).toBeNull();
     expect(screen.queryByText('15:00')).not.toBeNull();
+  });
+
+  test('初回描画はサーバー描画時刻で判定し、時刻表の取得日時には依存しない', () => {
+    vi.setSystemTime(jst(14, 50));
+    const html = renderToString(
+      <BusDepartureBoard
+        departures={departures}
+        fetchedAt={FETCHED}
+        renderedAt={jst(14, 17).toISOString()}
+      />,
+    );
+    expect(html).toContain('14:20');
+  });
+
+  test('5 分以上古いリアルタイム情報の生成時刻は出さない', () => {
+    realtime = {
+      tripUpdates: new Map(),
+      vehicles: new Map(),
+      generatedAt: jst(14, 10).getTime() / 1000,
+    };
+    renderAt(jst(14, 17));
+    expect(screen.queryByText(/遅延情報の生成時刻/)).toBeNull();
   });
 
   test('列見出しと出典を出す', () => {

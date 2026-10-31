@@ -9,14 +9,14 @@ export interface AccessSettings {
   readonly embedHeight: number | null;
 }
 
-/** 取得失敗はページ全体を落とさず空の設定として扱う */
 export async function getAccessSettings(): Promise<AccessSettings> {
   const result = await cms.findGlobal('site_settings');
-  const s = result.ok ? result.value : null;
+  if (!result.ok) throw new Error('アクセス設定の取得に失敗しました');
+  const s = result.value;
   return {
-    summary: s?.access_summary ?? '',
-    contentHtml: s?.access_content_html ?? '',
-    embedUrl: s?.access_embed_url ?? null,
-    embedHeight: s?.access_embed_height ?? null,
+    summary: s.access_summary ?? '',
+    contentHtml: s.access_content_html ?? '',
+    embedUrl: s.access_embed_url ?? null,
+    embedHeight: s.access_embed_height ?? null,
   };
 }

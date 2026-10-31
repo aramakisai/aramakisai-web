@@ -16,8 +16,8 @@ const FEED_BASE =
 export interface BusRealtime {
   tripUpdates: ReadonlyMap<string, RealtimeTripUpdate>;
   vehicles: ReadonlyMap<string, RealtimeVehicle>;
-  /** header.timestamp(epoch 秒)。2 フィードの古い方。どちらも無ければ null */
-  generatedAt: number | null;
+  /** header.timestamp(epoch 秒)。2 フィードの古い方 */
+  generatedAt: number;
 }
 
 async function fetchFeed<T>(
@@ -44,23 +44,24 @@ function indexFirst<T extends { tripId: string }>(
   return map;
 }
 
-export async function fetchBusRealtime(): Promise<BusRealtime> {
+export async function fetchBusRealtime(): Promise<BusRealtime | null> {
   // 片方の失敗でもう片方を捨てないよう、fetchFeed 内で失敗を null に畳む
   const [trips, vehicles] = await Promise.all([
     fetchFeed('trip_update', decodeTripUpdates),
     fetchFeed('vehicle', decodeVehicles),
   ]);
   const stamps = [trips, vehicles].flatMap((f) => (f ? [f.generatedAt] : []));
+  if (stamps.length === 0) return null;
   return {
     tripUpdates: indexFirst(trips),
     vehicles: indexFirst(vehicles),
-    generatedAt: stamps.length > 0 ? Math.min(...stamps) : null,
+    generatedAt: Math.min(...stamps),
   };
 }
 
 /** 一度も取得できていなければ null */
 export function useBusRealtime(): BusRealtime | null {
-  return usePolling<BusRealtime>({
+  return usePolling<BusRealtime | null>({
     fetcher: fetchBusRealtime,
     intervalMs: BUS_REALTIME_INTERVAL_MS,
     initial: null,

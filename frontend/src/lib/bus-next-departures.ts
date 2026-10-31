@@ -42,6 +42,14 @@ const DIRECTIONS: readonly BusDirection[] = ['maebashi', 'shibukawa'];
 /** これ以上古いフィードは遅れも車両位置も信用しない */
 const STALE_MS = 5 * 60_000;
 
+/** nextBusDepartures が使うのと同じ鮮度判定。表示側の生成時刻の出し分けにも使う */
+export function isRealtimeFresh(
+  generatedAt: number | null,
+  now: Date,
+): boolean {
+  return generatedAt === null || now.getTime() - generatedAt * 1000 < STALE_MS;
+}
+
 function pad2(n: number): string {
   return String(n).padStart(2, '0');
 }
@@ -53,10 +61,7 @@ export function nextBusDepartures(
   perDirection: number,
 ): readonly DirectionBoard[] {
   const rt =
-    realtime?.generatedAt != null &&
-    now.getTime() - realtime.generatedAt * 1000 >= STALE_MS
-      ? null
-      : realtime;
+    realtime && isRealtimeFresh(realtime.generatedAt, now) ? realtime : null;
   const { hours, minutes } = toJstParts(now.toISOString());
   const nowMs =
     (hours * 60 + minutes) * 60_000 +
@@ -101,7 +106,7 @@ export function nextBusDepartures(
           stopName: STOP_NAMES[s.stop],
           scheduledAt: s.time,
           expectedAt: `${pad2(Math.floor(expectedMin / 60))}:${pad2(expectedMin % 60)}`,
-          delayMinutes: Math.round(delaySeconds / 60),
+          delayMinutes: expectedMin - (h * 60 + m),
           source: update ? 'realtime' : 'schedule',
           minutesLeft: Math.max(0, Math.ceil((expectedMs - nowMs) / 60_000)),
         },

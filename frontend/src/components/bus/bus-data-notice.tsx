@@ -5,6 +5,7 @@ export interface BusDataNoticeProps {
   readonly timetableFetchedAt: string;
   /** epoch 秒。リアルタイム情報が無い・古くて使えないときは null */
   readonly realtimeGeneratedAt: number | null;
+  readonly variant: 'page' | 'signage';
 }
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
@@ -25,11 +26,19 @@ function formatGeneratedAt(epochSec: number): string {
 export function BusDataNotice({
   timetableFetchedAt,
   realtimeGeneratedAt,
+  variant,
 }: BusDataNoticeProps) {
+  if (variant === 'signage') {
+    return (
+      <p data-testid="bus-data-notice" className="text-gray-600">
+        データ: 関越交通(CC BY 4.0)・公共交通オープンデータセンター
+      </p>
+    );
+  }
   return (
     <div
       data-testid="bus-data-notice"
-      className="flex flex-col gap-1 text-xs leading-[1.6] text-gray-500 [word-break:break-word]"
+      className="flex flex-col gap-1 text-xs leading-[1.6] text-gray-600 [word-break:break-word]"
     >
       <p>
         このサービスは、以下の著作物を改変して利用しています。関越交通株式会社、関越交通バス・【リアルタイム情報】関越交通バス、クリエイティブ・コモンズ・ライセンス　表示4.0国際(https://creativecommons.org/licenses/by/4.0/deed.ja)

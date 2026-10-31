@@ -105,6 +105,18 @@ describe('nextBusDepartures', () => {
     });
   });
 
+  it('遅れの秒は expectedAt と同じ規則で分に切り捨てる', () => {
+    const now = sat(9, 50);
+    expect(first(now, rt({ updates: [['a', 5, 179]] }, now))).toMatchObject({
+      expectedAt: '10:02',
+      delayMinutes: 2,
+    });
+    expect(first(now, rt({ updates: [['a', 5, 59]] }, now))).toMatchObject({
+      expectedAt: '10:00',
+      delayMinutes: 0,
+    });
+  });
+
   it('早着は遅れ 0 で時刻表どおりの発車予定', () => {
     const now = sat(9, 50);
     expect(first(now, rt({ updates: [['a', 5, -120]] }, now))).toMatchObject({

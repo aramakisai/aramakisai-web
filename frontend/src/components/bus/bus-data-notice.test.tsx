@@ -10,7 +10,11 @@ const GENERATED = Date.parse('2026-10-30T05:17:05Z') / 1000;
 describe('BusDataNotice', () => {
   test('出典・免責・問い合わせ先・取得日時の固定文を出す', () => {
     render(
-      <BusDataNotice timetableFetchedAt={FETCHED} realtimeGeneratedAt={null} />,
+      <BusDataNotice
+        timetableFetchedAt={FETCHED}
+        realtimeGeneratedAt={null}
+        variant="page"
+      />,
     );
     expect(
       screen.queryByText(
@@ -34,7 +38,11 @@ describe('BusDataNotice', () => {
 
   test('生成時刻が無いときは遅延情報の行を出さない', () => {
     render(
-      <BusDataNotice timetableFetchedAt={FETCHED} realtimeGeneratedAt={null} />,
+      <BusDataNotice
+        timetableFetchedAt={FETCHED}
+        realtimeGeneratedAt={null}
+        variant="page"
+      />,
     );
     expect(screen.queryByText(/遅延情報の生成時刻/)).toBeNull();
   });
@@ -44,8 +52,26 @@ describe('BusDataNotice', () => {
       <BusDataNotice
         timetableFetchedAt={FETCHED}
         realtimeGeneratedAt={GENERATED}
+        variant="page"
       />,
     );
     expect(screen.queryByText('遅延情報の生成時刻: 14:17:05')).not.toBeNull();
+  });
+
+  test('signage は短い出典 1 行だけを出す', () => {
+    render(
+      <BusDataNotice
+        timetableFetchedAt={FETCHED}
+        realtimeGeneratedAt={GENERATED}
+        variant="signage"
+      />,
+    );
+    expect(
+      screen.queryByText(
+        'データ: 関越交通(CC BY 4.0)・公共交通オープンデータセンター',
+      ),
+    ).not.toBeNull();
+    expect(screen.queryByText(/時刻表の取得日時/)).toBeNull();
+    expect(screen.queryByText(/遅延情報の生成時刻/)).toBeNull();
   });
 });
