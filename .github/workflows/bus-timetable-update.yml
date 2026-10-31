@@ -89,6 +89,13 @@ jobs:
         working-directory: frontend
         run: pnpm install --frozen-lockfile
 
+      # 更新 PR が未マージの間も前回値をブランチ側から読み、内容が変わらない日に fetchedAt だけが更新されるのを防ぐ
+      - name: Restore previous data from update branch
+        run: |
+          if git fetch --depth=1 origin "+refs/heads/$BRANCH:refs/remotes/origin/$BRANCH"; then
+            git show "origin/$BRANCH:$DATA_FILE" > "$DATA_FILE"
+          fi
+
       - name: Fetch bus timetable
         working-directory: frontend
         run: pnpm bus:timetable
@@ -96,7 +103,9 @@ jobs:
       - name: Detect changes
         id: diff
         run: |
-          if git diff --quiet -- "$DATA_FILE"; then
+          BASE=HEAD
+          if git rev-parse --verify -q "origin/$BRANCH" > /dev/null; then BASE="origin/$BRANCH"; fi
+          if git diff --quiet "$BASE" -- "$DATA_FILE"; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"

@@ -67,9 +67,14 @@ function splitHeadsign(headsign: string): {
   via: string | null;
 } {
   const m = /^(.*?)（(.*) 経由）$/.exec(headsign);
-  return m
+  const result = m
     ? { destination: m[1], via: m[2] }
     : { destination: headsign, via: null };
+  // 経由の書式が想定外だと括弧書きが行先に残って画面に出るため、取り込み時に止める
+  if (/[（(]|経由/.test(result.destination)) {
+    throw new Error(`行先「${headsign}」の経由の書式が想定外です`);
+  }
+  return result;
 }
 
 const routeName = (routes: Map<string, string>, trip: Row): string =>

@@ -135,6 +135,15 @@ describe('extractVersion', () => {
     ['t10', '11:00:00', '200722_01', '1', '群馬大学荒牧', '0'],
   ];
 
+  it('経由の書式が想定外の行先は失敗する', () => {
+    const bad = [
+      ['t1', '07:10:00', '200273_01', '3', '前橋駅（群大病院経由）', '0'],
+    ];
+    expect(() => extractVersion('20260919', makeZip(bad, trips))).toThrow(
+      /行先/,
+    );
+  });
+
   it('乗車不可を除き、停留所の行先・経由・方面・系統を付ける', () => {
     const v = extractVersion('20260919', makeZip(stopTimes, trips));
     expect(v.validFrom).toBe('2026-09-19');
