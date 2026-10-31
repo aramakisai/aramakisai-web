@@ -17,6 +17,7 @@ import { purgeEdgeCacheAfterChange, purgeEdgeCacheAfterDelete } from '../hooks/m
 export const IMAGE_SIZES = [
   { name: 'hero', width: 1920 },
   { name: 'card', width: 960 },
+  { name: 'small', width: 640 },
 ] as const;
 
 /**

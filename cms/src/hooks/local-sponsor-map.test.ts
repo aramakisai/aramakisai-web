@@ -24,6 +24,7 @@ describe('validateLocalSponsorMap', () => {
     expect(urlViolations('/relative/path')).toEqual(['url'])
     expect(urlViolations('ftp://example.invalid/file')).toEqual(['url'])
     expect(urlViolations('javascript:alert(1)')).toEqual(['url'])
+    expect(urlViolations('  ')).toEqual(['url'])
   })
 
   it('追加項目のない既存localとlocal以外を妨げない', () => {
@@ -48,6 +49,15 @@ describe('localSponsorMapConstraint', () => {
         originalDoc: { type: ['local'], name: '既存レコード' },
       } as never),
     ).toEqual({ local_phone: null })
+  })
+
+  it('URL の空白を保存時に null に正規化する', async () => {
+    expect(
+      await localSponsorMapConstraint({
+        data: { url: '  ' },
+        originalDoc: { type: ['local'], name: '既存レコード' },
+      } as never),
+    ).toEqual({ url: null })
   })
 
   it('住所から座標を自動取得する', async () => {

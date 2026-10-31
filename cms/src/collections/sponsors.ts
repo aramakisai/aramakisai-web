@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload';
 
+import { advertisingSponsorConstraint } from '../hooks/advertising-sponsor';
 import { localSponsorMapConstraint } from '../hooks/local-sponsor-map';
 import { sponsorBoothPlacementConstraint, sponsorImageCountConstraint } from '../hooks/payload-constraints';
 import { signageNotifyHook } from '../lib/signage-notify';
@@ -26,7 +27,7 @@ export const Sponsors: CollectionConfig = {
   },
   orderable: true,
   hooks: {
-    beforeValidate: [localSponsorMapConstraint, sponsorBoothPlacementConstraint, sponsorImageCountConstraint],
+    beforeValidate: [advertisingSponsorConstraint, localSponsorMapConstraint, sponsorBoothPlacementConstraint, sponsorImageCountConstraint],
     afterChange: [signageNotifyHook(['snapshot'])],
     afterDelete: [signageNotifyHook(['snapshot'])],
   },
@@ -43,6 +44,7 @@ export const Sponsors: CollectionConfig = {
         { label: '地域協賛', value: 'local' },
         { label: '出店協賛', value: 'vendor' },
         { label: 'その他', value: 'other' },
+        { label: '個人協賛', value: 'personal' },
       ],
     },
     {
