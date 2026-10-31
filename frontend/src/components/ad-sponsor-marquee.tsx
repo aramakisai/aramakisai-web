@@ -136,7 +136,7 @@ export function AdSponsorTopGrid({
   const tops = sponsors.filter((s) => s.tier === 'planA');
   if (tops.length === 0) return null;
   return (
-    <ul className="hidden grid-cols-3 gap-6 lg:grid">
+    <ul className="hidden grid-cols-3 gap-6 bg-white p-6 lg:grid">
       {tops.map((s) => (
         <li key={s.id} className="flex h-[132px] items-center justify-center">
           <SponsorItem sponsor={s} tier="planA" grid />
@@ -210,21 +210,21 @@ export function AdSponsorMarquee({
 
   // pb-10: shadow/card の下方向の広がり (offset 20 + blur 25 - spread 5) が overflow-hidden で切れないための余白。-mb-10 で後続要素との間隔は変えない
   return (
-    <div
-      className={`-mb-10 overflow-hidden pb-10 motion-reduce:overflow-x-auto ${aOnly ? 'lg:hidden' : ''}`}
-    >
-      <div
-        data-testid="ad-sponsor-marquee-track"
-        className={`flex w-max ${width > 0 ? 'animate-[sponsor-marquee_var(--marquee-duration)_linear_infinite] motion-reduce:animate-none' : ''}`}
-        style={
-          {
-            '--marquee-width': `${width}px`,
-            '--marquee-duration': `${width / SPEED_PX_PER_SEC}s`,
-          } as React.CSSProperties
-        }
-      >
-        <MarqueeSet sponsors={sponsors} setRef={setRef} />
-        <MarqueeSet sponsors={sponsors} hidden />
+    <div className={`bg-white py-4 lg:py-6 ${aOnly ? 'lg:hidden' : ''}`}>
+      <div className="-mb-10 overflow-hidden pb-10 motion-reduce:overflow-x-auto">
+        <div
+          data-testid="ad-sponsor-marquee-track"
+          className={`flex w-max ${width > 0 ? 'animate-[sponsor-marquee_var(--marquee-duration)_linear_infinite] motion-reduce:animate-none' : ''}`}
+          style={
+            {
+              '--marquee-width': `${width}px`,
+              '--marquee-duration': `${width / SPEED_PX_PER_SEC}s`,
+            } as React.CSSProperties
+          }
+        >
+          <MarqueeSet sponsors={sponsors} setRef={setRef} />
+          <MarqueeSet sponsors={sponsors} hidden />
+        </div>
       </div>
     </div>
   );
