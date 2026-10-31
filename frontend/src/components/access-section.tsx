@@ -23,13 +23,13 @@ export function AccessSection({ summary }: AccessSectionProps) {
           <div className="flex min-w-0 flex-1 flex-col gap-4">
             <p
               data-testid="access-venue-name"
-              className="text-base leading-[170%] text-text"
+              className="text-base leading-[1.8] text-text"
             >
               会場：{VENUE_NAME}
             </p>
             <p
               data-testid="access-summary"
-              className="text-sm leading-[160%] whitespace-pre-wrap text-text"
+              className="text-sm leading-[1.8] whitespace-pre-wrap text-text"
             >
               {summary}
             </p>
