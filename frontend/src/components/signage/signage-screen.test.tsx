@@ -156,6 +156,8 @@ describe('SignageScreen', () => {
         ]),
         vehicles: new Map(),
         generatedAt: Date.parse('2026-11-14T00:00:00Z') / 1000,
+        tripUpdatesAt: Date.parse('2026-11-14T00:00:00Z') / 1000,
+        vehiclesAt: Date.parse('2026-11-14T00:00:00Z') / 1000,
       };
       const { container } = render(
         <SignageScreen initial={null} renderedAt="2026-11-14T00:00:00Z" />,

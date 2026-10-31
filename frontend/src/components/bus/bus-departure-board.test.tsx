@@ -80,6 +80,8 @@ describe('BusDepartureBoard', () => {
       ]),
       vehicles: new Map(),
       generatedAt: jst(14, 17).getTime() / 1000,
+      tripUpdatesAt: jst(14, 17).getTime() / 1000,
+      vehiclesAt: jst(14, 17).getTime() / 1000,
     };
     renderAt(jst(14, 17));
     const row = screen.getAllByTestId('bus-departure-row')[0];
@@ -97,6 +99,8 @@ describe('BusDepartureBoard', () => {
         ['a', { tripId: 'a', currentStopSequence: 3, status: 'stopped_at' }],
       ]),
       generatedAt: jst(14, 26).getTime() / 1000,
+      tripUpdatesAt: jst(14, 26).getTime() / 1000,
+      vehiclesAt: jst(14, 26).getTime() / 1000,
     };
     renderAt(jst(14, 26));
     expect(screen.queryByText('まもなく')).not.toBeNull();
@@ -137,6 +141,8 @@ describe('BusDepartureBoard', () => {
       tripUpdates: new Map(),
       vehicles: new Map(),
       generatedAt: jst(14, 10).getTime() / 1000,
+      tripUpdatesAt: jst(14, 10).getTime() / 1000,
+      vehiclesAt: jst(14, 10).getTime() / 1000,
     };
     renderAt(jst(14, 17));
     expect(screen.queryByText(/遅延情報の生成時刻/)).toBeNull();
