@@ -190,7 +190,7 @@ describe('MapSearchOverlay', () => {
     const wrapper = container.firstChild as HTMLElement;
     expect(wrapper).toHaveAttribute('aria-hidden', 'true');
     expect(wrapper).toHaveAttribute('inert');
-    expect(wrapper.className).toMatch(/md:hidden/);
+    expect(wrapper.className).toMatch(/lg:hidden/);
   });
 
   it('stays reachable below the breakpoint', () => {

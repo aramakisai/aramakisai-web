@@ -7,9 +7,9 @@ import {
 } from './area-exhibition-list';
 import { MapSearchPanel, type MapSearchProps } from './map-search-panel';
 
-// Tailwind 既定の 'md' (MAP_BREAKPOINT, src/lib/campus-map-config.ts) と同じ 768px。
+// サイト共通の SP/PC 境界 (Tailwind の lg) と同じ 1024px。下部ナビの lg:hidden と同時に出さないため。
 // tailwind.config.ts は screens を上書きしていないため既定値をそのまま使う
-const DESKTOP_QUERY = '(min-width: 768px)';
+const DESKTOP_QUERY = '(min-width: 1024px)';
 
 function subscribe(onChange: () => void): () => void {
   const mql = window.matchMedia(DESKTOP_QUERY);
@@ -47,7 +47,7 @@ export function MapSidePanel({ search, listState, notice }: MapSidePanelProps) {
       inert={!isDesktop}
       // 表示自体は CSS のブレークポイント (MAP_BREAKPOINT) に委ね、aria-hidden/inert は
       // 支援技術とキーボードフォーカスの除外専用に JS 側で同期させる (design.md 参照)
-      className="absolute top-6 bottom-[calc(1.5rem+var(--map-nav,0px))] left-6 z-[1000] hidden w-[348px] max-w-[calc(50%-2rem)] flex-col gap-4 overflow-visible rounded-xl border border-gray-200 bg-white p-6 shadow-card md:flex"
+      className="absolute top-6 bottom-[calc(1.5rem+var(--map-nav,0px))] left-6 z-[1000] hidden w-[348px] max-w-[calc(50%-2rem)] flex-col gap-4 overflow-visible rounded-xl border border-gray-200 bg-white p-6 shadow-card lg:flex"
     >
       <MapSearchPanel {...search} />
 

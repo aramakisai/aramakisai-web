@@ -34,7 +34,7 @@ export function MapSearchOverlay({
   return (
     // 入力要素の id は "map-search-overlay-" 接頭辞でデスクトップ側 (MapSearchPanel) と分ける
     <div
-      className="fixed inset-x-4 top-[max(1rem,env(safe-area-inset-top))] z-[1080] flex flex-col gap-2 md:hidden"
+      className="fixed inset-x-4 top-[max(1rem,env(safe-area-inset-top))] z-[1080] flex flex-col gap-2 lg:hidden"
       aria-hidden={isAboveBreakpoint}
       inert={isAboveBreakpoint}
     >
