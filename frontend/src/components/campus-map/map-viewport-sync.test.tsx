@@ -63,13 +63,13 @@ describe('MapViewportSync', () => {
     document.body.append(panel);
     renderWithResize();
     expect(map.fitBounds.mock.calls[0][1].paddingTopLeft).toEqual([404, 32]);
-    expect(map.fitBounds.mock.calls[0][1].paddingBottomRight).toEqual([32, 48]);
+    expect(map.fitBounds.mock.calls[0][1].paddingBottomRight).toEqual([96, 48]);
   });
 
   it('adds the bottom inset to the bottom padding', () => {
     renderWithResize(200);
     expect(map.fitBounds.mock.calls[0][1].paddingBottomRight).toEqual([
-      32, 248,
+      96, 248,
     ]);
   });
 
