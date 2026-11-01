@@ -6,6 +6,7 @@ import type {
 } from 'payload';
 import { APIError } from 'payload';
 
+import { canReadMediaFile } from '../access/policy';
 import { denyField, executiveOnlyField } from '../access/payload-access';
 import { isStudentExhibitor, toCmsUser } from '../access/roles';
 import { purgeEdgeCacheAfterChange, purgeEdgeCacheAfterDelete } from '../hooks/media-edge-purge';
@@ -76,9 +77,19 @@ export const Media: CollectionConfig = {
       method: 'get',
       handler: async (req) => {
         const { id, size } = req.routeParams as { id: string; size: string };
-        // Local API は overrideAccess を既定で true にするため、明示しないと read access が評価されない
+        // 学生団体にも公開画像を配るため collection の read access ではなく配信用の条件で絞る
         const doc = await req.payload
-          .findByID({ collection: 'media', id, depth: 0, overrideAccess: false, req })
+          .find({
+            collection: 'media',
+            where: {
+              and: [{ id: { equals: id } }, canReadMediaFile(toCmsUser(req.user)) as Where],
+            },
+            depth: 0,
+            limit: 1,
+            overrideAccess: true,
+            req,
+          })
+          .then((r) => r.docs[0])
           .catch(() => null);
         if (!doc) return Response.json({ errors: [{ message: 'not found' }] }, { status: 404 });
 

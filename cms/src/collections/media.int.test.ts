@@ -738,3 +738,121 @@ describe.skipIf(!hasDatabase)('未認証の公開読み取りと配信のキャ�
     expect(notFound.headers.get('Cache-Control')).toBeNull();
   });
 });
+
+describe.skipIf(!hasDatabase)('学生団体への画像ファイル配信', () => {
+  let payload: Awaited<ReturnType<typeof import('payload').getPayload>>;
+  let workdir: string;
+  let student: { id: number };
+  let other: { id: number };
+  let mine: { id: number; filename: string };
+  let othersPublic: { id: number; filename: string };
+  let othersPrivate: { id: number; filename: string };
+
+  const suffix = String(process.pid);
+  const asStudent = async () =>
+    (await payload.findByID({ collection: 'users', id: student.id, overrideAccess: true })) as never;
+
+  const fileAs = async (filename: string) => {
+    const { createLocalReq } = await import('payload');
+    const req = await createLocalReq({ user: await asStudent() }, payload);
+    Object.assign(req, { routeParams: { collection: 'media', filename } });
+    const endpoint = (payload.collections.media.config.endpoints || []).find(
+      (e: { path: string; method: string }) => e.path === '/file/:filename' && e.method === 'get',
+    );
+    if (!endpoint) throw new Error('upload の file endpoint が見つからない');
+    try {
+      return (await endpoint.handler(req)).status;
+    } catch (e) {
+      return (e as { status?: number }).status;
+    }
+  };
+  const serveAs = async (id: number) => {
+    const { createLocalReq } = await import('payload');
+    const req = await createLocalReq({ user: await asStudent() }, payload);
+    Object.assign(req, { routeParams: { id: String(id), size: 'card' } });
+    return ((Media.endpoints as { handler: (r: never) => unknown }[])[0].handler(req as never) as Promise<Response>).then((r) => r.status);
+  };
+
+  beforeAll(async () => {
+    const { getPayload } = await import('payload');
+    const sharp = (await import('sharp')).default;
+    const config = (await import('../payload.config')).default;
+    payload = await getPayload({ config });
+    workdir = mkdtempSync(path.join(tmpdir(), 'media-file-int-'));
+
+    const mk = async (name: string, owner: { id: number }, color: number) => {
+      const fp = path.join(workdir, `file-${suffix}-${name}.png`);
+      await sharp({ create: { width: 400, height: 300, channels: 3, background: { r: color, g: 1, b: 1 } } })
+        .png()
+        .toFile(fp);
+      return (await payload.create({
+        collection: 'media',
+        filePath: fp,
+        data: { alt: name },
+        overrideAccess: true,
+        user: owner as never,
+      })) as { id: number; filename: string };
+    };
+    const mkUser = async (n: string) =>
+      (await payload.create({
+        collection: 'users',
+        data: { email: `file-${n}-${suffix}@test.local`, password: 'test-password', role: 'student_exhibitor' },
+        overrideAccess: true,
+      })) as { id: number };
+
+    student = await mkUser('a');
+    other = await mkUser('b');
+    mine = await mk('mine', student, 20);
+    othersPublic = await mk('pub', other, 40);
+    othersPrivate = await mk('priv', other, 60);
+    await payload.update({
+      collection: 'media',
+      id: othersPublic.id,
+      data: { used_in_published: true },
+      overrideAccess: true,
+    });
+  });
+
+  afterAll(async () => {
+    if (workdir) rmSync(workdir, { recursive: true, force: true });
+    for (const id of [mine?.id, othersPublic?.id, othersPrivate?.id]) {
+      if (id) await payload.delete({ collection: 'media', id, overrideAccess: true }).catch(() => null);
+    }
+    for (const id of [student?.id, other?.id]) {
+      if (id) await payload.delete({ collection: 'users', id, overrideAccess: true }).catch(() => null);
+    }
+  });
+
+  it('他者の公開中画像は /api/media/file で取得できる', async () => {
+    expect(await fileAs(othersPublic.filename)).toBe(200);
+  });
+
+  it('自分の未公開画像は /api/media/file で取得できる', async () => {
+    expect(await fileAs(mine.filename)).toBe(200);
+  });
+
+  it('他者の未公開画像は /api/media/file で 403 になる', async () => {
+    expect(await fileAs(othersPrivate.filename)).toBe(403);
+  });
+
+  it('他者の公開中画像は /serve で 302 になる', async () => {
+    expect(await serveAs(othersPublic.id)).toBe(302);
+  });
+
+  it('他者の未公開画像は /serve で 404 になる', async () => {
+    expect(await serveAs(othersPrivate.id)).toBe(404);
+  });
+
+  it('REST の find は自分の画像だけを返す', async () => {
+    const { docs } = await payload.find({
+      collection: 'media',
+      overrideAccess: false,
+      user: await asStudent(),
+      limit: 100,
+    });
+    const ids = docs.map((d) => d.id);
+    expect(ids).toContain(mine.id);
+    expect(ids).not.toContain(othersPublic.id);
+    expect(ids).not.toContain(othersPrivate.id);
+  });
+});
