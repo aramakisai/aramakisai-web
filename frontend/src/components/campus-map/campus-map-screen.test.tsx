@@ -60,6 +60,19 @@ vi.mock('next/dynamic', () => ({
 
 const { mapViewProps } = state;
 
+// Cookie 未設定時の定数フェーズを開催前に固定し、開催前の仕様を検証し続ける
+vi.mock('@/lib/phase', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/phase')>();
+  return {
+    ...actual,
+    BUILD_PHASE: 'pre_event',
+    resolvePhase: (cookieValue: string | undefined) =>
+      cookieValue === undefined
+        ? { phase: 'pre_event', source: 'constant' }
+        : actual.resolvePhase(cookieValue),
+  };
+});
+
 import { PHASE_OVERRIDE_COOKIE } from '@/lib/phase';
 import { navigationItemsByPhase } from '@/lib/navigation';
 import { CampusMapScreen } from './campus-map-screen';

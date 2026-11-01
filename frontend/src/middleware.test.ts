@@ -15,9 +15,18 @@ describe('middleware (開発用フラグが偽のビルド)', () => {
     vi.resetModules();
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('NEXT_PUBLIC_ENABLE_PHASE_OVERRIDE', '');
+    vi.doMock('@/lib/phase', async (importOriginal) => ({
+      ...(await importOriginal<typeof import('@/lib/phase')>()),
+      BUILD_PHASE: 'pre_event',
+      // resolvePhase は モジュール内部の BUILD_PHASE を参照するため差し替えが届かない
+      resolvePhase: () => ({ phase: 'pre_event', source: 'constant' }),
+    }));
   });
 
-  afterEach(() => vi.unstubAllEnvs());
+  afterEach(() => {
+    vi.doUnmock('@/lib/phase');
+    vi.unstubAllEnvs();
+  });
 
   it.each(PRE_EVENT_PUBLIC_PATHS)(
     '公開対象一覧のパス %s はそのまま通す',
@@ -84,11 +93,9 @@ describe('middleware (開発用フラグが真のビルド)', () => {
     expect(response.headers.get('x-middleware-rewrite')).toBeNull();
   });
 
-  it('オーバーライド Cookie が無ければ BUILD_PHASE (開催前) で判定する', async () => {
+  it('オーバーライド Cookie が無ければ BUILD_PHASE (開催中) で判定する', async () => {
     const { middleware } = await import('./middleware');
     const response = middleware(makeRequest('/exhibitions'));
-    expect(response.headers.get('x-middleware-rewrite')).toBe(
-      'https://example.com/gated',
-    );
+    expect(response.headers.get('x-middleware-rewrite')).toBeNull();
   });
 });

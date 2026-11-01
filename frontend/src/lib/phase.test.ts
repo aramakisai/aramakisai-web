@@ -17,9 +17,9 @@ describe('phase 定数', () => {
     vi.unstubAllEnvs();
   });
 
-  it('BUILD_PHASE の初期値は開催前フェーズである', async () => {
+  it('BUILD_PHASE の初期値は開催中フェーズである', async () => {
     const { BUILD_PHASE } = await import('./phase');
-    expect(BUILD_PHASE).toBe('pre_event');
+    expect(BUILD_PHASE).toBe('live');
   });
 
   it('PHASE_OVERRIDE_COOKIE は空でない文字列を持つ', async () => {

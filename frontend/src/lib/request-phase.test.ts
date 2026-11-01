@@ -19,7 +19,7 @@ describe('getRequestPhase', () => {
   it('フラグが偽なら cookies() を呼ばず BUILD_PHASE を返す', async () => {
     const getRequestPhase = await load(false);
     expect(await getRequestPhase()).toEqual({
-      phase: 'pre_event',
+      phase: 'live',
       source: 'constant',
     });
     expect(cookiesMock).not.toHaveBeenCalled();
