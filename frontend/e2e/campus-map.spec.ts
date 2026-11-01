@@ -71,7 +71,11 @@ test.describe('構内マップと既存ページの通し確認', () => {
       baseURL,
     }) => {
       await context.addCookies([
-        { name: 'aramakisai_phase_override', value: 'pre_event', url: baseURL! },
+        {
+          name: 'aramakisai_phase_override',
+          value: 'pre_event',
+          url: baseURL!,
+        },
       ]);
       const response = await page.goto(path);
       expect(response?.status()).toBe(404);
