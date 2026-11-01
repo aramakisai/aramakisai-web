@@ -2,7 +2,7 @@ import type { Access, FieldAccess } from 'payload';
 
 import { publicFilter } from '../lib/signage-visibility';
 
-import { canCreate, canDelete, canRead, canReadVersions, canUpdate } from './policy';
+import { canCreate, canDelete, canRead, canReadMediaFile,canReadVersions, canUpdate } from './policy';
 import { isExecutive, toCmsUser } from './roles';
 
 /**
@@ -17,7 +17,9 @@ export function accessFor(collection: string): {
   readVersions: Access;
 } {
   return {
-    read: async ({ req }) => {
+    read: async ({ req, isReadingStaticFile }) => {
+      // isReadingStaticFile は Payload の checkFileAccess (/api/media/file/:filename) だけが立てる
+      if (collection === 'media' && isReadingStaticFile) return canReadMediaFile(toCmsUser(req.user));
       const result = canRead(toCmsUser(req.user), collection);
       // 公開判定が条件を返すとき(未認証・学生団体)だけ、非表示グループのスライド・テロップを配らないよう絞る
       if ((collection === 'signage_slides' || collection === 'telops') && typeof result === 'object') {
