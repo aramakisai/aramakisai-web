@@ -60,6 +60,15 @@ function publicMediaRead(): Where {
   return { used_in_published: { not_equals: false } };
 }
 
+/**
+ * 画像ファイルの配信 (/api/media/file と /serve) の読み取り条件。学生団体は一覧・選択ダイアログでは
+ * 自分の画像だけだが、ブラウザが同じセッションで公開サイトの画像を読み込むため配信は公開画像にも開く。
+ */
+export function canReadMediaFile(user: CmsUser | null): AccessResult {
+  if (isStudentExhibitor(user)) return { or: [ownerFilter(user!), publicMediaRead()] };
+  return canRead(user, 'media');
+}
+
 export function canRead(
   user: CmsUser | null,
   collection: string,
