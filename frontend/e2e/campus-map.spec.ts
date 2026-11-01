@@ -14,7 +14,11 @@ async function waitForMapReady(page: Page): Promise<void> {
   await expect(page.getByRole('status')).toHaveCount(0, { timeout: 15000 });
 }
 
-/** 選択可能なエリアポリゴン (SVG path)。キーボード選択のため role="button" を持つ */
+/**
+ * 選択可能なエリアポリゴン (SVG path)。キーボード選択のため role="button" を持つ。
+ * エリア名ラベルやサイドパネルがポリゴン中心に重なり得るため、選択は実クリックではなく
+ * dispatchEvent('click') で行う
+ */
 function polygons(page: Page) {
   return page.locator('svg path[role="button"]');
 }
@@ -63,7 +67,16 @@ test.describe('構内マップと既存ページの通し確認', () => {
   for (const path of GATED_LIST_PAGES) {
     test(`${path} は開催前フェーズで非公開になりヘッダーとフッター付きの404を返す`, async ({
       page,
+      context,
+      baseURL,
     }) => {
+      await context.addCookies([
+        {
+          name: 'aramakisai_phase_override',
+          value: 'pre_event',
+          url: baseURL!,
+        },
+      ]);
       const response = await page.goto(path);
       expect(response?.status()).toBe(404);
       expect(new URL(page.url()).pathname).toBe(path);
@@ -123,9 +136,9 @@ test.describe('構内マップと既存ページの通し確認', () => {
 
   test('ポリゴンを選ぶとURLとリストが切り替わり、再読み込みは発生しない。再度選ぶと未選択の案内に戻る', async ({
     page,
+    baseURL,
   }) => {
-    await page.goto('/map');
-    await waitForMapReady(page);
+    await openMapWithPhase(page, baseURL!);
 
     const areaCount = await polygons(page).count();
     if (areaCount === 0) {
@@ -149,7 +162,7 @@ test.describe('構内マップと既存ページの通し確認', () => {
       ).__e2eNoReloadMarker = true;
     });
 
-    await polygon.click();
+    await polygon.dispatchEvent('click');
 
     await expect(page).toHaveURL(/[?&]area=\d+\b/);
     await expect(page.getByRole('heading', { level: 2 })).toContainText(
@@ -163,7 +176,7 @@ test.describe('構内マップと既存ページの通し確認', () => {
       ),
     ).toBe(true);
 
-    await polygon.click();
+    await polygon.dispatchEvent('click');
 
     await expect(page).not.toHaveURL(/[?&]area=\d+\b/);
     await expect(
@@ -171,9 +184,11 @@ test.describe('構内マップと既存ページの通し確認', () => {
     ).toBeVisible();
   });
 
-  test('エリアを選択した後の戻る操作で選択前の状態に戻る', async ({ page }) => {
-    await page.goto('/map');
-    await waitForMapReady(page);
+  test('エリアを選択した後の戻る操作で選択前の状態に戻る', async ({
+    page,
+    baseURL,
+  }) => {
+    await openMapWithPhase(page, baseURL!);
 
     const areaCount = await polygons(page).count();
     if (areaCount === 0) {
@@ -183,7 +198,7 @@ test.describe('構内マップと既存ページの通し確認', () => {
       );
     }
 
-    await polygons(page).first().click();
+    await polygons(page).first().dispatchEvent('click');
     await expect(page).toHaveURL(/[?&]area=\d+\b/);
 
     await page.goBack();
@@ -194,9 +209,11 @@ test.describe('構内マップと既存ページの通し確認', () => {
     ).toBeVisible();
   });
 
-  test('出展物タイルから企画詳細ページへ遷移できる', async ({ page }) => {
-    await page.goto('/map');
-    await waitForMapReady(page);
+  test('出展物タイルから企画詳細ページへ遷移できる', async ({
+    page,
+    baseURL,
+  }) => {
+    await openMapWithPhase(page, baseURL!);
 
     const areaCount = await polygons(page).count();
     if (areaCount === 0) {
@@ -209,13 +226,13 @@ test.describe('構内マップと既存ページの通し確認', () => {
     const card = page.locator('a[href^="/exhibitions/"]:visible').first();
     let found = false;
     for (let i = 0; i < areaCount; i++) {
-      await polygons(page).nth(i).click();
+      await polygons(page).nth(i).dispatchEvent('click');
       if ((await card.count()) > 0) {
         found = true;
         break;
       }
       // このエリアに出展物がなかったので選択解除して次のエリアを試す
-      await polygons(page).nth(i).click();
+      await polygons(page).nth(i).dispatchEvent('click');
     }
     if (!found) {
       test.skip(
@@ -231,14 +248,14 @@ test.describe('構内マップと既存ページの通し確認', () => {
 
   test('地図タイルの読み込みが失敗しても、ポリゴンの選択とリストの表示が継続する', async ({
     page,
+    baseURL,
   }) => {
     // タイル資産はまだ生成されていない環境もあるため、意図的に 404 させて条件を固定する
     await page.route('**/map-tiles/**', (route) =>
       route.fulfill({ status: 404, body: '' }),
     );
 
-    await page.goto('/map');
-    await waitForMapReady(page);
+    await openMapWithPhase(page, baseURL!);
 
     const areaCount = await polygons(page).count();
     if (areaCount === 0) {
@@ -250,7 +267,7 @@ test.describe('構内マップと既存ページの通し確認', () => {
     const polygon = polygons(page).first();
     const areaName = await polygon.getAttribute('aria-label');
 
-    await polygon.click();
+    await polygon.dispatchEvent('click');
 
     await expect(page).toHaveURL(/[?&]area=\d+\b/);
     await expect(page.getByRole('heading', { level: 2 })).toContainText(

@@ -9,6 +9,19 @@ vi.hoisted(() => {
   process.env.NEXT_PUBLIC_ENABLE_PHASE_OVERRIDE = 'true';
 });
 
+// Cookie 未設定時の定数フェーズを開催前に固定し、開催前の仕様を検証し続ける
+vi.mock('@/lib/phase', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/phase')>();
+  return {
+    ...actual,
+    BUILD_PHASE: 'pre_event',
+    resolvePhase: (cookieValue: string | undefined) =>
+      cookieValue === undefined
+        ? { phase: 'pre_event', source: 'constant' }
+        : actual.resolvePhase(cookieValue),
+  };
+});
+
 vi.mock('next/navigation', () => ({
   useRouter: vi.fn(),
 }));
