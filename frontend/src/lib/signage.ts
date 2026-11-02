@@ -84,6 +84,8 @@ export interface SignageSnapshot {
   readonly fetchedAt: string;
   /** 応答を返す直前のサーバー時刻(ISO)。端末の時刻補正に使う */
   readonly serverNow: string;
+  /** 試験運転のずれ量(ミリ秒)。試験中でなければ null。serverNow は常に実時刻 */
+  readonly trialShiftMs: number | null;
   /** サイネージ設定の固定表示スライドID。有効スライドに無ければ通常の巡回 */
   readonly pinnedSlideId: number | null;
   readonly eventDays: readonly EventDay[];

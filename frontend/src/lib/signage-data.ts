@@ -7,7 +7,7 @@ import type {
 } from '@/cms-types';
 import { cms, type CmsResult } from './cms';
 import { toAttachment, toMediaId } from './cms-media';
-import { toEventDays } from './event-day';
+import { toEventDays, toJstDateKey } from './event-day';
 import { getParkingResponse } from './parking-data';
 import type {
   SignageLostItem,
@@ -108,6 +108,18 @@ function toLostItem(doc: LostItem): SignageLostItem {
   };
 }
 
+/** 試験内の開始日時 − 起点。実時刻が開催日なら、消し忘れた設定で本番表示がずれないよう null */
+export function trialShiftMs(
+  trial: SignageSetting['trial_run'] | null | undefined,
+  eventDayStartAts: readonly string[],
+  realNowIso: string,
+): number | null {
+  if (!trial?.start_at || !trial.anchored_at) return null;
+  const today = toJstDateKey(realNowIso);
+  if (eventDayStartAts.some((at) => toJstDateKey(at) === today)) return null;
+  return Date.parse(trial.start_at) - Date.parse(trial.anchored_at);
+}
+
 export async function getSignageSnapshot({
   version,
 }: { readonly version?: number } = {}): Promise<CmsResult<SignageSnapshot>> {
@@ -164,11 +176,17 @@ export async function getSignageSnapshot({
     }),
   );
 
+  const serverNow = new Date().toISOString();
   return {
     ok: true,
     value: {
       fetchedAt: new Date().toISOString(),
-      serverNow: new Date().toISOString(),
+      serverNow,
+      trialShiftMs: trialShiftMs(
+        settings.value.trial_run,
+        (meta.value.event_days ?? []).map((d) => d.start_at),
+        serverNow,
+      ),
       pinnedSlideId: pinnedSlideId(settings.value.pinned_slide),
       eventDays: toEventDays(meta.value.event_days),
       slides: slides.value.docs
