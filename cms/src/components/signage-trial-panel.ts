@@ -43,3 +43,13 @@ export function isTodayEventDay(days: readonly EventDay[], nowMs: number): boole
   const today = toJstDateKey(new Date(nowMs).toISOString())
   return days.some((d) => toJstDateKey(d.start_at) === today)
 }
+
+// DatePicker は Date しか受けないため、"HH:mm" とブラウザローカルの時・分で相互変換する
+export function timeToDate(time: string): Date {
+  const [h, m] = time.split(':').map(Number)
+  const d = new Date(2000, 0, 1)
+  d.setHours(h ?? 0, m ?? 0, 0, 0)
+  return d
+}
+
+export const dateToTime = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`

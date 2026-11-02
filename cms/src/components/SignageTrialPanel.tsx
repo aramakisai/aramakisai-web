@@ -1,12 +1,15 @@
 'use client'
 
+import { DatePicker, SelectInput } from '@payloadcms/ui'
 import { useEffect, useMemo, useState } from 'react'
 
 import {
   buildTrialStartAt,
+  dateToTime,
   eventDayChoices,
   formatTrialClock,
   isTodayEventDay,
+  timeToDate,
 } from './signage-trial-panel'
 import { useEventDays } from './useEventDays'
 import { useSignageTrial } from './useSignageTrial'
@@ -21,8 +24,9 @@ const box = {
   background: 'var(--theme-elevation-100)',
   borderRadius: 'var(--style-radius-s)',
 } as const
-// Payload の .btn は下マージンを持ち、flex の行が膨らむ
+// Payload の .btn は下マージンを持ち、flex の行が膨らむ。高さは SelectInput・DatePicker の入力欄に揃える
 const noMargin = { margin: 0 } as const
+const btnStyle = { margin: 0, height: 'calc(var(--base) * 2)' } as const
 const error = { color: 'var(--theme-error-500)' } as const
 
 export default function SignageTrialPanel() {
@@ -49,39 +53,45 @@ export default function SignageTrialPanel() {
 
   return (
     <div style={box}>
+      {/* 時刻は必須なので DatePicker の クリアボタンは出さない */}
+      <style>{'.signage-trial-time .date-time-picker__clear-button{display:none}'}</style>
       <strong>試験運転</strong>
       {running && <span>試験中 {clock}</span>}
       {sel && (
         <>
-          <select
-            value={sel.dateKey}
-            disabled={saving}
-            onChange={(e) => {
-              const c = choices.find((x) => x.dateKey === e.target.value)
-              if (c) setPicked({ dateKey: c.dateKey, time: c.time })
-            }}
-          >
-            {choices.map((c) => (
-              <option key={c.dateKey} value={c.dateKey}>
-                {c.label}
-              </option>
-            ))}
-          </select>
-          <input
-            type="time"
-            step={60}
-            value={sel.time}
-            disabled={saving}
-            onChange={(e) =>
-              e.target.value && setPicked({ dateKey: sel.dateKey, time: e.target.value })
-            }
-          />
+          <div style={{ width: 120 }}>
+            <SelectInput
+              name="trial-day"
+              path="trial-day"
+              isClearable={false}
+              readOnly={saving}
+              style={noMargin}
+              options={choices.map((c) => ({ label: c.label, value: c.dateKey }))}
+              value={sel.dateKey}
+              onChange={(option) => {
+                const picked = Array.isArray(option) ? option[0] : option
+                const c = choices.find((x) => x.dateKey === (picked as { value?: unknown })?.value)
+                if (c) setPicked({ dateKey: c.dateKey, time: c.time })
+              }}
+            />
+          </div>
+          <div className="signage-trial-time" style={{ width: 100 }}>
+            <DatePicker
+              pickerAppearance="timeOnly"
+              timeFormat="HH:mm"
+              displayFormat="HH:mm"
+              timeIntervals={1}
+              readOnly={saving}
+              value={timeToDate(sel.time)}
+              onChange={(d) => d && setPicked({ dateKey: sel.dateKey, time: dateToTime(d) })}
+            />
+          </div>
         </>
       )}
       <button
         type="button"
         className="btn btn--style-primary btn--size-small"
-        style={noMargin}
+        style={btnStyle}
         disabled={blocked}
         onClick={() => sel && void start(buildTrialStartAt(sel.dateKey, sel.time))}
       >
@@ -91,7 +101,7 @@ export default function SignageTrialPanel() {
         <button
           type="button"
           className="btn btn--style-secondary btn--size-small"
-          style={noMargin}
+          style={btnStyle}
           disabled={saving}
           onClick={() => void stop()}
         >

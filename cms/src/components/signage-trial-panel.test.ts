@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest'
 
 import {
   buildTrialStartAt,
+  dateToTime,
   eventDayChoices,
   formatTrialClock,
   isTodayEventDay,
+  timeToDate,
 } from './signage-trial-panel'
 
 const days = [
@@ -45,5 +47,14 @@ describe('isTodayEventDay', () => {
   it('現実の JST 日付が開催日なら true', () => {
     expect(isTodayEventDay(days, Date.parse('2026-11-07T16:00:00Z'))).toBe(true) // JST 11/8 01:00
     expect(isTodayEventDay(days, Date.parse('2026-11-06T14:00:00Z'))).toBe(false) // JST 11/6 23:00
+  })
+})
+
+describe('timeToDate / dateToTime', () => {
+  it('HH:mm を Date の時・分に往復変換する', () => {
+    const d = timeToDate('10:37')
+    expect([d.getHours(), d.getMinutes()]).toEqual([10, 37])
+    expect(dateToTime(d)).toBe('10:37')
+    expect(dateToTime(timeToDate('00:05'))).toBe('00:05')
   })
 })
