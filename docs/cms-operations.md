@@ -529,4 +529,6 @@ Service Tokenの更新手順(有効期間は8760h、期限の30日前以降の`t
 
 差し替えが遅れて通知が拒否されても、固定はハブの60秒ごとの取り直し、表示内容は端末の2分ごとのポーリングで反映され続ける。
 
-開催中(11/14〜15)はハブのWorker(`aramakisai-signage-hub`)をデプロイしない。デプロイでDurableObjectが再起動し、全端末のWebSocketが切れるため。
+ハブのWorker(`aramakisai-signage-hub`)をデプロイするとDurableObjectが再起動し、全端末のWebSocketが切れる。本番デプロイ(`deploy-prod`)は、ハブのバンドルに入るファイル(`frontend/workers/signage-hub/wrangler.toml`と、`wrangler deploy --dry-run`が出すソースマップの入力一覧。現状は`frontend/workers/signage-hub/`の`index.ts`・`hub-core.ts`と`frontend/src/lib/signage-channel.ts`)に前回のpushからの差分があるときだけハブを出す。差分を取れないときは出す側に倒す。サイトのWorkerはハブを`script_name`で参照するだけなので、ハブを出さなくてもデプロイできる。
+
+開催中(11/14〜15)は、上記のファイルを変更するPRを本番へ入れない。

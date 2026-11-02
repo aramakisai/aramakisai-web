@@ -516,9 +516,29 @@ jobs:
             --plain --silent)" >> "$GITHUB_ENV"
           echo "INFISICAL_PROJECT_ID=$(python3 -c "import json;print(json.load(open('.infisical.json'))['workspaceId'])")" >> "$GITHUB_ENV"
 
+      # 開催中にハブを出すと DO が再起動して全端末の WebSocket が切れるため、バンドルに入る
+      # ファイルが変わったときだけ出す。入力一覧は dry-run のソースマップから取る(共有ソースを含む)。
+      # 差分を取れない(前のコミットが全0・履歴に無い・dry-run 失敗)ときは出す側に倒す。
+      - name: Detect signage hub changes
+        id: hub
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -u
+          changed=true
+          if [ -n "$BEFORE_SHA" ] && [ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ] \
+            && pnpm exec wrangler deploy -c workers/signage-hub/wrangler.toml --dry-run --outdir "$RUNNER_TEMP/hub-dry" > /dev/null \
+            && python3 -c 'import json,os,sys; w=os.environ["GITHUB_WORKSPACE"]; d=os.environ["RUNNER_TEMP"]+"/hub-dry"; print("\n".join(sorted({os.path.relpath(os.path.normpath(os.path.join(d,s)),w) for s in json.load(open(d+"/index.js.map"))["sources"] if "node_modules" not in s} | {"frontend/workers/signage-hub/wrangler.toml"})))' > "$RUNNER_TEMP/hub-inputs.txt" \
+            && [ -s "$RUNNER_TEMP/hub-inputs.txt" ] \
+            && xargs git -C "$GITHUB_WORKSPACE" diff --name-only "$BEFORE_SHA" "$GITHUB_SHA" -- < "$RUNNER_TEMP/hub-inputs.txt" > "$RUNNER_TEMP/hub-diff.txt"; then
+            if [ -s "$RUNNER_TEMP/hub-diff.txt" ]; then changed=true; else changed=false; fi
+          fi
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+
       # サイトの Worker が script_name で参照するため、ハブを先に出す。
       # DO のクラスを含む版は versions upload で出せないので wrangler deploy を使う。
       - name: Deploy signage hub to Cloudflare Workers (prod)
+        if: steps.hub.outputs.changed == 'true'
         run: infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod -- pnpm exec wrangler deploy -c workers/signage-hub/wrangler.toml
 
       - name: Build (prod env, inlined by Infisical)

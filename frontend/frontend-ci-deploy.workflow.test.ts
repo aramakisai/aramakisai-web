@@ -171,6 +171,15 @@ describe('.github/workflows/frontend-ci.yml — signage hub deploy', () => {
     expect(siteIdx).toBeGreaterThan(hubIdx);
   });
 
+  it('deploy-prod deploys the hub only when the hub inputs changed', () => {
+    const steps = loadWorkflow().jobs['deploy-prod'].steps;
+    const deploy = steps.find((s) => s.run?.includes(HUB_DEPLOY));
+    const detect = steps.find((s) => s.id === 'hub');
+
+    expect(detect?.run).toContain('--dry-run --outdir');
+    expect(deploy?.if).toBe("steps.hub.outputs.changed == 'true'");
+  });
+
   it('deploy-dev and deploy-preview never deploy the hub', () => {
     const workflow = loadWorkflow();
     for (const name of ['deploy-dev', 'deploy-preview']) {
