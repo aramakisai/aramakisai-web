@@ -136,17 +136,23 @@ describe.skipIf(!hasDatabase)('駐車場カメラの受信から判定まで', (
       data: { email: `ingest-exec-${suffix}@test.local`, password: 'test-password', role: 'executive' },
       overrideAccess: true,
     });
-    originalMonitor = (await payload.findGlobal({ slug: 'site_settings', depth: 0, overrideAccess: true })).parking_monitor;
+    const settings = await payload.findGlobal({ slug: 'site_settings', depth: 0, overrideAccess: true });
+    originalMonitor = settings.parking_monitor;
+    // CI の空 DB には行が無く、必須の祭名を欠いた更新は検証で落ちる
     await payload.updateGlobal({
       slug: 'site_settings',
-      data: { parking_monitor: { start: '09:00', end: '17:30' } },
+      data: { name: settings.name || 'テスト祭', parking_monitor: { start: '09:00', end: '17:30' } },
       overrideAccess: true,
     });
   });
 
   afterAll(async () => {
     if (originalMonitor) {
-      await payload.updateGlobal({ slug: 'site_settings', data: { parking_monitor: originalMonitor }, overrideAccess: true });
+      await payload.updateGlobal({
+        slug: 'site_settings',
+        data: { name: (await payload.findGlobal({ slug: 'site_settings', depth: 0, overrideAccess: true })).name || 'テスト祭', parking_monitor: originalMonitor },
+        overrideAccess: true,
+      });
     }
     if (executive?.id) await payload.delete({ collection: 'users', id: executive.id, overrideAccess: true }).catch(() => null);
     delete process.env.GEMINI_API_KEY;

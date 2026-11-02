@@ -52,20 +52,21 @@ describe('ParkingCameras 定義', () => {
       sub('exposure_basis', 'captured_at'),
       ...(field('device_status').fields as F[]),
     ];
-    expect(targets).toHaveLength(12);
+    expect(targets).toHaveLength(13);
     for (const f of targets) {
       expect((f.admin as { readOnly: boolean }).readOnly, f.name).toBe(true);
       expect((f.access as { update: () => boolean }).update(), f.name).toBe(false);
     }
   });
 
-  it('端末状態は 5 項目と受信時刻を持つ', () => {
+  it('端末状態は 6 項目と受信時刻を持つ', () => {
     expect((field('device_status').fields as F[]).map((f) => f.name)).toEqual([
       'rssi',
       'uptime',
       'reset_reason',
       'failures',
       'firmware',
+      'log',
       'received_at',
     ]);
   });
