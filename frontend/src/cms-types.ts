@@ -747,6 +747,7 @@ export interface ParkingCamera {
     reset_reason?: string | null;
     failures?: number | null;
     firmware?: string | null;
+    log?: string | null;
     received_at?: string | null;
   };
   outage_notified_at?: string | null;
@@ -1508,6 +1509,7 @@ export interface ParkingCamerasSelect<T extends boolean = true> {
         reset_reason?: T;
         failures?: T;
         firmware?: T;
+        log?: T;
         received_at?: T;
       };
   outage_notified_at?: T;

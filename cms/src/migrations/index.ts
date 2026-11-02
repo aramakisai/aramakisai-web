@@ -36,9 +36,10 @@ import * as migration_20261027_074658_parking_camera_endpoint from './20261027_0
 import * as migration_20261028_040027_regional_sponsor_map_schema from './20261028_040027_regional_sponsor_map_schema';
 import * as migration_20261029_133248_sponsors_vendor_group from './20261029_133248_sponsors_vendor_group';
 import * as migration_20261030_103246_add_media_small_size from './20261030_103246_add_media_small_size';
-import * as migration_20261031_104936_sponsors_type_personal from './20261031_104936_sponsors_type_personal';
 import * as migration_20261031_055622_site_settings_access from './20261031_055622_site_settings_access';
+import * as migration_20261031_104936_sponsors_type_personal from './20261031_104936_sponsors_type_personal';
 import * as migration_20261031_134723_remove_access_page from './20261031_134723_remove_access_page';
+import * as migration_20261102_043230_parking_device_log from './20261102_043230_parking_device_log';
 
 export const migrations = [
   {
@@ -232,18 +233,23 @@ export const migrations = [
     name: '20261030_103246_add_media_small_size',
   },
   {
-    up: migration_20261031_104936_sponsors_type_personal.up,
-    down: migration_20261031_104936_sponsors_type_personal.down,
-    name: '20261031_104936_sponsors_type_personal',
-  },
-  {
     up: migration_20261031_055622_site_settings_access.up,
     down: migration_20261031_055622_site_settings_access.down,
     name: '20261031_055622_site_settings_access',
   },
   {
+    up: migration_20261031_104936_sponsors_type_personal.up,
+    down: migration_20261031_104936_sponsors_type_personal.down,
+    name: '20261031_104936_sponsors_type_personal',
+  },
+  {
     up: migration_20261031_134723_remove_access_page.up,
     down: migration_20261031_134723_remove_access_page.down,
-    name: '20261031_134723_remove_access_page'
+    name: '20261031_134723_remove_access_page',
+  },
+  {
+    up: migration_20261102_043230_parking_device_log.up,
+    down: migration_20261102_043230_parking_device_log.down,
+    name: '20261102_043230_parking_device_log'
   },
 ];

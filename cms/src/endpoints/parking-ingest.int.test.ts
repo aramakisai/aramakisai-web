@@ -305,6 +305,23 @@ describe.skipIf(!hasDatabase)('駐車場カメラの受信から判定まで', (
     expect(Date.parse(after.received_at)).toBe((outside + 30) * 1000);
   });
 
+  it('端末ログを追記し、ヘッダが無い・不正な受信では変えない', async () => {
+    const b64 = (t: string) => Buffer.from(t).toString('base64');
+    const logOf = async () => (await readCamera()).device_status.log as string;
+    await ingest(token, { captured: BASE, headers: { 'x-device-log': b64('a\nb') } });
+    await ingest(token, { captured: BASE + WINDOW, headers: { 'x-device-log': b64('c') } });
+    const lines = (await logOf()).split('\n');
+    expect(lines.filter((l) => l.startsWith('--- '))).toHaveLength(2);
+    expect(lines.filter((l) => !l.startsWith('--- '))).toEqual(['a', 'b', 'c']);
+
+    const before = await logOf();
+    await ingest(token, { captured: BASE + 2 * WINDOW });
+    expect(await logOf()).toBe(before);
+    const bad = await ingest(token, { captured: BASE + 3 * WINDOW, headers: { 'x-device-log': '%%%' } });
+    expect(bad.status).toBe(200);
+    expect(await logOf()).toBe(before);
+  });
+
   it('トークンを発行し直すと古い値が、無効化すると新しい値が401になる', async () => {
     expect((await ingest(token, { captured: BASE })).status).toBe(200);
     const oldToken = token;
