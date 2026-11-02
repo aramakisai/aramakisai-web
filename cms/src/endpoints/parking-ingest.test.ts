@@ -109,6 +109,43 @@ describe('認証', () => {
   });
 });
 
+describe('端末ログ', () => {
+  const b64 = (t: string) => Buffer.from(t, 'utf-8').toString('base64');
+  const logOf = (p: ReturnType<typeof setup>['payload']) =>
+    (p.update.mock.calls.find((c) => (c[0] as Args).data.device_status)![0] as Args).data.device_status.log;
+
+  it('既存ログの末尾に区切り行と受信行を追記する', async () => {
+    const { payload } = await run(
+      { headers: { 'x-device-log': b64('boot\nこんにちは') } },
+      { camera: { device_status: { log: 'old' } } },
+    );
+    expect(logOf(payload)).toBe(`old\n--- ${NOW.toISOString()}\nboot\nこんにちは`);
+  });
+
+  it('直近 200 行だけ残す', async () => {
+    const old = Array.from({ length: 250 }, (_, i) => `l${i}`).join('\n');
+    const { payload } = await run({ headers: { 'x-device-log': b64('new') } }, { camera: { device_status: { log: old } } });
+    const lines = (logOf(payload) as string).split('\n');
+    expect(lines).toHaveLength(200);
+    expect(lines.slice(-2)).toEqual([`--- ${NOW.toISOString()}`, 'new']);
+    expect(lines[0]).toBe('l52');
+  });
+
+  it('ヘッダが無ければ既存ログのまま', async () => {
+    const { payload } = await run({}, { camera: { device_status: { log: 'old' } } });
+    expect(logOf(payload)).toBe('old');
+  });
+
+  it('base64 として不正ならログは変えず、画像は受け付ける', async () => {
+    for (const bad of ['%%%not-base64%%%', 'abc', '/w==']) {
+      const { res, payload } = await run({ headers: { 'x-device-log': bad } }, { camera: { device_status: { log: 'old' } } });
+      expect(res.status).toBe(200);
+      expect(saved(payload)).toBe(true);
+      expect(logOf(payload)).toBe('old');
+    }
+  });
+});
+
 describe('大きさと形式', () => {
   it('Content-Length が 1MiB 超なら本文を読まず 413', async () => {
     const { res, json, payload } = await run({ headers: { 'content-length': String(1024 * 1024 + 1) } });
