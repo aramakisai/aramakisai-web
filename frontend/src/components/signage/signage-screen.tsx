@@ -33,6 +33,7 @@ import { SignagePortraitInfo } from './signage-portrait-info';
 import { SignageQuakeOverlay } from './signage-quake-overlay';
 import { SignageTelop } from './signage-telop';
 import { SignageTouchLayer } from './signage-touch-layer';
+import { SignageTrialOverlay } from './signage-trial-overlay';
 import { useTouchSession } from './use-touch-session';
 import { SLIDE_RENDERERS } from './slide-renderers';
 
@@ -106,13 +107,20 @@ export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
     setMountOffsetMs(Date.parse(serverIso) - Date.now());
   }, [serverIso]);
   const offsetMs = polled?.offsetMs ?? mountOffsetMs;
-  const now = useCorrectedNow(offsetMs, serverIso);
+  const realNow = useCorrectedNow(offsetMs, serverIso);
+  const trialShiftMs = data?.trialShiftMs ?? null;
+  const trialOffsetMs =
+    offsetMs === null ? null : offsetMs + (trialShiftMs ?? 0);
+  const now = useCorrectedNow(
+    trialOffsetMs,
+    new Date(Date.parse(serverIso) + (trialShiftMs ?? 0)).toISOString(),
+  );
   const rootRef = useRef<HTMLDivElement>(null);
   const layout = useCanvasLayout(rootRef);
   const orientation = layout?.orientation ?? 'landscape';
   const fit = layout?.fit ?? { scale: 1, left: 0, top: 0 };
   // 形が合わない payload は表示せず、通常の画面のままにする
-  const quake = parseQuakePayload(useSignageFeature(channel, 'quake', now));
+  const quake = parseQuakePayload(useSignageFeature(channel, 'quake', realNow));
   const pinned = data !== null && pinnedEntries(data, now).length > 0;
   const session = useTouchSession({
     quakeActive: quake?.active ?? false,
@@ -128,10 +136,10 @@ export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
   const boards = nextBusDepartures(
     departuresOn(
       busTimetable as unknown as BusTimetableFile,
-      toJstDateKey(now.toISOString()),
+      toJstDateKey(realNow.toISOString()),
     ),
     busRealtime,
-    now,
+    realNow,
     orientation === 'portrait' ? 2 : 1,
   );
 
@@ -167,7 +175,7 @@ export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
           <SignageTelop
             items={data?.telops ?? []}
             orientation={orientation}
-            offsetMs={offsetMs}
+            offsetMs={trialOffsetMs}
           />
         </div>
         <div className="absolute top-[912px] left-[1368px] portrait:top-[1389px] portrait:left-6">
@@ -177,6 +185,7 @@ export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
           entry={entry}
           snapshot={data}
           now={now}
+          realNow={realNow}
           renderers={SLIDE_RENDERERS}
           notices={notices}
         />
@@ -189,7 +198,8 @@ export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
           telops={
             notices.length > 0 ? noticeTelops(notices) : (data?.telops ?? [])
           }
-          offsetMs={offsetMs}
+          offsetMs={trialOffsetMs}
+          trialShiftMs={trialShiftMs}
         />
         {quake?.active && (
           <SignageQuakeOverlay
@@ -197,9 +207,11 @@ export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
             slide={data?.quakeSlides[quake.stage] ?? null}
             snapshot={data}
             now={now}
+            realNow={realNow}
             renderers={SLIDE_RENDERERS}
           />
         )}
+        <SignageTrialOverlay trialShiftMs={trialShiftMs} />
       </div>
     </div>
   );

@@ -231,6 +231,7 @@ describe('SignageScreen', () => {
     const initial: SignageSnapshot = {
       fetchedAt: '',
       serverNow: '2026-11-14T00:00:00Z',
+      trialShiftMs: null,
       pinnedSlideId: null,
       eventDays: [],
       slides: [],
@@ -256,6 +257,7 @@ describe('SignageScreen', () => {
     const snap = (serverNow: string): SignageSnapshot => ({
       fetchedAt: '',
       serverNow,
+      trialShiftMs: null,
       pinnedSlideId: null,
       eventDays: [],
       slides: [],
@@ -319,6 +321,156 @@ describe('SignageScreen', () => {
     });
   });
 
+  describe('試験運転', () => {
+    const REAL = '2026-11-10T00:00:00Z';
+    const shiftTo = (iso: string) => Date.parse(iso) - Date.parse(REAL);
+    const perfAt = (start: string, end: string) => ({
+      id: 1,
+      stageId: 1,
+      name: 'ライブX',
+      projectName: null,
+      href: null,
+      slot: {
+        dateKey: '2026-11-14',
+        startAt: new Date(start).toISOString(),
+        endAt: new Date(end).toISOString(),
+      },
+    });
+    const trialSnap = (
+      trialShiftMs: number | null,
+      over: Partial<SignageSnapshot> = {},
+    ): SignageSnapshot => ({
+      fetchedAt: '',
+      serverNow: REAL,
+      trialShiftMs,
+      pinnedSlideId: null,
+      eventDays: [],
+      slides: [],
+      quakeSlides: {
+        warning: null,
+        calm: null,
+        evacuate: null,
+        cancelled: null,
+      },
+      telops: [],
+      timetable: {
+        days: [],
+        stages: [{ id: 1, name: 'ステージA' }],
+        performances: [
+          perfAt('2026-11-14T10:00:00+09:00', '2026-11-14T13:00:00+09:00'),
+        ],
+      },
+      sponsors: [],
+      lostItems: [],
+      parking: { isEventDay: false, fetchedAt: '', lots: [] },
+      ...over,
+    });
+    const renderTrial = (snap: SignageSnapshot) => {
+      vi.setSystemTime(Date.parse(REAL));
+      return render(
+        <SignageScreen initial={snap} renderedAt={snap.serverNow} />,
+      );
+    };
+    const offsets = () => correctedNow.mock.calls.map(([o]) => o);
+
+    it('試験中は、開催日前でもタイムテーブルスライドが巡回に入る', async () => {
+      const { container } = renderTrial(
+        trialSnap(shiftTo('2026-11-14T12:00:00+09:00'), {
+          slides: [{ id: 1, kind: 'timetable', durationSec: 10 }],
+        }),
+      );
+      await act(() => vi.advanceTimersByTimeAsync(1_000));
+      expect(container.querySelector('.signage-main')?.textContent).toContain(
+        'タイムテーブル',
+      );
+    });
+
+    it('試験中でなければ、開催日前のタイムテーブルスライドは巡回に入らない', async () => {
+      const { container } = renderTrial(
+        trialSnap(null, {
+          slides: [{ id: 1, kind: 'timetable', durationSec: 10 }],
+        }),
+      );
+      await act(() => vi.advanceTimersByTimeAsync(1_000));
+      expect(
+        container.querySelector('.signage-main')?.textContent,
+      ).not.toContain('タイムテーブル');
+    });
+
+    it('出演枠の開始通知は試験時刻で出る', async () => {
+      const { container } = renderTrial(
+        trialSnap(shiftTo('2026-11-14T09:58:00+09:00')),
+      );
+      await act(() => vi.advanceTimersByTimeAsync(1_000));
+      expect(container.querySelector('.signage-main')?.textContent).toContain(
+        'ライブX',
+      );
+    });
+
+    it('時計は実時刻用と試験時刻用(ずれ量を足したオフセット)の2本を持つ', () => {
+      renderTrial(trialSnap(5_000));
+      expect(offsets()).toContain(0);
+      expect(offsets()).toContain(5_000);
+    });
+
+    it('バスの案内は実時刻のまま(試験時刻では運行終了にならない)', () => {
+      const { container } = renderTrial(
+        trialSnap(shiftTo('2026-11-10T20:00:00+09:00')),
+      );
+      expect(container.textContent).toContain('09:30');
+      expect(container.textContent).toContain('30分');
+    });
+
+    it('「試験中」は試験中だけ、地震速報より後ろの最前面に出る', () => {
+      channel = {
+        ...CHANNEL_IDLE,
+        latest: {
+          quake: {
+            kind: 'broadcast',
+            feature: 'quake',
+            payload: {
+              active: true,
+              stage: 'warning',
+              training: false,
+              source: 'p2p',
+              startedAt: REAL,
+              updatedAt: REAL,
+              observation: null,
+            },
+            expiresAt: null,
+            sentAt: REAL,
+          },
+        } as unknown as SignageChannelState['latest'],
+      };
+      const { container } = renderTrial(trialSnap(1_000));
+      const canvas = container.querySelector<HTMLElement>('.signage-canvas')!;
+      expect(canvas.lastElementChild?.textContent).toBe('試験中');
+    });
+
+    it('試験中でなければ「試験中」を出さない', () => {
+      const { container } = renderTrial(trialSnap(null));
+      expect(container.textContent).not.toContain('試験中');
+    });
+
+    it('ずれ量が届くと再読み込みなしで切り替わり、null で戻る', async () => {
+      const responses = [trialSnap(1_000), trialSnap(null)];
+      vi.mocked(fetch).mockImplementation(
+        async () =>
+          new Response(JSON.stringify(responses.shift() ?? trialSnap(null)), {
+            status: 200,
+          }),
+      );
+      vi.spyOn(Math, 'random').mockReturnValue(0);
+      const { container, rerender } = renderTrial(trialSnap(null));
+      await act(() => vi.advanceTimersByTimeAsync(0));
+      expect(container.textContent).toContain('試験中');
+      channel = { ...CHANNEL_IDLE, snapshotVersion: 7 };
+      rerender(<SignageScreen initial={trialSnap(null)} renderedAt={REAL} />);
+      await act(() => vi.advanceTimersByTimeAsync(10));
+      expect(container.textContent).not.toContain('試験中');
+    });
+  });
+
   it('固定状態を3秒ごとに確認しない(配信経路で受ける)', async () => {
     render(<SignageScreen initial={null} renderedAt="2026-11-14T00:00:00Z" />);
     await act(() => vi.advanceTimersByTimeAsync(10_000));
@@ -332,6 +484,7 @@ describe('SignageScreen', () => {
     const snapshot: SignageSnapshot = {
       fetchedAt: '',
       serverNow: '2026-11-14T00:00:00Z',
+      trialShiftMs: null,
       pinnedSlideId: null,
       eventDays: [],
       slides: [],

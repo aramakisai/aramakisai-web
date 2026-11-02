@@ -15,6 +15,7 @@ export interface SlideRenderProps {
   readonly entry: PlaylistEntry;
   readonly snapshot: SignageSnapshot;
   readonly now: Date;
+  readonly realNow: Date;
 }
 
 /** 種別ごとのスライド部品。未登録の種別は空の地のまま出す */
@@ -26,6 +27,8 @@ interface SignageMainProps {
   readonly entry: PlaylistEntry | null;
   readonly snapshot: SignageSnapshot | null;
   readonly now: Date;
+  /** 試験運転中も実時刻のままにする実データの鮮度判定用。省略時は now */
+  readonly realNow?: Date;
   readonly renderers: SlideRenderers;
   /** 緊急地震速報は即時に切り替えるため false で止める */
   readonly transition?: boolean;
@@ -46,6 +49,7 @@ export function SignageMain({
   entry,
   snapshot,
   now,
+  realNow = now,
   renderers,
   transition = true,
   notices = NO_NOTICES,
@@ -80,7 +84,12 @@ export function SignageMain({
             className="h-full w-full"
             layerClassName="bg-white"
           >
-            <Slide entry={entry} snapshot={snapshot} now={now} />
+            <Slide
+              entry={entry}
+              snapshot={snapshot}
+              now={now}
+              realNow={realNow}
+            />
           </CrossFade>
         ) : null}
         {held ? (
