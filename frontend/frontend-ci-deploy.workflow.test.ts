@@ -177,6 +177,9 @@ describe('.github/workflows/frontend-ci.yml — signage hub deploy', () => {
     const detect = steps.find((s) => s.id === 'hub');
 
     expect(detect?.run).toContain('--dry-run --outdir');
+    // 入力一覧が空のとき wrangler.toml だけで差分なしと誤判定しないよう、空なら失敗させる
+    expect(detect?.run).toContain('assert p;');
+    expect(detect?.run).toContain('echo "changed=$changed"');
     expect(deploy?.if).toBe("steps.hub.outputs.changed == 'true'");
   });
 

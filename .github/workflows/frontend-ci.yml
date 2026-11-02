@@ -528,7 +528,7 @@ jobs:
           changed=true
           if [ -n "$BEFORE_SHA" ] && [ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ] \
             && pnpm exec wrangler deploy -c workers/signage-hub/wrangler.toml --dry-run --outdir "$RUNNER_TEMP/hub-dry" > /dev/null \
-            && python3 -c 'import json,os,sys; w=os.environ["GITHUB_WORKSPACE"]; d=os.environ["RUNNER_TEMP"]+"/hub-dry"; print("\n".join(sorted({os.path.relpath(os.path.normpath(os.path.join(d,s)),w) for s in json.load(open(d+"/index.js.map"))["sources"] if "node_modules" not in s} | {"frontend/workers/signage-hub/wrangler.toml"})))' > "$RUNNER_TEMP/hub-inputs.txt" \
+            && python3 -c 'import json,os,sys; w=os.environ["GITHUB_WORKSPACE"]; d=os.environ["RUNNER_TEMP"]+"/hub-dry"; p={os.path.relpath(os.path.normpath(os.path.join(d,s)),w) for s in json.load(open(d+"/index.js.map"))["sources"] if "node_modules" not in s}; assert p; print("\n".join(sorted(p | {"frontend/workers/signage-hub/wrangler.toml"})))' > "$RUNNER_TEMP/hub-inputs.txt" \
             && [ -s "$RUNNER_TEMP/hub-inputs.txt" ] \
             && xargs git -C "$GITHUB_WORKSPACE" diff --name-only "$BEFORE_SHA" "$GITHUB_SHA" -- < "$RUNNER_TEMP/hub-inputs.txt" > "$RUNNER_TEMP/hub-diff.txt"; then
             if [ -s "$RUNNER_TEMP/hub-diff.txt" ]; then changed=true; else changed=false; fi
