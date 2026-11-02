@@ -480,6 +480,20 @@ describe('Header', () => {
     expect(menuButton).toHaveFocus();
   });
 
+  test('モバイルメニューの先頭にトップへのリンクがある', () => {
+    render(<Header phase="pre_event" navigation={navigationItemsByPhase} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
+    const mobileNavigation = screen.getByRole('navigation', {
+      name: 'モバイルナビゲーション',
+    });
+
+    expect(within(mobileNavigation).getAllByRole('link')[0]).toHaveAttribute(
+      'href',
+      '/',
+    );
+  });
+
   test('メニューを開いている間、Tab と Shift+Tab はメニュー内で循環する', () => {
     render(<Header phase="pre_event" navigation={navigationItemsByPhase} />);
 
@@ -489,7 +503,7 @@ describe('Header', () => {
     });
 
     const firstLink = within(mobileNavigation).getByRole('link', {
-      name: '荒牧祭について',
+      name: 'トップ',
     });
     const lastButton = within(mobileNavigation).getByRole('button', {
       name: /協賛/,
