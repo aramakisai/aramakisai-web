@@ -132,16 +132,21 @@ export const navigationItemsByPhase: NavigationByPhase = {
 };
 
 /**
- * SP のハンバーガーメニュー専用の項目。マイページは下部ナビゲーションが SP 専用のため、
- * PC の横並びナビには出さない。
+ * SP のハンバーガーメニュー専用の項目。トップとマイページは PC の横並びナビには出さない
+ * (マイページは下部ナビゲーションが SP 専用のため)。
  */
 export function mobileMenuItemsFor(
   phase: FestivalPhase,
   items: readonly NavigationItem[],
 ): readonly NavigationItem[] {
+  const top: NavigationItem = { label: 'トップ', color: 'primary', href: '/' };
   return phase === 'live'
-    ? [...items, { label: 'マイページ', color: 'accent-alt', href: '/mypage' }]
-    : items;
+    ? [
+        top,
+        ...items,
+        { label: 'マイページ', color: 'accent-alt', href: '/mypage' },
+      ]
+    : [top, ...items];
 }
 
 type CmsNavigationItems = NonNullable<NonNullable<Navigation['live']>['items']>;
