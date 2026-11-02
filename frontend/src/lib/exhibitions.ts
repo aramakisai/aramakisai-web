@@ -111,6 +111,42 @@ export function listingHref(
     : `/exhibitions/${card.id}/${card.category}`;
 }
 
+/** ExhibitionCard が読むフィールドだけ。ブックマーク一覧のようにカード表示しか要らない経路向け */
+export type ExhibitionCardView = Pick<
+  ListingCard,
+  'id' | 'category' | 'displayName' | 'location' | 'thumbnail'
+>;
+
+/**
+ * クライアントへ渡すカードのサムネイルを、カード表示が使う URL だけに絞る。
+ * toCardImageUrl は `cardUrl ?? url` の順で選ぶので、同じ結果になるよう cardUrl に畳む
+ * (heroUrl はカードでは使わない)。
+ */
+export function slimThumbnail<T extends Pick<ListingCard, 'thumbnail'>>(
+  card: T,
+): T {
+  const { thumbnail } = card;
+  if (!thumbnail) return card;
+  const cardUrl = thumbnail.cardUrl ?? thumbnail.url;
+  return {
+    ...card,
+    thumbnail: cardUrl
+      ? { id: thumbnail.id, cardUrl, alt: thumbnail.alt }
+      : { id: thumbnail.id, alt: thumbnail.alt },
+  };
+}
+
+export function toCardView(card: ExhibitionCardView): ExhibitionCardView {
+  const { id, category, displayName, location } = card;
+  return slimThumbnail({
+    id,
+    category,
+    displayName,
+    location,
+    thumbnail: card.thumbnail,
+  });
+}
+
 export interface AreaOption {
   readonly id: number;
   readonly name: string;
@@ -515,6 +551,75 @@ export interface ExhibitionCatalog {
   readonly areas: readonly AreaOption[];
 }
 
+const CARD_PLACEMENT_SELECT = {
+  name: true,
+  images: true,
+  area_id: true,
+  booth_number: true,
+} as const;
+
+// toCards が読むフィールドだけ。画像の全フィールド展開 (depth 1) が応答の大半を占めるため、
+// 画像は ID のまま取り、カードに使う先頭 1 枚だけを attachFirstImages で別取得する。
+const CARD_SELECT = {
+  categories: true,
+  organization_name: true,
+  stage: { name: true, images: true },
+  exhibit: CARD_PLACEMENT_SELECT,
+  vendor: CARD_PLACEMENT_SELECT,
+  other: CARD_PLACEMENT_SELECT,
+} as const;
+
+// url と sizes.*.url は filename と prefix から組み立てられるため、これらも選択に含める
+const CARD_MEDIA_SELECT = {
+  url: true,
+  filename: true,
+  prefix: true,
+  sizes: {
+    card: { url: true, filename: true },
+    hero: { url: true, filename: true },
+  },
+} as const;
+
+/** depth 0 で取得した企画の、各カテゴリ先頭画像だけを media の実体に置き換える */
+async function attachFirstImages(
+  exhibitions: readonly StudentExhibition[],
+): Promise<StudentExhibition[]> {
+  const ids = new Set<number>();
+  for (const exhibition of exhibitions) {
+    for (const category of CATEGORY_VALUES) {
+      const first = exhibition[category]?.images?.[0];
+      if (typeof first === 'number') ids.add(first);
+    }
+  }
+  if (ids.size === 0) return [...exhibitions];
+
+  const mediaResult = await cms.findMany('media', {
+    where: { id: { in: [...ids] } },
+    limit: 0,
+    depth: 0,
+    select: CARD_MEDIA_SELECT,
+  });
+  if (!mediaResult.ok) throw new Error('企画一覧の取得に失敗しました');
+  const mediaById = new Map(mediaResult.value.docs.map((m) => [m.id, m]));
+
+  return exhibitions.map((exhibition) => {
+    const next = { ...exhibition };
+    for (const category of CATEGORY_VALUES) {
+      const group = exhibition[category];
+      const first = group?.images?.[0];
+      if (!group || typeof first !== 'number') continue;
+      const media = mediaById.get(first);
+      if (media) {
+        next[category] = {
+          ...group,
+          images: [media, ...group.images!.slice(1)],
+        };
+      }
+    }
+    return next;
+  });
+}
+
 /** 一覧ページ用の全カード。絞り込みとページ送りはクライアントが行う。取得失敗時は例外を投げる */
 export async function getExhibitionCatalog(): Promise<ExhibitionCatalog> {
   const [exhibitionsResult, [slotsResult, stagesResult, areasResult]] =
@@ -523,8 +628,8 @@ export async function getExhibitionCatalog(): Promise<ExhibitionCatalog> {
         where: { status: { equals: 'published' } },
         sort: ['id'],
         limit: 0,
-        // media を populate して実ファイル URL を得る
-        depth: 1,
+        depth: 0,
+        select: CARD_SELECT,
       }),
       fetchJoinSources(),
     ]);
@@ -542,8 +647,9 @@ export async function getExhibitionCatalog(): Promise<ExhibitionCatalog> {
     stagesResult.value.docs,
     areasResult.value.docs,
   );
+  const exhibitions = await attachFirstImages(exhibitionsResult.value.docs);
   return {
-    cards: exhibitionsResult.value.docs.flatMap((e) => toCards(e, context)),
+    cards: exhibitions.flatMap((e) => toCards(e, context)),
     areas: areasResult.value.docs.map((a) => ({ id: a.id, name: a.name })),
   };
 }
