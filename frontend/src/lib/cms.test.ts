@@ -307,6 +307,12 @@ describe('buildQueryString select', () => {
       'select%5Bid%5D=true',
     );
   });
+
+  it('入れ子の select を展開する', () => {
+    expect(
+      buildQueryString({ select: { sizes: { card: { url: true } } } }),
+    ).toBe('select%5Bsizes%5D%5Bcard%5D%5Burl%5D=true');
+  });
 });
 
 describe('同一引数の取得の重複排除', () => {

@@ -312,6 +312,7 @@ type MockDocs = {
   slots?: unknown[];
   stages?: unknown[];
   areas?: unknown[];
+  media?: unknown[];
 };
 
 function mockCmsCollections({
@@ -319,6 +320,7 @@ function mockCmsCollections({
   slots = [],
   stages = [],
   areas = [],
+  media = [],
 }: MockDocs) {
   vi.mocked(cms.findMany).mockImplementation((async (collection: string) => {
     const table: Record<string, unknown[]> = {
@@ -326,6 +328,7 @@ function mockCmsCollections({
       performance_slots: slots,
       stages,
       map_areas: areas,
+      media,
     };
     const docs = table[collection];
     if (docs === undefined) {
@@ -704,6 +707,67 @@ describe('getExhibitionListData', () => {
 
     const result = await getExhibitionListData(baseQuery);
     expect(result.items[0]?.thumbnail).toEqual({ id: '5', alt: '企画A' });
+  });
+
+  it('先頭画像の URL は media を別取得して解決し、2 枚目以降は取得しない', async () => {
+    mockCmsCollections({
+      exhibitions: [
+        {
+          id: 1,
+          organization_name: '団体A',
+          categories: ['exhibit'],
+          exhibit: { name: '企画A', images: [5, 6] },
+        },
+      ],
+      media: [
+        {
+          id: 5,
+          url: 'https://cms.example.com/api/media/file/a.webp',
+          sizes: {
+            card: { url: 'https://cms.example.com/api/media/file/a-card.webp' },
+            hero: { url: 'https://cms.example.com/api/media/file/a-hero.webp' },
+          },
+        },
+      ],
+    });
+
+    const result = await getExhibitionListData(baseQuery);
+    expect(result.items[0]?.thumbnail).toEqual({
+      id: '5',
+      url: 'https://cms.example.com/api/media/file/a.webp',
+      cardUrl: 'https://cms.example.com/api/media/file/a-card.webp',
+      heroUrl: 'https://cms.example.com/api/media/file/a-hero.webp',
+      alt: '企画A',
+    });
+    const call = vi
+      .mocked(cms.findMany)
+      .mock.calls.find(([collection]) => collection === 'media');
+    expect(call?.[1]?.where).toEqual({ id: { in: [5] } });
+  });
+
+  it('media の取得に失敗したら例外を投げる', async () => {
+    vi.mocked(cms.findMany).mockImplementation((async (collection: string) =>
+      collection === 'media'
+        ? { ok: false, error: { kind: 'network', status: 500 } }
+        : {
+            ok: true,
+            value: {
+              docs:
+                collection === 'student_exhibitions'
+                  ? [
+                      {
+                        id: 1,
+                        organization_name: '団体A',
+                        categories: ['exhibit'],
+                        exhibit: { name: '企画A', images: [5] },
+                      },
+                    ]
+                  : [],
+              totalDocs: 0,
+            },
+          }) as never);
+
+    await expect(getExhibitionListData(baseQuery)).rejects.toThrow();
   });
 
   it('画像がなければサムネイルは null', async () => {
