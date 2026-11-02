@@ -111,6 +111,42 @@ export function listingHref(
     : `/exhibitions/${card.id}/${card.category}`;
 }
 
+/** ExhibitionCard が読むフィールドだけ。ブックマーク一覧のようにカード表示しか要らない経路向け */
+export type ExhibitionCardView = Pick<
+  ListingCard,
+  'id' | 'category' | 'displayName' | 'location' | 'thumbnail'
+>;
+
+/**
+ * クライアントへ渡すカードのサムネイルを、カード表示が使う URL だけに絞る。
+ * toCardImageUrl は `cardUrl ?? url` の順で選ぶので、同じ結果になるよう cardUrl に畳む
+ * (heroUrl はカードでは使わない)。
+ */
+export function slimThumbnail<T extends Pick<ListingCard, 'thumbnail'>>(
+  card: T,
+): T {
+  const { thumbnail } = card;
+  if (!thumbnail) return card;
+  const cardUrl = thumbnail.cardUrl ?? thumbnail.url;
+  return {
+    ...card,
+    thumbnail: cardUrl
+      ? { id: thumbnail.id, cardUrl, alt: thumbnail.alt }
+      : { id: thumbnail.id, alt: thumbnail.alt },
+  };
+}
+
+export function toCardView(card: ExhibitionCardView): ExhibitionCardView {
+  const { id, category, displayName, location } = card;
+  return slimThumbnail({
+    id,
+    category,
+    displayName,
+    location,
+    thumbnail: card.thumbnail,
+  });
+}
+
 export interface AreaOption {
   readonly id: number;
   readonly name: string;

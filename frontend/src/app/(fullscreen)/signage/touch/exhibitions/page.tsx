@@ -1,5 +1,6 @@
 import {
   getExhibitionCatalog,
+  slimThumbnail,
   type ExhibitionCatalog,
 } from '@/lib/exhibitions';
 import { TouchExhibitions } from '@/components/signage/touch/touch-exhibitions';
@@ -11,5 +12,5 @@ const EMPTY_CATALOG: ExhibitionCatalog = { cards: [], areas: [] };
 
 export default async function TouchExhibitionsPage() {
   const { cards } = await loadForIsr(getExhibitionCatalog, EMPTY_CATALOG);
-  return <TouchExhibitions cards={cards} />;
+  return <TouchExhibitions cards={cards.map(slimThumbnail)} />;
 }

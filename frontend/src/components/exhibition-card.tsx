@@ -2,12 +2,12 @@
 import Link from 'next/link';
 import { exhibitionTextureStyle } from '@/lib/exhibition-color';
 import { toCardImageUrl } from '@/lib/cms-asset-url';
-import { listingHref, type ListingCard } from '@/lib/exhibitions';
+import { listingHref, type ExhibitionCardView } from '@/lib/exhibitions';
 import { BookmarkButton } from './bookmark-button';
 import { ImageIcon, PlaceIcon } from './icons';
 
 export interface ExhibitionCardProps {
-  readonly exhibition: ListingCard;
+  readonly exhibition: ExhibitionCardView;
   readonly bookmarkable?: boolean;
   readonly variant?: 'site' | 'signage';
   /** ファーストビューの画像。遅延読み込みせず優先して取得する */

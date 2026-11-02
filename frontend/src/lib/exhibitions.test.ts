@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { cms } from './cms';
+import { toCardImageUrl } from './cms-asset-url';
 import {
   buildExhibitionsHref,
   CATEGORY_LABELS,
@@ -11,9 +12,15 @@ import {
   normalizeText,
   paginate,
   parseExhibitionQuery,
+  slimThumbnail,
+  toCardView,
   type ExhibitionCardSummary,
   type ExhibitionQuery,
 } from './exhibitions';
+
+vi.mock('@/env', () => ({
+  env: { NEXT_PUBLIC_CMS_URL: 'http://localhost:3100' },
+}));
 
 vi.mock('./cms', () => ({
   cms: { findMany: vi.fn(), findById: vi.fn(), findGlobal: vi.fn() },
@@ -1153,5 +1160,81 @@ describe('getExhibitionSitemapEntries', () => {
     } as never);
 
     await expect(getExhibitionSitemapEntries()).rejects.toThrow();
+  });
+});
+
+describe('slimThumbnail', () => {
+  const base = {
+    id: 1,
+    category: 'exhibit' as const,
+    displayName: '企画A',
+    organizationName: '団体A',
+    location: null,
+    areaIds: [],
+  };
+  const image = { id: '5', alt: '企画A' };
+
+  it('サムネイルが無ければそのまま返す', () => {
+    const card = { ...base, thumbnail: null };
+    expect(slimThumbnail(card)).toBe(card);
+  });
+
+  it('hero と原本の URL を落とし、card サイズがあれば cardUrl だけ残す', () => {
+    const card = {
+      ...base,
+      thumbnail: {
+        ...image,
+        url: 'https://cms.example.com/o.webp',
+        cardUrl: 'https://cms.example.com/c.webp',
+        heroUrl: 'https://cms.example.com/h.webp',
+      },
+    };
+    expect(slimThumbnail(card).thumbnail).toEqual({
+      ...image,
+      cardUrl: 'https://cms.example.com/c.webp',
+    });
+  });
+
+  it('card サイズが無ければ原本 URL を cardUrl に畳む', () => {
+    const card = {
+      ...base,
+      thumbnail: { ...image, url: 'https://cms.example.com/o.webp' },
+    };
+    expect(slimThumbnail(card).thumbnail).toEqual({
+      ...image,
+      cardUrl: 'https://cms.example.com/o.webp',
+    });
+  });
+
+  it.each([
+    { url: 'https://cms.example.com/o.webp' },
+    { cardUrl: 'https://cms.example.com/c.webp' },
+    { url: 'https://cms.example.com/o.webp', heroUrl: 'https://x/h.webp' },
+    {},
+  ])('カード画像の URL は絞る前と変わらない: %j', (urls) => {
+    const thumbnail = { ...image, ...urls };
+    const slim = slimThumbnail({ ...base, thumbnail }).thumbnail!;
+    expect(toCardImageUrl(slim)).toBe(toCardImageUrl(thumbnail));
+  });
+});
+
+describe('toCardView', () => {
+  it('カード表示に使うフィールドだけを残す', () => {
+    const view = toCardView({
+      id: 1,
+      category: 'exhibit',
+      displayName: '企画A',
+      location: 'Aブロック',
+      thumbnail: null,
+      organizationName: '団体A',
+      areaIds: [1],
+    } as Parameters<typeof toCardView>[0]);
+    expect(view).toEqual({
+      id: 1,
+      category: 'exhibit',
+      displayName: '企画A',
+      location: 'Aブロック',
+      thumbnail: null,
+    });
   });
 });
