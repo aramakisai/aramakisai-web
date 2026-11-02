@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { TimetableGrid } from '@/components/timetable-grid';
 import { useNow } from '@/lib/use-now';
-import type { Timetable } from '@/lib/timetable';
+import { useTouchClockShift } from '@/lib/use-touch-clock-shift';
+import { resolveInitialDayKey, type Timetable } from '@/lib/timetable';
 import { TouchSegment } from './touch-segment';
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
@@ -23,9 +24,21 @@ export function TouchTimetable({
   readonly initialDayKey: string | null;
   readonly renderedAt: string;
 }) {
-  const now = useNow(renderedAt);
+  const shift = useTouchClockShift();
+  const real = useNow(renderedAt);
+  const now = new Date(real.getTime() + (shift ?? 0));
   const { days, stages, performances } = timetable;
   const [dayKey, setDayKey] = useState(initialDayKey);
+  const userPicked = useRef(false);
+  const shiftApplied = useRef(false);
+  // 試験日の決め直しは最初の非 null のずれ量だけ。以後の試験開始し直しで利用者の閲覧中の日を動かさない
+  useEffect(() => {
+    if (shift === null || shiftApplied.current) return;
+    shiftApplied.current = true;
+    if (!userPicked.current) {
+      setDayKey(resolveInitialDayKey(days, new Date(Date.now() + shift)));
+    }
+  }, [shift, days]);
   const dayPerformances = performances.filter((p) => p.slot.dateKey === dayKey);
 
   return (
@@ -54,7 +67,10 @@ export function TouchTimetable({
               color: 'bg-info',
             }))}
             value={dayKey}
-            onSelect={setDayKey}
+            onSelect={(key) => {
+              userPicked.current = true;
+              setDayKey(key);
+            }}
           />
         </div>
       )}

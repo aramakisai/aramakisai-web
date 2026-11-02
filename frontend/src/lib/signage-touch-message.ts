@@ -30,3 +30,19 @@ export function isTouchMessage(data: unknown): data is TouchLocationMessage {
         m.filters !== null))
   );
 }
+
+export interface SignageTouchClockMessage {
+  readonly type: 'signage-touch-clock';
+  readonly trialShiftMs: number | null;
+}
+
+export function isTouchClockMessage(
+  data: unknown,
+): data is SignageTouchClockMessage {
+  if (typeof data !== 'object' || data === null) return false;
+  const m = data as Record<string, unknown>;
+  return (
+    m.type === 'signage-touch-clock' &&
+    (m.trialShiftMs === null || typeof m.trialShiftMs === 'number')
+  );
+}
