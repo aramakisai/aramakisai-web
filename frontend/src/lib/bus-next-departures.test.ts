@@ -164,9 +164,7 @@ describe('nextBusDepartures', () => {
       minutesLeft: 0,
     });
     const later = sat(10, 2);
-    expect(first(later, rt({ vehicles: [['a', 4]] }, later)).route).toBe(
-      '22H',
-    );
+    expect(first(later, rt({ vehicles: [['a', 4]] }, later)).route).toBe('22H');
   });
 
   it('TripUpdate の stop_sequence が対象停留所より大きければ発車済み', () => {
