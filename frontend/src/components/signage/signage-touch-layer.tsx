@@ -22,9 +22,9 @@ import { pageStagesAt } from '@/lib/timetable';
 import { buildTouchQrUrl } from '@/lib/signage-touch-qr';
 import {
   isTouchMessage,
-  type SignageTouchClockMessage,
   type TouchFilters,
 } from '@/lib/signage-touch-message';
+import { type SignageTouchClockMessage } from '@/lib/signage-trial';
 import { CrossFade } from '../cross-fade';
 import { SignageBusInfo } from './signage-bus-info';
 import { SignageClock } from './signage-clock';

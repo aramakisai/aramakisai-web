@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { isTouchClockMessage } from './signage-touch-message';
+import { isTouchClockMessage } from './signage-trial';
 
 export function useTouchClockShift(): number | null {
   const [shift, setShift] = useState<number | null>(null);

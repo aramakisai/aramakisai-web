@@ -18,7 +18,6 @@ vi.mock('./parking-data', () => ({ getParkingResponse }));
 
 import {
   getPinState,
-  trialShiftMs,
   getSignageSnapshot,
   SIGNAGE_TTL_SECONDS,
 } from './signage-data';
@@ -404,34 +403,11 @@ describe('getSignageSnapshot の緊急地震速報', () => {
   });
 });
 
-describe('trialShiftMs', () => {
-  const DAYS = ['2026-11-14T10:00:00+09:00', '2026-11-15T10:00:00+09:00'];
-  const REAL = '2026-11-02T03:00:00Z';
+describe('getSignageSnapshot の試験運転', () => {
   const trial = {
     start_at: '2026-11-14T10:00:00+09:00',
     anchored_at: '2026-11-02T12:00:00+09:00',
   };
-
-  it('試験中は開始日時から起点を引いたミリ秒を返す', () => {
-    expect(trialShiftMs(trial, DAYS, REAL)).toBe(
-      Date.parse(trial.start_at) - Date.parse(trial.anchored_at),
-    );
-  });
-
-  it.each([
-    ['未設定', undefined],
-    ['null', null],
-    ['空', {}],
-    ['起点なし', { start_at: trial.start_at, anchored_at: null }],
-    ['開始日時なし', { start_at: null, anchored_at: trial.anchored_at }],
-  ])('%s は null', (_, t) => {
-    expect(trialShiftMs(t, DAYS, REAL)).toBeNull();
-  });
-
-  it('実時刻の JST 日付が開催日なら null', () => {
-    // 2026-11-14T16:00Z は JST で 11-15 01:00 = 2日目
-    expect(trialShiftMs(trial, DAYS, '2026-11-14T16:00:00Z')).toBeNull();
-  });
 
   it('getSignageSnapshot が trialShiftMs を載せ、serverNow は実時刻のまま', async () => {
     setup({}, { trial_run: trial });
