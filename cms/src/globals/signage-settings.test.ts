@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
+const { notify } = vi.hoisted(() => ({ notify: vi.fn(() => async () => {}) }));
+vi.mock('../lib/signage-notify', () => ({ signageNotifyGlobalHook: notify }));
+
 import { SignageSettings } from './signage-settings';
 
 type F = { name: string; type: string; relationTo?: string; hasMany?: boolean; required?: boolean; filterOptions?: unknown; admin?: { description?: string } };
@@ -34,6 +37,7 @@ describe('SignageSettings', () => {
   });
 
   it('保存後の通知は固定とスナップショットの両方', () => {
+    expect(notify).toHaveBeenCalledWith(['pin', 'snapshot']);
     expect(SignageSettings.hooks?.afterChange).toHaveLength(1);
   });
 
