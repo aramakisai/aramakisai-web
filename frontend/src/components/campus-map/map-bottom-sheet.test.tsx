@@ -85,6 +85,60 @@ describe('MapBottomSheet', () => {
     },
   );
 
+  describe('エリア選択時の段', () => {
+    const filtered = (areaName: string): AreaExhibitionListState => ({
+      kind: 'filtered',
+      areaName,
+      keyword: '',
+      categories: [],
+      items: [],
+    });
+    const mockElementHeight = (px: number) =>
+      vi
+        .spyOn(HTMLElement.prototype, 'offsetHeight', 'get')
+        .mockReturnValue(px);
+    const grabberLabel = () =>
+      screen.getByRole('button', { name: /シートの高さを変更/ }).ariaLabel;
+
+    afterEach(() => vi.restoreAllMocks());
+
+    it('内容高が standard 以下なら fit まで開く', () => {
+      mockMatchMedia(false);
+      mockElementHeight(100);
+      const { rerender } = render(
+        <MapBottomSheet state={{ kind: 'unselected' }} selectedAreaId={null} />,
+      );
+      rerender(<MapBottomSheet state={filtered('本部')} selectedAreaId={1} />);
+      expect(grabberLabel()).toMatch(/折りたたみ/);
+    });
+
+    it('内容高が standard を超えるなら standard まで開く', () => {
+      mockMatchMedia(false);
+      mockElementHeight(300);
+      const { rerender } = render(
+        <MapBottomSheet state={{ kind: 'unselected' }} selectedAreaId={null} />,
+      );
+      rerender(<MapBottomSheet state={filtered('C')} selectedAreaId={2} />);
+      expect(grabberLabel()).toMatch(/標準/);
+    });
+
+    it('別エリアへ切り替えると内容高で段を決め直す', () => {
+      mockMatchMedia(false);
+      const height = mockElementHeight(300);
+      const { rerender } = render(
+        <MapBottomSheet state={{ kind: 'unselected' }} selectedAreaId={null} />,
+      );
+      rerender(<MapBottomSheet state={filtered('C')} selectedAreaId={2} />);
+      expect(grabberLabel()).toMatch(/標準/);
+      height.mockReturnValue(100);
+      rerender(<MapBottomSheet state={filtered('本部')} selectedAreaId={1} />);
+      expect(grabberLabel()).toMatch(/折りたたみ/);
+      height.mockReturnValue(300);
+      rerender(<MapBottomSheet state={filtered('C')} selectedAreaId={2} />);
+      expect(grabberLabel()).toMatch(/標準/);
+    });
+  });
+
   it('lets the map receive pointer events outside the sheet itself', () => {
     mockMatchMedia(false);
     const state: AreaExhibitionListState = { kind: 'unselected' };
@@ -432,6 +486,9 @@ describe('MapBottomSheet', () => {
         categories: [],
         items: [],
       };
+      vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(
+        300,
+      );
       const { getByTestId, rerender } = render(
         <MapBottomSheet state={state} selectedAreaId={1} />,
       );
