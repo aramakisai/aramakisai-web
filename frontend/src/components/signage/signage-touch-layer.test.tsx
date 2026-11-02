@@ -36,8 +36,9 @@ function session(state: TouchSession['state']): TouchSession {
 const open = (destination: 'map' | 'topics' | 'parking' | null = null) =>
   ({ kind: 'open', destination, idleSince: 0 }) as const;
 
-function renderLayer(s: TouchSession) {
+function renderLayer(s: TouchSession, trialShiftMs: number | null = null) {
   const props = {
+    trialShiftMs,
     now: new Date('2026-11-01T05:17:00Z'),
     eventDays: [],
     rows: [],
@@ -50,6 +51,8 @@ function renderLayer(s: TouchSession) {
     ...r,
     again: (next: TouchSession) =>
       r.rerender(<SignageTouchLayer session={next} {...props} />),
+    rerenderShift: (v: number | null) =>
+      r.rerender(<SignageTouchLayer session={s} {...props} trialShiftMs={v} />),
   };
 }
 
@@ -405,4 +408,28 @@ it('いまのステージは4件で2ページになり、5秒ごとに3件→1�
   expect(chips()).toEqual(['1', '2', '3']);
   rerender(at(5000));
   expect(chips()).toContain('4');
+});
+
+it('サブページからパスの知らせを受けると iframe へずれ量を送り、変化で送り直す', () => {
+  const r = renderLayer(session(open('map')), 3600000);
+  const iframe = r.container.querySelector('iframe')!;
+  const spy = vi.fn();
+  Object.defineProperty(iframe, 'contentWindow', {
+    value: { postMessage: spy },
+    configurable: true,
+  });
+  post(
+    iframe,
+    { type: 'signage-touch-path', path: '/signage/touch/map' },
+    { source: iframe.contentWindow },
+  );
+  expect(spy).toHaveBeenLastCalledWith(
+    { type: 'signage-touch-clock', trialShiftMs: 3600000 },
+    window.location.origin,
+  );
+  r.rerenderShift(null);
+  expect(spy).toHaveBeenLastCalledWith(
+    { type: 'signage-touch-clock', trialShiftMs: null },
+    window.location.origin,
+  );
 });

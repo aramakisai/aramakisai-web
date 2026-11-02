@@ -20,7 +20,11 @@ import {
 } from '@/lib/signage-touch';
 import { pageStagesAt } from '@/lib/timetable';
 import { buildTouchQrUrl } from '@/lib/signage-touch-qr';
-import { isTouchMessage, type TouchFilters } from '@/lib/signage-touch-message';
+import {
+  isTouchMessage,
+  type SignageTouchClockMessage,
+  type TouchFilters,
+} from '@/lib/signage-touch-message';
 import { CrossFade } from '../cross-fade';
 import { SignageBusInfo } from './signage-bus-info';
 import { SignageClock } from './signage-clock';
@@ -77,6 +81,7 @@ export interface SignageTouchLayerProps {
   readonly boards: readonly DirectionBoard[];
   readonly telops: readonly SignageTelopItem[];
   readonly offsetMs: number | null;
+  readonly trialShiftMs?: number | null;
 }
 
 interface TouchLocation {
@@ -91,10 +96,13 @@ interface TouchLocation {
 function useTouchLocation(
   iframeRef: React.RefObject<HTMLIFrameElement | null>,
   onReady: (path: string) => void,
+  onPath: () => void,
 ) {
   const onReadyRef = useRef(onReady);
+  const onPathRef = useRef(onPath);
   useEffect(() => {
     onReadyRef.current = onReady;
+    onPathRef.current = onPath;
   });
   const [location, setLocation] = useState<TouchLocation>({
     path: null,
@@ -110,6 +118,7 @@ function useTouchLocation(
         onReadyRef.current(m.path);
         return;
       }
+      if (m.type === 'signage-touch-path') onPathRef.current();
       setLocation((prev) =>
         m.type === 'signage-touch-path'
           ? { ...prev, path: m.path }
@@ -153,6 +162,7 @@ function OpenLayer({
   boards,
   telops,
   offsetMs,
+  trialShiftMs = null,
 }: SignageTouchLayerProps) {
   const { state } = session;
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -170,13 +180,33 @@ function OpenLayer({
   const [opening, setOpening] = useState(true);
   // トップへ戻るフェード中だけ、旧 iframe を残してボタン列を上に重ねる
   const [leaving, setLeaving] = useState(false);
-  const [location, setLocation] = useTouchLocation(iframeRef, (path) =>
-    setCurtain((c) =>
-      c && TOUCH_DESTINATIONS.find((d) => d.key === c.dest)?.path === path
-        ? { ...c, ready: true }
-        : c,
-    ),
+  const sendClock = () => {
+    const message: SignageTouchClockMessage = {
+      type: 'signage-touch-clock',
+      trialShiftMs,
+    };
+    iframeRef.current?.contentWindow?.postMessage(
+      message,
+      window.location.origin,
+    );
+  };
+  const [location, setLocation] = useTouchLocation(
+    iframeRef,
+    (path) =>
+      setCurtain((c) =>
+        c && TOUCH_DESTINATIONS.find((d) => d.key === c.dest)?.path === path
+          ? { ...c, ready: true }
+          : c,
+      ),
+    sendClock,
   );
+  // 初回は iframe 側が未購読なので、パスの知らせ経由の送信に任せる
+  const sentShift = useRef(trialShiftMs);
+  useEffect(() => {
+    if (sentShift.current === trialShiftMs) return;
+    sentShift.current = trialShiftMs;
+    sendClock();
+  });
   const qrPath = location.path;
   const qrFilters =
     location.filters && location.filters.path === qrPath
