@@ -19,6 +19,7 @@ import type {
 } from './signage';
 import type { SignagePinState } from './signage-pin';
 import type { SignageQuakeStage } from './signage-quake';
+import { trialShiftMs } from './signage-trial';
 import { getSponsors, mergeSponsorLogos } from './sponsors';
 import { toTimetable } from './timetable';
 
@@ -164,11 +165,17 @@ export async function getSignageSnapshot({
     }),
   );
 
+  const serverNow = new Date().toISOString();
   return {
     ok: true,
     value: {
       fetchedAt: new Date().toISOString(),
-      serverNow: new Date().toISOString(),
+      serverNow,
+      trialShiftMs: trialShiftMs(
+        settings.value.trial_run,
+        (meta.value.event_days ?? []).map((d) => d.start_at),
+        serverNow,
+      ),
       pinnedSlideId: pinnedSlideId(settings.value.pinned_slide),
       eventDays: toEventDays(meta.value.event_days),
       slides: slides.value.docs

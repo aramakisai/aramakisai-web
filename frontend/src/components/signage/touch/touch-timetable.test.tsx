@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { TouchTimetable } from './touch-timetable';
 import type { Timetable, TimetablePerformance } from '@/lib/timetable';
@@ -87,5 +87,45 @@ describe('TouchTimetable', () => {
       />,
     );
     expect(screen.getByText('出演予定はありません')).toBeInTheDocument();
+  });
+
+  describe('ずれ量', () => {
+    const parentWin = {} as Window;
+    const send = (trialShiftMs: number | null) =>
+      act(() => {
+        window.dispatchEvent(
+          new MessageEvent('message', {
+            data: { type: 'signage-touch-clock', trialShiftMs },
+            origin: window.location.origin,
+            source: parentWin,
+          }),
+        );
+      });
+    const setup = () => {
+      // 非 iframe では window.parent === window なので別物に差し替える
+      vi.spyOn(window, 'parent', 'get').mockReturnValue(parentWin);
+      render(
+        <TouchTimetable
+          timetable={timetable}
+          initialDayKey="2026-11-14"
+          renderedAt={renderedAt}
+        />,
+      );
+    };
+
+    it('ずれ量を受けると対象日が試験日になる', () => {
+      setup();
+      const shift = Date.parse(jst('2026-11-15', '13:30')) - Date.now();
+      send(shift);
+      expect(screen.getByText('二日目ライブ')).toBeInTheDocument();
+    });
+
+    it('利用者が日付を選んだ後は上書きしない', () => {
+      setup();
+      fireEvent.click(screen.getByRole('button', { name: '11/14 土' }));
+      send(Date.parse(jst('2026-11-15', '13:30')) - Date.now());
+      expect(screen.getByText('開会式')).toBeInTheDocument();
+      expect(screen.queryByText('二日目ライブ')).toBeNull();
+    });
   });
 });

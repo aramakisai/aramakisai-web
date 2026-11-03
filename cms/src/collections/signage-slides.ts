@@ -37,6 +37,7 @@ export const SignageSlides: CollectionConfig = {
       beforeListTable: [
         './components/SignageQuakePanel.tsx',
         './components/SignagePinBanner.tsx',
+        './components/SignageTrialPanel.tsx',
         './components/SignageGroupSwitches.tsx',
       ],
     },

@@ -80,6 +80,7 @@ function snapshot(over: Partial<SignageSnapshot> = {}): SignageSnapshot {
   return {
     fetchedAt: '',
     serverNow: '',
+    trialShiftMs: null,
     pinnedSlideId: null,
     eventDays: DAYS,
     slides: [],

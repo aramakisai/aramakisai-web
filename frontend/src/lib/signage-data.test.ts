@@ -402,3 +402,22 @@ describe('getSignageSnapshot の緊急地震速報', () => {
     );
   });
 });
+
+describe('getSignageSnapshot の試験運転', () => {
+  const trial = {
+    start_at: '2026-11-14T10:00:00+09:00',
+    anchored_at: '2026-11-02T12:00:00+09:00',
+  };
+
+  it('getSignageSnapshot が trialShiftMs を載せ、serverNow は実時刻のまま', async () => {
+    setup({}, { trial_run: trial });
+    const r = await getSignageSnapshot();
+    if (!r.ok) throw new Error('failed');
+    expect(r.value.trialShiftMs).toBe(
+      Date.parse(trial.start_at) - Date.parse(trial.anchored_at),
+    );
+    expect(Math.abs(Date.parse(r.value.serverNow) - Date.now())).toBeLessThan(
+      5000,
+    );
+  });
+});
