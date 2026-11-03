@@ -244,20 +244,20 @@ describe('lib/navigation.ts は表示部品を参照しない (要件 19.4)', ()
 });
 
 describe('mobileMenuItemsFor', () => {
-  it('live はハンバーガーメニュー用に末尾へマイページを足す', () => {
-    const items = mobileMenuItemsFor('live', navigationItemsByPhase.live);
-    expect(items.slice(0, -1)).toEqual(navigationItemsByPhase.live);
-    expect(items.at(-1)).toEqual({
-      label: 'マイページ',
-      color: 'accent-alt',
-      href: '/mypage',
-    });
+  const top = { label: 'トップ', color: 'primary', href: '/' };
+
+  it('live は先頭にトップ、末尾にマイページを足す', () => {
+    expect(mobileMenuItemsFor('live', navigationItemsByPhase.live)).toEqual([
+      top,
+      ...navigationItemsByPhase.live,
+      { label: 'マイページ', color: 'accent-alt', href: '/mypage' },
+    ]);
   });
 
-  it('pre_event は変えない', () => {
+  it('pre_event は先頭にトップだけ足す', () => {
     expect(
       mobileMenuItemsFor('pre_event', navigationItemsByPhase.pre_event),
-    ).toEqual(navigationItemsByPhase.pre_event);
+    ).toEqual([top, ...navigationItemsByPhase.pre_event]);
   });
 
   it('PC の横並びナビが読む navigationItemsByPhase.live にはマイページを含めない', () => {

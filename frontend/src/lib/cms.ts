@@ -40,12 +40,15 @@ export type CmsWhere<T> = {
   or?: readonly CmsWhere<T>[];
 };
 
+/** Payload の select。グループ・配列内のフィールドは入れ子で指定する */
+export type CmsSelect = { readonly [key: string]: boolean | CmsSelect };
+
 export type CmsQuery<T> = {
   readonly where?: CmsWhere<T>;
   readonly sort?: readonly `${'-' | ''}${Extract<keyof T, string>}`[];
   readonly limit?: number;
   readonly depth?: number;
-  readonly select?: Readonly<Record<string, boolean>>;
+  readonly select?: CmsSelect;
 };
 
 function flatten(prefix: string, value: unknown, out: string[]): void {
@@ -70,7 +73,7 @@ export function buildQueryString(query: {
   sort?: readonly string[];
   limit?: number;
   depth?: number;
-  select?: Readonly<Record<string, boolean>>;
+  select?: CmsSelect;
 }): string {
   const parts: string[] = [];
   if (query.where) flatten('where', query.where, parts);

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { cms } from './cms';
+import { toCardImageUrl } from './cms-asset-url';
 import {
   buildExhibitionsHref,
   CATEGORY_LABELS,
@@ -11,9 +12,15 @@ import {
   normalizeText,
   paginate,
   parseExhibitionQuery,
+  slimThumbnail,
+  toCardView,
   type ExhibitionCardSummary,
   type ExhibitionQuery,
 } from './exhibitions';
+
+vi.mock('@/env', () => ({
+  env: { NEXT_PUBLIC_CMS_URL: 'http://localhost:3100' },
+}));
 
 vi.mock('./cms', () => ({
   cms: { findMany: vi.fn(), findById: vi.fn(), findGlobal: vi.fn() },
@@ -312,6 +319,7 @@ type MockDocs = {
   slots?: unknown[];
   stages?: unknown[];
   areas?: unknown[];
+  media?: unknown[];
 };
 
 function mockCmsCollections({
@@ -319,6 +327,7 @@ function mockCmsCollections({
   slots = [],
   stages = [],
   areas = [],
+  media = [],
 }: MockDocs) {
   vi.mocked(cms.findMany).mockImplementation((async (collection: string) => {
     const table: Record<string, unknown[]> = {
@@ -326,6 +335,7 @@ function mockCmsCollections({
       performance_slots: slots,
       stages,
       map_areas: areas,
+      media,
     };
     const docs = table[collection];
     if (docs === undefined) {
@@ -704,6 +714,67 @@ describe('getExhibitionListData', () => {
 
     const result = await getExhibitionListData(baseQuery);
     expect(result.items[0]?.thumbnail).toEqual({ id: '5', alt: '企画A' });
+  });
+
+  it('先頭画像の URL は media を別取得して解決し、2 枚目以降は取得しない', async () => {
+    mockCmsCollections({
+      exhibitions: [
+        {
+          id: 1,
+          organization_name: '団体A',
+          categories: ['exhibit'],
+          exhibit: { name: '企画A', images: [5, 6] },
+        },
+      ],
+      media: [
+        {
+          id: 5,
+          url: 'https://cms.example.com/api/media/file/a.webp',
+          sizes: {
+            card: { url: 'https://cms.example.com/api/media/file/a-card.webp' },
+            hero: { url: 'https://cms.example.com/api/media/file/a-hero.webp' },
+          },
+        },
+      ],
+    });
+
+    const result = await getExhibitionListData(baseQuery);
+    expect(result.items[0]?.thumbnail).toEqual({
+      id: '5',
+      url: 'https://cms.example.com/api/media/file/a.webp',
+      cardUrl: 'https://cms.example.com/api/media/file/a-card.webp',
+      heroUrl: 'https://cms.example.com/api/media/file/a-hero.webp',
+      alt: '企画A',
+    });
+    const call = vi
+      .mocked(cms.findMany)
+      .mock.calls.find(([collection]) => collection === 'media');
+    expect(call?.[1]?.where).toEqual({ id: { in: [5] } });
+  });
+
+  it('media の取得に失敗したら例外を投げる', async () => {
+    vi.mocked(cms.findMany).mockImplementation((async (collection: string) =>
+      collection === 'media'
+        ? { ok: false, error: { kind: 'network', status: 500 } }
+        : {
+            ok: true,
+            value: {
+              docs:
+                collection === 'student_exhibitions'
+                  ? [
+                      {
+                        id: 1,
+                        organization_name: '団体A',
+                        categories: ['exhibit'],
+                        exhibit: { name: '企画A', images: [5] },
+                      },
+                    ]
+                  : [],
+              totalDocs: 0,
+            },
+          }) as never);
+
+    await expect(getExhibitionListData(baseQuery)).rejects.toThrow();
   });
 
   it('画像がなければサムネイルは null', async () => {
@@ -1089,5 +1160,81 @@ describe('getExhibitionSitemapEntries', () => {
     } as never);
 
     await expect(getExhibitionSitemapEntries()).rejects.toThrow();
+  });
+});
+
+describe('slimThumbnail', () => {
+  const base = {
+    id: 1,
+    category: 'exhibit' as const,
+    displayName: '企画A',
+    organizationName: '団体A',
+    location: null,
+    areaIds: [],
+  };
+  const image = { id: '5', alt: '企画A' };
+
+  it('サムネイルが無ければそのまま返す', () => {
+    const card = { ...base, thumbnail: null };
+    expect(slimThumbnail(card)).toBe(card);
+  });
+
+  it('hero と原本の URL を落とし、card サイズがあれば cardUrl だけ残す', () => {
+    const card = {
+      ...base,
+      thumbnail: {
+        ...image,
+        url: 'https://cms.example.com/o.webp',
+        cardUrl: 'https://cms.example.com/c.webp',
+        heroUrl: 'https://cms.example.com/h.webp',
+      },
+    };
+    expect(slimThumbnail(card).thumbnail).toEqual({
+      ...image,
+      cardUrl: 'https://cms.example.com/c.webp',
+    });
+  });
+
+  it('card サイズが無ければ原本 URL を cardUrl に畳む', () => {
+    const card = {
+      ...base,
+      thumbnail: { ...image, url: 'https://cms.example.com/o.webp' },
+    };
+    expect(slimThumbnail(card).thumbnail).toEqual({
+      ...image,
+      cardUrl: 'https://cms.example.com/o.webp',
+    });
+  });
+
+  it.each([
+    { url: 'https://cms.example.com/o.webp' },
+    { cardUrl: 'https://cms.example.com/c.webp' },
+    { url: 'https://cms.example.com/o.webp', heroUrl: 'https://x/h.webp' },
+    {},
+  ])('カード画像の URL は絞る前と変わらない: %j', (urls) => {
+    const thumbnail = { ...image, ...urls };
+    const slim = slimThumbnail({ ...base, thumbnail }).thumbnail!;
+    expect(toCardImageUrl(slim)).toBe(toCardImageUrl(thumbnail));
+  });
+});
+
+describe('toCardView', () => {
+  it('カード表示に使うフィールドだけを残す', () => {
+    const view = toCardView({
+      id: 1,
+      category: 'exhibit',
+      displayName: '企画A',
+      location: 'Aブロック',
+      thumbnail: null,
+      organizationName: '団体A',
+      areaIds: [1],
+    } as Parameters<typeof toCardView>[0]);
+    expect(view).toEqual({
+      id: 1,
+      category: 'exhibit',
+      displayName: '企画A',
+      location: 'Aブロック',
+      thumbnail: null,
+    });
   });
 });

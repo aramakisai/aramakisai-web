@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import {
   getExhibitionCatalog,
+  slimThumbnail,
   type ExhibitionCatalog,
 } from '@/lib/exhibitions';
 import { getCorporateBoothCards } from '@/lib/corporate-booths';
@@ -39,7 +40,10 @@ export default async function ExhibitionsPage() {
   return (
     <div className="mx-auto flex max-w-[1440px] flex-col gap-4 px-4 pt-4 pb-12 lg:gap-6 lg:px-20 lg:pt-12 lg:pb-20">
       <h1 className="text-center">企画一覧</h1>
-      <ExhibitionList cards={[...cards, ...booths]} areas={areas} />
+      <ExhibitionList
+        cards={[...cards, ...booths].map(slimThumbnail)}
+        areas={areas}
+      />
     </div>
   );
 }

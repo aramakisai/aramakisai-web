@@ -49,6 +49,16 @@ describe('MapMenuButton', () => {
     }
   });
 
+  it('先頭にトップへのリンクを出す', () => {
+    render(
+      <MapMenuButton phase="pre_event" navigation={navigationItemsByPhase} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'メニューを開く' }));
+    const first = within(screen.getByRole('dialog')).getAllByRole('link')[0];
+    expect(first).toHaveTextContent('トップ');
+    expect(first).toHaveAttribute('href', '/');
+  });
+
   it('liveのときだけ末尾にマイページへのリンクを出す', () => {
     const { unmount } = render(
       <MapMenuButton phase="live" navigation={navigationItemsByPhase} />,

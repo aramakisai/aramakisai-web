@@ -17,7 +17,7 @@ import { SectionHeading } from '@/components/section-heading';
 import { ExhibitionCard } from '@/components/exhibition-card';
 import type {
   AreaOption,
-  ExhibitionCardSummary,
+  ExhibitionCardView,
   ExhibitionCategory,
 } from '@/lib/exhibitions';
 import { useMypageData } from '@/lib/use-mypage-data';
@@ -35,7 +35,7 @@ export interface MypageViewProps {
   readonly areas: readonly AreaOption[];
   // exhibitions.ts の実行時 import は CMS クライアントをクライアントバンドルへ引き込むため、サーバー側から受け取る
   readonly categoryLabels: Readonly<Record<ExhibitionCategory, string>>;
-  readonly cards: readonly ExhibitionCardSummary[];
+  readonly cards: readonly ExhibitionCardView[];
 }
 
 const BADGE_COLORS: Readonly<Record<StampCategory, string>> = {
@@ -176,7 +176,7 @@ function BookmarkList({
   cards,
   bookmarks,
 }: {
-  readonly cards: readonly ExhibitionCardSummary[];
+  readonly cards: readonly ExhibitionCardView[];
   readonly bookmarks: readonly SavedBookmarkRef[];
 }) {
   const byKey = new Map(cards.map((c) => [`${c.id}:${c.category}`, c]));

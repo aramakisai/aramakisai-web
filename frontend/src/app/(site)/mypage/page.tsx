@@ -1,6 +1,10 @@
 import type { Metadata } from 'next';
 import { MypageView } from '@/components/mypage-view';
-import { CATEGORY_LABELS, getExhibitionCatalog } from '@/lib/exhibitions';
+import {
+  CATEGORY_LABELS,
+  getExhibitionCatalog,
+  toCardView,
+} from '@/lib/exhibitions';
 import { loadForIsr } from '@/lib/isr';
 import { buildPageMetadata } from '@/lib/page-metadata';
 import { ROUTE_METADATA } from '@/lib/route-metadata';
@@ -35,7 +39,7 @@ export default async function MypagePage() {
       targets={targets}
       areas={areas}
       categoryLabels={CATEGORY_LABELS}
-      cards={cards}
+      cards={cards.map(toCardView)}
     />
   );
 }

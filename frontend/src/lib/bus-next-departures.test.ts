@@ -157,6 +157,16 @@ describe('nextBusDepartures', () => {
     });
   });
 
+  it('車両が手前で止まったままでも予定+2分を過ぎたら発車済み', () => {
+    const now = sat(10, 1, 59);
+    expect(first(now, rt({ vehicles: [['a', 4]] }, now))).toMatchObject({
+      route: '22A',
+      minutesLeft: 0,
+    });
+    const later = sat(10, 2);
+    expect(first(later, rt({ vehicles: [['a', 4]] }, later)).route).toBe('22H');
+  });
+
   it('TripUpdate の stop_sequence が対象停留所より大きければ発車済み', () => {
     const now = sat(9, 50);
     expect(first(now, rt({ updates: [['a', 6, 0]] }, now)).route).toBe('22H');
