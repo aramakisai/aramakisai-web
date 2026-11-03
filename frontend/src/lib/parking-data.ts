@@ -37,6 +37,7 @@ async function fetchLatestImages(
       sort: ['-createdAt'],
       depth: 0,
       limit: PARKING_LIMIT,
+      pagination: false,
       select: {
         lot: true,
         sizes: true,
@@ -85,7 +86,7 @@ export async function getParkingResponse({
 
   const statuses = await cms.findMany(
     'parking_statuses',
-    { depth: 1, limit: PARKING_LIMIT },
+    { depth: 1, limit: PARKING_LIMIT, pagination: false },
     { ttlSeconds: PARKING_TTL_SECONDS, version },
   );
   if (!statuses.ok) return statuses;

@@ -686,6 +686,7 @@ export async function getExhibitionSitemapEntries(): Promise<
     sort: ['id'],
     limit: 0,
     depth: 0,
+    joins: { 'stage.performance_slots': false },
   });
   if (!result.ok) throw new Error('企画一覧の取得に失敗しました');
 
@@ -709,6 +710,7 @@ export async function getExhibitionDetail(
 ): Promise<ExhibitionDetailResult> {
   const exhibitionResult = await cms.findById('student_exhibitions', id, {
     depth: 1,
+    joins: { 'stage.performance_slots': false },
   });
   if (!exhibitionResult.ok) {
     if (exhibitionResult.error.kind === 'network') {

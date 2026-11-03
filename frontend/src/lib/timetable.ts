@@ -167,12 +167,29 @@ export function toTimetable(sources: {
   return { days: toDays(sources.eventDays), stages, performances };
 }
 
+/**
+ * toTimetable が読むフィールド。select を付けると仮想フィールド display_name の計算
+ * (団体の追加取得) が走らなくなる。
+ */
+export const TIMETABLE_SLOT_SELECT = {
+  stage_id: true,
+  exhibition_id: true,
+  title: true,
+  event_date: true,
+  start_at: true,
+  end_at: true,
+} as const;
+
 /** 取得失敗時は例外を投げる (一覧系の既存規約) */
 export async function getTimetable(): Promise<Timetable> {
   const [meta, stages, slots] = await Promise.all([
     cms.findGlobal('site_settings'),
     cms.findMany('stages', { limit: 0, depth: 0 }),
-    cms.findMany('performance_slots', { limit: 0, depth: 1 }),
+    cms.findMany('performance_slots', {
+      limit: 0,
+      depth: 1,
+      select: TIMETABLE_SLOT_SELECT,
+    }),
   ]);
   if (!meta.ok || !stages.ok || !slots.ok) {
     throw new Error('タイムテーブルの取得に失敗しました');
@@ -206,6 +223,13 @@ export async function getExhibitionPerformances(
       where: { exhibition_id: { equals: exhibitionId } },
       limit: 0,
       depth: 1,
+      // 団体は読まないため exhibition_id を外して populate も省く
+      select: {
+        stage_id: true,
+        event_date: true,
+        start_at: true,
+        end_at: true,
+      },
     }),
   ]);
   if (!meta.ok) return { kind: 'error', error: meta.error };

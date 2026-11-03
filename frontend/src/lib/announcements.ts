@@ -48,6 +48,7 @@ export async function getAnnouncementById(
     where: { id: { equals: id }, ...publishedFilter() },
     limit: 1,
     depth: 1,
+    pagination: false,
   });
   if (!result.ok) return null;
   const announcement = result.value.docs[0];
