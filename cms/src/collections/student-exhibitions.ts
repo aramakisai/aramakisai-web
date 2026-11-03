@@ -78,6 +78,13 @@ export const StudentExhibitions: CollectionConfig = {
   slug: 'student_exhibitions',
   labels: { singular: '学生企画', plural: '学生企画' },
   versions: true,
+  // relationship 経由 (出演枠の exhibition_id) の populate で読まれる項目だけに絞る。stage グループ内の
+  // 選択により join (stage.performance_slots) の計算も省かれる
+  defaultPopulate: {
+    organization_name: true,
+    status: true,
+    stage: { name: true },
+  },
   admin: {
     useAsTitle: 'organization_name',
     defaultColumns: ['organization_name', 'categories', 'status'],
