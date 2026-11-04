@@ -8,9 +8,11 @@ type NotifyTarget = 'pin' | 'snapshot';
 interface HubStub {
   fetch(request: Request): Promise<Response>;
   notify(targets: readonly NotifyTarget[]): Promise<void>;
+  stats(): Promise<{ at: string; connections: Record<string, number> }>;
 }
 
 export interface SiteEntryEnv {
+  readonly STAMP_ENV?: string;
   readonly SIGNAGE_HUB: {
     idFromName(name: string): unknown;
     get(id: unknown): HubStub;
@@ -58,16 +60,39 @@ function sameOrigin(request: Request): boolean {
   }
 }
 
+const ORIGIN_HEADER = 'X-Signage-Origin';
+
+async function handleStats(request: Request, hub: HubStub): Promise<Response> {
+  if (request.method !== 'GET') {
+    return new Response('Method Not Allowed', {
+      status: 405,
+      headers: { Allow: 'GET' },
+    });
+  }
+  return Response.json(await hub.stats());
+}
+
 function handleWs(
   request: Request,
   hub: HubStub,
+  env: SiteEntryEnv,
 ): Promise<Response> | Response {
   if (request.headers.get('Upgrade')?.toLowerCase() !== 'websocket') {
     return new Response('Upgrade Required', { status: 426 });
   }
   // Access の cookie はクロスサイトの WebSocket にも付くため、Origin で同一オリジンに限る
   if (!sameOrigin(request)) return new Response('Forbidden', { status: 403 });
-  return hub.fetch(request);
+  // クライアントが送った接続元は信用せず、デプロイ時の STAMP_ENV で上書きする
+  const headers = new Headers(request.headers);
+  headers.delete(ORIGIN_HEADER);
+  const stampEnv = env.STAMP_ENV;
+  headers.set(
+    ORIGIN_HEADER,
+    stampEnv === 'prod' || stampEnv === 'dev' || stampEnv === 'preview'
+      ? stampEnv
+      : 'unknown',
+  );
+  return hub.fetch(new Request(request, { headers }));
 }
 
 // 旧 2025 年版サイトの配信元。同一 zone の proxied A レコードで、旧サーバーは
@@ -100,10 +125,15 @@ const siteEntry = {
       out.headers.set('X-Robots-Tag', 'noindex');
       return out;
     }
-    if (pathname === '/api/signage/ws' || pathname === '/api/signage/notify') {
+    if (
+      pathname === '/api/signage/ws' ||
+      pathname === '/api/signage/notify' ||
+      pathname === '/api/signage/stats'
+    ) {
       const hub = env.SIGNAGE_HUB.get(env.SIGNAGE_HUB.idFromName(HUB_NAME));
-      return pathname === '/api/signage/ws'
-        ? handleWs(request, hub)
+      if (pathname === '/api/signage/ws') return handleWs(request, hub, env);
+      return pathname === '/api/signage/stats'
+        ? handleStats(request, hub)
         : handleNotify(request, hub);
     }
     return openNext.fetch(request, env, ctx);

@@ -13,8 +13,13 @@ function setup() {
   const stub = {
     fetch: vi.fn(async () => new Response('hub', { status: 200 })),
     notify: vi.fn(async () => {}),
+    stats: vi.fn(async () => ({
+      at: '2026-11-04T00:00:00.000Z',
+      connections: { prod: 2, dev: 0, preview: 1, unknown: 3 },
+    })),
   };
   const env: SiteEntryEnv = {
+    STAMP_ENV: 'prod',
     SIGNAGE_HUB: { idFromName: vi.fn(() => 'id'), get: vi.fn(() => stub) },
   };
   const call = (request: Request) => entry.fetch(request, env, {});
@@ -66,11 +71,56 @@ describe('site-entry /api/signage/ws', () => {
 
   it('正しい要求はハブの固定名のDOへそのまま渡し応答を返す', async () => {
     const { call, stub, env } = setup();
-    const req = ws();
-    const res = await call(req);
+    const res = await call(ws());
     expect(res.status).toBe(200);
-    expect(stub.fetch).toHaveBeenCalledWith(req);
+    expect(stub.fetch).toHaveBeenCalledTimes(1);
     expect(env.SIGNAGE_HUB.idFromName).toHaveBeenCalledWith('signage-hub');
+  });
+
+  it('クライアントの X-Signage-Origin を捨て、STAMP_ENV の値をハブへ渡す', async () => {
+    const { call, stub } = setup();
+    await call(ws({ 'X-Signage-Origin': 'dev' }));
+    const passed = (stub.fetch.mock.calls[0] as unknown as [Request])[0];
+    expect(passed.headers.get('X-Signage-Origin')).toBe('prod');
+    expect(passed.headers.get('Upgrade')).toBe('websocket');
+  });
+
+  it.each([[undefined], ['staging']])(
+    'STAMP_ENV が %s なら unknown を渡す',
+    async (value) => {
+      const { call, stub, env } = setup();
+      (env as { STAMP_ENV?: string }).STAMP_ENV = value;
+      await call(ws({ 'X-Signage-Origin': 'prod' }));
+      const passed = (stub.fetch.mock.calls[0] as unknown as [Request])[0];
+      expect(passed.headers.get('X-Signage-Origin')).toBe('unknown');
+    },
+  );
+});
+
+describe('site-entry /api/signage/stats', () => {
+  it('GET でハブの stats を JSON で返す', async () => {
+    const { call } = setup();
+    const res = await call(
+      new Request('https://aramakisai.com/api/signage/stats'),
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Content-Type')).toContain('application/json');
+    expect(await res.json()).toEqual({
+      at: '2026-11-04T00:00:00.000Z',
+      connections: { prod: 2, dev: 0, preview: 1, unknown: 3 },
+    });
+  });
+
+  it('GET 以外は 405', async () => {
+    const { call, stub } = setup();
+    const res = await call(
+      new Request('https://aramakisai.com/api/signage/stats', {
+        method: 'POST',
+      }),
+    );
+    expect(res.status).toBe(405);
+    expect(res.headers.get('Allow')).toBe('GET');
+    expect(stub.stats).not.toHaveBeenCalled();
   });
 });
 
