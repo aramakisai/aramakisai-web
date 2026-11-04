@@ -25,11 +25,12 @@ import {
 import type {
   QuakeChannelStatus,
   QuakeRelayRpc,
-  QuakeRelayStatus,
+  QuakeRelayStatusV2,
 } from './rpc';
 import { hasUnreceivedReport, normalizeMessage } from './upstream';
 
 const STATE_KEY = 'state';
+const CRON_KEY = 'cronLastRunAt';
 const P2P_PROBE_MS = 5 * 60_000;
 const CONNECT_TIMEOUT_MS = 30_000;
 const RELAY_NAME = 'signage-quake';
@@ -334,11 +335,18 @@ export class QuakeRelay
     return notices;
   }
 
+  // alarm は更新しない: cron が止まったことを検知するため、cron 経路だけが時刻を進める
+  async cronTick(): Promise<void> {
+    await this.ctx.storage.put(CRON_KEY, Date.now());
+    await this.ensure();
+  }
+
   async alarm(): Promise<void> {
     await this.ensure();
   }
 
-  async status(): Promise<QuakeRelayStatus> {
+  async status(): Promise<QuakeRelayStatusV2> {
+    const cronLastRunAt = await this.ctx.storage.get<number>(CRON_KEY);
     const config = this.#config;
     const now = Date.now();
     const channels = {} as Record<ChannelName, QuakeChannelStatus>;
@@ -364,6 +372,7 @@ export class QuakeRelay
       channels,
       unreachable: inPeriod && isReceptionLost(receiving),
       discord: this.#discord.status(),
+      cron: { lastRunAt: iso(cronLastRunAt ?? null) },
     };
   }
 

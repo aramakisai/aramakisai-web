@@ -204,6 +204,24 @@ describe('接続', () => {
     expect(st.channels.wolfxEew.test).toBe(false);
   });
 
+  it('cronTick だけが記録し、alarm は更新しない', async () => {
+    const { make } = setup();
+    stubSockets();
+    const relay = make();
+    expect((await relay.status()).cron.lastRunAt).toBeNull();
+    await relay.alarm();
+    expect((await relay.status()).cron.lastRunAt).toBeNull();
+    await relay.cronTick();
+    expect((await relay.status()).cron.lastRunAt).toBe(
+      new Date(IN_PERIOD).toISOString(),
+    );
+    vi.setSystemTime(IN_PERIOD + 60_000);
+    await relay.alarm();
+    expect((await relay.status()).cron.lastRunAt).toBe(
+      new Date(IN_PERIOD).toISOString(),
+    );
+  });
+
   it('期間外は接続せず、接続中なら閉じてalarmを消す', async () => {
     const { make, storage } = setup();
     const sockets = stubSockets();

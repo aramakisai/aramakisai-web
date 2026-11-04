@@ -570,7 +570,7 @@ jobs:
         if: steps.relay.outputs.changed == 'true'
         # 値は echo しない。未設定なら KeyError でステップを失敗させてデプロイを止める。
         run: |
-          infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod -- python3 -c 'import json,os; json.dump({k: os.environ[k] for k in ("SIGNAGE_QUAKE_TOKEN", "DISCORD_QUAKE_WEBHOOK_URL")}, open(os.environ["RUNNER_TEMP"] + "/quake-secrets.json", "w"))'
+          infisical run --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod -- python3 -c 'import json,os; json.dump({k: os.environ[k] for k in ("SIGNAGE_QUAKE_TOKEN", "SIGNAGE_QUAKE_STATUS_TOKEN", "DISCORD_QUAKE_WEBHOOK_URL")}, open(os.environ["RUNNER_TEMP"] + "/quake-secrets.json", "w"))'
 
       # ハブが先に出ている前提。ファイルに無いキーは削除されない。
       - name: Deploy signage relay to Cloudflare Workers (prod)
