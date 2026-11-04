@@ -23,7 +23,7 @@ export function warnIfJudgeUnconfigured(warn: (message: string) => void, apiKey 
   if (!apiKey) warn('GEMINI_API_KEY が未設定のため、駐車場の画像の判定は not_configured で失敗として記録されます');
 }
 
-type JudgeDb = Pick<ParkingDb, 'find' | 'findByID' | 'update' | 'logger'>;
+type JudgeDb = Pick<ParkingDb, 'find' | 'findByID' | 'update' | 'logger' | 'db'>;
 
 interface RunArgs {
   readonly payload: JudgeDb;
@@ -58,8 +58,30 @@ export async function runJudgeParkingSnapshot({
   const warn = (reason: string) =>
     payload.logger.warn(`parking-judge: camera=${cameraId} snapshot=${snapshotId} ${reason}`);
 
+  // 加算は 1 文にしないと、並行する判定が同じ値を読んで数え漏らす。監視用の記録の失敗で判定結果の公開を止めない
+  const recordHealth = async (error: string | null) => {
+    const at = now().toISOString();
+    try {
+      if (error === null) {
+        await payload.db.pool.query(
+          `update parking_cameras set judge_health_last_succeeded_at = $1, judge_health_consecutive_failures = 0 where id = $2`,
+          [at, cameraId],
+        );
+      } else {
+        await payload.db.pool.query(
+          `update parking_cameras set judge_health_last_failed_at = $1, judge_health_last_error = $2,
+           judge_health_consecutive_failures = coalesce(judge_health_consecutive_failures, 0) + 1 where id = $3`,
+          [at, error.slice(0, 200), cameraId],
+        );
+      }
+    } catch (err) {
+      warn(`judge health update failed: ${String(err)}`);
+    }
+  };
+
   if (!judge) {
     await record({ judge_status: 'failed', judge_error: 'not_configured' });
+    await recordHealth('not_configured');
     warn('failed: not_configured');
     return;
   }
@@ -73,12 +95,14 @@ export async function runJudgeParkingSnapshot({
   if (outcome.kind === 'superseded') return;
   if (outcome.kind === 'rate_limited') {
     await record({ judge_status: 'skipped', judge_error: 'rate_limited' });
+    await recordHealth('rate_limited');
     warn('skipped: rate_limited');
     return;
   }
   if (outcome.kind === 'failed') {
     const error = `api_error: ${outcome.detail}`;
     await record({ judge_status: 'failed', judge_error: error });
+    await recordHealth(error);
     warn(`failed: ${error}`);
     return;
   }
@@ -92,6 +116,7 @@ export async function runJudgeParkingSnapshot({
     image_quality: quality,
     judge_model: model,
   });
+  await recordHealth(unknown ? 'unknown' : null);
   if (unknown) warn('failed: unknown');
 
   if (quality) await updateExposureBasis(payload, cameraId, snapshot, quality);
