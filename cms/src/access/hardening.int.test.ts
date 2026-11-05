@@ -182,4 +182,94 @@ describe.skipIf(!hasDatabase)('低権限・匿名に対する access の締め�
       }
     });
   });
+
+  describe('ファイル配信', () => {
+    type Any = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+    const created: { collection: 'media' | 'parking_snapshots' | 'parking_cameras' | 'parking_lots'; id: number }[] = [];
+    let mediaDoc: Any;
+    let snapshot: Any;
+
+    const getFile = async (collection: string, filename: string, user: unknown) => {
+      const handler = (payload.collections as Any)[collection].config.endpoints.find(
+        (e: Any) => e.path === '/file/:filename' && e.method === 'get',
+      ).handler;
+      const req = await reqAs(user);
+      Object.assign(req, { routeParams: { collection, filename } });
+      return (await handler(req)) as Response;
+    };
+    const serve = async (id: number, user: unknown) => {
+      const handler = (payload.collections as Any).media.config.endpoints.find((e: Any) => e.path === '/serve/:id/:size').handler;
+      const req = await reqAs(user);
+      Object.assign(req, { routeParams: { id: String(id), size: 'original' } });
+      return (await handler(req)) as Response;
+    };
+
+    beforeAll(async () => {
+      const sharp = (await import('sharp')).default;
+      const jpeg = await sharp({ create: { width: 1200, height: 800, channels: 3, background: { r: 9, g: 9, b: 9 } } })
+        .jpeg()
+        .toBuffer();
+      const file = (name: string) => ({ data: jpeg, mimetype: 'image/jpeg', name, size: jpeg.length });
+      mediaDoc = await payload.create({
+        collection: 'media',
+        data: { alt: 'x' },
+        file: file(`hardening-${suffix}.jpg`),
+        overrideAccess: true,
+      });
+      created.push({ collection: 'media', id: mediaDoc.id });
+      const lot = (await payload.create({ collection: 'parking_lots', data: { name: `hardening-lot-${suffix}` }, overrideAccess: true })) as Any;
+      const camera = (await payload.create({ collection: 'parking_cameras', data: { name: `hardening-cam-${suffix}`, lot: lot.id }, overrideAccess: true })) as Any;
+      snapshot = await payload.create({
+        collection: 'parking_snapshots',
+        data: { camera: camera.id, lot: lot.id, captured_at: new Date().toISOString() },
+        file: file(`hardening-snap-${suffix}.jpg`),
+        overrideAccess: true,
+      });
+      created.push(
+        { collection: 'parking_snapshots', id: snapshot.id },
+        { collection: 'parking_cameras', id: camera.id },
+        { collection: 'parking_lots', id: lot.id },
+      );
+    });
+
+    afterAll(async () => {
+      for (const { collection, id } of created) {
+        await payload.delete({ collection, id, overrideAccess: true }).catch(() => null);
+      }
+    });
+
+    it('media: 匿名の取得に nosniff を付け、認証済みの取得は共有キャッシュを禁じる', async () => {
+      const anonymous = await getFile('media', mediaDoc.filename, null);
+      expect(anonymous.status).toBe(200);
+      expect(anonymous.headers.get('x-content-type-options')).toBe('nosniff');
+      expect(anonymous.headers.get('cache-control')).toBeNull();
+
+      const authenticated = await getFile('media', mediaDoc.filename, executive);
+      expect(authenticated.headers.get('x-content-type-options')).toBe('nosniff');
+      expect(authenticated.headers.get('cache-control')).toBe('private, no-store');
+    });
+
+    it('media: /serve の 302 は匿名なら公開キャッシュ、認証済みなら private, no-store', async () => {
+      expect((await serve(mediaDoc.id, null)).headers.get('cache-control')).toBe('public, max-age=60');
+      expect((await serve(mediaDoc.id, executive)).headers.get('cache-control')).toBe('private, no-store');
+    });
+
+    it('parking_snapshots: 匿名は原本を取得できず、縮小版だけ取得できる', async () => {
+      await expect(getFile('parking_snapshots', snapshot.filename, null)).rejects.toThrow();
+      await expect(getFile('parking_snapshots', snapshot.filename, student)).rejects.toThrow();
+
+      const web = await getFile('parking_snapshots', snapshot.sizes.web.filename, null);
+      expect(web.status).toBe(200);
+      expect(web.headers.get('x-content-type-options')).toBe('nosniff');
+      expect(web.headers.get('cache-control')).toBe('public, max-age=31536000, immutable');
+    });
+
+    it('parking_snapshots: 認証済みは private, no-store で、実行委員は原本も取得できる', async () => {
+      const original = await getFile('parking_snapshots', snapshot.filename, executive);
+      expect(original.status).toBe(200);
+      expect(original.headers.get('cache-control')).toBe('private, no-store');
+      const web = await getFile('parking_snapshots', snapshot.sizes.web.filename, student);
+      expect(web.headers.get('cache-control')).toBe('private, no-store');
+    });
+  });
 });
