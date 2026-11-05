@@ -10,6 +10,7 @@ import type {
 import { APIError, type PayloadRequest } from 'payload';
 
 import { denyField, executiveOnlyField } from '../access/payload-access';
+import { isHttpsUrl, optionalEnv } from '../env';
 import { forgotPasswordEndpoint } from '../auth/forgot-password';
 import { CMS_ROLES, isExecutive, toCmsUser, type CmsRole } from '../access/roles';
 
@@ -142,7 +143,8 @@ export const Users: CollectionConfig = {
     components: { beforeListTable: ['./components/SendInviteBulkButton.tsx'] },
   },
   // ローカル認証は実行委員の緊急用。通常経路は Authentik OIDC (auth/strategy.ts)。
-  auth: true,
+  // ローカルの http 開発では Secure Cookie がブラウザに保存されないため、公開 URL が https のときだけ付ける
+  auth: { cookies: { secure: isHttpsUrl(optionalEnv('CMS_PUBLIC_URL')) } },
   // Payload 既定の同名エンドポイントより先に評価される
   endpoints: [forgotPasswordEndpoint],
   hooks: {

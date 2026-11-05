@@ -14,3 +14,7 @@ export function requireEnv(name: string): string {
 export function optionalEnv(name: string): string | undefined {
   return process.env[name] || undefined;
 }
+
+export function isHttpsUrl(value: string | undefined): boolean {
+  return value?.startsWith('https://') ?? false;
+}
