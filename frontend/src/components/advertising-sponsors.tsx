@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
-import { toAssetUrl } from '@/lib/cms-asset-url';
+import { toCardImageUrl } from '@/lib/cms-asset-url';
 import type { AdSponsorsByTier } from '@/lib/advertising-sponsors';
 import type { MarqueeTier } from '@/lib/sponsor-marquee';
 import { HoverLineText } from './hover-line';
@@ -137,7 +137,10 @@ export function AdvertisingSponsors({
               const content = hasLogo ? (
                 <div className={`${style.logo} overflow-hidden rounded`}>
                   <img
-                    src={toAssetUrl(sponsor.logoId, 960) ?? undefined}
+                    src={
+                      (sponsor.logo ? toCardImageUrl(sponsor.logo) : null) ??
+                      undefined
+                    }
                     alt={sponsor.name}
                     className="h-full w-full object-contain"
                   />

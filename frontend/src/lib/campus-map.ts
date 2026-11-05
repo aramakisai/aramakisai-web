@@ -5,6 +5,8 @@ import { getCorporateBoothSitemapEntries } from './corporate-booths';
 import {
   buildFilterHref,
   buildJoinContext,
+  CARD_SELECT,
+  SLOT_JOIN_SELECT,
   parseExhibitionQuery,
   toCards,
   type ExhibitionCardSummary,
@@ -204,10 +206,15 @@ export async function getCampusMapData(): Promise<CampusMapDataResult> {
       sort: ['id'],
       limit: 0,
       depth: 0,
+      select: CARD_SELECT,
       joins: { 'stage.performance_slots': false },
     }),
     cms.findMany('stages', { limit: 0, depth: 0 }),
-    cms.findMany('performance_slots', { limit: 0, depth: 0 }),
+    cms.findMany('performance_slots', {
+      limit: 0,
+      depth: 0,
+      select: SLOT_JOIN_SELECT,
+    }),
     cms.findMany('map_points', { sort: ['id'], limit: 0, depth: 0 }),
   ]);
 

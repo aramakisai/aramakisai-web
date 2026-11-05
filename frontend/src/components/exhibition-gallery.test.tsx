@@ -18,7 +18,7 @@ vi.mock('@/lib/cms-asset-url', () => {
   const toAssetUrl = (id: string | null, width?: number) =>
     id ? `https://example.com/assets/${id}${width ? `/${width}` : ''}` : null;
   return {
-    toAssetUrl,
+    toOriginalImageUrl: (image: { id: string }) => toAssetUrl(image.id),
     toCardImageUrl: (image: { id: string }) => toAssetUrl(image.id, 960),
     toHeroImage: (image: { id: string }) => {
       const src = toAssetUrl(image.id, 1920);

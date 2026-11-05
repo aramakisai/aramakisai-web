@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from 'next/link';
-import { toAssetUrl, toCardImageUrl } from '@/lib/cms-asset-url';
+import { toCardImageUrl } from '@/lib/cms-asset-url';
 import type { Attachment } from '@/lib/home-page-types';
 import { ImageIcon } from './icons';
 
@@ -15,15 +15,10 @@ export interface TopicCardProps {
 export function TopicCard({
   id,
   title,
-  imageId,
   image,
   variant = 'site',
 }: TopicCardProps) {
-  const thumbnailUrl = image
-    ? toCardImageUrl(image)
-    : imageId
-      ? toAssetUrl(imageId, 960)
-      : null;
+  const thumbnailUrl = image ? toCardImageUrl(image) : null;
 
   return (
     <Link

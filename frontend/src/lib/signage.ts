@@ -3,6 +3,7 @@ import type {
   Sponsor,
   Telop,
 } from '@/cms-types';
+import type { ImageUrls } from '@/lib/cms-asset-url';
 import type { Attachment, EventDay } from '@/lib/home-page-types';
 import type { ParkingResponse } from '@/lib/parking';
 import type {
@@ -69,6 +70,7 @@ export interface SignageSponsor {
   readonly id: number;
   readonly name: string;
   readonly logoId: string | null;
+  readonly logo?: ImageUrls | null;
   readonly tier: SponsorTier | null;
 }
 
@@ -78,6 +80,7 @@ export interface SignageLostItem {
   readonly foundPlace: string;
   readonly foundAt: string;
   readonly photoId: string | null;
+  readonly photo?: ImageUrls | null;
 }
 
 export interface SignageSnapshot {

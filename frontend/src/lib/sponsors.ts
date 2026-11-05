@@ -1,6 +1,8 @@
 import type { Sponsor } from '@/cms-types';
 import { cms, type CmsFetchOptions } from './cms';
-import { toMediaId } from './cms-media';
+import { toAttachment, toMediaId } from './cms-media';
+import type { ImageUrls } from './cms-asset-url';
+import { CARD_MEDIA_SELECT } from './exhibitions';
 import { SponsorType } from './home-page-types';
 
 const SPONSOR_TYPES = [
@@ -14,6 +16,7 @@ export interface SponsorListItem {
   id: number;
   name: string;
   logoId: string | null;
+  logo?: ImageUrls | null;
   /** depth:1 で Media が展開されたときだけ入る。ID のままなら null */
   logoWidth: number | null;
   logoHeight: number | null;
@@ -34,6 +37,7 @@ function mapSponsor(s: Sponsor): SponsorListItem {
     id: s.id,
     name: s.name,
     logoId: toMediaId(s.logo),
+    logo: toAttachment(s.logo),
     logoWidth:
       typeof s.logo === 'object' && s.logo ? (s.logo.width ?? null) : null,
     logoHeight:
@@ -48,7 +52,28 @@ export async function getSponsors(
 ): Promise<GetSponsorsResult> {
   const result = await cms.findMany(
     'sponsors',
-    { sort: ['_order'], limit: 0, depth: 1 },
+    {
+      sort: ['_order'],
+      limit: 0,
+      depth: 1,
+      select: {
+        name: true,
+        type: true,
+        logo: true,
+        url: true,
+        tier: true,
+      },
+      // toAttachment が読む mimeType / filesize と、ロゴ比率に使う width / height を足す
+      populate: {
+        media: {
+          ...CARD_MEDIA_SELECT,
+          mimeType: true,
+          filesize: true,
+          width: true,
+          height: true,
+        },
+      },
+    },
     options,
   );
   if (!result.ok) return { ok: false };

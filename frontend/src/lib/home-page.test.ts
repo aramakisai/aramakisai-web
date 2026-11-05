@@ -174,7 +174,7 @@ describe('getHomePage', () => {
     await getHomePage();
 
     expect(cms.findGlobal).toHaveBeenCalledTimes(1);
-    expect(cms.findGlobal).toHaveBeenCalledWith('site_settings', { depth: 1 });
+    expect(cms.findGlobal).toHaveBeenCalledWith('site_settings');
   });
 
   it('announcements は公開済みを新着順に 10 件まで引く', async () => {

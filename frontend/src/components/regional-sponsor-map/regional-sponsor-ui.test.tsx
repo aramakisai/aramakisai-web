@@ -10,9 +10,16 @@ import { REGIONAL_SPONSOR_SEARCH_PROPS } from './regional-sponsor-search';
 import { SponsorImage } from './sponsor-image';
 
 vi.mock('@/lib/cms-asset-url', () => ({
-  toAssetUrl: (id: string | null, width: number) =>
-    id ? `https://cms.invalid/${id}?width=${width}` : null,
+  toCardImageUrl: (image: { id: string }) =>
+    `https://cms.invalid/${image.id}/card`,
 }));
+
+const IMAGE = (id: string) => ({
+  id,
+  filenameDownload: '',
+  type: null,
+  filesize: null,
+});
 
 function sponsor(overrides: Partial<RegionalSponsor> = {}): RegionalSponsor {
   return {
@@ -23,6 +30,7 @@ function sponsor(overrides: Partial<RegionalSponsor> = {}): RegionalSponsor {
     longitude: 139.1,
     address: 'テスト県テスト市1-2-3',
     imageId: 'fixture-image',
+    image: IMAGE('fixture-image'),
     imageAlt: 'テスト専用掲載画像',
     imageDecorative: false,
     message: '応援メッセージ\n2行目',
@@ -34,13 +42,13 @@ function sponsor(overrides: Partial<RegionalSponsor> = {}): RegionalSponsor {
 }
 
 describe('SponsorImage / RegionalSponsorCard', () => {
-  it('同じ画像IDを用途別幅で取得し、全体をcontainで表示する', () => {
+  it('カード用サイズの画像を取得し、全体をcontainで表示する', () => {
     const { rerender } = render(
       <SponsorImage sponsor={sponsor()} variant="card" className="h-20 w-20" />,
     );
     expect(
       screen.getByRole('img', { name: 'テスト専用掲載画像' }),
-    ).toHaveAttribute('src', 'https://cms.invalid/fixture-image?width=160');
+    ).toHaveAttribute('src', 'https://cms.invalid/fixture-image/card');
     expect(screen.getByRole('img')).toHaveClass('object-contain');
     expect(screen.getByRole('img')).toHaveAttribute('loading', 'lazy');
     expect(screen.getByRole('img')).toHaveAttribute('decoding', 'async');
@@ -48,13 +56,16 @@ describe('SponsorImage / RegionalSponsorCard', () => {
     rerender(<SponsorImage sponsor={sponsor()} variant="detail" />);
     expect(screen.getByRole('img')).toHaveAttribute(
       'src',
-      'https://cms.invalid/fixture-image?width=720',
+      'https://cms.invalid/fixture-image/card',
     );
   });
 
   it('画像未登録と読込失敗を共通placeholderへ切り替え、装飾画像は空altにする', () => {
     const { container, rerender } = render(
-      <SponsorImage sponsor={sponsor({ imageId: null })} variant="card" />,
+      <SponsorImage
+        sponsor={sponsor({ imageId: null, image: null })}
+        variant="card"
+      />,
     );
     expect(screen.getByLabelText(/画像はありません/)).toBeInTheDocument();
 
@@ -69,6 +80,7 @@ describe('SponsorImage / RegionalSponsorCard', () => {
       <SponsorImage
         sponsor={sponsor({
           imageId: 'decorative-fixture',
+          image: IMAGE('decorative-fixture'),
           imageDecorative: true,
           imageAlt: '装飾のはずの代替テキスト',
         })}

@@ -1,5 +1,5 @@
 import { getFestivalMeta } from './festival-meta';
-import { toAssetUrl } from './cms-asset-url';
+import { toCardImageUrl } from './cms-asset-url';
 import { toMetaDescription } from './meta-description';
 import type { FestivalMeta } from './home-page-types';
 
@@ -36,7 +36,9 @@ export async function getSiteMetadata(): Promise<SiteMetadata> {
     [festival?.overviewHtml],
     FALLBACK_SITE_DESCRIPTION,
   );
-  const ogImageUrl = festival ? toAssetUrl(festival.ogImageId, 960) : null;
+  const ogImageUrl = festival?.ogImage
+    ? toCardImageUrl(festival.ogImage)
+    : null;
 
   return {
     siteTitle: withDevPrefix(titleBase),

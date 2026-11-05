@@ -45,7 +45,7 @@ export interface SignageScreenProps {
 // 通知が届かなかったときの保険。通常の反映は配信経路の版の知らせで行う
 const POLL_INTERVAL_MS = 120_000;
 // 全端末が同じ版の知らせを同時に受けるので、取得を散らして共有キャッシュの初回取得を1回に近づける
-const REFETCH_JITTER_MS = 1_000;
+const REFETCH_JITTER_MS = 5_000;
 
 interface Polled {
   readonly snapshot: SignageSnapshot;

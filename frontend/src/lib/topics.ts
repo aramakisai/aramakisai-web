@@ -22,6 +22,8 @@ export async function getTopics(): Promise<TopicSummary[]> {
     sort: ['-published_at'],
     limit: 0,
     depth: 1,
+    // 一覧カード (title・image) と sitemap (updatedAt) が読むフィールドだけ。本文は詳細でのみ使う
+    select: { title: true, image: true, updatedAt: true },
   });
   if (!result.ok) throw new Error('トピックの取得に失敗しました');
   return result.value.docs.map(formatTopic);

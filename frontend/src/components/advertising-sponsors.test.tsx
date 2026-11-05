@@ -7,8 +7,7 @@ import {
 } from './advertising-sponsors';
 
 vi.mock('@/lib/cms-asset-url', () => ({
-  toAssetUrl: (id: string | null, width?: number) =>
-    id ? `/assets/${id}?width=${width}` : null,
+  toCardImageUrl: (image: { id: string }) => `/assets/${image.id}/card`,
 }));
 
 const sponsor = (id: number, tier: AdSponsor['tier']): AdSponsor => ({
@@ -16,6 +15,7 @@ const sponsor = (id: number, tier: AdSponsor['tier']): AdSponsor => ({
   name: `企業${id}`,
   tier,
   logoId: tier === 'planD' ? null : `logo-${id}`,
+  logo: tier === 'planD' ? null : { id: `logo-${id}` },
   url: null,
 });
 
@@ -133,7 +133,7 @@ describe('AdvertisingSponsors', () => {
     expect(within(lists[3]).queryByRole('img')).not.toBeInTheDocument();
     expect(screen.getByAltText('企業1')).toHaveAttribute(
       'src',
-      '/assets/logo-1?width=960',
+      '/assets/logo-1/card',
     );
     expect(container.querySelector('h1, h2, h3, h4, hr')).toBeNull();
     expect(screen.getAllByRole('listitem')).toHaveLength(6);

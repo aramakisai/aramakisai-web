@@ -622,7 +622,7 @@ describe('トップページの JSON-LD (要件5.1, 5.5)', () => {
           },
         ],
         overviewHtml: null,
-        ogImageId: null,
+        ogImage: null,
         snsLinks: [],
       },
     });

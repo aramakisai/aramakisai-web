@@ -1,7 +1,8 @@
 import type { Sponsor } from '@/cms-types';
 
 import { cms, type CmsFetchOptions } from './cms';
-import { toMediaId } from './cms-media';
+import { toAttachment, toMediaId } from './cms-media';
+import type { ImageUrls } from './cms-asset-url';
 import {
   REGIONAL_SPONSOR_CATEGORIES,
   type RegionalSponsorCategory,
@@ -25,6 +26,7 @@ export interface RegionalSponsor {
   readonly longitude: number;
   readonly address: string | null;
   readonly imageId: string | null;
+  readonly image?: ImageUrls | null;
   readonly imageAlt: string | null;
   readonly imageDecorative: boolean;
   readonly message: string | null;
@@ -118,6 +120,7 @@ export function toRegionalSponsor(sponsor: Sponsor): RegionalSponsorConversion {
       longitude: sponsor.local_longitude!,
       address: optionalText(sponsor.address),
       imageId,
+      image: toAttachment(sponsor.local_image),
       imageAlt: alt,
       imageDecorative: alt === null,
       message: optionalText(sponsor.description),

@@ -19,6 +19,10 @@ vi.mock('@/lib/announcements', () => ({
 }));
 
 vi.mock('@/lib/cms-asset-url', () => ({
+  toOriginalImageUrl: (image: { id: string }) =>
+    `https://example.com/assets/${image.id}`,
+  toCardImageUrl: (image: { id: string }) =>
+    `https://example.com/assets/${image.id}`,
   toAssetUrl: (id: string | null) =>
     id ? `https://example.com/assets/${id}` : null,
 }));
