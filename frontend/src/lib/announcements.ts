@@ -30,7 +30,9 @@ export async function getAnnouncements(): Promise<AnnouncementSummary[]> {
     where: publishedFilter(),
     sort: ['-published_at'],
     limit: 0,
-    depth: 1,
+    // 一覧と sitemap が読む id・title・published_at・updatedAt だけ。本文・添付・OG 画像は詳細でのみ使う
+    depth: 0,
+    select: { title: true, published_at: true, updatedAt: true },
   });
   if (!result.ok) throw new Error('お知らせの取得に失敗しました');
   return result.value.docs.map(mapAnnouncement);

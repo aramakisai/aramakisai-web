@@ -53,6 +53,11 @@ export function toHeroImage(image: ImageUrls): {
   return { src: toAbsolute(src), srcSet };
 }
 
+/** 原本の実ファイル URL。ID のみで url が無いときは serve URL にフォールバックする */
+export function toOriginalImageUrl(image: ImageUrls): string | null {
+  return image.url ? toAbsolute(image.url) : toAssetUrl(image.id);
+}
+
 /** toHeroImage と同様に実ファイル URL を直接使う。card が無い (原本が 960 未満) 場合は原本を使う */
 export function toCardImageUrl(image: ImageUrls): string | null {
   const src = image.cardUrl ?? image.url;

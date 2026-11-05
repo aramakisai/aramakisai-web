@@ -15,6 +15,10 @@ vi.mock('@/lib/topics', () => ({
 }));
 
 vi.mock('@/lib/cms-asset-url', () => ({
+  toOriginalImageUrl: (image: { id: string }) =>
+    `https://example.com/assets/${image.id}`,
+  toCardImageUrl: (image: { id: string }) =>
+    `https://example.com/assets/${image.id}`,
   toAssetUrl: (id: string | null) =>
     id ? `https://example.com/assets/${id}` : null,
 }));
@@ -37,6 +41,7 @@ const baseTopic = {
   title: 'テストトピック',
   body: '<p>これはテストです</p>',
   imageId: '42',
+  image: { id: '42', filenameDownload: '', type: null, filesize: null },
   metaDescription: null,
 };
 
@@ -103,6 +108,7 @@ describe('TopicPage', () => {
     vi.mocked(getTopicById).mockResolvedValue({
       ...baseTopic,
       imageId: null,
+      image: null,
     });
 
     const params = Promise.resolve({ id: '1' });

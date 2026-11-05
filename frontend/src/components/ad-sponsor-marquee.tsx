@@ -3,7 +3,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { useEffect, useRef, useState } from 'react';
 import { HoverLine } from './hover-line';
-import { toAssetUrl } from '@/lib/cms-asset-url';
+import { toCardImageUrl } from '@/lib/cms-asset-url';
 import { buildMarqueeBlocks, type MarqueeTier } from '@/lib/sponsor-marquee';
 import type { SponsorListItem } from '@/lib/sponsors';
 
@@ -97,7 +97,7 @@ export function SponsorItem({
   } else {
     content = (
       <img
-        src={toAssetUrl(s.logoId, 960) ?? ''}
+        src={(s.logo ? toCardImageUrl(s.logo) : null) ?? ''}
         alt={hidden ? '' : s.name}
         style={fit}
         className={`${

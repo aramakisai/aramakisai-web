@@ -13,7 +13,7 @@ const BASE_FESTIVAL: FestivalMeta = {
   name: '荒牧祭',
   eventDays: [],
   overviewHtml: null,
-  ogImageId: null,
+  ogImage: null,
   snsLinks: [],
 };
 

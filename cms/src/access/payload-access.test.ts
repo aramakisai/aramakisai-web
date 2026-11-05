@@ -82,6 +82,20 @@ describe('accessFor の読み取り(緊急地震速報)', () => {
   });
 });
 
+describe('accessFor の読み取り(同一リクエストの再評価)', () => {
+  it('同じ req で access を 2 回評価しても find は slides 側・groups 側で 1 回ずつ', async () => {
+    const find = vi
+      .fn()
+      .mockResolvedValueOnce({ docs: [{ id: 1 }] })
+      .mockResolvedValueOnce({ docs: [{ id: 9, is_all: true, visible: true, slides: [] }] });
+    const req = { user: null, payload: { find } } as unknown as PayloadRequest;
+    const first = await accessFor('signage_slides').read({ req } as never);
+    const second = await accessFor('signage_slides').read({ req } as never);
+    expect(second).toEqual(first);
+    expect(find).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe('accessFor の削除', () => {
   const del = (collection: string, user: unknown) =>
     accessFor(collection).delete({ req: reqWith(user) } as never);

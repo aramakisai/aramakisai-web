@@ -40,7 +40,15 @@ describe('getFestivalMeta', () => {
         },
       ],
       overviewHtml: '<p>概要</p>',
-      ogImageId: '456',
+      ogImage: {
+        id: '456',
+        filenameDownload: 'og.webp',
+        type: 'image/webp',
+        filesize: null,
+        url: undefined,
+        cardUrl: undefined,
+        heroUrl: undefined,
+      },
       snsLinks: [{ platform: 'x', url: 'https://x.com/example' }],
     });
   });
@@ -61,7 +69,7 @@ describe('getFestivalMeta', () => {
       name: '',
       eventDays: [],
       overviewHtml: null,
-      ogImageId: null,
+      ogImage: null,
       snsLinks: [],
     });
   });

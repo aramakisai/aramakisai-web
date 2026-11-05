@@ -4,6 +4,8 @@ import { AttachmentGallery } from './attachment-gallery';
 import { Attachment } from '../lib/home-page-types';
 
 vi.mock('../lib/cms-asset-url', () => ({
+  toOriginalImageUrl: (image: { id: string }) =>
+    `https://example.com/assets/${image.id}`,
   toAssetUrl: (id: string | null) => {
     if (!id) return null;
     return `https://example.com/assets/${id}`;

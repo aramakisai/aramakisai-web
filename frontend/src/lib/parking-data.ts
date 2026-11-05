@@ -1,3 +1,4 @@
+import type { SiteSetting } from '@/cms-types';
 import { cms, type CmsResult } from './cms';
 import { isEventDay, toEventDays, toJstParts } from './event-day';
 import { env } from '@/env';
@@ -69,9 +70,16 @@ async function fetchLatestImages(
 
 export async function getParkingResponse({
   version,
-}: { readonly version?: number } = {}): Promise<CmsResult<ParkingResponse>> {
+  siteSettings,
+}: {
+  readonly version?: number;
+  /** 呼び出し側が取得済みなら再取得しない (route handler では React.cache が効かない) */
+  readonly siteSettings?: SiteSetting;
+} = {}): Promise<CmsResult<ParkingResponse>> {
   // 上書きで当日扱いにする場合も site_settings の失敗は握りつぶさず失敗として返す
-  const meta = await cms.findGlobal('site_settings', {}, { version });
+  const meta: CmsResult<SiteSetting> = siteSettings
+    ? { ok: true, value: siteSettings }
+    : await cms.findGlobal('site_settings', {}, { version });
   if (!meta.ok) return meta;
   const phase = await getRequestPhase();
   const eventDay =
@@ -86,7 +94,13 @@ export async function getParkingResponse({
 
   const statuses = await cms.findMany(
     'parking_statuses',
-    { depth: 1, limit: PARKING_LIMIT, pagination: false },
+    {
+      depth: 1,
+      // lot は id・name・_order だけ読む。camera の join 計算を避ける
+      populate: { parking_lots: { name: true, _order: true } },
+      limit: PARKING_LIMIT,
+      pagination: false,
+    },
     { ttlSeconds: PARKING_TTL_SECONDS, version },
   );
   if (!statuses.ok) return statuses;

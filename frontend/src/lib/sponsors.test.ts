@@ -55,6 +55,12 @@ describe('getSponsors', () => {
       id: 1,
       name: '広告のみ',
       logoId: '11',
+      logo: {
+        id: '11',
+        filenameDownload: 'ad.webp',
+        type: 'image/webp',
+        filesize: null,
+      },
       logoWidth: null,
       logoHeight: null,
       url: 'https://ad.example.com',
@@ -75,6 +81,21 @@ describe('getSponsors', () => {
     expect(query.sort).toEqual(['_order']);
     expect(query.limit).toBe(0);
     expect(query.depth).toBe(1);
+    expect(query.select).toEqual({
+      name: true,
+      type: true,
+      logo: true,
+      url: true,
+      tier: true,
+    });
+    expect(query.populate?.media).toMatchObject({
+      mimeType: true,
+      filesize: true,
+      width: true,
+      height: true,
+      url: true,
+      sizes: { card: { url: true }, hero: { url: true } },
+    });
   });
 
   it('ttlSeconds を cms.findMany へ渡し、省略時は渡さない', async () => {

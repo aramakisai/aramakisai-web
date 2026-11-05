@@ -103,7 +103,7 @@ describe('cms.findGlobal', () => {
     );
   });
 
-  it('depth 未指定なら depth=0 を付ける', async () => {
+  it('depth 未指定の site_settings は depth=1 を付ける', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -112,7 +112,20 @@ describe('cms.findGlobal', () => {
     vi.stubGlobal('fetch', fetchMock);
     await cms.findGlobal('site_settings');
     expect(fetchMock.mock.calls[0][0]).toBe(
-      'http://localhost:3100/api/globals/site_settings?depth=0',
+      'http://localhost:3100/api/globals/site_settings?depth=1',
+    );
+  });
+
+  it('depth 未指定なら depth=0 を付ける', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ id: 1 }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    await cms.findGlobal('signage_settings');
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      'http://localhost:3100/api/globals/signage_settings?depth=0',
     );
   });
 });
