@@ -1,6 +1,5 @@
 'use client';
 
-import QRCode from 'qrcode';
 import { useEffect, useRef, useState } from 'react';
 import { MaterialIcon } from '@/components/icons';
 import {
@@ -35,11 +34,8 @@ import {
 } from './signage-parts';
 import { SignageTelop } from './signage-telop';
 import { TouchButton, TouchSegment } from './touch/touch-segment';
+import { BLANK_IMAGE, useQrSrc } from './use-qr-src';
 import type { TouchSession } from './use-touch-session';
-
-// 生成前に待機中の QR を一瞬でも出さないための空画像
-const BLANK_IMAGE =
-  'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22/%3E';
 
 // 色は一般向けサイトのヘッダーの現在地下線 (lib/navigation.ts)。駐車場はヘッダーに無いので下部ナビと同じ accent
 const NAV: Record<
@@ -126,20 +122,6 @@ function useTouchLocation(
     return () => window.removeEventListener('message', onMessage);
   }, [iframeRef]);
   return [location, setLocation] as const;
-}
-
-function useQrSrc(url: string) {
-  const [src, setSrc] = useState<string | undefined>();
-  useEffect(() => {
-    let live = true;
-    QRCode.toString(url, { type: 'svg', margin: 0 }).then((svg) => {
-      if (live) setSrc(`data:image/svg+xml,${encodeURIComponent(svg)}`);
-    });
-    return () => {
-      live = false;
-    };
-  }, [url]);
-  return src;
 }
 
 /** 閉じている間は描画しない。開いている間の状態(読み込み中・iframe)は子に持たせ、閉じると破棄する */
