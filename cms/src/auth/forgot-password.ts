@@ -1,4 +1,4 @@
-import { forgotPasswordOperation, headersWithCors, type Endpoint } from 'payload';
+import { addDataAndFileToRequest, forgotPasswordOperation, headersWithCors, type Endpoint } from 'payload';
 
 /**
  * 招待メール送信済みで未有効化の学生団体は、forgot-password でトークンを上書きさせない。
@@ -9,6 +9,8 @@ export const forgotPasswordEndpoint: Endpoint = {
   method: 'post',
   path: '/forgot-password',
   handler: async (req) => {
+    // 組み込みのエンドポイントと違い、独自のエンドポイントには本文が自動で載らない
+    await addDataAndFileToRequest(req);
     const email = typeof req.data?.email === 'string' ? req.data.email : '';
     const sanitized = email.toLowerCase().trim();
     const invited =

@@ -147,12 +147,17 @@ describe.skipIf(!hasDatabase)('低権限・匿名に対する access の締め�
 
   describe('招待済み未有効化ユーザーの forgot-password', () => {
     const forgot = async (email: string) => {
-      const users = payload.config.collections.find((c) => c.slug === 'users');
-      const endpoints = (users?.endpoints || []) as { path: string; method: string; handler: (req: unknown) => unknown }[];
-      const handler = endpoints.find((e) => e.path === '/forgot-password' && e.method === 'post')!.handler;
-      const req = await reqAs(null);
-      Object.assign(req, { data: { email } });
-      return (await handler(req)) as Response;
+      const { REST_POST } = await import('@payloadcms/next/routes');
+      const config = (await import('../payload.config')).default;
+      const post = REST_POST(config) as (req: Request, ctx: { params: Promise<{ slug: string[] }> }) => Promise<Response>;
+      return post(
+        new Request('http://localhost/api/users/forgot-password', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ email }),
+        }),
+        { params: Promise.resolve({ slug: ['users', 'forgot-password'] }) },
+      );
     };
     const tokenOf = async (id: number) =>
       (await payload.db.findOne({ collection: 'users', where: { id: { equals: id } } }) as { resetPasswordToken?: string }).resetPasswordToken;
