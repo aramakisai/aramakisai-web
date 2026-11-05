@@ -145,6 +145,7 @@ jobs:
       - uses: docker/setup-buildx-action@v3
 
       - name: Build and push image
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: cms
@@ -153,6 +154,15 @@ jobs:
           tags: ${{ matrix.tags }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+      # matrix の各脚は同名の job output を持てないため、digest は artifact で release ジョブへ渡す
+      - name: Save image digest
+        run: printf '%s' '${{ steps.build.outputs.digest }}' > "digest-${{ matrix.image }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: digest-${{ matrix.image }}
+          path: digest-${{ matrix.image }}
 
   release:
     name: Open infra PR
@@ -211,20 +221,49 @@ jobs:
           token: ${{ steps.app_token.outputs.token }}
           path: infra
 
-      - name: Pin image tag for prod
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: digest-*
+          merge-multiple: true
+
+      - name: Pin image tag and digest for prod
         run: |
           MANIFEST="infra/gitops/manifests/prod/cms/kustomization.yaml"
+          RUNNER_DIGEST=$(cat digest-runner)
+          MIGRATOR_DIGEST=$(cat digest-migrator)
+          for d in "$RUNNER_DIGEST" "$MIGRATOR_DIGEST"; do
+            if ! [[ "$d" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+              echo "::error::ビルドの digest を取得できなかった"
+              exit 1
+            fi
+          done
           if [ ! -f "$MANIFEST" ]; then
             echo "::warning::$MANIFEST が infra に存在しない。イメージは push したがデプロイは反映されない (タスク 6.5 未完)"
           else
-            python3 - "$MANIFEST" "$GITHUB_SHA" <<'PY'
-          import sys, re
+            RUNNER_DIGEST="$RUNNER_DIGEST" MIGRATOR_DIGEST="$MIGRATOR_DIGEST" \
+              python3 - "$MANIFEST" "$GITHUB_SHA" <<'PY'
+          import os, re, sys
           path, sha = sys.argv[1], sys.argv[2]
-          with open(path) as f:
-              text = f.read()
-          text = re.sub(r'(newTag:\s*)\S+', rf'\g<1>{sha}', text)
+          digests = {
+              'ghcr.io/aramakisai/aramakisai-cms': os.environ['RUNNER_DIGEST'],
+              'ghcr.io/aramakisai/aramakisai-cms-migrate': os.environ['MIGRATOR_DIGEST'],
+          }
+          out, image = [], None
+          for line in open(path).read().splitlines():
+              m = re.match(r'(\s*)-\s*name:\s*(\S+)', line)
+              if m:
+                  image = m.group(2)
+              if re.match(r'\s*digest:', line):
+                  continue
+              m = re.match(r'(\s*)newTag:', line)
+              if m:
+                  out.append(f'{m.group(1)}newTag: {sha}')
+                  if image in digests:
+                      out.append(f'{m.group(1)}digest: {digests[image]}')
+                  continue
+              out.append(line)
           with open(path, 'w') as f:
-              f.write(text)
+              f.write('\n'.join(out) + '\n')
           PY
           fi
 
