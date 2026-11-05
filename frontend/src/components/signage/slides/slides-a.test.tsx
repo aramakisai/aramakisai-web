@@ -6,7 +6,7 @@ import { LostItemsSlide } from './lost-items';
 import { SponsorsSlide } from './sponsors';
 
 vi.mock('@/lib/cms-asset-url', () => ({
-  toAssetUrl: (id: string | null) => (id ? `https://cms.test/${id}` : null),
+  toCardImageUrl: (a: { id: string }) => `https://cms.test/${a.id}`,
   toHeroImage: (a: { id: string }) => ({ src: `https://cms.test/${a.id}` }),
 }));
 
@@ -16,7 +16,15 @@ describe('SponsorsSlide', () => {
       {
         kind: 'logo',
         tier: 'planA',
-        items: [{ id: 1, name: '協賛A', logoId: 'l1', tier: 'planA' }],
+        items: [
+          {
+            id: 1,
+            name: '協賛A',
+            logoId: 'l1',
+            logo: { id: 'l1' },
+            tier: 'planA',
+          },
+        ],
       },
       {
         kind: 'names',
@@ -54,7 +62,14 @@ describe('LostItemsSlide', () => {
 
   it('写真ありは画像を出す', () => {
     const { container } = render(
-      <LostItemsSlide items={[item({ photoId: 'p1' })]} />,
+      <LostItemsSlide
+        items={[
+          item({
+            photoId: 'p1',
+            photo: { id: 'p1' },
+          }),
+        ]}
+      />,
     );
     expect(container.querySelector('img')).toHaveAttribute(
       'src',

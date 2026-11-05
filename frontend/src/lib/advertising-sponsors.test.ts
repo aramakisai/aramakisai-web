@@ -150,7 +150,16 @@ describe('groupAdSponsors', () => {
       ],
       planB: [{ id: 5, name: '企業', tier: 'planB', logoId: null, url: null }],
       planC: [{ id: 6, name: '企業', tier: 'planC', logoId: null, url: null }],
-      planD: [{ id: 7, name: '企業', tier: 'planD', logoId: null, url: null }],
+      planD: [
+        {
+          id: 7,
+          name: '企業',
+          tier: 'planD',
+          logoId: null,
+          logo: null,
+          url: null,
+        },
+      ],
     });
   });
 

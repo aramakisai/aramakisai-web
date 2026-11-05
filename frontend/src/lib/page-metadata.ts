@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
-import { toAssetUrl } from './cms-asset-url';
+import { toAssetUrl, toCardImageUrl, type ImageUrls } from './cms-asset-url';
 import type { SiteMetadata } from './site-metadata';
 
-/** CMS media ID。null は候補なしを表す */
-export type OgImageCandidate = string | null;
+/** CMS media ID か、populate 済みの media。null は候補なしを表す。media なら実ファイル URL を直接使い serve の 302 を避ける */
+export type OgImageCandidate = string | ImageUrls | null;
 
 export const DEFAULT_OG_IMAGE = {
   url: '/images/og-default.png',
@@ -29,7 +29,10 @@ function resolveOgImage(input: PageMetadataInput): {
   height?: number;
 } {
   for (const candidate of input.imageCandidates) {
-    const url = toAssetUrl(candidate, 960);
+    const url =
+      typeof candidate === 'object' && candidate
+        ? toCardImageUrl(candidate)
+        : toAssetUrl(candidate, 960);
     if (url) return { url };
   }
   if (input.site.ogImageUrl) return { url: input.site.ogImageUrl };

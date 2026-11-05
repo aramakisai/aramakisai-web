@@ -1,5 +1,5 @@
 import { Attachment } from '../lib/home-page-types';
-import { toAssetUrl } from '../lib/cms-asset-url';
+import { toOriginalImageUrl } from '../lib/cms-asset-url';
 import { HoverLineText } from './hover-line';
 import { DraftIcon } from './icons';
 
@@ -35,7 +35,7 @@ export function AttachmentGallery({ attachments }: AttachmentGalleryProps) {
   return (
     <ul className="flex flex-col">
       {attachments.map((attachment) => {
-        const url = toAssetUrl(attachment.id);
+        const url = toOriginalImageUrl(attachment);
         if (!url) return null;
 
         return (

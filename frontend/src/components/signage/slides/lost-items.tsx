@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
-import { toAssetUrl } from '@/lib/cms-asset-url';
+import { toCardImageUrl } from '@/lib/cms-asset-url';
 import { formatEventDayTime } from '@/lib/event-day';
 import type { SignageLostItem } from '@/lib/signage';
 import { SignageHeadingChip } from '../signage-heading-chip';
@@ -14,7 +14,7 @@ export function LostItemsSlide({
       <SignageHeadingChip icon="search" label="落とし物" />
       <ul className="absolute top-[100px] left-6 grid grid-cols-[repeat(4,336px)] gap-x-12 gap-y-4">
         {items.map((item) => {
-          const photo = toAssetUrl(item.photoId, 960);
+          const photo = item.photo ? toCardImageUrl(item.photo) : null;
           return (
             <li key={item.id} className="flex w-[336px] flex-col gap-2">
               <div className="h-[252px] w-[336px] bg-gray-200">

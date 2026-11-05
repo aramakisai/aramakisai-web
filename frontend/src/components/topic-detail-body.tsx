@@ -1,11 +1,11 @@
 /* eslint-disable @next/next/no-img-element -- 実ファイルは配信時に解決するため next/image の最適化対象にできない */
-import { toAssetUrl } from '@/lib/cms-asset-url';
+import { toOriginalImageUrl } from '@/lib/cms-asset-url';
 import type { TopicSummary } from '@/lib/home-page-types';
 import { RichText } from '@/components/rich-text';
 import { RichTextImageViewer } from '@/components/rich-text-image-viewer';
 
 export interface TopicDetailBodyProps {
-  readonly topic: Pick<TopicSummary, 'title' | 'body' | 'imageId'>;
+  readonly topic: Pick<TopicSummary, 'title' | 'body' | 'imageId' | 'image'>;
   readonly variant?: 'site' | 'signage';
 }
 
@@ -14,7 +14,7 @@ export function TopicDetailBody({
   variant = 'site',
 }: TopicDetailBodyProps) {
   const signage = variant === 'signage';
-  const thumbnailUrl = toAssetUrl(topic.imageId);
+  const thumbnailUrl = topic.image ? toOriginalImageUrl(topic.image) : null;
 
   const content = (
     <>
