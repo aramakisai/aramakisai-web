@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  buildDateOnlyStartAt,
   buildTrialStartAt,
   dateToTime,
   eventDayChoices,
@@ -29,6 +30,14 @@ describe('eventDayChoices', () => {
 describe('buildTrialStartAt', () => {
   it('操作 PC のタイムゾーンによらず +09:00 付きで組み立てる', () => {
     expect(buildTrialStartAt('2026-11-07', '09:05')).toBe('2026-11-07T09:05:00+09:00')
+  })
+})
+
+describe('buildDateOnlyStartAt', () => {
+  it('日付だけ差し替え、時刻は現在の JST 時刻を秒まで保つ', () => {
+    expect(buildDateOnlyStartAt('2026-11-07', Date.parse('2026-11-05T16:12:34.567Z'))).toBe(
+      '2026-11-07T01:12:34+09:00',
+    )
   })
 })
 
