@@ -43,7 +43,7 @@ export async function generateMetadata({
     ),
     path: `/${slug}`,
     ogType: 'article',
-    imageCandidates: [page.ogImageId ?? null],
+    imageCandidates: [page.ogImage ?? null],
   });
 }
 

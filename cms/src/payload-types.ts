@@ -156,6 +156,7 @@ export interface Config {
     tasks: {
       sendInvitation: TaskSendInvitation;
       purgeMediaEdgeCache: TaskPurgeMediaEdgeCache;
+      ingestParkingSnapshot: TaskIngestParkingSnapshot;
       judgeParkingSnapshot: TaskJudgeParkingSnapshot;
       checkParkingCameras: TaskCheckParkingCameras;
       inline: {
@@ -989,7 +990,13 @@ export interface PayloadJob {
     | {
         executedAt: string;
         completedAt: string;
-        taskSlug: 'inline' | 'sendInvitation' | 'purgeMediaEdgeCache' | 'judgeParkingSnapshot' | 'checkParkingCameras';
+        taskSlug:
+          | 'inline'
+          | 'sendInvitation'
+          | 'purgeMediaEdgeCache'
+          | 'ingestParkingSnapshot'
+          | 'judgeParkingSnapshot'
+          | 'checkParkingCameras';
         taskID: string;
         input?:
           | {
@@ -1023,7 +1030,15 @@ export interface PayloadJob {
       }[]
     | null;
   taskSlug?:
-    ('inline' | 'sendInvitation' | 'purgeMediaEdgeCache' | 'judgeParkingSnapshot' | 'checkParkingCameras') | null;
+    | (
+        | 'inline'
+        | 'sendInvitation'
+        | 'purgeMediaEdgeCache'
+        | 'ingestParkingSnapshot'
+        | 'judgeParkingSnapshot'
+        | 'checkParkingCameras'
+      )
+    | null;
   queue?: string | null;
   waitUntil?: string | null;
   processing?: boolean | null;
@@ -2080,6 +2095,21 @@ export interface TaskPurgeMediaEdgeCache {
       | number
       | boolean
       | null;
+  };
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskIngestParkingSnapshot".
+ */
+export interface TaskIngestParkingSnapshot {
+  input: {
+    cameraId: number;
+    lot?: number | null;
+    exposure: number;
+    capturedAt: string;
+    window: number;
+    image: string;
   };
   output?: unknown;
 }

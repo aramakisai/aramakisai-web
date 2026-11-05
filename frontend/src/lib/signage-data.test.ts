@@ -255,7 +255,10 @@ describe('getSignageSnapshot', () => {
       expect(findMany).toHaveBeenCalledWith(c, expect.anything(), opts);
     expect(findGlobal).toHaveBeenCalledWith('site_settings', {}, opts);
     expect(getSponsors).toHaveBeenCalledWith(opts);
-    expect(getParkingResponse).toHaveBeenCalledWith({ version: 123 });
+    expect(getParkingResponse).toHaveBeenCalledWith({
+      version: 123,
+      siteSettings: expect.anything(),
+    });
   });
 
   it('版が無ければ版を渡さない', async () => {
@@ -264,7 +267,10 @@ describe('getSignageSnapshot', () => {
     expect(findMany).toHaveBeenCalledWith('signage_slides', expect.anything(), {
       ttlSeconds: SIGNAGE_TTL_SECONDS,
     });
-    expect(getParkingResponse).toHaveBeenCalledWith({ version: undefined });
+    expect(getParkingResponse).toHaveBeenCalledWith({
+      version: undefined,
+      siteSettings: expect.anything(),
+    });
   });
 
   it.each([
@@ -310,7 +316,13 @@ describe('getPinState', () => {
     );
     expect(findMany).toHaveBeenCalledWith(
       'signage_slides',
-      { limit: 0, sort: ['_order'], depth: 0, select: { id: true } },
+      {
+        limit: 0,
+        sort: ['_order'],
+        depth: 0,
+        select: { id: true },
+        joins: { groups: false },
+      },
       { ttlSeconds: 0 },
     );
   });

@@ -1,11 +1,12 @@
-import type { MapArea, Media, Sponsor } from '@/cms-types';
+import type { MapArea, Sponsor } from '@/cms-types';
 import { cms, type CmsFetchError } from './cms';
 import { toJstDateKey } from './event-day';
 import {
   formatPlacementLocation,
   type CorporateBoothCard,
   type CorporateBoothDetail,
-  type ExhibitionImage,
+  CARD_MEDIA_SELECT,
+  toExhibitionImage,
 } from './exhibitions';
 
 export type CorporateBoothDetailResult =
@@ -21,11 +22,6 @@ export interface CorporateBoothSitemapEntry {
 /** type に 'vendor' を含み、vendor.name が空白以外の文字を含む */
 export function isCorporateBooth(sponsor: Sponsor): boolean {
   return sponsor.type.includes('vendor') && !!sponsor.vendor?.name?.trim();
-}
-
-// depth 0 では media が ID のままで alt を持たないため、alt は常に企画名にする。
-function toImage(media: number | Media, alt: string): ExhibitionImage {
-  return { id: String(typeof media === 'object' ? media.id : media), alt };
 }
 
 function toAreaId(sponsor: Sponsor): number | null {
@@ -52,12 +48,17 @@ function toCard(
       vendor?.booth_number,
     ),
     areaIds: areaId === null ? [] : [areaId],
-    thumbnail: images.length > 0 ? toImage(images[0]!, displayName) : null,
+    thumbnail:
+      images.length > 0 ? toExhibitionImage(images[0]!, displayName) : null,
   };
 }
 
 function fetchAreas() {
-  return cms.findMany('map_areas', { sort: ['_order'], limit: 0, depth: 0 });
+  return cms.findMany('map_areas', {
+    sort: ['_order'],
+    limit: 0,
+    depth: 0,
+  });
 }
 
 function fetchBoothSponsors() {
@@ -66,7 +67,8 @@ function fetchBoothSponsors() {
     where: { type: { in: ['vendor' as unknown as Sponsor['type']] } },
     sort: ['_order'],
     limit: 0,
-    depth: 0,
+    depth: 1,
+    populate: { media: CARD_MEDIA_SELECT, map_areas: { name: true } },
   });
 }
 
@@ -97,7 +99,11 @@ export async function getCorporateBoothDetail(
   if (!/^\d+$/.test(id)) return { kind: 'missing' };
 
   const [sponsorResult, areasResult] = await Promise.all([
-    cms.findById('sponsors', Number(id), { depth: 0 }),
+    cms.findById('sponsors', Number(id), {
+      depth: 1,
+      // ギャラリーが実ファイル URL を使えるよう media だけ展開する。area_id は ID だけ使う
+      populate: { media: CARD_MEDIA_SELECT, map_areas: { name: true } },
+    }),
     fetchAreas(),
   ]);
   if (!sponsorResult.ok) {
@@ -116,7 +122,9 @@ export async function getCorporateBoothDetail(
     value: {
       ...card,
       description: vendor?.description ?? null,
-      images: (vendor?.images ?? []).map((m) => toImage(m, card.displayName)),
+      images: (vendor?.images ?? []).map((m) =>
+        toExhibitionImage(m, card.displayName),
+      ),
       links: sponsor.url ? [{ platform: 'website', url: sponsor.url }] : [],
       categories: ['booth'],
       openDayKeys: (vendor?.open_days ?? [])

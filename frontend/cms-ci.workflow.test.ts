@@ -119,6 +119,27 @@ describe('cms-ci workflow', () => {
     expect(pinIndex).toBeGreaterThanOrEqual(0);
   });
 
+  it('infra のタグ更新は digest でも固定し、digest は各 matrix のビルド結果から渡す', () => {
+    const releaseImages = workflow.jobs['release-images'];
+    const release = workflow.jobs.release;
+    const build = findStep(releaseImages, (step) =>
+      (step.uses ?? '').startsWith('docker/build-push-action'),
+    );
+    expect(build.id).toBe('build');
+    expect(
+      stepsOf(releaseImages).some((step) =>
+        (step.run ?? '').includes('steps.build.outputs.digest'),
+      ),
+    ).toBe(true);
+
+    const pin = findStep(release, (step) =>
+      (step.run ?? '').includes('newTag'),
+    );
+    expect(pin.run).toContain('digest:');
+    expect(pin.run).toContain('digest-runner');
+    expect(pin.run).toContain('digest-migrator');
+  });
+
   it('マイグレーションを適用してからテストを走らせる', () => {
     const steps = workflow.jobs.verify.steps ?? [];
     const migrateIndex = steps.findIndex((s) =>

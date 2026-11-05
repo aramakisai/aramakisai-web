@@ -1,3 +1,6 @@
+import { env } from '@/env';
+import { buildOfficialSiteQrUrl } from '@/lib/signage-touch-qr';
+import { BLANK_IMAGE, useQrSrc } from './use-qr-src';
 import { CrossFade } from '../cross-fade';
 import { formatEventDayTime } from '@/lib/event-day';
 import type { EventDay } from '@/lib/home-page-types';
@@ -71,13 +74,14 @@ export function SignageOfficialSite({
   labelClass,
   qrClass,
   label = '▼公式サイト',
-  qrSrc = '/images/qr-aramakisai.svg',
+  qrSrc,
 }: {
   readonly labelClass: string;
   readonly qrClass: string;
   readonly label?: string;
   readonly qrSrc?: string;
 }) {
+  const defaultSrc = useQrSrc(buildOfficialSiteQrUrl(env.NEXT_PUBLIC_SITE_URL));
   return (
     <div className="flex w-full flex-col items-center gap-2">
       <p
@@ -86,7 +90,11 @@ export function SignageOfficialSite({
         {label}
       </p>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img alt="" src={qrSrc} className={qrClass} />
+      <img
+        alt=""
+        src={qrSrc ?? defaultSrc ?? BLANK_IMAGE}
+        className={qrClass}
+      />
     </div>
   );
 }

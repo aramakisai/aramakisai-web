@@ -27,7 +27,7 @@ describe.skipIf(!hasDatabase)('学生企画のカテゴリ別配置・出店日'
     return doc
   }
   const makeOwner = (n: string) =>
-    make('users', { email: `${n}-${suffix}@test.local`, password: 'test-password', role: 'student_exhibitor' })
+    make('users', { email: `${n}-${suffix}@test.local`, password: 'test-password1', role: 'student_exhibitor' })
   const content = (extra: object = {}) => ({ name: 'n', description: 'd', ...extra })
   const errorsOf = async (p: Promise<unknown>) =>
     ((await p.catch((e: unknown) => e)) as { data?: { errors?: { path: string }[] } }).data?.errors?.map(

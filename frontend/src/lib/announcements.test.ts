@@ -92,7 +92,12 @@ describe('getAnnouncements', () => {
     expect(collection).toBe('announcements');
     expect(query.sort).toEqual(['-published_at']);
     expect(query.limit).toBe(0);
-    expect(query.depth).toBe(1);
+    expect(query.depth).toBe(0);
+    expect(query.select).toEqual({
+      title: true,
+      published_at: true,
+      updatedAt: true,
+    });
     const where = query.where as PublishedWhere;
     expect(where.published_at?.exists).toBe(true);
     expect(where.published_at?.less_than_equal).toBeTypeOf('string');

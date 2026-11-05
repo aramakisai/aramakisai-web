@@ -101,7 +101,22 @@ export async function visibleFilter(
  * 未認証・学生団体の読み取りの条件。表示対象に加え、緊急地震速報のグループの所属(有効なもの)も読める。
  * スナップショットが段階のスライドを取得するのに必要で、巡回の一覧からはフロント側で除く
  */
-export async function publicFilter(
+export function publicFilter(
+  payload: Reader,
+  collection: MemberCollection,
+  req?: Partial<PayloadRequest>,
+): Promise<Where> {
+  if (!req) return computePublicFilter(payload, collection, req);
+  const perReq = publicFilterByReq.get(req) ?? {};
+  publicFilterByReq.set(req, perReq);
+  return (perReq[collection] ??= computePublicFilter(payload, collection, req));
+}
+
+// 同じリクエスト内の access 再評価 (populate 経由など) で全件 find を繰り返さない。
+// 書き込みの後に読み直す loadVisibleIds / visibleFilter は対象外で、リクエストをまたいで共有もしない
+const publicFilterByReq = new WeakMap<object, Partial<Record<MemberCollection, Promise<Where>>>>();
+
+async function computePublicFilter(
   payload: Reader,
   collection: MemberCollection,
   req?: Partial<PayloadRequest>,

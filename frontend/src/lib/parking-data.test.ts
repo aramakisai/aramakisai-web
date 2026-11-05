@@ -64,7 +64,12 @@ describe('getParkingResponse', () => {
     const result = await getParkingResponse();
     expect(findMany).toHaveBeenCalledWith(
       'parking_statuses',
-      { depth: 1, limit: 100, pagination: false },
+      {
+        depth: 1,
+        populate: { parking_lots: { name: true, _order: true } },
+        limit: 100,
+        pagination: false,
+      },
       { ttlSeconds: 20 },
     );
     expect(result).toEqual({

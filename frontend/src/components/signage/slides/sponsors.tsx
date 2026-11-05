@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
-import { toAssetUrl } from '@/lib/cms-asset-url';
+import { toCardImageUrl } from '@/lib/cms-asset-url';
 import type { SponsorRow } from '@/lib/signage';
 import {
   SPONSOR_AREA_TOP,
@@ -51,7 +51,7 @@ export function SponsorsSlide({
                       </span>
                     ) : (
                       <img
-                        src={toAssetUrl(s.logoId, 960) ?? ''}
+                        src={(s.logo ? toCardImageUrl(s.logo) : null) ?? ''}
                         alt={s.name}
                         className="max-h-full max-w-full object-contain"
                       />

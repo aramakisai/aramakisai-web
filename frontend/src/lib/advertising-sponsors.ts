@@ -2,6 +2,7 @@ import type { SponsorListItem } from './sponsors';
 import type { Sponsor } from '@/cms-types';
 import { cms, type CmsFetchOptions } from './cms';
 import { websiteUrl } from './regional-sponsors';
+import type { ImageUrls } from './cms-asset-url';
 import type { MarqueeTier } from './sponsor-marquee';
 
 export type AdSponsor = Readonly<{
@@ -9,6 +10,7 @@ export type AdSponsor = Readonly<{
   name: string;
   tier: MarqueeTier;
   logoId: string | null;
+  logo?: ImageUrls | null;
   url: string | null;
 }>;
 export type AdSponsorsByTier = Readonly<
@@ -61,6 +63,7 @@ export function groupAdSponsors(
       name,
       tier,
       logoId: tier === 'planD' ? null : sponsor.logoId?.trim() || null,
+      logo: tier === 'planD' ? null : sponsor.logo,
       url: websiteUrl(sponsor.url),
     });
   }

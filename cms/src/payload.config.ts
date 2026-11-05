@@ -7,14 +7,13 @@ import { s3Storage } from '@payloadcms/storage-s3'
 import { ja } from '@payloadcms/translations/languages/ja'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { buildConfig } from 'payload'
-import sharp from 'sharp'
 
 import { isExecutive, toCmsUser } from './access/roles'
 import { authentikEndpoints } from './auth/authentik-endpoints'
 import { sendInvitation } from './auth/invitation'
 import { collections } from './collections'
 import { createPgWithPoolErrorHandler, resolveReadReplicaUrl } from './db/read-replica'
-import { optionalEnv, requireEnv } from './env'
+import { isOidcEnabled, optionalEnv, requireEnv } from './env'
 import { parkingIngestEndpoints } from './endpoints/parking-ingest'
 import { signageQuakeEndpoints } from './endpoints/signage-quake'
 import { globals } from './globals'
@@ -23,6 +22,8 @@ import { purgeEdgeCache, readPurgeConfig, warnIfPurgeUnconfigured } from './lib/
 import { checkParkingCameras, warnIfWatchUnconfigured } from './lib/parking-camera-watch'
 import { createJudge, runJudgeParkingSnapshot, warnIfJudgeUnconfigured } from './lib/parking-judge-task'
 import type { ParkingDb } from './lib/parking-db'
+import { runIngestParkingSnapshot } from './lib/parking-ingest-task'
+import { limitedSharp } from './lib/image-limits'
 import { richTextEditorFeatures } from './lib/rich-text-editor'
 
 // S3 未設定のローカル開発ではディスク保存にフォールバックする。本番/staging は Infisical が必ず与える。
@@ -44,7 +45,7 @@ export default buildConfig({
     // 管理画面全体が落ちるため、beforeDashboard を常に持つオブジェクトにする。
     components: {
       beforeDashboard: ['./components/StudentExhibitorRedirect.tsx'],
-      ...(optionalEnv('AUTHENTIK_ISSUER_URL') ? { afterLogin: ['./components/ZitadelLoginButton.tsx'] } : {}),
+      ...(isOidcEnabled() ? { afterLogin: ['./components/ZitadelLoginButton.tsx'] } : {}),
     },
   },
   collections,
@@ -55,7 +56,7 @@ export default buildConfig({
     warnIfWatchUnconfigured((message) => payload.logger.warn(message))
   },
   // Authentik OIDC を認証の一次経路とする。ローカル認証は実行委員の緊急用として残す
-  endpoints: [...(optionalEnv('AUTHENTIK_ISSUER_URL') ? authentikEndpoints : []), ...signageQuakeEndpoints, ...parkingIngestEndpoints],
+  endpoints: [...(isOidcEnabled() ? authentikEndpoints : []), ...signageQuakeEndpoints, ...parkingIngestEndpoints],
   editor: lexicalEditor({ features: richTextEditorFeatures }),
   // 利用者は実行委員のみで英語需要がないため、言語切替を出さず ja に固定する
   i18n: {
@@ -113,6 +114,30 @@ export default buildConfig({
         },
       },
       {
+        slug: 'ingestParkingSnapshot',
+        retries: 0,
+        inputSchema: [
+          { name: 'cameraId', type: 'number', required: true },
+          { name: 'lot', type: 'number' },
+          { name: 'exposure', type: 'number', required: true },
+          { name: 'capturedAt', type: 'text', required: true },
+          { name: 'window', type: 'number', required: true },
+          { name: 'image', type: 'text', required: true },
+        ],
+        handler: async ({ input, req }) => {
+          await runIngestParkingSnapshot({
+            payload: req.payload as unknown as ParkingDb,
+            cameraId: input.cameraId,
+            lot: input.lot ?? null,
+            exposure: input.exposure,
+            capturedAt: input.capturedAt,
+            window: input.window,
+            image: input.image,
+          })
+          return { output: {} }
+        },
+      },
+      {
         slug: 'judgeParkingSnapshot',
         // Gemini の失敗は結果として画像に記録するため、ジョブとしては再試行しない
         retries: 0,
@@ -148,6 +173,9 @@ export default buildConfig({
       },
     ],
     autoRun: [{ cron: '*/10 * * * * *' }],
+    // 既定は全員 (匿名含む) に開いており、GET で誰でもジョブを実行・スケジュール処理できてしまう。
+    // 実行は worker の autoRun (Local API) だけが担う
+    access: { run: () => false },
     // vitest はプロセス全体に VITEST=true を設定する。テストは payload.jobs.run() を明示的に呼ぶ
     shouldAutoRun,
     jobsCollectionOverrides: ({ defaultJobsCollection }) => ({
@@ -177,7 +205,7 @@ export default buildConfig({
     push: false,
     ...(readReplicaUrl ? { readReplicas: [readReplicaUrl] } : {}),
   }),
-  sharp,
+  sharp: limitedSharp,
   plugins: s3Bucket
     ? [
         s3Storage({

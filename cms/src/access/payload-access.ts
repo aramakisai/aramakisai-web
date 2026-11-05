@@ -1,4 +1,4 @@
-import type { Access, FieldAccess } from 'payload';
+import type { Access, FieldAccess, Where } from 'payload';
 
 import { publicFilter } from '../lib/signage-visibility';
 
@@ -15,18 +15,27 @@ export function accessFor(collection: string): {
   update: Access;
   delete: Access;
   readVersions: Access;
+  unlock: Access;
 } {
   return {
-    read: async ({ req, isReadingStaticFile }) => {
+    read: async ({ req, isReadingStaticFile, data }) => {
       // isReadingStaticFile は Payload の checkFileAccess (/api/media/file/:filename) だけが立てる
       if (collection === 'media' && isReadingStaticFile) return canReadMediaFile(toCmsUser(req.user));
       const result = canRead(toCmsUser(req.user), collection);
+      // 原本は受信した JPEG のままで、公開するのは縮小版だけ。実行委員以外には縮小版のファイル名での取得に限る。
+      // 条件は checkFileAccess がファイル名の一致に AND で重ねるため、原本のファイル名は一致しなくなる
+      if (collection === 'parking_snapshots' && isReadingStaticFile && typeof result === 'object') {
+        const filename = typeof data?.filename === 'string' ? data.filename : '';
+        return { and: [result as Where, { 'sizes.web.filename': { equals: filename } }] };
+      }
       // 公開判定が条件を返すとき(未認証・学生団体)だけ、非表示グループのスライド・テロップを配らないよう絞る
       if ((collection === 'signage_slides' || collection === 'telops') && typeof result === 'object') {
         return { and: [result, await publicFilter(req.payload, collection, req)] };
       }
       return result;
     },
+    // 未指定だとログイン済みなら誰でも他人のロックを解除でき、ログイン試行制限を無効化できる
+    unlock: ({ req }) => isExecutive(toCmsUser(req.user)),
     readVersions: ({ req }) => canReadVersions(toCmsUser(req.user), collection),
     create: ({ req }) => canCreate(toCmsUser(req.user), collection),
     update: ({ req }) => canUpdate(toCmsUser(req.user), collection),

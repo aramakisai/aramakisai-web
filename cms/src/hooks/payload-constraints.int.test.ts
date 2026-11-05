@@ -44,7 +44,7 @@ describe.skipIf(!hasDatabase)(
       const createExhibitor = async (email: string) =>
         (await payload.create({
           collection: 'users',
-          data: { email, password: 'test-password', role: 'student_exhibitor' },
+          data: { email, password: 'test-password1', role: 'student_exhibitor' },
           overrideAccess: true,
         })) as { id: number }
 

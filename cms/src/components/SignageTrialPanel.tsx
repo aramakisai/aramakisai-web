@@ -4,6 +4,7 @@ import { DatePicker, SelectInput } from '@payloadcms/ui'
 import { useEffect, useMemo, useState } from 'react'
 
 import {
+  buildDateOnlyStartAt,
   buildTrialStartAt,
   dateToTime,
   eventDayChoices,
@@ -96,6 +97,15 @@ export default function SignageTrialPanel() {
         onClick={() => sel && void start(buildTrialStartAt(sel.dateKey, sel.time))}
       >
         {running ? '開始し直す' : '開始'}
+      </button>
+      <button
+        type="button"
+        className="btn btn--style-secondary btn--size-small"
+        style={btnStyle}
+        disabled={blocked}
+        onClick={() => sel && void start(buildDateOnlyStartAt(sel.dateKey, Date.now()))}
+      >
+        日付のみ変更
       </button>
       {running && (
         <button

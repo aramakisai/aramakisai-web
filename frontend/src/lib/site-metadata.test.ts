@@ -16,7 +16,7 @@ const BASE_FESTIVAL: FestivalMeta = {
   name: '荒牧祭',
   eventDays: [],
   overviewHtml: null,
-  ogImageId: null,
+  ogImage: null,
   snsLinks: [],
 };
 
@@ -106,21 +106,28 @@ describe('getSiteMetadata', () => {
     expect(result.description).toBe(FALLBACK_SITE_DESCRIPTION);
   });
 
-  it('og_image があれば配信 URL に解決する', async () => {
+  it('og_image があれば実ファイル URL (card 優先) を使う', async () => {
     vi.mocked(getFestivalMeta).mockResolvedValue({
       ...BASE_FESTIVAL,
-      ogImageId: '456',
+      ogImage: {
+        id: '456',
+        filenameDownload: 'og.webp',
+        type: 'image/webp',
+        filesize: null,
+        url: '/api/media/file/og.webp',
+        cardUrl: '/api/media/file/og-card.webp',
+      },
     });
 
     const result = await getSiteMetadata();
 
-    expect(result.ogImageUrl).toContain('456');
+    expect(result.ogImageUrl).toMatch(/\/api\/media\/file\/og-card\.webp$/);
   });
 
   it('og_image が無ければ null を返す', async () => {
     vi.mocked(getFestivalMeta).mockResolvedValue({
       ...BASE_FESTIVAL,
-      ogImageId: null,
+      ogImage: null,
     });
 
     const result = await getSiteMetadata();

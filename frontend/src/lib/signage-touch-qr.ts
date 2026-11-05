@@ -39,3 +39,11 @@ export function buildTouchQrUrl(
   );
   return url.toString();
 }
+
+export function buildOfficialSiteQrUrl(siteOrigin: string): string {
+  const url = new URL('/', siteOrigin);
+  url.searchParams.set('utm_source', 'signage');
+  url.searchParams.set('utm_medium', 'qr');
+  url.searchParams.set('utm_campaign', 'official_site');
+  return url.toString();
+}

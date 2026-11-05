@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { toAssetUrl } from '@/lib/cms-asset-url';
+import { toCardImageUrl } from '@/lib/cms-asset-url';
 import type { RegionalSponsor } from '@/lib/regional-sponsors';
 import { MaterialIcon } from '@/components/icons';
 
@@ -17,7 +17,7 @@ export function SponsorImage({
   className = '',
 }: SponsorImageProps) {
   const [failed, setFailed] = useState(false);
-  const url = toAssetUrl(sponsor.imageId, variant === 'card' ? 160 : 720);
+  const url = sponsor.image ? toCardImageUrl(sponsor.image) : null;
 
   useEffect(() => setFailed(false), [url]);
 
