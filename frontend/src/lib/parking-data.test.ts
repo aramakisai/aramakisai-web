@@ -64,7 +64,7 @@ describe('getParkingResponse', () => {
     const result = await getParkingResponse();
     expect(findMany).toHaveBeenCalledWith(
       'parking_statuses',
-      { depth: 1, limit: 100 },
+      { depth: 1, limit: 100, pagination: false },
       { ttlSeconds: 20 },
     );
     expect(result).toEqual({
@@ -202,6 +202,7 @@ describe('getParkingResponse', () => {
           sort: ['-createdAt'],
           depth: 0,
           limit: 100,
+          pagination: false,
           select: {
             lot: true,
             sizes: true,

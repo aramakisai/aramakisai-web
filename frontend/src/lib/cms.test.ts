@@ -315,6 +315,17 @@ describe('buildQueryString select', () => {
   });
 });
 
+describe('buildQueryString joins / pagination', () => {
+  it('joins をパス指定のブラケット記法へ、pagination=false をそのまま展開する', () => {
+    expect(
+      buildQueryString({
+        joins: { 'stage.performance_slots': false },
+        pagination: false,
+      }),
+    ).toBe('joins%5Bstage.performance_slots%5D=false&pagination=false');
+  });
+});
+
 describe('同一引数の取得の重複排除', () => {
   afterEach(() => vi.unstubAllGlobals());
 

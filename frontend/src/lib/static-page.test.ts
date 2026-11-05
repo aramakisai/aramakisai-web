@@ -42,6 +42,7 @@ describe('static-page', () => {
     expect(cms.findMany).toHaveBeenCalledWith('pages', {
       where: { slug: { equals: 'contact' } },
       limit: 1,
+      pagination: false,
     });
   });
 

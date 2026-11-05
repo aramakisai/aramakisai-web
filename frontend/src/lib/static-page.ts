@@ -18,6 +18,7 @@ export async function getPageBySlug(
   const result = await cms.findMany('pages', {
     where: { slug: { equals: slug } },
     limit: 1,
+    pagination: false,
   });
   if (!result.ok) return null;
 

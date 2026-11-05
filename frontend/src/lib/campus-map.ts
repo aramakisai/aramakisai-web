@@ -204,6 +204,7 @@ export async function getCampusMapData(): Promise<CampusMapDataResult> {
       sort: ['id'],
       limit: 0,
       depth: 0,
+      joins: { 'stage.performance_slots': false },
     }),
     cms.findMany('stages', { limit: 0, depth: 0 }),
     cms.findMany('performance_slots', { limit: 0, depth: 0 }),
@@ -254,18 +255,31 @@ export async function getCampusMapData(): Promise<CampusMapDataResult> {
  */
 export async function getCampusMapLastModified(): Promise<string | null> {
   const results = await Promise.all([
-    cms.findMany('map_areas', { sort: ['-updatedAt'], limit: 1, depth: 0 }),
-    cms.findMany('stages', { sort: ['-updatedAt'], limit: 1, depth: 0 }),
+    cms.findMany('map_areas', {
+      sort: ['-updatedAt'],
+      limit: 1,
+      depth: 0,
+      pagination: false,
+    }),
+    cms.findMany('stages', {
+      sort: ['-updatedAt'],
+      limit: 1,
+      depth: 0,
+      pagination: false,
+    }),
     cms.findMany('performance_slots', {
       sort: ['-updatedAt'],
       limit: 1,
       depth: 0,
+      pagination: false,
     }),
     cms.findMany('student_exhibitions', {
       where: { status: { equals: 'published' } },
       sort: ['-updatedAt'],
       limit: 1,
       depth: 0,
+      pagination: false,
+      joins: { 'stage.performance_slots': false },
     }),
   ]);
 

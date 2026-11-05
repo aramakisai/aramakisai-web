@@ -6,6 +6,8 @@ import { richTextHTMLConverters } from '../lib/rich-text-html-converters';
 export const Pages: CollectionConfig = {
   slug: 'pages',
   labels: { singular: '固定ページ', plural: '固定ページ' },
+  // navigation の page 参照から読まれるのは title と slug のみ (本文の HTML 変換を走らせない)
+  defaultPopulate: { title: true, slug: true },
   admin: {
     useAsTitle: 'title',
   },
