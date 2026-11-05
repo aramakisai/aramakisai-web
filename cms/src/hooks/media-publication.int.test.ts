@@ -54,7 +54,7 @@ describe.skipIf(!hasDatabase)('syncMediaPublication', () => {
 
     owner = (await payload.create({
       collection: 'users',
-      data: { email: `sync-${suffix}@test.local`, password: 'test-password', role: 'student_exhibitor' },
+      data: { email: `sync-${suffix}@test.local`, password: 'test-password1', role: 'student_exhibitor' },
       overrideAccess: true,
     })) as { id: number };
 
@@ -163,7 +163,7 @@ describe.skipIf(!hasDatabase)('student_exhibitions の afterChange/afterDelete �
 
     owner = (await payload.create({
       collection: 'users',
-      data: { email: `${suffix}@test.local`, password: 'test-password', role: 'student_exhibitor' },
+      data: { email: `${suffix}@test.local`, password: 'test-password1', role: 'student_exhibitor' },
       overrideAccess: true,
     })) as { id: number };
 
@@ -291,7 +291,7 @@ describe.skipIf(!hasDatabase)('公開状態と未認証の read access の連動
 
     owner = (await payload.create({
       collection: 'users',
-      data: { email: `${suffix}@test.local`, password: 'test-password', role: 'student_exhibitor' },
+      data: { email: `${suffix}@test.local`, password: 'test-password1', role: 'student_exhibitor' },
       overrideAccess: true,
     })) as { id: number };
 
@@ -415,12 +415,12 @@ describe.skipIf(!hasDatabase)('他人の画像を企画に指定すると拒否�
 
     studentA = (await payload.create({
       collection: 'users',
-      data: { email: `a-${suffix}@test.local`, password: 'test-password', role: 'student_exhibitor' },
+      data: { email: `a-${suffix}@test.local`, password: 'test-password1', role: 'student_exhibitor' },
       overrideAccess: true,
     })) as { id: number };
     studentB = (await payload.create({
       collection: 'users',
-      data: { email: `b-${suffix}@test.local`, password: 'test-password', role: 'student_exhibitor' },
+      data: { email: `b-${suffix}@test.local`, password: 'test-password1', role: 'student_exhibitor' },
       overrideAccess: true,
     })) as { id: number };
 

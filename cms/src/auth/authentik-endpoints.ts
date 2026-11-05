@@ -197,6 +197,7 @@ const callback: Endpoint = {
               : {}),
           },
           overrideAccess: true,
+          context: { skipPasswordRequirement: true },
         })
       : await payload.create({
           collection: 'users',
@@ -207,6 +208,7 @@ const callback: Endpoint = {
             password: randomBytes(32).toString('hex'),
           },
           overrideAccess: true,
+          context: { skipPasswordRequirement: true },
         })
 
     const collection = payload.collections.users

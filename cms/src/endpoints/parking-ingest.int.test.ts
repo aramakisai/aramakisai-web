@@ -135,7 +135,7 @@ describe.skipIf(!hasDatabase)('駐車場カメラの受信から判定まで', (
 
     executive = await payload.create({
       collection: 'users',
-      data: { email: `ingest-exec-${suffix}@test.local`, password: 'test-password', role: 'executive' },
+      data: { email: `ingest-exec-${suffix}@test.local`, password: 'test-password1', role: 'executive' },
       overrideAccess: true,
     });
     const settings = await payload.findGlobal({ slug: 'site_settings', depth: 0, overrideAccess: true });

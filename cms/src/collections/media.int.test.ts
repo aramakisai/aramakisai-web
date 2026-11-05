@@ -120,7 +120,7 @@ describe.skipIf(!hasDatabase)('配信エンドポイントの read access', () =
 
     student = (await payload.create({
       collection: 'users',
-      data: { email: `serve-${suffix}@test.local`, password: 'test-password', role: 'student_exhibitor' },
+      data: { email: `serve-${suffix}@test.local`, password: 'test-password1', role: 'student_exhibitor' },
       overrideAccess: true,
     })) as { id: number };
 
@@ -193,7 +193,7 @@ describe.skipIf(!hasDatabase)('メディアの所有者記録と使用中画像�
 
     student = (await payload.create({
       collection: 'users',
-      data: { email: `guard-${suffix}@test.local`, password: 'test-password', role: 'student_exhibitor' },
+      data: { email: `guard-${suffix}@test.local`, password: 'test-password1', role: 'student_exhibitor' },
       overrideAccess: true,
     })) as { id: number };
 
@@ -326,17 +326,17 @@ describe.skipIf(!hasDatabase)('他人の画像・所有者なしの画像・実�
 
     studentA = (await payload.create({
       collection: 'users',
-      data: { email: `others-a-${suffix}@test.local`, password: 'test-password', role: 'student_exhibitor' },
+      data: { email: `others-a-${suffix}@test.local`, password: 'test-password1', role: 'student_exhibitor' },
       overrideAccess: true,
     })) as { id: number };
     studentB = (await payload.create({
       collection: 'users',
-      data: { email: `others-b-${suffix}@test.local`, password: 'test-password', role: 'student_exhibitor' },
+      data: { email: `others-b-${suffix}@test.local`, password: 'test-password1', role: 'student_exhibitor' },
       overrideAccess: true,
     })) as { id: number };
     executive = (await payload.create({
       collection: 'users',
-      data: { email: `others-exec-${suffix}@test.local`, password: 'test-password', role: 'executive' },
+      data: { email: `others-exec-${suffix}@test.local`, password: 'test-password1', role: 'executive' },
       overrideAccess: true,
     })) as { id: number };
 
@@ -495,7 +495,7 @@ describe.skipIf(!hasDatabase)('所有者の消滅・ロール変更後の read a
       collection: 'users',
       data: {
         email: `deleted-owner-${suffix}@test.local`,
-        password: 'test-password',
+        password: 'test-password1',
         role: 'student_exhibitor',
       },
       overrideAccess: true,
@@ -532,7 +532,7 @@ describe.skipIf(!hasDatabase)('所有者の消滅・ロール変更後の read a
       collection: 'users',
       data: {
         email: `promoted-${suffix}@test.local`,
-        password: 'test-password',
+        password: 'test-password1',
         role: 'student_exhibitor',
       },
       overrideAccess: true,
@@ -603,7 +603,7 @@ describe.skipIf(!hasDatabase)('未認証の公開読み取りと配信のキャ�
   const createUser = async (role: 'executive' | 'student_exhibitor', label: string) => {
     const user = (await payload.create({
       collection: 'users',
-      data: { email: `${label}-${suffix}@test.local`, password: 'test-password', role },
+      data: { email: `${label}-${suffix}@test.local`, password: 'test-password1', role },
       overrideAccess: true,
     })) as { id: number };
     cleanup.users.push(user.id);
@@ -814,7 +814,7 @@ describe.skipIf(!hasDatabase)('学生団体への画像ファイル配信', () =
     const mkUser = async (n: string) =>
       (await payload.create({
         collection: 'users',
-        data: { email: `file-${n}-${suffix}@test.local`, password: 'test-password', role: 'student_exhibitor' },
+        data: { email: `file-${n}-${suffix}@test.local`, password: 'test-password1', role: 'student_exhibitor' },
         overrideAccess: true,
       })) as { id: number };
 

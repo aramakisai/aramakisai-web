@@ -54,7 +54,7 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
     const createUser = async (email: string, role: 'student_exhibitor' | 'executive') =>
       (await payload.create({
         collection: 'users',
-        data: { email, password: 'test-password', role },
+        data: { email, password: 'test-password1', role },
         overrideAccess: true,
       })) as { id: number };
 
@@ -420,7 +420,7 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
     it('実行委員は owner・categories・出店日だけで作成できる (団体名・企画内容は必須にしない)', async () => {
       const minimalOwner = (await payload.create({
         collection: 'users',
-        data: { email: `minimal-${suffix}@test.local`, password: 'test-password', role: 'student_exhibitor' },
+        data: { email: `minimal-${suffix}@test.local`, password: 'test-password1', role: 'student_exhibitor' },
         overrideAccess: true,
       })) as { id: number };
       const created = (await payload.create({
@@ -502,7 +502,7 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
       const updated = await payload.update({
         collection: 'users',
         id: owner.id,
-        data: { password: 'updated-password' },
+        data: { password: 'updated-password1' },
         overrideAccess: false,
         user: self,
       });
@@ -531,7 +531,7 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
         payload.update({
           collection: 'users',
           id: other.id,
-          data: { password: 'stolen-password' },
+          data: { password: 'stolen-password1' },
           overrideAccess: false,
           user: self,
         }),
@@ -542,7 +542,7 @@ describe.skipIf(!hasDatabase)('学生団体ロールの access control', () => {
       await expect(
         payload.create({
           collection: 'users',
-          data: { email: `intruder-${suffix}@test.local`, password: 'test-password', role: 'student_exhibitor' },
+          data: { email: `intruder-${suffix}@test.local`, password: 'test-password1', role: 'student_exhibitor' },
           overrideAccess: false,
           user: await asOwner(),
         }),

@@ -46,7 +46,7 @@ describe.skipIf(!hasDatabase)('media の非公開化で Cloudflare の purge が
 
     owner = (await payload.create({
       collection: 'users',
-      data: { email: `purge-${process.pid}@test.local`, password: 'test-password', role: 'student_exhibitor' },
+      data: { email: `purge-${process.pid}@test.local`, password: 'test-password1', role: 'student_exhibitor' },
       overrideAccess: true,
     })) as { id: number };
     media = (await payload.create({

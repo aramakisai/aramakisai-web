@@ -12,7 +12,7 @@ describe.skipIf(!hasDatabase)('低権限・匿名に対する access の締め�
   const createUser = async (email: string, role: 'student_exhibitor' | 'executive') =>
     (await payload.create({
       collection: 'users',
-      data: { email, password: 'test-password', role },
+      data: { email, password: 'test-password1', role },
       overrideAccess: true,
     })) as never;
 
@@ -168,7 +168,7 @@ describe.skipIf(!hasDatabase)('低権限・匿名に対する access の締め�
         collection: 'users',
         data: {
           email,
-          password: 'test-password',
+          password: 'test-password1',
           role: 'student_exhibitor',
           invite_status: 'sent',
           resetPasswordToken: 'invitation-token',
@@ -329,7 +329,7 @@ describe.skipIf(!hasDatabase)('低権限・匿名に対する access の締め�
           beforeAll(async () => {
             id = ((await createUser(email, role)) as { id: number }).id;
             // 学生団体は作成時のパスワードが捨てられるため、更新で設定し直す
-            await payload.update({ collection: 'users', id, data: { password: 'test-password' }, overrideAccess: true });
+            await payload.update({ collection: 'users', id, data: { password: 'test-password1' }, overrideAccess: true });
           });
           afterAll(async () => {
             await payload.delete({ collection: 'users', id, overrideAccess: true }).catch(() => null);
@@ -337,7 +337,7 @@ describe.skipIf(!hasDatabase)('低権限・匿名に対する access の締め�
 
           it(`パスワードログインは${blocked ? '拒否される' : '通る'}`, async () => {
             setOidc(oidc);
-            const login = payload.login({ collection: 'users', data: { email, password: 'test-password' } });
+            const login = payload.login({ collection: 'users', data: { email, password: 'test-password1' } });
             if (blocked) await expect(login).rejects.toThrow(/Authentik/);
             else await expect(login).resolves.toBeDefined();
           });
@@ -369,11 +369,82 @@ describe.skipIf(!hasDatabase)('低権限・匿名に対する access の締め�
               where: { id: { equals: id } },
               data: { resetPasswordToken: `reset-${oidc}-${role}-${suffix}`, resetPasswordExpiration: new Date(Date.now() + 3_600_000).toISOString() },
             });
-            const res = await post(['users', 'reset-password'], { token: `reset-${oidc}-${role}-${suffix}`, password: 'new-password' });
+            const res = await post(['users', 'reset-password'], { token: `reset-${oidc}-${role}-${suffix}`, password: 'new-password1' });
             expect(res.status).toBe(blocked ? 403 : 200);
           });
         });
       }
     }
+  });
+
+  describe('パスワード要件', () => {
+    const MESSAGE = 'パスワードは8文字以上で、英字と数字を含めてください';
+    const cases = [
+      ['短すぎる', 'ab1', false],
+      ['英字のみ', 'abcdefghij', false],
+      ['数字のみ', '1234567890', false],
+      ['要件を満たす', 'abcdefg1', true],
+    ] as const;
+    const post = async (slug: string[], body: unknown) => {
+      const { REST_POST } = await import('@payloadcms/next/routes');
+      const config = (await import('../payload.config')).default;
+      const handler = REST_POST(config) as (req: Request, ctx: { params: Promise<{ slug: string[] }> }) => Promise<Response>;
+      return handler(
+        new Request(`http://localhost/api/${slug.join('/')}`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+        }),
+        { params: Promise.resolve({ slug }) },
+      );
+    };
+    const created: number[] = [];
+    afterAll(async () => {
+      for (const id of created) await payload.delete({ collection: 'users', id, overrideAccess: true }).catch(() => null);
+    });
+
+    describe.each(cases)('%s', (_label, password, ok) => {
+      it('作成', async () => {
+        const op = payload.create({
+          collection: 'users',
+          data: { email: `pw-create-${created.length}-${suffix}@test.local`, password, role: 'executive' },
+          overrideAccess: true,
+        });
+        if (ok) created.push(((await op) as { id: number }).id);
+        else await expect(op).rejects.toThrow(MESSAGE);
+      });
+
+      it('update', async () => {
+        const { id } = (await createUser(`pw-update-${created.length}-${suffix}@test.local`, 'executive')) as { id: number };
+        created.push(id);
+        const op = payload.update({ collection: 'users', id, data: { password }, overrideAccess: true });
+        if (ok) await expect(op).resolves.toBeDefined();
+        else await expect(op).rejects.toMatchObject({ message: MESSAGE, data: { errors: [{ message: MESSAGE, path: 'password' }] } });
+      });
+
+      it('reset-password', async () => {
+        const email = `pw-reset-${created.length}-${suffix}@test.local`;
+        const { id } = (await createUser(email, 'executive')) as { id: number };
+        created.push(id);
+        const token = `pw-reset-${created.length}-${suffix}`;
+        await payload.db.updateOne({
+          collection: 'users',
+          where: { id: { equals: id } },
+          data: { resetPasswordToken: token, resetPasswordExpiration: new Date(Date.now() + 3_600_000).toISOString() },
+        });
+        const res = await post(['users', 'reset-password'], { token, password });
+        expect(res.status).toBe(ok ? 200 : 400);
+        if (!ok) expect(JSON.stringify(await res.json())).toContain(MESSAGE);
+      });
+    });
+
+    it('学生団体の作成は渡されたパスワードが要件外でも通る (乱数に差し替わる)', async () => {
+      const doc = (await payload.create({
+        collection: 'users',
+        data: { email: `pw-student-${suffix}@test.local`, password: 'weak', role: 'student_exhibitor' },
+        overrideAccess: true,
+      })) as { id: number };
+      created.push(doc.id);
+    });
   });
 });
