@@ -66,6 +66,24 @@ describe.skipIf(!hasDatabase)('メディアのアップロード時最適化', (
       await payload.delete({ collection: 'media', id: doc.id, overrideAccess: true });
     }
   });
+
+  it('デコード画素数の上限を超える画像は 400 で拒否する', async () => {
+    const { MAX_INPUT_PIXELS } = await import('../lib/image-limits');
+    const sharp = (await import('sharp')).default;
+    const side = Math.ceil(Math.sqrt(MAX_INPUT_PIXELS)) + 1;
+    const oversized = await sharp({ create: { width: side, height: side, channels: 3, background: '#888' } })
+      .jpeg()
+      .toBuffer();
+
+    await expect(
+      payload.create({
+        collection: 'media',
+        data: { alt: 'oversized' },
+        file: { data: oversized, mimetype: 'image/jpeg', name: `oversized-${process.pid}.jpg`, size: oversized.length },
+        overrideAccess: true,
+      }),
+    ).rejects.toMatchObject({ status: 400 });
+  });
 });
 
 describe.skipIf(!hasDatabase)('配信エンドポイントの read access', () => {

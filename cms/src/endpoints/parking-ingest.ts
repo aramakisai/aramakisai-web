@@ -1,11 +1,11 @@
 import type { Endpoint, PayloadHandler } from 'payload';
-import sharp from 'sharp';
 
 import { relationId } from '../collections/parking-cameras';
 import { hashCameraToken } from '../lib/parking-camera-token';
 import type { ParkingDb } from '../lib/parking-db';
 import { appendDeviceLog, decodeDeviceLog, readDeviceStatus } from '../lib/parking-device-status';
 import { nextExposure, type ExposureBasis } from '../lib/parking-exposure';
+import { limitedSharp } from '../lib/image-limits';
 import { isWithinMonitorWindow } from '../lib/parking-monitor';
 
 const MAX_BYTES = 1024 * 1024;
@@ -49,7 +49,7 @@ async function isJpeg(contentType: string | null, data: Buffer): Promise<boolean
   if (contentType?.split(';')[0].trim().toLowerCase() !== 'image/jpeg') return false;
   if (data.length < 3 || data[0] !== 0xff || data[1] !== 0xd8 || data[2] !== 0xff) return false;
   try {
-    return (await sharp(data).metadata()).format === 'jpeg';
+    return (await limitedSharp(data).metadata()).format === 'jpeg';
   } catch {
     return false;
   }

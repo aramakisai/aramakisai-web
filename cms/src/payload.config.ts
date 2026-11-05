@@ -7,7 +7,6 @@ import { s3Storage } from '@payloadcms/storage-s3'
 import { ja } from '@payloadcms/translations/languages/ja'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { buildConfig } from 'payload'
-import sharp from 'sharp'
 
 import { isExecutive, toCmsUser } from './access/roles'
 import { authentikEndpoints } from './auth/authentik-endpoints'
@@ -24,6 +23,7 @@ import { checkParkingCameras, warnIfWatchUnconfigured } from './lib/parking-came
 import { createJudge, runJudgeParkingSnapshot, warnIfJudgeUnconfigured } from './lib/parking-judge-task'
 import type { ParkingDb } from './lib/parking-db'
 import { runIngestParkingSnapshot } from './lib/parking-ingest-task'
+import { limitedSharp } from './lib/image-limits'
 import { richTextEditorFeatures } from './lib/rich-text-editor'
 
 // S3 未設定のローカル開発ではディスク保存にフォールバックする。本番/staging は Infisical が必ず与える。
@@ -205,7 +205,7 @@ export default buildConfig({
     push: false,
     ...(readReplicaUrl ? { readReplicas: [readReplicaUrl] } : {}),
   }),
-  sharp,
+  sharp: limitedSharp,
   plugins: s3Bucket
     ? [
         s3Storage({
