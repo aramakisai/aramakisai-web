@@ -345,7 +345,7 @@ describe.skipIf(!hasDatabase)('駐車場カメラの受信から判定まで', (
     expect((await ingest(null, { captured: BASE })).status).toBe(401);
   });
 
-  it('幅960のWebP縮小版が未認証で取れ、新しい画像の受信で古い画像の原寸と縮小版が消える', async () => {
+  it('幅960のWebP縮小版だけが未認証で取れ、新しい画像の受信で古い画像の原寸と縮小版が消える', async () => {
     await ingest(token, { captured: BASE, body: wideJpeg });
     const [snap] = await snapshotsOf();
     expect(snap.sizes.web).toMatchObject({ width: 960, mimeType: 'image/webp' });
@@ -358,7 +358,8 @@ describe.skipIf(!hasDatabase)('駐車場カメラの受信から判定まで', (
     expect(thumb.status).toBe(200);
     expect(thumb.headers.get('content-type')).toBe('image/webp');
     expect(thumb.headers.get('cache-control')).toBe('public, max-age=31536000, immutable');
-    expect((await file(snap.filename)).status).toBe(200);
+    // 原本は実行委員以外には配信しない
+    expect((await file(snap.filename)).status).toBe(403);
 
     // S3 未設定のテスト環境では実ファイルがディスクの staticDir に置かれる
     const { existsSync } = await import('node:fs');
