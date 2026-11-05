@@ -15,6 +15,7 @@ export function accessFor(collection: string): {
   update: Access;
   delete: Access;
   readVersions: Access;
+  unlock: Access;
 } {
   return {
     read: async ({ req, isReadingStaticFile }) => {
@@ -27,6 +28,8 @@ export function accessFor(collection: string): {
       }
       return result;
     },
+    // 未指定だとログイン済みなら誰でも他人のロックを解除でき、ログイン試行制限を無効化できる
+    unlock: ({ req }) => isExecutive(toCmsUser(req.user)),
     readVersions: ({ req }) => canReadVersions(toCmsUser(req.user), collection),
     create: ({ req }) => canCreate(toCmsUser(req.user), collection),
     update: ({ req }) => canUpdate(toCmsUser(req.user), collection),

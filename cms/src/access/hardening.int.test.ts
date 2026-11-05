@@ -56,4 +56,15 @@ describe.skipIf(!hasDatabase)('低権限・匿名に対する access の締め�
       });
     }
   });
+
+  describe('users の unlock', () => {
+    it('学生団体は拒否され、実行委員は通る', async () => {
+      await expect(
+        payload.unlock({ collection: 'users', data: { email: `hardening-student-${suffix}@test.local` }, user: student as never, overrideAccess: false }),
+      ).rejects.toThrow();
+      await expect(
+        payload.unlock({ collection: 'users', data: { email: `hardening-student-${suffix}@test.local` }, user: executive as never, overrideAccess: false }),
+      ).resolves.toBeDefined();
+    });
+  });
 });
