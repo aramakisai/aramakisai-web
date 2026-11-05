@@ -173,6 +173,9 @@ export default buildConfig({
       },
     ],
     autoRun: [{ cron: '*/10 * * * * *' }],
+    // 既定は全員 (匿名含む) に開いており、GET で誰でもジョブを実行・スケジュール処理できてしまう。
+    // 実行は worker の autoRun (Local API) だけが担う
+    access: { run: () => false },
     // vitest はプロセス全体に VITEST=true を設定する。テストは payload.jobs.run() を明示的に呼ぶ
     shouldAutoRun,
     jobsCollectionOverrides: ({ defaultJobsCollection }) => ({
