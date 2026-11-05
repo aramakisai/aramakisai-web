@@ -69,11 +69,11 @@ const root = (c: HTMLElement) => c.firstElementChild as HTMLElement;
 const hasNav = (c: HTMLElement) => c.textContent?.includes('駐車場空き情報');
 
 describe('待機中の表示(5.2)', () => {
-  it('タップしない限り操作層は無く、待機中の QR は現行の画像のまま', () => {
+  it('タップしない限り操作層は無く、待機中の QR は utm 付き公式サイトの SVG', () => {
     const { container } = renderScreen();
     expect(hasNav(container)).toBeFalsy();
     const qr = container.querySelector<HTMLImageElement>(
-      'img[src="/images/qr-aramakisai.svg"]',
+      'img[src^="data:image/svg+xml"]',
     );
     expect(qr).not.toBeNull();
     expect(container.textContent).toContain('▼公式サイト');
@@ -83,12 +83,14 @@ describe('待機中の表示(5.2)', () => {
 
   it('操作層を開いても待機中の QR は変えない', () => {
     const { container } = renderScreen();
-    const count = () =>
-      container.querySelectorAll('img[src="/images/qr-aramakisai.svg"]').length;
-    const before = count();
+    const first = () =>
+      container
+        .querySelector('img[src^="data:image/svg+xml"]')
+        ?.getAttribute('src');
+    const before = first();
     fireEvent.pointerDown(root(container));
     expect(container.textContent).toContain('この画面をスマホで見る');
-    expect(count()).toBe(before);
+    expect(first()).toBe(before);
   });
 });
 

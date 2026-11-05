@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { buildTouchQrUrl } from './signage-touch-qr';
+import { buildOfficialSiteQrUrl, buildTouchQrUrl } from './signage-touch-qr';
 
 // exhibitions.ts / campus-map.ts は cms.ts (env.ts の起動時検証を含む) に依存するためモックする
 vi.mock('./cms', () => ({ cms: {} }));
@@ -64,5 +64,13 @@ describe('buildTouchQrUrl', () => {
         areaIds: [],
       }),
     ).toBe(`${ORIGIN}/parking?${utm('parking')}`);
+  });
+});
+
+describe('buildOfficialSiteQrUrl', () => {
+  it('トップに公式サイト用の utm を付ける', () => {
+    expect(buildOfficialSiteQrUrl(ORIGIN)).toBe(
+      `${ORIGIN}/?utm_source=signage&utm_medium=qr&utm_campaign=official_site`,
+    );
   });
 });
