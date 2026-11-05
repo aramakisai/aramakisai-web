@@ -290,4 +290,90 @@ describe.skipIf(!hasDatabase)('低権限・匿名に対する access の締め�
       expect(web.headers.get('cache-control')).toBe('private, no-store');
     });
   });
+
+  describe('OIDC 有効時の実行委員のパスワード認証', () => {
+    const post = async (slug: string[], body: unknown) => {
+      const { REST_POST } = await import('@payloadcms/next/routes');
+      const config = (await import('../payload.config')).default;
+      const handler = REST_POST(config) as (req: Request, ctx: { params: Promise<{ slug: string[] }> }) => Promise<Response>;
+      return handler(
+        new Request(`http://localhost/api/${slug.join('/')}`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+        }),
+        { params: Promise.resolve({ slug }) },
+      );
+    };
+    const tokenOf = async (email: string) =>
+      (await payload.db.findOne({ collection: 'users', where: { email: { equals: email } } }) as { resetPasswordToken?: string })
+        .resetPasswordToken;
+
+    const original = process.env.AUTHENTIK_ISSUER_URL;
+    const setOidc = (on: boolean) => {
+      if (on) process.env.AUTHENTIK_ISSUER_URL = 'https://idp.test.local/application/o/cms/';
+      else delete process.env.AUTHENTIK_ISSUER_URL;
+    };
+    afterAll(() => {
+      if (original === undefined) delete process.env.AUTHENTIK_ISSUER_URL;
+      else process.env.AUTHENTIK_ISSUER_URL = original;
+    });
+
+    const roles = ['executive', 'student_exhibitor'] as const;
+    for (const oidc of [true, false]) {
+      for (const role of roles) {
+        const blocked = oidc && role === 'executive';
+        describe(`OIDC ${oidc ? 'あり' : 'なし'} / ${role}`, () => {
+          const email = `hardening-oidc-${oidc ? 'on' : 'off'}-${role}-${suffix}@test.local`;
+          let id: number;
+          beforeAll(async () => {
+            id = ((await createUser(email, role)) as { id: number }).id;
+            // 学生団体は作成時のパスワードが捨てられるため、更新で設定し直す
+            await payload.update({ collection: 'users', id, data: { password: 'test-password' }, overrideAccess: true });
+          });
+          afterAll(async () => {
+            await payload.delete({ collection: 'users', id, overrideAccess: true }).catch(() => null);
+          });
+
+          it(`パスワードログインは${blocked ? '拒否される' : '通る'}`, async () => {
+            setOidc(oidc);
+            const login = payload.login({ collection: 'users', data: { email, password: 'test-password' } });
+            if (blocked) await expect(login).rejects.toThrow(/Authentik/);
+            else await expect(login).resolves.toBeDefined();
+          });
+
+          it(`forgot-password は常に成功応答で、トークンは${blocked ? '発行されない' : '発行される'}`, async () => {
+            setOidc(oidc);
+            const send = vi.spyOn(payload.email, 'sendEmail').mockResolvedValue(undefined as never);
+            try {
+              await payload.db.updateOne({
+                collection: 'users',
+                where: { id: { equals: id } },
+                data: { resetPasswordToken: null, resetPasswordExpiration: null },
+              });
+              const res = await post(['users', 'forgot-password'], { email });
+              expect(res.status).toBe(200);
+              if (blocked) expect(await tokenOf(email)).toBeFalsy();
+              else expect(await tokenOf(email)).toBeTruthy();
+              if (blocked) expect(send).not.toHaveBeenCalled();
+              else expect(send).toHaveBeenCalledTimes(1);
+            } finally {
+              send.mockRestore();
+            }
+          });
+
+          it(`reset-password は${blocked ? '拒否される' : '通る'}`, async () => {
+            setOidc(oidc);
+            await payload.db.updateOne({
+              collection: 'users',
+              where: { id: { equals: id } },
+              data: { resetPasswordToken: `reset-${oidc}-${role}-${suffix}`, resetPasswordExpiration: new Date(Date.now() + 3_600_000).toISOString() },
+            });
+            const res = await post(['users', 'reset-password'], { token: `reset-${oidc}-${role}-${suffix}`, password: 'new-password' });
+            expect(res.status).toBe(blocked ? 403 : 200);
+          });
+        });
+      }
+    }
+  });
 });

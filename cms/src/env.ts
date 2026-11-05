@@ -18,3 +18,8 @@ export function optionalEnv(name: string): string | undefined {
 export function isHttpsUrl(value: string | undefined): boolean {
   return value?.startsWith('https://') ?? false;
 }
+
+/** Authentik OIDC が有効か。認証経路の切替はすべてこの判定に揃える */
+export function isOidcEnabled(): boolean {
+  return optionalEnv('AUTHENTIK_ISSUER_URL') !== undefined;
+}

@@ -3,6 +3,7 @@ import type {
   CollectionAfterChangeHook,
   CollectionAfterLoginHook,
   CollectionAfterOperationHook,
+  CollectionBeforeLoginHook,
   CollectionBeforeChangeHook,
   CollectionBeforeOperationHook,
   CollectionConfig,
@@ -10,7 +11,7 @@ import type {
 import { APIError, type PayloadRequest } from 'payload';
 
 import { denyField, executiveOnlyField } from '../access/payload-access';
-import { isHttpsUrl, optionalEnv } from '../env';
+import { isHttpsUrl, isOidcEnabled, optionalEnv } from '../env';
 import { forgotPasswordEndpoint } from '../auth/forgot-password';
 import { CMS_ROLES, isExecutive, toCmsUser, type CmsRole } from '../access/roles';
 
@@ -36,6 +37,19 @@ const replaceInitialPassword: CollectionBeforeOperationHook = (arg) => {
   return { ...arg.args, data: { ...arg.args.data, password: randomBytes(32).toString('hex') } };
 };
 
+const EXECUTIVE_LOCAL_AUTH_DISABLED = '実行委員のパスワード認証は無効です。Authentik でログインしてください。';
+
+/**
+ * OIDC 有効時、実行委員の認証は Authentik に一本化する。OIDC ログインは
+ * authentik-endpoints.ts がトークンを自前で発行し、この login 操作を通らない。
+ */
+const rejectExecutivePasswordLogin: CollectionBeforeLoginHook = ({ user }) => {
+  if (isOidcEnabled() && user.role === 'executive') {
+    throw new APIError(EXECUTIVE_LOCAL_AUTH_DISABLED, 403, undefined, true);
+  }
+  return user;
+};
+
 /**
  * resetPassword はトークンの有効性を自前のメッセージ (M-E06) で案内するため、
  * Payload 既定の "Token is either invalid or has expired." より先に検査する。
@@ -50,6 +64,9 @@ const guardResetToken: CollectionBeforeOperationHook = async (arg) => {
       resetPasswordExpiration: { greater_than: new Date().toISOString() },
     },
   });
+  if (found && isOidcEnabled() && (found as { role?: CmsRole }).role === 'executive') {
+    throw new APIError(EXECUTIVE_LOCAL_AUTH_DISABLED, 403, undefined, true);
+  }
   if (!found) {
     throw new APIError(
       'リンクが無効です。パスワード設定済みの場合はログイン画面の「パスワードをお忘れですか？」から再設定してください。未設定の場合は実行委員に招待メールの再送を依頼してください。',
@@ -150,6 +167,7 @@ export const Users: CollectionConfig = {
   hooks: {
     beforeOperation: [replaceInitialPassword, guardResetToken],
     afterOperation: [markActivatedOnReset],
+    beforeLogin: [rejectExecutivePasswordLogin],
     afterLogin: [markActivatedOnLogin],
     beforeChange: [captureResendInvite],
     afterChange: [queueInvitationEmail, detachMediaOnRoleChange],
