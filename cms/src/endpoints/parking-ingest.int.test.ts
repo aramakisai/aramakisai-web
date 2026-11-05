@@ -80,6 +80,8 @@ describe.skipIf(!hasDatabase)('駐車場カメラの受信から判定まで', (
       { payload },
     );
     const res = await ingestHandler({ now: () => new Date(received), windowSeconds: WINDOW })(req as never);
+    // 保存は worker のジョブが行うため、受信ごとに保存ジョブだけを実行して状態を確定させる
+    await payload.jobs.run({ where: { taskSlug: { equals: 'ingestParkingSnapshot' } } });
     return { status: res.status, json: (await res.json()) as Any };
   }
 

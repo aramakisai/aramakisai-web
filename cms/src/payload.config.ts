@@ -23,6 +23,7 @@ import { purgeEdgeCache, readPurgeConfig, warnIfPurgeUnconfigured } from './lib/
 import { checkParkingCameras, warnIfWatchUnconfigured } from './lib/parking-camera-watch'
 import { createJudge, runJudgeParkingSnapshot, warnIfJudgeUnconfigured } from './lib/parking-judge-task'
 import type { ParkingDb } from './lib/parking-db'
+import { runIngestParkingSnapshot } from './lib/parking-ingest-task'
 import { richTextEditorFeatures } from './lib/rich-text-editor'
 
 // S3 未設定のローカル開発ではディスク保存にフォールバックする。本番/staging は Infisical が必ず与える。
@@ -109,6 +110,30 @@ export default buildConfig({
         handler: async ({ input }) => {
           const config = readPurgeConfig()
           if (config) await purgeEdgeCache(config, input as { files: string[]; prefixes: string[] })
+          return { output: {} }
+        },
+      },
+      {
+        slug: 'ingestParkingSnapshot',
+        retries: 0,
+        inputSchema: [
+          { name: 'cameraId', type: 'number', required: true },
+          { name: 'lot', type: 'number' },
+          { name: 'exposure', type: 'number', required: true },
+          { name: 'capturedAt', type: 'text', required: true },
+          { name: 'window', type: 'number', required: true },
+          { name: 'image', type: 'text', required: true },
+        ],
+        handler: async ({ input, req }) => {
+          await runIngestParkingSnapshot({
+            payload: req.payload as unknown as ParkingDb,
+            cameraId: input.cameraId,
+            lot: input.lot ?? null,
+            exposure: input.exposure,
+            capturedAt: input.capturedAt,
+            window: input.window,
+            image: input.image,
+          })
           return { output: {} }
         },
       },
