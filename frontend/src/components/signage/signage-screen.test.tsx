@@ -316,7 +316,7 @@ describe('SignageScreen', () => {
       );
       await act(() => vi.advanceTimersByTimeAsync(0));
       expect(lastOffset()).toBe(1000);
-      await act(() => vi.advanceTimersByTimeAsync(1_000));
+      await act(() => vi.advanceTimersByTimeAsync(5_000));
       expect(lastOffset()).toBe(9000);
     });
   });
@@ -521,7 +521,7 @@ describe('SignageScreen', () => {
     it('初回の版は乱数の待ちの後に取り直す', async () => {
       channel = { ...CHANNEL_IDLE, snapshotVersion: 100 };
       renderScreen();
-      await act(() => vi.advanceTimersByTimeAsync(499));
+      await act(() => vi.advanceTimersByTimeAsync(2_499));
       expect(versioned()).toHaveLength(0);
       await act(() => vi.advanceTimersByTimeAsync(2));
       expect(versioned()).toEqual(['/api/signage?v=100']);
@@ -530,25 +530,25 @@ describe('SignageScreen', () => {
     it('同じ版では取り直さず、版が変われば取り直す', async () => {
       channel = { ...CHANNEL_IDLE, snapshotVersion: 100 };
       const { rerender } = renderScreen();
-      await act(() => vi.advanceTimersByTimeAsync(1_000));
+      await act(() => vi.advanceTimersByTimeAsync(5_000));
       channel = { ...CHANNEL_IDLE, snapshotVersion: 100 };
       rerender(
         <SignageScreen initial={snapshot} renderedAt={snapshot.serverNow} />,
       );
-      await act(() => vi.advanceTimersByTimeAsync(1_000));
+      await act(() => vi.advanceTimersByTimeAsync(5_000));
       expect(versioned()).toHaveLength(1);
       channel = { ...CHANNEL_IDLE, snapshotVersion: 200 };
       rerender(
         <SignageScreen initial={snapshot} renderedAt={snapshot.serverNow} />,
       );
-      await act(() => vi.advanceTimersByTimeAsync(1_000));
+      await act(() => vi.advanceTimersByTimeAsync(5_000));
       expect(versioned()).toEqual(['/api/signage?v=100', '/api/signage?v=200']);
     });
 
     it('版を受けた後の2分ポーリングも版付きで取る', async () => {
       channel = { ...CHANNEL_IDLE, snapshotVersion: 100 };
       renderScreen();
-      await act(() => vi.advanceTimersByTimeAsync(1_000));
+      await act(() => vi.advanceTimersByTimeAsync(5_000));
       vi.mocked(fetch).mockClear();
       await act(() => vi.advanceTimersByTimeAsync(120_000));
       expect(vi.mocked(fetch).mock.calls.map(([u]) => u)).toEqual([
