@@ -13,8 +13,8 @@ import {
 
 export async function getHomePage(): Promise<HomePageContent> {
   const [metaResult, announcementsResult, topicsResult] = await Promise.all([
-    // ヒーロー画像を Attachment にするため depth 1 で 1 回だけ取る
-    cms.findGlobal('site_settings', { depth: 1 }),
+    // ヒーロー画像を Attachment にするため depth 1 が要る。メタデータ・フッターと同じ既定の URL で取る
+    cms.findGlobal('site_settings'),
     cms.findMany('announcements', {
       where: publishedFilter(),
       sort: ['-published_at'],

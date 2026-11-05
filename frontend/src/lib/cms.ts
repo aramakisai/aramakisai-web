@@ -49,6 +49,8 @@ export type CmsQuery<T> = {
   readonly limit?: number;
   readonly depth?: number;
   readonly select?: CmsSelect;
+  /** populate された関連ドキュメントのフィールドをコレクション単位で絞る。`{ media: { url: true } }` の形 */
+  readonly populate?: { readonly [collection: string]: CmsSelect };
   /** join フィールドの計算を省く。`{ 'group.field': false }` の形で指定する (`joins=false` 一括は Payload が無視する) */
   readonly joins?: { readonly [path: string]: false };
   /** false で件数の COUNT クエリを省く。limit は効き、totalDocs は返却件数になる */
@@ -78,6 +80,7 @@ export function buildQueryString(query: {
   limit?: number;
   depth?: number;
   select?: CmsSelect;
+  populate?: { readonly [collection: string]: CmsSelect };
   joins?: { readonly [path: string]: false };
   pagination?: false;
 }): string {
@@ -87,6 +90,7 @@ export function buildQueryString(query: {
   if (query.limit !== undefined) parts.push(`limit=${query.limit}`);
   if (query.depth !== undefined) parts.push(`depth=${query.depth}`);
   if (query.select) flatten('select', query.select, parts);
+  if (query.populate) flatten('populate', query.populate, parts);
   if (query.joins) flatten('joins', query.joins, parts);
   if (query.pagination === false) parts.push('pagination=false');
   return parts.join('&');
@@ -205,6 +209,12 @@ function withQuery(path: string, query: string): string {
   return query ? `${path}?${query}` : path;
 }
 
+// site_settings はトップの hero_images を Attachment にするため depth 1 が要る。
+// 呼び出し箇所ごとに depth が違うと URL (= Cache API のキー) が分かれて同じ global を二重に取るので、既定を揃える。
+const GLOBAL_DEFAULT_DEPTH: Partial<Record<CmsGlobalSlug, number>> = {
+  site_settings: 1,
+};
+
 export const cms = {
   findMany<K extends CmsCollectionSlug>(
     collection: K,
@@ -221,7 +231,10 @@ export const cms = {
   findById<K extends CmsCollectionSlug>(
     collection: K,
     id: number | string,
-    query: Pick<CmsQuery<CmsCollections[K]>, 'depth' | 'joins'> = {},
+    query: Pick<
+      CmsQuery<CmsCollections[K]>,
+      'depth' | 'joins' | 'select' | 'populate'
+    > = {},
   ): Promise<CmsResult<CmsCollections[K]>> {
     return request(
       withQuery(`/api/${String(collection)}/${id}`, buildQueryString(query)),
@@ -233,12 +246,12 @@ export const cms = {
     query: { depth?: number } = {},
     options: CmsFetchOptions = {},
   ): Promise<CmsResult<CmsGlobals[K]>> {
-    // populate が要る global は呼び出し側で depth を明示する。既定を 0 に揃えると
-    // URL (= Workers Cache API のキー) が 1 種類になり、CMS の DB 問い合わせも減る。
+    // 既定を揃えると URL (= Workers Cache API のキー) が 1 種類になり、CMS の DB 問い合わせも減る。
+    // 既定外の depth が要る global は呼び出し側で明示する。
     return request(
       withQuery(
         `/api/globals/${String(slug)}`,
-        buildQueryString({ depth: 0, ...query }),
+        buildQueryString({ depth: GLOBAL_DEFAULT_DEPTH[slug] ?? 0, ...query }),
       ),
       options.ttlSeconds,
       options.version,
