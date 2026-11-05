@@ -125,6 +125,19 @@ describe.skipIf(!hasDatabase)('低権限・匿名に対する access の締め�
       await expect(find(user(), 'performance_slots', { where: { 'stage_id.name': { like: 'a' } } })).resolves.toBeDefined();
     });
 
+    it('REST (overrideAccess を明示しない経路) でも拒否する', async () => {
+      const { REST_GET } = await import('@payloadcms/next/routes');
+      const config = (await import('../payload.config')).default;
+      const get = REST_GET(config) as (req: Request, ctx: { params: Promise<{ slug: string[] }> }) => Promise<Response>;
+      const call = (query: string) =>
+        get(new Request(`http://localhost/api/performance_slots?${query}`), {
+          params: Promise.resolve({ slug: ['performance_slots'] }),
+        });
+      expect((await call('where[exhibition_id.organization_name][like]=a')).status).toBe(403);
+      expect((await call('sort=-exhibition_id.organization_name')).status).toBe(403);
+      expect((await call('where[exhibition_id][equals]=1')).status).toBe(200);
+    });
+
     it('実行委員は拒否されない', async () => {
       await expect(
         find(executive, 'performance_slots', { where: { 'exhibition_id.organization_name': { like: 'a' } } }),

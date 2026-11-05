@@ -63,7 +63,7 @@ function sortPaths(sort: unknown): string[] {
 export const guardRelationQuery: CollectionBeforeOperationHook = ({ args, collection, operation, req }) => {
   if (!['read', 'count', 'readDistinct'].includes(operation)) return args;
   const a = args as { overrideAccess?: boolean; where?: unknown; sort?: unknown; field?: unknown };
-  if (a.overrideAccess !== false) return args;
+  if (a.overrideAccess) return args;
   const user = toCmsUser(req.user);
   if (isExecutive(user)) return args;
   const paths = [...wherePaths(a.where), ...sortPaths(a.sort), ...(typeof a.field === 'string' ? [a.field] : [])];
