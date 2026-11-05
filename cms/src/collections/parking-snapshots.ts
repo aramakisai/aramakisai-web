@@ -1,6 +1,7 @@
 import type { CollectionConfig, Field } from 'payload';
 
 import { denyField, executiveOnlyField } from '../access/payload-access';
+import { modifyFileResponseHeaders, recordFileRequestAuth } from '../lib/file-response-headers';
 
 /** 作成・更新はフックが overrideAccess で行う。管理画面では確認用に読み取りのみ出す */
 const recorded = {
@@ -34,8 +35,10 @@ export const ParkingSnapshots: CollectionConfig = {
     ],
     adminThumbnail: 'web',
     // ファイル名は推測できない乱数で書き換えないため、長期キャッシュしてよい
+    handlers: [recordFileRequestAuth],
     modifyResponseHeaders: ({ headers }) => {
       headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+      modifyFileResponseHeaders({ headers });
     },
   },
   fields: [

@@ -116,3 +116,13 @@ describe('accessFor の削除', () => {
     expect(await del('signage_slides', executive)).toBe(true);
   });
 });
+
+describe('accessFor の unlock', () => {
+  const unlock = (user: unknown) => accessFor('users').unlock({ req: reqWith(user) } as never);
+
+  it('実行委員だけが許可される', async () => {
+    expect(await unlock({ id: 1, role: 'executive' })).toBe(true);
+    expect(await unlock({ id: 1, role: 'student_exhibitor' })).toBe(false);
+    expect(await unlock(null)).toBe(false);
+  });
+});

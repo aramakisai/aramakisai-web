@@ -67,15 +67,15 @@ describe.skipIf(!hasDatabase)('駐車場カメラの割り当てと access', () 
     const createUser = async (email: string, role: 'executive' | 'student_exhibitor') =>
       (await payload.create({
         collection: 'users',
-        data: { email, password: 'test-password', role },
+        data: { email, password: 'test-password1', role },
         overrideAccess: true,
       })) as Any;
     executive = await createUser(`cam-exec-${suffix}@test.local`, 'executive');
     student = await createUser(`cam-student-${suffix}@test.local`, 'student_exhibitor');
     // 学生団体のパスワードは作成時にランダム値へ置き換わるため、ログイン用に設定し直す
-    await payload.update({ collection: 'users', id: student.id, data: { password: 'test-password' }, overrideAccess: true });
+    await payload.update({ collection: 'users', id: student.id, data: { password: 'test-password1' }, overrideAccess: true });
     const login = async (email: string) =>
-      (await payload.login({ collection: 'users', data: { email, password: 'test-password' } })).token as string;
+      (await payload.login({ collection: 'users', data: { email, password: 'test-password1' } })).token as string;
     execJwt = await login(executive.email);
     studentJwt = await login(student.email);
   });

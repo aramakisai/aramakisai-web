@@ -32,3 +32,16 @@ describe('role・email フィールドの access', () => {
     ).toBe(false);
   });
 });
+
+describe('auth Cookie の Secure', () => {
+  it('公開 URL が https のときだけ有効にする', async () => {
+    const { isHttpsUrl } = await import('../env');
+    expect(isHttpsUrl('https://cms.aramakisai.com')).toBe(true);
+    expect(isHttpsUrl('http://localhost:3100')).toBe(false);
+    expect(isHttpsUrl(undefined)).toBe(false);
+  });
+
+  it('Users の auth 設定に反映される (テスト環境は未設定のため false)', () => {
+    expect(Users.auth).toEqual({ cookies: { secure: false } });
+  });
+});

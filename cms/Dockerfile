@@ -52,6 +52,9 @@ COPY . .
 # ビルド用のプレースホルダを空に戻し、実値が注入されていなければ起動時に落ちるようにする
 ENV PAYLOAD_SECRET="" \
     DATABASE_URL=""
+# runner と同じ非 root ユーザーで動かす。マイグレーションはファイルを書かず読み取りだけで足りる
+RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
+USER nextjs
 CMD ["node_modules/.bin/payload", "migrate"]
 
 

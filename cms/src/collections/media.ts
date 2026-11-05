@@ -9,6 +9,7 @@ import { APIError } from 'payload';
 import { canReadMediaFile } from '../access/policy';
 import { denyField, executiveOnlyField } from '../access/payload-access';
 import { isStudentExhibitor, toCmsUser } from '../access/roles';
+import { modifyFileResponseHeaders, recordFileRequestAuth } from '../lib/file-response-headers';
 import { purgeEdgeCacheAfterChange, purgeEdgeCacheAfterDelete } from '../hooks/media-edge-purge';
 
 /**
@@ -101,7 +102,7 @@ export const Media: CollectionConfig = {
         // 認証済みの読み取りは非公開画像にも成功するため、未認証で読めた (= 公開) 場合だけ共有キャッシュ可にする。
         // 60 秒はフロントの ISR (revalidate 60) に揃える。CDN 側は Cache Rule の Edge TTL が優先され、
         // このヘッダはブラウザの保持期間だけを決める。
-        if (!req.user) headers['Cache-Control'] = 'public, max-age=60';
+        headers['Cache-Control'] = req.user ? 'private, no-store' : 'public, max-age=60';
         return new Response(null, { status: 302, headers });
       },
     },
@@ -133,6 +134,8 @@ export const Media: CollectionConfig = {
     },
   ],
   upload: {
+    handlers: [recordFileRequestAuth],
+    modifyResponseHeaders: modifyFileResponseHeaders,
     // 配信時変換を行わないため、アップロード時に WebP へ寄せる
     formatOptions: { format: 'webp', options: { quality: 82 } },
     imageSizes: IMAGE_SIZES.map(({ name, width }) => ({

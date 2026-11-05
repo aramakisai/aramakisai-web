@@ -2,6 +2,7 @@ import type { PayloadRequest } from 'payload';
 import sharp from 'sharp';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
+import { MAX_INPUT_PIXELS } from '../lib/image-limits';
 import { hashCameraToken } from '../lib/parking-camera-token';
 import { ingestHandler, parkingIngestEndpoints } from './parking-ingest';
 
@@ -55,6 +56,9 @@ function request(payload: unknown, init: Init = {}) {
   });
   return Object.assign(r, { payload }) as unknown as PayloadRequest;
 }
+
+const solidJpeg = (side: number) =>
+  sharp({ create: { width: side, height: side, channels: 3, background: '#888' } }).jpeg().toBuffer();
 
 const handler = ingestHandler({ now: () => NOW, windowSeconds: 300 });
 const run = async (init: Init = {}, opts: Parameters<typeof setup>[0] = {}) => {
@@ -165,6 +169,8 @@ describe('大きさと形式', () => {
       { headers: { 'content-type': 'image/png' } },
       { body: Buffer.from('not a jpeg at all') },
       { body: Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.from('garbage')]) },
+      // 圧縮後は 1MiB に収まっても、デコード画素数が上限を超える画像
+      { body: await solidJpeg(Math.ceil(Math.sqrt(MAX_INPUT_PIXELS)) + 1) },
     ]) {
       const { res, json, payload } = await run(init);
       expect(res.status).toBe(415);
