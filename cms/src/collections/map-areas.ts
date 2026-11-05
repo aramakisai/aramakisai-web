@@ -87,6 +87,9 @@ function validateHexColor(value: unknown): true | string {
 export const MapAreas: CollectionConfig = {
   slug: 'map_areas',
   labels: { singular: 'マップエリア', plural: 'マップエリア' },
+  // 企画・スポンサーの area_id 経由の populate で読まれるのは id だけ。geometry (MultiPolygon の JSON) を返さない。
+  // name は useAsTitle のため残す
+  defaultPopulate: { name: true },
   admin: {
     useAsTitle: 'name',
   },
