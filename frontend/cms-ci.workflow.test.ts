@@ -132,7 +132,9 @@ describe('cms-ci workflow', () => {
       ),
     ).toBe(true);
 
-    const pin = findStep(release, (step) => (step.run ?? '').includes('newTag'));
+    const pin = findStep(release, (step) =>
+      (step.run ?? '').includes('newTag'),
+    );
     expect(pin.run).toContain('digest:');
     expect(pin.run).toContain('digest-runner');
     expect(pin.run).toContain('digest-migrator');
