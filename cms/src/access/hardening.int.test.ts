@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 // 実 DB を要求するため、DATABASE_URL が無い環境ではスキップする
 const hasDatabase = Boolean(process.env.DATABASE_URL && process.env.PAYLOAD_SECRET);
@@ -129,6 +129,57 @@ describe.skipIf(!hasDatabase)('低権限・匿名に対する access の締め�
       await expect(
         find(executive, 'performance_slots', { where: { 'exhibition_id.organization_name': { like: 'a' } } }),
       ).resolves.toBeDefined();
+    });
+  });
+
+  describe('招待済み未有効化ユーザーの forgot-password', () => {
+    const forgot = async (email: string) => {
+      const users = payload.config.collections.find((c) => c.slug === 'users');
+      const endpoints = (users?.endpoints || []) as { path: string; method: string; handler: (req: unknown) => unknown }[];
+      const handler = endpoints.find((e) => e.path === '/forgot-password' && e.method === 'post')!.handler;
+      const req = await reqAs(null);
+      Object.assign(req, { data: { email } });
+      return (await handler(req)) as Response;
+    };
+    const tokenOf = async (id: number) =>
+      (await payload.db.findOne({ collection: 'users', where: { id: { equals: id } } }) as { resetPasswordToken?: string }).resetPasswordToken;
+
+    it('トークンを上書きせずメールも送らず、通常と同じ応答を返す。有効化後は通常どおり発行する', async () => {
+      const email = `hardening-invited-${suffix}@test.local`;
+      const invited = (await payload.create({
+        collection: 'users',
+        data: {
+          email,
+          password: 'test-password',
+          role: 'student_exhibitor',
+          invite_status: 'sent',
+          resetPasswordToken: 'invitation-token',
+          resetPasswordExpiration: new Date(Date.now() + 3_600_000).toISOString(),
+        } as never,
+        overrideAccess: true,
+      })) as { id: number };
+      const send = vi.spyOn(payload.email, 'sendEmail').mockResolvedValue(undefined as never);
+      try {
+        const unknown = await forgot(`nobody-${suffix}@test.local`);
+        const blocked = await forgot(email);
+        expect(blocked.status).toBe(unknown.status);
+        expect(await blocked.json()).toEqual(await unknown.json());
+        expect(await tokenOf(invited.id)).toBe('invitation-token');
+        expect(send).not.toHaveBeenCalled();
+
+        await payload.update({
+          collection: 'users',
+          id: invited.id,
+          data: { activated_at: new Date().toISOString() },
+          overrideAccess: true,
+        });
+        await forgot(email);
+        expect(await tokenOf(invited.id)).not.toBe('invitation-token');
+        expect(send).toHaveBeenCalledTimes(1);
+      } finally {
+        send.mockRestore();
+        await payload.delete({ collection: 'users', id: invited.id, overrideAccess: true }).catch(() => null);
+      }
     });
   });
 });

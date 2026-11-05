@@ -10,6 +10,7 @@ import type {
 import { APIError, type PayloadRequest } from 'payload';
 
 import { denyField, executiveOnlyField } from '../access/payload-access';
+import { forgotPasswordEndpoint } from '../auth/forgot-password';
 import { CMS_ROLES, isExecutive, toCmsUser, type CmsRole } from '../access/roles';
 
 const INVITE_STATUSES = [
@@ -142,6 +143,8 @@ export const Users: CollectionConfig = {
   },
   // ローカル認証は実行委員の緊急用。通常経路は Authentik OIDC (auth/strategy.ts)。
   auth: true,
+  // Payload 既定の同名エンドポイントより先に評価される
+  endpoints: [forgotPasswordEndpoint],
   hooks: {
     beforeOperation: [replaceInitialPassword, guardResetToken],
     afterOperation: [markActivatedOnReset],
