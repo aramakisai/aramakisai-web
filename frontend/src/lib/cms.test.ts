@@ -389,3 +389,25 @@ describe('cms.findGlobal の timeoutMs / retained', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
+
+describe('cms edge オプション', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('edge: true で __edge=1 を末尾に付け、未指定では付けない', async () => {
+    const fetchMock = vi.fn().mockImplementation(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ docs: [], totalDocs: 0 }),
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    await cms.findMany('stages', { limit: 0 }, { edge: true });
+    await cms.findMany('performance_slots', {});
+    await cms.findGlobal('site_settings', {}, { edge: true });
+    const urls = fetchMock.mock.calls.map((c) => c[0] as string);
+    expect(urls[0]).toBe('http://localhost:3100/api/stages?limit=0&__edge=1');
+    expect(urls[1]).toBe('http://localhost:3100/api/performance_slots');
+    expect(urls[2]).toBe(
+      'http://localhost:3100/api/globals/site_settings?depth=1&__edge=1',
+    );
+  });
+});

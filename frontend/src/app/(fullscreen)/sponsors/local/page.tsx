@@ -24,7 +24,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function RegionalSponsorMapPage() {
   const [data, { phase }, navigation] = await Promise.all([
-    getRegionalSponsorMapData(),
+    getRegionalSponsorMapData({ edge: true }),
     getRequestPhase(),
     getNavigation(),
   ]);

@@ -111,6 +111,8 @@ export type CmsFetchOptions = {
    * read: 長期保持した直近の正常値だけを返す(無ければ 404 相当)。CMS 停止中の代替表示用
    */
   readonly retained?: 'save' | 'read';
+  /** サイト側の取得に付ける。Cloudflare のキャッシュルールが `__edge=1` を目印にエッジで 60 秒キャッシュする */
+  readonly edge?: boolean;
 };
 
 const RETAINED_TTL_SECONDS = 60 * 60 * 24 * 30;
@@ -205,8 +207,11 @@ async function requestUncached<T>(
   }
 }
 
-function withQuery(path: string, query: string): string {
-  return query ? `${path}?${query}` : path;
+// `__edge=1` は Cloudflare のキャッシュルールがエッジで 60 秒キャッシュする目印。
+// 即時反映が要るサイネージ・駐車場の取得には付けない
+function withQuery(path: string, query: string, edge?: boolean): string {
+  const q = edge ? (query ? `${query}&__edge=1` : '__edge=1') : query;
+  return q ? `${path}?${q}` : path;
 }
 
 // site_settings はトップの hero_images を Attachment にするため depth 1 が要る。
@@ -222,7 +227,11 @@ export const cms = {
     options: CmsFetchOptions = {},
   ): Promise<CmsResult<CmsListResponse<CmsCollections[K]>>> {
     return request(
-      withQuery(`/api/${String(collection)}`, buildQueryString(query)),
+      withQuery(
+        `/api/${String(collection)}`,
+        buildQueryString(query),
+        options.edge,
+      ),
       options.ttlSeconds,
       options.version,
     );
@@ -235,9 +244,14 @@ export const cms = {
       CmsQuery<CmsCollections[K]>,
       'depth' | 'joins' | 'select' | 'populate'
     > = {},
+    options: Pick<CmsFetchOptions, 'edge'> = {},
   ): Promise<CmsResult<CmsCollections[K]>> {
     return request(
-      withQuery(`/api/${String(collection)}/${id}`, buildQueryString(query)),
+      withQuery(
+        `/api/${String(collection)}/${id}`,
+        buildQueryString(query),
+        options.edge,
+      ),
     );
   },
 
@@ -252,6 +266,7 @@ export const cms = {
       withQuery(
         `/api/globals/${String(slug)}`,
         buildQueryString({ depth: GLOBAL_DEFAULT_DEPTH[slug] ?? 0, ...query }),
+        options.edge,
       ),
       options.ttlSeconds,
       options.version,
