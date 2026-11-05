@@ -20,6 +20,7 @@ export async function getHomePage(): Promise<HomePageContent> {
       sort: ['-published_at'],
       limit: 10,
       depth: 1,
+      pagination: false,
     }),
     cms.findMany('topics', {
       where: publishedFilter(),

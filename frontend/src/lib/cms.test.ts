@@ -307,6 +307,23 @@ describe('buildQueryString select', () => {
       'select%5Bid%5D=true',
     );
   });
+
+  it('入れ子の select を展開する', () => {
+    expect(
+      buildQueryString({ select: { sizes: { card: { url: true } } } }),
+    ).toBe('select%5Bsizes%5D%5Bcard%5D%5Burl%5D=true');
+  });
+});
+
+describe('buildQueryString joins / pagination', () => {
+  it('joins をパス指定のブラケット記法へ、pagination=false をそのまま展開する', () => {
+    expect(
+      buildQueryString({
+        joins: { 'stage.performance_slots': false },
+        pagination: false,
+      }),
+    ).toBe('joins%5Bstage.performance_slots%5D=false&pagination=false');
+  });
 });
 
 describe('同一引数の取得の重複排除', () => {

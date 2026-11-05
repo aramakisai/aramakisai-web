@@ -20,6 +20,7 @@ export interface SignageQuakeOverlayProps {
   readonly slide: SignageSlide | null;
   readonly snapshot: SignageSnapshot | null;
   readonly now: Date;
+  readonly realNow: Date;
   readonly renderers: SlideRenderers;
 }
 
@@ -200,6 +201,7 @@ export function SignageQuakeOverlay({
   slide,
   snapshot,
   now,
+  realNow,
   renderers,
 }: SignageQuakeOverlayProps) {
   const { stage } = quake;
@@ -259,6 +261,7 @@ export function SignageQuakeOverlay({
           entry={entry}
           snapshot={snapshot}
           now={now}
+          realNow={realNow}
           renderers={renderers}
           transition={false}
         />

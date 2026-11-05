@@ -6,7 +6,7 @@ import sharp from 'sharp';
 import { relationId } from '../collections/parking-cameras';
 import { hashCameraToken } from '../lib/parking-camera-token';
 import type { ParkingDb } from '../lib/parking-db';
-import { readDeviceStatus } from '../lib/parking-device-status';
+import { appendDeviceLog, decodeDeviceLog, readDeviceStatus } from '../lib/parking-device-status';
 import { nextExposure, type ExposureBasis } from '../lib/parking-exposure';
 import { isWithinMonitorWindow } from '../lib/parking-monitor';
 
@@ -78,6 +78,10 @@ export function ingestHandler(
 
     // 端末の不調で画像が拒否されていても、状態だけは遠隔で見えるよう検証より先に書く
     const device = readDeviceStatus(req.headers);
+    // 不正な値は無視してログを変えない。group の更新で log が消えないよう既存値を書き戻す
+    const added = decodeDeviceLog(req.headers.get('x-device-log'));
+    const existingLog = (camera.device_status as { log?: string | null } | null | undefined)?.log ?? null;
+    const log = added === null ? existingLog : appendDeviceLog(existingLog, received, added);
     await payload.update({
       collection: 'parking_cameras',
       id: camera.id,
@@ -88,6 +92,7 @@ export function ingestHandler(
           reset_reason: device.resetReason,
           failures: device.failures,
           firmware: device.firmware,
+          log,
           received_at: received.toISOString(),
         },
       },

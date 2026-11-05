@@ -747,6 +747,7 @@ export interface ParkingCamera {
     reset_reason?: string | null;
     failures?: number | null;
     firmware?: string | null;
+    log?: string | null;
     received_at?: string | null;
   };
   outage_notified_at?: string | null;
@@ -1508,6 +1509,7 @@ export interface ParkingCamerasSelect<T extends boolean = true> {
         reset_reason?: T;
         failures?: T;
         firmware?: T;
+        log?: T;
         received_at?: T;
       };
   outage_notified_at?: T;
@@ -1822,6 +1824,10 @@ export interface SignageSetting {
    * 選んだスライドだけを全画面に表示し続けます。空にすると通常の巡回に戻ります。
    */
   pinned_slide?: (number | null) | SignageSlide;
+  trial_run?: {
+    start_at?: string | null;
+    anchored_at?: string | null;
+  };
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1951,6 +1957,12 @@ export interface SiteSettingsSelect<T extends boolean = true> {
  */
 export interface SignageSettingsSelect<T extends boolean = true> {
   pinned_slide?: T;
+  trial_run?:
+    | T
+    | {
+        start_at?: T;
+        anchored_at?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

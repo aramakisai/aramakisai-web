@@ -40,12 +40,19 @@ export type CmsWhere<T> = {
   or?: readonly CmsWhere<T>[];
 };
 
+/** Payload の select。グループ・配列内のフィールドは入れ子で指定する */
+export type CmsSelect = { readonly [key: string]: boolean | CmsSelect };
+
 export type CmsQuery<T> = {
   readonly where?: CmsWhere<T>;
   readonly sort?: readonly `${'-' | ''}${Extract<keyof T, string>}`[];
   readonly limit?: number;
   readonly depth?: number;
-  readonly select?: Readonly<Record<string, boolean>>;
+  readonly select?: CmsSelect;
+  /** join フィールドの計算を省く。`{ 'group.field': false }` の形で指定する (`joins=false` 一括は Payload が無視する) */
+  readonly joins?: { readonly [path: string]: false };
+  /** false で件数の COUNT クエリを省く。limit は効き、totalDocs は返却件数になる */
+  readonly pagination?: false;
 };
 
 function flatten(prefix: string, value: unknown, out: string[]): void {
@@ -70,7 +77,9 @@ export function buildQueryString(query: {
   sort?: readonly string[];
   limit?: number;
   depth?: number;
-  select?: Readonly<Record<string, boolean>>;
+  select?: CmsSelect;
+  joins?: { readonly [path: string]: false };
+  pagination?: false;
 }): string {
   const parts: string[] = [];
   if (query.where) flatten('where', query.where, parts);
@@ -78,6 +87,8 @@ export function buildQueryString(query: {
   if (query.limit !== undefined) parts.push(`limit=${query.limit}`);
   if (query.depth !== undefined) parts.push(`depth=${query.depth}`);
   if (query.select) flatten('select', query.select, parts);
+  if (query.joins) flatten('joins', query.joins, parts);
+  if (query.pagination === false) parts.push('pagination=false');
   return parts.join('&');
 }
 
@@ -210,7 +221,7 @@ export const cms = {
   findById<K extends CmsCollectionSlug>(
     collection: K,
     id: number | string,
-    query: Pick<CmsQuery<CmsCollections[K]>, 'depth'> = {},
+    query: Pick<CmsQuery<CmsCollections[K]>, 'depth' | 'joins'> = {},
   ): Promise<CmsResult<CmsCollections[K]>> {
     return request(
       withQuery(`/api/${String(collection)}/${id}`, buildQueryString(query)),

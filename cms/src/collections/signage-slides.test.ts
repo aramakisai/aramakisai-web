@@ -27,6 +27,7 @@ describe('SignageSlides', () => {
     expect(SignageSlides.admin?.components?.beforeListTable).toEqual([
       './components/SignageQuakePanel.tsx',
       './components/SignagePinBanner.tsx',
+      './components/SignageTrialPanel.tsx',
       './components/SignageGroupSwitches.tsx',
     ]);
   });

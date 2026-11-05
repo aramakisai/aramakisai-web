@@ -136,17 +136,23 @@ describe.skipIf(!hasDatabase)('駐車場カメラの受信から判定まで', (
       data: { email: `ingest-exec-${suffix}@test.local`, password: 'test-password', role: 'executive' },
       overrideAccess: true,
     });
-    originalMonitor = (await payload.findGlobal({ slug: 'site_settings', depth: 0, overrideAccess: true })).parking_monitor;
+    const settings = await payload.findGlobal({ slug: 'site_settings', depth: 0, overrideAccess: true });
+    originalMonitor = settings.parking_monitor;
+    // CI の空 DB には行が無く、必須の祭名を欠いた更新は検証で落ちる
     await payload.updateGlobal({
       slug: 'site_settings',
-      data: { parking_monitor: { start: '09:00', end: '17:30' } },
+      data: { name: settings.name || 'テスト祭', parking_monitor: { start: '09:00', end: '17:30' } },
       overrideAccess: true,
     });
   });
 
   afterAll(async () => {
     if (originalMonitor) {
-      await payload.updateGlobal({ slug: 'site_settings', data: { parking_monitor: originalMonitor }, overrideAccess: true });
+      await payload.updateGlobal({
+        slug: 'site_settings',
+        data: { name: (await payload.findGlobal({ slug: 'site_settings', depth: 0, overrideAccess: true })).name || 'テスト祭', parking_monitor: originalMonitor },
+        overrideAccess: true,
+      });
     }
     if (executive?.id) await payload.delete({ collection: 'users', id: executive.id, overrideAccess: true }).catch(() => null);
     delete process.env.GEMINI_API_KEY;
@@ -303,6 +309,23 @@ describe.skipIf(!hasDatabase)('駐車場カメラの受信から判定まで', (
     const after = (await readCamera()).device_status;
     expect(after.uptime).toBe(12);
     expect(Date.parse(after.received_at)).toBe((outside + 30) * 1000);
+  });
+
+  it('端末ログを追記し、ヘッダが無い・不正な受信では変えない', async () => {
+    const b64 = (t: string) => Buffer.from(t).toString('base64');
+    const logOf = async () => (await readCamera()).device_status.log as string;
+    await ingest(token, { captured: BASE, headers: { 'x-device-log': b64('a\nb') } });
+    await ingest(token, { captured: BASE + WINDOW, headers: { 'x-device-log': b64('c') } });
+    const lines = (await logOf()).split('\n');
+    expect(lines.filter((l) => l.startsWith('--- '))).toHaveLength(2);
+    expect(lines.filter((l) => !l.startsWith('--- '))).toEqual(['a', 'b', 'c']);
+
+    const before = await logOf();
+    await ingest(token, { captured: BASE + 2 * WINDOW });
+    expect(await logOf()).toBe(before);
+    const bad = await ingest(token, { captured: BASE + 3 * WINDOW, headers: { 'x-device-log': '%%%' } });
+    expect(bad.status).toBe(200);
+    expect(await logOf()).toBe(before);
   });
 
   it('トークンを発行し直すと古い値が、無効化すると新しい値が401になる', async () => {

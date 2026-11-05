@@ -135,6 +135,7 @@ export const ParkingCameras: CollectionConfig = {
         { name: 'reset_reason', type: 'text', label: '直前の再起動の理由', ...systemOwned },
         { name: 'failures', type: 'number', label: '送信失敗の回数', ...systemOwned },
         { name: 'firmware', type: 'text', label: 'ファームウェアの版', ...systemOwned },
+        { name: 'log', type: 'textarea', label: '端末ログ', ...systemOwned },
         systemDate('received_at', '受信時刻'),
       ],
     },

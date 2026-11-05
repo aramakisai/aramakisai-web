@@ -2,7 +2,13 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
-import type { KeyboardEvent, MouseEvent, PointerEvent, ReactNode } from 'react';
+import type {
+  KeyboardEvent,
+  MouseEvent,
+  MutableRefObject,
+  PointerEvent,
+  ReactNode,
+} from 'react';
 import { useIsAboveMapBreakpoint } from './use-is-above-map-breakpoint';
 
 export interface MapBottomSheetSnapContext {
@@ -35,6 +41,10 @@ export interface MapBottomSheetShellProps {
   readonly onTargetHeightChange?: (height: number) => void;
   /** onTargetHeightChange と同じ高さを、伸びる向きの遅延なしで即時に通知する */
   readonly onTargetHeightIntent?: (height: number) => void;
+  /** 親が commit 直後に段の判断材料 (内容高など) を実寸で読むための窓口 */
+  readonly measureRef?: MutableRefObject<
+    (() => MapBottomSheetSnapContext) | null
+  >;
   readonly contentClassName?: string;
   readonly outerClassName?: string;
   readonly sheetShadowClassName?: string;
@@ -55,6 +65,7 @@ export function MapBottomSheetShell({
   onSnapChange,
   onTargetHeightChange,
   onTargetHeightIntent,
+  measureRef,
   contentClassName,
   outerClassName,
   sheetShadowClassName = 'shadow-xl',
@@ -116,6 +127,14 @@ export function MapBottomSheetShell({
       (contentRef.current?.offsetHeight ?? 0);
     return { viewportHeight: window.innerHeight, contentHeight, bottomInset };
   };
+
+  useLayoutEffect(() => {
+    if (!measureRef) return;
+    measureRef.current = measureSnapContext;
+    return () => {
+      measureRef.current = null;
+    };
+  });
 
   const maxSnapPx = () => {
     const context = measureSnapContext();

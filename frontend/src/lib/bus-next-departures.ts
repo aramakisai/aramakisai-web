@@ -44,6 +44,8 @@ const DIRECTIONS: readonly BusDirection[] = ['maebashi', 'shibukawa'];
 
 /** これ以上古いフィードは遅れも車両位置も信用しない */
 const STALE_MS = 5 * 60_000;
+// フィードの車両位置が停留所の手前で止まったままになることがあるため、予定を大きく過ぎたら車両情報を信用しない
+const VEHICLE_GRACE_MS = 2 * 60_000;
 
 /** nextBusDepartures が使うのと同じ鮮度判定。表示側の生成時刻の出し分けにも使う */
 export function isRealtimeFresh(
@@ -102,7 +104,8 @@ export function nextBusDepartures(
       const expectedMs = scheduledMs + delaySeconds * 1000;
       // 車両の位置が分かる便は、時刻を過ぎても停留所を出るまで残す
       const departed = vehicle
-        ? vehicle.currentStopSequence > s.stopSequence
+        ? vehicle.currentStopSequence > s.stopSequence ||
+          nowMs >= expectedMs + VEHICLE_GRACE_MS
         : (update !== undefined && update.stopSequence > s.stopSequence) ||
           nowMs >= expectedMs;
       if (departed) continue;

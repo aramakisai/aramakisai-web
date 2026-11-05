@@ -25,6 +25,7 @@ export function MapBottomSheet({
       // 実コンテンツを持つ filtered 以外は1行の案内だけなので内容高へ縮める
       collapsed={state.kind !== 'filtered'}
       selectedKey={selectedAreaId}
+      fitSmallSelection
       onTargetHeightChange={onTargetHeightChange}
       onTargetHeightIntent={onTargetHeightIntent}
     >

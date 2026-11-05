@@ -19,8 +19,9 @@ import type {
 } from './signage';
 import type { SignagePinState } from './signage-pin';
 import type { SignageQuakeStage } from './signage-quake';
+import { trialShiftMs } from './signage-trial';
 import { getSponsors, mergeSponsorLogos } from './sponsors';
-import { toTimetable } from './timetable';
+import { TIMETABLE_SLOT_SELECT, toTimetable } from './timetable';
 
 export const SIGNAGE_TTL_SECONDS = 15;
 // limit を省くと Payload 既定の 10 件で切れる
@@ -130,12 +131,21 @@ export async function getSignageSnapshot({
     cms.findMany('telops', ORDERED, OPTIONS),
     cms.findMany('lost_items', { ...ALL, depth: 1 }, OPTIONS),
     cms.findMany('stages', { ...ALL, depth: 0 }, OPTIONS),
-    cms.findMany('performance_slots', { ...ALL, depth: 1 }, OPTIONS),
+    cms.findMany(
+      'performance_slots',
+      { ...ALL, depth: 1, select: TIMETABLE_SLOT_SELECT },
+      OPTIONS,
+    ),
     getSponsors(OPTIONS),
     getParkingResponse({ version }),
     cms.findMany(
       'signage_groups',
-      { where: { is_quake: { equals: true } }, depth: 1, limit: 1 },
+      {
+        where: { is_quake: { equals: true } },
+        depth: 1,
+        limit: 1,
+        pagination: false,
+      },
       OPTIONS,
     ),
   ]);
@@ -164,11 +174,17 @@ export async function getSignageSnapshot({
     }),
   );
 
+  const serverNow = new Date().toISOString();
   return {
     ok: true,
     value: {
       fetchedAt: new Date().toISOString(),
-      serverNow: new Date().toISOString(),
+      serverNow,
+      trialShiftMs: trialShiftMs(
+        settings.value.trial_run,
+        (meta.value.event_days ?? []).map((d) => d.start_at),
+        serverNow,
+      ),
       pinnedSlideId: pinnedSlideId(settings.value.pinned_slide),
       eventDays: toEventDays(meta.value.event_days),
       slides: slides.value.docs

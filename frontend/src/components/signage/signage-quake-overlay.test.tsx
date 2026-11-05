@@ -12,6 +12,7 @@ import { SignageQuakeOverlay } from './signage-quake-overlay';
 type Active = Extract<SignageQuakePayload, { active: true }>;
 const NOTE = '気象庁が発表した情報を転送した参考情報です。';
 const now = new Date('2026-11-01T05:12:00Z');
+const realNow = new Date('2026-10-20T05:12:00Z');
 const quake = (over: Partial<Active> = {}): Active => ({
   active: true,
   stage: 'warning',
@@ -51,6 +52,7 @@ const view = (q: Active, slide: SignageSlide | null = null) =>
       slide={slide}
       snapshot={snapshot}
       now={now}
+      realNow={realNow}
       renderers={renderers}
     />,
   );
@@ -165,6 +167,26 @@ describe('SignageQuakeOverlay', () => {
   it('スライドがあれば枠にそのスライドを出す', () => {
     view(quake(), layoutSlide);
     expect(screen.getByTestId('slide')).toBeTruthy();
+  });
+
+  it('スライドの部品に実時刻を渡す(試験時刻で実データの鮮度を判定しない)', () => {
+    const seen: Date[] = [];
+    render(
+      <SignageQuakeOverlay
+        quake={quake()}
+        slide={layoutSlide}
+        snapshot={snapshot}
+        now={now}
+        realNow={realNow}
+        renderers={{
+          layout: (p) => {
+            seen.push(p.realNow);
+            return null;
+          },
+        }}
+      />,
+    );
+    expect(seen.at(-1)).toBe(realNow);
   });
 
   it('音を鳴らす要素を持たない', () => {

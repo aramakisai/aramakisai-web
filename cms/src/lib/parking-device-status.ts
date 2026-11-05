@@ -26,3 +26,20 @@ export function readDeviceStatus(headers: Headers): DeviceStatus {
     firmware: matching(headers.get('x-device-firmware'), /^[\x20-\x7E]{1,64}$/),
   };
 }
+
+const LOG_MAX_LINES = 200;
+
+/** X-Device-Log (標準 base64 の UTF-8) を復号する。base64・UTF-8 として不正なら null */
+export function decodeDeviceLog(value: string | null): string | null {
+  if (!value || value.length % 4 !== 0 || !/^[A-Za-z0-9+/]+={0,2}$/.test(value)) return null;
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(Buffer.from(value, 'base64'));
+  } catch {
+    return null;
+  }
+}
+
+export function appendDeviceLog(existing: string | null | undefined, received: Date, added: string): string {
+  const lines = [...(existing ? existing.split('\n') : []), `--- ${received.toISOString()}`, ...added.split('\n')];
+  return lines.slice(-LOG_MAX_LINES).join('\n');
+}

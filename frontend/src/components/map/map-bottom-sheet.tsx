@@ -1,10 +1,11 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
   MapBottomSheetShell,
   type MapBottomSheetSnap,
+  type MapBottomSheetSnapContext,
 } from '@/components/map/map-bottom-sheet-shell';
 
 export interface MapBottomSheetProps {
@@ -13,6 +14,8 @@ export interface MapBottomSheetProps {
   readonly collapsed: boolean;
   /** 選択中の対象。値が変わって null でなければ minimum/fit から standard へ引き上げる */
   readonly selectedKey?: number | string | null;
+  /** true なら、対象を選んだ時に内容高が standard 以下のとき standard でなく fit まで開く */
+  readonly fitSmallSelection?: boolean;
   /** 段の切替ごとに、行き先の高さ (px) を1回呼ぶ。地図側コントロールの余白追従に使う */
   readonly onTargetHeightChange?: (height: number) => void;
   readonly onTargetHeightIntent?: (height: number) => void;
@@ -70,13 +73,16 @@ export function MapBottomSheet({
   children,
   collapsed,
   selectedKey = null,
+  fitSmallSelection = false,
   onTargetHeightChange,
   onTargetHeightIntent,
 }: MapBottomSheetProps) {
   const restSnapId: SheetSnapId = collapsed ? 'fit' : 'standard';
+  const [snapId, setSnapId] = useState<SheetSnapId>(restSnapId);
+  const hasFit = collapsed || (fitSmallSelection && snapId === 'fit');
   const snaps = useMemo(
     () =>
-      collapsed
+      hasFit
         ? [
             SHEET_SNAPS.minimum,
             SHEET_SNAPS.fit,
@@ -90,9 +96,8 @@ export function MapBottomSheet({
             SHEET_SNAPS.large,
             SHEET_SNAPS.full,
           ],
-    [collapsed],
+    [hasFit],
   );
-  const [snapId, setSnapId] = useState<SheetSnapId>(restSnapId);
 
   // 描画後の effect で段を替えると、替わる前の段で1フレーム描かれる
   // (fit は内容高なので、一覧が出た直後は一覧全体の高さになる)。描画中に state を直す
@@ -114,8 +119,23 @@ export function MapBottomSheet({
     }
   }
 
+  // 内容高は commit 後の実寸でしか分からない。描画前 (layout effect) に段を決め直す
+  const measureRef = useRef<(() => MapBottomSheetSnapContext) | null>(null);
+  useLayoutEffect(() => {
+    if (!fitSmallSelection || collapsed || selectedKey === null) return;
+    const context = measureRef.current?.();
+    if (!context) return;
+    const next = context.contentHeight <= MID_SNAP_PX ? 'fit' : 'standard';
+    setSnapId((current) =>
+      current === 'minimum' || current === 'fit' || current === 'standard'
+        ? next
+        : current,
+    );
+  }, [fitSmallSelection, collapsed, selectedKey]);
+
   return (
     <MapBottomSheetShell
+      measureRef={measureRef}
       snaps={snaps}
       snapId={snapId}
       restSnapId={restSnapId}

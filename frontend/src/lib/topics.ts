@@ -33,6 +33,7 @@ export async function getTopicById(id: number): Promise<TopicSummary | null> {
     where: { id: { equals: id }, ...publishedFilter() },
     limit: 1,
     depth: 1,
+    pagination: false,
   });
   if (!result.ok) return null;
   const topic = result.value.docs[0];

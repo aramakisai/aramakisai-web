@@ -238,7 +238,7 @@ Falco の許可リストには Payload 用のエントリを追加しない。�
 ```bash
 make signage-dev      # サイネージ(ハブ込み)
 make quake-dev        # リレー。ポートは signage-dev+2000。Infisical prod から SIGNAGE_QUAKE_TOKEN と DISCORD_QUAKE_WEBHOOK_URL を取得する
-make cms-worktree     # CMS。SIGNAGE_QUAKE_URL を quake-dev へ向けて起動する
+make cms-worktree     # CMS。SIGNAGE_QUAKE_URL を quake-dev へ、SIGNAGE_NOTIFY_URL を signage-dev へ向けて起動する
 ```
 
 `quake-dev` は稼働期間を現在の前後 1 日にし (`QUAKE_DEV_FROM` / `QUAKE_DEV_UNTIL` で上書き)、P2P はサンドボックスへ接続する。保存した JSON は `frontend/scripts/quake-inject.ts` で投入する。
