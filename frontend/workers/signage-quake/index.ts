@@ -51,6 +51,28 @@ interface Connection {
   /** P2Pのみ: 上流にあるのに受け取っていない情報がある */
   missed: boolean;
   probedAt: number;
+  /** 現在の接続で受け取った件数 */
+  received: number;
+  lastClose: CloseRecord | null;
+}
+
+type CloseCause =
+  | 'upstream_close'
+  | 'error'
+  | 'silence'
+  | 'missed'
+  | 'out_of_period';
+
+interface CloseRecord {
+  at: number;
+  code: number | null;
+  reason: string;
+  cause: CloseCause;
+}
+
+interface CloseDetail {
+  code?: number;
+  reason?: string;
 }
 
 const newConnection = (): Connection => ({
@@ -62,6 +84,8 @@ const newConnection = (): Connection => ({
   retryAt: 0,
   missed: false,
   probedAt: 0,
+  received: 0,
+  lastClose: null,
 });
 
 // fetch の Upgrade は http(s) スキームでしか受け付けない
@@ -183,6 +207,7 @@ export class QuakeRelay
   async #onMessage(channel: ChannelName, data: unknown): Promise<void> {
     const conn = this.#conns[channel];
     conn.lastReceivedAt = Date.now();
+    conn.received += 1;
     conn.failures = 0;
     conn.missed = false;
     if (typeof data !== 'string') return;
@@ -193,9 +218,25 @@ export class QuakeRelay
     }
   }
 
-  #close(channel: ChannelName, ws: WebSocket | null): void {
+  #close(
+    channel: ChannelName,
+    ws: WebSocket | null,
+    cause: CloseCause,
+    detail: CloseDetail = {},
+  ): void {
     const conn = this.#conns[channel];
     if (!ws || conn.ws !== ws) return;
+    const at = Date.now();
+    const record: CloseRecord = {
+      at,
+      code: detail.code ?? null,
+      reason: detail.reason ?? '',
+      cause,
+    };
+    conn.lastClose = record;
+    console.warn(
+      `quake: ${channel} が切断 cause=${cause} code=${record.code} reason=${JSON.stringify(record.reason)} openMs=${at - conn.openedAt} received=${conn.received}`,
+    );
     conn.ws = null;
     conn.retryAt = Date.now() + retryDelayMs(conn.failures, Math.random);
     conn.failures += 1;
@@ -223,12 +264,22 @@ export class QuakeRelay
       ws.accept();
       conn.ws = ws;
       conn.openedAt = Date.now();
+      conn.received = 0;
       ws.addEventListener(
         'message',
         (e) => void this.#onMessage(channel, e.data),
       );
-      ws.addEventListener('close', () => this.#close(channel, ws));
-      ws.addEventListener('error', () => this.#close(channel, ws));
+      ws.addEventListener('close', (e) =>
+        this.#close(channel, ws, 'upstream_close', {
+          code: e.code,
+          reason: e.reason,
+        }),
+      );
+      ws.addEventListener('error', (e) =>
+        this.#close(channel, ws, 'error', {
+          reason: (e as { message?: string }).message ?? '',
+        }),
+      );
     } catch (error) {
       console.warn(`quake: ${channel} に接続できない`, error);
       conn.retryAt = Date.now() + retryDelayMs(conn.failures, Math.random);
@@ -273,7 +324,7 @@ export class QuakeRelay
       return;
     }
     conn.missed = true;
-    this.#close('p2p', conn.ws);
+    this.#close('p2p', conn.ws, 'missed');
   }
 
   async ensure(): Promise<void> {
@@ -282,7 +333,7 @@ export class QuakeRelay
     const now = Date.now();
     if (!isInPeriod(config, now)) {
       for (const channel of CHANNELS)
-        this.#close(channel, this.#conns[channel].ws);
+        this.#close(channel, this.#conns[channel].ws, 'out_of_period');
       await this.ctx.storage.deleteAlarm();
       return;
     }
@@ -296,7 +347,7 @@ export class QuakeRelay
         now - staleSince(conn.lastReceivedAt, conn.openedAt) >
           SILENCE_LIMIT_MS[channel]
       ) {
-        this.#close(channel, conn.ws);
+        this.#close(channel, conn.ws, 'silence');
       }
       if (!conn.ws && !conn.connecting && now >= conn.retryAt) {
         toConnect.push(channel);
@@ -359,6 +410,12 @@ export class QuakeRelay
         lastReceivedAt: iso(conn.lastReceivedAt),
         receiving: receiving[channel],
         test: config.test[channel],
+        failures: conn.failures,
+        retryAt: conn.ws || !conn.retryAt ? null : iso(conn.retryAt),
+        lastClose: conn.lastClose && {
+          ...conn.lastClose,
+          at: iso(conn.lastClose.at)!,
+        },
       };
     }
     const inPeriod = isInPeriod(config, now);
