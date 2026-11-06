@@ -1,0 +1,15 @@
+diff --git a/dist/getFile.js b/dist/getFile.js
+index becaec670d69427eaa696b276795bb97358ed406..3a7ebce07b4dd8cdae4051a0e26307b249070500 100644
+--- a/dist/getFile.js
++++ b/dist/getFile.js
+@@ -105,6 +105,10 @@ export async function getFile({ bucket, client, clientUploadContext, collection,
+             }) || headers;
+         }
+         if (etagFromHeaders && etagFromHeaders === objectEtag) {
++            // 本文の無い 304 に実体サイズの Content-Length が残ると、Cloudflare がオリジン応答不正として 520 を返す
++            headers.delete('Content-Length');
++            headers.delete('Accept-Ranges');
++            headers.delete('Content-Range');
+             return new Response(null, {
+                 headers,
+                 status: 304
