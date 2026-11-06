@@ -5,6 +5,8 @@ import Page, { generateMetadata } from './page';
 import * as homePageModule from '@/lib/home-page';
 import * as phaseModule from '@/lib/request-phase';
 import * as exhibitionsModule from '@/lib/exhibitions';
+import * as pickRandomModule from '@/lib/pick-random';
+import * as boothsModule from '@/lib/corporate-booths';
 import * as sponsorsModule from '@/lib/sponsors';
 import * as regionalSponsorsModule from '@/lib/regional-sponsors';
 import * as siteMetadataModule from '@/lib/site-metadata';
@@ -43,8 +45,18 @@ vi.mock('@/lib/request-phase', () => ({
 vi.mock('@/lib/exhibitions', async () => {
   const actual =
     await vi.importActual<typeof exhibitionsModule>('@/lib/exhibitions');
-  return { ...actual, getExhibitionListData: vi.fn() };
+  return { ...actual, getExhibitionCatalog: vi.fn() };
 });
+
+vi.mock('@/lib/pick-random', async () => {
+  const actual =
+    await vi.importActual<typeof pickRandomModule>('@/lib/pick-random');
+  return { ...actual, pickRandom: vi.fn(actual.pickRandom) };
+});
+
+vi.mock('@/lib/corporate-booths', () => ({
+  getCorporateBoothCards: vi.fn(),
+}));
 
 vi.mock('@/lib/sponsors', async () => {
   const actual = await vi.importActual<typeof sponsorsModule>('@/lib/sponsors');
@@ -331,20 +343,17 @@ function makeExhibition(id: number): ExhibitionCardSummary {
 
 describe('Page (開催中フェーズ)', () => {
   beforeEach(() => {
+    vi.mocked(pickRandomModule.pickRandom).mockClear();
     vi.mocked(phaseModule.getRequestPhase).mockResolvedValue({
       phase: 'live',
       source: 'constant',
     });
     vi.mocked(homePageModule.getHomePage).mockResolvedValue(content);
-    vi.mocked(exhibitionsModule.getExhibitionListData).mockResolvedValue({
-      items: [],
-      total: 0,
-      page: 1,
-      pageCount: 0,
-      rangeStart: 0,
-      rangeEnd: 0,
+    vi.mocked(exhibitionsModule.getExhibitionCatalog).mockResolvedValue({
+      cards: [],
       areas: [],
     });
+    vi.mocked(boothsModule.getCorporateBoothCards).mockResolvedValue([]);
     vi.mocked(sponsorsModule.getSponsors).mockResolvedValue({
       ok: true,
       value: { ad: [], local: [], vendor: [], other: [] },
@@ -450,14 +459,8 @@ describe('Page (開催中フェーズ)', () => {
   });
 
   it('企画の検索欄と、取得した企画からのカードを表示する (要件3.2)', async () => {
-    const exhibitions = [makeExhibition(1), makeExhibition(2)];
-    vi.mocked(exhibitionsModule.getExhibitionListData).mockResolvedValue({
-      items: exhibitions,
-      total: 2,
-      page: 1,
-      pageCount: 1,
-      rangeStart: 1,
-      rangeEnd: 2,
+    vi.mocked(exhibitionsModule.getExhibitionCatalog).mockResolvedValue({
+      cards: [makeExhibition(1), makeExhibition(2)],
       areas: [],
     });
 
@@ -471,8 +474,70 @@ describe('Page (開催中フェーズ)', () => {
     expect(screen.getByRole('link', { name: '企画2' })).toBeInTheDocument();
   });
 
+  it('候補は学生企画だけで、表示は4件のまま (要件2.1, 2.2)', async () => {
+    vi.mocked(exhibitionsModule.getExhibitionCatalog).mockResolvedValue({
+      cards: Array.from({ length: 5 }, (_, i) => makeExhibition(i + 1)),
+      areas: [],
+    });
+    vi.mocked(boothsModule.getCorporateBoothCards).mockResolvedValue(
+      Array.from({ length: 3 }, (_, i) => ({
+        ...makeExhibition(i + 1),
+        category: 'booth' as const,
+      })),
+    );
+    const random = vi.spyOn(Math, 'random').mockReturnValue(0.999);
+
+    const ui = await Page();
+    render(ui);
+    random.mockRestore();
+
+    const hrefs = screen
+      .getAllByRole('link')
+      .map((l) => l.getAttribute('href') ?? '')
+      .filter((h) => /^\/exhibitions\/./.test(h));
+    expect(hrefs).toHaveLength(4);
+    expect(hrefs.some((h) => h.includes('booth'))).toBe(false);
+  });
+
+  it('選出の候補に一覧2ページ目以降の学生企画のカードが含まれ、企業ブースのカードが含まれない (要件2.1)', async () => {
+    vi.mocked(exhibitionsModule.getExhibitionCatalog).mockResolvedValue({
+      cards: Array.from({ length: 30 }, (_, i) => makeExhibition(i + 1)),
+      areas: [],
+    });
+    vi.mocked(boothsModule.getCorporateBoothCards).mockResolvedValue([
+      { ...makeExhibition(1), category: 'booth' as const },
+    ]);
+
+    render(await Page());
+
+    const candidates = vi.mocked(pickRandomModule.pickRandom).mock
+      .calls[0]![0] as readonly { id: number; category: string }[];
+    expect(candidates).toHaveLength(30);
+    expect(
+      candidates.some((c) => c.category === 'exhibit' && c.id === 26),
+    ).toBe(true);
+    expect(candidates.some((c) => c.category === 'booth')).toBe(false);
+  });
+
+  it('学生企画の取得に失敗したら注目企画は空で表示する (要件2.1)', async () => {
+    vi.mocked(exhibitionsModule.getExhibitionCatalog).mockRejectedValue(
+      new Error('CMS Error'),
+    );
+
+    render(await Page());
+
+    expect(
+      screen
+        .queryAllByRole('link')
+        .filter((l) => /^\/exhibitions\/./.test(l.getAttribute('href') ?? '')),
+    ).toHaveLength(0);
+  });
+
   it('企画一覧の取得に失敗しても検索欄と導線は残る (要件3.2)', async () => {
-    vi.mocked(exhibitionsModule.getExhibitionListData).mockRejectedValue(
+    vi.mocked(exhibitionsModule.getExhibitionCatalog).mockRejectedValue(
+      new Error('CMS Error'),
+    );
+    vi.mocked(boothsModule.getCorporateBoothCards).mockRejectedValue(
       new Error('CMS Error'),
     );
 

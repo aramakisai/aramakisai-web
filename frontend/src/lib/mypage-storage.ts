@@ -28,21 +28,35 @@ export interface SavedBookmarkRef {
   readonly savedAt: string;
 }
 
+export interface SavedHistoryRef {
+  readonly id: number;
+  readonly category: ExhibitionCategory;
+  readonly viewedAt: string;
+}
+
 export interface MypageData {
   readonly version: 1;
   readonly visitorId?: string;
   readonly lists: {
     readonly bookmarks: readonly SavedBookmarkRef[];
+    readonly history: readonly SavedHistoryRef[];
   };
 }
 
 export type AddResult = 'added' | 'exists' | 'unavailable';
 export type RemoveResult = 'removed' | 'absent' | 'unavailable';
+export type RecordResult = 'recorded' | 'unavailable';
+export type ClearResult =
+  | { readonly kind: 'cleared'; readonly count: number }
+  | { readonly kind: 'unavailable' };
 
-function isRef(
+export const HISTORY_LIMIT = 20;
+
+function isRef<K extends string>(
   value: unknown,
   isCategory: (c: string) => boolean,
-): value is { id: number; category: string; savedAt: string } {
+  timeKey: K,
+): value is { id: number; category: string } & Record<K, string> {
   if (typeof value !== 'object' || value === null) return false;
   const v = value as Record<string, unknown>;
   return (
@@ -51,15 +65,29 @@ function isRef(
     v.id > 0 &&
     typeof v.category === 'string' &&
     isCategory(v.category) &&
-    typeof v.savedAt === 'string'
+    typeof v[timeKey] === 'string'
   );
 }
 
 const isSavedBookmark = (v: unknown): v is SavedBookmarkRef =>
-  isRef(v, (c) => (BOOKMARK_CATEGORIES as readonly string[]).includes(c));
+  isRef(
+    v,
+    (c) => (BOOKMARK_CATEGORIES as readonly string[]).includes(c),
+    'savedAt',
+  );
+
+const isSavedHistory = (v: unknown): v is SavedHistoryRef =>
+  isRef(
+    v,
+    (c) => (BOOKMARK_CATEGORIES as readonly string[]).includes(c),
+    'viewedAt',
+  );
 
 export function parseMypageData(raw: string | null): MypageData {
-  const empty: MypageData = { version: 1, lists: { bookmarks: [] } };
+  const empty: MypageData = {
+    version: 1,
+    lists: { bookmarks: [], history: [] },
+  };
   if (raw === null) return empty;
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -72,7 +100,10 @@ export function parseMypageData(raw: string | null): MypageData {
     if (version !== 1 || typeof lists !== 'object' || lists === null) {
       return empty;
     }
-    const { bookmarks } = lists as { bookmarks?: unknown };
+    const { bookmarks, history } = lists as {
+      bookmarks?: unknown;
+      history?: unknown;
+    };
     return {
       version: 1,
       ...(isVisitorId(visitorId) ? { visitorId } : {}),
@@ -80,6 +111,7 @@ export function parseMypageData(raw: string | null): MypageData {
         bookmarks: Array.isArray(bookmarks)
           ? bookmarks.filter(isSavedBookmark)
           : [],
+        history: Array.isArray(history) ? history.filter(isSavedHistory) : [],
       },
     };
   } catch {
@@ -136,7 +168,10 @@ export function addBookmark(
     return 'exists';
   }
   const item = { id, category, savedAt: new Date().toISOString() };
-  return write({ ...data, lists: { bookmarks: [...current, item] } })
+  return write({
+    ...data,
+    lists: { ...data.lists, bookmarks: [...current, item] },
+  })
     ? 'added'
     : 'unavailable';
 }
@@ -151,7 +186,35 @@ export function removeBookmark(
     (b) => !(b.id === id && b.category === category),
   );
   if (rest.length === data.lists.bookmarks.length) return 'absent';
-  return write({ ...data, lists: { bookmarks: rest } })
+  return write({ ...data, lists: { ...data.lists, bookmarks: rest } })
     ? 'removed'
     : 'unavailable';
+}
+
+export function recordHistory(
+  id: number,
+  category: ExhibitionCategory,
+  now: Date = new Date(),
+): RecordResult {
+  const data = readMypageData();
+  if (!data) return 'unavailable';
+  const item = { id, category, viewedAt: now.toISOString() };
+  const history = [
+    item,
+    ...data.lists.history.filter(
+      (h) => !(h.id === id && h.category === category),
+    ),
+  ].slice(0, HISTORY_LIMIT);
+  return write({ ...data, lists: { ...data.lists, history } })
+    ? 'recorded'
+    : 'unavailable';
+}
+
+export function clearHistory(): ClearResult {
+  const data = readMypageData();
+  if (!data) return { kind: 'unavailable' };
+  const count = data.lists.history.length;
+  return write({ ...data, lists: { ...data.lists, history: [] } })
+    ? { kind: 'cleared', count }
+    : { kind: 'unavailable' };
 }

@@ -1,10 +1,18 @@
 import { env } from '@/env';
 import type { CapabilityFlags } from './client-capabilities';
 import type { ExhibitionCategory } from './exhibitions';
+import type { GaItem, ItemListId } from './item-list';
 
 export interface ExhibitionEventParams {
   readonly exhibition_id: number;
   readonly exhibition_category: ExhibitionCategory;
+}
+
+interface ItemListParams {
+  readonly item_list_id: ItemListId;
+  readonly item_list_name: ItemListId;
+  // 企画一覧のみ付ける
+  readonly list_filtered?: 'true' | 'false';
 }
 
 type GaResult<T extends string> = { readonly result: T };
@@ -73,6 +81,9 @@ export interface GaEventMap {
     readonly vitals_page: string;
   };
   client_capabilities: CapabilityFlags;
+  view_item_list: ItemListParams & { readonly items: readonly GaItem[] };
+  select_item: ItemListParams & { readonly items: readonly [GaItem] };
+  history_clear: { readonly item_count: number };
 }
 
 type GaEventName = keyof GaEventMap;
@@ -81,6 +92,8 @@ type DataLayerWindow = Window & { dataLayer?: unknown[] };
 
 let initialized = false;
 let gtagRequested = false;
+// 次の page_view の page_referrer にする。gtag.js 既定の document.referrer は SPA 遷移では更新されない
+let lastLocation: string | undefined;
 
 export function isGaEnabled(): boolean {
   return (
@@ -143,7 +156,8 @@ export function setPageLocation(): void {
   try {
     if (!isGaEnabled()) return;
     ensureInit();
-    push('set', { page_location: currentLocation() });
+    lastLocation = currentLocation();
+    push('set', { page_location: lastLocation });
   } catch {
     // 同上
   }
@@ -152,8 +166,10 @@ export function setPageLocation(): void {
 export function trackPageView(): void {
   try {
     if (!isGaEnabled()) return;
+    const referrer = lastLocation;
     setPageLocation();
-    push('event', 'page_view');
+    if (referrer) push('event', 'page_view', { page_referrer: referrer });
+    else push('event', 'page_view');
   } catch {
     // 同上
   }
