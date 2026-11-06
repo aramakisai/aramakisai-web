@@ -30,7 +30,7 @@
 - **Context**: 注目企画が一覧1ページ目からしか選ばれない
 - **Sources Consulted**: `frontend/src/app/(site)/page.tsx:66-75,140-144`、`frontend/src/components/featured-exhibitions.tsx:13-14`、`frontend/src/lib/pick-random.ts`
 - **Findings**: `getExhibitionListData(parseExhibitionQuery({}))` の `items`(id順24件)から `pickRandom(…, 4)` している。サーバーコンポーネントのため、選出はISRの再生成ごと(最短60秒)に1回
-- **Implications**: 候補を企画一覧と同じ全カード(学生企画+企業ブース)に変える。選出の粒度(再生成ごと)は変えない。時間で露出が均される
+- **Implications**: 候補を学生企画の全カードに変える。企業ブースは含めない。選出の粒度(再生成ごと)は変えない。時間で露出が均される
 
 ### GA4 の一覧計測
 - **Context**: 掲載位置・一覧の種別を集計できるようにする(Req 5.1-5.3, 5.7)

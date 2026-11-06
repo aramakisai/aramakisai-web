@@ -5,11 +5,11 @@
 
 **Users**: 来場者は企画一覧・トップページ・マイページで企画を探して開く。実行委員はGA4で掲載位置ごとのクリック率と企画詳細への遷移元を見る。
 
-**Impact**: 企画一覧の既定の並びが企画id順から、タブごとのランダム順に変わる。注目企画の候補が一覧1ページ目の24件から全カードに広がる。マイページに「履歴」タブが増える。全ページのページ閲覧にサイト内の参照元が付く。
+**Impact**: 企画一覧の学生企画の既定の並びが企画id順から、タブごとのランダム順に変わる。企業ブースは従来どおり学生企画すべての後ろに企画id順で並ぶ。注目企画の候補が一覧1ページ目の24件から学生企画の全カードに広がる。マイページに「履歴」タブが増える。全ページのページ閲覧にサイト内の参照元が付く。
 
 ### Goals
-- 企画一覧の並びをタブ単位のランダム順にし、同じタブの中では変えない
-- 注目企画を全カードから選ぶ
+- 企画一覧の学生企画の並びをタブ単位のランダム順にし、同じタブの中では変えない
+- 注目企画を学生企画の全カードから選ぶ
 - 企画詳細の閲覧履歴を20件まで端末内に残し、マイページで一覧・消去できるようにする
 - GA4の標準のアイテム一覧レポートで、一覧の種別ごと・掲載位置ごとの表示数とクリック数を集計できるようにする
 
@@ -128,7 +128,7 @@ frontend/src/
 
 ### Modified Files
 - `frontend/src/components/exhibition-list.tsx` — 並び順の確定、確定までの不可視化、`priority` の付与対象、`ItemListTracker` の配置
-- `frontend/src/app/(site)/page.tsx` — 注目企画の候補を全カード(学生企画+企業ブース)に変更
+- `frontend/src/app/(site)/page.tsx` — 注目企画の候補を学生企画の全カードに変更
 - `frontend/src/components/featured-exhibitions.tsx` — `ItemListTracker`(`home_featured`)で包む
 - `frontend/src/app/(site)/exhibitions/[id]/[category]/page.tsx` — `HistoryRecorder` を配置
 - `frontend/src/lib/mypage-storage.ts` — `lists.history` の型・検証・記録・消去
@@ -183,7 +183,7 @@ sequenceDiagram
 | 1.5 | 並べ替わりを見せない | ExhibitionList | 不可視化、`useLayoutEffect` | 初期表示 |
 | 1.6 | 保存不可でもランダム | ExhibitionOrder | `readOrCreateSeed` のフォールバック | — |
 | 1.7 | 件数・検索等を変えない | ExhibitionList | 既存関数をそのまま使用 | — |
-| 2.1 | 注目企画を全カードから | HomePage | `getFeaturedExhibitions` | — |
+| 2.1 | 注目企画を学生企画の全カードから | HomePage | `getFeaturedExhibitions` | — |
 | 2.2 | 件数・形を変えない | FeaturedExhibitions | `FEATURED_COUNT = 4` | — |
 | 3.1-3.3 | 記録・重複更新・20件 | HistoryRecorder, MypageStorage | `recordHistory` | 閲覧履歴 |
 | 3.4-3.7 | 端末内のみ・共存・検証 | MypageStorage | `parseMypageData`, `write` | — |
@@ -206,7 +206,7 @@ sequenceDiagram
 | HistoryRecorder | UI(client) | 企画詳細の表示を履歴に記録 | 3.1, 3.8 | MypageStorage (P0) | — |
 | MypageStorage(変更) | lib | 履歴の検証・記録・消去 | 3.1-3.7 | localStorage (P0) | Service, State |
 | ExhibitionList(変更) | UI(client) | 並び順の適用と不可視化 | 1.1-1.7, 5.1, 5.4 | ExhibitionOrder (P0), ItemListTracker (P1) | — |
-| HomePage / FeaturedExhibitions(変更) | UI(server) | 全カードから注目企画を選ぶ | 2.1, 2.2, 5.3 | catalog (P0), ItemListTracker (P1) | — |
+| HomePage / FeaturedExhibitions(変更) | UI(server) | 学生企画の全カードから注目企画を選ぶ | 2.1, 2.2, 5.3 | catalog (P0), ItemListTracker (P1) | — |
 | MypageView(変更) | UI(client) | 履歴タブと消去 | 4.1-4.8, 5.3, 5.5 | MypageStorage (P0), ItemListTracker (P1) | — |
 | Analytics(変更) | lib | イベント型の追加と参照元の付与 | 5.5, 5.6, 5.8 | gtag.js (P0) | Event, State |
 
@@ -383,13 +383,13 @@ interface ItemListTrackerProps {
 
 #### ExhibitionList(変更)
 - 状態にシード(未確定は `null`)を加える。既存の `useLayoutEffect`(URL条件の復元)の中で `readOrCreateSeed` を呼び、シードと条件を同時に確定する
-- 並びは `orderCards(cards, seed)` を `useMemo` で求め、既存の `filterExhibitions` → `paginate` に渡す
+- 並びは学生企画のカードだけを `orderCards(studentCards, seed)` で並べ、その後ろに企業ブース(`category === 'booth'`)のカードを受け取った順(企画id順)のまま連結したものを `useMemo` で求め、既存の `filterExhibitions` → `paginate` に渡す
 - シード未確定の間はカード領域を不可視にする(領域の高さは保つ)。`noscript` 内のスタイルで可視化し、JavaScriptが動かない環境では企画id順で表示する
 - `priority` はシード確定後の表示中の先頭4件にだけ付け、未確定の間は付けない
 - 表示中のページのカードを `toItemListEntries(items, rangeStart)` に変換し、`ItemListTracker`(`exhibitions`、`filtered` は検索語・カテゴリ・エリアのいずれかが指定されているか)で包む
 
 #### HomePage / FeaturedExhibitions(変更)
-- `getFeaturedExhibitions` は `exhibitions/page.tsx` と同じく `getExhibitionCatalog` と `getCorporateBoothCards` の全カードを返す。片方の取得に失敗したときは取れた方だけを候補にし、両方失敗したら空にする(既存の「取得失敗時は空扱い」を保つ)
+- `getFeaturedExhibitions` は `getExhibitionCatalog` の学生企画の全カードを返す。企業ブースは候補に含めない。取得に失敗したら空にする(既存の「取得失敗時は空扱い」を保つ)
 - 選出は既存の `pickRandom(…, 4)` のまま。選んだ4件を `ItemListTracker`(`home_featured`)で包む
 
 #### MypageView(変更)
@@ -432,7 +432,7 @@ interface ItemListTrackerProps {
   - `parseMypageData`: `history` の欠落を空として読む、不正要素だけを除く
   - `trackPageView`: 初回は `page_referrer` なし、2回目は直前の位置が入る、`setPageLocation` の後は更新された位置が入る
 - Component
-  - `ExhibitionList`: シード確定前は不可視、確定後に並べ替えた順で表示、絞り込み後の相対順、ページ送りで `view_item_list` の `index` が25から始まる
+  - `ExhibitionList`: シード確定前は不可視、確定後に並べ替えた順で表示、企業ブースは常に学生企画すべての後ろに企画id順で並ぶ、絞り込み後の相対順、ページ送りで `view_item_list` の `index` が25から始まる
   - `ItemListTracker`: 同じ項目で再描画しても1回だけ送る、カードのリンクで `select_item`、ブックマークボタンでは送らない
   - `MypageView`: 履歴タブ、新しい順、非公開の除外、空表示、消去で一覧が空になり `history_clear` を送る、`#history` で開く
 - E2E(`e2e/exhibitions.spec.ts` ほか)
