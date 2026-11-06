@@ -8,6 +8,8 @@ const dirname = path.dirname(__filename)
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  // Cloudflare が圧縮するためオリジンでの二重圧縮を避ける
+  compress: false,
   images: {
     localPatterns: [
       {

@@ -1,6 +1,7 @@
+import { unstable_doesMiddlewareMatch } from 'next/experimental/testing/server'
 import { describe, expect, it } from 'vitest'
 
-import { isBlockedInternalApi } from './proxy'
+import { config, isBlockedInternalApi } from './proxy'
 
 const blocked = (method: string, path: string, query = '') => isBlockedInternalApi(method, path, new URLSearchParams(query))
 
@@ -45,5 +46,30 @@ describe('isBlockedInternalApi', () => {
     expect(blocked('GET', '/api/users')).toBe(false)
     expect(blocked('GET', '/api/globals/site-settings')).toBe(false)
     expect(blocked('GET', '/admin/collections/payload-migrations')).toBe(false)
+  })
+})
+
+describe('config.matcher', () => {
+  const matches = (url: string) => unstable_doesMiddlewareMatch({ config, nextConfig: {}, url })
+
+  it('ブロック対象の経路すべてで起動する', () => {
+    for (const url of [
+      '/api/globals/payload-jobs-stats',
+      '/api/payload-migrations',
+      '/api/payload-migrations/1',
+      '/api/payload-preferences',
+      '/api/payload-preferences/nav',
+      '/api/payload-locked-documents',
+      '/api/payload-locked-documents/1',
+      '/api/payload-locked-documents/count',
+    ]) {
+      expect(matches(url), url).toBe(true)
+    }
+  })
+
+  it('それ以外の API では起動しない', () => {
+    for (const url of ['/api/health', '/api/stages', '/api/globals/site_settings', '/api/users/me', '/api/payload-preferencesX']) {
+      expect(matches(url), url).toBe(false)
+    }
   })
 })
