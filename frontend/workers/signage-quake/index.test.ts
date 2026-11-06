@@ -307,6 +307,50 @@ describe('接続', () => {
     expect(sockets).toHaveLength(4);
   });
 
+  it('closeで理由をwarnに出し、/statusに切断情報を載せる', async () => {
+    const { make } = setup();
+    const sockets = stubSockets();
+    const relay = make();
+    await relay.ensure();
+    expect((await relay.status()).channels.wolfxEew).toMatchObject({
+      failures: 0,
+      retryAt: null,
+      lastClose: null,
+    });
+    await vi.advanceTimersByTimeAsync(5000);
+    sockets[1].ws.emit('message', { data: 'x' });
+    await vi.advanceTimersByTimeAsync(1000);
+    sockets[1].ws.emit('close', { code: 1006, reason: 'abnormal' });
+    const warn = vi.mocked(console.warn).mock.calls.map((c) => String(c[0]));
+    expect(warn).toContainEqual(
+      expect.stringMatching(
+        /^quake: wolfxEew .*cause=upstream_close code=1006 reason="abnormal" openMs=6000 received=1/,
+      ),
+    );
+    const ch = (await relay.status()).channels.wolfxEew;
+    expect(ch.failures).toBe(1);
+    expect(ch.retryAt).toEqual(expect.any(String));
+    expect(ch.lastClose).toEqual({
+      at: new Date(IN_PERIOD + 6000).toISOString(),
+      code: 1006,
+      reason: 'abnormal',
+      cause: 'upstream_close',
+    });
+  });
+
+  it('errorはmessageと契機を記録する', async () => {
+    const { make } = setup();
+    const sockets = stubSockets();
+    const relay = make();
+    await relay.ensure();
+    sockets[1].ws.emit('error', { message: 'boom' });
+    expect((await relay.status()).channels.wolfxEew.lastClose).toMatchObject({
+      code: null,
+      reason: 'boom',
+      cause: 'error',
+    });
+  });
+
   it('無受信が閾値を超えた開いた接続は閉じて再接続の待ちに入れる', async () => {
     const { make } = setup();
     const sockets = stubSockets();
@@ -316,6 +360,9 @@ describe('接続', () => {
     await relay.ensure();
     expect(sockets[1].ws.closed).toBe(true);
     expect(sockets[0].ws.closed).toBe(false);
+    expect((await relay.status()).channels.wolfxEew.lastClose?.cause).toBe(
+      'silence',
+    );
   });
 
   describe('P2Pの取りこぼし判定', () => {

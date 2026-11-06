@@ -7,6 +7,14 @@ export interface QuakeChannelStatus {
   readonly lastReceivedAt: string | null;
   readonly receiving: boolean;
   readonly test: boolean;
+  readonly failures: number;
+  readonly retryAt: string | null;
+  readonly lastClose: {
+    readonly at: string;
+    readonly code: number | null;
+    readonly reason: string;
+    readonly cause: string;
+  } | null;
 }
 
 export interface QuakeRelayStatus {
