@@ -9,6 +9,10 @@ vi.mock('@/env', () => ({
 }));
 
 vi.mock('@/lib/cms-asset-url', () => ({
+  toOriginalImageUrl: (image: { id: string }) =>
+    `https://example.com/assets/${image.id}`,
+  toCardImageUrl: (image: { id: string }) =>
+    `https://example.com/assets/${image.id}`,
   toAssetUrl: (id: string | null) =>
     id ? `https://example.com/assets/${id}` : null,
 }));
@@ -16,7 +20,12 @@ vi.mock('@/lib/cms-asset-url', () => ({
 describe('TopicCard', () => {
   test('imageId ありのときサムネイルを表示する', () => {
     render(
-      <TopicCard id={1} title="デジタルパンフレット公開" imageId="img1" />,
+      <TopicCard
+        id={1}
+        title="デジタルパンフレット公開"
+        imageId="img1"
+        image={{ id: 'img1', filenameDownload: '', type: null, filesize: null }}
+      />,
     );
 
     const thumbnail = screen.getByAltText('デジタルパンフレット公開');

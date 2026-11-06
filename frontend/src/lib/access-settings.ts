@@ -10,7 +10,7 @@ export interface AccessSettings {
 }
 
 export async function getAccessSettings(): Promise<AccessSettings> {
-  const result = await cms.findGlobal('site_settings');
+  const result = await cms.findGlobal('site_settings', {}, { edge: true });
   if (!result.ok) throw new Error('アクセス設定の取得に失敗しました');
   const s = result.value;
   return {

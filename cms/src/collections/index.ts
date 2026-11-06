@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload';
 
+import { guardRelationQuery } from '../access/relation-query';
 import { accessFor } from '../access/payload-access';
 import { isHiddenInAdmin } from '../access/policy';
 import { toCmsUser } from '../access/roles';
@@ -33,6 +34,10 @@ import { Users } from './users';
 const withAccess = (collection: CollectionConfig): CollectionConfig => ({
   ...collection,
   access: accessFor(collection.slug),
+  hooks: {
+    ...collection.hooks,
+    beforeOperation: [...(collection.hooks?.beforeOperation ?? []), guardRelationQuery],
+  },
   admin: {
     ...collection.admin,
     group: NAV_GROUPS[collection.slug],

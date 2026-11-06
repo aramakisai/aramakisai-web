@@ -1,13 +1,11 @@
-import { randomBytes } from 'node:crypto';
-
 import type { Endpoint, PayloadHandler } from 'payload';
-import sharp from 'sharp';
 
 import { relationId } from '../collections/parking-cameras';
 import { hashCameraToken } from '../lib/parking-camera-token';
 import type { ParkingDb } from '../lib/parking-db';
 import { appendDeviceLog, decodeDeviceLog, readDeviceStatus } from '../lib/parking-device-status';
 import { nextExposure, type ExposureBasis } from '../lib/parking-exposure';
+import { limitedSharp } from '../lib/image-limits';
 import { isWithinMonitorWindow } from '../lib/parking-monitor';
 
 const MAX_BYTES = 1024 * 1024;
@@ -51,7 +49,7 @@ async function isJpeg(contentType: string | null, data: Buffer): Promise<boolean
   if (contentType?.split(';')[0].trim().toLowerCase() !== 'image/jpeg') return false;
   if (data.length < 3 || data[0] !== 0xff || data[1] !== 0xd8 || data[2] !== 0xff) return false;
   try {
-    return (await sharp(data).metadata()).format === 'jpeg';
+    return (await limitedSharp(data).metadata()).format === 'jpeg';
   } catch {
     return false;
   }
@@ -130,65 +128,21 @@ export function ingestHandler(
         ? nextExposure({ quality: basis.quality, exposure: basis.exposure, capturedAt: basis.captured_at }, received)
         : null;
 
-    let snapshotId: number;
     try {
-      const snapshot = await payload.create({
-        collection: 'parking_snapshots',
-        data: {
-          camera: camera.id,
+      await payload.jobs.queue({
+        task: 'ingestParkingSnapshot',
+        input: {
+          cameraId: camera.id,
           lot: relationId(camera.lot),
           exposure,
-          captured_at: capturedAt.toISOString(),
-          judge_status: 'pending',
+          capturedAt: capturedAt.toISOString(),
+          window: Math.floor(capturedSec / deps.windowSeconds),
+          image: data.toString('base64'),
         },
-        file: { data, mimetype: 'image/jpeg', name: `${randomBytes(16).toString('hex')}.jpg`, size: data.length },
-        overrideAccess: true,
-      });
-      snapshotId = snapshot.id;
-      await payload.update({
-        collection: 'parking_cameras',
-        id: camera.id,
-        data: { last_captured_at: capturedAt.toISOString() },
-        overrideAccess: true,
       });
     } catch (err) {
-      payload.logger.warn(`parking-ingest: save failed camera=${camera.id}: ${String(err)}`);
+      payload.logger.warn(`parking-ingest: enqueue failed camera=${camera.id}: ${String(err)}`);
       return fail('internal', 500);
-    }
-
-    try {
-      await payload.delete({
-        collection: 'parking_snapshots',
-        where: { and: [{ camera: { equals: camera.id } }, { id: { not_equals: snapshotId } }] },
-        overrideAccess: true,
-      });
-    } catch (err) {
-      payload.logger.warn(`parking-ingest: old snapshot cleanup failed camera=${camera.id}: ${String(err)}`);
-    }
-
-    try {
-      const window = Math.floor(capturedSec / deps.windowSeconds);
-      // 検索と更新を1文にしないと、同じカメラの2枚が同時に届いたとき両方が枠を取れてしまう
-      const claimed = await payload.db.pool.query(
-        `update parking_cameras set last_judged_window = $1
-         where id = $2 and (last_judged_window is null or last_judged_window < $1)`,
-        [window, camera.id],
-      );
-      if (claimed.rowCount === 1) {
-        await payload.jobs.queue({
-          task: 'judgeParkingSnapshot',
-          input: { snapshotId, image: data.toString('base64') },
-        });
-      } else {
-        await payload.update({
-          collection: 'parking_snapshots',
-          id: snapshotId,
-          data: { judge_status: 'skipped', judge_error: 'same_window' },
-          overrideAccess: true,
-        });
-      }
-    } catch (err) {
-      payload.logger.warn(`parking-ingest: judge enqueue failed camera=${camera.id} snapshot=${snapshotId}: ${String(err)}`);
     }
 
     return Response.json(response === null ? {} : { exposure: response });

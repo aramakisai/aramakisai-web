@@ -21,7 +21,7 @@ import type { SignagePinState } from './signage-pin';
 import type { SignageQuakeStage } from './signage-quake';
 import { trialShiftMs } from './signage-trial';
 import { getSponsors, mergeSponsorLogos } from './sponsors';
-import { toTimetable } from './timetable';
+import { TIMETABLE_SLOT_SELECT, toTimetable } from './timetable';
 
 export const SIGNAGE_TTL_SECONDS = 15;
 // limit を省くと Payload 既定の 10 件で切れる
@@ -106,6 +106,7 @@ function toLostItem(doc: LostItem): SignageLostItem {
     foundPlace: doc.found_place,
     foundAt: doc.found_at,
     photoId: toMediaId(doc.photo),
+    photo: toAttachment(doc.photo),
   };
 }
 
@@ -113,6 +114,7 @@ export async function getSignageSnapshot({
   version,
 }: { readonly version?: number } = {}): Promise<CmsResult<SignageSnapshot>> {
   const OPTIONS = { ttlSeconds: SIGNAGE_TTL_SECONDS, version };
+  const metaPromise = cms.findGlobal('site_settings', {}, OPTIONS);
   const [
     meta,
     settings,
@@ -125,18 +127,33 @@ export async function getSignageSnapshot({
     parking,
     quakeGroup,
   ] = await Promise.all([
-    cms.findGlobal('site_settings', {}, OPTIONS),
+    metaPromise,
     cms.findGlobal('signage_settings', { depth: 0 }, OPTIONS),
-    cms.findMany('signage_slides', { ...ORDERED, depth: 1 }, OPTIONS),
+    cms.findMany(
+      'signage_slides',
+      { ...ORDERED, depth: 1, joins: { groups: false } },
+      OPTIONS,
+    ),
     cms.findMany('telops', ORDERED, OPTIONS),
     cms.findMany('lost_items', { ...ALL, depth: 1 }, OPTIONS),
     cms.findMany('stages', { ...ALL, depth: 0 }, OPTIONS),
-    cms.findMany('performance_slots', { ...ALL, depth: 1 }, OPTIONS),
+    cms.findMany(
+      'performance_slots',
+      { ...ALL, depth: 1, select: TIMETABLE_SLOT_SELECT },
+      OPTIONS,
+    ),
     getSponsors(OPTIONS),
-    getParkingResponse({ version }),
+    metaPromise.then((m) =>
+      m.ok ? getParkingResponse({ version, siteSettings: m.value }) : m,
+    ),
     cms.findMany(
       'signage_groups',
-      { where: { is_quake: { equals: true } }, depth: 1, limit: 1 },
+      {
+        where: { is_quake: { equals: true } },
+        depth: 1,
+        limit: 1,
+        pagination: false,
+      },
       OPTIONS,
     ),
   ]);
@@ -161,6 +178,7 @@ export async function getSignageSnapshot({
       id: s.id,
       name: s.name,
       logoId: s.logoId,
+      logo: s.logo,
       tier: TIERS.includes(s.tier ?? '') ? (s.tier as SponsorTier) : null,
     }),
   );
@@ -204,7 +222,7 @@ export async function getPinState(): Promise<CmsResult<SignagePinState>> {
     // 未認証の読み取りは公開判定で表示対象のスライドだけに絞られる
     cms.findMany(
       'signage_slides',
-      { ...ORDERED, depth: 0, select: { id: true } },
+      { ...ORDERED, depth: 0, select: { id: true }, joins: { groups: false } },
       { ttlSeconds: 0 },
     ),
   ]);

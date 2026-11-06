@@ -3,13 +3,16 @@ import type {
   CollectionAfterChangeHook,
   CollectionAfterLoginHook,
   CollectionAfterOperationHook,
+  CollectionBeforeLoginHook,
   CollectionBeforeChangeHook,
   CollectionBeforeOperationHook,
   CollectionConfig,
 } from 'payload';
-import { APIError, type PayloadRequest } from 'payload';
+import { APIError, ValidationError, type PayloadRequest } from 'payload';
 
 import { denyField, executiveOnlyField } from '../access/payload-access';
+import { isHttpsUrl, isOidcEnabled, optionalEnv } from '../env';
+import { forgotPasswordEndpoint } from '../auth/forgot-password';
 import { CMS_ROLES, isExecutive, toCmsUser, type CmsRole } from '../access/roles';
 
 const INVITE_STATUSES = [
@@ -26,12 +29,56 @@ const ROLE_LABELS: Record<CmsRole, string> = {
  * 学生団体ロール (未指定時の既定値を含む) の作成では、管理画面・API のどちらから届いた
  * パスワードも使わない。パスワードは招待メールのリンクからしか設定させないため。
  */
+const createsStudentExhibitor = (data: { role?: CmsRole } | undefined) =>
+  (data?.role ?? 'student_exhibitor') === 'student_exhibitor';
+
 const replaceInitialPassword: CollectionBeforeOperationHook = (arg) => {
   if (arg.operation !== 'create') return arg.args;
-  const role = ((arg.args.data as { role?: CmsRole } | undefined)?.role ??
-    'student_exhibitor') as CmsRole;
-  if (role !== 'student_exhibitor') return arg.args;
+  if (!createsStudentExhibitor(arg.args.data as { role?: CmsRole } | undefined)) return arg.args;
   return { ...arg.args, data: { ...arg.args.data, password: randomBytes(32).toString('hex') } };
+};
+
+export const PASSWORD_REQUIREMENT_MESSAGE = 'パスワードは8文字以上で、英字と数字を含めてください';
+
+/**
+ * Payload 3.88 のパスワード検証 (fields/validations.ts の password) は auth 設定やフィールド定義から
+ * 差し替えられず、長さしか見ない。create / update / resetPassword のいずれも beforeOperation の
+ * args.data.password を通るため、ここで一括して検査する。
+ * 学生団体の作成 (replaceInitialPassword が乱数に差し替える) と、システムが乱数を設定する
+ * ローカル API 呼び出し (context.skipPasswordRequirement) は対象外。
+ */
+const enforcePasswordRequirement: CollectionBeforeOperationHook = (arg) => {
+  const { args, operation, req } = arg;
+  if (operation !== 'create' && operation !== 'update' && operation !== 'resetPassword') return args;
+  const password = (args.data as { password?: unknown } | undefined)?.password;
+  if (typeof password !== 'string' || !password) return args;
+  if (req.context.skipPasswordRequirement) return args;
+  if (operation === 'create' && createsStudentExhibitor(args.data as { role?: CmsRole })) return args;
+  if (password.length < 8 || !/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
+    const error = new ValidationError({
+      collection: 'users',
+      errors: [{ message: PASSWORD_REQUIREMENT_MESSAGE, path: 'password' }],
+      req,
+    });
+    // 管理画面の編集フォームは失敗するとパスワード欄ごと閉じてフィールド単位の文言が見えなくなり、
+    // トースト (errors[].message) だけが残る。既定の英語文言のままだと要件が伝わらない
+    error.message = PASSWORD_REQUIREMENT_MESSAGE;
+    throw error;
+  }
+  return args;
+};
+
+const EXECUTIVE_LOCAL_AUTH_DISABLED = '実行委員のパスワード認証は無効です。Authentik でログインしてください。';
+
+/**
+ * OIDC 有効時、実行委員の認証は Authentik に一本化する。OIDC ログインは
+ * authentik-endpoints.ts がトークンを自前で発行し、この login 操作を通らない。
+ */
+const rejectExecutivePasswordLogin: CollectionBeforeLoginHook = ({ user }) => {
+  if (isOidcEnabled() && user.role === 'executive') {
+    throw new APIError(EXECUTIVE_LOCAL_AUTH_DISABLED, 403, undefined, true);
+  }
+  return user;
 };
 
 /**
@@ -48,6 +95,9 @@ const guardResetToken: CollectionBeforeOperationHook = async (arg) => {
       resetPasswordExpiration: { greater_than: new Date().toISOString() },
     },
   });
+  if (found && isOidcEnabled() && (found as { role?: CmsRole }).role === 'executive') {
+    throw new APIError(EXECUTIVE_LOCAL_AUTH_DISABLED, 403, undefined, true);
+  }
   if (!found) {
     throw new APIError(
       'リンクが無効です。パスワード設定済みの場合はログイン画面の「パスワードをお忘れですか？」から再設定してください。未設定の場合は実行委員に招待メールの再送を依頼してください。',
@@ -141,10 +191,14 @@ export const Users: CollectionConfig = {
     components: { beforeListTable: ['./components/SendInviteBulkButton.tsx'] },
   },
   // ローカル認証は実行委員の緊急用。通常経路は Authentik OIDC (auth/strategy.ts)。
-  auth: true,
+  // ローカルの http 開発では Secure Cookie がブラウザに保存されないため、公開 URL が https のときだけ付ける
+  auth: { cookies: { secure: isHttpsUrl(optionalEnv('CMS_PUBLIC_URL')) } },
+  // Payload 既定の同名エンドポイントより先に評価される
+  endpoints: [forgotPasswordEndpoint],
   hooks: {
-    beforeOperation: [replaceInitialPassword, guardResetToken],
+    beforeOperation: [enforcePasswordRequirement, replaceInitialPassword, guardResetToken],
     afterOperation: [markActivatedOnReset],
+    beforeLogin: [rejectExecutivePasswordLogin],
     afterLogin: [markActivatedOnLogin],
     beforeChange: [captureResendInvite],
     afterChange: [queueInvitationEmail, detachMediaOnRoleChange],

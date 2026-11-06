@@ -8547,6 +8547,7 @@
         "inline",
         "sendInvitation",
         "purgeMediaEdgeCache",
+        "ingestParkingSnapshot",
         "judgeParkingSnapshot",
         "checkParkingCameras"
       ]
@@ -8566,6 +8567,7 @@
         "inline",
         "sendInvitation",
         "purgeMediaEdgeCache",
+        "ingestParkingSnapshot",
         "judgeParkingSnapshot",
         "checkParkingCameras"
       ]
@@ -8657,6 +8659,6 @@
     "tables": {},
     "columns": {}
   },
-  "id": "244830c9-ea70-4199-973d-8dda2319c851",
+  "id": "8ede68c1-9360-4c30-b6d8-f2196d0c1fc4",
   "prevId": "00000000-0000-0000-0000-000000000000"
 }

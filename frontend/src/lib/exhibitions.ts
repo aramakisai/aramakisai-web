@@ -349,7 +349,7 @@ function toRefId(
 }
 
 // depth 0 では media が ID のままで alt を持たないため、alt は常に企画名にする。
-function toExhibitionImage(
+export function toExhibitionImage(
   media: number | Media,
   alt: string,
 ): ExhibitionImage {
@@ -532,17 +532,32 @@ export function toCards(
     .filter((card): card is ExhibitionCardSummary => card !== null);
 }
 
+// buildJoinContext が読むフィールドだけ。display_name は afterRead で追加取得が走るため含めない
+export const SLOT_JOIN_SELECT = {
+  exhibition_id: true,
+  stage_id: true,
+} as const;
+
 async function fetchJoinSources(exhibitionId?: number) {
   return Promise.all([
-    cms.findMany('performance_slots', {
-      ...(exhibitionId !== undefined
-        ? { where: { exhibition_id: { equals: exhibitionId } } }
-        : {}),
+    cms.findMany(
+      'performance_slots',
+      {
+        ...(exhibitionId !== undefined
+          ? { where: { exhibition_id: { equals: exhibitionId } } }
+          : {}),
+        limit: 0,
+        depth: 0,
+        select: SLOT_JOIN_SELECT,
+      },
+      { edge: true },
+    ),
+    cms.findMany('stages', { limit: 0, depth: 0 }, { edge: true }),
+    cms.findMany('map_areas', {
+      sort: ['_order'],
       limit: 0,
       depth: 0,
     }),
-    cms.findMany('stages', { limit: 0, depth: 0 }),
-    cms.findMany('map_areas', { sort: ['_order'], limit: 0, depth: 0 }),
   ]);
 }
 
@@ -560,7 +575,7 @@ const CARD_PLACEMENT_SELECT = {
 
 // toCards が読むフィールドだけ。画像の全フィールド展開 (depth 1) が応答の大半を占めるため、
 // 画像は ID のまま取り、カードに使う先頭 1 枚だけを attachFirstImages で別取得する。
-const CARD_SELECT = {
+export const CARD_SELECT = {
   categories: true,
   organization_name: true,
   stage: { name: true, images: true },
@@ -570,7 +585,7 @@ const CARD_SELECT = {
 } as const;
 
 // url と sizes.*.url は filename と prefix から組み立てられるため、これらも選択に含める
-const CARD_MEDIA_SELECT = {
+export const CARD_MEDIA_SELECT = {
   url: true,
   filename: true,
   prefix: true,
@@ -674,6 +689,16 @@ export async function getExhibitionListData(
   };
 }
 
+// toCards が企画名の有無で作るカードを決めるため、カテゴリごとの name と categories を取る
+const SITEMAP_SELECT = {
+  categories: true,
+  updatedAt: true,
+  stage: { name: true },
+  exhibit: { name: true },
+  vendor: { name: true },
+  other: { name: true },
+} as const;
+
 /**
  * sitemap 用。位置解決 (エリア/ステージ) の結果は使わないため関連コレクションの結合取得を省略し、
  * 空のコンテキストで toCards を呼ぶことで企画名が空のカテゴリを除く判定だけを再利用する。
@@ -686,6 +711,8 @@ export async function getExhibitionSitemapEntries(): Promise<
     sort: ['id'],
     limit: 0,
     depth: 0,
+    select: SITEMAP_SELECT,
+    joins: { 'stage.performance_slots': false },
   });
   if (!result.ok) throw new Error('企画一覧の取得に失敗しました');
 
@@ -699,6 +726,24 @@ export async function getExhibitionSitemapEntries(): Promise<
   );
 }
 
+const DETAIL_PLACEMENT_SELECT = {
+  ...CARD_PLACEMENT_SELECT,
+  description: true,
+  open_days: true,
+} as const;
+
+// toCard と getExhibitionDetail が読むフィールドだけ
+const DETAIL_SELECT = {
+  status: true,
+  categories: true,
+  organization_name: true,
+  links: { platform: true, url: true },
+  stage: { name: true, description: true, images: true },
+  exhibit: DETAIL_PLACEMENT_SELECT,
+  vendor: { ...DETAIL_PLACEMENT_SELECT, menu: { name: true, price: true } },
+  other: DETAIL_PLACEMENT_SELECT,
+} as const;
+
 /**
  * 詳細ページ用の結果。不在・非公開・URL の category をその企画が選択していない場合 (missing) と
  * 取得失敗 (error) を必ず区別する。両者を null へ潰すと要件 5.9 (CMS 障害を 404 にしない) を満たせない。
@@ -709,6 +754,10 @@ export async function getExhibitionDetail(
 ): Promise<ExhibitionDetailResult> {
   const exhibitionResult = await cms.findById('student_exhibitions', id, {
     depth: 1,
+    select: DETAIL_SELECT,
+    // area_id は toRefId で ID だけ使うため geometry を展開しない
+    populate: { media: CARD_MEDIA_SELECT, map_areas: { name: true } },
+    joins: { 'stage.performance_slots': false },
   });
   if (!exhibitionResult.ok) {
     if (exhibitionResult.error.kind === 'network') {

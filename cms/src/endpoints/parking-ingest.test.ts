@@ -2,6 +2,7 @@ import type { PayloadRequest } from 'payload';
 import sharp from 'sharp';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
+import { MAX_INPUT_PIXELS } from '../lib/image-limits';
 import { hashCameraToken } from '../lib/parking-camera-token';
 import { ingestHandler, parkingIngestEndpoints } from './parking-ingest';
 
@@ -16,7 +17,7 @@ beforeAll(async () => {
 
 type Args = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
-function setup(opts: { camera?: Record<string, unknown> | null; claim?: boolean } = {}) {
+function setup(opts: { camera?: Record<string, unknown> | null } = {}) {
   const camera =
     opts.camera === null
       ? null
@@ -26,10 +27,7 @@ function setup(opts: { camera?: Record<string, unknown> | null; claim?: boolean 
       docs: args.collection === 'parking_cameras' && camera ? [camera] : [],
     })),
     findGlobal: vi.fn().mockResolvedValue({ parking_monitor: { start: '09:00', end: '17:30' } }),
-    create: vi.fn().mockResolvedValue({ id: 99 }),
     update: vi.fn(async (_args: Args) => ({})),
-    db: { pool: { query: vi.fn(async (_sql: string, _params: unknown[]) => ({ rowCount: (opts.claim ?? true) ? 1 : 0 })) } },
-    delete: vi.fn().mockResolvedValue({}),
     jobs: { queue: vi.fn().mockResolvedValue({}) },
     logger: { warn: vi.fn() },
   };
@@ -59,13 +57,16 @@ function request(payload: unknown, init: Init = {}) {
   return Object.assign(r, { payload }) as unknown as PayloadRequest;
 }
 
+const solidJpeg = (side: number) =>
+  sharp({ create: { width: side, height: side, channels: 3, background: '#888' } }).jpeg().toBuffer();
+
 const handler = ingestHandler({ now: () => NOW, windowSeconds: 300 });
 const run = async (init: Init = {}, opts: Parameters<typeof setup>[0] = {}) => {
   const s = setup(opts);
   const res = await handler(request(s.payload, init));
   return { res, ...s, json: await res.clone().json() };
 };
-const saved = (p: ReturnType<typeof setup>['payload']) => p.create.mock.calls.length > 0;
+const saved = (p: ReturnType<typeof setup>['payload']) => p.jobs.queue.mock.calls.length > 0;
 
 describe('登録', () => {
   it('POST /parking-ingest', () => {
@@ -168,6 +169,8 @@ describe('大きさと形式', () => {
       { headers: { 'content-type': 'image/png' } },
       { body: Buffer.from('not a jpeg at all') },
       { body: Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.from('garbage')]) },
+      // 圧縮後は 1MiB に収まっても、デコード画素数が上限を超える画像
+      { body: await solidJpeg(Math.ceil(Math.sqrt(MAX_INPUT_PIXELS)) + 1) },
     ]) {
       const { res, json, payload } = await run(init);
       expect(res.status).toBe(415);
@@ -211,7 +214,7 @@ describe('X-Captured-At', () => {
 });
 
 describe('監視時間', () => {
-  it('外は 200 の {} で、保存・ジョブ・last_captured_at の更新をしない', async () => {
+  it('外は 200 の {} で、ジョブを積まない', async () => {
     const early = Math.floor(Date.parse('2026-10-09T23:59:00Z') / 1000); // JST 08:59
     const s = setup();
     const res = await ingestHandler({ now: () => new Date((early + 20) * 1000), windowSeconds: 300 })(
@@ -223,74 +226,35 @@ describe('監視時間', () => {
     expect(json).toEqual({});
     expect(saved(payload)).toBe(false);
     expect(payload.jobs.queue).not.toHaveBeenCalled();
-    expect(
-      payload.update.mock.calls.some((c) => 'last_captured_at' in (c[0] as { data: object }).data),
-    ).toBe(false);
   });
 });
 
-describe('保存と判定の登録', () => {
-  it('割り当てを写して保存し、枠を取れたらジョブを積む', async () => {
+describe('保存ジョブの登録', () => {
+  it('割り当てと画像をそのまま入力にして ingestParkingSnapshot を積む', async () => {
     const { res, json, payload } = await run();
     expect(res.status).toBe(200);
     expect(json).toEqual({});
-    const args = payload.create.mock.calls[0][0] as {
-      collection: string;
-      data: Record<string, unknown>;
-      file: { name: string; mimetype: string; size: number };
-    };
-    expect(args.collection).toBe('parking_snapshots');
-    expect(args.data).toMatchObject({ camera: 3, lot: 11, exposure: 0, judge_status: 'pending' });
-    expect(args.data.captured_at).toBe(new Date(nowSec * 1000).toISOString());
-    expect(args.file.name).toMatch(/^[0-9a-f]{32}\.jpg$/);
-    expect(payload.db.pool.query.mock.calls[0][1]).toEqual([Math.floor(nowSec / 300), 3]);
-    const job = payload.jobs.queue.mock.calls[0][0] as { task: string; input: { snapshotId: number; image: string } };
-    expect(job.task).toBe('judgeParkingSnapshot');
-    expect(job.input.snapshotId).toBe(99);
-    expect(Buffer.from(job.input.image, 'base64').equals(jpeg)).toBe(true);
-  });
-
-  it('保存のあと last_captured_at を更新し、古い画像を消す', async () => {
-    const { payload } = await run();
-    expect(
-      payload.update.mock.calls.some(
-        (c) => (c[0] as { data: Record<string, unknown> }).data.last_captured_at === new Date(nowSec * 1000).toISOString(),
-      ),
-    ).toBe(true);
-    const del = payload.delete.mock.calls[0][0] as { collection: string; where: unknown };
-    expect(del.collection).toBe('parking_snapshots');
-    expect(JSON.stringify(del.where)).toContain('not_equals');
-  });
-
-  it('枠を取れなければジョブを積まず same_window で見送る', async () => {
-    const { res, payload } = await run({}, { claim: false });
-    expect(res.status).toBe(200);
-    expect(payload.jobs.queue).not.toHaveBeenCalled();
-    const skip = payload.update.mock.calls.find((c) => (c[0] as { collection: string }).collection === 'parking_snapshots');
-    expect((skip![0] as { id: number; data: unknown }).data).toEqual({
-      judge_status: 'skipped',
-      judge_error: 'same_window',
+    expect(payload.jobs.queue).toHaveBeenCalledTimes(1);
+    const job = payload.jobs.queue.mock.calls[0][0] as { task: string; input: Record<string, unknown> };
+    expect(job.task).toBe('ingestParkingSnapshot');
+    expect(job.input).toMatchObject({
+      cameraId: 3,
+      lot: 11,
+      exposure: 0,
+      capturedAt: new Date(nowSec * 1000).toISOString(),
+      window: Math.floor(nowSec / 300),
     });
+    expect(Buffer.from(job.input.image as string, 'base64').equals(jpeg)).toBe(true);
   });
 
-  it('枠の更新は「未設定か今回より小さい」を条件にする', async () => {
-    const { payload } = await run();
-    const sql = (payload.db.pool.query.mock.calls[0] as unknown[])[0] as string;
-    expect(sql).toContain('last_judged_window is null or last_judged_window < $1');
-    expect(sql).toContain('where id = $2');
+  it('割り当てのないカメラは lot を null で渡す', async () => {
+    const { payload } = await run({}, { camera: { lot: null } });
+    expect((payload.jobs.queue.mock.calls[0][0] as { input: { lot: unknown } }).input.lot).toBeNull();
   });
 
-  it('古い画像の削除に失敗しても 200', async () => {
+  it('ジョブの登録に失敗したら 500', async () => {
     const s = setup();
-    s.payload.delete.mockRejectedValue(new Error('boom'));
-    const res = await handler(request(s.payload));
-    expect(res.status).toBe(200);
-    expect(s.payload.logger.warn).toHaveBeenCalled();
-  });
-
-  it('保存に失敗したら 500', async () => {
-    const s = setup();
-    s.payload.create.mockRejectedValue(new Error('boom'));
+    s.payload.jobs.queue.mockRejectedValue(new Error('boom'));
     const res = await handler(request(s.payload));
     expect(res.status).toBe(500);
     expect(await res.json()).toEqual({ error: 'internal' });

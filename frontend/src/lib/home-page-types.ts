@@ -54,7 +54,7 @@ export interface FestivalOverview {
 
 /** getFestivalMeta() の戻り値。SEO 既定値の解決 (getSiteMetadata) と構造化データ生成が使う */
 export interface FestivalMeta extends FestivalOverview {
-  ogImageId: string | null;
+  ogImage: Attachment | null;
   snsLinks: SnsLink[];
 }
 

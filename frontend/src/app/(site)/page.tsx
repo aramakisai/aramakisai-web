@@ -17,9 +17,9 @@ import { HomePageContent } from '@/lib/home-page-types';
 import { getRequestPhase } from '@/lib/request-phase';
 import { formatEventDaysSummary, getDaysUntilEventDay } from '@/lib/event-day';
 import {
-  getExhibitionListData,
-  parseExhibitionQuery,
-  type ExhibitionCardSummary,
+  getExhibitionCatalog,
+  slimThumbnail,
+  type ExhibitionCardView,
 } from '@/lib/exhibitions';
 import { getRegionalSponsorMapData } from '@/lib/regional-sponsors';
 import { getSponsors } from '@/lib/sponsors';
@@ -62,25 +62,20 @@ const EMPTY_CONTENT: HomePageContent = {
 const SECTION_CLASS =
   'mx-auto w-full max-w-[1440px] px-4 py-8 lg:px-20 lg:py-12';
 
-// /exhibitions ページと同じ「取得失敗時は空扱い」の規約 (企画一覧は検索欄・導線だけ残す、要件3.2)
 async function getFeaturedExhibitions(): Promise<
-  readonly ExhibitionCardSummary[]
+  readonly ExhibitionCardView[]
 > {
-  try {
-    const result = await getExhibitionListData(parseExhibitionQuery({}));
-    return result.items;
-  } catch {
-    return [];
-  }
+  const catalog = await getExhibitionCatalog().catch(() => null);
+  return (catalog?.cards ?? []).map(slimThumbnail);
 }
 
 async function getAdSponsors() {
-  const result = await getSponsors();
+  const result = await getSponsors({ edge: true });
   return result.ok ? result.value.ad : [];
 }
 
 async function getLocalSponsors() {
-  const result = await getRegionalSponsorMapData();
+  const result = await getRegionalSponsorMapData({ edge: true });
   return result.ok ? result.sponsors : [];
 }
 

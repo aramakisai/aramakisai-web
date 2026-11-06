@@ -49,6 +49,12 @@ export type CmsQuery<T> = {
   readonly limit?: number;
   readonly depth?: number;
   readonly select?: CmsSelect;
+  /** populate された関連ドキュメントのフィールドをコレクション単位で絞る。`{ media: { url: true } }` の形 */
+  readonly populate?: { readonly [collection: string]: CmsSelect };
+  /** join フィールドの計算を省く。`{ 'group.field': false }` の形で指定する (`joins=false` 一括は Payload が無視する) */
+  readonly joins?: { readonly [path: string]: false };
+  /** false で件数の COUNT クエリを省く。limit は効き、totalDocs は返却件数になる */
+  readonly pagination?: false;
 };
 
 function flatten(prefix: string, value: unknown, out: string[]): void {
@@ -74,6 +80,9 @@ export function buildQueryString(query: {
   limit?: number;
   depth?: number;
   select?: CmsSelect;
+  populate?: { readonly [collection: string]: CmsSelect };
+  joins?: { readonly [path: string]: false };
+  pagination?: false;
 }): string {
   const parts: string[] = [];
   if (query.where) flatten('where', query.where, parts);
@@ -81,6 +90,9 @@ export function buildQueryString(query: {
   if (query.limit !== undefined) parts.push(`limit=${query.limit}`);
   if (query.depth !== undefined) parts.push(`depth=${query.depth}`);
   if (query.select) flatten('select', query.select, parts);
+  if (query.populate) flatten('populate', query.populate, parts);
+  if (query.joins) flatten('joins', query.joins, parts);
+  if (query.pagination === false) parts.push('pagination=false');
   return parts.join('&');
 }
 
@@ -99,6 +111,8 @@ export type CmsFetchOptions = {
    * read: 長期保持した直近の正常値だけを返す(無ければ 404 相当)。CMS 停止中の代替表示用
    */
   readonly retained?: 'save' | 'read';
+  /** サイト側の取得に付ける。Cloudflare のキャッシュルールが `__edge=1` を目印にエッジで 60 秒キャッシュする */
+  readonly edge?: boolean;
 };
 
 const RETAINED_TTL_SECONDS = 60 * 60 * 24 * 30;
@@ -193,9 +207,18 @@ async function requestUncached<T>(
   }
 }
 
-function withQuery(path: string, query: string): string {
-  return query ? `${path}?${query}` : path;
+// `__edge=1` は Cloudflare のキャッシュルールがエッジで 60 秒キャッシュする目印。
+// 即時反映が要るサイネージ・駐車場の取得には付けない
+function withQuery(path: string, query: string, edge?: boolean): string {
+  const q = edge ? (query ? `${query}&__edge=1` : '__edge=1') : query;
+  return q ? `${path}?${q}` : path;
 }
+
+// site_settings はトップの hero_images を Attachment にするため depth 1 が要る。
+// 呼び出し箇所ごとに depth が違うと URL (= Cache API のキー) が分かれて同じ global を二重に取るので、既定を揃える。
+const GLOBAL_DEFAULT_DEPTH: Partial<Record<CmsGlobalSlug, number>> = {
+  site_settings: 1,
+};
 
 export const cms = {
   findMany<K extends CmsCollectionSlug>(
@@ -204,7 +227,11 @@ export const cms = {
     options: CmsFetchOptions = {},
   ): Promise<CmsResult<CmsListResponse<CmsCollections[K]>>> {
     return request(
-      withQuery(`/api/${String(collection)}`, buildQueryString(query)),
+      withQuery(
+        `/api/${String(collection)}`,
+        buildQueryString(query),
+        options.edge,
+      ),
       options.ttlSeconds,
       options.version,
     );
@@ -213,10 +240,18 @@ export const cms = {
   findById<K extends CmsCollectionSlug>(
     collection: K,
     id: number | string,
-    query: Pick<CmsQuery<CmsCollections[K]>, 'depth'> = {},
+    query: Pick<
+      CmsQuery<CmsCollections[K]>,
+      'depth' | 'joins' | 'select' | 'populate'
+    > = {},
+    options: Pick<CmsFetchOptions, 'edge'> = {},
   ): Promise<CmsResult<CmsCollections[K]>> {
     return request(
-      withQuery(`/api/${String(collection)}/${id}`, buildQueryString(query)),
+      withQuery(
+        `/api/${String(collection)}/${id}`,
+        buildQueryString(query),
+        options.edge,
+      ),
     );
   },
 
@@ -225,12 +260,13 @@ export const cms = {
     query: { depth?: number } = {},
     options: CmsFetchOptions = {},
   ): Promise<CmsResult<CmsGlobals[K]>> {
-    // populate が要る global は呼び出し側で depth を明示する。既定を 0 に揃えると
-    // URL (= Workers Cache API のキー) が 1 種類になり、CMS の DB 問い合わせも減る。
+    // 既定を揃えると URL (= Workers Cache API のキー) が 1 種類になり、CMS の DB 問い合わせも減る。
+    // 既定外の depth が要る global は呼び出し側で明示する。
     return request(
       withQuery(
         `/api/globals/${String(slug)}`,
-        buildQueryString({ depth: 0, ...query }),
+        buildQueryString({ depth: GLOBAL_DEFAULT_DEPTH[slug] ?? 0, ...query }),
+        options.edge,
       ),
       options.ttlSeconds,
       options.version,

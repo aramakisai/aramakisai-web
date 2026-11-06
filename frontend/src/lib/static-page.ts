@@ -1,5 +1,7 @@
 import { cms } from './cms';
-import { toMediaId } from './cms-media';
+import { toAttachment } from './cms-media';
+import { CARD_MEDIA_SELECT } from './exhibitions';
+import type { Attachment } from './home-page-types';
 
 export interface StaticPageContent {
   title: string;
@@ -8,7 +10,7 @@ export interface StaticPageContent {
   embedHeight: number | null;
   /** 既存呼び出し側 ([slug]/page.test.tsx 等) との互換のため任意にしている */
   metaDescription?: string | null;
-  ogImageId?: string | null;
+  ogImage?: Attachment | null;
   updatedAt?: string;
 }
 
@@ -18,6 +20,10 @@ export async function getPageBySlug(
   const result = await cms.findMany('pages', {
     where: { slug: { equals: slug } },
     limit: 1,
+    // og_image の実ファイル URL だけ要る。serve の 302 を避けるため展開する
+    depth: 1,
+    populate: { media: CARD_MEDIA_SELECT },
+    pagination: false,
   });
   if (!result.ok) return null;
 
@@ -30,7 +36,7 @@ export async function getPageBySlug(
     embedUrl: page.embed_url ?? null,
     embedHeight: page.embed_height ?? null,
     metaDescription: page.meta_description ?? null,
-    ogImageId: toMediaId(page.og_image),
+    ogImage: toAttachment(page.og_image),
     updatedAt: page.updatedAt,
   };
 }

@@ -22,6 +22,8 @@ export async function getTopics(): Promise<TopicSummary[]> {
     sort: ['-published_at'],
     limit: 0,
     depth: 1,
+    // 一覧カード (title・image) と sitemap (updatedAt) が読むフィールドだけ。本文は詳細でのみ使う
+    select: { title: true, image: true, updatedAt: true },
   });
   if (!result.ok) throw new Error('トピックの取得に失敗しました');
   return result.value.docs.map(formatTopic);
@@ -33,6 +35,7 @@ export async function getTopicById(id: number): Promise<TopicSummary | null> {
     where: { id: { equals: id }, ...publishedFilter() },
     limit: 1,
     depth: 1,
+    pagination: false,
   });
   if (!result.ok) return null;
   const topic = result.value.docs[0];

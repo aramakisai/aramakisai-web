@@ -863,7 +863,15 @@ describe('getExhibitionDetail', () => {
     expect(vi.mocked(cms.findById).mock.calls[0]).toEqual([
       'student_exhibitions',
       1,
-      { depth: 1 },
+      {
+        depth: 1,
+        select: expect.objectContaining({ status: true, categories: true }),
+        populate: {
+          media: expect.objectContaining({ url: true }),
+          map_areas: { name: true },
+        },
+        joins: { 'stage.performance_slots': false },
+      },
     ]);
     expect(result).toEqual({
       kind: 'found',

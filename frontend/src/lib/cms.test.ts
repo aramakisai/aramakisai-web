@@ -103,7 +103,7 @@ describe('cms.findGlobal', () => {
     );
   });
 
-  it('depth 未指定なら depth=0 を付ける', async () => {
+  it('depth 未指定の site_settings は depth=1 を付ける', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -112,7 +112,20 @@ describe('cms.findGlobal', () => {
     vi.stubGlobal('fetch', fetchMock);
     await cms.findGlobal('site_settings');
     expect(fetchMock.mock.calls[0][0]).toBe(
-      'http://localhost:3100/api/globals/site_settings?depth=0',
+      'http://localhost:3100/api/globals/site_settings?depth=1',
+    );
+  });
+
+  it('depth 未指定なら depth=0 を付ける', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ id: 1 }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    await cms.findGlobal('signage_settings');
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      'http://localhost:3100/api/globals/signage_settings?depth=0',
     );
   });
 });
@@ -315,6 +328,17 @@ describe('buildQueryString select', () => {
   });
 });
 
+describe('buildQueryString joins / pagination', () => {
+  it('joins をパス指定のブラケット記法へ、pagination=false をそのまま展開する', () => {
+    expect(
+      buildQueryString({
+        joins: { 'stage.performance_slots': false },
+        pagination: false,
+      }),
+    ).toBe('joins%5Bstage.performance_slots%5D=false&pagination=false');
+  });
+});
+
 describe('同一引数の取得の重複排除', () => {
   afterEach(() => vi.unstubAllGlobals());
 
@@ -363,5 +387,27 @@ describe('cms.findGlobal の timeoutMs / retained', () => {
     const result = await cms.findGlobal('navigation', {}, { retained: 'read' });
     expect(result).toEqual({ ok: false, error: { kind: 'not_found' } });
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('cms edge オプション', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('edge: true で __edge=1 を末尾に付け、未指定では付けない', async () => {
+    const fetchMock = vi.fn().mockImplementation(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ docs: [], totalDocs: 0 }),
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    await cms.findMany('stages', { limit: 0 }, { edge: true });
+    await cms.findMany('performance_slots', {});
+    await cms.findGlobal('site_settings', {}, { edge: true });
+    const urls = fetchMock.mock.calls.map((c) => c[0] as string);
+    expect(urls[0]).toBe('http://localhost:3100/api/stages?limit=0&__edge=1');
+    expect(urls[1]).toBe('http://localhost:3100/api/performance_slots');
+    expect(urls[2]).toBe(
+      'http://localhost:3100/api/globals/site_settings?depth=1&__edge=1',
+    );
   });
 });

@@ -11,6 +11,7 @@ WORKDIR /app
 
 # Install dependencies based on the preferred package manager
 COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* pnpm-workspace.yaml* ./
+COPY patches ./patches
 RUN \
   if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
   elif [ -f package-lock.json ]; then npm ci; \
@@ -52,6 +53,9 @@ COPY . .
 # ビルド用のプレースホルダを空に戻し、実値が注入されていなければ起動時に落ちるようにする
 ENV PAYLOAD_SECRET="" \
     DATABASE_URL=""
+# runner と同じ非 root ユーザーで動かす。マイグレーションはファイルを書かず読み取りだけで足りる
+RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
+USER nextjs
 CMD ["node_modules/.bin/payload", "migrate"]
 
 
@@ -77,6 +81,7 @@ RUN chown nextjs:nodejs .next
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/access-log.cjs ./access-log.cjs
 
 USER nextjs
 
@@ -86,4 +91,4 @@ ENV PORT 3000
 
 # server.js is created by next build from the standalone output
 # https://nextjs.org/docs/pages/api-reference/next-config-js/output
-CMD HOSTNAME="0.0.0.0" node server.js
+CMD HOSTNAME="0.0.0.0" node --require ./access-log.cjs server.js

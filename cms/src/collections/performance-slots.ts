@@ -27,7 +27,8 @@ export const PerformanceSlots: CollectionConfig = {
   fields: [
     {
       // useAsTitle は列を持たない仮想フィールドしか使えず、素の virtual: true は拒否されるため
-      // 団体名への関連パスで宣言する。値は DB の結合で引かれ、追加クエリは走らない
+      // 団体名への関連パスで宣言する。値は読み出しのたびに student_exhibitions の追加取得 (dataloader) で
+      // 引かれるため、重い一覧は select で本項目を外す
       name: 'display_name',
       type: 'text',
       label: '表示名',

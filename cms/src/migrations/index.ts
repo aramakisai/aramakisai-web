@@ -41,7 +41,8 @@ import * as migration_20261031_104936_sponsors_type_personal from './20261031_10
 import * as migration_20261031_134723_remove_access_page from './20261031_134723_remove_access_page';
 import * as migration_20261102_043230_parking_device_log from './20261102_043230_parking_device_log';
 import * as migration_20261102_072553_signage_trial_run from './20261102_072553_signage_trial_run';
-import * as migration_20261104_015515_parking_camera_judge_health from './20261104_015515_parking_camera_judge_health';
+import * as migration_20261105_162724_ingest_parking_snapshot_job from './20261105_162724_ingest_parking_snapshot_job';
+import * as migration_20261106_111953_parking_camera_judge_health from './20261106_111953_parking_camera_judge_health';
 
 export const migrations = [
   {
@@ -260,8 +261,13 @@ export const migrations = [
     name: '20261102_072553_signage_trial_run',
   },
   {
-    up: migration_20261104_015515_parking_camera_judge_health.up,
-    down: migration_20261104_015515_parking_camera_judge_health.down,
-    name: '20261104_015515_parking_camera_judge_health'
+    up: migration_20261105_162724_ingest_parking_snapshot_job.up,
+    down: migration_20261105_162724_ingest_parking_snapshot_job.down,
+    name: '20261105_162724_ingest_parking_snapshot_job',
+  },
+  {
+    up: migration_20261106_111953_parking_camera_judge_health.up,
+    down: migration_20261106_111953_parking_camera_judge_health.down,
+    name: '20261106_111953_parking_camera_judge_health'
   },
 ];

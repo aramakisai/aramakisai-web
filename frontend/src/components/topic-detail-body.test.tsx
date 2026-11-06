@@ -9,6 +9,8 @@ vi.mock('@/env', () => ({
   },
 }));
 vi.mock('@/lib/cms-asset-url', () => ({
+  toOriginalImageUrl: (image: { id: string }) =>
+    `https://example.com/${image.id}`,
   toAssetUrl: (id: string | null) => (id ? `https://example.com/${id}` : null),
 }));
 
@@ -16,6 +18,7 @@ const topic = {
   id: 1,
   title: 'お知らせ',
   imageId: 'img1',
+  image: { id: 'img1', filenameDownload: '', type: null, filesize: null },
   body: '<p>本文</p>',
 };
 

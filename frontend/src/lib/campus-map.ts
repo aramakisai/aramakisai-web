@@ -5,6 +5,8 @@ import { getCorporateBoothSitemapEntries } from './corporate-booths';
 import {
   buildFilterHref,
   buildJoinContext,
+  CARD_SELECT,
+  SLOT_JOIN_SELECT,
   parseExhibitionQuery,
   toCards,
   type ExhibitionCardSummary,
@@ -190,7 +192,9 @@ export async function getCampusMapAreas(): Promise<
  * エリアの取得は 1 回のみとし、出展物側の結合コンテキスト構築にも同じ結果を使う
  * (`fetchJoinSources` はエリア取得を内包しており、独立した結果表現と両立しないため使わない)。
  */
-export async function getCampusMapData(): Promise<CampusMapDataResult> {
+export async function getCampusMapData(
+  options: { edge?: boolean } = {},
+): Promise<CampusMapDataResult> {
   const [
     areasResult,
     exhibitionsResult,
@@ -204,9 +208,15 @@ export async function getCampusMapData(): Promise<CampusMapDataResult> {
       sort: ['id'],
       limit: 0,
       depth: 0,
+      select: CARD_SELECT,
+      joins: { 'stage.performance_slots': false },
     }),
-    cms.findMany('stages', { limit: 0, depth: 0 }),
-    cms.findMany('performance_slots', { limit: 0, depth: 0 }),
+    cms.findMany('stages', { limit: 0, depth: 0 }, options),
+    cms.findMany(
+      'performance_slots',
+      { limit: 0, depth: 0, select: SLOT_JOIN_SELECT },
+      options,
+    ),
     cms.findMany('map_points', { sort: ['id'], limit: 0, depth: 0 }),
   ]);
 
@@ -254,18 +264,29 @@ export async function getCampusMapData(): Promise<CampusMapDataResult> {
  */
 export async function getCampusMapLastModified(): Promise<string | null> {
   const results = await Promise.all([
-    cms.findMany('map_areas', { sort: ['-updatedAt'], limit: 1, depth: 0 }),
-    cms.findMany('stages', { sort: ['-updatedAt'], limit: 1, depth: 0 }),
-    cms.findMany('performance_slots', {
+    cms.findMany('map_areas', {
       sort: ['-updatedAt'],
       limit: 1,
       depth: 0,
+      pagination: false,
     }),
+    cms.findMany(
+      'stages',
+      { sort: ['-updatedAt'], limit: 1, depth: 0, pagination: false },
+      { edge: true },
+    ),
+    cms.findMany(
+      'performance_slots',
+      { sort: ['-updatedAt'], limit: 1, depth: 0, pagination: false },
+      { edge: true },
+    ),
     cms.findMany('student_exhibitions', {
       where: { status: { equals: 'published' } },
       sort: ['-updatedAt'],
       limit: 1,
       depth: 0,
+      pagination: false,
+      joins: { 'stage.performance_slots': false },
     }),
   ]);
 

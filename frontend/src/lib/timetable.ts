@@ -167,12 +167,31 @@ export function toTimetable(sources: {
   return { days: toDays(sources.eventDays), stages, performances };
 }
 
+/**
+ * toTimetable が読むフィールド。select を付けると仮想フィールド display_name の計算
+ * (団体の追加取得) が走らなくなる。
+ */
+export const TIMETABLE_SLOT_SELECT = {
+  stage_id: true,
+  exhibition_id: true,
+  title: true,
+  event_date: true,
+  start_at: true,
+  end_at: true,
+} as const;
+
 /** 取得失敗時は例外を投げる (一覧系の既存規約) */
-export async function getTimetable(): Promise<Timetable> {
+export async function getTimetable(
+  options: { edge?: boolean } = {},
+): Promise<Timetable> {
   const [meta, stages, slots] = await Promise.all([
-    cms.findGlobal('site_settings'),
-    cms.findMany('stages', { limit: 0, depth: 0 }),
-    cms.findMany('performance_slots', { limit: 0, depth: 1 }),
+    cms.findGlobal('site_settings', {}, options),
+    cms.findMany('stages', { limit: 0, depth: 0 }, options),
+    cms.findMany(
+      'performance_slots',
+      { limit: 0, depth: 1, select: TIMETABLE_SLOT_SELECT },
+      options,
+    ),
   ]);
   if (!meta.ok || !stages.ok || !slots.ok) {
     throw new Error('タイムテーブルの取得に失敗しました');
@@ -201,12 +220,23 @@ export async function getExhibitionPerformances(
   exhibitionId: number,
 ): Promise<ExhibitionPerformancesResult> {
   const [meta, slots] = await Promise.all([
-    cms.findGlobal('site_settings'),
-    cms.findMany('performance_slots', {
-      where: { exhibition_id: { equals: exhibitionId } },
-      limit: 0,
-      depth: 1,
-    }),
+    cms.findGlobal('site_settings', {}, { edge: true }),
+    cms.findMany(
+      'performance_slots',
+      {
+        where: { exhibition_id: { equals: exhibitionId } },
+        limit: 0,
+        depth: 1,
+        // 団体は読まないため exhibition_id を外して populate も省く
+        select: {
+          stage_id: true,
+          event_date: true,
+          start_at: true,
+          end_at: true,
+        },
+      },
+      { edge: true },
+    ),
   ]);
   if (!meta.ok) return { kind: 'error', error: meta.error };
   if (!slots.ok) return { kind: 'error', error: slots.error };
@@ -242,7 +272,7 @@ export async function getExhibitionPerformances(
 export async function getEventDayList(): Promise<
   readonly TimetableDay[] | null
 > {
-  const meta = await cms.findGlobal('site_settings');
+  const meta = await cms.findGlobal('site_settings', {}, { edge: true });
   return meta.ok ? toDays(meta.value.event_days) : null;
 }
 

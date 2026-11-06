@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getPageBySlug, getPageSlugsUpdatedAt } from './static-page';
 import { cms } from './cms';
+import { CARD_MEDIA_SELECT } from './exhibitions';
 
 vi.mock('./cms', () => ({
   cms: { findMany: vi.fn(), findById: vi.fn(), findGlobal: vi.fn() },
@@ -23,7 +24,12 @@ describe('static-page', () => {
             embed_url: 'https://forms.example.com',
             embed_height: 900,
             meta_description: 'お問い合わせの説明文',
-            og_image: { id: 3, filename: 'og.webp', mimeType: 'image/webp' },
+            og_image: {
+              id: 3,
+              filename: 'og.webp',
+              mimeType: 'image/webp',
+              url: '/api/media/file/og.webp',
+            },
             updatedAt: '2023-05-01T00:00:00.000Z',
           },
         ],
@@ -36,12 +42,23 @@ describe('static-page', () => {
       embedUrl: 'https://forms.example.com',
       embedHeight: 900,
       metaDescription: 'お問い合わせの説明文',
-      ogImageId: '3',
+      ogImage: {
+        id: '3',
+        filenameDownload: 'og.webp',
+        type: 'image/webp',
+        filesize: null,
+        url: '/api/media/file/og.webp',
+        cardUrl: undefined,
+        heroUrl: undefined,
+      },
       updatedAt: '2023-05-01T00:00:00.000Z',
     });
     expect(cms.findMany).toHaveBeenCalledWith('pages', {
       where: { slug: { equals: 'contact' } },
       limit: 1,
+      depth: 1,
+      populate: { media: CARD_MEDIA_SELECT },
+      pagination: false,
     });
   });
 
@@ -69,7 +86,7 @@ describe('static-page', () => {
     const page = await getPageBySlug('contact');
     expect(page?.contentHtml).toBe('');
     expect(page?.metaDescription).toBeNull();
-    expect(page?.ogImageId).toBeNull();
+    expect(page?.ogImage).toBeNull();
   });
 
   it('slug が見つからない場合は null を返す', async () => {

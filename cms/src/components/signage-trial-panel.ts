@@ -30,6 +30,10 @@ export function eventDayChoices(days: readonly EventDay[]): EventDayChoice[] {
 // 操作 PC のタイムゾーンに依存させないため、オフセットを文字列で固定する
 export const buildTrialStartAt = (dateKey: string, time: string) => `${dateKey}T${time}:00+09:00`
 
+/** 日付だけ dateKey に差し替え、時刻は nowMs の JST 時刻のまま。 */
+export const buildDateOnlyStartAt = (dateKey: string, nowMs: number) =>
+  `${dateKey}T${new Date(nowMs + JST_OFFSET_MS).toISOString().slice(11, 19)}+09:00`
+
 /** 現在の試験時刻 'M/D HH:MM' (JST)。試験中でなければ null。 */
 export function formatTrialClock(trial: TrialRunValue, nowMs: number): string | null {
   if (!trial.start_at || !trial.anchored_at) return null

@@ -2,7 +2,11 @@
 
 /* eslint-disable @next/next/no-img-element */
 import { useEffect, useRef, useState } from 'react';
-import { toAssetUrl, toCardImageUrl, toHeroImage } from '@/lib/cms-asset-url';
+import {
+  toCardImageUrl,
+  toHeroImage,
+  toOriginalImageUrl,
+} from '@/lib/cms-asset-url';
 import type { ExhibitionImage } from '@/lib/exhibitions';
 import { useMotionPreference } from '@/lib/use-motion-preference';
 import { CrossFade } from './cross-fade';
@@ -95,7 +99,7 @@ export function ExhibitionGallery({
           onClick={(e) => {
             setViewerOpen(true);
             viewerRef.current?.open(
-              { src: toAssetUrl(selected.id) ?? '', alt: selectedAlt },
+              { src: toOriginalImageUrl(selected) ?? '', alt: selectedAlt },
               e.currentTarget,
             );
           }}

@@ -44,6 +44,7 @@ describe('toRegionalSponsor', () => {
         longitude: 139.1,
         address: '群馬県テスト市',
         imageId: '10',
+        image: expect.objectContaining({ id: '10' }),
         imageAlt: 'テスト画像',
         imageDecorative: false,
         message: '応援メッセージ\n2行目',

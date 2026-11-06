@@ -27,7 +27,14 @@ import {
   type CollectedStamp,
   type MypageStampTarget,
 } from '@/lib/stamp-progress';
-import type { SavedBookmarkRef } from '@/lib/mypage-storage';
+import { sendGaEvent } from '@/lib/analytics';
+import { toItemListEntries, type ItemListId } from '@/lib/item-list';
+import { ItemListTracker } from '@/components/item-list-tracker';
+import {
+  clearHistory,
+  type SavedBookmarkRef,
+  type SavedHistoryRef,
+} from '@/lib/mypage-storage';
 import type { StampCategory } from '@/lib/stamp-signature';
 
 export interface MypageViewProps {
@@ -152,10 +159,11 @@ function StampArea({
   );
 }
 
-type TabId = 'stamps' | 'bookmarks';
+type TabId = 'stamps' | 'bookmarks' | 'history';
 const TABS: readonly { id: TabId; label: string }[] = [
   { id: 'stamps', label: 'スタンプ' },
   { id: 'bookmarks', label: 'ブックマーク' },
+  { id: 'history', label: '履歴' },
 ];
 
 function subscribeHash(onChange: () => void): () => void {
@@ -169,13 +177,47 @@ function useSelectedTab(): TabId {
     () => window.location.hash,
     () => '',
   );
-  return hash === '#bookmarks' ? 'bookmarks' : 'stamps';
+  return hash === '#bookmarks'
+    ? 'bookmarks'
+    : hash === '#history'
+      ? 'history'
+      : 'stamps';
+}
+
+function CardList({
+  listId,
+  items,
+  active,
+}: {
+  readonly listId: ItemListId;
+  readonly items: readonly ExhibitionCardView[];
+  readonly active: boolean;
+}) {
+  // 非選択のパネルも DOM に残るため、空の entries を渡して表示計測を送らせない
+  return (
+    <ItemListTracker
+      listId={listId}
+      entries={active ? toItemListEntries(items, 1) : []}
+    >
+      <div className="flex w-full flex-col gap-6">
+        {items.map((c) => (
+          <ExhibitionCard
+            key={`${c.id}:${c.category}`}
+            exhibition={c}
+            bookmarkable
+          />
+        ))}
+      </div>
+    </ItemListTracker>
+  );
 }
 
 function BookmarkList({
   cards,
   bookmarks,
+  active,
 }: {
+  readonly active: boolean;
   readonly cards: readonly ExhibitionCardView[];
   readonly bookmarks: readonly SavedBookmarkRef[];
 }) {
@@ -192,21 +234,50 @@ function BookmarkList({
       </p>
     );
   }
+  return <CardList listId="mypage_bookmarks" items={items} active={active} />;
+}
+
+function HistoryList({
+  cards,
+  history,
+  active,
+}: {
+  readonly active: boolean;
+  readonly cards: readonly ExhibitionCardView[];
+  readonly history: readonly SavedHistoryRef[];
+}) {
+  const byKey = new Map(cards.map((c) => [`${c.id}:${c.category}`, c]));
+  const items = [...history]
+    .sort((a, b) =>
+      a.viewedAt < b.viewedAt ? 1 : a.viewedAt > b.viewedAt ? -1 : 0,
+    )
+    .flatMap((h) => byKey.get(`${h.id}:${h.category}`) ?? []);
+  if (items.length === 0) {
+    return (
+      <p className="text-base leading-[1.7] text-gray-600">履歴はありません</p>
+    );
+  }
   return (
-    <div className="flex flex-col gap-6">
-      {items.map((c) => (
-        <ExhibitionCard
-          key={`${c.id}:${c.category}`}
-          exhibition={c}
-          bookmarkable
-        />
-      ))}
+    <div className="flex flex-col items-start gap-6">
+      <CardList listId="mypage_history" items={items} active={active} />
+      <button
+        type="button"
+        onClick={() => {
+          const result = clearHistory();
+          if (result.kind === 'cleared') {
+            sendGaEvent('history_clear', { item_count: result.count });
+          }
+        }}
+        className="rounded-md border border-gray-200 px-4 py-2 text-sm leading-[normal] text-text transition-[background-color,box-shadow] duration-200 ease-out hover:bg-background hover:shadow-card motion-reduce:transition-none"
+      >
+        履歴を消去
+      </button>
     </div>
   );
 }
 
 function selectTab(id: TabId) {
-  const hash = id === 'bookmarks' ? '#bookmarks' : '';
+  const hash = id === 'stamps' ? '' : `#${id}`;
   const url = `${window.location.pathname}${window.location.search}${hash}`;
   // replaceState は hashchange を発火しないため、購読側へ手で伝える
   window.history.replaceState(null, '', url);
@@ -248,6 +319,8 @@ export function MypageView({
         }));
   const bookmarks =
     data === null ? null : data === 'unavailable' ? [] : data.lists.bookmarks;
+  const history =
+    data === null ? null : data === 'unavailable' ? [] : data.lists.history;
   const tab = useSelectedTab();
 
   const { areas: groups, others } = groupStampsByArea(
@@ -302,7 +375,9 @@ export function MypageView({
                 {t.id === 'bookmarks' ? (
                   <BookmarkIcon filled={false} />
                 ) : (
-                  <MaterialIcon name="approval" />
+                  <MaterialIcon
+                    name={t.id === 'history' ? 'history' : 'approval'}
+                  />
                 )}
                 <span className="text-[10px] leading-[1.6]">{t.label}</span>
                 <span
@@ -368,7 +443,25 @@ export function MypageView({
           hidden={tab !== 'bookmarks'}
         >
           {bookmarks !== null && (
-            <BookmarkList cards={cards} bookmarks={bookmarks} />
+            <BookmarkList
+              cards={cards}
+              bookmarks={bookmarks}
+              active={tab === 'bookmarks'}
+            />
+          )}
+        </div>
+        <div
+          role="tabpanel"
+          id="mypage-panel-history"
+          aria-labelledby="mypage-tab-history"
+          hidden={tab !== 'history'}
+        >
+          {history !== null && (
+            <HistoryList
+              cards={cards}
+              history={history}
+              active={tab === 'history'}
+            />
           )}
         </div>
       </div>

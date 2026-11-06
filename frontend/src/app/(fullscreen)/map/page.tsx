@@ -28,7 +28,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function MapPage() {
   const [data, booths] = await Promise.all([
-    getCampusMapData(),
+    getCampusMapData({ edge: true }),
     loadForIsr(getCorporateBoothCards, []),
   ]);
   // 実行時に取得失敗の結果を描画すると次の再検証までキャッシュされ、古い正常なページを

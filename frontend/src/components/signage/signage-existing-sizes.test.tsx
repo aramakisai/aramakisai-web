@@ -10,7 +10,13 @@ vi.mock('@/lib/cms-asset-url', () => ({
 
 vi.mock('@/lib/cms', () => ({ cms: {} }));
 vi.mock('@/env', () => ({
-  env: { NEXT_PUBLIC_CMS_URL: 'http://localhost:8055' },
+  env: {
+    NEXT_PUBLIC_CMS_URL: 'http://localhost:8055',
+    NEXT_PUBLIC_SITE_URL: 'https://example.test',
+  },
+}));
+vi.mock('qrcode', () => ({
+  default: { toString: vi.fn(async () => '<svg/>') },
 }));
 
 describe('待機中サイネージの文字の大きさ', () => {

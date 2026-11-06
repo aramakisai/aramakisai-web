@@ -89,7 +89,8 @@ describe('getCorporateBoothCards', () => {
     ]);
     expect(findMany).toHaveBeenCalledWith(
       'sponsors',
-      expect.objectContaining({ sort: ['_order'], limit: 0, depth: 0 }),
+      expect.objectContaining({ sort: ['_order'], limit: 0, depth: 1 }),
+      { edge: true },
     );
   });
 
@@ -182,6 +183,43 @@ describe('getCorporateBoothDetail', () => {
       },
     });
     expect(result).not.toHaveProperty('value.menu');
+  });
+
+  it('populate 済みの media は実ファイル URL を使う', async () => {
+    const media = {
+      id: 10,
+      url: '/m/a.png',
+      sizes: {
+        card: { url: '/m/a-card.webp' },
+        hero: { url: '/m/a-hero.webp' },
+      },
+    };
+    findById.mockResolvedValue(
+      ok(sponsor({ vendor: { name: 'x', images: [media as never] } })) as never,
+    );
+    findMany.mockResolvedValue(ok({ docs: [], totalDocs: 0 }) as never);
+    const result = await getCorporateBoothDetail('1');
+    expect(result).toMatchObject({
+      value: {
+        images: [
+          {
+            id: '10',
+            url: '/m/a.png',
+            cardUrl: '/m/a-card.webp',
+            heroUrl: '/m/a-hero.webp',
+          },
+        ],
+      },
+    });
+    expect(findById).toHaveBeenCalledWith(
+      'sponsors',
+      1,
+      expect.objectContaining({
+        depth: 1,
+        populate: expect.objectContaining({ media: expect.anything() }),
+      }),
+      { edge: true },
+    );
   });
 
   it('URL が無ければ links は空、不正な出店日は除く', async () => {

@@ -11,9 +11,7 @@ import { isPublicPath } from '@/lib/phase';
 import { getPageSlugsUpdatedAt } from '@/lib/static-page';
 import { getTopics } from '@/lib/topics';
 
-// CMS 更新を再デプロイなしで即時に反映するため、ISR (revalidate) ではなく
-// リクエスト時生成にする
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 // 一覧・詳細を専用の取得処理で列挙するルート。SITEMAP_CODE_ROUTES から
 // [slug] 固定ページ候補を取り出す際にこれらを除く。
@@ -45,7 +43,7 @@ function maxUpdatedAt(
 }
 
 async function getHomeLastModified(): Promise<string | undefined> {
-  const result = await cms.findGlobal('site_settings', { depth: 0 });
+  const result = await cms.findGlobal('site_settings', {}, { edge: true });
   return result.ok ? (result.value.updatedAt ?? undefined) : undefined;
 }
 
