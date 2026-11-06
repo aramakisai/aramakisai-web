@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MypageView } from './mypage-view';
+import { sendGaEvent } from '@/lib/analytics';
 import type {
   ExhibitionCardSummary,
   ExhibitionCategory,
@@ -10,6 +11,8 @@ import type { MypageStampTarget } from '@/lib/stamp-progress';
 vi.mock('@/env', () => ({
   env: { NEXT_PUBLIC_CMS_URL: 'http://localhost:8055' },
 }));
+
+vi.mock('@/lib/analytics', () => ({ sendGaEvent: vi.fn() }));
 
 vi.mock('@/lib/cms-asset-url', () => ({
   toAssetUrl: (id: string | null) =>
@@ -130,6 +133,7 @@ describe('MypageView', () => {
     window.history.replaceState(null, '', '/mypage');
   });
   afterEach(() => vi.unstubAllGlobals());
+  beforeEach(() => vi.mocked(sendGaEvent).mockClear());
 
   it('スタンプが無いときは空表示を出し、エリアは0%で並ぶ', () => {
     render(
@@ -430,16 +434,29 @@ describe('MypageView', () => {
       expect(bookmarks).toHaveAttribute('aria-selected', 'true');
       expect(bookmarks).toHaveFocus();
       expect(window.location.hash).toBe('#bookmarks');
+      const history = screen.getByRole('tab', { name: /履歴/ });
       fireEvent.keyDown(bookmarks, { key: 'ArrowRight' });
+      expect(history).toHaveAttribute('aria-selected', 'true');
+      expect(window.location.hash).toBe('#history');
+      fireEvent.keyDown(history, { key: 'ArrowRight' });
       expect(stamps).toHaveAttribute('aria-selected', 'true');
       expect(window.location.hash).toBe('');
       fireEvent.keyDown(stamps, { key: 'End' });
-      expect(bookmarks).toHaveAttribute('aria-selected', 'true');
-      fireEvent.keyDown(bookmarks, { key: 'Home' });
+      expect(history).toHaveAttribute('aria-selected', 'true');
+      fireEvent.keyDown(history, { key: 'Home' });
       expect(stamps).toHaveAttribute('aria-selected', 'true');
       fireEvent.keyDown(stamps, { key: 'ArrowLeft' });
-      expect(bookmarks).toHaveAttribute('aria-selected', 'true');
+      expect(history).toHaveAttribute('aria-selected', 'true');
       expect(window.history.length).toBe(len);
+    });
+
+    it('#historyで履歴タブが開く', () => {
+      window.history.replaceState(null, '', '/mypage#history');
+      renderView();
+      expect(screen.getByRole('tab', { name: /履歴/ })).toHaveAttribute(
+        'aria-selected',
+        'true',
+      );
     });
 
     it('クリックで切り替わる', () => {
@@ -496,11 +513,103 @@ describe('MypageView', () => {
       ).toBeInTheDocument();
     });
 
+    it('スタンプタブ表示中は一覧表示を送らず、切り替えると1回送る', () => {
+      saveBookmarks([[10, 'exhibit', '2026-10-24T01:00:00.000Z']]);
+      window.history.replaceState(null, '', '/mypage');
+      render(
+        <MypageView
+          targets={TARGETS}
+          areas={AREAS}
+          cards={CARDS}
+          categoryLabels={LABELS}
+        />,
+      );
+      expect(sendGaEvent).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole('tab', { name: /ブックマーク/ }));
+      expect(sendGaEvent).toHaveBeenCalledTimes(1);
+      expect(sendGaEvent).toHaveBeenCalledWith(
+        'view_item_list',
+        expect.objectContaining({ item_list_id: 'mypage_bookmarks' }),
+      );
+    });
+
     it('保存が無ければ0件表示を出す', () => {
       const panel = open();
       expect(
         within(panel).getByText('ブックマークはありません'),
       ).toBeInTheDocument();
+    });
+  });
+
+  describe('履歴のタブ', () => {
+    const saveHistory = (refs: Array<[number, string, string]>) =>
+      window.localStorage.setItem(
+        'aramakisai_mypage',
+        JSON.stringify({
+          version: 1,
+          lists: {
+            bookmarks: [],
+            history: refs.map(([id, category, viewedAt]) => ({
+              id,
+              category,
+              viewedAt,
+            })),
+          },
+        }),
+      );
+    const open = () => {
+      window.history.replaceState(null, '', '/mypage#history');
+      render(
+        <MypageView
+          targets={TARGETS}
+          areas={AREAS}
+          cards={CARDS}
+          categoryLabels={LABELS}
+        />,
+      );
+      return screen.getByRole('tabpanel', { name: '履歴' });
+    };
+
+    it('閲覧の新しい順に並べ、カタログに無い組は除く', () => {
+      saveHistory([
+        [10, 'exhibit', '2026-10-24T01:00:00.000Z'],
+        [20, 'stage', '2026-10-24T03:00:00.000Z'],
+        [999, 'exhibit', '2026-10-24T04:00:00.000Z'],
+        [21, 'vendor', '2026-10-24T02:00:00.000Z'],
+      ]);
+      const panel = open();
+      const links = within(panel)
+        .getAllByRole('link')
+        .map((l) => l.getAttribute('href'));
+      expect(links).toEqual([
+        '/exhibitions/20/stage',
+        '/exhibitions/21/vendor',
+        '/exhibitions/10/exhibit',
+      ]);
+    });
+
+    it('履歴が無ければ空表示だけを出し、消去ボタンは出さない', () => {
+      const panel = open();
+      expect(within(panel).getByText('履歴はありません')).toBeInTheDocument();
+      expect(
+        within(panel).queryByRole('button', { name: '履歴を消去' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('消去すると確認なしで空になり、件数を送る', () => {
+      saveHistory([
+        [10, 'exhibit', '2026-10-24T01:00:00.000Z'],
+        [20, 'stage', '2026-10-24T03:00:00.000Z'],
+      ]);
+      const panel = open();
+      fireEvent.click(
+        within(panel).getByRole('button', { name: '履歴を消去' }),
+      );
+      expect(within(panel).queryByRole('link')).not.toBeInTheDocument();
+      expect(within(panel).getByText('履歴はありません')).toBeInTheDocument();
+      expect(sendGaEvent).toHaveBeenCalledWith('history_clear', {
+        item_count: 2,
+      });
     });
   });
 });

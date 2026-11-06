@@ -19,15 +19,26 @@ export interface QuakeRelayStatus {
   readonly discord: DiscordStatus;
 }
 
+export interface QuakeRelayCronStatus {
+  /** cron が最後に cronTick を呼んだ時刻 */
+  readonly lastRunAt: string | null;
+}
+
+export interface QuakeRelayStatusV2 extends QuakeRelayStatus {
+  readonly cron: QuakeRelayCronStatus;
+}
+
 export interface QuakeRelayRpc {
   /** 期間内なら接続とalarmを確かめる。期間外は接続を閉じる */
   ensure(): Promise<void>;
-  status(): Promise<QuakeRelayStatus>;
+  /** cron 経路の ensure。最終実行時刻を記録してから ensure を呼ぶ */
+  cronTick(): Promise<void>;
+  status(): Promise<QuakeRelayStatusV2>;
   /** 表示中でなければ何もしない(冪等) */
   dismiss(
     by: string,
   ): Promise<
-    | { readonly ok: true; readonly status: QuakeRelayStatus }
+    | { readonly ok: true; readonly status: QuakeRelayStatusV2 }
     | { readonly ok: false; readonly reason: 'publish_failed' }
   >;
   /** 開発時のみ。試験モードの系統の受信として処理する */

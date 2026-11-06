@@ -18,6 +18,8 @@ interface ExhibitionCardInfo {
   /** そのカードのカテゴリ別企画内容の企画名 (企画一覧ページの h4) */
   readonly displayName: string;
   readonly hasPhoto: boolean;
+  /** カードが載っていた一覧のページ番号。並び順はタブ単位でランダムなので 1 ページ目とは限らない */
+  readonly pageNumber: number;
 }
 
 /** 全ページを巡回し、企画カード (= 選択カテゴリ 1 件につき 1 枚) を企画 ID ごとに集める */
@@ -44,7 +46,7 @@ async function collectCardsById(
       if (!match) continue;
       const id = match[1]!;
       const list = cardsById.get(id) ?? [];
-      list.push(card);
+      list.push({ ...card, pageNumber: p });
       cardsById.set(id, list);
     }
   }
@@ -167,7 +169,7 @@ test.describe('企画一覧→企画詳細', () => {
     }
 
     for (const card of cards!.slice(0, 2)) {
-      await page.goto('/exhibitions');
+      await page.goto(`/exhibitions?page=${card.pageNumber}`);
       await page.locator(`main a[href="${card.href}"]`).first().click();
       await expect(page).toHaveURL(new RegExp(`${card.href}$`));
 

@@ -17,7 +17,14 @@ import {
   type NotifyTarget,
 } from './hub-core';
 
+interface SignageStats {
+  at: string;
+  connections: Record<'prod' | 'dev' | 'preview' | 'unknown', number>;
+}
+
 const STATE_KEY = 'state';
+
+const COUNTED_ORIGINS = ['prod', 'dev', 'preview'] as const;
 
 function parsePin(value: unknown): SignagePinPayload | null {
   if (typeof value !== 'object' || value === null) return null;
@@ -60,7 +67,12 @@ export class SignageHub extends DurableObject<Env> {
       return new Response('Expected WebSocket', { status: 426 });
     }
     const { 0: client, 1: server } = new WebSocketPair();
-    this.ctx.acceptWebSocket(server);
+    const origin = request.headers.get('X-Signage-Origin');
+    this.ctx.acceptWebSocket(server, [
+      (COUNTED_ORIGINS as readonly (string | null)[]).includes(origin)
+        ? (origin as string)
+        : 'unknown',
+    ]);
 
     const plan = planConnect(
       this.hub,
@@ -72,6 +84,22 @@ export class SignageHub extends DurableObject<Env> {
     if (plan.alarmAt !== null) await this.setAlarmEarlier(plan.alarmAt);
     await this.persist();
     return new Response(null, { status: 101, webSocket: client });
+  }
+
+  // タグの無い接続 (タグ付け前に受け入れたもの) は unknown に数える
+  async stats(): Promise<SignageStats> {
+    const [prod, dev, preview] = COUNTED_ORIGINS.map(
+      (tag) => this.ctx.getWebSockets(tag).length,
+    );
+    return {
+      at: new Date().toISOString(),
+      connections: {
+        prod,
+        dev,
+        preview,
+        unknown: this.ctx.getWebSockets().length - prod - dev - preview,
+      },
+    };
   }
 
   webSocketMessage(): void {

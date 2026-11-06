@@ -1,11 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   MYPAGE_CHANGE_EVENT,
+  HISTORY_LIMIT,
   addBookmark,
+  clearHistory,
   parseMypageData,
   readMypageData,
   readMypageRaw,
   readVisitorId,
+  recordHistory,
   removeBookmark,
   saveVisitorId,
 } from './mypage-storage';
@@ -18,12 +21,18 @@ describe('mypage-storage', () => {
   afterEach(() => vi.restoreAllMocks());
 
   it('未保存は空のリスト', () => {
-    expect(readMypageData()).toEqual({ version: 1, lists: { bookmarks: [] } });
+    expect(readMypageData()).toEqual({
+      version: 1,
+      lists: { bookmarks: [], history: [] },
+    });
   });
 
   it('壊れたJSONは空のリストとして読み、追加で上書きできる', () => {
     window.localStorage.setItem(KEY, '{broken');
-    expect(readMypageData()).toEqual({ version: 1, lists: { bookmarks: [] } });
+    expect(readMypageData()).toEqual({
+      version: 1,
+      lists: { bookmarks: [], history: [] },
+    });
     expect(addBookmark(1, 'other')).toBe('added');
   });
 
@@ -83,7 +92,7 @@ describe('mypage-storage', () => {
           },
         }),
       );
-      expect(readMypageData()!.lists).toEqual({ bookmarks: [] });
+      expect(readMypageData()!.lists).toEqual({ bookmarks: [], history: [] });
       saveVisitorId(ID);
       expect(
         JSON.parse(window.localStorage.getItem(KEY)!).lists.stamps,
@@ -168,5 +177,93 @@ describe('mypage-storage', () => {
       throw new DOMException('blocked', 'SecurityError');
     });
     expect(readMypageRaw()).toBe('unavailable');
+  });
+
+  describe('閲覧履歴', () => {
+    const at = (s: number) => new Date(Date.UTC(2026, 0, 1, 0, 0, s));
+    const ids = () => readMypageData()!.lists.history.map((h) => h.id);
+
+    it('先頭に追加する', () => {
+      expect(recordHistory(1, 'exhibit', at(1))).toBe('recorded');
+      recordHistory(2, 'vendor', at(2));
+      expect(readMypageData()!.lists.history).toEqual([
+        { id: 2, category: 'vendor', viewedAt: at(2).toISOString() },
+        { id: 1, category: 'exhibit', viewedAt: at(1).toISOString() },
+      ]);
+    });
+
+    it('同じ組は先頭へ移し、別カテゴリは別扱い', () => {
+      recordHistory(1, 'exhibit', at(1));
+      recordHistory(2, 'exhibit', at(2));
+      recordHistory(1, 'vendor', at(3));
+      recordHistory(1, 'exhibit', at(4));
+      expect(ids()).toEqual([1, 1, 2]);
+      expect(readMypageData()!.lists.history[0].viewedAt).toBe(
+        at(4).toISOString(),
+      );
+    });
+
+    it('21件目で最古を捨てる', () => {
+      for (let i = 1; i <= HISTORY_LIMIT + 1; i++)
+        recordHistory(i, 'other', at(i));
+      expect(ids()).toHaveLength(HISTORY_LIMIT);
+      expect(ids()[0]).toBe(21);
+      expect(ids()).not.toContain(1);
+    });
+
+    it('ブックマーク・端末識別子を変えず、ブックマーク操作も履歴を消さない', () => {
+      saveVisitorId(ID);
+      addBookmark(9, 'stage');
+      recordHistory(1, 'exhibit', at(1));
+      expect(readVisitorId()).toBe(ID);
+      expect(readMypageData()!.lists.bookmarks.map((b) => b.id)).toEqual([9]);
+      addBookmark(8, 'stage');
+      removeBookmark(9, 'stage');
+      expect(ids()).toEqual([1]);
+    });
+
+    it('書き込み不可は unavailable', () => {
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new DOMException('full', 'QuotaExceededError');
+      });
+      expect(recordHistory(1, 'exhibit')).toBe('unavailable');
+      expect(clearHistory()).toEqual({ kind: 'unavailable' });
+    });
+
+    it('消去は件数を返し、ブックマークを残す', () => {
+      addBookmark(9, 'stage');
+      recordHistory(1, 'exhibit');
+      recordHistory(2, 'exhibit');
+      expect(clearHistory()).toEqual({ kind: 'cleared', count: 2 });
+      expect(ids()).toEqual([]);
+      expect(readMypageData()!.lists.bookmarks).toHaveLength(1);
+      expect(clearHistory()).toEqual({ kind: 'cleared', count: 0 });
+    });
+
+    it('history 欠落は空、不正要素だけ除く', () => {
+      window.localStorage.setItem(
+        KEY,
+        JSON.stringify({ version: 1, lists: { bookmarks: [] } }),
+      );
+      expect(readMypageData()!.lists.history).toEqual([]);
+      const ok = { id: 1, category: 'exhibit', viewedAt: 'x' };
+      window.localStorage.setItem(
+        KEY,
+        JSON.stringify({
+          version: 1,
+          lists: {
+            bookmarks: [],
+            history: [
+              ok,
+              { id: 0, category: 'exhibit', viewedAt: 'x' },
+              { id: 2, category: 'zzz', viewedAt: 'x' },
+              { id: 3, category: 'other' },
+              null,
+            ],
+          },
+        }),
+      );
+      expect(readMypageData()!.lists.history).toEqual([ok]);
+    });
   });
 });

@@ -14,6 +14,7 @@ import { sendInvitation } from './auth/invitation'
 import { collections } from './collections'
 import { createPgWithPoolErrorHandler, resolveReadReplicaUrl } from './db/read-replica'
 import { isOidcEnabled, optionalEnv, requireEnv } from './env'
+import { opsParkingHealthEndpoints } from './endpoints/ops-parking-health'
 import { parkingIngestEndpoints } from './endpoints/parking-ingest'
 import { signageQuakeEndpoints } from './endpoints/signage-quake'
 import { globals } from './globals'
@@ -56,7 +57,7 @@ export default buildConfig({
     warnIfWatchUnconfigured((message) => payload.logger.warn(message))
   },
   // Authentik OIDC を認証の一次経路とする。ローカル認証は実行委員の緊急用として残す
-  endpoints: [...(isOidcEnabled() ? authentikEndpoints : []), ...signageQuakeEndpoints, ...parkingIngestEndpoints],
+  endpoints: [...(isOidcEnabled() ? authentikEndpoints : []), ...signageQuakeEndpoints, ...parkingIngestEndpoints, ...opsParkingHealthEndpoints],
   editor: lexicalEditor({ features: richTextEditorFeatures }),
   // 利用者は実行委員のみで英語需要がないため、言語切替を出さず ja に固定する
   i18n: {

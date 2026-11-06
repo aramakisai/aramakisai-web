@@ -12,6 +12,7 @@ import { buildPageMetadata } from '@/lib/page-metadata';
 import { toMetaDescription } from '@/lib/meta-description';
 import { buildBreadcrumbJsonLd } from '@/lib/structured-data';
 import { JsonLd } from '@/components/json-ld';
+import { HistoryRecorder } from '@/components/history-recorder';
 import { StampCollector } from '@/components/stamp-collector';
 import { isStampCategory } from '@/lib/stamp-signature';
 
@@ -82,6 +83,10 @@ export default async function ExhibitionPage({ params }: ExhibitionPageProps) {
           category={exhibition.category}
         />
       )}
+      <HistoryRecorder
+        exhibitionId={exhibition.id}
+        category={exhibition.category}
+      />
       <BackLink href="/exhibitions" label="企画一覧へ戻る" />
 
       <ExhibitionDetailBody
