@@ -29,7 +29,11 @@ describe('getFestivalMeta', () => {
 
     const result = await getFestivalMeta();
 
-    expect(cms.findGlobal).toHaveBeenCalledWith('site_settings');
+    expect(cms.findGlobal).toHaveBeenCalledWith(
+      'site_settings',
+      {},
+      { edge: true },
+    );
     expect(result).toEqual({
       name: '荒牧祭',
       eventDays: [

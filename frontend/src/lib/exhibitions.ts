@@ -540,15 +540,19 @@ export const SLOT_JOIN_SELECT = {
 
 async function fetchJoinSources(exhibitionId?: number) {
   return Promise.all([
-    cms.findMany('performance_slots', {
-      ...(exhibitionId !== undefined
-        ? { where: { exhibition_id: { equals: exhibitionId } } }
-        : {}),
-      limit: 0,
-      depth: 0,
-      select: SLOT_JOIN_SELECT,
-    }),
-    cms.findMany('stages', { limit: 0, depth: 0 }),
+    cms.findMany(
+      'performance_slots',
+      {
+        ...(exhibitionId !== undefined
+          ? { where: { exhibition_id: { equals: exhibitionId } } }
+          : {}),
+        limit: 0,
+        depth: 0,
+        select: SLOT_JOIN_SELECT,
+      },
+      { edge: true },
+    ),
+    cms.findMany('stages', { limit: 0, depth: 0 }, { edge: true }),
     cms.findMany('map_areas', {
       sort: ['_order'],
       limit: 0,
