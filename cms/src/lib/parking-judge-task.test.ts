@@ -27,6 +27,7 @@ function setup(opts: {
     }),
     find: vi.fn(async () => ({ docs: [{ id: 21 }] })),
     update: vi.fn().mockResolvedValue({}),
+    db: { pool: { query: vi.fn().mockResolvedValue({ rowCount: 1 }) } },
     logger: { warn: vi.fn() },
   };
   return { payload };
@@ -173,5 +174,63 @@ describe('judgeParkingSnapshot', () => {
     const s = setup({});
     await run(s, judged());
     expect(s.payload.logger.warn).not.toHaveBeenCalled();
+  });
+
+  describe('判定状態の記録', () => {
+    const queries = (s: ReturnType<typeof setup>) =>
+      s.payload.db.pool.query.mock.calls.map((c) => c as [string, unknown[]]);
+
+    it('成功 (invalid_quality を含む) は成功時刻の更新と連続失敗の 0 化。last_error は触らない', async () => {
+      for (const quality of ['ok', null] as const) {
+        const s = setup({});
+        await run(s, judged({ quality }));
+        const [[sql, params]] = queries(s);
+        expect(queries(s)).toHaveLength(1);
+        expect(sql).toMatch(/judge_health_last_succeeded_at\s*=\s*\$1/);
+        expect(sql).toMatch(/judge_health_consecutive_failures\s*=\s*0/);
+        expect(sql).not.toMatch(/last_error/);
+        expect(params).toEqual(['2026-10-10T01:05:00.000Z', 3]);
+      }
+    });
+
+    it('失敗とレート制限は SQL 1 文で加算し、エラーは先頭 200 文字', async () => {
+      const long = 'x'.repeat(300);
+      const cases: [JudgeOutcome, string][] = [
+        [{ kind: 'failed', detail: long }, `api_error: ${long}`.slice(0, 200)],
+        [{ kind: 'rate_limited' }, 'rate_limited'],
+        [judged({ congestion: 'unknown' }), 'unknown'],
+      ];
+      for (const [outcome, error] of cases) {
+        const s = setup({});
+        await run(s, outcome);
+        const [[sql, params]] = queries(s);
+        expect(queries(s)).toHaveLength(1);
+        expect(sql).toMatch(/judge_health_consecutive_failures\s*=\s*coalesce\(judge_health_consecutive_failures,\s*0\)\s*\+\s*1/);
+        expect(params).toEqual(['2026-10-10T01:05:00.000Z', error, 3]);
+      }
+    });
+
+    it('GEMINI_API_KEY が無いときも失敗として加算する', async () => {
+      const s = setup({});
+      await run(s, judged(), false);
+      expect(queries(s)[0][1]).toEqual(['2026-10-10T01:05:00.000Z', 'not_configured', 3]);
+    });
+
+    it('打ち切りと画像が無いときは記録しない', async () => {
+      const a = setup({});
+      await run(a, { kind: 'superseded' });
+      expect(a.payload.db.pool.query).not.toHaveBeenCalled();
+      const b = setup({ snapshot: null });
+      await run(b, judged());
+      expect(b.payload.db.pool.query).not.toHaveBeenCalled();
+    });
+
+    it('カメラの更新が失敗しても判定は続き、warn に出す', async () => {
+      const s = setup({});
+      s.payload.db.pool.query.mockRejectedValue(new Error('db down'));
+      await run(s, judged());
+      expect(s.payload.logger.warn).toHaveBeenCalledWith(expect.stringContaining('judge health'));
+      expect(updates(s, 'parking_statuses')).toHaveLength(1);
+    });
   });
 });

@@ -52,7 +52,12 @@ export async function handleRequest(
   if (!parsed.ok) return text(503, 'Service Unavailable');
   const { config } = parsed;
   if (inject && !config.devInject) return text(404, 'Not Found');
-  if (!authorized(request, config.token)) return text(401, 'Unauthorized');
+  const allowed =
+    authorized(request, config.token) ||
+    (pathname === '/status' &&
+      config.statusToken !== null &&
+      authorized(request, config.statusToken));
+  if (!allowed) return text(401, 'Unauthorized');
 
   if (inject) {
     const channel = CHANNELS.find((c) => c === inject[1]);
@@ -83,5 +88,5 @@ export async function handleScheduled(
 ): Promise<void> {
   const parsed = readRelayConfig(env);
   if (!parsed.ok || !isInPeriod(parsed.config, now)) return;
-  await relay().ensure();
+  await relay().cronTick();
 }

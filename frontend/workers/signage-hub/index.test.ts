@@ -100,3 +100,63 @@ describe('SignageHub の alarm の扱い', () => {
     expect(ctx.alarm).not.toBeNull();
   });
 });
+
+describe('SignageHub の接続元タグ', () => {
+  const newHub = (ctx: object) =>
+    new SignageHub(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ctx as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      { SITE: { fetch: async () => Response.json(pin) } } as any,
+    );
+
+  function setupHub(tagged: Record<string, number>, total: number) {
+    const ctx = {
+      ...fakeCtx(),
+      getWebSockets: (tag?: string) =>
+        tag === undefined
+          ? Array.from({ length: total }, () => ({ send: vi.fn() }))
+          : Array.from({ length: tagged[tag] ?? 0 }, () => ({ send: vi.fn() })),
+    };
+    return newHub(ctx);
+  }
+
+  it('接続元ごとの件数を数え、タグの無い接続は unknown に入れる', async () => {
+    const hub = setupHub({ prod: 2, dev: 1, preview: 0, unknown: 1 }, 5);
+    const stats = await hub.stats();
+    expect(stats.connections).toEqual({
+      prod: 2,
+      dev: 1,
+      preview: 0,
+      unknown: 2,
+    });
+    expect(Number.isNaN(Date.parse(stats.at))).toBe(false);
+  });
+
+  it.each([
+    ['prod', ['prod']],
+    ['dev', ['dev']],
+    ['preview', ['preview']],
+    ['unknown', ['unknown']],
+    ['evil', ['unknown']],
+    [null, ['unknown']],
+  ])('ヘッダ %s の接続は %j のタグで受け入れる', async (header, tags) => {
+    const accepted: unknown[][] = [];
+    const ctx = {
+      ...fakeCtx(),
+      acceptWebSocket: (...args: unknown[]) => void accepted.push(args),
+      getWebSockets: () => [],
+    };
+    class P {
+      0 = {};
+      1 = { send: () => {} };
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (globalThis as any).WebSocketPair = P;
+    const hub = newHub(ctx);
+    const headers: Record<string, string> = { Upgrade: 'websocket' };
+    if (header) headers['X-Signage-Origin'] = header;
+    await hub.fetch(new Request('https://x/', { headers })).catch(() => {});
+    expect(accepted[0][1]).toEqual(tags);
+  });
+});

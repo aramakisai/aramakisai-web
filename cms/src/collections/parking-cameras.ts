@@ -139,6 +139,17 @@ export const ParkingCameras: CollectionConfig = {
         systemDate('received_at', '受信時刻'),
       ],
     },
+    {
+      name: 'judge_health',
+      type: 'group',
+      label: '判定の状態',
+      fields: [
+        systemDate('last_succeeded_at', '最後に成功した時刻'),
+        systemDate('last_failed_at', '最後に失敗した時刻'),
+        { name: 'last_error', type: 'text', label: '直近のエラー', ...systemOwned },
+        { name: 'consecutive_failures', type: 'number', label: '連続失敗回数', defaultValue: 0, ...systemOwned },
+      ],
+    },
     systemDate('outage_notified_at', '停止を通知した時刻'),
   ],
 };

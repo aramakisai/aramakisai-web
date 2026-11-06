@@ -17,6 +17,7 @@ export interface QuakeEnv {
   readonly QUAKE_ACTIVE_UNTIL?: string;
   readonly QUAKE_DEV_INJECT?: string;
   readonly SIGNAGE_QUAKE_TOKEN?: string;
+  readonly SIGNAGE_QUAKE_STATUS_TOKEN?: string;
   readonly DISCORD_QUAKE_WEBHOOK_URL?: string;
 }
 
@@ -29,6 +30,8 @@ export interface RelayConfig {
   readonly activeUntil: number;
   readonly devInject: boolean;
   readonly token: string;
+  /** GET /status だけを認可する読み取り専用トークン。未設定ならnull */
+  readonly statusToken: string | null;
   /** 未設定・形が不正ならnull(投稿しない) */
   readonly discordWebhookUrl: string | null;
 }
@@ -81,6 +84,7 @@ export function readRelayConfig(env: QuakeEnv): ConfigResult {
       activeUntil,
       devInject: env.QUAKE_DEV_INJECT === 'true',
       token: env.SIGNAGE_QUAKE_TOKEN,
+      statusToken: env.SIGNAGE_QUAKE_STATUS_TOKEN || null,
       discordWebhookUrl,
     },
   };

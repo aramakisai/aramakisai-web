@@ -1,18 +1,20 @@
 import { describe, expect, it, vi } from 'vitest';
 import { handleRequest, handleScheduled } from './http';
-import type { QuakeRelayRpc, QuakeRelayStatus } from './rpc';
+import type { QuakeRelayRpc, QuakeRelayStatusV2 } from './rpc';
 
 const NOW = Date.parse('2026-10-24T00:00:00+09:00');
 const env = {
   QUAKE_ACTIVE_FROM: '2026-10-23T09:00:00+09:00',
   QUAKE_ACTIVE_UNTIL: '2026-11-22T00:00:00+09:00',
   SIGNAGE_QUAKE_TOKEN: 'secret-token',
+  SIGNAGE_QUAKE_STATUS_TOKEN: 'status-token',
 };
-const status = { inPeriod: true } as unknown as QuakeRelayStatus;
+const status = { inPeriod: true } as unknown as QuakeRelayStatusV2;
 
 function relay(over: Partial<QuakeRelayRpc> = {}) {
   const r: QuakeRelayRpc = {
     ensure: vi.fn(async () => {}),
+    cronTick: vi.fn(async () => {}),
     status: vi.fn(async () => status),
     dismiss: vi.fn(async () => ({ ok: true as const, status })),
     inject: vi.fn(async () => 'accepted' as const),
@@ -45,6 +47,48 @@ describe('handleRequest', () => {
     const res = await handleRequest(req('/status'), env, () => relay());
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual(status);
+  });
+
+  it('GET /status は読み取り専用トークンでも200、未設定なら401', async () => {
+    const ok = await handleRequest(
+      req('/status', { token: 'status-token' }),
+      env,
+      () => relay(),
+    );
+    expect(ok.status).toBe(200);
+    const without = { ...env, SIGNAGE_QUAKE_STATUS_TOKEN: undefined };
+    for (const token of ['status-token', '']) {
+      const res = await handleRequest(req('/status', { token }), without, () =>
+        relay(),
+      );
+      expect(res.status).toBe(401);
+    }
+  });
+
+  it('/dismiss と /dev/inject は読み取り専用トークンだと401', async () => {
+    const r = relay();
+    const on = { ...env, QUAKE_DEV_INJECT: 'true' };
+    const dismiss = await handleRequest(
+      req('/dismiss', {
+        method: 'POST',
+        body: '{"by":"x"}',
+        token: 'status-token',
+      }),
+      on,
+      () => r,
+    );
+    const inject = await handleRequest(
+      req('/dev/inject/p2p', {
+        method: 'POST',
+        body: '{}',
+        token: 'status-token',
+      }),
+      on,
+      () => r,
+    );
+    expect([dismiss.status, inject.status]).toEqual([401, 401]);
+    expect(r.dismiss).not.toHaveBeenCalled();
+    expect(r.inject).not.toHaveBeenCalled();
   });
 
   it('その他のパス・メソッドは404', async () => {
@@ -128,10 +172,11 @@ describe('handleRequest', () => {
 });
 
 describe('handleScheduled', () => {
-  it('期間内はensureを呼ぶ', async () => {
+  it('期間内はcronTickを呼ぶ', async () => {
     const r = relay();
     await handleScheduled(env, NOW, () => r);
-    expect(r.ensure).toHaveBeenCalledTimes(1);
+    expect(r.cronTick).toHaveBeenCalledTimes(1);
+    expect(r.ensure).not.toHaveBeenCalled();
   });
   it('期間外・設定不正はDOを取得すらしない', async () => {
     const get = vi.fn(() => relay());

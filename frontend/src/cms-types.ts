@@ -751,6 +751,12 @@ export interface ParkingCamera {
     log?: string | null;
     received_at?: string | null;
   };
+  judge_health?: {
+    last_succeeded_at?: string | null;
+    last_failed_at?: string | null;
+    last_error?: string | null;
+    consecutive_failures?: number | null;
+  };
   outage_notified_at?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -1526,6 +1532,14 @@ export interface ParkingCamerasSelect<T extends boolean = true> {
         firmware?: T;
         log?: T;
         received_at?: T;
+      };
+  judge_health?:
+    | T
+    | {
+        last_succeeded_at?: T;
+        last_failed_at?: T;
+        last_error?: T;
+        consecutive_failures?: T;
       };
   outage_notified_at?: T;
   updatedAt?: T;
