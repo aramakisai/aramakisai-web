@@ -17,10 +17,11 @@ import { HomePageContent } from '@/lib/home-page-types';
 import { getRequestPhase } from '@/lib/request-phase';
 import { formatEventDaysSummary, getDaysUntilEventDay } from '@/lib/event-day';
 import {
-  getExhibitionListData,
-  parseExhibitionQuery,
-  type ExhibitionCardSummary,
+  getExhibitionCatalog,
+  slimThumbnail,
+  type ExhibitionCardView,
 } from '@/lib/exhibitions';
+import { getCorporateBoothCards } from '@/lib/corporate-booths';
 import { getRegionalSponsorMapData } from '@/lib/regional-sponsors';
 import { getSponsors } from '@/lib/sponsors';
 import { getSiteMetadata } from '@/lib/site-metadata';
@@ -62,16 +63,15 @@ const EMPTY_CONTENT: HomePageContent = {
 const SECTION_CLASS =
   'mx-auto w-full max-w-[1440px] px-4 py-8 lg:px-20 lg:py-12';
 
-// /exhibitions ページと同じ「取得失敗時は空扱い」の規約 (企画一覧は検索欄・導線だけ残す、要件3.2)
+// 片方の取得に失敗しても取れた方だけを候補にし、両方失敗したら空にする (要件3.2)
 async function getFeaturedExhibitions(): Promise<
-  readonly ExhibitionCardSummary[]
+  readonly ExhibitionCardView[]
 > {
-  try {
-    const result = await getExhibitionListData(parseExhibitionQuery({}));
-    return result.items;
-  } catch {
-    return [];
-  }
+  const [catalog, booths] = await Promise.all([
+    getExhibitionCatalog().catch(() => null),
+    getCorporateBoothCards().catch(() => null),
+  ]);
+  return [...(catalog?.cards ?? []), ...(booths ?? [])].map(slimThumbnail);
 }
 
 async function getAdSponsors() {

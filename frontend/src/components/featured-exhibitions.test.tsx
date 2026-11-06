@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import * as analytics from '@/lib/analytics';
 import { FeaturedExhibitions } from './featured-exhibitions';
 import type { ExhibitionCardSummary } from '@/lib/exhibitions';
 
@@ -64,5 +65,27 @@ describe('FeaturedExhibitions', () => {
     expect(
       screen.getByRole('link', { name: /企画一覧へ/ }),
     ).toBeInTheDocument();
+  });
+
+  it('選んだカードを home_featured の一覧として計測する', () => {
+    const send = vi
+      .spyOn(analytics, 'sendGaEvent')
+      .mockImplementation(() => {});
+    render(
+      <FeaturedExhibitions
+        exhibitions={[makeExhibition(1), makeExhibition(2)]}
+      />,
+    );
+
+    expect(send).toHaveBeenCalledWith(
+      'view_item_list',
+      expect.objectContaining({
+        item_list_id: 'home_featured',
+        items: expect.arrayContaining([
+          expect.objectContaining({ item_id: '1:exhibit' }),
+        ]),
+      }),
+    );
+    send.mockRestore();
   });
 });
