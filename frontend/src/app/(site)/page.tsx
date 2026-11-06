@@ -75,12 +75,12 @@ async function getFeaturedExhibitions(): Promise<
 }
 
 async function getAdSponsors() {
-  const result = await getSponsors();
+  const result = await getSponsors({ edge: true });
   return result.ok ? result.value.ad : [];
 }
 
 async function getLocalSponsors() {
-  const result = await getRegionalSponsorMapData();
+  const result = await getRegionalSponsorMapData({ edge: true });
   return result.ok ? result.sponsors : [];
 }
 

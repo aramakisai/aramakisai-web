@@ -90,6 +90,7 @@ describe('getCorporateBoothCards', () => {
     expect(findMany).toHaveBeenCalledWith(
       'sponsors',
       expect.objectContaining({ sort: ['_order'], limit: 0, depth: 1 }),
+      { edge: true },
     );
   });
 
@@ -217,6 +218,7 @@ describe('getCorporateBoothDetail', () => {
         depth: 1,
         populate: expect.objectContaining({ media: expect.anything() }),
       }),
+      { edge: true },
     );
   });
 

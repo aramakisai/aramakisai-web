@@ -26,7 +26,11 @@ describe('getAccessSettings', () => {
       embedUrl: 'https://example.com/map',
       embedHeight: 480,
     });
-    expect(cms.findGlobal).toHaveBeenCalledWith('site_settings');
+    expect(cms.findGlobal).toHaveBeenCalledWith(
+      'site_settings',
+      {},
+      { edge: true },
+    );
   });
 
   it('未設定の項目は空文字・null に落とす', async () => {

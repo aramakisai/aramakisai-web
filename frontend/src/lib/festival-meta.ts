@@ -4,7 +4,7 @@ import { toEventDays } from './event-day';
 import { FestivalMeta, SnsLink } from './home-page-types';
 
 export async function getFestivalMeta(): Promise<FestivalMeta> {
-  const result = await cms.findGlobal('site_settings');
+  const result = await cms.findGlobal('site_settings', {}, { edge: true });
   if (!result.ok) throw new Error('祭メタ情報の取得に失敗しました');
   const meta = result.value;
 
@@ -18,6 +18,6 @@ export async function getFestivalMeta(): Promise<FestivalMeta> {
 }
 
 export async function getContactFormUrl(): Promise<string | null> {
-  const result = await cms.findGlobal('site_settings');
+  const result = await cms.findGlobal('site_settings', {}, { edge: true });
   return result.ok ? (result.value.contact_form_url ?? null) : null;
 }

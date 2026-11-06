@@ -43,7 +43,7 @@ function maxUpdatedAt(
 }
 
 async function getHomeLastModified(): Promise<string | undefined> {
-  const result = await cms.findGlobal('site_settings');
+  const result = await cms.findGlobal('site_settings', {}, { edge: true });
   return result.ok ? (result.value.updatedAt ?? undefined) : undefined;
 }
 
