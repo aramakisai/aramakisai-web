@@ -105,7 +105,10 @@ test.describe('企画の一覧・履歴の GA4 計測', () => {
       item_list_id: 'home_featured',
     });
 
-    await page.locator('main a[href^="/exhibitions/"]').first().click();
+    await page
+      .locator('main a[href^="/exhibitions/"]:not([href*="/booth/"])')
+      .first()
+      .click();
     await expect(page).toHaveURL(/\/exhibitions\/\d+\/[a-z]+$/);
     expect((await events(page, 'select_item'))[0]).toMatchObject({
       item_list_id: 'home_featured',
@@ -122,7 +125,7 @@ test.describe('企画の一覧・履歴の GA4 計測', () => {
       .first()
       .click();
     const href = await page
-      .locator('main a[href^="/exhibitions/"]')
+      .locator('main a[href^="/exhibitions/"]:not([href*="/booth/"])')
       .first()
       .getAttribute('href');
     await page.goto(href!);
@@ -181,7 +184,10 @@ test.describe('企画の一覧・履歴の GA4 計測', () => {
       'page_referrer',
     );
 
-    await page.locator('main a[href^="/exhibitions/"]').first().click();
+    await page
+      .locator('main a[href^="/exhibitions/"]:not([href*="/booth/"])')
+      .first()
+      .click();
     await expect(page).toHaveURL(/\/exhibitions\/\d+\/[a-z]+$/);
     await expect
       .poll(async () => (await events(page, 'page_view')).length)
