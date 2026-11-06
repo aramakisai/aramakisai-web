@@ -62,14 +62,18 @@ function fetchAreas() {
 }
 
 function fetchBoothSponsors() {
-  return cms.findMany('sponsors', {
-    // hasMany select の in は包含判定になる。CmsWhere は配列型で受けるため型だけ合わせる
-    where: { type: { in: ['vendor' as unknown as Sponsor['type']] } },
-    sort: ['_order'],
-    limit: 0,
-    depth: 1,
-    populate: { media: CARD_MEDIA_SELECT, map_areas: { name: true } },
-  });
+  return cms.findMany(
+    'sponsors',
+    {
+      // hasMany select の in は包含判定になる。CmsWhere は配列型で受けるため型だけ合わせる
+      where: { type: { in: ['vendor' as unknown as Sponsor['type']] } },
+      sort: ['_order'],
+      limit: 0,
+      depth: 1,
+      populate: { media: CARD_MEDIA_SELECT, map_areas: { name: true } },
+    },
+    { edge: true },
+  );
 }
 
 const indexAreas = (areas: readonly MapArea[]) =>
@@ -99,11 +103,16 @@ export async function getCorporateBoothDetail(
   if (!/^\d+$/.test(id)) return { kind: 'missing' };
 
   const [sponsorResult, areasResult] = await Promise.all([
-    cms.findById('sponsors', Number(id), {
-      depth: 1,
-      // ギャラリーが実ファイル URL を使えるよう media だけ展開する。area_id は ID だけ使う
-      populate: { media: CARD_MEDIA_SELECT, map_areas: { name: true } },
-    }),
+    cms.findById(
+      'sponsors',
+      Number(id),
+      {
+        depth: 1,
+        // ギャラリーが実ファイル URL を使えるよう media だけ展開する。area_id は ID だけ使う
+        populate: { media: CARD_MEDIA_SELECT, map_areas: { name: true } },
+      },
+      { edge: true },
+    ),
     fetchAreas(),
   ]);
   if (!sponsorResult.ok) {

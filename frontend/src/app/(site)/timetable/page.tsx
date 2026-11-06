@@ -33,7 +33,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function TimetablePage() {
-  const timetable = await loadForIsr(getTimetable, EMPTY_TIMETABLE);
+  const timetable = await loadForIsr(
+    () => getTimetable({ edge: true }),
+    EMPTY_TIMETABLE,
+  );
   const renderedAt = new Date().toISOString();
   const initialDayKey = resolveInitialDayKey(
     timetable.days,
