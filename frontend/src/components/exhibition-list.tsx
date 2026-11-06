@@ -1,6 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { sendGaEvent, trackPageView } from '@/lib/analytics';
 import {
   buildExhibitionsHref,
@@ -12,12 +18,15 @@ import {
   type ListingCard,
   type ExhibitionQuery,
 } from '@/lib/exhibitions';
+import { orderCards, readOrCreateSeed } from '@/lib/exhibition-order';
+import { toItemListEntries } from '@/lib/item-list';
 import { ExhibitionCard } from './exhibition-card';
 import {
   ExhibitionFilters,
   type ExhibitionFilterValues,
 } from './exhibition-filters';
 import { ExhibitionPagination } from './exhibition-pagination';
+import { ItemListTracker } from './item-list-tracker';
 
 export interface ExhibitionListProps {
   readonly cards: readonly ListingCard[];
@@ -50,8 +59,11 @@ export function ExhibitionList({ cards, areas }: ExhibitionListProps) {
   const [query, setQuery] = useState(INITIAL_QUERY);
   // 検索欄はローカルの入力値を持つため、URL からの復元時は key で作り直して追従させる
   const [restoreCount, setRestoreCount] = useState(0);
+  // 確定するまでカードを不可視にし、id 順から並べ替わる瞬間を見せない
+  const [seed, setSeed] = useState<number | null>(null);
 
   const restore = useCallback(() => {
+    setSeed((current) => current ?? readOrCreateSeed());
     setQuery(readQueryFromLocation());
     setRestoreCount((n) => n + 1);
   }, []);
@@ -83,15 +95,25 @@ export function ExhibitionList({ cards, areas }: ExhibitionListProps) {
 
   const hasFilter =
     query.q !== '' || query.categories.length > 0 || query.areaIds.length > 0;
-  const filtered = filterExhibitions(cards, query);
+  const ordered = useMemo(
+    () => (seed === null ? cards : orderCards(cards, seed)),
+    [cards, seed],
+  );
+  const filtered = filterExhibitions(ordered, query);
   const total = filtered.length;
   const paginated = paginate(filtered, query.page);
   const rangeStart = total === 0 ? 0 : (paginated.page - 1) * PAGE_SIZE + 1;
   const rangeEnd =
     total === 0 ? 0 : Math.min(paginated.page * PAGE_SIZE, total);
+  const hiddenStyle =
+    seed === null ? { visibility: 'hidden' as const } : undefined;
 
   return (
     <>
+      {/* JavaScript が動かない環境ではシードが確定しないため、不可視を打ち消して id 順で見せる */}
+      <noscript>
+        <style>{'[data-order-pending]{visibility:visible!important}'}</style>
+      </noscript>
       <ExhibitionFilters
         key={restoreCount}
         query={query}
@@ -106,21 +128,39 @@ export function ExhibitionList({ cards, areas }: ExhibitionListProps) {
         </p>
       ) : (
         <>
-          <p className="text-sm text-gray-600">
+          <p
+            className="text-sm text-gray-600"
+            style={hiddenStyle}
+            data-order-pending={seed === null ? '' : undefined}
+          >
             全 {total} 件中 {rangeStart}–{rangeEnd} 件を表示
           </p>
           {/* items-start がないと行内の最も高いカードに合わせて伸び、グラデーション帯の
             下に背景色が残って角丸が効かなくなる。 */}
-          <div className="grid grid-cols-1 items-start gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {paginated.items.map((exhibition, index) => (
-              <ExhibitionCard
-                priority={index < FIRST_ROW_COUNT}
-                key={`${exhibition.id}-${exhibition.category}`}
-                exhibition={exhibition}
-                bookmarkable
-              />
-            ))}
-          </div>
+          <ItemListTracker
+            listId="exhibitions"
+            entries={
+              seed === null
+                ? []
+                : toItemListEntries(paginated.items, rangeStart)
+            }
+            filtered={hasFilter}
+          >
+            <div
+              className="grid grid-cols-1 items-start gap-6 sm:grid-cols-2 lg:grid-cols-4"
+              style={hiddenStyle}
+              data-order-pending={seed === null ? '' : undefined}
+            >
+              {paginated.items.map((exhibition, index) => (
+                <ExhibitionCard
+                  priority={seed !== null && index < FIRST_ROW_COUNT}
+                  key={`${exhibition.id}-${exhibition.category}`}
+                  exhibition={exhibition}
+                  bookmarkable
+                />
+              ))}
+            </div>
+          </ItemListTracker>
           <ExhibitionPagination
             page={paginated.page}
             pageCount={paginated.pageCount}

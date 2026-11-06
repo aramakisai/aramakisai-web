@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
+import { renderToString } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { ExhibitionList } from './exhibition-list';
 import type {
@@ -9,6 +10,12 @@ import type {
 const sendGaEvent = vi.hoisted(() => vi.fn());
 const trackPageView = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/analytics', () => ({ sendGaEvent, trackPageView }));
+
+const orderCards = vi.hoisted(() => vi.fn(<T,>(cards: readonly T[]) => cards));
+vi.mock('@/lib/exhibition-order', () => ({
+  readOrCreateSeed: () => 1,
+  orderCards,
+}));
 
 vi.mock('@/env', () => ({
   env: { NEXT_PUBLIC_CMS_URL: 'http://localhost:8055' },
@@ -43,6 +50,7 @@ describe('ExhibitionList', () => {
     setUrl('');
     sendGaEvent.mockClear();
     trackPageView.mockClear();
+    orderCards.mockImplementation((cards) => cards);
   });
   afterEach(() => vi.useRealTimers());
 
@@ -147,13 +155,15 @@ describe('ExhibitionList', () => {
       card(31, { category: 'stage' }),
     ];
     render(<ExhibitionList cards={cards} areas={areas} />);
-    expect(sendGaEvent).not.toHaveBeenCalled();
+    const searchCalls = () =>
+      sendGaEvent.mock.calls.filter((c) => c[0] === 'exhibition_search');
+    expect(searchCalls()).toHaveLength(0);
 
     fireEvent.click(screen.getByRole('link', { name: '2' }));
-    expect(sendGaEvent).not.toHaveBeenCalled();
+    expect(searchCalls()).toHaveLength(0);
 
     fireEvent.click(screen.getByRole('button', { name: 'ステージ' }));
-    expect(sendGaEvent).toHaveBeenCalledTimes(1);
+    expect(searchCalls()).toHaveLength(1);
     expect(sendGaEvent).toHaveBeenCalledWith('exhibition_search', {
       item_count: 1,
     });
@@ -171,7 +181,11 @@ describe('ExhibitionList', () => {
     expect(sendGaEvent).toHaveBeenCalledWith('exhibition_search', {
       item_count: 1,
     });
-    expect(JSON.stringify(sendGaEvent.mock.calls)).not.toContain('企画1');
+    expect(
+      JSON.stringify(
+        sendGaEvent.mock.calls.filter((c) => c[0] === 'exhibition_search'),
+      ),
+    ).not.toContain('企画1');
   });
 
   test('カテゴリ 企業ブース で企業ブースのカードだけに絞り込み、詳細 URL へリンクする', () => {
@@ -196,5 +210,55 @@ describe('ExhibitionList', () => {
       'href',
       '/exhibitions/booth/7',
     );
+  });
+
+  test('並べ替えた順で表示し、絞り込み後も相対順を保つ', () => {
+    orderCards.mockImplementation((cards) => [...cards].reverse());
+    setUrl('?category=stage');
+    render(
+      <ExhibitionList
+        cards={[
+          card(1, { category: 'stage' }),
+          card(2),
+          card(3, { category: 'stage' }),
+        ]}
+        areas={areas}
+      />,
+    );
+
+    const names = screen
+      .getAllByRole('link', { name: /企画\d/ })
+      .map((a) => a.textContent);
+    expect(names[0]).toContain('企画3');
+    expect(names[1]).toContain('企画1');
+  });
+
+  test('シード確定前 (サーバー描画) は不可視で、noscript で可視化し、確定後は不可視にしない', () => {
+    const html = renderToString(
+      <ExhibitionList cards={[card(1)]} areas={areas} />,
+    );
+    expect(html).toContain('visibility:hidden');
+    expect(html).toContain('<noscript><style>');
+
+    const { container } = render(
+      <ExhibitionList cards={[card(1)]} areas={areas} />,
+    );
+    expect(container.querySelector('[data-order-pending]')).toBeNull();
+    expect(sendGaEvent).toHaveBeenCalledTimes(1);
+  });
+
+  test('2 ページ目の view_item_list は掲載位置 25 から始まる', () => {
+    window.scrollTo = vi.fn();
+    const cards = Array.from({ length: 30 }, (_, i) => card(i + 1));
+    render(<ExhibitionList cards={cards} areas={areas} />);
+    fireEvent.click(screen.getByRole('link', { name: '2' }));
+
+    const calls = sendGaEvent.mock.calls.filter(
+      (c) => c[0] === 'view_item_list',
+    );
+    expect(calls).toHaveLength(2);
+    expect(calls[0][1].items[0].index).toBe(1);
+    expect(calls[1][1].items[0].index).toBe(25);
+    expect(calls[1][1].list_filtered).toBe('false');
   });
 });
