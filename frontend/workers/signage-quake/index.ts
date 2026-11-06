@@ -57,11 +57,7 @@ interface Connection {
 }
 
 type CloseCause =
-  | 'upstream_close'
-  | 'error'
-  | 'silence'
-  | 'missed'
-  | 'out_of_period';
+  'upstream_close' | 'error' | 'silence' | 'missed' | 'out_of_period';
 
 interface CloseRecord {
   at: number;
