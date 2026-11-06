@@ -150,10 +150,84 @@ describe('analytics', () => {
       expect(l.at(-1)).toEqual(['event', 'page_view']);
     });
 
+    const pageViews = () => layer().filter((e) => e[1] === 'page_view');
+
+    it('初回の page_view には page_referrer を付けない', async () => {
+      goto('/a');
+      const a = await load();
+      a.trackPageView();
+      expect(pageViews()).toEqual([['event', 'page_view']]);
+    });
+
+    it('2回目は直前に記録した位置を page_referrer に付ける', async () => {
+      goto('/a?q=x#h');
+      const a = await load();
+      a.trackPageView();
+      goto('/b');
+      a.trackPageView();
+      expect(pageViews()[1]).toEqual([
+        'event',
+        'page_view',
+        { page_referrer: `${window.location.origin}/a` },
+      ]);
+    });
+
+    it('クエリ変更で setPageLocation した後は更新後の位置が参照元になる', async () => {
+      goto('/exhibitions');
+      const a = await load();
+      a.trackPageView();
+      goto('/exhibitions?category=stage');
+      a.setPageLocation();
+      goto('/b');
+      a.trackPageView();
+      expect(pageViews()[1][2]).toEqual({
+        page_referrer: `${window.location.origin}/exhibitions?category=stage`,
+      });
+    });
+
     it('setPageLocation は page_view を積まない', async () => {
       const a = await load();
       a.setPageLocation();
       expect(layer().some((e) => e[1] === 'page_view')).toBe(false);
+    });
+  });
+
+  describe('一覧計測イベント', () => {
+    const item = {
+      item_id: '3:exhibit',
+      item_name: 'a',
+      item_category: 'exhibit',
+      index: 1,
+    } as const;
+
+    it('view_item_list / select_item / history_clear を整形済み page_location 付きで送る', async () => {
+      goto('/exhibitions?q=secret&page=2');
+      const a = await load();
+      a.sendGaEvent('view_item_list', {
+        item_list_id: 'exhibitions',
+        item_list_name: 'exhibitions',
+        list_filtered: 'true',
+        items: [item],
+      });
+      a.sendGaEvent('select_item', {
+        item_list_id: 'home_featured',
+        item_list_name: 'home_featured',
+        items: [item],
+      });
+      a.sendGaEvent('history_clear', { item_count: 4 });
+      const evs = layer().filter((e) => e[0] === 'event');
+      const loc = `${window.location.origin}/exhibitions?page=2`;
+      expect(evs.map((e) => e[1])).toEqual([
+        'view_item_list',
+        'select_item',
+        'history_clear',
+      ]);
+      expect(evs[0][2]).toMatchObject({
+        list_filtered: 'true',
+        page_location: loc,
+      });
+      expect(evs[1][2]).not.toHaveProperty('list_filtered');
+      expect(evs[2][2]).toEqual({ item_count: 4, page_location: loc });
     });
   });
 
