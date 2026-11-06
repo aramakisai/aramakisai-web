@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  '@payloadcms/storage-s3': c117b353daba054c7c98bc06187a8927fe1c1acf40162f6aa159a81687f837d6
+
 importers:
 
   .:
@@ -25,7 +28,7 @@ importers:
         version: 3.88.0(@faceless-ui/modal@3.0.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(@faceless-ui/scroll-info@2.0.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(@payloadcms/next@3.88.0(@types/react@19.2.14)(graphql@16.14.2)(monaco-editor@0.56.0)(next@16.4.2(@babel/core@7.29.7)(@types/node@22.19.9)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.77.4))(payload@3.88.0(graphql@16.14.2)(typescript@5.7.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@5.7.3))(@types/react@19.2.14)(monaco-editor@0.56.0)(next@16.4.2(@babel/core@7.29.7)(@types/node@22.19.9)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.77.4))(payload@3.88.0(graphql@16.14.2)(typescript@5.7.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@5.7.3)(yjs@13.6.32)
       '@payloadcms/storage-s3':
         specifier: 3.88.0
-        version: 3.88.0(@types/react@19.2.14)(monaco-editor@0.56.0)(next@16.4.2(@babel/core@7.29.7)(@types/node@22.19.9)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.77.4))(payload@3.88.0(graphql@16.14.2)(typescript@5.7.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@5.7.3)
+        version: 3.88.0(patch_hash=c117b353daba054c7c98bc06187a8927fe1c1acf40162f6aa159a81687f837d6)(@types/react@19.2.14)(monaco-editor@0.56.0)(next@16.4.2(@babel/core@7.29.7)(@types/node@22.19.9)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.77.4))(payload@3.88.0(graphql@16.14.2)(typescript@5.7.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@5.7.3)
       '@payloadcms/translations':
         specifier: 3.88.0
         version: 3.88.0
@@ -5897,7 +5900,7 @@ snapshots:
       - utf-8-validate
       - yjs
 
-  '@payloadcms/storage-s3@3.88.0(@types/react@19.2.14)(monaco-editor@0.56.0)(next@16.4.2(@babel/core@7.29.7)(@types/node@22.19.9)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.77.4))(payload@3.88.0(graphql@16.14.2)(typescript@5.7.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@5.7.3)':
+  '@payloadcms/storage-s3@3.88.0(patch_hash=c117b353daba054c7c98bc06187a8927fe1c1acf40162f6aa159a81687f837d6)(@types/react@19.2.14)(monaco-editor@0.56.0)(next@16.4.2(@babel/core@7.29.7)(@types/node@22.19.9)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.77.4))(payload@3.88.0(graphql@16.14.2)(typescript@5.7.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@5.7.3)':
     dependencies:
       '@aws-sdk/client-s3': 3.1118.0
       '@aws-sdk/lib-storage': 3.1118.0(@aws-sdk/client-s3@3.1118.0)
