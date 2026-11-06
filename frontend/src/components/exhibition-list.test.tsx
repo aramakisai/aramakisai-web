@@ -233,6 +233,34 @@ describe('ExhibitionList', () => {
     expect(names[1]).toContain('企画1');
   });
 
+  test('企業ブースは並べ替えに関わらず学生企画すべての後ろに企画 id 順で並ぶ', () => {
+    const booth = (id: number) =>
+      ({
+        ...card(id),
+        category: 'booth',
+        displayName: `企業${id}`,
+      }) as CorporateBoothCard;
+    const cards = [card(1), card(2), card(3), booth(7), booth(8)];
+    const cases: [(c: readonly unknown[]) => unknown[], string[]][] = [
+      [(c) => [...c].reverse(), ['企画3', '企画2', '企画1', '企業7', '企業8']],
+      [
+        (c) => [c[1], c[0], c[2]],
+        ['企画2', '企画1', '企画3', '企業7', '企業8'],
+      ],
+    ];
+    for (const [mock, expected] of cases) {
+      orderCards.mockImplementation(mock as never);
+      const { unmount } = render(
+        <ExhibitionList cards={cards} areas={areas} />,
+      );
+      const names = screen
+        .getAllByRole('link', { name: /(企画|企業)\d/ })
+        .map((a) => a.textContent?.match(/(企画|企業)\d/)?.[0]);
+      expect(names).toEqual(expected);
+      unmount();
+    }
+  });
+
   test('シード確定前 (サーバー描画) は不可視で、noscript で可視化し、確定後は不可視にしない', () => {
     const html = renderToString(
       <ExhibitionList cards={[card(1)]} areas={areas} />,

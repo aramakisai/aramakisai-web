@@ -95,10 +95,17 @@ export function ExhibitionList({ cards, areas }: ExhibitionListProps) {
 
   const hasFilter =
     query.q !== '' || query.categories.length > 0 || query.areaIds.length > 0;
-  const ordered = useMemo(
-    () => (seed === null ? cards : orderCards(cards, seed)),
-    [cards, seed],
-  );
+  const ordered = useMemo(() => {
+    if (seed === null) return cards;
+    const isBooth = (card: ListingCard) => card.category === 'booth';
+    return [
+      ...orderCards(
+        cards.filter((card) => !isBooth(card)),
+        seed,
+      ),
+      ...cards.filter(isBooth),
+    ];
+  }, [cards, seed]);
   const filtered = filterExhibitions(ordered, query);
   const total = filtered.length;
   const paginated = paginate(filtered, query.page);

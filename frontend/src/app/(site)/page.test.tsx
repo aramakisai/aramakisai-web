@@ -474,9 +474,9 @@ describe('Page (開催中フェーズ)', () => {
     expect(screen.getByRole('link', { name: '企画2' })).toBeInTheDocument();
   });
 
-  it('候補は学生企画と企業ブースの両方を含み、表示は4件のまま (要件2.1, 2.2)', async () => {
+  it('候補は学生企画だけで、表示は4件のまま (要件2.1, 2.2)', async () => {
     vi.mocked(exhibitionsModule.getExhibitionCatalog).mockResolvedValue({
-      cards: Array.from({ length: 2 }, (_, i) => makeExhibition(i + 1)),
+      cards: Array.from({ length: 5 }, (_, i) => makeExhibition(i + 1)),
       areas: [],
     });
     vi.mocked(boothsModule.getCorporateBoothCards).mockResolvedValue(
@@ -496,10 +496,10 @@ describe('Page (開催中フェーズ)', () => {
       .map((l) => l.getAttribute('href') ?? '')
       .filter((h) => /^\/exhibitions\/./.test(h));
     expect(hrefs).toHaveLength(4);
-    expect(hrefs.some((h) => h.includes('booth'))).toBe(true);
+    expect(hrefs.some((h) => h.includes('booth'))).toBe(false);
   });
 
-  it('選出の候補に26件目以降の学生企画と企業ブースのカードが含まれる (要件2.1)', async () => {
+  it('選出の候補に一覧2ページ目以降の学生企画のカードが含まれ、企業ブースのカードが含まれない (要件2.1)', async () => {
     vi.mocked(exhibitionsModule.getExhibitionCatalog).mockResolvedValue({
       cards: Array.from({ length: 30 }, (_, i) => makeExhibition(i + 1)),
       areas: [],
@@ -512,40 +512,25 @@ describe('Page (開催中フェーズ)', () => {
 
     const candidates = vi.mocked(pickRandomModule.pickRandom).mock
       .calls[0]![0] as readonly { id: number; category: string }[];
-    expect(candidates).toHaveLength(31);
+    expect(candidates).toHaveLength(30);
     expect(
       candidates.some((c) => c.category === 'exhibit' && c.id === 26),
     ).toBe(true);
-    expect(candidates.some((c) => c.category === 'booth')).toBe(true);
+    expect(candidates.some((c) => c.category === 'booth')).toBe(false);
   });
 
-  it('企業ブースの取得に失敗しても学生企画だけで表示する (要件2.1)', async () => {
-    vi.mocked(exhibitionsModule.getExhibitionCatalog).mockResolvedValue({
-      cards: [makeExhibition(1)],
-      areas: [],
-    });
-    vi.mocked(boothsModule.getCorporateBoothCards).mockRejectedValue(
-      new Error('CMS Error'),
-    );
-
-    const ui = await Page();
-    render(ui);
-
-    expect(screen.getByRole('link', { name: '企画1' })).toBeInTheDocument();
-  });
-
-  it('学生企画の取得に失敗しても企業ブースだけで表示する (要件2.1)', async () => {
+  it('学生企画の取得に失敗したら注目企画は空で表示する (要件2.1)', async () => {
     vi.mocked(exhibitionsModule.getExhibitionCatalog).mockRejectedValue(
       new Error('CMS Error'),
     );
-    vi.mocked(boothsModule.getCorporateBoothCards).mockResolvedValue([
-      { ...makeExhibition(7), category: 'booth' as const },
-    ]);
 
-    const ui = await Page();
-    render(ui);
+    render(await Page());
 
-    expect(screen.getByRole('link', { name: '企画7' })).toBeInTheDocument();
+    expect(
+      screen
+        .queryAllByRole('link')
+        .filter((l) => /^\/exhibitions\/./.test(l.getAttribute('href') ?? '')),
+    ).toHaveLength(0);
   });
 
   it('企画一覧の取得に失敗しても検索欄と導線は残る (要件3.2)', async () => {

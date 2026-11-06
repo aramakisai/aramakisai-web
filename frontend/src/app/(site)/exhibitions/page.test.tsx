@@ -123,7 +123,7 @@ describe('ExhibitionsPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('学生企画と企業ブースを同じ一覧に並べ、「企業ブース」で絞り込める', async () => {
+  it('企業ブースを学生企画の後ろに並べ、「企業ブース」で絞り込める', async () => {
     vi.mocked(exhibitionsModule.getExhibitionCatalog).mockResolvedValue(
       catalog([exhibition({ id: 1, displayName: 'ロボット企画' })]),
     );
@@ -133,8 +133,12 @@ describe('ExhibitionsPage', () => {
 
     await renderPage();
 
-    expect(screen.getByText('ロボット企画')).toBeInTheDocument();
-    expect(screen.getByText('たこ焼きブース')).toBeInTheDocument();
+    const titles = screen
+      .getAllByRole('link')
+      .map((a) => a.textContent ?? '')
+      .filter((t) => /ロボット企画|たこ焼きブース/.test(t));
+    expect(titles[0]).toContain('ロボット企画');
+    expect(titles[1]).toContain('たこ焼きブース');
     expect(
       screen.getByRole('link', { name: /たこ焼きブース/ }),
     ).toHaveAttribute('href', '/exhibitions/booth/7');
