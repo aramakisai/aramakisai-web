@@ -44,4 +44,12 @@ export function proxy(request: NextRequest) {
   return NextResponse.next()
 }
 
-export const config = { matcher: '/api/:path*' }
+// middleware は起動自体に CPU を使うため、ブロック対象の経路だけに絞る
+export const config = {
+  matcher: [
+    '/api/payload-preferences/:path*',
+    '/api/payload-locked-documents/:path*',
+    '/api/payload-migrations/:path*',
+    '/api/globals/payload-jobs-stats/:path*',
+  ],
+}
