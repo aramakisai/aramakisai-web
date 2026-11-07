@@ -372,7 +372,8 @@ function SlotItem({
   return (
     // 上下左右の余白は li の padding で取り、top/height は時間軸の目盛りそのものにする
     <li
-      className={`absolute inset-x-0 py-0.5 ${signage ? 'pr-[6px] pl-[5px]' : 'px-1'}`}
+      data-performance-id={p.id}
+      className={`scroll-mt-[145px] absolute inset-x-0 py-0.5 ${signage ? 'pr-[6px] pl-[5px]' : 'px-1'}`}
       style={{
         top: (start - rangeStart) * pxPerMinute,
         height: duration * pxPerMinute,
