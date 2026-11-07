@@ -282,8 +282,7 @@ describe('接続', () => {
     await vi.advanceTimersByTimeAsync(30_000);
     await first;
     expect(console.warn).toHaveBeenCalledWith(
-      'quake: wolfxEew に接続できない',
-      expect.any(Error),
+      'quake: wolfxEew に接続できない: Error: aborted',
     );
     expect(fetchMock).toHaveBeenCalledTimes(3);
     // connecting が解除されていれば待ちの後に再接続を試みる
@@ -465,5 +464,310 @@ describe('接続', () => {
     expect((await relay.status()).channels.wolfxEew.lastReceivedAt).toBe(
       new Date(IN_PERIOD).toISOString(),
     );
+  });
+});
+
+describe('再起動をまたぐ受信状態', () => {
+  const HOOK = 'https://discord.com/api/webhooks/1/x';
+
+  // webhook への投稿本文を集める。wolfx は heartbeat で受信、p2p は history を返す
+  function stub(history: () => unknown = () => ({ ok: false })) {
+    const sockets: Record<string, FakeSocket> = {};
+    const posts: string[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: { body?: string }) => {
+        if (url.startsWith(HOOK)) {
+          posts.push(JSON.parse(init!.body!).content);
+          return {
+            ok: true,
+            status: 200,
+            headers: new Headers(),
+            json: async () => ({ id: '1' }),
+          };
+        }
+        if (url.includes('/history')) return history();
+        const ws = new FakeSocket();
+        sockets[
+          url.includes('jma_eew')
+            ? 'wolfxEew'
+            : url.includes('jma_eqlist')
+              ? 'wolfxEqlist'
+              : 'p2p'
+        ] = ws;
+        return { status: 101, webSocket: ws };
+      }),
+    );
+    return { sockets, posts };
+  }
+
+  // 3分超の無受信でwolfxEewを不受信通知済みにし、再起動した新インスタンスを返す
+  async function downThenRestart() {
+    const s = setup({ DISCORD_QUAKE_WEBHOOK_URL: HOOK });
+    const first = stub();
+    const relay = s.make();
+    await relay.ensure();
+    await vi.advanceTimersByTimeAsync(3 * 60_000 + 1000);
+    await relay.ensure();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(first.posts.some((p) => p.includes('受信できていません'))).toBe(
+      true,
+    );
+    const second = stub();
+    const restarted = s.make();
+    await vi.advanceTimersByTimeAsync(0);
+    return { ...s, restarted, second };
+  }
+
+  it('不受信通知済みのまま再起動しても、同じ不受信通知を再送しない', async () => {
+    const { restarted, second } = await downThenRestart();
+    await restarted.ensure();
+    // 起動直後の猶予(3分)を過ぎても再送しない
+    await vi.advanceTimersByTimeAsync(3 * 60_000 + 1000);
+    await restarted.ensure();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(second.posts).toEqual([]);
+  });
+
+  it('不受信通知済みのまま再起動したら、猶予では再開にせず、実受信で再開を通知する', async () => {
+    const { restarted, second } = await downThenRestart();
+    await restarted.ensure();
+    await vi.advanceTimersByTimeAsync(30_000);
+    await restarted.ensure();
+    expect((await restarted.status()).channels.wolfxEew.receiving).toBe(false);
+    second.sockets.wolfxEew.emit('message', {
+      data: fixture('wolfx-heartbeat.json'),
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    await restarted.ensure();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(second.posts.filter((p) => p.includes('再開'))).toHaveLength(1);
+    expect(
+      second.posts.filter((p) => p.includes('できていません')),
+    ).toHaveLength(0);
+  });
+
+  it('P2Pも復元したmissedにより、実受信まで不受信のまま', async () => {
+    const s = setup({ DISCORD_QUAKE_WEBHOOK_URL: HOOK });
+    const jst = (t: number) =>
+      new Date(t + 9 * 3600_000)
+        .toISOString()
+        .replace('T', ' ')
+        .replace(/-/g, '/')
+        .replace('Z', '');
+    const first = stub(() => ({
+      ok: true,
+      json: async () => [
+        { code: 555, time: jst(IN_PERIOD + 6 * 60_000 - 1000) },
+      ],
+    }));
+    const relay = s.make();
+    await relay.ensure();
+    await vi.advanceTimersByTimeAsync(6 * 60_000);
+    await relay.ensure();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(first.posts.some((p) => p.includes('受信できていません'))).toBe(
+      true,
+    );
+    const second = stub();
+    const restarted = s.make();
+    await vi.advanceTimersByTimeAsync(0);
+    await restarted.ensure();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect((await restarted.status()).channels.p2p.receiving).toBe(false);
+    expect(second.posts).toEqual([]);
+    second.sockets.p2p.emit('message', { data: 'x' });
+    await vi.advanceTimersByTimeAsync(0);
+    await restarted.ensure();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(second.posts.filter((p) => p.includes('再開'))).toHaveLength(1);
+  });
+
+  it('受信中の再起動は通知せず、起動直後の猶予も従来どおり', async () => {
+    const s = setup({ DISCORD_QUAKE_WEBHOOK_URL: HOOK });
+    const first = stub();
+    const relay = s.make();
+    await relay.ensure();
+    first.sockets.wolfxEew.emit('message', {
+      data: fixture('wolfx-heartbeat.json'),
+    });
+    await vi.advanceTimersByTimeAsync(2 * 60_000);
+    await relay.ensure();
+    const second = stub();
+    const restarted = s.make();
+    await vi.advanceTimersByTimeAsync(0);
+    await restarted.ensure();
+    await vi.advanceTimersByTimeAsync(3 * 60_000 - 1000);
+    await restarted.ensure();
+    expect((await restarted.status()).channels.wolfxEew.receiving).toBe(true);
+    expect(first.posts).toEqual([]);
+    expect(second.posts).toEqual([]);
+  });
+
+  it('最後の受信時刻は再起動後も復元値を使う', async () => {
+    const s = setup();
+    const first = stub();
+    const relay = s.make();
+    await relay.ensure();
+    first.sockets.wolfxEew.emit('message', {
+      data: fixture('wolfx-heartbeat.json'),
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    // 保存済みの値を読み戻せるよう、受信から60秒以上あけて遷移の無い保存を起こす
+    await vi.advanceTimersByTimeAsync(61_000);
+    first.sockets.wolfxEew.emit('message', {
+      data: fixture('wolfx-heartbeat.json'),
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    const restarted = s.make();
+    await vi.advanceTimersByTimeAsync(0);
+    expect((await restarted.status()).channels.wolfxEew.lastReceivedAt).toBe(
+      new Date(IN_PERIOD + 61_000).toISOString(),
+    );
+  });
+
+  it('failures と retryAt は永続化しない', async () => {
+    const s = setup();
+    const { sockets } = stub();
+    await s.make().ensure();
+    sockets.wolfxEew.emit('message', { data: fixture('wolfx-heartbeat.json') });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(JSON.stringify(s.store.get('health'))).not.toMatch(
+      /failures|retryAt/,
+    );
+  });
+
+  it('受信の保存は系統ごとに60秒に1回へ間引く', async () => {
+    const s = setup();
+    const first = stub();
+    const put = vi.spyOn(s.storage, 'put');
+    const relay = s.make();
+    await relay.ensure();
+    const writes = () => put.mock.calls.filter(([k]) => k === 'health').length;
+    const emit = async () => {
+      first.sockets.wolfxEew.emit('message', {
+        data: fixture('wolfx-heartbeat.json'),
+      });
+      await vi.advanceTimersByTimeAsync(0);
+    };
+    await emit();
+    const n = writes();
+    await vi.advanceTimersByTimeAsync(30_000);
+    await emit();
+    expect(writes()).toBe(n);
+    await vi.advanceTimersByTimeAsync(31_000);
+    await emit();
+    expect(writes()).toBe(n + 1);
+  });
+
+  it('再接続直後の接続を、それ以前の履歴を理由に missed で閉じない', async () => {
+    const s = setup();
+    const jst = (t: number) =>
+      new Date(t + 9 * 3600_000)
+        .toISOString()
+        .replace('T', ' ')
+        .replace(/-/g, '/')
+        .replace('Z', '');
+    // 履歴は断の最中(再接続の直前)の時刻
+    const { sockets } = stub(() => ({
+      ok: true,
+      json: async () => [{ code: 555, time: jst(IN_PERIOD + 90_000) }],
+    }));
+    const relay = s.make();
+    await relay.ensure();
+    await vi.advanceTimersByTimeAsync(60_000);
+    sockets.p2p.emit('close', { code: 1006, reason: '' });
+    await vi.advanceTimersByTimeAsync(2000);
+    await relay.ensure();
+    const reopened = sockets.p2p;
+    await vi.advanceTimersByTimeAsync(5 * 60_000 + 1000);
+    await relay.ensure();
+    expect(reopened.closed).toBe(false);
+    expect((await relay.status()).channels.p2p.receiving).toBe(true);
+  });
+
+  it('受信状態の保存に失敗しても通知は出て、alarm も張る', async () => {
+    const s = setup({ DISCORD_QUAKE_WEBHOOK_URL: HOOK });
+    const { posts } = stub();
+    const put = s.storage.put;
+    s.storage.put = async (k: string, v: unknown) => {
+      if (k === 'health') throw new Error('storage down');
+      return put(k, v);
+    };
+    const relay = s.make();
+    await relay.ensure();
+    await vi.advanceTimersByTimeAsync(3 * 60_000 + 1000);
+    await relay.ensure();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(posts.some((p) => p.includes('受信できていません'))).toBe(true);
+    expect(s.storage.alarm).not.toBeNull();
+  });
+
+  it('送信が成功する前に再起動したら、新インスタンスが同じ通知を出す', async () => {
+    const s = setup({ DISCORD_QUAKE_WEBHOOK_URL: HOOK });
+    // webhook が応答しないまま再起動する
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        if (url.startsWith(HOOK)) return new Promise(() => {});
+        return { status: 101, webSocket: new FakeSocket() };
+      }),
+    );
+    const relay = s.make();
+    await relay.ensure();
+    await vi.advanceTimersByTimeAsync(3 * 60_000 + 1000);
+    await relay.ensure();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(
+      (s.store.get('health') as { wolfxEew: { receiving: boolean } }).wolfxEew
+        .receiving,
+    ).toBe(true);
+    const second = stub();
+    const restarted = s.make();
+    await vi.advanceTimersByTimeAsync(0);
+    await restarted.ensure();
+    await vi.advanceTimersByTimeAsync(3 * 60_000 + 1000);
+    await restarted.ensure();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(
+      second.posts.filter((p) => p.includes('受信できていません')),
+    ).toHaveLength(2);
+  });
+
+  it('期間外の ensure で通知基準を初期状態に戻す', async () => {
+    const s = setup({ DISCORD_QUAKE_WEBHOOK_URL: HOOK });
+    const { posts } = stub();
+    const relay = s.make();
+    await relay.ensure();
+    await vi.advanceTimersByTimeAsync(3 * 60_000 + 1000);
+    await relay.ensure();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(posts.length).toBeGreaterThan(0);
+    vi.setSystemTime(Date.parse('2026-11-22T00:00:00+09:00'));
+    await relay.ensure();
+    const health = s.store.get('health') as Record<
+      string,
+      { receiving: boolean }
+    >;
+    expect(Object.values(health).map((h) => h.receiving)).toEqual([
+      true,
+      true,
+      true,
+    ]);
+  });
+
+  it('受信の保存を待たず、受信の処理を順序どおり進める', async () => {
+    const s = setup({ QUAKE_WOLFX_EEW_URL: 'wss://sandbox.example/jma_eew' });
+    const { sockets } = stub();
+    const put = s.storage.put;
+    s.storage.put = (k: string, v: unknown) =>
+      k === 'health' ? new Promise<void>(() => {}) : put(k, v);
+    const relay = s.make();
+    await relay.ensure();
+    sockets.wolfxEew.emit('message', {
+      data: fixture('hand-wolfx-eew-gunma-warning.json'),
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    expect((await relay.status()).alert).toMatchObject({ active: true });
   });
 });

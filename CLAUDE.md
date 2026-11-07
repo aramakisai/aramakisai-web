@@ -126,7 +126,7 @@ Kiro-style Spec-Driven Development on an agentic SDLC
 
 ## Development Rules
 - 3-phase approval workflow: Requirements → Design → Tasks → Implementation
-- spec は使い捨てのすり合わせ資料。実装後に追随更新しない。他 spec を「〜spec が所有」等のスコープ・境界の根拠にしない (根拠は現行コード・steering・WBS)
+- spec は使い捨てのすり合わせ資料。実装後に追随更新しない。実装済みの spec は ADR として扱う。当時の前提・決定・理由を知るために読むが、新しい要求を縛る制約ではない。新しい要求が当時の前提を変えるなら、その決定は置き換わるものとして扱う (現在の事実の根拠は現行コード・steering・WBS)
 - Human review required each phase; use `-y` only for intentional fast-track
 - Keep steering current and verify alignment with `/kiro:spec-status`
 - Follow the user's instructions precisely, and within that scope act autonomously: gather the necessary context and complete the requested work end-to-end in this run, asking questions only when essential information is missing or the instructions are critically ambiguous.

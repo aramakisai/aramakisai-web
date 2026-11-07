@@ -194,6 +194,8 @@ export interface DiscordQueueDeps {
   readonly messageIdFor: (key: EewKey) => string | null | undefined;
   /** 投稿の応答のメッセージIDを保存する */
   readonly saveMessageId: (key: EewKey, messageId: string) => Promise<void>;
+  /** 通知の送信が成功した後に呼ぶ */
+  readonly onDelivered?: (notice: QuakeNotice) => void;
 }
 
 const QUEUE_LIMIT = 100;
@@ -283,7 +285,9 @@ export class DiscordQueue {
       JSON.stringify(formatNotice(notice)),
       notice.kind,
     );
-    if (!res || method !== 'POST' || !key) return;
+    if (!res) return;
+    this.#deps.onDelivered?.(notice);
+    if (method !== 'POST' || !key) return;
     const body: unknown = await res.json().catch(() => null);
     const id = (body as { id?: unknown } | null)?.id;
     if (typeof id !== 'string') return;

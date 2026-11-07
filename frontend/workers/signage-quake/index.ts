@@ -31,6 +31,8 @@ import { hasUnreceivedReport, normalizeMessage } from './upstream';
 
 const STATE_KEY = 'state';
 const CRON_KEY = 'cronLastRunAt';
+const HEALTH_KEY = 'health';
+const HEALTH_WRITE_MS = 60_000;
 const P2P_PROBE_MS = 5 * 60_000;
 const CONNECT_TIMEOUT_MS = 30_000;
 const RELAY_NAME = 'signage-quake';
@@ -40,6 +42,16 @@ const CHANNELS: readonly ChannelName[] = ['p2p', 'wolfxEew', 'wolfxEqlist'];
 // wrangler types は先頭の設定(ハブ)の Env だけを作るので、リレー自身の binding はここで足す
 type QuakeWorkerEnv = Pick<Env, 'SIGNAGE_HUB'> &
   QuakeEnv & { QUAKE_RELAY: DurableObjectNamespace<QuakeRelay> };
+
+/** 再起動をまたいで通知の基準にする系統ごとの値 */
+interface ChannelHealth {
+  lastReceivedAt: number | null;
+  missed: boolean;
+  /** 最後に通知した受信状態 */
+  receiving: boolean;
+}
+
+type HealthRecord = Record<ChannelName, ChannelHealth>;
 
 interface Connection {
   ws: WebSocket | null;
@@ -101,11 +113,28 @@ export class QuakeRelay
     wolfxEew: newConnection(),
     wolfxEqlist: newConnection(),
   };
-  /** 起動時は真。デプロイの再起動で受信状態の通知を出さない */
+  /** 初期値は真。保存済みの値があれば復元する */
   readonly #prevReceiving: Record<ChannelName, boolean> = {
     p2p: true,
     wolfxEew: true,
     wolfxEqlist: true,
+  };
+  /** Discord への送信が成功した受信状態。再起動後の通知基準として保存するのはこちら */
+  readonly #notified: Record<ChannelName, boolean> = {
+    p2p: true,
+    wolfxEew: true,
+    wolfxEqlist: true,
+  };
+  /** 不受信を通知済みのまま再起動した系統。起動後に実際に受信するまで受信中にしない */
+  readonly #downAtBoot: Record<ChannelName, boolean> = {
+    p2p: false,
+    wolfxEew: false,
+    wolfxEqlist: false,
+  };
+  readonly #healthWrittenAt: Record<ChannelName, number> = {
+    p2p: 0,
+    wolfxEew: 0,
+    wolfxEqlist: 0,
   };
   #state: RelayState = emptyRelayState();
   #saved = '';
@@ -117,6 +146,11 @@ export class QuakeRelay
     if (!this.#parsed.ok)
       console.warn(`quake: 設定不正: ${this.#parsed.reason}`);
     this.#discord = new DiscordQueue({
+      onDelivered: (notice) => {
+        if (notice.kind !== 'channel') return;
+        this.#notified[notice.channel] = notice.receiving;
+        void this.#trySaveHealth();
+      },
       webhookUrl: this.#parsed.ok
         ? this.#parsed.config.discordWebhookUrl
         : null,
@@ -140,6 +174,16 @@ export class QuakeRelay
       const stored = await ctx.storage.get<RelayState>(STATE_KEY);
       if (stored) this.#state = stored;
       this.#saved = JSON.stringify(this.#state);
+      const health = await ctx.storage.get<Partial<HealthRecord>>(HEALTH_KEY);
+      for (const channel of CHANNELS) {
+        const h = health?.[channel];
+        if (!h) continue;
+        this.#conns[channel].lastReceivedAt = h.lastReceivedAt;
+        this.#conns[channel].missed = h.missed;
+        this.#prevReceiving[channel] = h.receiving;
+        this.#notified[channel] = h.receiving;
+        this.#downAtBoot[channel] = !h.receiving;
+      }
     });
   }
 
@@ -160,6 +204,28 @@ export class QuakeRelay
     if (next === this.#saved) return;
     await this.ctx.storage.put(STATE_KEY, this.#state);
     this.#saved = next;
+  }
+
+  async #saveHealth(): Promise<void> {
+    const now = Date.now();
+    const health = {} as HealthRecord;
+    for (const channel of CHANNELS) {
+      const conn = this.#conns[channel];
+      health[channel] = {
+        lastReceivedAt: conn.lastReceivedAt,
+        missed: conn.missed,
+        receiving: this.#notified[channel],
+      };
+      this.#healthWrittenAt[channel] = now;
+    }
+    await this.ctx.storage.put(HEALTH_KEY, health);
+  }
+
+  // 保存の失敗で通知や alarm の設定を止めない
+  async #trySaveHealth(): Promise<void> {
+    await this.#saveHealth().catch((error) =>
+      console.warn('quake: 受信状態を保存できない', error),
+    );
   }
 
   /** 保存→(変わったとき)publish→通知。publish の成否を返す */
@@ -206,6 +272,9 @@ export class QuakeRelay
     conn.received += 1;
     conn.failures = 0;
     conn.missed = false;
+    // 受信のたびに書くと書き込みが膨らむので間引く。保存を待つと後続の受信の処理が先に進むため待たない
+    if (conn.lastReceivedAt - this.#healthWrittenAt[channel] >= HEALTH_WRITE_MS)
+      void this.#trySaveHealth();
     if (typeof data !== 'string') return;
     try {
       await this.#receive(channel, data, this.#config.test[channel]);
@@ -277,7 +346,9 @@ export class QuakeRelay
         }),
       );
     } catch (error) {
-      console.warn(`quake: ${channel} に接続できない`, error);
+      console.warn(
+        `quake: ${channel} に接続できない: ${error instanceof Error ? `${error.name}: ${error.message}` : String(error)}`,
+      );
       conn.retryAt = Date.now() + retryDelayMs(conn.failures, Math.random);
       conn.failures += 1;
     } finally {
@@ -288,6 +359,13 @@ export class QuakeRelay
 
   #receiving(channel: ChannelName, now: number): boolean {
     const conn = this.#conns[channel];
+    // 起動直後の猶予で、通知済みの不受信を再開と取り違えない
+    if (
+      this.#downAtBoot[channel] &&
+      channel !== 'p2p' &&
+      (conn.lastReceivedAt ?? 0) < this.#bootedAt
+    )
+      return false;
     return isReceiving(
       channel,
       {
@@ -304,9 +382,11 @@ export class QuakeRelay
   // 受信が途絶えたら履歴を引き、受け取っていない情報が上流にあるときだけ断とみなす
   async #probeP2p(now: number): Promise<void> {
     const conn = this.#conns.p2p;
+    // 開いたばかりの接続は、それ以前の履歴を受け取れていなくても取りこぼしではない
     const since = Math.max(
       conn.lastReceivedAt ?? this.#bootedAt,
       this.#bootedAt,
+      conn.ws ? conn.openedAt : 0,
     );
     if (now - since < P2P_PROBE_MS || now - conn.probedAt < P2P_PROBE_MS)
       return;
@@ -328,6 +408,15 @@ export class QuakeRelay
     const config = this.#parsed.config;
     const now = Date.now();
     if (!isInPeriod(config, now)) {
+      // 次の期間の起動で、期間前の断に対する「再開」を出さない
+      if (CHANNELS.some((c) => !this.#notified[c] || !this.#prevReceiving[c])) {
+        for (const c of CHANNELS) {
+          this.#notified[c] = true;
+          this.#prevReceiving[c] = true;
+          this.#downAtBoot[c] = false;
+        }
+        await this.#trySaveHealth();
+      }
       for (const channel of CHANNELS)
         this.#close(channel, this.#conns[channel].ws, 'out_of_period');
       await this.ctx.storage.deleteAlarm();
@@ -352,7 +441,9 @@ export class QuakeRelay
     await Promise.allSettled(toConnect.map((c) => this.#connect(c)));
 
     await this.#serial(async () => {
-      await this.#commit(this.#channelNotices(Date.now()));
+      const notices = this.#channelNotices(Date.now());
+      if (notices.length > 0) await this.#trySaveHealth();
+      await this.#commit(notices);
     });
 
     await this.ctx.storage.setAlarm(
