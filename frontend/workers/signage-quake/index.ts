@@ -119,6 +119,12 @@ export class QuakeRelay
     wolfxEew: true,
     wolfxEqlist: true,
   };
+  /** Discord への送信が成功した受信状態。再起動後の通知基準として保存するのはこちら */
+  readonly #notified: Record<ChannelName, boolean> = {
+    p2p: true,
+    wolfxEew: true,
+    wolfxEqlist: true,
+  };
   /** 不受信を通知済みのまま再起動した系統。起動後に実際に受信するまで受信中にしない */
   readonly #downAtBoot: Record<ChannelName, boolean> = {
     p2p: false,
@@ -140,6 +146,11 @@ export class QuakeRelay
     if (!this.#parsed.ok)
       console.warn(`quake: 設定不正: ${this.#parsed.reason}`);
     this.#discord = new DiscordQueue({
+      onDelivered: (notice) => {
+        if (notice.kind !== 'channel') return;
+        this.#notified[notice.channel] = notice.receiving;
+        void this.#trySaveHealth();
+      },
       webhookUrl: this.#parsed.ok
         ? this.#parsed.config.discordWebhookUrl
         : null,
@@ -170,6 +181,7 @@ export class QuakeRelay
         this.#conns[channel].lastReceivedAt = h.lastReceivedAt;
         this.#conns[channel].missed = h.missed;
         this.#prevReceiving[channel] = h.receiving;
+        this.#notified[channel] = h.receiving;
         this.#downAtBoot[channel] = !h.receiving;
       }
     });
@@ -202,11 +214,18 @@ export class QuakeRelay
       health[channel] = {
         lastReceivedAt: conn.lastReceivedAt,
         missed: conn.missed,
-        receiving: this.#prevReceiving[channel],
+        receiving: this.#notified[channel],
       };
       this.#healthWrittenAt[channel] = now;
     }
     await this.ctx.storage.put(HEALTH_KEY, health);
+  }
+
+  // 保存の失敗で通知や alarm の設定を止めない
+  async #trySaveHealth(): Promise<void> {
+    await this.#saveHealth().catch((error) =>
+      console.warn('quake: 受信状態を保存できない', error),
+    );
   }
 
   /** 保存→(変わったとき)publish→通知。publish の成否を返す */
@@ -253,11 +272,9 @@ export class QuakeRelay
     conn.received += 1;
     conn.failures = 0;
     conn.missed = false;
-    // 受信のたびに書くと書き込みが膨らむので間引く。受信状態の遷移は #channelNotices が即時に書く
+    // 受信のたびに書くと書き込みが膨らむので間引く。保存を待つと後続の受信の処理が先に進むため待たない
     if (conn.lastReceivedAt - this.#healthWrittenAt[channel] >= HEALTH_WRITE_MS)
-      await this.#saveHealth().catch((error) =>
-        console.warn('quake: 受信状態を保存できない', error),
-      );
+      void this.#trySaveHealth();
     if (typeof data !== 'string') return;
     try {
       await this.#receive(channel, data, this.#config.test[channel]);
@@ -391,6 +408,15 @@ export class QuakeRelay
     const config = this.#parsed.config;
     const now = Date.now();
     if (!isInPeriod(config, now)) {
+      // 次の期間の起動で、期間前の断に対する「再開」を出さない
+      if (CHANNELS.some((c) => !this.#notified[c] || !this.#prevReceiving[c])) {
+        for (const c of CHANNELS) {
+          this.#notified[c] = true;
+          this.#prevReceiving[c] = true;
+          this.#downAtBoot[c] = false;
+        }
+        await this.#trySaveHealth();
+      }
       for (const channel of CHANNELS)
         this.#close(channel, this.#conns[channel].ws, 'out_of_period');
       await this.ctx.storage.deleteAlarm();
@@ -416,7 +442,7 @@ export class QuakeRelay
 
     await this.#serial(async () => {
       const notices = this.#channelNotices(Date.now());
-      if (notices.length > 0) await this.#saveHealth();
+      if (notices.length > 0) await this.#trySaveHealth();
       await this.#commit(notices);
     });
 

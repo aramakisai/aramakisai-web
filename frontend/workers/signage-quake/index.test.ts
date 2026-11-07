@@ -479,7 +479,12 @@ describe('再起動をまたぐ受信状態', () => {
       vi.fn(async (url: string, init?: { body?: string }) => {
         if (url.startsWith(HOOK)) {
           posts.push(JSON.parse(init!.body!).content);
-          return { ok: true, status: 200, json: async () => ({ id: '1' }) };
+          return {
+            ok: true,
+            status: 200,
+            headers: new Headers(),
+            json: async () => ({ id: '1' }),
+          };
         }
         if (url.includes('/history')) return history();
         const ws = new FakeSocket();
@@ -516,6 +521,9 @@ describe('再起動をまたぐ受信状態', () => {
 
   it('不受信通知済みのまま再起動しても、同じ不受信通知を再送しない', async () => {
     const { restarted, second } = await downThenRestart();
+    await restarted.ensure();
+    // 起動直後の猶予(3分)を過ぎても再送しない
+    await vi.advanceTimersByTimeAsync(3 * 60_000 + 1000);
     await restarted.ensure();
     await vi.advanceTimersByTimeAsync(1000);
     expect(second.posts).toEqual([]);
@@ -676,5 +684,90 @@ describe('再起動をまたぐ受信状態', () => {
     await relay.ensure();
     expect(reopened.closed).toBe(false);
     expect((await relay.status()).channels.p2p.receiving).toBe(true);
+  });
+
+  it('受信状態の保存に失敗しても通知は出て、alarm も張る', async () => {
+    const s = setup({ DISCORD_QUAKE_WEBHOOK_URL: HOOK });
+    const { posts } = stub();
+    const put = s.storage.put;
+    s.storage.put = async (k: string, v: unknown) => {
+      if (k === 'health') throw new Error('storage down');
+      return put(k, v);
+    };
+    const relay = s.make();
+    await relay.ensure();
+    await vi.advanceTimersByTimeAsync(3 * 60_000 + 1000);
+    await relay.ensure();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(posts.some((p) => p.includes('受信できていません'))).toBe(true);
+    expect(s.storage.alarm).not.toBeNull();
+  });
+
+  it('送信が成功する前に再起動したら、新インスタンスが同じ通知を出す', async () => {
+    const s = setup({ DISCORD_QUAKE_WEBHOOK_URL: HOOK });
+    // webhook が応答しないまま再起動する
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        if (url.startsWith(HOOK)) return new Promise(() => {});
+        return { status: 101, webSocket: new FakeSocket() };
+      }),
+    );
+    const relay = s.make();
+    await relay.ensure();
+    await vi.advanceTimersByTimeAsync(3 * 60_000 + 1000);
+    await relay.ensure();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(
+      (s.store.get('health') as { wolfxEew: { receiving: boolean } }).wolfxEew
+        .receiving,
+    ).toBe(true);
+    const second = stub();
+    const restarted = s.make();
+    await vi.advanceTimersByTimeAsync(0);
+    await restarted.ensure();
+    await vi.advanceTimersByTimeAsync(3 * 60_000 + 1000);
+    await restarted.ensure();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(
+      second.posts.filter((p) => p.includes('受信できていません')),
+    ).toHaveLength(2);
+  });
+
+  it('期間外の ensure で通知基準を初期状態に戻す', async () => {
+    const s = setup({ DISCORD_QUAKE_WEBHOOK_URL: HOOK });
+    const { posts } = stub();
+    const relay = s.make();
+    await relay.ensure();
+    await vi.advanceTimersByTimeAsync(3 * 60_000 + 1000);
+    await relay.ensure();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(posts.length).toBeGreaterThan(0);
+    vi.setSystemTime(Date.parse('2026-11-22T00:00:00+09:00'));
+    await relay.ensure();
+    const health = s.store.get('health') as Record<
+      string,
+      { receiving: boolean }
+    >;
+    expect(Object.values(health).map((h) => h.receiving)).toEqual([
+      true,
+      true,
+      true,
+    ]);
+  });
+
+  it('受信の保存を待たず、受信の処理を順序どおり進める', async () => {
+    const s = setup({ QUAKE_WOLFX_EEW_URL: 'wss://sandbox.example/jma_eew' });
+    const { sockets } = stub();
+    const put = s.storage.put;
+    s.storage.put = (k: string, v: unknown) =>
+      k === 'health' ? new Promise<void>(() => {}) : put(k, v);
+    const relay = s.make();
+    await relay.ensure();
+    sockets.wolfxEew.emit('message', {
+      data: fixture('hand-wolfx-eew-gunma-warning.json'),
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    expect((await relay.status()).alert).toMatchObject({ active: true });
   });
 });
