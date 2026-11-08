@@ -14,6 +14,7 @@ const FORBIDDEN = ['text-primary', 'text-gray-500'];
 // Material Symbols のアイコン字形は CSS color で塗るため text-primary を使う。文字の可読性の対象外
 const ICON_GLYPH_ALLOWLIST = [
   'components/signage/signage-current-location.tsx',
+  'components/campus-map/campus-map-view.tsx',
 ];
 
 describe('文字色トークンの置き換え (要件 2.1, 2.2)', () => {

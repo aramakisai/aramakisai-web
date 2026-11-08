@@ -98,4 +98,27 @@ describe('AreaPin', () => {
     expect(markerProps[0]!.position).toEqual([firstLat, firstLon]);
     expect(markerProps[1]!.position).toEqual([secondLat, secondLon]);
   });
+
+  it('colorClassName と liftPx で色と持ち上げ量を指定でき、zIndexOffset をマーカーへ渡す', () => {
+    render(
+      <AreaPin
+        polygon={POLYGON}
+        size={29}
+        colorClassName="text-primary"
+        liftPx={17}
+        zIndexOffset={1000}
+      />,
+    );
+    const html = lastIconHtml();
+    expect(html).toContain('text-primary');
+    expect(html).not.toContain('text-accent');
+    expect(html).toContain('margin-top:-17px');
+    expect(markerProps.at(-1)!.zIndexOffset).toBe(1000);
+  });
+
+  it('既定の props では持ち上げ量・z-index 指定を出力しない', () => {
+    render(<AreaPin polygon={POLYGON} />);
+    expect(lastIconHtml()).not.toContain('margin-top');
+    expect(markerProps.at(-1)!.zIndexOffset).toBeUndefined();
+  });
 });

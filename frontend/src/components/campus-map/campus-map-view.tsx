@@ -20,6 +20,8 @@ import {
   excludeOutlierAreas,
   toAreaBounds,
 } from '@/lib/exhibition-location-map';
+import { AreaPin } from '@/components/exhibition-location-map/area-pin';
+import { largestPolygon } from '@/lib/campus-map-geometry';
 import { AreaPolygonLayer } from './area-polygon-layer';
 import { MapEmptyTap } from '@/components/map/map-empty-tap';
 import { MapTilePrefetch } from '@/components/map/map-tile-prefetch';
@@ -52,6 +54,8 @@ export interface CampusMapViewProps {
   readonly showZoomControl?: boolean;
   /** 端末用は下部の操作部品と重ならないよう出典表記を右上に置く */
   readonly attributionTop?: boolean;
+  /** サイネージの設置エリア。該当するエリアの最大のポリゴンの重心にピンを立てる */
+  readonly installAreaId?: number | null;
   readonly mapRef?: Ref<LeafletMap>;
   /** 端末用は下部の操作部品が地図に重なるため、その高さを避けて全エリアを収める */
   readonly fitBottomInset?: number;
@@ -98,6 +102,7 @@ export function CampusMapView({
   showUserLocation = true,
   showZoomControl = true,
   attributionTop = false,
+  installAreaId = null,
   mapRef,
   fitBottomInset,
   maxBoundsPad = 0,
@@ -135,6 +140,7 @@ export function CampusMapView({
       [n + dLat, e + dLng],
     ];
   }, [maxBoundsPad]);
+  const installArea = areas.find((a) => a.id === installAreaId);
   const tileErrors = useRef(0);
   const tileEventHandlers = useMemo(
     () => ({
@@ -227,6 +233,15 @@ export function CampusMapView({
         selectedAreaId={selectedAreaId}
         onAreaClick={handleAreaClick}
       />
+      {installArea && (
+        <AreaPin
+          polygon={largestPolygon(installArea.geometry)}
+          size={29}
+          colorClassName="text-primary"
+          liftPx={17}
+          zIndexOffset={10000}
+        />
+      )}
       {points.map((point) => (
         <MapPointMarker key={point.id} point={point} />
       ))}
