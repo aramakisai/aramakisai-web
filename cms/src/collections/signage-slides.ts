@@ -159,8 +159,8 @@ export const SignageSlides: CollectionConfig = {
       type: 'upload',
       relationTo: 'media',
       label: '画像',
-      admin: { condition: kindIs('image', 'campus_map') },
-      validate: requiredWhen(['image', 'campus_map'], '画像を選んでください'),
+      admin: { condition: kindIs('image') },
+      validate: requiredWhen(['image'], '画像を選んでください'),
     },
     {
       name: 'duration_seconds',
