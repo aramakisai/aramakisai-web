@@ -23,28 +23,50 @@ function iconHtml(): string {
 }
 
 describe('MapPointMarker', () => {
-  it('ごみステーションは delete アイコンと success 色、吹き出し文言を持つ', () => {
+  it('ごみステーションは緑色のごみ箱形アイコンと吹き出しを持つ', () => {
     render(
       <MapPointMarker
         point={{ id: 1, kind: 'garbage_station', latitude: 36, longitude: 139 }}
       />,
     );
     expect(markerProps.at(-1)!.position).toEqual([36, 139]);
-    expect(iconHtml()).toContain('>delete<');
-    expect(iconHtml()).toContain('bg-success');
+    expect(iconHtml()).toContain('<svg');
+    expect(iconHtml()).not.toContain('rounded-full');
     expect(iconHtml()).toContain('aria-label="ごみステーション"');
     expect(screen.getByTestId('tooltip')).toHaveTextContent('ごみステーション');
   });
 
-  it('受付は info_i アイコンと info 色を持つ', () => {
+  it('専用受付をエリアと同じラベルで選択できる', () => {
+    const onSelect = vi.fn();
+    render(
+      <MapPointMarker
+        point={{
+          id: 3,
+          kind: 'reception',
+          latitude: 36,
+          longitude: 139,
+          label: 'ママタルトお笑いライブ専用受付',
+        }}
+        onSelect={onSelect}
+      />,
+    );
+    expect(iconHtml()).toContain('お笑いライブ受付');
+    expect(iconHtml()).toContain('bg-white');
+    expect(iconHtml()).toContain('whitespace-nowrap');
+    expect(markerProps.at(-1)!.bubblingMouseEvents).toBe(false);
+    (markerProps.at(-1)!.eventHandlers as { click: () => void }).click();
+    expect(onSelect).toHaveBeenCalledOnce();
+  });
+
+  it('受付はエリアと同じ白いラベルを持つ', () => {
     render(
       <MapPointMarker
         point={{ id: 2, kind: 'reception', latitude: 36, longitude: 139 }}
       />,
     );
-    expect(iconHtml()).toContain('>info_i<');
-    expect(iconHtml()).toContain('bg-info');
-    expect(screen.getByTestId('tooltip')).toHaveTextContent('受付');
+    expect(iconHtml()).toContain('受付');
+    expect(iconHtml()).toContain('bg-white');
+    expect(iconHtml()).toContain('rounded-full');
   });
 
   it('タッチ由来の mouseout は親へ伝えず、マウス由来は伝える', () => {

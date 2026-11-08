@@ -6,17 +6,24 @@ import {
   type AreaExhibitionListState,
 } from './area-exhibition-list';
 import { MapSearchPanel, type MapSearchProps } from './map-search-panel';
+import type { ReactNode } from 'react';
 
 export interface MapSidePanelProps {
   readonly search: MapSearchProps;
   readonly listState: AreaExhibitionListState;
   readonly notice?: string | null;
+  readonly detail?: ReactNode;
 }
 
-export function MapSidePanel({ search, listState, notice }: MapSidePanelProps) {
+export function MapSidePanel({
+  search,
+  listState,
+  notice,
+  detail,
+}: MapSidePanelProps) {
   return (
     <MapSidePanelFrame header={<MapSearchPanel {...search} />}>
-      <AreaExhibitionList state={listState} notice={notice} />
+      {detail ?? <AreaExhibitionList state={listState} notice={notice} />}
     </MapSidePanelFrame>
   );
 }

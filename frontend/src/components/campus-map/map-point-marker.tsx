@@ -5,11 +5,13 @@ import { divIcon, type DivIcon } from 'leaflet';
 import { useMemo, useRef } from 'react';
 import type { Marker as LeafletMarker } from 'leaflet';
 import { Marker, Tooltip, useMapEvents } from 'react-leaflet';
-import { MaterialIcon } from '@/components/icons';
 import type { CampusMapPoint, CampusMapPointKind } from '@/lib/campus-map';
+import { buildLabelIcon } from './area-label-marker';
 
 export interface MapPointMarkerProps {
   readonly point: CampusMapPoint;
+  readonly selected?: boolean;
+  readonly onSelect?: (point: CampusMapPoint) => void;
 }
 
 export const POINT_KIND_META: Record<
@@ -27,16 +29,32 @@ export const POINT_KIND_META: Record<
 const MARKER_SIZE = 28;
 
 // 枠の太さだけがホバーで変わる。border-box の固定サイズなので中身の位置は動かない
-export function buildPointIcon(kind: CampusMapPointKind): DivIcon {
-  const { label, icon, bgClass } = POINT_KIND_META[kind];
+export function buildPointIcon(
+  kind: CampusMapPointKind,
+  label = POINT_KIND_META[kind].label,
+  selected = false,
+): DivIcon {
+  if (kind === 'reception')
+    return buildLabelIcon(label, selected, false, false);
   return divIcon({
     html: renderToStaticMarkup(
-      <span
-        role="img"
-        aria-label={label}
-        className={`box-border flex size-7 items-center justify-center rounded-full border border-gray-200 text-text shadow-card hover:border-2 hover:border-text ${bgClass}`}
-      >
-        <MaterialIcon name={icon} size={18} />
+      <span role="img" aria-label={label}>
+        <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
+          <path
+            d="M10 2.5h8l1 2.5h5v3H4V5h5zM6 9.5h16l-1.5 16h-13z"
+            fill="#56863c"
+            stroke="white"
+            strokeWidth="1.5"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M11 13v8m6-8v8"
+            fill="none"
+            stroke="white"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+        </svg>
       </span>,
     ),
     className: '',
@@ -69,9 +87,23 @@ export function keepTooltipOnTouch(icon: HTMLElement) {
   );
 }
 
-export function MapPointMarker({ point }: MapPointMarkerProps) {
+export function MapPointMarker({
+  point,
+  selected = false,
+  onSelect,
+}: MapPointMarkerProps) {
   const ref = useRef<LeafletMarker>(null);
-  const icon = useMemo(() => buildPointIcon(point.kind), [point.kind]);
+  const label =
+    point.kind === 'reception'
+      ? point.receptionType === 'comedy' ||
+        point.label?.includes('お笑いライブ')
+        ? 'お笑いライブ受付'
+        : '受付'
+      : POINT_KIND_META[point.kind].label;
+  const icon = useMemo(
+    () => buildPointIcon(point.kind, label, selected),
+    [point.kind, label, selected],
+  );
   // タッチで開いた吹き出しは、地図タップか他マーカーの吹き出しが開くまで残す
   useMapEvents({
     click: () => ref.current?.closeTooltip(),
@@ -85,18 +117,25 @@ export function MapPointMarker({ point }: MapPointMarkerProps) {
       eventHandlers={{
         add: (e) =>
           keepTooltipOnTouch((e.target as LeafletMarker).getElement()!),
+        click: () => {
+          if (point.kind === 'reception') onSelect?.(point);
+        },
       }}
+      bubblingMouseEvents={false}
       position={[point.latitude, point.longitude]}
+      title={label}
       icon={icon}
     >
-      <Tooltip
-        direction="top"
-        offset={[0, -8]}
-        className="map-point-tooltip"
-        opacity={1}
-      >
-        {POINT_KIND_META[point.kind].label}
-      </Tooltip>
+      {(point.kind === 'garbage_station' || !onSelect) && (
+        <Tooltip
+          direction="top"
+          offset={[0, -8]}
+          className="map-point-tooltip"
+          opacity={1}
+        >
+          {label}
+        </Tooltip>
+      )}
     </Marker>
   );
 }

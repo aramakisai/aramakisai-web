@@ -93,6 +93,22 @@ describe('middleware (開発用フラグが真のビルド)', () => {
     expect(response.headers.get('x-middleware-rewrite')).toBeNull();
   });
 
+  it('開催前でも開発用の施設配置確認ページを通す', async () => {
+    const { middleware } = await import('./middleware');
+    const response = middleware(
+      makeRequest('/map/facility-editor', 'pre_event'),
+    );
+    expect(response.headers.get('x-middleware-rewrite')).toBeNull();
+  });
+
+  it('開催前でも開発用の施設プレビューを通す', async () => {
+    const { middleware } = await import('./middleware');
+    const response = middleware(
+      makeRequest('/map/facility-preview', 'pre_event'),
+    );
+    expect(response.headers.get('x-middleware-rewrite')).toBeNull();
+  });
+
   it('オーバーライド Cookie が無ければ BUILD_PHASE (開催中) で判定する', async () => {
     const { middleware } = await import('./middleware');
     const response = middleware(makeRequest('/exhibitions'));

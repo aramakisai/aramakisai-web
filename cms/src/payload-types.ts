@@ -519,6 +519,13 @@ export interface FaqItem {
 export interface MapPoint {
   id: number;
   kind: 'garbage_station' | 'reception';
+  /**
+   * 受付の表示名。空欄の場合は「受付」と表示します。
+   */
+  label?: string | null;
+  reception_type?: ('general' | 'comedy') | null;
+  poster?: (number | null) | Media;
+  event_topic?: (number | null) | Topic;
   latitude: number;
   longitude: number;
   updatedAt: string;
@@ -1385,6 +1392,10 @@ export interface MapAreasSelect<T extends boolean = true> {
  */
 export interface MapPointsSelect<T extends boolean = true> {
   kind?: T;
+  label?: T;
+  reception_type?: T;
+  poster?: T;
+  event_topic?: T;
   latitude?: T;
   longitude?: T;
   updatedAt?: T;
@@ -1735,6 +1746,10 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
  */
 export interface SiteSetting {
   id: number;
+  /**
+   * 公開済みトピックを選択すると、すべての一般受付から案内します。
+   */
+  pamphlet_topic?: (number | null) | Topic;
   name: string;
   event_days?:
     | {
@@ -1946,6 +1961,7 @@ export interface PayloadJobsStat {
  * via the `definition` "site_settings_select".
  */
 export interface SiteSettingsSelect<T extends boolean = true> {
+  pamphlet_topic?: T;
   name?: T;
   event_days?:
     | T

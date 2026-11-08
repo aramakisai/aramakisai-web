@@ -10,6 +10,11 @@ import type {
   ExhibitionCardSummary,
 } from '@/lib/exhibitions';
 import type { SiteMetadata } from '@/lib/site-metadata';
+import { cms } from '@/lib/cms';
+import { getTopicById } from '@/lib/topics';
+
+vi.mock('@/lib/cms', () => ({ cms: { findGlobal: vi.fn() } }));
+vi.mock('@/lib/topics', () => ({ getTopicById: vi.fn() }));
 
 vi.mock('@/lib/campus-map', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/campus-map')>();
@@ -119,6 +124,11 @@ const SITE_METADATA: SiteMetadata = {
 
 describe('MapPage', () => {
   beforeEach(() => {
+    vi.mocked(cms.findGlobal).mockResolvedValue({
+      ok: false,
+      error: { kind: 'not_found' },
+    });
+    vi.mocked(getTopicById).mockReset();
     vi.mocked(campusMapModule.getCampusMapData).mockReset();
     vi.mocked(corporateBoothsModule.getCorporateBoothCards)
       .mockReset()
@@ -147,6 +157,38 @@ describe('MapPage', () => {
 
     expect(screen.getByTestId('campus-map-screen')).toBeInTheDocument();
     expect(screenProps.at(-1)!.data).toEqual(data);
+  });
+
+  it('サイト設定の公開済みパンフレットを受付で共有し、未公開ならリンクを出さない', async () => {
+    vi.mocked(campusMapModule.getCampusMapData).mockResolvedValue(
+      dataResult({}),
+    );
+    vi.mocked(cms.findGlobal).mockResolvedValue({
+      ok: true,
+      value: { pamphlet_topic: 12 },
+    } as never);
+    vi.mocked(getTopicById).mockResolvedValue({ id: 12 } as never);
+    await renderPage();
+    expect(screenProps.at(-1)!.pamphletUrl).toBe('/topics/12');
+    expect(getTopicById).toHaveBeenCalledWith(12);
+    vi.mocked(getTopicById).mockResolvedValue(null);
+    await renderPage();
+    expect(screenProps.at(-1)!.pamphletUrl).toBeNull();
+  });
+
+  it('旧CMSの設定と地点未登録でも地図を表示する', async () => {
+    vi.mocked(campusMapModule.getCampusMapData).mockResolvedValue(
+      dataResult({}),
+    );
+    vi.mocked(cms.findGlobal).mockResolvedValue({
+      ok: true,
+      value: {},
+    } as never);
+
+    await renderPage();
+
+    expect(screenProps.at(-1)!.data).toMatchObject({ points: [] });
+    expect(screenProps.at(-1)!.pamphletUrl).toBeNull();
   });
 
   it('企業ブースのカードを CampusMapScreen へ渡す', async () => {

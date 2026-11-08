@@ -16,6 +16,11 @@ export const SiteSettings: GlobalConfig = {
         {
           label: '基本',
           fields: [
+            {
+              name: 'pamphlet_topic', type: 'relationship', relationTo: 'topics',
+              label: 'デジタルパンフレットのトピック',
+              admin: { description: '公開済みトピックを選択すると、すべての一般受付から案内します。' },
+            },
             { name: 'name', type: 'text', required: true, maxLength: 255, label: '祭名' },
             {
               name: 'event_days',

@@ -10,6 +10,7 @@ const WORKFLOW_PATH = path.resolve(
 
 type Step = {
   name?: string;
+  if?: string;
   run?: string;
   uses?: string;
   with?: Record<string, unknown>;
@@ -125,6 +126,17 @@ describe('.github/workflows/frontend-ci.yml', () => {
     expect(e2eJob).toBeDefined();
     expect(e2eJob.name).toBe('e2e (staging preview)');
     expect([e2eJob.needs].flat()).toContain('deploy-preview');
+  });
+
+  it('blocks the shared preview before deployment without passing the required check', () => {
+    const workflow = loadWorkflow();
+    const blocker = workflow.jobs['deploy-preview'].steps[0];
+    expect(blocker.name).toBe('Block shared preview for campus map facilities');
+    expect(blocker.if).toBe(
+      "github.head_ref == 'feature/campus-map-facilities'",
+    );
+    expect(blocker.run).toContain('exit 1');
+    expect([workflow.jobs.e2e.needs].flat()).toContain('deploy-preview');
   });
 
   it('runs local fixture E2E in an independent job without preview deployment or secrets', () => {

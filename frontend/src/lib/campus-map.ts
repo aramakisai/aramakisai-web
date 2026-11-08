@@ -1,6 +1,9 @@
 import type { MapArea, MapPoint } from '@/cms-types';
 import tailwindConfig from '../../tailwind.config';
 import { cms, type CmsFetchError, type CmsResult } from './cms';
+import { toAttachment } from './cms-media';
+import { toOriginalImageUrl } from './cms-asset-url';
+import { getTopicById } from './topics';
 import { getCorporateBoothSitemapEntries } from './corporate-booths';
 import {
   buildFilterHref,
@@ -37,12 +40,19 @@ export function parseCampusMapQuery(
 }
 
 /** 構内マップの条件から URL を組み立てる。企画一覧と同じクエリ形式を共有する */
-export function buildCampusMapHref(filters: CampusMapFilters): string {
-  return buildFilterHref('/map', {
+export function buildCampusMapHref(
+  filters: CampusMapFilters,
+  basePath = '/map',
+): string {
+  const [path, extraQuery] = basePath.split('?');
+  const href = buildFilterHref(path, {
     q: filters.q,
     categories: filters.categories,
     areaIds: filters.selectedAreaId === null ? [] : [filters.selectedAreaId],
   });
+  return extraQuery
+    ? `${href}${href.includes('?') ? '&' : '?'}${extraQuery}`
+    : href;
 }
 
 // --- エリアの表示色 -----------------------------------------------------
@@ -106,6 +116,11 @@ export interface CampusMapPoint {
   readonly kind: CampusMapPointKind;
   readonly latitude: number;
   readonly longitude: number;
+  readonly label?: string;
+  readonly receptionType?: 'general' | 'comedy';
+  readonly posterUrl?: string;
+  readonly eventUrl?: string;
+  readonly testData?: boolean;
 }
 
 /** エリア取得と出展物取得の成否を独立して表現する */
@@ -156,7 +171,18 @@ export function toCampusMapPoint(point: MapPoint): CampusMapPoint | null {
   ) {
     return null;
   }
-  return { id: point.id, kind, latitude, longitude };
+  const label = typeof point.label === 'string' ? point.label.trim() : '';
+  const poster = toAttachment(point.poster);
+  const posterUrl = poster && toOriginalImageUrl(poster);
+  return {
+    id: point.id,
+    kind,
+    latitude,
+    longitude,
+    ...(label ? { label } : {}),
+    ...(point.reception_type ? { receptionType: point.reception_type } : {}),
+    ...(posterUrl ? { posterUrl } : {}),
+  };
 }
 
 function firstError(results: readonly CmsResult<unknown>[]): CmsFetchError {
@@ -236,7 +262,7 @@ export async function getCampusMapData(
       { limit: 0, depth: 0, select: SLOT_JOIN_SELECT },
       options,
     ),
-    fetchMapPointsDocs(),
+    cms.findMany('map_points', { sort: ['id'], limit: 0, depth: 1 }),
   ]);
 
   const areas: CampusMapDataResult['areas'] = areasResult.ok
@@ -267,7 +293,22 @@ export async function getCampusMapData(
           error: firstError([exhibitionsResult, stagesResult, slotsResult]),
         };
 
-  const points = convertMapPoints(pointsResult);
+  const points = pointsResult.ok
+    ? (
+        await Promise.all(
+          pointsResult.value.docs.map(async (doc) => {
+            const point = toCampusMapPoint(doc);
+            if (!point) return null;
+            const topic = doc.event_topic;
+            const topicId =
+              typeof topic === 'object' && topic ? topic.id : topic;
+            return topicId && (await getTopicById(topicId))
+              ? { ...point, eventUrl: `/topics/${topicId}` }
+              : point;
+          }),
+        )
+      ).filter((p): p is CampusMapPoint => p !== null)
+    : [];
 
   return { areas, exhibitions, points };
 }

@@ -1,14 +1,18 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import {
   MAP_VIEWPORT_CLASS,
   useMapNavClass,
   useMapSheetInset,
 } from '@/components/map/use-map-sheet-inset';
-import type { CampusMapArea, CampusMapDataResult } from '@/lib/campus-map';
+import type {
+  CampusMapArea,
+  CampusMapDataResult,
+  CampusMapPoint,
+} from '@/lib/campus-map';
 import { sendGaEvent } from '@/lib/analytics';
 import {
   filterExhibitions,
@@ -25,6 +29,7 @@ import { MapUrlSync } from '@/components/map/map-url-sync';
 import { MapSearchOverlay } from './map-search-overlay';
 import { MapSidePanel } from './map-side-panel';
 import { useMapFilters } from './use-map-filters';
+import { ReceptionDetail } from './reception-detail';
 
 // Server Component (map page) の中で ssr:false を指定するとビルドが失敗するため、
 // Client Component であるこのファイルの中で動的読み込みを行う (design.md 参照)
@@ -60,6 +65,8 @@ export interface CampusMapScreenProps {
   readonly booths?: readonly CorporateBoothCard[];
   readonly phase?: FestivalPhase;
   readonly navigation: NavigationByPhase;
+  readonly basePath?: string;
+  readonly pamphletUrl?: string | null;
 }
 
 export function CampusMapScreen({
@@ -69,7 +76,12 @@ export function CampusMapScreen({
   // BUILD_PHASE を使うことで、フェーズ結線に関与しない既存呼び出し元を壊さない
   phase = BUILD_PHASE,
   navigation,
+  basePath,
+  pamphletUrl,
 }: CampusMapScreenProps) {
+  const [selectedPoint, setSelectedPoint] = useState<CampusMapPoint | null>(
+    null,
+  );
   const navClass = useMapNavClass();
   const {
     filters,
@@ -78,9 +90,10 @@ export function CampusMapScreen({
     setCategories,
     selectArea: commitArea,
     syncFromLocation,
-  } = useMapFilters();
+  } = useMapFilters(basePath);
   const selectArea = useCallback(
     (areaId: number | null) => {
+      setSelectedPoint(null);
       if (areaId !== null) sendGaEvent('campus_map', { result: 'area_select' });
       commitArea(areaId);
     },
@@ -162,12 +175,25 @@ export function CampusMapScreen({
   }, [filterKey, listState]);
 
   const areaNotice = data.areas.kind === 'error' ? AREAS_ERROR_NOTICE : null;
+  const detail = selectedPoint ? (
+    <ReceptionDetail
+      point={selectedPoint}
+      pamphletUrl={pamphletUrl}
+      onClose={() => setSelectedPoint(null)}
+    />
+  ) : null;
 
   const search = {
     keyword: keywordInput,
     categories: filters.categories,
-    onKeywordChange: setKeywordInput,
-    onCategoriesChange: setCategories,
+    onKeywordChange: (value: string) => {
+      setSelectedPoint(null);
+      setKeywordInput(value);
+    },
+    onCategoriesChange: (value: typeof filters.categories) => {
+      setSelectedPoint(null);
+      setCategories(value);
+    },
   };
 
   return (
@@ -176,15 +202,22 @@ export function CampusMapScreen({
       <MapMenuButton phase={phase} navigation={navigation} />
       <MapSearchOverlay
         keywordInput={keywordInput}
-        setKeywordInput={setKeywordInput}
+        setKeywordInput={search.onKeywordChange}
         categories={filters.categories}
-        setCategories={setCategories}
+        setCategories={search.onCategoriesChange}
       />
-      <MapSidePanel search={search} listState={listState} notice={areaNotice} />
+      <MapSidePanel
+        search={search}
+        listState={listState}
+        notice={areaNotice}
+        detail={detail}
+      />
       <MapBottomSheet
         state={listState}
         notice={areaNotice}
         selectedAreaId={filters.selectedAreaId}
+        selectedPointId={selectedPoint?.id}
+        detail={detail}
         onTargetHeightChange={handleSheetHeightChange}
         onTargetHeightIntent={onTargetHeightIntent}
       />
@@ -198,6 +231,8 @@ export function CampusMapScreen({
           points={data.points}
           selectedAreaId={filters.selectedAreaId}
           onSelectArea={selectArea}
+          selectedPointId={selectedPoint?.id}
+          onSelectPoint={setSelectedPoint}
           getPendingInset={getPendingInset}
         />
       </div>
