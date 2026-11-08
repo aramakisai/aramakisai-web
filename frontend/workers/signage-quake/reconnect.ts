@@ -1,6 +1,6 @@
 export const ALARM_INTERVAL_MS = 30_000;
 const BASE_MS = 1000;
-const MAX_MS = 60_000;
+export const MAX_MS = 60_000;
 
 /** failures は連続した失敗の回数(0 なら1秒)。random は [0,1) */
 export function retryDelayMs(failures: number, random: () => number): number {
