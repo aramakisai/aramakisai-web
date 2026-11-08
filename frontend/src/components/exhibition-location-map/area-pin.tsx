@@ -28,8 +28,11 @@ export interface AreaPinProps {
 // ベースラインより上にある (line-height:1 の行送りの下端との間に約 10.4% 分の空白が残る)。
 // そのまま -translate-y-full だけだと先端が重心の少し上に浮くため、字形の高さの
 // 約 10.4% 分だけ余分に下へ寄せて先端を重心に合わせる
-// 幅 0 のコンテナ内の block 要素は幅 0 になり、-translate-x-1/2 が効かず先端がアイコン幅の半分だけ
+// 幅 0 のコンテナ内の flex 要素は幅 0 になり、-translate-x-1/2 が効かず先端がアイコン幅の半分だけ
 // 右にずれる。w-max で中身の幅を持たせる
+// 外側を block にすると inline-block のアイコンで行ボックスができ、Leaflet コンテナから継承した
+// font-size / line-height の strut で高さが字形より約 4.8px 増え、translate の基準がずれて先端が浮く。
+// flex にして行ボックスを作らず、高さを字形サイズに一致させる
 const PIN_ICON_SIZE: [number, number] = [0, 0];
 
 // Figma 実測: SP (95:12 内 MapPin 101:304) は 32px、PC (95:2 内 MapPin 101:302) は 48px。
@@ -46,7 +49,7 @@ function buildPinIcon(
   return divIcon({
     html: renderToStaticMarkup(
       <span
-        className="-translate-x-1/2 -translate-y-[89.58%] block w-max"
+        className="-translate-x-1/2 -translate-y-[89.58%] flex w-max"
         style={liftPx > 0 ? { marginTop: -liftPx } : undefined}
       >
         <LocationPinIcon

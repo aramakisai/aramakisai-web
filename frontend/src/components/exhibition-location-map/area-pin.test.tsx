@@ -59,6 +59,13 @@ describe('AreaPin', () => {
     expect(lastIconHtml()).toContain('w-max');
   });
 
+  it('外側 span は flex にして行ボックスの strut で高さが膨らまないようにする', () => {
+    render(<AreaPin polygon={POLYGON} />);
+    const html = lastIconHtml();
+    expect(html).toMatch(/<span class="[^"]*\bflex\b/);
+    expect(html).not.toMatch(/<span class="[^"]*\bblock\b/);
+  });
+
   it('accent のカラートークンで着色する', () => {
     render(<AreaPin polygon={POLYGON} />);
     expect(lastIconHtml()).toContain('text-accent');
