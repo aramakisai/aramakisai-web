@@ -26,7 +26,7 @@
 - **Findings**:
   - スナップショットは TTL 15 秒、版通知での再取得と 120 秒の保険ポーリングで更新される。`map_areas` には版通知のフックが無い
   - `getCampusMapData` は areas・exhibitions・points をまとめて取る。サイネージには exhibitions は要らない
-  - 本番の `map_areas` は 20 件(2026-11-08 時点、公開 API で確認)
+- 本番の `map_areas` を公開 API で確認
 - **Implications**: スナップショットに地図データ(areas・points)を足し、既存の更新経路に乗せる。エリアの変更は版通知では届かず、TTL とポーリングで最大 120 秒程度遅れて反映される。運用上、開催中にエリアの形を変えることは想定しにくく許容する
 
 ### 表示範囲の外れ値
