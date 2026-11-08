@@ -43,7 +43,6 @@
 ### Revalidation Triggers
 - `SignageSnapshot` の形の変更(`campusMap` の追加)は、スナップショットを読むテスト・部品が追随する
 - `CampusMapView` の props 追加(`installAreaId`)は、一般向けサイト・地域協賛マップ・タッチ操作の各呼び出しで既定値のまま動くことを確かめる
-- `AreaLabelMarker` の寸法を変えると、ピンとエリア名ラベルの間隔がずれる(ピン側の持ち上げ量は、エリア名ラベルの高さ 22px を前提にしている)
 
 ## Architecture
 
@@ -111,7 +110,7 @@ frontend/src/components/signage/
 - `frontend/src/lib/campus-map-geometry.ts` — `polygonCentroid` の中の「最大のポリゴンを選ぶ」処理を関数として出す(ピンをエリア名ラベルと同じポリゴンに立てるため)
 - `frontend/src/components/signage/touch/touch-map.tsx` — マウント時に `location.search` の `map_area` を読み、`CampusMapView` に `installAreaId` を渡す
 - `frontend/src/components/campus-map/campus-map-view.tsx` — `installAreaId` を受け、`AreaPin` を描く
-- `frontend/src/components/exhibition-location-map/area-pin.tsx` — 色と持ち上げ量を props で受ける(既定は現行のまま)
+- `frontend/src/components/exhibition-location-map/area-pin.tsx` — 色を props で受ける(既定は現行のまま)
 - `cms/src/collections/signage-slides.ts` — 画像の `admin.condition` と `requiredWhen` から `campus_map` を外す
 - `cms/src/collections/signage-slides.test.ts` — 構内マップに画像を求める既存の 2 つのテストを、画像なしで通る内容に書き換える
 
@@ -204,11 +203,9 @@ type SignageSlide =
 - 設置エリアが null のときは呼び出し側が描かない
 
 #### AreaPin(拡張)
-- 既存の `AreaPin`(`iconSize [0, 0]` の divIcon、`LocationPinIcon`、`interactive={false}`、字形の下端の空きを補正する `-translate-y-[89.58%]`)に、任意の props `colorClassName`(既定 `text-accent`)と `liftPx`(既定 0)を足す。既存の呼び出しは変わらない
-- 設置エリアのピンは、エリア名ラベルと同じポリゴン(最大のポリゴン)の重心に、`size={29}`・`colorClassName="text-primary"`・`liftPx={17}` で立てる。`zIndexOffset` を大きくし、同じ `markerPane` のエリア名ラベル・地点マーカーより手前に出す
-- 大きさと持ち上げ量は、Figma のピンとエリア名ラベルの比率を実装の地図の縮尺に合わせて決めた。Figma の地図は画像で、エリア名ラベルを高さ 34px で描いている(実装の約 1.55 倍)。Figma のピンは描画幅 29px・高さ 37px、先端とラベル上端の距離 10px
-  - 実装のエリア名ラベル(`text-xs`・`py-0.5`・枠 1px)の高さ 22px を基準に、字形の高さ = 22 × 37/34 ≒ 24px(文字サイズ 29px)、距離 = 22 × 10/34 ≒ 6px
-  - 持ち上げ量 17px = ラベルの高さの半分 11px + 距離 6px。選択中のエリア名ラベル(枠 2px、高さ 24px)では距離が 5px になる
+- 既存の `AreaPin`(`iconSize [0, 0]` の divIcon、`LocationPinIcon`、`interactive={false}`、字形の下端の空きを補正する `-translate-y-[89.58%]`)に、任意の props `colorClassName`(既定 `text-accent`)を足す。既存の呼び出しは変わらない
+- 設置エリアのピンは、エリア名ラベルと同じポリゴン(最大のポリゴン)の重心に、`size={29}`・`colorClassName="text-primary"` で立てる。先端は企画の場所の地図のピンと同じく重心を指す(持ち上げない)。`zIndexOffset` を大きくし、同じ `markerPane` のエリア名ラベル・地点マーカーより手前に出す
+- 大きさは、Figma のピンとエリア名ラベルの比率を実装の地図の縮尺に合わせて決めた。Figma の地図は画像で、エリア名ラベルを高さ 34px で描いている(実装の約 1.55 倍)。Figma のピンは描画幅 29px・高さ 37px。実装のエリア名ラベルの高さ 22px を基準に、字形の高さ = 22 × 37/34 ≒ 24px(文字サイズ 29px)
 - 地図の拡大・縮小・移動では、Leaflet のマーカーとして地理座標に留まる(3.5)
 
 #### CampusMapView(変更)
@@ -255,6 +252,6 @@ type SignageSlide =
   - 1920×1080 と 1080×1920 で、ローカルの CMS にある実在のエリア(例: 「2号館」と、最長の名前「武道館ステージ」)の ID で `/signage?map_area=<ID>` を開き、ラベルの `getBoundingClientRect` を測る。横型: スライド枠の右 24・top 24/27・高さ 46。縦型: 開催日の左 43px、開催日と上下中央がそろい、「武道館ステージ」でも開催日と重ならない。タッチ操作: 24,981
   - タッチ操作の構内マップで、ラベルの下にある左パネルの項目をタップできる
   - 構内マップスライドで、ポリゴン・ラベルからドラッグ・ピンチしても地図が動かない(縦型でも)
-  - 構内マップスライドとタッチ操作の構内マップで、エリア名ラベルの高さ(22px)、ピンの描画幅・高さ(約 19×24px)、先端とラベル上端の距離(6px)を画素で測る。22px でなければ比率で求め直す
+  - 構内マップスライドとタッチ操作の構内マップで、ピンの描画幅・高さ(約 19×24px)と、先端がエリア名ラベルの中心(重心)を指すことを画素で測る
   - `/signage`(パラメータ無し)と `?map_area=99999` でラベル・ピンが無いことを確かめる
   - 各画面のスクリーンショットを Figma のフレームと並べて目視で比べる
