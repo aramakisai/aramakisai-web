@@ -16,6 +16,9 @@ import { isPublicPath } from '@/lib/phase';
 import SignagePage, { metadata, viewport } from './page';
 
 const mocked = vi.mocked(getSignageSnapshot);
+const props = (map_area?: string | string[]) => ({
+  searchParams: Promise.resolve({ map_area }),
+});
 
 describe('/signage', () => {
   beforeEach(() => {
@@ -38,7 +41,7 @@ describe('/signage', () => {
   it('取得したスナップショットを画面部品へ渡す', async () => {
     const value = { fetchedAt: 'x' } as never;
     mocked.mockResolvedValue({ ok: true, value });
-    render(await SignagePage());
+    render(await SignagePage(props()));
     expect(screen.getByTestId('signage-screen')).toBeTruthy();
     expect(screenProps[0].initial).toBe(value);
     expect(typeof screenProps[0].renderedAt).toBe('string');
@@ -46,7 +49,7 @@ describe('/signage', () => {
 
   it('Noto Sans JP の読み込みを出力しない', async () => {
     mocked.mockResolvedValue({ ok: true, value: { fetchedAt: 'x' } as never });
-    const { container } = render(await SignagePage());
+    const { container } = render(await SignagePage(props()));
     expect(container.innerHTML).not.toMatch(/noto/i);
     expect(container.querySelector('link[rel="preload"]')).toBeNull();
     expect(container.innerHTML).not.toContain('@font-face');
@@ -57,7 +60,18 @@ describe('/signage', () => {
       ok: false,
       error: { kind: 'network', status: 500 },
     });
-    render(await SignagePage());
+    render(await SignagePage(props()));
     expect(screenProps[0].initial).toBeNull();
+  });
+
+  it.each([
+    ['12', '12'],
+    ['abc', 'abc'],
+    [undefined, null],
+    [['1', '2'], null],
+  ])('map_area=%j は mapArea=%j として渡す', async (value, expected) => {
+    mocked.mockResolvedValue({ ok: true, value: { fetchedAt: 'x' } as never });
+    render(await SignagePage(props(value)));
+    expect(screenProps[0].mapArea).toBe(expected);
   });
 });

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ComponentType } from 'react';
 import { CrossFade } from '../cross-fade';
+import type { CampusMapArea } from '@/lib/campus-map';
 import type {
   PlaylistEntry,
   SignageSlide,
@@ -33,6 +34,7 @@ interface SignageMainProps {
   /** 緊急地震速報は即時に切り替えるため false で止める */
   readonly transition?: boolean;
   readonly notices?: readonly StageStartNotice[];
+  readonly installArea?: CampusMapArea | null;
 }
 
 interface Held {

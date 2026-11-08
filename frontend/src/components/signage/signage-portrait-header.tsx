@@ -1,3 +1,4 @@
+import type { CampusMapArea } from '@/lib/campus-map';
 import type { EventDay } from '@/lib/home-page-types';
 import { SignageClock } from './signage-clock';
 import { SignageDayDate, SignageLogo } from './signage-parts';
@@ -5,6 +6,7 @@ import { SignageDayDate, SignageLogo } from './signage-parts';
 export interface SignagePortraitHeaderProps {
   readonly now: Date;
   readonly eventDays: readonly EventDay[];
+  readonly installArea?: CampusMapArea | null;
 }
 
 export function SignagePortraitHeader({

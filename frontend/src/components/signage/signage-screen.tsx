@@ -40,6 +40,8 @@ import { SLIDE_RENDERERS } from './slide-renderers';
 export interface SignageScreenProps {
   readonly initial: SignageSnapshot | null;
   readonly renderedAt: string;
+  /** URL の `map_area`。数値かどうかは見ず、エリア ID と文字列で照合する */
+  readonly mapArea?: string | null;
 }
 
 // 通知が届かなかったときの保険。通常の反映は配信経路の版の知らせで行う
@@ -65,7 +67,11 @@ async function fetchSnapshotFrom(url: string): Promise<Polled> {
   };
 }
 
-export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
+export function SignageScreen({
+  initial,
+  renderedAt,
+  mapArea = null,
+}: SignageScreenProps) {
   const handledVersion = useRef<number | undefined>(undefined);
   const { data: polled, refresh } = usePolling<Polled>({
     // 版なしの通常キーは TTL 最大60秒の古い内容を返し得るので、版を受けた後は版付きで取る
@@ -108,6 +114,8 @@ export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
   }, [serverIso]);
   const offsetMs = polled?.offsetMs ?? mountOffsetMs;
   const realNow = useCorrectedNow(offsetMs, serverIso);
+  const installArea =
+    data?.campusMap?.areas.find((a) => String(a.id) === mapArea) ?? null;
   const trialShiftMs = data?.trialShiftMs ?? null;
   const trialOffsetMs =
     offsetMs === null ? null : offsetMs + (trialShiftMs ?? 0);
@@ -166,7 +174,11 @@ export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
           <SignageLeftColumn now={now} eventDays={eventDays} rows={rows} />
         </div>
         <div className="absolute top-6 left-6 hidden portrait:block">
-          <SignagePortraitHeader now={now} eventDays={eventDays} />
+          <SignagePortraitHeader
+            now={now}
+            eventDays={eventDays}
+            installArea={installArea}
+          />
         </div>
         <div className="absolute top-[829px] left-6 hidden portrait:block">
           <SignagePortraitInfo rows={rows} now={now} />
@@ -188,6 +200,7 @@ export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
           realNow={realNow}
           renderers={SLIDE_RENDERERS}
           notices={notices}
+          installArea={installArea}
         />
         <SignageTouchLayer
           session={session}
@@ -200,6 +213,7 @@ export function SignageScreen({ initial, renderedAt }: SignageScreenProps) {
           }
           offsetMs={trialOffsetMs}
           trialShiftMs={trialShiftMs}
+          installArea={installArea}
         />
         {quake?.active && (
           <SignageQuakeOverlay

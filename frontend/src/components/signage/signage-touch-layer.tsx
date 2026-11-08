@@ -10,6 +10,7 @@ import {
 } from '@/components/primary-nav-card';
 import { env } from '@/env';
 import type { DirectionBoard } from '@/lib/bus-next-departures';
+import type { CampusMapArea } from '@/lib/campus-map';
 import type { EventDay } from '@/lib/home-page-types';
 import type { SignageTelopItem, StageNowRow } from '@/lib/signage';
 import {
@@ -75,6 +76,7 @@ export interface SignageTouchLayerProps {
   readonly telops: readonly SignageTelopItem[];
   readonly offsetMs: number | null;
   readonly trialShiftMs?: number | null;
+  readonly installArea?: CampusMapArea | null;
 }
 
 interface TouchLocation {
