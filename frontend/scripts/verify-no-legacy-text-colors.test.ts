@@ -11,10 +11,18 @@ const SRC_DIR = path.join(
 // bg-primary / border-primary (選択状態・現在地の塗り・線) は対象外。
 // 文字色としての token 使用だけを禁止する
 const FORBIDDEN = ['text-primary', 'text-gray-500'];
+// Material Symbols のアイコン字形は CSS color で塗るため text-primary を使う。文字の可読性の対象外
+const ICON_GLYPH_ALLOWLIST = [
+  'components/signage/signage-current-location.tsx',
+];
 
 describe('文字色トークンの置き換え (要件 2.1, 2.2)', () => {
   it('src に文字色としての color/primary・gray-500 が無い', () => {
-    const files = listSourceFiles(SRC_DIR, ['.ts', '.tsx', '.css']);
+    const files = listSourceFiles(
+      SRC_DIR,
+      ['.ts', '.tsx', '.css'],
+      ICON_GLYPH_ALLOWLIST,
+    );
 
     const violations = findForbiddenStrings(files, FORBIDDEN);
 
