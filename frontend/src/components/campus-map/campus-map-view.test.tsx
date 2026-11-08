@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { sendGaEvent } from '@/lib/analytics';
 import { CAMPUS_MAP_CONFIG, MAP_ATTRIBUTION } from '@/lib/campus-map-config';
@@ -28,6 +28,14 @@ vi.mock('react-leaflet', () => ({
   AttributionControl: (props: Record<string, unknown>) => {
     attributionControlProps.push(props);
     return <div data-testid="attribution-control" />;
+  },
+}));
+
+const areaPinProps: Record<string, unknown>[] = [];
+vi.mock('@/components/exhibition-location-map/area-pin', () => ({
+  AreaPin: (props: Record<string, unknown>) => {
+    areaPinProps.push(props);
+    return <div data-testid="area-pin" />;
   },
 }));
 
@@ -106,6 +114,40 @@ function area(overrides: Partial<CampusMapArea>): CampusMapArea {
 }
 
 describe('CampusMapView', () => {
+  describe('設置エリアのピン', () => {
+    const two = [area({ id: 1 }), area({ id: 2, name: 'Bゾーン' })];
+    const renderPin = (installAreaId?: number | null) => {
+      areaPinProps.length = 0;
+      render(
+        <CampusMapView
+          areas={two}
+          selectedAreaId={null}
+          onSelectArea={vi.fn()}
+          installAreaId={installAreaId}
+        />,
+      );
+    };
+
+    it('該当する ID ならピンが 1 つ出て、そのエリアの最大のポリゴンに立つ', () => {
+      renderPin(2);
+      expect(screen.getAllByTestId('area-pin')).toHaveLength(1);
+      expect(areaPinProps[0]).toMatchObject({
+        polygon: two[1].geometry.coordinates[0],
+        size: 29,
+        colorClassName: 'text-primary',
+      });
+      expect(areaPinProps[0]).not.toHaveProperty('liftPx');
+    });
+
+    it('該当しない ID・null・指定なしでは出ない', () => {
+      for (const id of [99, null, undefined]) {
+        renderPin(id);
+        expect(screen.queryByTestId('area-pin')).toBeNull();
+        cleanup();
+      }
+    });
+  });
+
   beforeEach(() => {
     mockMatchMedia(false);
   });

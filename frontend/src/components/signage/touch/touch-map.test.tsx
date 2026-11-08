@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CampusMapDataResult } from '@/lib/campus-map';
 import type { ExhibitionCardSummary } from '@/lib/exhibitions';
 
@@ -79,6 +79,26 @@ beforeEach(() => {
 });
 
 describe('TouchMap', () => {
+  describe('設置エリア', () => {
+    const installAreaId = (search: string) => {
+      window.history.replaceState(null, '', `/signage/touch/map${search}`);
+      render(<TouchMap data={data} />);
+      return state.viewProps.at(-1)?.installAreaId;
+    };
+    afterEach(() => window.history.replaceState(null, '', '/'));
+
+    it('URL の map_area が実在のエリアなら地図に渡す', () => {
+      expect(installAreaId('?map_area=1')).toBe(1);
+    });
+
+    it.each(['', '?map_area=abc', '?map_area=99', '?map_area=0'])(
+      '%s では設置エリア無しとして扱う',
+      (search) => {
+        expect(installAreaId(search) ?? null).toBeNull();
+      },
+    );
+  });
+
   it('現在地とLeaflet標準のズームを出さない指定で地図を描く', () => {
     render(<TouchMap data={data} />);
     const props = state.viewProps.at(-1)!;

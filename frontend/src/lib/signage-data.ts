@@ -5,6 +5,7 @@ import type {
   SignageSlide as CmsSignageSlide,
   Telop,
 } from '@/cms-types';
+import { getCampusMapAreas, getCampusMapPoints } from './campus-map';
 import { cms, type CmsResult } from './cms';
 import { toAttachment, toMediaId } from './cms-media';
 import { toEventDays } from './event-day';
@@ -37,8 +38,7 @@ function toSlide(doc: CmsSignageSlide): SignageSlide {
   };
   switch (doc.kind) {
     case 'image':
-    case 'campus_map':
-      return { ...base, kind: doc.kind, image: toAttachment(doc.image) };
+      return { ...base, kind: 'image', image: toAttachment(doc.image) };
     case 'layout':
       return {
         ...base,
@@ -126,6 +126,8 @@ export async function getSignageSnapshot({
     sponsors,
     parking,
     quakeGroup,
+    campusAreas,
+    campusPoints,
   ] = await Promise.all([
     metaPromise,
     cms.findGlobal('signage_settings', { depth: 0 }, OPTIONS),
@@ -156,6 +158,8 @@ export async function getSignageSnapshot({
       },
       OPTIONS,
     ),
+    getCampusMapAreas(),
+    getCampusMapPoints(),
   ]);
   if (!meta.ok) return meta;
   if (!settings.ok) return settings;
@@ -211,6 +215,10 @@ export async function getSignageSnapshot({
         .sort((a, b) => Date.parse(b.found_at) - Date.parse(a.found_at))
         .map(toLostItem),
       parking: parking.value,
+      campusMap:
+        campusAreas.kind === 'loaded'
+          ? { areas: campusAreas.value, points: campusPoints }
+          : null,
     },
   };
 }

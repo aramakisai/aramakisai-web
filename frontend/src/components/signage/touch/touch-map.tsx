@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Map as LeafletMap } from 'leaflet';
 import {
   AreaExhibitionList,
@@ -69,6 +69,13 @@ export function TouchMap({ data }: { readonly data: CampusMapDataResult }) {
 
   const areas = data.areas.kind === 'loaded' ? data.areas.value : EMPTY_AREAS;
 
+  // ページは ISR のキャッシュで URL を知らないため、マウント後に読む
+  const [mapArea, setMapArea] = useState<string | null>(null);
+  useEffect(() => {
+    setMapArea(new URLSearchParams(window.location.search).get('map_area'));
+  }, []);
+  const installAreaId = areas.find((a) => String(a.id) === mapArea)?.id ?? null;
+
   const listState: AreaExhibitionListState = useMemo(() => {
     if (data.exhibitions.kind === 'error') {
       return { kind: 'error', message: '出展物の取得に失敗しました。' };
@@ -113,6 +120,7 @@ export function TouchMap({ data }: { readonly data: CampusMapDataResult }) {
           fitBottomInset={FIT_BOTTOM_INSET}
           maxBoundsPad={MAX_BOUNDS_PAD}
           fitExcludeOutliers
+          installAreaId={installAreaId}
           onTilesLoaded={reportReady}
         />
       </div>

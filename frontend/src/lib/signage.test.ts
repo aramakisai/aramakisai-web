@@ -93,6 +93,7 @@ function snapshot(over: Partial<SignageSnapshot> = {}): SignageSnapshot {
     },
     sponsors: [sponsor(1, 'planA')],
     lostItems: [lost(1)],
+    campusMap: null,
     parking: {
       isEventDay: true,
       fetchedAt: '',
@@ -178,6 +179,17 @@ describe('buildPlaylist', () => {
       NOW,
     );
     expect(list.map((e) => e.key)).toEqual(['3:0', '3:1']);
+  });
+
+  it('構内マップスライドは地図データがあれば1ページ、無ければ0ページ(画像の有無によらない)', () => {
+    const mapSlide: SignageSlide = { ...base, id: 7, kind: 'campus_map' };
+    const withMap = snapshot({
+      slides: [mapSlide],
+      campusMap: { areas: [], points: [] },
+    });
+    expect(buildPlaylist(withMap, NOW).map((e) => e.key)).toEqual(['7:0']);
+    const withoutMap = snapshot({ slides: [mapSlide], campusMap: null });
+    expect(buildPlaylist(withoutMap, NOW)).toEqual([]);
   });
 
   it('空の自動スライドを除く', () => {

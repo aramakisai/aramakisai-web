@@ -13,13 +13,19 @@ export const metadata: Metadata = {
 // iframe 内のピンチが上位文書を拡大し、サイネージ表示へ戻っても残るのを防ぐ
 export const viewport: Viewport = { maximumScale: 1, userScalable: false };
 
-export default async function SignagePage() {
+export default async function SignagePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ map_area?: string | string[] }>;
+}) {
+  const { map_area } = await searchParams;
   const result = await getSignageSnapshot();
 
   return (
     <SignageScreen
       initial={result.ok ? result.value : null}
       renderedAt={new Date().toISOString()}
+      mapArea={typeof map_area === 'string' ? map_area : null}
     />
   );
 }

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  largestPolygon,
   parseAreaGeometry,
   polygonCentroid,
   singlePolygonCentroid,
@@ -268,3 +269,26 @@ function pointInRing(
   }
   return inside;
 }
+
+describe('largestPolygon', () => {
+  it('複数ポリゴンのうち面積が最大のものを返す', () => {
+    const small = squarePolygon.coordinates;
+    const large = [
+      [
+        [10.0, 10.0],
+        [10.0, 11.0],
+        [11.0, 11.0],
+        [11.0, 10.0],
+        [10.0, 10.0],
+      ],
+    ];
+    const geometry: MultiPolygonGeometry = {
+      type: 'MultiPolygon',
+      coordinates: [small, large],
+    };
+    expect(largestPolygon(geometry)).toBe(large);
+    expect(singlePolygonCentroid(largestPolygon(geometry))).toEqual(
+      polygonCentroid(geometry),
+    );
+  });
+});

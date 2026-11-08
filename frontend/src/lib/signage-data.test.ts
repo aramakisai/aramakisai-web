@@ -1,13 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { findMany, findGlobal, getSponsors, getParkingResponse } = vi.hoisted(
-  () => ({
-    findMany: vi.fn(),
-    findGlobal: vi.fn(),
-    getSponsors: vi.fn(),
-    getParkingResponse: vi.fn(),
-  }),
-);
+const {
+  findMany,
+  findGlobal,
+  getSponsors,
+  getParkingResponse,
+  getCampusMapAreas,
+  getCampusMapPoints,
+} = vi.hoisted(() => ({
+  getCampusMapAreas: vi.fn(),
+  getCampusMapPoints: vi.fn(),
+  findMany: vi.fn(),
+  findGlobal: vi.fn(),
+  getSponsors: vi.fn(),
+  getParkingResponse: vi.fn(),
+}));
 
 vi.mock('./cms', () => ({ cms: { findMany, findGlobal } }));
 vi.mock('./sponsors', async (importOriginal) => ({
@@ -15,6 +22,7 @@ vi.mock('./sponsors', async (importOriginal) => ({
   getSponsors,
 }));
 vi.mock('./parking-data', () => ({ getParkingResponse }));
+vi.mock('./campus-map', () => ({ getCampusMapAreas, getCampusMapPoints }));
 
 import {
   getPinState,
@@ -66,6 +74,8 @@ function setup(
       other: [{ id: 2, name: 'B社', logoId: null, url: null, tier: null }],
     },
   });
+  getCampusMapAreas.mockResolvedValue({ kind: 'loaded', value: [] });
+  getCampusMapPoints.mockResolvedValue([]);
   getParkingResponse.mockResolvedValue({
     ok: true,
     value: { isEventDay: false, lots: [], fetchedAt: 'x' },
@@ -194,8 +204,38 @@ describe('getSignageSnapshot', () => {
     });
     expect(r.value.slides[1]).toMatchObject({
       kind: 'campus_map',
-      image: null,
     });
+    expect(r.value.slides[1]).not.toHaveProperty('image');
+  });
+
+  it('地図データ(エリアと地点)をスナップショットに含める', async () => {
+    setup();
+    const area = { id: 3, name: '2号館' };
+    const point = { id: 1, kind: 'reception', latitude: 36, longitude: 139 };
+    getCampusMapAreas.mockResolvedValue({ kind: 'loaded', value: [area] });
+    getCampusMapPoints.mockResolvedValue([point]);
+    const r = await getSignageSnapshot();
+    if (!r.ok) throw new Error('failed');
+    expect(r.value.campusMap).toEqual({ areas: [area], points: [point] });
+  });
+
+  it('エリアの取得に失敗しても、スナップショットは地図データ無しで返る', async () => {
+    setup();
+    getCampusMapAreas.mockResolvedValue({
+      kind: 'error',
+      error: { kind: 'network', status: 500 },
+    });
+    const r = await getSignageSnapshot();
+    if (!r.ok) throw new Error('failed');
+    expect(r.value.campusMap).toBeNull();
+  });
+
+  it('地点の取得に失敗したときは、地点を空にして地図データを返す', async () => {
+    setup();
+    getCampusMapPoints.mockResolvedValue([]);
+    const r = await getSignageSnapshot();
+    if (!r.ok) throw new Error('failed');
+    expect(r.value.campusMap).toEqual({ areas: [], points: [] });
   });
 
   it('落とし物は拾得時刻の新しい順', async () => {

@@ -10,6 +10,7 @@ import {
 } from '@/components/primary-nav-card';
 import { env } from '@/env';
 import type { DirectionBoard } from '@/lib/bus-next-departures';
+import type { CampusMapArea } from '@/lib/campus-map';
 import type { EventDay } from '@/lib/home-page-types';
 import type { SignageTelopItem, StageNowRow } from '@/lib/signage';
 import {
@@ -24,6 +25,7 @@ import { type SignageTouchClockMessage } from '@/lib/signage-trial';
 import { CrossFade } from '../cross-fade';
 import { SignageBusInfo } from './signage-bus-info';
 import { SignageClock } from './signage-clock';
+import { SignageCurrentLocation } from './signage-current-location';
 import {
   formatPerformanceRange,
   SignageDayDate,
@@ -75,6 +77,7 @@ export interface SignageTouchLayerProps {
   readonly telops: readonly SignageTelopItem[];
   readonly offsetMs: number | null;
   readonly trialShiftMs?: number | null;
+  readonly installArea?: CampusMapArea | null;
 }
 
 interface TouchLocation {
@@ -83,6 +86,16 @@ interface TouchLocation {
     readonly path: string;
     readonly value: TouchFilters;
   } | null;
+}
+
+/** 設置エリアは地図の行き先にだけ渡す。ほかのページは map_area を読まない */
+function destinationPath(
+  dest: (typeof TOUCH_DESTINATIONS)[number],
+  installArea: CampusMapArea | null,
+) {
+  return dest.key === 'map' && installArea
+    ? `${dest.path}?map_area=${installArea.id}`
+    : dest.path;
 }
 
 /** iframe から届く表示中のパスと絞り込みを受ける。別オリジン・別 window からの知らせは捨てる */
@@ -142,6 +155,7 @@ function OpenLayer({
   telops,
   offsetMs,
   trialShiftMs = null,
+  installArea = null,
 }: SignageTouchLayerProps) {
   const { state } = session;
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -227,7 +241,9 @@ function OpenLayer({
   }, [waitingReady]);
 
   const navigate = (dest: (typeof TOUCH_DESTINATIONS)[number]) => {
-    iframeRef.current?.contentWindow?.location.replace(dest.path);
+    iframeRef.current?.contentWindow?.location.replace(
+      destinationPath(dest, installArea),
+    );
     session.select(dest.key);
   };
 
@@ -277,7 +293,7 @@ function OpenLayer({
           key="frame"
           iframeRef={iframeRef}
           title={frame.label}
-          initialSrc={frame.path}
+          initialSrc={destinationPath(frame, installArea)}
           onLoad={(el) => {
             setCurtain((c) =>
               c?.phase === 'covered' ? { ...c, loaded: true } : c,
@@ -402,6 +418,12 @@ function OpenLayer({
             }
           />
         </div>
+      )}
+      {installArea && (
+        <SignageCurrentLocation
+          name={installArea.name}
+          className="pointer-events-none absolute left-6 top-[981px]"
+        />
       )}
     </div>
   );
