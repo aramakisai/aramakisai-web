@@ -6,6 +6,7 @@ import {
   getCampusMapAreas,
   getCampusMapData,
   getCampusMapLastModified,
+  getCampusMapPoints,
   parseCampusMapQuery,
   resolveAreaColor,
   toCampusMapArea,
@@ -584,5 +585,21 @@ describe('設備・地点', () => {
     const data = await getCampusMapData();
     expect(data.points).toEqual([]);
     expect(data.areas.kind).toBe('loaded');
+  });
+});
+
+describe('getCampusMapPoints', () => {
+  it('map_points を取得し、不正な地点を除いて返す', async () => {
+    const ok = { id: 1, kind: 'reception', latitude: 36.4, longitude: 139 };
+    mockCmsCollections({ points: [ok, { ...ok, id: 2, latitude: 91 }] });
+    expect(await getCampusMapPoints()).toEqual([ok]);
+  });
+
+  it('取得失敗は空配列にする', async () => {
+    vi.mocked(cms.findMany).mockResolvedValue({
+      ok: false,
+      error: { kind: 'network', status: 500 },
+    } as never);
+    expect(await getCampusMapPoints()).toEqual([]);
   });
 });

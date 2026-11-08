@@ -155,19 +155,25 @@ function polygonAbsArea(polygon: PolygonCoordinates): number {
   return Math.abs(ringMoments(polygon[0]).area);
 }
 
+/** MultiPolygon 中で面積が最大のポリゴン。エリア名ラベルとピンが同じポリゴンに乗るために共有する */
+export function largestPolygon(
+  geometry: MultiPolygonGeometry,
+): PolygonCoordinates {
+  const [first, ...rest] = geometry.coordinates;
+  return rest.reduce(
+    (best, candidate) =>
+      polygonAbsArea(candidate) > polygonAbsArea(best) ? candidate : best,
+    first,
+  );
+}
+
 /**
- * ラベル配置用の重心。MultiPolygon 中で面積が最大のポリゴンを選び、その重心を返す
+ * ラベル配置用の重心。最大のポリゴンの重心を返す
  * (1 エリア = 1 ラベルにするため、複数ポリゴンから代表点を 1 つ決める必要がある)。
  * 凹形状では重心が外に出ることがある (design.md 参照)
  */
 export function polygonCentroid(
   geometry: MultiPolygonGeometry,
 ): readonly [latitude: number, longitude: number] {
-  const [first, ...rest] = geometry.coordinates;
-  const largest = rest.reduce(
-    (best, candidate) =>
-      polygonAbsArea(candidate) > polygonAbsArea(best) ? candidate : best,
-    first,
-  );
-  return singlePolygonCentroid(largest);
+  return singlePolygonCentroid(largestPolygon(geometry));
 }

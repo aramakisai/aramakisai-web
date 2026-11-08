@@ -177,6 +177,27 @@ function convertMapAreas(docs: readonly MapArea[]): readonly CampusMapArea[] {
     .filter((a): a is CampusMapArea => a !== null);
 }
 
+function fetchMapPointsDocs() {
+  return cms.findMany('map_points', { sort: ['id'], limit: 0, depth: 0 });
+}
+
+function convertMapPoints(
+  result: Awaited<ReturnType<typeof fetchMapPointsDocs>>,
+): readonly CampusMapPoint[] {
+  return result.ok
+    ? result.value.docs
+        .map(toCampusMapPoint)
+        .filter((p): p is CampusMapPoint => p !== null)
+    : [];
+}
+
+/** 点マーカーのみを取得する。取得失敗は空配列 */
+export async function getCampusMapPoints(): Promise<
+  readonly CampusMapPoint[]
+> {
+  return convertMapPoints(await fetchMapPointsDocs());
+}
+
 /** エリアのみを取得する。出展物・ステージ・上演枠は取得しない */
 export async function getCampusMapAreas(): Promise<
   CampusMapDataResult['areas']
@@ -217,7 +238,7 @@ export async function getCampusMapData(
       { limit: 0, depth: 0, select: SLOT_JOIN_SELECT },
       options,
     ),
-    cms.findMany('map_points', { sort: ['id'], limit: 0, depth: 0 }),
+    fetchMapPointsDocs(),
   ]);
 
   const areas: CampusMapDataResult['areas'] = areasResult.ok
@@ -248,11 +269,7 @@ export async function getCampusMapData(
           error: firstError([exhibitionsResult, stagesResult, slotsResult]),
         };
 
-  const points = pointsResult.ok
-    ? pointsResult.value.docs
-        .map(toCampusMapPoint)
-        .filter((p): p is CampusMapPoint => p !== null)
-    : [];
+  const points = convertMapPoints(pointsResult);
 
   return { areas, exhibitions, points };
 }
