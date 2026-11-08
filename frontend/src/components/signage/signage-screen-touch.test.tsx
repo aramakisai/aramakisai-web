@@ -171,6 +171,7 @@ describe('操作層の組み込み(5.1)', () => {
       timetable: { days: [], stages: [], performances: [] },
       sponsors: [],
       lostItems: [],
+      campusMap: null,
       parking: { isEventDay: false, fetchedAt: '', lots: [] },
     } as unknown as SignageSnapshot;
     const ui = () => (
@@ -249,6 +250,7 @@ describe('ステージ開始告知の組み込み', () => {
       },
       sponsors: [],
       lostItems: [],
+      campusMap: null,
       parking: { isEventDay: false, fetchedAt: '', lots: [] },
     }) as unknown as SignageSnapshot;
   const NOTICE_TELOP = 'まもなく吹奏楽部が始まります';

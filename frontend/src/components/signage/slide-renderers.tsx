@@ -30,7 +30,7 @@ export const SLIDE_RENDERERS: SlideRenderers = {
     ) : null,
   campus_map: ({ entry }) =>
     entry.slide.kind === 'campus_map' ? (
-      <ImageSlide kind="campus_map" image={entry.slide.image} />
+      <ImageSlide kind="campus_map" image={null} />
     ) : null,
   layout: ({ entry }) =>
     entry.slide.kind === 'layout' ? (

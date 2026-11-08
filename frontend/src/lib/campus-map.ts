@@ -192,9 +192,7 @@ function convertMapPoints(
 }
 
 /** 点マーカーのみを取得する。取得失敗は空配列 */
-export async function getCampusMapPoints(): Promise<
-  readonly CampusMapPoint[]
-> {
+export async function getCampusMapPoints(): Promise<readonly CampusMapPoint[]> {
   return convertMapPoints(await fetchMapPointsDocs());
 }
 
