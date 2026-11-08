@@ -245,6 +245,7 @@ describe('SignageScreen', () => {
       timetable: { days: [], stages: [], performances: [] },
       sponsors: [],
       lostItems: [],
+      campusMap: null,
       parking: { isEventDay: false, fetchedAt: '', lots: [] },
     };
     render(<SignageScreen initial={initial} renderedAt={initial.serverNow} />);
@@ -271,6 +272,7 @@ describe('SignageScreen', () => {
       timetable: { days: [], stages: [], performances: [] },
       sponsors: [],
       lostItems: [],
+      campusMap: null,
       parking: { isEventDay: false, fetchedAt: '', lots: [] },
     });
     const lastOffset = () => correctedNow.mock.calls.at(-1)?.[0];
@@ -362,6 +364,7 @@ describe('SignageScreen', () => {
       },
       sponsors: [],
       lostItems: [],
+      campusMap: null,
       parking: { isEventDay: false, fetchedAt: '', lots: [] },
       ...over,
     });
@@ -498,6 +501,7 @@ describe('SignageScreen', () => {
       timetable: { days: [], stages: [], performances: [] },
       sponsors: [],
       lostItems: [],
+      campusMap: null,
       parking: { isEventDay: false, fetchedAt: '', lots: [] },
     };
     const versioned = () =>

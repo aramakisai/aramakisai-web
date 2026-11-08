@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { sendGaEvent } from '@/lib/analytics';
 import { CAMPUS_MAP_CONFIG, MAP_ATTRIBUTION } from '@/lib/campus-map-config';
@@ -28,6 +28,14 @@ vi.mock('react-leaflet', () => ({
   AttributionControl: (props: Record<string, unknown>) => {
     attributionControlProps.push(props);
     return <div data-testid="attribution-control" />;
+  },
+}));
+
+const areaPinProps: Record<string, unknown>[] = [];
+vi.mock('@/components/exhibition-location-map/area-pin', () => ({
+  AreaPin: (props: Record<string, unknown>) => {
+    areaPinProps.push(props);
+    return <div data-testid="area-pin" />;
   },
 }));
 
@@ -106,6 +114,40 @@ function area(overrides: Partial<CampusMapArea>): CampusMapArea {
 }
 
 describe('CampusMapView', () => {
+  describe('設置エリアのピン', () => {
+    const two = [area({ id: 1 }), area({ id: 2, name: 'Bゾーン' })];
+    const renderPin = (installAreaId?: number | null) => {
+      areaPinProps.length = 0;
+      render(
+        <CampusMapView
+          areas={two}
+          selectedAreaId={null}
+          onSelectArea={vi.fn()}
+          installAreaId={installAreaId}
+        />,
+      );
+    };
+
+    it('該当する ID ならピンが 1 つ出て、そのエリアの最大のポリゴンに立つ', () => {
+      renderPin(2);
+      expect(screen.getAllByTestId('area-pin')).toHaveLength(1);
+      expect(areaPinProps[0]).toMatchObject({
+        polygon: two[1].geometry.coordinates[0],
+        size: 29,
+        colorClassName: 'text-primary',
+      });
+      expect(areaPinProps[0]).not.toHaveProperty('liftPx');
+    });
+
+    it('該当しない ID・null・指定なしでは出ない', () => {
+      for (const id of [99, null, undefined]) {
+        renderPin(id);
+        expect(screen.queryByTestId('area-pin')).toBeNull();
+        cleanup();
+      }
+    });
+  });
+
   beforeEach(() => {
     mockMatchMedia(false);
   });
@@ -246,9 +288,9 @@ describe('CampusMapView', () => {
         onSelectArea={() => {}}
       />,
     );
-    expect(tileLayerProps.at(-1)!.errorTileUrl as string).toMatch(
-      /^data:image\//,
-    );
+    const url = tileLayerProps.at(-1)!.errorTileUrl as string;
+    const bytes = atob(url.replace(/^data:image\/gif;base64,/, ''));
+    expect(bytes.charCodeAt(19)).toBe(0x2c);
   });
 
   it('エリア一覧と選択中 ID を AreaPolygonLayer へ渡す', () => {
@@ -459,14 +501,19 @@ describe('CampusMapView', () => {
       });
     });
 
+    const tileEvent = (connected: boolean) => {
+      const tile = document.createElement('img');
+      if (connected) document.body.appendChild(tile);
+      return { tile };
+    };
+
     it('タイル失敗は件数を集計し、離脱時に1回だけ送る', () => {
       const { unmount } = renderView();
       const handlers = tileLayerProps.at(-1)!.eventHandlers as {
-        tileerror: () => void;
+        tileerror: (e: unknown) => void;
       };
-      handlers.tileerror();
-      handlers.tileerror();
-      handlers.tileerror();
+      const events = [tileEvent(true), tileEvent(true), tileEvent(true)];
+      events.forEach((e) => handlers.tileerror(e));
       expect(sendGaEvent).not.toHaveBeenCalled();
       window.dispatchEvent(new Event('pagehide'));
       unmount();
@@ -475,6 +522,33 @@ describe('CampusMapView', () => {
         result: 'tile_error',
         item_count: 3,
       });
+      events.forEach((e) => e.tile.remove());
+    });
+
+    it('DOM から外れたタイルの失敗は数えない', () => {
+      const { unmount } = renderView();
+      const handlers = tileLayerProps.at(-1)!.eventHandlers as {
+        tileerror: (e: unknown) => void;
+      };
+      handlers.tileerror(tileEvent(false));
+      unmount();
+      expect(sendGaEvent).not.toHaveBeenCalled();
+    });
+
+    it('DOM に付いたタイルの失敗だけを件数に含める', () => {
+      const { unmount } = renderView();
+      const handlers = tileLayerProps.at(-1)!.eventHandlers as {
+        tileerror: (e: unknown) => void;
+      };
+      const attached = tileEvent(true);
+      handlers.tileerror(attached);
+      handlers.tileerror(tileEvent(false));
+      unmount();
+      expect(sendGaEvent).toHaveBeenCalledWith('campus_map', {
+        result: 'tile_error',
+        item_count: 1,
+      });
+      attached.tile.remove();
     });
 
     it('タイル失敗が無ければ送らない', () => {

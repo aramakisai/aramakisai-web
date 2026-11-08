@@ -36,9 +36,23 @@ function session(state: TouchSession['state']): TouchSession {
 const open = (destination: 'map' | 'topics' | 'parking' | null = null) =>
   ({ kind: 'open', destination, idleSince: 0 }) as const;
 
-function renderLayer(s: TouchSession, trialShiftMs: number | null = null) {
+const installArea = {
+  id: 7,
+  name: '1号館',
+  geometry: { type: 'MultiPolygon', coordinates: [] },
+  color: '#ebb03c',
+  hasAed: false,
+  hasToilet: false,
+} as const;
+
+function renderLayer(
+  s: TouchSession,
+  trialShiftMs: number | null = null,
+  area: typeof installArea | null = null,
+) {
   const props = {
     trialShiftMs,
+    installArea: area,
     now: new Date('2026-11-01T05:17:00Z'),
     eventDays: [],
     rows: [],
@@ -432,4 +446,54 @@ it('サブページからパスの知らせを受けると iframe へずれ量�
     { type: 'signage-touch-clock', trialShiftMs: null },
     window.location.origin,
   );
+});
+
+it('設置エリアがあれば、トップ以外のすべての画面で現在地ラベルが出る', () => {
+  const label = (c: HTMLElement) =>
+    Array.from(c.querySelectorAll('div')).findLast((d) =>
+      d.textContent?.endsWith('現在地1号館'),
+    );
+  for (const dest of ['map', 'topics', 'parking', null] as const) {
+    const r = renderLayer(session(open(dest)), null, installArea);
+    const el = label(r.container)!;
+    expect(el).toBeTruthy();
+    expect(el.className).toContain('pointer-events-none');
+    expect(el.className).toContain('left-6');
+    expect(el.className).toContain('top-[981px]');
+    r.unmount();
+  }
+});
+
+it('設置エリアが無ければ現在地ラベルを出さない', () => {
+  const r = renderLayer(session(open('map')));
+  expect(r.container.textContent).not.toContain('現在地');
+});
+
+it('設置エリアがあれば地図の iframe の src にだけ map_area が付く', () => {
+  const map = renderLayer(session(open('map')), null, installArea);
+  expect(map.container.querySelector('iframe')!.getAttribute('src')).toBe(
+    '/signage/touch/map?map_area=7',
+  );
+  map.unmount();
+  const parking = renderLayer(session(open('parking')), null, installArea);
+  expect(parking.container.querySelector('iframe')!.getAttribute('src')).toBe(
+    '/signage/touch/parking',
+  );
+});
+
+it('行き先の切替でも地図にだけ map_area を付ける', () => {
+  const s = session(open('parking'));
+  const r = renderLayer(s, null, installArea);
+  const iframe = r.container.querySelector('iframe')!;
+  const replace = vi.fn();
+  Object.defineProperty(iframe, 'contentWindow', {
+    value: { location: { replace } },
+    configurable: true,
+  });
+  fireEvent.click(navButton(r.container, '構内マップ'));
+  fireEvent.animationEnd(curtainEl(r.container));
+  expect(replace).toHaveBeenLastCalledWith('/signage/touch/map?map_area=7');
+  fireEvent.click(navButton(r.container, 'トピック'));
+  fireEvent.animationEnd(curtainEl(r.container));
+  expect(replace).toHaveBeenLastCalledWith('/signage/touch/topics');
 });

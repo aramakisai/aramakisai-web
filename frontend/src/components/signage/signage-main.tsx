@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ComponentType } from 'react';
 import { CrossFade } from '../cross-fade';
+import type { CampusMapArea } from '@/lib/campus-map';
 import type {
   PlaylistEntry,
   SignageSlide,
@@ -9,6 +10,7 @@ import type {
 } from '@/lib/signage';
 import type { StageStartNotice } from '@/lib/signage-stage-notice';
 import { NOTICE_MOTION } from '@/lib/signage-stage-notice-shapes';
+import { SignageCurrentLocation } from './signage-current-location';
 import { SignageStageNotice } from './signage-stage-notice';
 
 export interface SlideRenderProps {
@@ -16,6 +18,7 @@ export interface SlideRenderProps {
   readonly snapshot: SignageSnapshot;
   readonly now: Date;
   readonly realNow: Date;
+  readonly installAreaId?: number | null;
 }
 
 /** 種別ごとのスライド部品。未登録の種別は空の地のまま出す */
@@ -33,6 +36,7 @@ interface SignageMainProps {
   /** 緊急地震速報は即時に切り替えるため false で止める */
   readonly transition?: boolean;
   readonly notices?: readonly StageStartNotice[];
+  readonly installArea?: CampusMapArea | null;
 }
 
 interface Held {
@@ -42,6 +46,12 @@ interface Held {
   /** 退場中に告知が戻ったときに層を入場から出し直すための key */
   readonly gen: number;
 }
+
+// 見出しチップの無い種別は 24px、チップ(高さ 52px)のある種別はチップと上下中央をそろえる 27px
+const NO_CHIP_KINDS: ReadonlySet<SignageSlide['kind']> = new Set([
+  'image',
+  'layout',
+]);
 
 const NO_NOTICES: readonly StageStartNotice[] = [];
 
@@ -53,6 +63,7 @@ export function SignageMain({
   renderers,
   transition = true,
   notices = NO_NOTICES,
+  installArea = null,
 }: SignageMainProps) {
   const [held, setHeld] = useState<Held | null>(null);
   // notices は親が毎秒新しい配列で渡すため、中身ではなく ID の並びで変化を見る
@@ -82,14 +93,23 @@ export function SignageMain({
             transitionKey={entry.key}
             enabled={transition}
             className="h-full w-full"
-            layerClassName="bg-white"
+            layerClassName="relative bg-white"
           >
-            <Slide
-              entry={entry}
-              snapshot={snapshot}
-              now={now}
-              realNow={realNow}
-            />
+            <>
+              <Slide
+                entry={entry}
+                snapshot={snapshot}
+                now={now}
+                realNow={realNow}
+                installAreaId={installArea?.id ?? null}
+              />
+              {installArea ? (
+                <SignageCurrentLocation
+                  name={installArea.name}
+                  className={`absolute right-6 portrait:hidden ${NO_CHIP_KINDS.has(entry.slide.kind) ? 'top-6' : 'top-[27px]'}`}
+                />
+              ) : null}
+            </>
           </CrossFade>
         ) : null}
         {held ? (

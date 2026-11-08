@@ -105,10 +105,10 @@ describe('SignageSlides', () => {
     expect(f('subtext').maxLength).toBe(200);
   });
 
-  it('画像は登録画像・構内マップのときだけ表示する', () => {
+  it('画像は登録画像のときだけ表示する', () => {
     const c = f('image').admin!.condition!;
     expect(c({ kind: 'image' })).toBe(true);
-    expect(c({ kind: 'campus_map' })).toBe(true);
+    expect(c({ kind: 'campus_map' })).toBe(false);
     expect(c({ kind: 'layout' })).toBe(false);
     expect(c({ kind: 'parking' })).toBe(false);
   });
@@ -126,7 +126,7 @@ describe('SignageSlides', () => {
     expect(await check('layout', 'section', { kind: 'layout' })).toBe(true);
     expect(await check('layout', null, { kind: 'sponsors' })).toBe(true);
     expect(await check('image', null, { kind: 'image' })).not.toBe(true);
-    expect(await check('image', null, { kind: 'campus_map' })).not.toBe(true);
+    expect(await check('image', null, { kind: 'campus_map' })).toBe(true);
     expect(await check('image', 3, { kind: 'image' })).toBe(true);
     expect(await check('image', null, { kind: 'timetable' })).toBe(true);
   });

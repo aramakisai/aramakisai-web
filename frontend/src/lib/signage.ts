@@ -12,6 +12,7 @@ import type {
   TimetableStage,
 } from '@/lib/timetable';
 import { isPerformanceActive, stagesWithPerformances } from '@/lib/timetable';
+import type { CampusMapArea, CampusMapPoint } from './campus-map';
 import type { SignageQuakeStage } from './signage-quake';
 import { SPONSOR_PAGE_HEIGHT } from './signage-sponsor-area';
 import { getDaysUntilEventDay, toJstDateKey, toJstParts } from './event-day';
@@ -40,11 +41,11 @@ export type SignageSlide =
   | (SlideBase & {
       readonly kind: Extract<
         CmsSignageSlide['kind'],
-        'sponsors' | 'lost_items' | 'parking' | 'timetable'
+        'sponsors' | 'lost_items' | 'parking' | 'timetable' | 'campus_map'
       >;
     })
   | (SlideBase & {
-      readonly kind: Extract<CmsSignageSlide['kind'], 'image' | 'campus_map'>;
+      readonly kind: 'image';
       readonly image: Attachment | null;
     })
   | (SlideBase & {
@@ -83,6 +84,11 @@ export interface SignageLostItem {
   readonly photo?: ImageUrls | null;
 }
 
+export interface SignageCampusMap {
+  readonly areas: readonly CampusMapArea[];
+  readonly points: readonly CampusMapPoint[];
+}
+
 export interface SignageSnapshot {
   readonly fetchedAt: string;
   /** 応答を返す直前のサーバー時刻(ISO)。端末の時刻補正に使う */
@@ -102,6 +108,8 @@ export interface SignageSnapshot {
   readonly sponsors: readonly SignageSponsor[];
   readonly lostItems: readonly SignageLostItem[];
   readonly parking: ParkingResponse;
+  /** 構内マップスライドの地図データ。エリアの取得に失敗したときは null */
+  readonly campusMap: SignageCampusMap | null;
 }
 
 export interface PlaylistEntry {
@@ -222,8 +230,9 @@ export function pageCount(
         ? 1
         : 0;
     }
-    case 'image':
     case 'campus_map':
+      return snapshot.campusMap ? 1 : 0;
+    case 'image':
       return slide.image ? 1 : 0;
     case 'layout':
       return 1;

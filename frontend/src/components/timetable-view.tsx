@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { sendGaEvent } from '@/lib/analytics';
 import { HoverLineText } from './hover-line';
 import { ChevronRightIcon, PlayCircleIcon } from './icons';
@@ -38,7 +38,40 @@ export function TimetableView({
   const [dayKey, setDayKey] = useState(initialDayKey);
   // ISR のキャッシュ描画は再検証まで古い日付を初期値にしているため、描画時から日付が
   // 変わっていれば端末の現在日で選び直す
+  const dayFromQuery = useRef(false);
+  const [scrollTarget, setScrollTarget] = useState<string | null>(null);
+  const [selectedStageId, setStageId] = useState(stages[0]?.id ?? null);
+  // useSearchParams は Suspense 境界を要求し静的ページ全体に波及するため、マウント時に直接読む。
+  // 補正 effect より先に宣言して、URL の日付が描画時刻による補正に負けないようにする
   useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const day = q.get('day');
+    if (!day || !days.some((d) => d.key === day)) return;
+    dayFromQuery.current = true;
+    setDayKey(day);
+    const stage = Number(q.get('stage'));
+    const onDay = stagesWithPerformances(
+      stages,
+      performances.filter((p) => p.slot.dateKey === day),
+    );
+    if (onDay.some((v) => v.stage.id === stage)) setStageId(stage);
+    setScrollTarget(q.get('performance'));
+    // 初回マウントでだけ読む
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // 日付・ステージの反映後の描画で行を探す
+  useEffect(() => {
+    if (!scrollTarget) return;
+    const el = [
+      ...document.querySelectorAll<HTMLElement>(
+        `[data-performance-id="${CSS.escape(scrollTarget)}"]`,
+      ),
+    ].find((e) => e.offsetParent !== null);
+    // inline: nearest で PC グリッドの横スクロールコンテナ内でも対象の列が見える
+    el?.scrollIntoView({ block: 'start', inline: 'nearest' });
+  }, [scrollTarget]);
+  useEffect(() => {
+    if (dayFromQuery.current) return;
     const current = new Date();
     if (toJstDateKey(renderedAt) !== toJstDateKey(current.toISOString())) {
       const corrected = resolveInitialDayKey(days, current);
@@ -48,7 +81,6 @@ export function TimetableView({
       }
     }
   }, [days, renderedAt, initialDayKey]);
-  const [selectedStageId, setStageId] = useState(stages[0]?.id ?? null);
 
   if (days.length === 0) {
     return <p className="text-gray-600">{EMPTY_TEXT}</p>;
@@ -200,7 +232,8 @@ function ListRow({
   const current = active ? { 'aria-current': 'true' as const } : {};
   return (
     <li
-      className={`border-b border-gray-200 -mx-4 ${active ? 'bg-info' : tintClass}`}
+      data-performance-id={p.id}
+      className={`scroll-mt-24 border-b border-gray-200 -mx-4 ${active ? 'bg-info' : tintClass}`}
     >
       {p.href ? (
         <Link href={p.href} className={row} {...current}>

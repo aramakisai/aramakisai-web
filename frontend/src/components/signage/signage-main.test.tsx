@@ -1,9 +1,10 @@
 import { act, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { CampusMapArea } from '@/lib/campus-map';
 import type { PlaylistEntry, SignageSnapshot } from '@/lib/signage';
 import type { StageStartNotice } from '@/lib/signage-stage-notice';
 import { SignageHeadingChip } from './signage-heading-chip';
-import { SignageMain } from './signage-main';
+import { SignageMain, type SlideRenderers } from './signage-main';
 
 const entry: PlaylistEntry = {
   key: '1:0',
@@ -184,5 +185,93 @@ describe('SignageMain 告知の層', () => {
     const { container, rerender } = render(ui([n(1)]));
     for (let i = 0; i < 5; i++) rerender(ui([n(1)]));
     expect(layer(container)).not.toBeNull();
+  });
+});
+
+describe('SignageMain 現在地ラベル', () => {
+  const area: CampusMapArea = {
+    id: 3,
+    name: '2号館',
+    color: 'primary',
+    geometry: { type: 'MultiPolygon', coordinates: [] },
+    hasAed: false,
+    hasToilet: false,
+  };
+  const kinds = [
+    'image',
+    'layout',
+    'campus_map',
+    'sponsors',
+    'lost_items',
+    'parking',
+    'timetable',
+  ] as const;
+  const renderKind = (
+    kind: (typeof kinds)[number],
+    installArea?: CampusMapArea | null,
+  ) => {
+    const e = {
+      key: `${kind}:0`,
+      page: 0,
+      slide: { id: 1, durationSec: 10, kind },
+    } as PlaylistEntry;
+    const renderers = Object.fromEntries(
+      kinds.map((k) => [k, () => <div />]),
+    ) as SlideRenderers;
+    return render(
+      <SignageMain
+        entry={e}
+        snapshot={snapshot}
+        now={now}
+        renderers={renderers}
+        installArea={installArea}
+      />,
+    );
+  };
+  const label = () => screen.getByText('2号館').parentElement!;
+
+  it.each(kinds)('%s のスライドに現在地ラベルを右から24pxで重ねる', (kind) => {
+    renderKind(kind, area);
+    expect(label()).toHaveClass('absolute', 'right-6');
+    expect(label().textContent).toContain('現在地');
+  });
+
+  it.each([
+    ['image', 'top-6'],
+    ['layout', 'top-6'],
+    ['campus_map', 'top-[27px]'],
+    ['sponsors', 'top-[27px]'],
+    ['lost_items', 'top-[27px]'],
+    ['parking', 'top-[27px]'],
+    ['timetable', 'top-[27px]'],
+  ] as const)('%s の上端は %s', (kind, top) => {
+    renderKind(kind, area);
+    expect(label()).toHaveClass(top);
+  });
+
+  it('縦型のメイン枠では描かない', () => {
+    renderKind('parking', area);
+    expect(label()).toHaveClass('portrait:hidden');
+  });
+
+  it('設置エリアが無ければ出さない', () => {
+    renderKind('parking');
+    expect(screen.queryByText('現在地')).toBeNull();
+  });
+
+  it('スライドの描画に設置エリアの ID を渡す', () => {
+    const seen: (number | null | undefined)[] = [];
+    render(
+      <SignageMain
+        entry={entry}
+        snapshot={snapshot}
+        now={now}
+        renderers={{
+          parking: (p) => (seen.push(p.installAreaId), null),
+        }}
+        installArea={area}
+      />,
+    );
+    expect(seen).toEqual([3]);
   });
 });

@@ -59,6 +59,13 @@ describe('AreaPin', () => {
     expect(lastIconHtml()).toContain('w-max');
   });
 
+  it('外側 span は flex にして行ボックスの strut で高さが膨らまないようにする', () => {
+    render(<AreaPin polygon={POLYGON} />);
+    const html = lastIconHtml();
+    expect(html).toMatch(/<span class="[^"]*\bflex\b/);
+    expect(html).not.toMatch(/<span class="[^"]*\bblock\b/);
+  });
+
   it('accent のカラートークンで着色する', () => {
     render(<AreaPin polygon={POLYGON} />);
     expect(lastIconHtml()).toContain('text-accent');
@@ -97,5 +104,27 @@ describe('AreaPin', () => {
     const [secondLat, secondLon] = singlePolygonCentroid(OTHER_POLYGON);
     expect(markerProps[0]!.position).toEqual([firstLat, firstLon]);
     expect(markerProps[1]!.position).toEqual([secondLat, secondLon]);
+  });
+
+  it('colorClassName で色を指定でき、先端を持ち上げず、zIndexOffset をマーカーへ渡す', () => {
+    render(
+      <AreaPin
+        polygon={POLYGON}
+        size={29}
+        colorClassName="text-primary"
+        zIndexOffset={1000}
+      />,
+    );
+    const html = lastIconHtml();
+    expect(html).toContain('text-primary');
+    expect(html).not.toContain('text-accent');
+    expect(html).not.toContain('margin-top');
+    expect(markerProps.at(-1)!.zIndexOffset).toBe(1000);
+  });
+
+  it('既定の props では持ち上げ量・z-index 指定を出力しない', () => {
+    render(<AreaPin polygon={POLYGON} />);
+    expect(lastIconHtml()).not.toContain('margin-top');
+    expect(markerProps.at(-1)!.zIndexOffset).toBeUndefined();
   });
 });
