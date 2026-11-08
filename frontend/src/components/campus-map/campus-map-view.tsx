@@ -238,7 +238,6 @@ export function CampusMapView({
           polygon={largestPolygon(installArea.geometry)}
           size={29}
           colorClassName="text-primary"
-          liftPx={17}
           zIndexOffset={10000}
         />
       )}

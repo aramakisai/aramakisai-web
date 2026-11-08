@@ -106,20 +106,19 @@ describe('AreaPin', () => {
     expect(markerProps[1]!.position).toEqual([secondLat, secondLon]);
   });
 
-  it('colorClassName と liftPx で色と持ち上げ量を指定でき、zIndexOffset をマーカーへ渡す', () => {
+  it('colorClassName で色を指定でき、先端を持ち上げず、zIndexOffset をマーカーへ渡す', () => {
     render(
       <AreaPin
         polygon={POLYGON}
         size={29}
         colorClassName="text-primary"
-        liftPx={17}
         zIndexOffset={1000}
       />,
     );
     const html = lastIconHtml();
     expect(html).toContain('text-primary');
     expect(html).not.toContain('text-accent');
-    expect(html).toContain('margin-top:-17px');
+    expect(html).not.toContain('margin-top');
     expect(markerProps.at(-1)!.zIndexOffset).toBe(1000);
   });
 

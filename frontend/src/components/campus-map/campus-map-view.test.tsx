@@ -135,8 +135,8 @@ describe('CampusMapView', () => {
         polygon: two[1].geometry.coordinates[0],
         size: 29,
         colorClassName: 'text-primary',
-        liftPx: 17,
       });
+      expect(areaPinProps[0]).not.toHaveProperty('liftPx');
     });
 
     it('該当しない ID・null・指定なしでは出ない', () => {

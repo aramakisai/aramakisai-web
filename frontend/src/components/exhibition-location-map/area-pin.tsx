@@ -16,8 +16,6 @@ export interface AreaPinProps {
   readonly size?: number;
   /** 文字色のクラス。既定は text-accent */
   readonly colorClassName?: string;
-  /** 重心から先端を上へ持ち上げる量 (px)。ラベルを重心に置く地図で、ピンをラベルの上に出すために使う */
-  readonly liftPx?: number;
   /** Leaflet はマーカーの z-index を「画面の y 座標 + zIndexOffset」にする。他のマーカーより前に出したいときに大きくする */
   readonly zIndexOffset?: number;
 }
@@ -41,17 +39,10 @@ const PIN_ICON_SIZE: [number, number] = [0, 0];
 const DEFAULT_PIN_SIZE = 32;
 const DEFAULT_PIN_MD_CLASS = 'md:text-[48px]! md:leading-[48px]!';
 
-function buildPinIcon(
-  size?: number,
-  colorClassName = 'text-accent',
-  liftPx = 0,
-): DivIcon {
+function buildPinIcon(size?: number, colorClassName = 'text-accent'): DivIcon {
   return divIcon({
     html: renderToStaticMarkup(
-      <span
-        className="-translate-x-1/2 -translate-y-[89.58%] flex w-max"
-        style={liftPx > 0 ? { marginTop: -liftPx } : undefined}
-      >
+      <span className="-translate-x-1/2 -translate-y-[89.58%] flex w-max">
         <LocationPinIcon
           size={size ?? DEFAULT_PIN_SIZE}
           className={`${colorClassName}${
@@ -69,7 +60,6 @@ export function AreaPin({
   polygon,
   size,
   colorClassName,
-  liftPx,
   zIndexOffset,
 }: AreaPinProps) {
   const [latitude, longitude] = singlePolygonCentroid(polygon);
@@ -77,7 +67,7 @@ export function AreaPin({
   return (
     <Marker
       position={[latitude, longitude]}
-      icon={buildPinIcon(size, colorClassName, liftPx)}
+      icon={buildPinIcon(size, colorClassName)}
       zIndexOffset={zIndexOffset}
       // クリックの購読はポリゴン側が担う。AreaLabelMarker と同じ理由でポインタイベントを素通りさせる
       interactive={false}
