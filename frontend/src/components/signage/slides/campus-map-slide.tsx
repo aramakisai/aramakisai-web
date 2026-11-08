@@ -30,7 +30,8 @@ export function CampusMapSlide({
   return (
     <div className="relative h-[864px] w-[1536px] overflow-clip rounded-2xl bg-gray-100 [&_.leaflet-container]:bg-[#f3efea] [&_.leaflet-control-attribution]:mr-[26px]! [&_.leaflet-control-attribution]:font-display! [&_.leaflet-control-attribution]:tracking-normal [&_.leaflet-control-attribution]:text-signage-caption! [&_.leaflet-control-attribution]:text-gray-600! [&_.leaflet-control-attribution_a]:text-gray-600!">
       {/* Leaflet はポリゴン等に pointer-events: auto を付け直すため pointer-events-none では操作を止められない */}
-      <div inert className="absolute inset-0">
+      {/* isolate: Leaflet のペインの z-index (400 以上) を閉じ込め、後続のチップや現在地ラベルが隠れないようにする */}
+      <div inert className="absolute inset-0 isolate">
         <CampusMapView
           areas={campusMap.areas}
           points={campusMap.points}

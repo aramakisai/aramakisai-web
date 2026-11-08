@@ -54,6 +54,11 @@ describe('CampusMapSlide', () => {
     expect(screen.getByTestId('map').closest('[inert]')).not.toBeNull();
   });
 
+  it('地図の層はスタッキングコンテキストを作り Leaflet の z-index を閉じ込める', () => {
+    render(<CampusMapSlide campusMap={campusMap} installAreaId={null} />);
+    expect(screen.getByTestId('map').closest('[inert]')).toHaveClass('isolate');
+  });
+
   it('見出しチップ「構内マップ」を出す', () => {
     render(<CampusMapSlide campusMap={campusMap} installAreaId={null} />);
     expect(screen.getByText('構内マップ')).toBeInTheDocument();
