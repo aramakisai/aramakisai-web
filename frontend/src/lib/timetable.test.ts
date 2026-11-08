@@ -8,6 +8,7 @@ import {
   getEventDayList,
   getExhibitionPerformances,
   getTimetable,
+  pickTimetableTarget,
   toTimetable,
   isPerformanceActive,
   pageStagesAt,
@@ -212,18 +213,27 @@ describe('getExhibitionPerformances', () => {
       kind: 'loaded',
       value: [
         {
+          id: 3,
+          dateKey: '2026-11-14',
+          stageId: 2,
           stageName: '体育館',
           dayLabel: '1日目',
           startAt: '2026-11-14T01:00:00.000Z',
           endAt: '2026-11-14T02:00:00.000Z',
         },
         {
+          id: 1,
+          dateKey: '2026-11-15',
+          stageId: 1,
           stageName: '野外',
           dayLabel: '11月15日(日)',
           startAt: '2026-11-15T01:00:00.000Z',
           endAt: '2026-11-15T02:00:00.000Z',
         },
         {
+          id: 2,
+          dateKey: '2026-11-20',
+          stageId: 1,
           stageName: '野外',
           dayLabel: '11月20日(金)',
           startAt: '2026-11-20T01:00:00.000Z',
@@ -431,5 +441,38 @@ describe('pageStagesAt', () => {
       pageCount: 1,
     });
     expect(pageStagesAt([], 5000).pageCount).toBe(1);
+  });
+});
+
+describe('pickTimetableTarget', () => {
+  const ep = (id: number, dateKey: string, from: string, to: string) => ({
+    id,
+    dateKey,
+    stageId: 1,
+    stageName: 'S',
+    dayLabel: dateKey,
+    startAt: new Date(`${dateKey}T${from}:00+09:00`).toISOString(),
+    endAt: new Date(`${dateKey}T${to}:00+09:00`).toISOString(),
+  });
+  const list = [
+    ep(1, '2026-11-14', '10:00', '11:00'),
+    ep(2, '2026-11-14', '13:00', '14:00'),
+    ep(3, '2026-11-15', '10:00', '11:00'),
+  ];
+  const at = (dateKey: string, hhmm: string) =>
+    new Date(`${dateKey}T${hhmm}:00+09:00`);
+
+  it('今日の未終了の最初の回', () => {
+    expect(pickTimetableTarget(list, at('2026-11-14', '11:30'))?.id).toBe(2);
+    expect(pickTimetableTarget(list, at('2026-11-14', '10:30'))?.id).toBe(1);
+  });
+
+  it('今日の回が全て終了していれば今日の最初の回', () => {
+    expect(pickTimetableTarget(list, at('2026-11-14', '20:00'))?.id).toBe(1);
+  });
+
+  it('今日の回が無ければ最初の回', () => {
+    expect(pickTimetableTarget(list, at('2026-11-13', '12:00'))?.id).toBe(1);
+    expect(pickTimetableTarget(list, at('2026-11-16', '12:00'))?.id).toBe(1);
   });
 });

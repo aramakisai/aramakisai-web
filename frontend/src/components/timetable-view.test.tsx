@@ -322,3 +322,65 @@ describe('TimetableView の初期開催日 (ISR のキャッシュ描画対策)'
     );
   });
 });
+
+describe('URL クエリの反映', () => {
+  const scrolled: string[] = [];
+
+  afterEach(() => {
+    window.history.replaceState(null, '', '/');
+    scrolled.length = 0;
+    vi.restoreAllMocks();
+  });
+
+  function withQuery(search: string) {
+    window.history.replaceState(null, '', `/timetable${search}`);
+    // jsdom はレイアウトを持たず offsetParent が常に null になる
+    vi.spyOn(HTMLElement.prototype, 'offsetParent', 'get').mockReturnValue(
+      document.body,
+    );
+    HTMLElement.prototype.scrollIntoView = function (this: HTMLElement) {
+      scrolled.push(this.dataset.performanceId ?? '');
+    };
+    // 描画時刻と端末の日付が異なる状況 (補正 effect が働く状況) にする
+    vi.useFakeTimers({ now: new Date(jst('2026-11-20', '12:00')) });
+    renderView();
+    vi.useRealTimers();
+  }
+
+  test('day が有効なら日付を選び、補正 effect に上書きされない', () => {
+    withQuery('?day=2026-11-15');
+    expect(screen.getByRole('button', { name: '11/15 日' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+
+  test('day が存在しない値なら無視する', () => {
+    withQuery('?day=2099-01-01&stage=2&performance=3');
+    expect(screen.getByRole('button', { name: '11/14 土' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(scrolled).toEqual([]);
+  });
+
+  test('stage がその日にあれば SP のステージタブを選ぶ', () => {
+    withQuery('?day=2026-11-14&stage=2');
+    expect(
+      screen.getByRole('button', { name: '中庭ステージ' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(within(sp()).getByText('中庭ライブ')).toBeInTheDocument();
+  });
+
+  test('stage がその日に無ければ先頭のステージのまま', () => {
+    withQuery('?day=2026-11-15&stage=2');
+    expect(
+      screen.getByRole('button', { name: 'メインステージ' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test('performance の行へスクロールする', () => {
+    withQuery('?day=2026-11-14&stage=2&performance=3');
+    expect(scrolled).toEqual(['3']);
+  });
+});

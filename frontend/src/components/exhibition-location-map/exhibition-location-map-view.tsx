@@ -17,7 +17,7 @@ const MAX_BOUNDS =
 
 // 1x1 透明 GIF。読み込みに失敗したタイルを破損画像として表示させない (campus-map-view と同じ対処)
 const TRANSPARENT_TILE_URL =
-  'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ycAAAAAAQABAAACAUwAOw==';
+  'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
 
 export interface ExhibitionLocationMapViewProps {
   /** 構内全エリア。ポリゴン・ラベルの描画に用いる */

@@ -205,6 +205,9 @@ describe('詳細本文の部品 variant', () => {
   });
   it('ExhibitionPerformances signage はアイコン24・文字 meta', () => {
     const perf = {
+      id: 1,
+      dateKey: '2026-11-14',
+      stageId: 1,
       stageName: 'メイン',
       dayLabel: '11/14',
       startAt: '2026-11-14T01:00:00Z',

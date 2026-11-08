@@ -187,6 +187,9 @@ describe('ExhibitionPage', () => {
         kind: 'loaded',
         value: [
           {
+            id: 9,
+            dateKey: '2026-10-24',
+            stageId: 4,
             stageName: 'メインステージ',
             dayLabel: '1日目',
             startAt: '2026-10-24T02:00:00.000Z',
@@ -277,6 +280,9 @@ describe('ExhibitionPage', () => {
 
   describe('出演時間欄', () => {
     const performance = {
+      id: 9,
+      dateKey: '2026-10-24',
+      stageId: 4,
       stageName: 'メインステージ',
       dayLabel: '1日目',
       startAt: '2026-10-24T02:00:00.000Z',
@@ -297,7 +303,10 @@ describe('ExhibitionPage', () => {
       );
 
       expect(getExhibitionPerformances).toHaveBeenCalledWith(1);
-      expect(screen.getByText('タイムテーブルを見る')).toBeInTheDocument();
+      expect(screen.getByText('タイムテーブルを見る')).toHaveAttribute(
+        'href',
+        '/timetable?day=2026-10-24&stage=4&performance=9',
+      );
       expect(
         screen.queryByRole('heading', { name: '出演時間' }),
       ).not.toBeInTheDocument();

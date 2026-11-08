@@ -71,6 +71,10 @@ export interface Timetable {
 }
 
 export interface ExhibitionPerformance {
+  /** performance_slots の id。タイムテーブルの行 (TimetablePerformance.id) と同じ */
+  readonly id: number;
+  readonly dateKey: string;
+  readonly stageId: number;
   readonly stageName: string;
   readonly dayLabel: string;
   readonly startAt: string;
@@ -244,12 +248,14 @@ export async function getExhibitionPerformances(
   const labels = new Map(
     toDays(meta.value.event_days).map((d) => [d.key, d.label]),
   );
-  const rows: (ExhibitionPerformance & { id: number })[] = [];
+  const rows: ExhibitionPerformance[] = [];
   for (const p of slots.value.docs) {
     const slot = toSlot(p);
     if (!slot || typeof p.stage_id !== 'object') continue;
     rows.push({
       id: p.id,
+      dateKey: slot.dateKey,
+      stageId: p.stage_id.id,
       stageName: p.stage_id.name,
       dayLabel: labels.get(slot.dateKey) ?? formatEventDayLabel(p.event_date),
       startAt: slot.startAt,
@@ -257,15 +263,23 @@ export async function getExhibitionPerformances(
     });
   }
   rows.sort((a, b) => a.startAt.localeCompare(b.startAt) || a.id - b.id);
-  return {
-    kind: 'loaded',
-    value: rows.map((r) => ({
-      stageName: r.stageName,
-      dayLabel: r.dayLabel,
-      startAt: r.startAt,
-      endAt: r.endAt,
-    })),
-  };
+  return { kind: 'loaded', value: rows };
+}
+
+/**
+ * 企画詳細のリンクが指す出演回。今日の回があればその日の未終了の最初 (全終了なら最初)、
+ * 無ければ全体の最初。performances は startAt 昇順
+ */
+export function pickTimetableTarget(
+  performances: readonly ExhibitionPerformance[],
+  now: Date,
+): ExhibitionPerformance | undefined {
+  const today = performances.filter(
+    (p) => p.dateKey === toJstDateKey(now.toISOString()),
+  );
+  return (
+    today.find((p) => new Date(p.endAt) > now) ?? today[0] ?? performances[0]
+  );
 }
 
 /** 開催日程を暦日順の日の一覧にする。取得失敗は例外にせず null */

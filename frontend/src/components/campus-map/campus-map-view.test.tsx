@@ -288,9 +288,9 @@ describe('CampusMapView', () => {
         onSelectArea={() => {}}
       />,
     );
-    expect(tileLayerProps.at(-1)!.errorTileUrl as string).toMatch(
-      /^data:image\//,
-    );
+    const url = tileLayerProps.at(-1)!.errorTileUrl as string;
+    const bytes = atob(url.replace(/^data:image\/gif;base64,/, ''));
+    expect(bytes.charCodeAt(19)).toBe(0x2c);
   });
 
   it('エリア一覧と選択中 ID を AreaPolygonLayer へ渡す', () => {
@@ -501,14 +501,19 @@ describe('CampusMapView', () => {
       });
     });
 
+    const tileEvent = (connected: boolean) => {
+      const tile = document.createElement('img');
+      if (connected) document.body.appendChild(tile);
+      return { tile };
+    };
+
     it('タイル失敗は件数を集計し、離脱時に1回だけ送る', () => {
       const { unmount } = renderView();
       const handlers = tileLayerProps.at(-1)!.eventHandlers as {
-        tileerror: () => void;
+        tileerror: (e: unknown) => void;
       };
-      handlers.tileerror();
-      handlers.tileerror();
-      handlers.tileerror();
+      const events = [tileEvent(true), tileEvent(true), tileEvent(true)];
+      events.forEach((e) => handlers.tileerror(e));
       expect(sendGaEvent).not.toHaveBeenCalled();
       window.dispatchEvent(new Event('pagehide'));
       unmount();
@@ -517,6 +522,33 @@ describe('CampusMapView', () => {
         result: 'tile_error',
         item_count: 3,
       });
+      events.forEach((e) => e.tile.remove());
+    });
+
+    it('DOM から外れたタイルの失敗は数えない', () => {
+      const { unmount } = renderView();
+      const handlers = tileLayerProps.at(-1)!.eventHandlers as {
+        tileerror: (e: unknown) => void;
+      };
+      handlers.tileerror(tileEvent(false));
+      unmount();
+      expect(sendGaEvent).not.toHaveBeenCalled();
+    });
+
+    it('DOM に付いたタイルの失敗だけを件数に含める', () => {
+      const { unmount } = renderView();
+      const handlers = tileLayerProps.at(-1)!.eventHandlers as {
+        tileerror: (e: unknown) => void;
+      };
+      const attached = tileEvent(true);
+      handlers.tileerror(attached);
+      handlers.tileerror(tileEvent(false));
+      unmount();
+      expect(sendGaEvent).toHaveBeenCalledWith('campus_map', {
+        result: 'tile_error',
+        item_count: 1,
+      });
+      attached.tile.remove();
     });
 
     it('タイル失敗が無ければ送らない', () => {
