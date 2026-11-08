@@ -1,6 +1,7 @@
 'use client';
 
 import 'leaflet/dist/leaflet.css';
+import type { TileErrorEvent } from 'leaflet';
 import { useCallback, useEffect, useMemo, useRef, type Ref } from 'react';
 import { AttributionControl, MapContainer, TileLayer } from 'react-leaflet';
 import {
@@ -39,7 +40,7 @@ const POLYGON_RENDERER = svg({ padding: 1 });
 
 // 1x1 透明 GIF。読み込みに失敗したタイルを破損画像として表示させない (要件 8.3)
 const TRANSPARENT_TILE_URL =
-  'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ycAAAAAAQABAAACAUwAOw==';
+  'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
 
 export interface CampusMapViewProps {
   readonly areas: readonly CampusMapArea[];
@@ -138,7 +139,9 @@ export function CampusMapView({
   const tileErrors = useRef(0);
   const tileEventHandlers = useMemo(
     () => ({
-      tileerror: () => {
+      tileerror: (e: TileErrorEvent) => {
+        // Leaflet は不要タイルを DOM から外してから空 GIF に差し替える。外れたタイルの error はキャンセル扱い
+        if (!e.tile.isConnected) return;
         tileErrors.current += 1;
       },
       load: () => onTilesLoaded?.(),

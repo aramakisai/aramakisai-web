@@ -19,7 +19,7 @@ import { RegionalSponsorMarkerLayer } from './regional-sponsor-marker-layer';
 
 // 1x1 透明 GIF。読み込みに失敗したタイルを破損画像として表示させない
 const TRANSPARENT_TILE_URL =
-  'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ycAAAAAAQABAAACAUwAOw==';
+  'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
 
 // 整数の native zoom にする。x.5 だと Leaflet がタイルの z を丸める境界に乗り、
 // flyTo の途中でわずかに引いただけで 1 段下のタイルを引き伸ばした表示に切り替わる
