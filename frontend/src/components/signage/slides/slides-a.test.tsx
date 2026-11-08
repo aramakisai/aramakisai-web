@@ -86,10 +86,12 @@ describe('ImageSlide', () => {
     filesize: 1,
   };
 
-  it('構内マップだけ見出しチップを出す', () => {
-    const { rerender } = render(<ImageSlide kind="campus_map" image={image} />);
-    expect(screen.getByText('構内マップ')).toBeInTheDocument();
-    rerender(<ImageSlide kind="image" image={image} />);
+  it('登録画像を出し、見出しチップは出さない', () => {
+    const { container } = render(<ImageSlide image={image} />);
+    expect(container.querySelector('img')).toHaveAttribute(
+      'src',
+      'https://cms.test/a1',
+    );
     expect(screen.queryByText('構内マップ')).toBeNull();
   });
 });

@@ -1,4 +1,5 @@
 import { paginateLostItems, paginateSponsors } from '@/lib/signage';
+import { CampusMapSlide } from './slides/campus-map-slide';
 import { ImageSlide } from './slides/image';
 import { LayoutSlide } from './slides/layout';
 import { LostItemsSlide } from './slides/lost-items';
@@ -26,11 +27,14 @@ export const SLIDE_RENDERERS: SlideRenderers = {
   ),
   image: ({ entry }) =>
     entry.slide.kind === 'image' ? (
-      <ImageSlide kind="image" image={entry.slide.image} />
+      <ImageSlide image={entry.slide.image} />
     ) : null,
-  campus_map: ({ entry }) =>
-    entry.slide.kind === 'campus_map' ? (
-      <ImageSlide kind="campus_map" image={null} />
+  campus_map: ({ snapshot, installAreaId }) =>
+    snapshot.campusMap ? (
+      <CampusMapSlide
+        campusMap={snapshot.campusMap}
+        installAreaId={installAreaId ?? null}
+      />
     ) : null,
   layout: ({ entry }) =>
     entry.slide.kind === 'layout' ? (
