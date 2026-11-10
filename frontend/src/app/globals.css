@@ -232,6 +232,11 @@
 }
 
 @layer base {
+  /* html に色を付けないと body の白が overscroll 領域 (canvas) に出る */
+  html {
+    @apply bg-background;
+  }
+
   body {
     /*
      * ページの地は白 (要件 2.3)。background トークン (#fbf8f3) はフッター等
