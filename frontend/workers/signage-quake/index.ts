@@ -1,7 +1,7 @@
 import { DurableObject } from 'cloudflare:workers';
 import { handleRequest, handleScheduled } from './http';
 import { DiscordQueue } from './discord';
-import { nextAlarmAt, retryDelayMs, staleSince } from './reconnect';
+import { MAX_MS, nextAlarmAt, retryDelayMs, staleSince } from './reconnect';
 import {
   applyDismiss,
   emptyRelayState,
@@ -319,13 +319,17 @@ export class QuakeRelay
     // 接続後に abort が効くと確立済みの WebSocket に触れるおそれがあるので finally で必ず解除する
     const abort = new AbortController();
     const timer = setTimeout(() => abort.abort(), CONNECT_TIMEOUT_MS);
+    let upstreamStatus: number | null = null;
     try {
       const res = await fetch(toHttpUrl(this.#config.urls[channel]), {
         headers: { Upgrade: 'websocket' },
         signal: abort.signal,
       });
       const ws = res.webSocket;
-      if (!ws) throw new Error(`status ${res.status}`);
+      if (!ws) {
+        upstreamStatus = res.status;
+        throw new Error(`status ${res.status}`);
+      }
       ws.accept();
       conn.ws = ws;
       conn.openedAt = Date.now();
@@ -349,7 +353,10 @@ export class QuakeRelay
       console.warn(
         `quake: ${channel} に接続できない: ${error instanceof Error ? `${error.name}: ${error.message}` : String(error)}`,
       );
-      conn.retryAt = Date.now() + retryDelayMs(conn.failures, Math.random);
+      // 429 の最中に短い間隔で再試行するとレート制限が解けないので、最低でも上限の待ちにする
+      const delay = retryDelayMs(conn.failures, Math.random);
+      conn.retryAt =
+        Date.now() + (upstreamStatus === 429 ? Math.max(delay, MAX_MS) : delay);
       conn.failures += 1;
     } finally {
       clearTimeout(timer);

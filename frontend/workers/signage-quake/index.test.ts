@@ -204,6 +204,39 @@ describe('接続', () => {
     expect(st.channels.wolfxEew.test).toBe(false);
   });
 
+  it('上流が429なら60秒以上待ち、その前のensureでは再接続しない', async () => {
+    const { make } = setup();
+    const fetchMock = vi.fn(async () => ({ status: 429, webSocket: null }));
+    vi.stubGlobal('fetch', fetchMock);
+    const relay = make();
+    await relay.ensure();
+    const calls = fetchMock.mock.calls.length;
+    const { retryAt } = (await relay.status()).channels.p2p;
+    expect(Date.parse(retryAt as string)).toBeGreaterThanOrEqual(
+      IN_PERIOD + 60_000,
+    );
+    vi.setSystemTime(IN_PERIOD + 59_000);
+    await relay.ensure();
+    expect(fetchMock.mock.calls.length).toBe(calls);
+    vi.setSystemTime(IN_PERIOD + 90_000);
+    await relay.ensure();
+    expect(fetchMock.mock.calls.length).toBeGreaterThan(calls);
+  });
+
+  it('429以外の失敗は従来のバックオフで再試行する', async () => {
+    const { make } = setup();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ status: 503, webSocket: null })),
+    );
+    const relay = make();
+    await relay.ensure();
+    const { retryAt } = (await relay.status()).channels.p2p;
+    expect(Date.parse(retryAt as string)).toBeLessThanOrEqual(
+      IN_PERIOD + 1_200,
+    );
+  });
+
   it('cronTick だけが記録し、alarm は更新しない', async () => {
     const { make } = setup();
     stubSockets();
