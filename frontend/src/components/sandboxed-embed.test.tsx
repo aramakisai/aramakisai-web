@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { expect, test, describe } from 'vitest';
+import { act, render, screen } from '@testing-library/react';
+import { expect, test, describe, vi } from 'vitest';
 import { SandboxedEmbed } from './sandboxed-embed';
 
 describe('SandboxedEmbed', () => {
@@ -43,5 +43,20 @@ describe('SandboxedEmbed', () => {
     expect(sandboxTokens).toContain('allow-popups');
     expect(sandboxTokens).toContain('allow-popups-to-escape-sandbox');
     expect(sandboxTokens).not.toContain('allow-same-origin');
+  });
+
+  test('does not set src until window load', () => {
+    const spy = vi
+      .spyOn(document, 'readyState', 'get')
+      .mockReturnValue('loading');
+    render(<SandboxedEmbed url="https://example.com/embed" title="Late" />);
+    const iframe = screen.getByTitle('Late');
+    expect(iframe).not.toHaveAttribute('src');
+
+    act(() => {
+      window.dispatchEvent(new Event('load'));
+    });
+    expect(iframe).toHaveAttribute('src', 'https://example.com/embed');
+    spy.mockRestore();
   });
 });
