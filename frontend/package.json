@@ -26,6 +26,7 @@
   "dependencies": {
     "@opennextjs/cloudflare": "1.20.13",
     "barcode-detector": "3.2.3",
+    "budoux": "0.10.3",
     "leaflet": "1.9.4",
     "next": "16.4.2",
     "qrcode": "^1.5.4",
