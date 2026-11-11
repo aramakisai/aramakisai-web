@@ -823,8 +823,9 @@ export interface SignageSlide {
    * レイアウトでは画面に表示される。それ以外は管理用の名前
    */
   title: string;
-  layout?: ('title' | 'title-content' | 'section' | 'two-content') | null;
+  layout?: ('title' | 'title-content' | 'section' | 'two-content' | 'logo') | null;
   tone?: ('normal' | 'alert') | null;
+  animated?: boolean | null;
   subtext?: string | null;
   content1?: {
     root: {
@@ -1597,6 +1598,7 @@ export interface SignageSlidesSelect<T extends boolean = true> {
   title?: T;
   layout?: T;
   tone?: T;
+  animated?: T;
   subtext?: T;
   content1?: T;
   content1_html?: T;
