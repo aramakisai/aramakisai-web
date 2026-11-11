@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   NOTICE_MOTION,
   NOTICE_SHAPES,
-  beatDelaySec,
   noticeBpm,
   slideLeaveDelayMs,
 } from './signage-stage-notice-shapes';
@@ -17,27 +16,6 @@ describe('noticeBpm', () => {
     expect(noticeBpm(30)).toBe(120);
     expect(noticeBpm(29.999)).toBe(140);
     expect(noticeBpm(0)).toBe(140);
-  });
-});
-
-describe('beatDelaySec', () => {
-  it('周期内の負の値になる', () => {
-    const periodSec = 60 / 120;
-    const d = beatDelaySec(new Date(1_700_000_000_123), 120);
-    expect(d).toBeLessThanOrEqual(0);
-    expect(d).toBeGreaterThan(-periodSec);
-  });
-  it('同じ時刻なら同じ値', () => {
-    const t = 1_700_000_000_123;
-    expect(beatDelaySec(new Date(t), 100)).toBe(beatDelaySec(new Date(t), 100));
-  });
-  it('8拍の周期内の負の値になる', () => {
-    const d = beatDelaySec(new Date(1_700_000_000_123), 100, 8);
-    expect(d).toBeLessThanOrEqual(0);
-    expect(d).toBeGreaterThan(-(60 / 100) * 8);
-  });
-  it('周期の境界で0', () => {
-    expect(beatDelaySec(new Date(600 * 5), 100)).toBeCloseTo(0);
   });
 });
 

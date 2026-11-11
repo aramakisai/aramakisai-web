@@ -152,12 +152,6 @@ export function noticeBpm(remainingSec: number): 100 | 120 | 140 {
   return 140;
 }
 
-/** 壁時計に揃えた負の animation-delay(秒)。全端末で拍が揃う */
-export function beatDelaySec(now: Date, bpm: number, beats = 1): number {
-  const periodMs = (60000 / bpm) * beats;
-  return -((now.getTime() % periodMs) / 1000);
-}
-
 /** 退場開始までの待ち(ms)。残りが退場時間以下なら 0(即退場) */
 export function slideLeaveDelayMs(
   durationSec: number,

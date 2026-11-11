@@ -1,11 +1,17 @@
 'use client';
 
-import { useContext, useMemo, useState, type CSSProperties } from 'react';
+import {
+  useContext,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react';
 import { InfRing, ShapeFill } from '@/components/background-shapes';
 import { ClockOffsetContext } from '@/lib/signage-time';
 import type { StageStartNotice } from '@/lib/signage-stage-notice';
 import {
-  beatDelaySec,
   NOTICE_MAIN_CENTER,
   NOTICE_MOTION,
   NOTICE_SHAPES,
@@ -26,8 +32,8 @@ interface SignageStageNoticeProps {
 
 interface BeatTiming {
   readonly bpm: number;
-  /** 補正済みの現在時刻(ms)。拍・回転の animation を付ける瞬間に壁時計へ合わせるために呼ぶ */
-  readonly clock: () => number;
+  /** 端末時計から補正済み時刻への差(ms) */
+  readonly offsetMs: number;
 }
 
 function Chip({ notice }: { readonly notice: StageStartNotice }) {
@@ -137,27 +143,35 @@ function ShapeView({
   const leaveSec = small ? leave.small.durationSec : leave.large.durationSec;
   const out = awayFromCenter(shape.cx, shape.cy, leave.distancePx);
   const periodSec = 60 / timing.bpm;
-  // 拍・回転を付ける時点(settled は初回描画、入場ありは入場完了)の壁時計に位相を合わせる。bpm が変われば取り直す
-  const delays = useMemo(() => {
-    if (!entered) return null;
-    const at = new Date(timing.clock());
-    return {
-      beat: beatDelaySec(at, timing.bpm),
-      spin: beatDelaySec(at, timing.bpm, beat.rotateBeats),
+  const beatRef = useRef<HTMLDivElement>(null);
+  const spinRef = useRef<HTMLDivElement>(null);
+  // 位相は CSS の負の delay でなく Animation.startTime(タイムライン基準の絶対値)で壁時計に合わせる。
+  // 初回フレームや画像読み込みの遅れがあっても全層・全端末で同じ位相になる。bpm が変われば取り直す
+  useLayoutEffect(() => {
+    if (!entered) return;
+    const align = (el: HTMLElement | null, name: string, periodMs: number) => {
+      const anim = el
+        ?.getAnimations?.()
+        .find((a) => (a as CSSAnimation).animationName === name);
+      const t = document.timeline?.currentTime;
+      if (anim && t != null)
+        anim.startTime =
+          Number(t) -
+          ((((Date.now() + timing.offsetMs) % periodMs) + periodMs) % periodMs);
     };
+    align(beatRef.current, 'notice-beat', 1000 * periodSec);
+    align(spinRef.current, 'notice-spin', 1000 * periodSec * beat.rotateBeats);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entered, timing.bpm]);
-  const beatStyle: CSSProperties = delays
-    ? {
-        animation: `notice-beat ${periodSec}s ${beat.easing} ${delays.beat}s infinite`,
-      }
+  const beatStyle: CSSProperties = entered
+    ? { animation: `notice-beat ${periodSec}s ${beat.easing} infinite` }
     : {};
 
   if (shape.kind === 'ring') {
     const D = shape.diameter;
-    const spinStyle: CSSProperties = delays
+    const spinStyle: CSSProperties = entered
       ? {
-          animation: `notice-spin ${periodSec * beat.rotateBeats}s linear ${delays.spin}s infinite`,
+          animation: `notice-spin ${periodSec * beat.rotateBeats}s linear infinite`,
         }
       : {};
     return (
@@ -171,8 +185,8 @@ function ShapeView({
         }}
       >
         <div style={{ rotate: `${shape.rot}deg` }}>
-          <div data-notice-spin="" style={spinStyle}>
-            <div data-notice-beat="" style={beatStyle}>
+          <div data-notice-spin="" ref={spinRef} style={spinStyle}>
+            <div data-notice-beat="" ref={beatRef} style={beatStyle}>
               <div
                 className="absolute"
                 style={{
@@ -235,7 +249,7 @@ function ShapeView({
       onAnimationEnd={(e) => isGatherEnd(e) && setEntered(true)}
     >
       <div style={{ rotate: `${shape.rot}deg` }}>
-        <div data-notice-beat="" style={beatStyle}>
+        <div data-notice-beat="" ref={beatRef} style={beatStyle}>
           <div
             className="absolute"
             style={{
@@ -271,7 +285,7 @@ export function NoticeShapeLayer({
 }) {
   const offsetMs = useContext(ClockOffsetContext);
   const timing = useMemo<BeatTiming>(
-    () => ({ bpm, clock: () => Date.now() + offsetMs }),
+    () => ({ bpm, offsetMs }),
     [bpm, offsetMs],
   );
   return (
