@@ -34,10 +34,76 @@ const SPACES = /([ \u3000]+)/;
 
 export const isSpacePart = (part: string) => /^[ \u3000]+$/.test(part);
 
+// 長いものを先にマッチさせる(部分一致で法人格が欠けないように)
+const CORPORATE_TOKENS = [
+  '特定非営利活動法人',
+  '一般社団法人',
+  '公益社団法人',
+  '一般財団法人',
+  '公益財団法人',
+  '社会福祉法人',
+  '株式会社',
+  '有限会社',
+  '合同会社',
+  '合資会社',
+  '合名会社',
+  '医療法人',
+  '学校法人',
+  'NPO法人',
+  '（株）',
+  '（有）',
+  '(株)',
+  '(有)',
+  '㈱',
+  '㈲',
+];
+const TOKEN_SPLIT = new RegExp(
+  `(${CORPORATE_TOKENS.map((t) => t.replace(/[()]/g, '\\$&')).join('|')})`,
+);
+
+const NO_LINE_START =
+  /^[・、。，．）」』】〕〉》ー々ゝゞっゃゅょァィゥェォッャュョ]+/;
+
+/** 行頭に置けない文字で始まる塊は、その文字を直前の塊の末尾へ移す */
+function applyKinsoku(parts: string[]): string[] {
+  const out: string[] = [];
+  for (const part of parts) {
+    const head = out.length > 0 ? NO_LINE_START.exec(part)?.[0] : undefined;
+    if (head) {
+      out[out.length - 1] += head;
+      const rest = part.slice(head.length);
+      if (rest) out.push(rest);
+    } else {
+      out.push(part);
+    }
+  }
+  return out;
+}
+
+// 上の段ほど優先。枠幅を超える塊だけを次の段で割る
+const SPLITTERS: readonly ((text: string) => string[])[] = [
+  (t) => t.split(TOKEN_SPLIT).filter(Boolean),
+  (t) => parser.parse(t),
+  splitWords,
+];
+
+function splitChunk(
+  chunk: string,
+  frameWidth: number,
+  measure: MeasureText,
+  level = 0,
+): string[] {
+  if (measure(chunk) <= frameWidth || level >= SPLITTERS.length) return [chunk];
+  const pieces = applyKinsoku(SPLITTERS[level](chunk));
+  if (pieces.length === 1)
+    return splitChunk(chunk, frameWidth, measure, level + 1);
+  return pieces.flatMap((p) => splitChunk(p, frameWidth, measure, level + 1));
+}
+
 export interface SponsorNameLayout {
-  /** 文節と空白の並び。空白は通常の改行機会、文節の中は改行しない */
+  /** 塊と空白の並び。空白は通常の改行機会、塊の中は改行しない */
   readonly parts: readonly string[];
-  /** 最長文節が枠に入らないときだけ 1 未満。社名全体を横にだけ縮める倍率 */
+  /** 最長の塊が枠に入らないときだけ 1 未満。社名全体を横にだけ縮める倍率 */
   readonly scale: number;
   readonly lines: number;
 }
@@ -48,13 +114,12 @@ export function layoutSponsorName(
   frameWidth: number,
   measure: MeasureText,
 ): SponsorNameLayout {
-  const parts = parser
-    .parse(name)
-    .flatMap((p) => p.split(SPACES))
+  const parts = name
+    .split(SPACES)
+    .filter(Boolean)
     .flatMap((p) =>
-      isSpacePart(p) || measure(p) <= frameWidth ? [p] : splitWords(p),
-    )
-    .filter(Boolean);
+      isSpacePart(p) ? [p] : splitChunk(p, frameWidth, measure),
+    );
   const longest = Math.max(
     0,
     ...parts.filter((p) => !isSpacePart(p)).map((p) => measure(p)),

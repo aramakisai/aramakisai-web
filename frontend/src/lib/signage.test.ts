@@ -381,30 +381,65 @@ describe('paginateSponsors', () => {
     expect(parts).toContain('\u3000');
   });
 
-  it('枠に収まる文節は単語分割しない', () => {
-    const { parts } = layoutSponsorName('医療法人神岡', 440, fixed);
-    expect(parts).toEqual(['医療法人神岡']);
-  });
+  describe('社名の分割(階層順)', () => {
+    const parts = (name: string, frame: number) =>
+      layoutSponsorName(name, frame, fixed).parts;
 
-  it('枠に収まらない文節だけ単語分割し、倍率は最長単語で決まる', () => {
-    const { parts, scale } = layoutSponsorName(
-      '医療法人神岡産婦人科医院',
-      100,
-      fixed,
-    );
-    expect(parts.length).toBeGreaterThan(1);
-    expect(parts.join('')).toBe('医療法人神岡産婦人科医院');
-    const longest = Math.max(...parts.map((p) => p.length * 24));
-    expect(scale).toBeCloseTo(longest > 100 ? 100 / longest : 1);
-  });
+    it('枠に収まる塊は法人格でも単語でも分割しない', () => {
+      expect(parts('株式会社両毛', 440)).toEqual(['株式会社両毛']);
+    });
 
-  it('連続するカタカナは結合する', () => {
-    const { parts } = layoutSponsorName(
-      'サントリービバレッジソリューション株式会社',
-      300,
-      fixed,
-    );
-    expect(parts).toContain('サントリービバレッジソリューション');
+    it('枠を超える塊は法人格の前後で分ける(長い法人格を優先)', () => {
+      expect(parts('株式会社両毛システムズ', 208)).toEqual([
+        '株式会社',
+        '両毛システムズ',
+      ]);
+      expect(parts('社会福祉法人あおぞら会', 150)).toEqual([
+        '社会福祉法人',
+        'あおぞら会',
+      ]);
+    });
+
+    it('法人格を後ろに置く社名も前後で分ける', () => {
+      expect(parts('群馬トヨタ自動車株式会社', 208)).toEqual([
+        '群馬トヨタ自動車',
+        '株式会社',
+      ]);
+    });
+
+    it('空白は常に塊を分け、空白自体は塊に含まない', () => {
+      expect(parts('あ い　う', 440)).toEqual([
+        'あ',
+        ' ',
+        'い',
+        '\u3000',
+        'う',
+      ]);
+    });
+
+    it('法人格で割っても枠を超える塊だけ BudouX の文節で割る', () => {
+      const p = parts('株式会社今日は朝から雨が降っていた', 150);
+      expect(p[0]).toBe('株式会社');
+      expect(p.length).toBeGreaterThan(2);
+      expect(p.join('')).toBe('株式会社今日は朝から雨が降っていた');
+    });
+
+    it('連続するカタカナは単語分割後も結合する', () => {
+      expect(
+        parts('サントリービバレッジソリューション株式会社', 300),
+      ).toContain('サントリービバレッジソリューション');
+    });
+
+    it('行頭禁則の文字は直前の塊の末尾へ移す', () => {
+      const all = parts('株式会社原田・ガトーフェスタ', 216);
+      expect(all.some((p) => p.startsWith('・'))).toBe(false);
+      expect(all.join('')).toBe('株式会社原田・ガトーフェスタ');
+    });
+
+    it('倍率は最終的な塊の最長幅で決まる', () => {
+      const { scale } = layoutSponsorName('あ'.repeat(30), 440, fixed);
+      expect(scale).toBeCloseTo(440 / 720);
+    });
   });
 
   it('0件は0ページ', () => {
