@@ -34,12 +34,12 @@ function parse(params: URLSearchParams): CampusMapFilters {
   });
 }
 
-export function useMapFilters(): UseMapFiltersResult {
+export function useMapFilters(basePath = '/map'): UseMapFiltersResult {
   const { filters, keywordInput, setKeywordInput, update, syncFromLocation } =
     useMapUrlState({
       empty: EMPTY_FILTERS,
       parse,
-      build: buildCampusMapHref,
+      build: (filters) => buildCampusMapHref(filters, basePath),
     });
   const setCategories = useCallback(
     (categories: readonly ListingCategory[]) => update({ categories }),

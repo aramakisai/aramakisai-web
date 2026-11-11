@@ -29,6 +29,20 @@ vi.mock('react-leaflet', () => ({
     attributionControlProps.push(props);
     return <div data-testid="attribution-control" />;
   },
+  Pane: (props: Record<string, unknown>) => (
+    <div
+      data-testid="garbage-pane"
+      data-z-index={(props.style as { zIndex: number }).zIndex}
+    >
+      {props.children as never}
+    </div>
+  ),
+}));
+
+vi.mock('./map-point-marker', () => ({
+  MapPointMarker: ({ point }: { point: { kind: string } }) => (
+    <span data-testid={`point-${point.kind}`} />
+  ),
 }));
 
 const areaPinProps: Record<string, unknown>[] = [];
@@ -150,6 +164,30 @@ describe('CampusMapView', () => {
 
   beforeEach(() => {
     mockMatchMedia(false);
+  });
+
+  it('ごみは専用 Pane に置き、受付とエリアラベルの既定 Pane より背面にする', () => {
+    render(
+      <CampusMapView
+        areas={[]}
+        points={[
+          {
+            id: 1,
+            kind: 'garbage_station',
+            latitude: 36.43,
+            longitude: 139.04,
+          },
+          { id: 2, kind: 'reception', latitude: 36.43, longitude: 139.04 },
+        ]}
+        selectedAreaId={null}
+        onSelectArea={() => {}}
+      />,
+    );
+    const pane = screen.getByTestId('garbage-pane');
+    expect(Number(pane.getAttribute('data-z-index'))).toBeGreaterThan(400);
+    expect(Number(pane.getAttribute('data-z-index'))).toBeLessThan(600);
+    expect(pane).toContainElement(screen.getByTestId('point-garbage_station'));
+    expect(pane).not.toContainElement(screen.getByTestId('point-reception'));
   });
 
   it('空き地点のタップは選択中だけ解除し、未選択では何もしない', () => {

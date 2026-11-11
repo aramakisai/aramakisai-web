@@ -1,0 +1,13 @@
+[
+  { "kind": "reception", "latitude": 36.431256, "longitude": 139.044215 },
+  { "kind": "reception", "latitude": 36.431465, "longitude": 139.046116 },
+  { "kind": "garbage_station", "latitude": 36.430236, "longitude": 139.044431 },
+  { "kind": "garbage_station", "latitude": 36.430679, "longitude": 139.044508 },
+  { "kind": "garbage_station", "latitude": 36.430839, "longitude": 139.044639 },
+  { "kind": "garbage_station", "latitude": 36.431296, "longitude": 139.044458 },
+  { "kind": "garbage_station", "latitude": 36.430922, "longitude": 139.045076 },
+  { "kind": "garbage_station", "latitude": 36.431674, "longitude": 139.045252 },
+  { "kind": "garbage_station", "latitude": 36.430857, "longitude": 139.046060 },
+  { "kind": "garbage_station", "latitude": 36.431161, "longitude": 139.045890 },
+  { "kind": "reception", "label": "ママタルトお笑いライブ専用受付", "latitude": 36.430200, "longitude": 139.044700 }
+]

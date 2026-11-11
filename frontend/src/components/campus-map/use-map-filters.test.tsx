@@ -65,6 +65,16 @@ describe('useMapFilters', () => {
     expect(result.current.filters.selectedAreaId).toBe(3);
   });
 
+  test('プレビューでは絞り込み後もプレビューのURLを維持する', () => {
+    const { result } = renderHook(() => useMapFilters('/map/facility-preview'));
+    act(() => result.current.selectArea(3));
+    expect(pushStateSpy).toHaveBeenCalledWith(
+      expect.anything(),
+      '',
+      '/map/facility-preview?area=3',
+    );
+  });
+
   test('カテゴリ変更は即座に履歴 API で URL を更新する', () => {
     const { result } = renderHook(() => useMapFilters());
 

@@ -2,8 +2,20 @@
 
 import 'leaflet/dist/leaflet.css';
 import type { TileErrorEvent } from 'leaflet';
-import { useCallback, useEffect, useMemo, useRef, type Ref } from 'react';
-import { AttributionControl, MapContainer, TileLayer } from 'react-leaflet';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  type ReactNode,
+  type Ref,
+} from 'react';
+import {
+  AttributionControl,
+  MapContainer,
+  Pane,
+  TileLayer,
+} from 'react-leaflet';
 import {
   svg,
   type LatLngBoundsExpression,
@@ -47,8 +59,11 @@ const TRANSPARENT_TILE_URL =
 export interface CampusMapViewProps {
   readonly areas: readonly CampusMapArea[];
   readonly points?: readonly CampusMapPoint[];
+  readonly children?: ReactNode;
   readonly selectedAreaId: number | null;
   readonly onSelectArea: (areaId: number | null) => void;
+  readonly selectedPointId?: number | null;
+  readonly onSelectPoint?: (point: CampusMapPoint) => void;
   /** 端末用は下部の操作部品に現在地を出さない */
   readonly showUserLocation?: boolean;
   /** 端末用は自前のボタンから mapRef 経由でズームするため、Leaflet のコントロールを出さない */
@@ -98,8 +113,11 @@ function sendMapReady() {
 export function CampusMapView({
   areas,
   points = [],
+  children,
   selectedAreaId,
   onSelectArea,
+  selectedPointId = null,
+  onSelectPoint,
   showUserLocation = true,
   showZoomControl = true,
   attributionTop = false,
@@ -244,9 +262,25 @@ export function CampusMapView({
           zIndexOffset={10000}
         />
       )}
-      {points.map((point) => (
-        <MapPointMarker key={point.id} point={point} />
-      ))}
+      {/* エリアの図形より上、エリア名・受付の markerPane (600) より下。 */}
+      <Pane name="garbage-points" style={{ zIndex: 550 }}>
+        {points
+          .filter((point) => point.kind === 'garbage_station')
+          .map((point) => (
+            <MapPointMarker key={point.id} point={point} />
+          ))}
+      </Pane>
+      {points
+        .filter((point) => point.kind === 'reception')
+        .map((point) => (
+          <MapPointMarker
+            key={point.id}
+            point={point}
+            selected={point.id === selectedPointId}
+            onSelect={onSelectPoint}
+          />
+        ))}
+      {children}
       {/*
        * Leaflet は同じ角 (position) に複数のコントロールがあるとき、後から addTo された
        * ものほど角の内側 (画面端から遠い側) に挿入する (Control.prototype.addTo の

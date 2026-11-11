@@ -13,6 +13,16 @@ export function middleware(request: NextRequest): NextResponse {
   );
   const { pathname } = request.nextUrl;
 
+  // 配置確認は開発中のフェーズ設定に左右されない。
+  if (
+    process.env.NODE_ENV === 'development' &&
+    (pathname === '/map/facility-editor' ||
+      pathname === '/map/facility-preview' ||
+      pathname === '/map/facility-preview/test-pamphlet')
+  ) {
+    return NextResponse.next();
+  }
+
   if (isPublicPath(pathname, phase)) {
     return NextResponse.next();
   }

@@ -31,7 +31,7 @@ const SELECTED_LABEL_CLASS =
 // エリア名の文字数に応じた可変幅のラベルを崩さず重心へ配置できる
 const LABEL_ICON_SIZE: [number, number] = [0, 0];
 
-function buildLabelIcon(
+export function buildLabelIcon(
   name: string,
   selected: boolean,
   hasAed: boolean,

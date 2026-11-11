@@ -34,6 +34,9 @@ const INTENTIONALLY_PRIVATE_ROUTES: readonly string[] = [
   '/exhibitions/[id]/[category]',
   '/exhibitions/booth/[id]',
   '/map',
+  '/map/facility-editor',
+  '/map/facility-preview',
+  '/map/facility-preview/test-pamphlet',
   '/mypage',
   '/timetable',
   '/gated',
@@ -96,6 +99,19 @@ describe('ルートと公開対象一覧の整合', () => {
       .filter((_, index) => classifyRoute(routes[index]) === undefined);
 
     expect(unclassified).toEqual([]);
+  });
+
+  test('施設配置の開発専用ページは非公開として分類する', () => {
+    const routes = listAppRoutes(appDir);
+    for (const path of [
+      '/map/facility-editor',
+      '/map/facility-preview',
+      '/map/facility-preview/test-pamphlet',
+    ]) {
+      const route = routes.find((item) => routePattern(item) === path);
+      expect(route).toBeDefined();
+      expect(classifyRoute(route!)).toBe('intentional_private');
+    }
   });
 
   test('/[slug] ルートは値単位で一部が公開されるパターンとして宣言されている', () => {

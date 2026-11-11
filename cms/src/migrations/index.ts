@@ -43,6 +43,8 @@ import * as migration_20261102_043230_parking_device_log from './20261102_043230
 import * as migration_20261102_072553_signage_trial_run from './20261102_072553_signage_trial_run';
 import * as migration_20261105_162724_ingest_parking_snapshot_job from './20261105_162724_ingest_parking_snapshot_job';
 import * as migration_20261106_111953_parking_camera_judge_health from './20261106_111953_parking_camera_judge_health';
+import * as migration_20261106_180509_campus_map_point_label from './20261106_180509_campus_map_point_label';
+import * as migration_20261106_185405_campus_map_reception_details from './20261106_185405_campus_map_reception_details';
 
 export const migrations = [
   {
@@ -268,6 +270,16 @@ export const migrations = [
   {
     up: migration_20261106_111953_parking_camera_judge_health.up,
     down: migration_20261106_111953_parking_camera_judge_health.down,
-    name: '20261106_111953_parking_camera_judge_health'
+    name: '20261106_111953_parking_camera_judge_health',
+  },
+  {
+    up: migration_20261106_180509_campus_map_point_label.up,
+    down: migration_20261106_180509_campus_map_point_label.down,
+    name: '20261106_180509_campus_map_point_label',
+  },
+  {
+    up: migration_20261106_185405_campus_map_reception_details.up,
+    down: migration_20261106_185405_campus_map_reception_details.down,
+    name: '20261106_185405_campus_map_reception_details'
   },
 ];

@@ -159,6 +159,38 @@ afterEach(() => {
 });
 
 describe('CampusMapScreen', () => {
+  it.each([
+    ['PC', stubDesktop],
+    ['スマートフォン', stubMobile],
+  ])('%s で受付を選択し戻れる', (_name, setViewport) => {
+    setViewport();
+    const point = {
+      id: 30,
+      kind: 'reception' as const,
+      latitude: 36,
+      longitude: 139,
+    };
+    render(
+      <CampusMapScreen
+        navigation={navigationItemsByPhase}
+        data={dataResult({ points: [point] })}
+        pamphletUrl="/topics/12"
+      />,
+    );
+    act(() =>
+      (
+        state.mapViewProps.at(-1)!.onSelectPoint as (
+          value: typeof point,
+        ) => void
+      )(point),
+    );
+    expect(state.mapViewProps.at(-1)!.selectedPointId).toBe(30);
+    expect(
+      screen.getByRole('link', { name: 'デジタルパンフレットを見る' }),
+    ).toHaveAttribute('href', '/topics/12');
+    fireEvent.click(screen.getByRole('button', { name: '戻る' }));
+    expect(state.mapViewProps.at(-1)!.selectedPointId).toBeUndefined();
+  });
   it('places the menu button, search, list, and map in that document order (要件 10.4)', () => {
     stubDesktop();
     render(

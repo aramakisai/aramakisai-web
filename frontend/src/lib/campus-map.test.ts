@@ -577,6 +577,82 @@ describe('設備・地点', () => {
     expect(toCampusMapPoint({ ...ok, kind: 'other' } as never)).toBeNull();
   });
 
+  it('受付の表示名を引き継ぎ、空の表示名は従来どおり省略する', () => {
+    const point = { id: 1, kind: 'reception', latitude: 36.4, longitude: 139 };
+    expect(
+      toCampusMapPoint({
+        ...point,
+        label: ' ママタルトお笑いライブ専用受付 ',
+      } as never),
+    ).toEqual({ ...point, label: 'ママタルトお笑いライブ専用受付' });
+    expect(toCampusMapPoint({ ...point, label: '  ' } as never)).toEqual(point);
+  });
+
+  it('CMS のポスターを受付詳細に渡す', () => {
+    const point = toCampusMapPoint({
+      id: 1,
+      kind: 'reception',
+      latitude: 36.4,
+      longitude: 139,
+      reception_type: 'comedy',
+      poster: { id: 5, url: 'https://example.invalid/poster.webp' },
+      event_topic: { id: 2 },
+    } as never);
+    expect(point).toMatchObject({
+      receptionType: 'comedy',
+      posterUrl: 'https://example.invalid/poster.webp',
+    });
+  });
+
+  it('公開済みの関連トピックだけをリンクし、未公開・存在しない場合もポスターを残す', async () => {
+    const base = {
+      kind: 'reception',
+      latitude: 36.4,
+      longitude: 139,
+      poster: { id: 5, url: 'https://example.invalid/poster.webp' },
+    };
+    mockCmsCollections({
+      points: [
+        { ...base, id: 1, event_topic: 2 },
+        { ...base, id: 2, event_topic: { id: 3 } },
+        { ...base, id: 3, event_topic: 4 },
+        { ...base, id: 4, event_topic: null },
+      ],
+    });
+    const original = vi.mocked(cms.findMany).getMockImplementation()!;
+    vi.mocked(cms.findMany).mockImplementation((async (
+      collection: string,
+      query: { where?: { id?: { equals: number } } },
+    ) => {
+      if (collection === 'topics') {
+        const docs =
+          query.where?.id?.equals === 2 ? [{ id: 2, title: '公開' }] : [];
+        return { ok: true, value: { docs, totalDocs: docs.length } };
+      }
+      return original(collection as never, query as never);
+    }) as never);
+    const { points } = await getCampusMapData();
+    expect(points.map((point) => point.eventUrl)).toEqual([
+      '/topics/2',
+      undefined,
+      undefined,
+      undefined,
+    ]);
+    expect(
+      points.every(
+        (point) => point.posterUrl === 'https://example.invalid/poster.webp',
+      ),
+    ).toBe(true);
+    const calls = vi
+      .mocked(cms.findMany)
+      .mock.calls.filter(([collection]) => collection === 'topics');
+    expect(calls).toHaveLength(3);
+    expect(calls[0][1]?.where).toMatchObject({
+      id: { equals: 2 },
+      published_at: { exists: true },
+    });
+  });
+
   it('map_points の取得失敗は空配列にし、他の結果には影響しない', async () => {
     vi.mocked(cms.findMany).mockImplementation((async (collection: string) =>
       collection === 'map_points'
