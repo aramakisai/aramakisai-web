@@ -37,6 +37,8 @@ export interface TopicSummary {
   image?: Attachment | null;
   /** 既存呼び出し側 (home-page.ts) との互換のため任意にしている */
   metaDescription?: string | null;
+  embedUrl?: string | null;
+  embedHeight?: number | null;
   updatedAt?: string;
 }
 

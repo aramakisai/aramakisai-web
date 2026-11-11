@@ -39,6 +39,8 @@ describe('getTopics', () => {
         imageId: '7',
         image: expect.objectContaining({ id: '7' }),
         metaDescription: '説明文1',
+        embedUrl: null,
+        embedHeight: null,
         updatedAt: '2023-01-02T00:00:00.000Z',
       },
     ]);
@@ -73,6 +75,8 @@ describe('getTopicById', () => {
             body_html: 'Body 1',
             image: 7,
             meta_description: null,
+            embed_url: 'https://www.docswell.com/slide/K6NPYL/embed',
+            embed_height: 600,
             updatedAt: '2023-01-02T00:00:00.000Z',
           },
         ],
@@ -88,6 +92,8 @@ describe('getTopicById', () => {
       imageId: '7',
       image: expect.objectContaining({ id: '7' }),
       metaDescription: null,
+      embedUrl: 'https://www.docswell.com/slide/K6NPYL/embed',
+      embedHeight: 600,
       updatedAt: '2023-01-02T00:00:00.000Z',
     });
 
