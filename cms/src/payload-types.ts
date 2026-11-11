@@ -357,6 +357,14 @@ export interface Topic {
    */
   attachments?: (number | Media)[] | null;
   /**
+   * 地図・フォーム等のiframe embed
+   */
+  embed_url?: string | null;
+  /**
+   * embed_urlのiframe高さ(px)。未指定時は16:9のデフォルト比率
+   */
+  embed_height?: number | null;
+  /**
    * 未入力時は本文冒頭から自動生成
    */
   meta_description?: string | null;
@@ -823,8 +831,9 @@ export interface SignageSlide {
    * レイアウトでは画面に表示される。それ以外は管理用の名前
    */
   title: string;
-  layout?: ('title' | 'title-content' | 'section' | 'two-content') | null;
+  layout?: ('title' | 'title-content' | 'section' | 'two-content' | 'logo') | null;
   tone?: ('normal' | 'alert') | null;
+  animated?: boolean | null;
   subtext?: string | null;
   content1?: {
     root: {
@@ -1301,6 +1310,8 @@ export interface TopicsSelect<T extends boolean = true> {
   published_at?: T;
   attachment?: T;
   attachments?: T;
+  embed_url?: T;
+  embed_height?: T;
   meta_description?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -1597,6 +1608,7 @@ export interface SignageSlidesSelect<T extends boolean = true> {
   title?: T;
   layout?: T;
   tone?: T;
+  animated?: T;
   subtext?: T;
   content1?: T;
   content1_html?: T;

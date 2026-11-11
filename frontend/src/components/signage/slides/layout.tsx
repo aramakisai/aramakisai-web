@@ -1,6 +1,14 @@
-import { RichText } from '@/components/rich-text';
+'use client';
 
-export type SlideLayout = 'title' | 'title-content' | 'section' | 'two-content';
+import { useEffect, useRef, useState } from 'react';
+import { RichText } from '@/components/rich-text';
+import { slideLeaveDelayMs } from '@/lib/signage-stage-notice-shapes';
+import { NoticeShapeLayer } from '../signage-stage-notice';
+
+const SLIDE_BPM = 100;
+
+export type SlideLayout =
+  'title' | 'title-content' | 'section' | 'two-content' | 'logo';
 export type SlideTone = 'normal' | 'alert';
 
 export interface LayoutSlideProps {
@@ -10,6 +18,13 @@ export interface LayoutSlideProps {
   subtext: string | null;
   content1Html: string;
   content2Html: string;
+  animated?: boolean;
+  durationSec?: number;
+  /** スライド内の経過ms。退場の予約にマウント時の値だけ使う */
+  elapsedMs?: number;
+  /** 巡回上の直前・直後が animated な layout か。前なら入場せず、後なら退場しない */
+  prevAnimated?: boolean;
+  nextAnimated?: boolean;
 }
 
 // 本文枠はサイネージ用スタイルで描き、はみ出しは枠の overflow で切る
@@ -31,12 +46,45 @@ export function LayoutSlide({
   subtext,
   content1Html,
   content2Html,
+  animated = false,
+  durationSec = 0,
+  elapsedMs = 0,
+  prevAnimated = false,
+  nextAnimated = false,
 }: LayoutSlideProps) {
+  const [settled] = useState(prevAnimated);
+  const [leaving, setLeaving] = useState(false);
+  // 退場の窓は now の毎秒更新では取りこぼすため、マウント時の経過から一度だけ予約する
+  const mountElapsed = useRef(elapsedMs);
+  useEffect(() => {
+    if (!animated || nextAnimated) return;
+    const wait = slideLeaveDelayMs(durationSec, mountElapsed.current);
+    if (wait <= 0) {
+      setLeaving(true);
+      return;
+    }
+    const timer = setTimeout(() => setLeaving(true), wait);
+    return () => clearTimeout(timer);
+  }, [animated, nextAnimated, durationSec]);
+
   const bg = tone === 'alert' ? 'bg-warning' : 'bg-white';
   const text = '[word-break:auto-phrase] overflow-hidden text-text';
   let body: React.ReactNode;
 
-  if (layout === 'title') {
+  if (layout === 'logo') {
+    body = (
+      <div className="flex flex-1 items-center justify-center">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          data-logo=""
+          src="/images/aramakisai2026_line.svg"
+          alt="荒牧祭 ARAMAKI-Fes. 2026"
+          width={772}
+          className="w-[772px] max-w-none"
+        />
+      </div>
+    );
+  } else if (layout === 'title') {
     body = (
       <div className="flex flex-1 flex-col items-center justify-center gap-8 text-center">
         <p
@@ -89,9 +137,16 @@ export function LayoutSlide({
 
   return (
     <div
-      className={`flex h-[864px] w-[1536px] flex-col overflow-hidden rounded-2xl p-16 font-display ${bg}`}
+      className={`relative flex h-[864px] w-[1536px] flex-col overflow-hidden rounded-2xl p-16 font-display ${bg}`}
     >
-      {body}
+      {animated && (
+        <NoticeShapeLayer bpm={SLIDE_BPM} leaving={leaving} settled={settled} />
+      )}
+      {animated ? (
+        <div className="relative flex min-h-0 flex-1 flex-col">{body}</div>
+      ) : (
+        body
+      )}
     </div>
   );
 }

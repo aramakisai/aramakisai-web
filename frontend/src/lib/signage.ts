@@ -52,6 +52,7 @@ export type SignageSlide =
       readonly kind: 'layout';
       readonly layout: SlideLayout;
       readonly tone: SlideTone;
+      readonly animated: boolean;
       readonly title: string;
       readonly subtext: string | null;
       readonly content1Html: string;
@@ -269,6 +270,23 @@ export function buildPlaylist(
 ): readonly PlaylistEntry[] {
   const pinned = pinnedEntries(snapshot, now);
   return pinned.length > 0 ? pinned : entriesOf(snapshot, now, snapshot.slides);
+}
+
+const isAnimatedLayout = (e: PlaylistEntry) =>
+  e.slide.kind === 'layout' && e.slide.animated;
+
+/** 巡回(末尾の次は先頭)での直前・直後の項目が animated な layout か。1件だけなら自分自身が前後になる */
+export function animatedNeighbors(
+  entries: readonly PlaylistEntry[],
+  key: string,
+): { readonly prev: boolean; readonly next: boolean } {
+  const i = entries.findIndex((e) => e.key === key);
+  if (i < 0) return { prev: false, next: false };
+  const n = entries.length;
+  return {
+    prev: isAnimatedLayout(entries[(i - 1 + n) % n]),
+    next: isAnimatedLayout(entries[(i + 1) % n]),
+  };
 }
 
 /** 表示秒数の合計を周期として、nowMs mod 周期から現在の項目と項目内の経過を返す。周期が0ならnull */

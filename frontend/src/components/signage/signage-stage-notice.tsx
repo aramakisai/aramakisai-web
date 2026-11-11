@@ -1,10 +1,17 @@
 'use client';
 
-import { useMemo, useState, type CSSProperties } from 'react';
+import {
+  useContext,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react';
 import { InfRing, ShapeFill } from '@/components/background-shapes';
+import { ClockOffsetContext } from '@/lib/signage-time';
 import type { StageStartNotice } from '@/lib/signage-stage-notice';
 import {
-  beatDelaySec,
   NOTICE_MAIN_CENTER,
   NOTICE_MOTION,
   NOTICE_SHAPES,
@@ -24,9 +31,9 @@ interface SignageStageNoticeProps {
 }
 
 interface BeatTiming {
-  readonly periodSec: number;
-  readonly delaySec: number;
-  readonly spinDelaySec: number;
+  readonly bpm: number;
+  /** 端末時計から補正済み時刻への差(ms) */
+  readonly offsetMs: number;
 }
 
 function Chip({ notice }: { readonly notice: StageStartNotice }) {
@@ -95,7 +102,9 @@ function moveAnimation(
   durEnter: number,
   durLeave: number,
   delayEnter = 0,
+  settled = false,
 ): CSSProperties {
+  if (settled && !leaving) return {};
   return leaving
     ? ({
         '--ex': `${to.dx}px`,
@@ -121,27 +130,48 @@ function ShapeView({
   shape,
   leaving,
   timing,
+  settled,
 }: {
   readonly shape: NoticeShape;
   readonly leaving: boolean;
   readonly timing: BeatTiming;
+  readonly settled: boolean;
 }) {
-  const [entered, setEntered] = useState(false);
+  const [entered, setEntered] = useState(settled);
   const small = isSmall(shape);
   const dist = small ? enter.small : enter.large;
   const leaveSec = small ? leave.small.durationSec : leave.large.durationSec;
   const out = awayFromCenter(shape.cx, shape.cy, leave.distancePx);
+  const periodSec = 60 / timing.bpm;
+  const beatRef = useRef<HTMLDivElement>(null);
+  const spinRef = useRef<HTMLDivElement>(null);
+  // 位相は CSS の負の delay でなく Animation.startTime(タイムライン基準の絶対値)で壁時計に合わせる。
+  // 初回フレームや画像読み込みの遅れがあっても全層・全端末で同じ位相になる。bpm が変われば取り直す
+  useLayoutEffect(() => {
+    if (!entered) return;
+    const align = (el: HTMLElement | null, name: string, periodMs: number) => {
+      const anim = el
+        ?.getAnimations?.()
+        .find((a) => (a as CSSAnimation).animationName === name);
+      if (!anim) return;
+      // Date.now() は実時間、timeline.currentTime はフレーム内で固定のため混ぜると層ごとにずれる。performance.now() に統一する
+      const t = performance.now();
+      const wall = performance.timeOrigin + t + timing.offsetMs;
+      anim.startTime = t - (wall % periodMs);
+    };
+    align(beatRef.current, 'notice-beat', 1000 * periodSec);
+    align(spinRef.current, 'notice-spin', 1000 * periodSec * beat.rotateBeats);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entered, timing.bpm]);
   const beatStyle: CSSProperties = entered
-    ? {
-        animation: `notice-beat ${timing.periodSec}s ${beat.easing} ${timing.delaySec}s infinite`,
-      }
+    ? { animation: `notice-beat ${periodSec}s ${beat.easing} infinite` }
     : {};
 
   if (shape.kind === 'ring') {
     const D = shape.diameter;
     const spinStyle: CSSProperties = entered
       ? {
-          animation: `notice-spin ${timing.periodSec * beat.rotateBeats}s linear ${timing.spinDelaySec}s infinite`,
+          animation: `notice-spin ${periodSec * beat.rotateBeats}s linear infinite`,
         }
       : {};
     return (
@@ -155,8 +185,8 @@ function ShapeView({
         }}
       >
         <div style={{ rotate: `${shape.rot}deg` }}>
-          <div data-notice-spin="" style={spinStyle}>
-            <div data-notice-beat="" style={beatStyle}>
+          <div data-notice-spin="" ref={spinRef} style={spinStyle}>
+            <div data-notice-beat="" ref={beatRef} style={beatStyle}>
               <div
                 className="absolute"
                 style={{
@@ -179,6 +209,7 @@ function ShapeView({
                         dist.durationSec,
                         leaveSec,
                         i === 1 ? enter.ring.rightDelaySec : 0,
+                        settled,
                       )}
                       onAnimationEnd={
                         i === 1
@@ -211,12 +242,14 @@ function ShapeView({
           out,
           dist.durationSec,
           leaveSec,
+          0,
+          settled,
         ),
       }}
       onAnimationEnd={(e) => isGatherEnd(e) && setEntered(true)}
     >
       <div style={{ rotate: `${shape.rot}deg` }}>
-        <div data-notice-beat="" style={beatStyle}>
+        <div data-notice-beat="" ref={beatRef} style={beatStyle}>
           <div
             className="absolute"
             style={{
@@ -239,6 +272,37 @@ function ShapeView({
   );
 }
 
+/** 背景図形の層。bpm は呼び出し側が残り時間から決め、位相は bpm が変わったときだけ取り直す */
+export function NoticeShapeLayer({
+  bpm,
+  leaving,
+  settled = false,
+}: {
+  readonly bpm: number;
+  readonly leaving: boolean;
+  /** 前のスライドから図形が続いているとき、入場せず拍の最中から描く */
+  readonly settled?: boolean;
+}) {
+  const offsetMs = useContext(ClockOffsetContext);
+  const timing = useMemo<BeatTiming>(
+    () => ({ bpm, offsetMs }),
+    [bpm, offsetMs],
+  );
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0">
+      {NOTICE_SHAPES.map((shape, i) => (
+        <ShapeView
+          key={i}
+          shape={shape}
+          leaving={leaving}
+          timing={timing}
+          settled={settled}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function SignageStageNotice({
   notices,
   now,
@@ -246,16 +310,6 @@ export function SignageStageNotice({
 }: SignageStageNoticeProps) {
   const earliest = Math.min(...notices.map((n) => Date.parse(n.startAt)));
   const bpm = noticeBpm((earliest - now.getTime()) / 1000);
-  // now は毎秒変わるが、拍の位相はBPMが変わったときだけ取り直す
-  const timing = useMemo<BeatTiming>(
-    () => ({
-      periodSec: 60 / bpm,
-      delaySec: beatDelaySec(now, bpm),
-      spinDelaySec: beatDelaySec(now, bpm, beat.rotateBeats),
-    }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [bpm],
-  );
   const fade = (sec: number, delay = 0): CSSProperties => ({
     animation: leaving
       ? `fade-out ${sec}s ease-in ${delay}s forwards`
@@ -273,11 +327,7 @@ export function SignageStageNotice({
         className="absolute inset-0 bg-white"
         style={fade(leave.backdrop.durationSec, leave.backdrop.delaySec)}
       />
-      <div aria-hidden className="pointer-events-none absolute inset-0">
-        {NOTICE_SHAPES.map((shape, i) => (
-          <ShapeView key={i} shape={shape} leaving={leaving} timing={timing} />
-        ))}
-      </div>
+      <NoticeShapeLayer bpm={bpm} leaving={leaving} />
       <div
         data-notice-text=""
         className="absolute inset-0 flex flex-col items-start justify-center gap-6 p-16 [word-break:auto-phrase]"

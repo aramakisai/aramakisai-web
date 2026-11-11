@@ -45,6 +45,7 @@ function toSlide(doc: CmsSignageSlide): SignageSlide {
         kind: 'layout',
         layout: doc.layout ?? 'title',
         tone: doc.tone ?? 'normal',
+        animated: doc.animated ?? false,
         title: doc.title,
         subtext: doc.subtext ?? null,
         content1Html: doc.content1_html ?? '',

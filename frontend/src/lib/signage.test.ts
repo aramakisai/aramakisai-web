@@ -2,11 +2,13 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   buildPlaylist,
   slideAt,
+  animatedNeighbors,
   eventDayIndex,
   paginateLostItems,
   paginateSponsors,
   stageNow,
   timetableWindow,
+  type PlaylistEntry,
   type SignageSlide,
   type SignageSnapshot,
   type SignageSponsor,
@@ -422,5 +424,54 @@ describe('timetableWindow', () => {
       startMinute: 11 * 60,
       endMinute: 15 * 60,
     });
+  });
+});
+
+describe('animatedNeighbors', () => {
+  const layout = (id: number, animated: boolean): PlaylistEntry => ({
+    key: `${id}:0`,
+    page: 0,
+    slide: {
+      id,
+      durationSec: 10,
+      kind: 'layout',
+      layout: 'title',
+      tone: 'normal',
+      animated,
+      title: 't',
+      subtext: null,
+      content1Html: '',
+      content2Html: '',
+    },
+  });
+  const plain = (id: number): PlaylistEntry => ({
+    key: `${id}:0`,
+    page: 0,
+    slide: { id, durationSec: 10, kind: 'parking' },
+  });
+
+  it('animated が2枚連続なら互いに前後', () => {
+    const l = [plain(1), layout(2, true), layout(3, true), plain(4)];
+    expect(animatedNeighbors(l, '2:0')).toEqual({ prev: false, next: true });
+    expect(animatedNeighbors(l, '3:0')).toEqual({ prev: true, next: false });
+  });
+  it('前後とも animated でなければ両方 false', () => {
+    const l = [plain(1), layout(2, true), layout(3, false)];
+    expect(animatedNeighbors(l, '2:0')).toEqual({ prev: false, next: false });
+  });
+  it('1件だけの animated は自分自身が前後', () => {
+    expect(animatedNeighbors([layout(1, true)], '1:0')).toEqual({
+      prev: true,
+      next: true,
+    });
+    expect(animatedNeighbors([layout(1, false)], '1:0')).toEqual({
+      prev: false,
+      next: false,
+    });
+  });
+  it('末尾から先頭へ循環する', () => {
+    const l = [layout(1, true), plain(2), layout(3, true)];
+    expect(animatedNeighbors(l, '1:0')).toEqual({ prev: true, next: false });
+    expect(animatedNeighbors(l, '3:0')).toEqual({ prev: false, next: true });
   });
 });

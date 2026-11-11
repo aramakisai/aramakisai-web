@@ -21,9 +21,10 @@ export default async function SiteLayout({
     // 背景の図形装飾 (BackgroundShapes) を敷くための外側のコンテナ。
     // main の flex-1 (フッターを下端へ押し出す) を成立させるため flex 文脈を引き継ぐ。
     // relative は装飾レイヤー (absolute inset-0) の位置決め基準にするため必須
+    // isolate が無いと body の白が -z-10 の装飾レイヤーより手前に塗られて隠れる
     <div
       id={PAGE_CONTAINER_ID}
-      className="relative flex min-h-full min-w-0 flex-1 flex-col"
+      className="relative isolate flex min-h-full min-w-0 flex-1 flex-col"
     >
       <PhasedHeader navigation={navigation} />
       <BackgroundShapes />

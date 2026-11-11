@@ -47,6 +47,19 @@ export const Topics: CollectionConfig = {
       admin: { description: '複数添付ファイル' },
     },
     {
+      name: 'embed_url',
+      type: 'text',
+      maxLength: 500,
+      label: '埋め込みURL',
+      admin: { description: '地図・フォーム等のiframe embed' },
+    },
+    {
+      name: 'embed_height',
+      type: 'number',
+      label: '埋め込み高さ',
+      admin: { description: 'embed_urlのiframe高さ(px)。未指定時は16:9のデフォルト比率' },
+    },
+    {
       name: 'meta_description',
       type: 'textarea',
       maxLength: 200,

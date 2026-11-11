@@ -8,6 +8,7 @@ import { buildPageMetadata } from '@/lib/page-metadata';
 import { toMetaDescription } from '@/lib/meta-description';
 import { buildBreadcrumbJsonLd } from '@/lib/structured-data';
 import { JsonLd } from '@/components/json-ld';
+import { SandboxedEmbed } from '@/components/sandboxed-embed';
 import { env } from '@/env';
 
 export interface TopicPageProps {
@@ -82,6 +83,14 @@ export default async function TopicPage({ params }: TopicPageProps) {
       <BackLink href="/topics" label="トピック一覧に戻る" />
 
       <TopicDetailBody topic={topic} />
+      <SandboxedEmbed
+        url={topic.embedUrl}
+        title={topic.title}
+        className={topic.embedHeight ? 'w-full' : 'w-full aspect-video'}
+        style={
+          topic.embedHeight ? { height: `${topic.embedHeight}px` } : undefined
+        }
+      />
     </DetailColumn>
   );
 }

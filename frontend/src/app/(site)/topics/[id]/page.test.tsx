@@ -131,6 +131,52 @@ describe('TopicPage', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('embedUrl があれば本文の後に iframe を出し、embedHeight で高さを固定する', async () => {
+    vi.mocked(getTopicById).mockResolvedValue({
+      ...baseTopic,
+      embedUrl: 'https://www.docswell.com/slide/K6NPYL/embed',
+      embedHeight: 600,
+    });
+
+    const { container } = render(
+      await TopicPage({ params: Promise.resolve({ id: '1' }) }),
+    );
+
+    const iframe = container.querySelector('iframe');
+    expect(iframe).toHaveAttribute(
+      'src',
+      'https://www.docswell.com/slide/K6NPYL/embed',
+    );
+    expect(iframe).toHaveAttribute('title', 'テストトピック');
+    expect(iframe).toHaveStyle({ height: '600px' });
+    expect(iframe?.className).not.toContain('aspect-video');
+  });
+
+  it('embedHeight が無ければ 16:9 で出す', async () => {
+    vi.mocked(getTopicById).mockResolvedValue({
+      ...baseTopic,
+      embedUrl: 'https://www.docswell.com/slide/K6NPYL/embed',
+    });
+
+    const { container } = render(
+      await TopicPage({ params: Promise.resolve({ id: '1' }) }),
+    );
+
+    expect(container.querySelector('iframe')?.className).toContain(
+      'aspect-video',
+    );
+  });
+
+  it('embedUrl が無ければ iframe を出さない', async () => {
+    vi.mocked(getTopicById).mockResolvedValue(baseTopic);
+
+    const { container } = render(
+      await TopicPage({ params: Promise.resolve({ id: '1' }) }),
+    );
+
+    expect(container.querySelector('iframe')).toBeNull();
+  });
+
   it('calls notFound when topic does not exist', async () => {
     vi.mocked(getTopicById).mockResolvedValue(null);
 

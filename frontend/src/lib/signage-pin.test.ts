@@ -8,6 +8,7 @@ const slide = (id: number, title = 't'): SignageSlide => ({
   kind: 'layout',
   layout: 'title',
   tone: 'normal',
+  animated: false,
   title,
   subtext: null,
   content1Html: '',
