@@ -153,11 +153,11 @@ function ShapeView({
       const anim = el
         ?.getAnimations?.()
         .find((a) => (a as CSSAnimation).animationName === name);
-      const t = document.timeline?.currentTime;
-      if (anim && t != null)
-        anim.startTime =
-          Number(t) -
-          ((((Date.now() + timing.offsetMs) % periodMs) + periodMs) % periodMs);
+      if (!anim) return;
+      // Date.now() は実時間、timeline.currentTime はフレーム内で固定のため混ぜると層ごとにずれる。performance.now() に統一する
+      const t = performance.now();
+      const wall = performance.timeOrigin + t + timing.offsetMs;
+      anim.startTime = t - (wall % periodMs);
     };
     align(beatRef.current, 'notice-beat', 1000 * periodSec);
     align(spinRef.current, 'notice-spin', 1000 * periodSec * beat.rotateBeats);
