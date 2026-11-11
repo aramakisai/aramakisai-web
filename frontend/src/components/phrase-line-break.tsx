@@ -48,6 +48,8 @@ function textNodes(root: HTMLElement): Text[] {
 // WebKit の word-break: keep-all は開き括弧の前の ZWSP を改行位置に使わず、
 // 括弧の直後で折ってしまう。budoux が付ける keep-all を normal に戻し、
 // 句内に WJ を入れて禁則を保ったまま句の境界(ZWSP)でだけ折れるようにする。
+// word-break: normal と overflow-wrap: anywhere の組は WebKit が inline-block の
+// max-content 幅を実際より狭く算出し、入る幅があるのに折り返すため break-word にする
 // テキストノードは分割せず nodeValue だけ書き換え、React の差分適用を壊さない
 function applyPhrases(
   el: HTMLElement,
@@ -62,6 +64,8 @@ function applyPhrases(
   parser.applyToElement(el);
   for (const e of [el, ...el.querySelectorAll<HTMLElement>('[style]')]) {
     if (e.style.wordBreak === 'keep-all') e.style.wordBreak = 'normal';
+    if (e.style.overflowWrap === 'anywhere')
+      e.style.overflowWrap = 'break-word';
   }
   for (const t of textNodes(el)) {
     const v = t.nodeValue ?? '';
