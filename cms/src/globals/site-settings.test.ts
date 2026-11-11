@@ -19,7 +19,7 @@ describe('SiteSettings', () => {
 
   it('各タブの項目名と順序', () => {
     expect(tabs.map(names)).toEqual([
-      ['name', 'event_days', 'theme_word', 'theme_description', 'theme_description_html'],
+      ['pamphlet_topic', 'name', 'event_days', 'theme_word', 'theme_description', 'theme_description_html'],
       ['hero_images'],
       ['overview', 'overview_html'],
       ['contact_form_url', 'exhibitor_contact_url', 'sns_links'],

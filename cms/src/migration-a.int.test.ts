@@ -51,6 +51,7 @@ async function withOldSchema(
         await db.execute(sql`
           ALTER TABLE "site_settings" ADD COLUMN "parking_monitor_start" varchar DEFAULT '09:00';
           ALTER TABLE "site_settings" ADD COLUMN "parking_monitor_end" varchar DEFAULT '17:30';
+          ALTER TABLE "site_settings" ADD COLUMN "pamphlet_topic_id" integer;
           ALTER TABLE "site_settings" ADD COLUMN "access_summary" varchar;
           ALTER TABLE "site_settings" ADD COLUMN "access_content" jsonb;
           ALTER TABLE "site_settings" ADD COLUMN "access_content_html" varchar;
