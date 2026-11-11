@@ -4,6 +4,7 @@ import { toCardImageUrl } from '@/lib/cms-asset-url';
 import type { SponsorRow } from '@/lib/signage';
 import {
   fallbackMeasure,
+  isSpacePart,
   layoutSponsorName,
   SPONSOR_NAME_LINE_PX,
 } from '@/lib/signage-sponsor-name';
@@ -32,7 +33,7 @@ function SponsorName({
   readonly className?: string;
 }) {
   const measure = useContext(SponsorMeasureContext) ?? fallbackMeasure;
-  const { phrases, scale, lines } = layoutSponsorName(name, frame, measure);
+  const { parts, scale, lines } = layoutSponsorName(name, frame, measure);
   return (
     <div
       className={`relative shrink-0 ${className}`}
@@ -46,12 +47,16 @@ function SponsorName({
           transformOrigin: 'top left',
         }}
       >
-        {phrases.map((p, i) => (
-          <Fragment key={i}>
-            {i > 0 && <wbr />}
-            <span className="whitespace-nowrap">{p}</span>
-          </Fragment>
-        ))}
+        {parts.map((p, i) =>
+          isSpacePart(p) ? (
+            p
+          ) : (
+            <Fragment key={i}>
+              {i > 0 && !isSpacePart(parts[i - 1]) && <wbr />}
+              <span className="whitespace-nowrap">{p}</span>
+            </Fragment>
+          ),
+        )}
       </p>
     </div>
   );

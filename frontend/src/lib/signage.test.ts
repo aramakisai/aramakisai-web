@@ -374,6 +374,39 @@ describe('paginateSponsors', () => {
     expect(layoutSponsorName('あいう', 440, fixed).scale).toBe(1);
   });
 
+  it('空白で分割し、空白は文節に含めない', () => {
+    const { parts } = layoutSponsorName('あ い　う', 440, fixed);
+    expect(parts.filter((p) => p.trim() !== '').join('')).toBe('あいう');
+    expect(parts).toContain(' ');
+    expect(parts).toContain('\u3000');
+  });
+
+  it('枠に収まる文節は単語分割しない', () => {
+    const { parts } = layoutSponsorName('医療法人神岡', 440, fixed);
+    expect(parts).toEqual(['医療法人神岡']);
+  });
+
+  it('枠に収まらない文節だけ単語分割し、倍率は最長単語で決まる', () => {
+    const { parts, scale } = layoutSponsorName(
+      '医療法人神岡産婦人科医院',
+      100,
+      fixed,
+    );
+    expect(parts.length).toBeGreaterThan(1);
+    expect(parts.join('')).toBe('医療法人神岡産婦人科医院');
+    const longest = Math.max(...parts.map((p) => p.length * 24));
+    expect(scale).toBeCloseTo(longest > 100 ? 100 / longest : 1);
+  });
+
+  it('連続するカタカナは結合する', () => {
+    const { parts } = layoutSponsorName(
+      'サントリービバレッジソリューション株式会社',
+      300,
+      fixed,
+    );
+    expect(parts).toContain('サントリービバレッジソリューション');
+  });
+
   it('0件は0ページ', () => {
     expect(paginateSponsors([])).toEqual([]);
   });
