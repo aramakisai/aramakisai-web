@@ -51,7 +51,8 @@ export function SignageClampedText({
       const limit = lines * parseFloat(getComputedStyle(p).lineHeight);
       const fitsText = (t: string) => {
         m.textContent = t;
-        return m.getBoundingClientRect().height <= limit + EPSILON;
+        // キャンバスの縮小 transform を受ける getBoundingClientRect ではなく、レイアウト上の高さで測る
+        return m.offsetHeight <= limit + EPSILON;
       };
       // 行高を数値で取れない環境 (計測できない) では切り詰めない
       if (!Number.isFinite(limit) || fitsText(text)) {
