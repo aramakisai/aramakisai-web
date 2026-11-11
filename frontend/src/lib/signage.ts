@@ -52,6 +52,7 @@ export type SignageSlide =
       readonly kind: 'layout';
       readonly layout: SlideLayout;
       readonly tone: SlideTone;
+      readonly animated: boolean;
       readonly title: string;
       readonly subtext: string | null;
       readonly content1Html: string;

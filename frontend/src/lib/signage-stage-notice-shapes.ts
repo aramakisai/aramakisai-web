@@ -157,3 +157,14 @@ export function beatDelaySec(now: Date, bpm: number, beats = 1): number {
   const periodMs = (60000 / bpm) * beats;
   return -((now.getTime() % periodMs) / 1000);
 }
+
+/** 退場開始までの待ち(ms)。残りが退場時間以下なら 0(即退場) */
+export function slideLeaveDelayMs(
+  durationSec: number,
+  elapsedMs: number,
+): number {
+  return Math.max(
+    0,
+    durationSec * 1000 - elapsedMs - NOTICE_MOTION.leave.totalMs,
+  );
+}

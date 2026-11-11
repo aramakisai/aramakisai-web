@@ -4,6 +4,7 @@ import {
   NOTICE_SHAPES,
   beatDelaySec,
   noticeBpm,
+  slideLeaveDelayMs,
 } from './signage-stage-notice-shapes';
 
 describe('noticeBpm', () => {
@@ -47,5 +48,15 @@ describe('定数', () => {
   });
   it('退場の合計は900ms', () => {
     expect(NOTICE_MOTION.leave.totalMs).toBe(900);
+  });
+});
+
+describe('スライドの退場', () => {
+  it('残りがちょうど totalMs なら待ち 0、未満でも 0、超えれば差分', () => {
+    const total = NOTICE_MOTION.leave.totalMs;
+    expect(slideLeaveDelayMs(10, 10_000 - total)).toBe(0);
+    expect(slideLeaveDelayMs(10, 10_000 - total + 1)).toBe(0);
+    expect(slideLeaveDelayMs(10, 10_000 - total - 1)).toBe(1);
+    expect(slideLeaveDelayMs(10, 0)).toBe(10_000 - total);
   });
 });

@@ -136,7 +136,8 @@ export function SignageScreen({
   });
   const notices = data && !pinned ? stageStartNotices(data.timetable, now) : [];
   const entries = data ? buildPlaylist(data, now) : [];
-  const entry = slideAt(entries, now.getTime())?.entry ?? null;
+  const current = slideAt(entries, now.getTime());
+  const entry = current?.entry ?? null;
   const canvas = CANVAS_SIZE[orientation];
   const eventDays = data?.eventDays ?? [];
   const rows = data ? stageNow(data.timetable, now) : null;
@@ -201,6 +202,7 @@ export function SignageScreen({
           renderers={SLIDE_RENDERERS}
           notices={notices}
           installArea={installArea}
+          elapsedMs={current?.elapsedMs}
         />
         <SignageTouchLayer
           session={session}

@@ -239,13 +239,16 @@ function ShapeView({
   );
 }
 
-export function SignageStageNotice({
-  notices,
+/** 背景図形の層。bpm は呼び出し側が残り時間から決め、位相は bpm が変わったときだけ取り直す */
+export function NoticeShapeLayer({
   now,
+  bpm,
   leaving,
-}: SignageStageNoticeProps) {
-  const earliest = Math.min(...notices.map((n) => Date.parse(n.startAt)));
-  const bpm = noticeBpm((earliest - now.getTime()) / 1000);
+}: {
+  readonly now: Date;
+  readonly bpm: number;
+  readonly leaving: boolean;
+}) {
   // now は毎秒変わるが、拍の位相はBPMが変わったときだけ取り直す
   const timing = useMemo<BeatTiming>(
     () => ({
@@ -256,6 +259,22 @@ export function SignageStageNotice({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [bpm],
   );
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0">
+      {NOTICE_SHAPES.map((shape, i) => (
+        <ShapeView key={i} shape={shape} leaving={leaving} timing={timing} />
+      ))}
+    </div>
+  );
+}
+
+export function SignageStageNotice({
+  notices,
+  now,
+  leaving,
+}: SignageStageNoticeProps) {
+  const earliest = Math.min(...notices.map((n) => Date.parse(n.startAt)));
+  const bpm = noticeBpm((earliest - now.getTime()) / 1000);
   const fade = (sec: number, delay = 0): CSSProperties => ({
     animation: leaving
       ? `fade-out ${sec}s ease-in ${delay}s forwards`
@@ -273,11 +292,7 @@ export function SignageStageNotice({
         className="absolute inset-0 bg-white"
         style={fade(leave.backdrop.durationSec, leave.backdrop.delaySec)}
       />
-      <div aria-hidden className="pointer-events-none absolute inset-0">
-        {NOTICE_SHAPES.map((shape, i) => (
-          <ShapeView key={i} shape={shape} leaving={leaving} timing={timing} />
-        ))}
-      </div>
+      <NoticeShapeLayer now={now} bpm={bpm} leaving={leaving} />
       <div
         data-notice-text=""
         className="absolute inset-0 flex flex-col items-start justify-center gap-6 p-16 [word-break:auto-phrase]"
