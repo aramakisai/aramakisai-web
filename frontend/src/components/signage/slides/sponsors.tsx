@@ -1,23 +1,61 @@
 /* eslint-disable @next/next/no-img-element */
+import { Fragment, useContext } from 'react';
 import { toCardImageUrl } from '@/lib/cms-asset-url';
 import type { SponsorRow } from '@/lib/signage';
+import {
+  fallbackMeasure,
+  layoutSponsorName,
+  SPONSOR_NAME_LINE_PX,
+} from '@/lib/signage-sponsor-name';
+import { SponsorMeasureContext } from '@/lib/use-sponsor-measure';
 import {
   SPONSOR_AREA_TOP,
   SPONSOR_PAGE_HEIGHT,
 } from '@/lib/signage-sponsor-area';
 import { SignageHeadingChip } from '../signage-heading-chip';
 
-const LOGO_WIDTH = {
-  planA: 'w-[440px]',
-  planB: 'w-[324px]',
-  planC: 'w-[208px]',
-} as const;
+const FRAME = { planA: 440, planB: 324, planC: 208, names: 324 } as const;
 
 const LOGO_HEIGHT = {
-  planA: 'h-[200px]',
-  planB: 'h-[144px]',
-  planC: 'h-[96px]',
+  planA: 200,
+  planB: 144,
+  planC: 96,
 } as const;
+
+function SponsorName({
+  name,
+  frame,
+  className = '',
+}: {
+  readonly name: string;
+  readonly frame: number;
+  readonly className?: string;
+}) {
+  const measure = useContext(SponsorMeasureContext) ?? fallbackMeasure;
+  const { phrases, scale, lines } = layoutSponsorName(name, frame, measure);
+  return (
+    <div
+      className={`relative shrink-0 ${className}`}
+      style={{ width: frame, height: lines * SPONSOR_NAME_LINE_PX }}
+    >
+      <p
+        className="absolute top-0 left-0 text-center text-[24px] leading-[1.25] text-text [text-wrap:balance]"
+        style={{
+          width: frame / scale,
+          transform: scale < 1 ? `scaleX(${scale})` : undefined,
+          transformOrigin: 'top left',
+        }}
+      >
+        {phrases.map((p, i) => (
+          <Fragment key={i}>
+            {i > 0 && <wbr />}
+            <span className="whitespace-nowrap">{p}</span>
+          </Fragment>
+        ))}
+      </p>
+    </div>
+  );
+}
 
 export function SponsorsSlide({
   rows,
@@ -34,41 +72,41 @@ export function SponsorsSlide({
         {rows.map((row, i) => (
           <ul
             key={`${row.kind}-${row.items[0]?.id ?? i}`}
-            className={`flex gap-6 ${row.kind === 'names' ? 'justify-start' : 'justify-center'} ${i > 0 ? 'mt-6' : ''}`}
+            className={`flex items-start gap-6 ${row.kind === 'names' ? 'justify-start' : 'justify-center'} ${i > 0 ? 'mt-6' : ''}`}
           >
             {row.items.map((s) =>
               row.kind === 'logo' ? (
                 <li
                   key={s.id}
-                  className={`flex flex-col items-center gap-2 ${LOGO_WIDTH[row.tier]}`}
+                  className="flex flex-col items-center gap-2"
+                  style={{ width: FRAME[row.tier] }}
                 >
-                  <div
-                    className={`flex w-full items-center justify-center ${LOGO_HEIGHT[row.tier]}`}
-                  >
-                    {s.logoId === null ? (
-                      <span className="w-full truncate text-center text-[24px] leading-none text-text">
-                        {s.name}
-                      </span>
-                    ) : (
-                      <img
-                        src={(s.logo ? toCardImageUrl(s.logo) : null) ?? ''}
-                        alt={s.name}
-                        className="max-h-full max-w-full object-contain"
-                      />
-                    )}
-                  </div>
-                  {s.logoId !== null && (
-                    <p className="w-full truncate text-center text-[24px] leading-none text-text">
-                      {s.name}
-                    </p>
+                  {s.logoId === null ? (
+                    <div
+                      className="flex w-full items-center justify-center"
+                      style={{ minHeight: LOGO_HEIGHT[row.tier] }}
+                    >
+                      <SponsorName name={s.name} frame={FRAME[row.tier]} />
+                    </div>
+                  ) : (
+                    <>
+                      <div
+                        className="flex w-full items-center justify-center"
+                        style={{ height: LOGO_HEIGHT[row.tier] }}
+                      >
+                        <img
+                          src={(s.logo ? toCardImageUrl(s.logo) : null) ?? ''}
+                          alt={s.name}
+                          className="max-h-full max-w-full object-contain"
+                        />
+                      </div>
+                      <SponsorName name={s.name} frame={FRAME[row.tier]} />
+                    </>
                   )}
                 </li>
               ) : (
-                <li
-                  key={s.id}
-                  className="w-[324px] truncate text-center text-[24px] leading-none text-text"
-                >
-                  {s.name}
+                <li key={s.id} style={{ width: FRAME.names }}>
+                  <SponsorName name={s.name} frame={FRAME.names} />
                 </li>
               ),
             )}

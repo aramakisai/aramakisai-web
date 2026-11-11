@@ -1,4 +1,10 @@
-import { paginateLostItems, paginateSponsors } from '@/lib/signage';
+import { useContext } from 'react';
+import {
+  paginateLostItems,
+  paginateSponsors,
+  type SignageSponsor,
+} from '@/lib/signage';
+import { SponsorMeasureContext } from '@/lib/use-sponsor-measure';
 import { CampusMapSlide } from './slides/campus-map-slide';
 import { ImageSlide } from './slides/image';
 import { LayoutSlide } from './slides/layout';
@@ -8,11 +14,22 @@ import { SponsorsSlide } from './slides/sponsors';
 import { TimetableSlide } from './slides/timetable-slide';
 import type { SlideRenderers } from './signage-main';
 
+function SponsorsPage({
+  sponsors,
+  page,
+}: {
+  readonly sponsors: readonly SignageSponsor[];
+  readonly page: number;
+}) {
+  const measure = useContext(SponsorMeasureContext);
+  return (
+    <SponsorsSlide rows={paginateSponsors(sponsors, measure)[page] ?? []} />
+  );
+}
+
 export const SLIDE_RENDERERS: SlideRenderers = {
   sponsors: ({ entry, snapshot }) => (
-    <SponsorsSlide
-      rows={paginateSponsors(snapshot.sponsors)[entry.page] ?? []}
-    />
+    <SponsorsPage sponsors={snapshot.sponsors} page={entry.page} />
   ),
   lost_items: ({ entry, snapshot }) => (
     <LostItemsSlide

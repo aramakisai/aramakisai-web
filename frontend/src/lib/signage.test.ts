@@ -14,6 +14,7 @@ import {
   type SignageSponsor,
   type SignageLostItem,
 } from './signage';
+import { layoutSponsorName } from './signage-sponsor-name';
 import type { Timetable, TimetablePerformance } from './timetable';
 
 vi.mock('./cms', () => ({ cms: {} }));
@@ -301,6 +302,8 @@ describe('paginateLostItems', () => {
   });
 });
 
+const fixed = (t: string) => t.length * 24;
+
 describe('paginateSponsors', () => {
   const kinds = (pages: ReturnType<typeof paginateSponsors>) =>
     pages.map((p) => p.map((r) => (r.kind === 'logo' ? r.tier : 'names')));
@@ -327,18 +330,48 @@ describe('paginateSponsors', () => {
   });
 
   it('同じプラン内は行高の合計が704を超える位置でページを分ける', () => {
-    // A 232 + 24 + 232 = 488, +24+232 = 744 > 704
+    // A 238 + 24 + 238 = 500, +24+238 = 762 > 704
     const pages = paginateSponsors(
       Array.from({ length: 7 }, (_, i) => sponsor(i + 1, 'planA')),
     );
     expect(kinds(pages)).toEqual([['planA', 'planA'], ['planA']]);
   });
 
-  it('社名60件は1ページ(15行=696px)に収まる', () => {
+  it('社名52件は1ページ(13行=702px)に収まり、56件は次ページに送られる', () => {
     const pages = paginateSponsors(
-      Array.from({ length: 60 }, (_, i) => sponsor(i + 1, 'planD')),
+      Array.from({ length: 52 }, (_, i) => sponsor(i + 1, 'planD')),
     );
-    expect(pages.map((p) => p.length)).toEqual([15]);
+    expect(pages.map((p) => p.length)).toEqual([13]);
+    const more = paginateSponsors(
+      Array.from({ length: 56 }, (_, i) => sponsor(i + 1, 'planD')),
+    );
+    expect(more.map((p) => p.length)).toEqual([13, 1]);
+  });
+
+  it('長い社名で行が増えると次ページに送られる', () => {
+    // C枠208・24px/文字なら1行8字。短い社名はロゴ96+8+30=134で5行(5*134+4*24=766)は収まらないので4行に絞る
+    const long =
+      '今日は朝から雨が降っていたので傘を持って学校へ行き友達と楽しく遊びました';
+    const { lines } = layoutSponsorName(long, 208, fixed);
+    expect(lines).toBeGreaterThanOrEqual(4);
+    const make = (name: string) =>
+      Array.from({ length: 24 }, (_, i) => ({
+        ...sponsor(i + 1, 'planC'),
+        name: i === 0 ? name : 's',
+      }));
+    // 24件=4行(6列)。先頭行だけ高くなり、合計が704を超えれば末尾行が次ページへ
+    const short = paginateSponsors(make('s'), fixed);
+    const tall = paginateSponsors(make(long), fixed);
+    expect(short.map((p) => p.length)).toEqual([4]);
+    expect(tall.map((p) => p.length)).toEqual([3, 1]);
+  });
+
+  it('最長文節が枠幅を超えると倍率<1、収まれば1', () => {
+    // 「あ」×30 は1文節で720px > 440
+    const s = layoutSponsorName('あ'.repeat(30), 440, fixed);
+    expect(s.scale).toBeCloseTo(440 / 720);
+    expect(s.lines).toBe(1);
+    expect(layoutSponsorName('あいう', 440, fixed).scale).toBe(1);
   });
 
   it('0件は0ページ', () => {

@@ -15,6 +15,12 @@ import { isPerformanceActive, stagesWithPerformances } from '@/lib/timetable';
 import type { CampusMapArea, CampusMapPoint } from './campus-map';
 import type { SignageQuakeStage } from './signage-quake';
 import { SPONSOR_PAGE_HEIGHT } from './signage-sponsor-area';
+import {
+  fallbackMeasure,
+  layoutSponsorName,
+  SPONSOR_NAME_LINE_PX,
+  type MeasureText,
+} from './signage-sponsor-name';
 import { getDaysUntilEventDay, toJstDateKey, toJstParts } from './event-day';
 
 /** 向きで変わるのはキャンバス寸法だけで、ページ分割・時間窓の定数は向きに依らない */
@@ -143,13 +149,14 @@ export type SponsorRow =
 
 const SPONSOR_ROW_GAP = 24;
 const LOGO_TIERS = ['planA', 'planB', 'planC'] as const;
-// 列数と行高(ロゴ枠+社名)はFigmaのロゴ領域の実測値
+// 列数・枠幅・ロゴ高さはFigmaのロゴ領域の実測値
 const LOGO_ROW_SPEC = {
-  planA: { columns: 3, height: 232 },
-  planB: { columns: 4, height: 176 },
-  planC: { columns: 6, height: 128 },
+  planA: { columns: 3, frame: 440, logo: 200 },
+  planB: { columns: 4, frame: 324, logo: 144 },
+  planC: { columns: 6, frame: 208, logo: 96 },
 } as const;
-const NAME_ROW_SPEC = { columns: 4, height: 24 } as const;
+const NAME_ROW_SPEC = { columns: 4, frame: 324 } as const;
+const LOGO_NAME_GAP = 8;
 
 function chunk<T>(items: readonly T[], size: number): T[][] {
   const out: T[][] = [];
@@ -158,11 +165,26 @@ function chunk<T>(items: readonly T[], size: number): T[][] {
   return out;
 }
 
-/** 行を行高の合計が704pxを超える位置でページに分ける */
-function paginateRows(rows: readonly SponsorRow[], height: number) {
+function nameHeight(name: string, frame: number, measure: MeasureText): number {
+  return layoutSponsorName(name, frame, measure).lines * SPONSOR_NAME_LINE_PX;
+}
+
+function logoItemHeight(
+  s: SignageSponsor,
+  spec: { readonly frame: number; readonly logo: number },
+  measure: MeasureText,
+): number {
+  const h = nameHeight(s.name, spec.frame, measure);
+  return s.logoId === null
+    ? Math.max(spec.logo, h)
+    : spec.logo + LOGO_NAME_GAP + h;
+}
+
+/** 行を、行高の合計(行間込み)が704pxを超える位置でページに分ける */
+function paginateRows(rows: readonly { row: SponsorRow; height: number }[]) {
   const pages: SponsorRow[][] = [];
   let used = 0;
-  for (const row of rows) {
+  for (const { row, height } of rows) {
     const page = pages[pages.length - 1];
     if (page && used + SPONSOR_ROW_GAP + height <= SPONSOR_PAGE_HEIGHT) {
       page.push(row);
@@ -178,25 +200,28 @@ function paginateRows(rows: readonly SponsorRow[], height: number) {
 /** プランA→B→C→社名(D・未設定)の順に、プランごと別ページにする。1ページに複数プランを混ぜない */
 export function paginateSponsors(
   sponsors: readonly SignageSponsor[],
+  measure: MeasureText = fallbackMeasure,
 ): readonly (readonly SponsorRow[])[] {
   const pages: SponsorRow[][] = [];
   for (const tier of LOGO_TIERS) {
     const spec = LOGO_ROW_SPEC[tier];
     const logos = sponsors.filter((s) => s.tier === tier);
-    const rows = chunk(logos, spec.columns).map((items): SponsorRow => ({
-      kind: 'logo',
-      tier,
-      items,
+    const rows = chunk(logos, spec.columns).map((items) => ({
+      row: { kind: 'logo', tier, items } as SponsorRow,
+      height: Math.max(...items.map((s) => logoItemHeight(s, spec, measure))),
     }));
-    pages.push(...paginateRows(rows, spec.height));
+    pages.push(...paginateRows(rows));
   }
   const rest = sponsors.filter(
     (s) => !(LOGO_TIERS as readonly string[]).includes(s.tier ?? ''),
   );
-  const nameRows = chunk(rest, NAME_ROW_SPEC.columns).map(
-    (items): SponsorRow => ({ kind: 'names', items }),
-  );
-  pages.push(...paginateRows(nameRows, NAME_ROW_SPEC.height));
+  const nameRows = chunk(rest, NAME_ROW_SPEC.columns).map((items) => ({
+    row: { kind: 'names', items } as SponsorRow,
+    height: Math.max(
+      ...items.map((s) => nameHeight(s.name, NAME_ROW_SPEC.frame, measure)),
+    ),
+  }));
+  pages.push(...paginateRows(nameRows));
   return pages;
 }
 
@@ -215,10 +240,11 @@ export function pageCount(
   slide: SignageSlide,
   snapshot: SignageSnapshot,
   now: Date,
+  measure?: MeasureText,
 ): number {
   switch (slide.kind) {
     case 'sponsors':
-      return paginateSponsors(snapshot.sponsors).length;
+      return paginateSponsors(snapshot.sponsors, measure).length;
     case 'lost_items':
       return paginateLostItems(snapshot.lostItems).length;
     case 'parking':
@@ -244,13 +270,17 @@ function entriesOf(
   snapshot: SignageSnapshot,
   now: Date,
   slides: readonly SignageSlide[],
+  measure?: MeasureText,
 ): readonly PlaylistEntry[] {
   return slides.flatMap((slide) =>
-    Array.from({ length: pageCount(slide, snapshot, now) }, (_, page) => ({
-      key: `${slide.id}:${page}`,
-      slide,
-      page,
-    })),
+    Array.from(
+      { length: pageCount(slide, snapshot, now, measure) },
+      (_, page) => ({
+        key: `${slide.id}:${page}`,
+        slide,
+        page,
+      }),
+    ),
   );
 }
 
@@ -258,18 +288,22 @@ function entriesOf(
 export function pinnedEntries(
   snapshot: SignageSnapshot,
   now: Date,
+  measure?: MeasureText,
 ): readonly PlaylistEntry[] {
   const pinned = snapshot.slides.find((s) => s.id === snapshot.pinnedSlideId);
-  return pinned ? entriesOf(snapshot, now, [pinned]) : [];
+  return pinned ? entriesOf(snapshot, now, [pinned], measure) : [];
 }
 
 /** 固定スライドがあればそのページだけ、無ければ有効スライドを順に。空の自動スライドは除く */
 export function buildPlaylist(
   snapshot: SignageSnapshot,
   now: Date,
+  measure?: MeasureText,
 ): readonly PlaylistEntry[] {
-  const pinned = pinnedEntries(snapshot, now);
-  return pinned.length > 0 ? pinned : entriesOf(snapshot, now, snapshot.slides);
+  const pinned = pinnedEntries(snapshot, now, measure);
+  return pinned.length > 0
+    ? pinned
+    : entriesOf(snapshot, now, snapshot.slides, measure);
 }
 
 const isAnimatedLayout = (e: PlaylistEntry) =>
