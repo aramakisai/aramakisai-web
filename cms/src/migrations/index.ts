@@ -43,6 +43,7 @@ import * as migration_20261102_043230_parking_device_log from './20261102_043230
 import * as migration_20261102_072553_signage_trial_run from './20261102_072553_signage_trial_run';
 import * as migration_20261105_162724_ingest_parking_snapshot_job from './20261105_162724_ingest_parking_snapshot_job';
 import * as migration_20261106_111953_parking_camera_judge_health from './20261106_111953_parking_camera_judge_health';
+import * as migration_20261111_134530_signage_slide_animated_logo from './20261111_134530_signage_slide_animated_logo';
 import * as migration_20261111_141522_topics_embed from './20261111_141522_topics_embed';
 
 export const migrations = [
@@ -270,6 +271,11 @@ export const migrations = [
     up: migration_20261106_111953_parking_camera_judge_health.up,
     down: migration_20261106_111953_parking_camera_judge_health.down,
     name: '20261106_111953_parking_camera_judge_health',
+  },
+  {
+    up: migration_20261111_134530_signage_slide_animated_logo.up,
+    down: migration_20261111_134530_signage_slide_animated_logo.down,
+    name: '20261111_134530_signage_slide_animated_logo',
   },
   {
     up: migration_20261111_141522_topics_embed.up,
