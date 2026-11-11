@@ -68,7 +68,18 @@ export function LayoutSlide({
   let body: React.ReactNode;
 
   if (layout === 'logo') {
-    body = null;
+    body = (
+      <div className="flex flex-1 items-center justify-center">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          data-logo=""
+          src="/images/aramakisai2026_line.svg"
+          alt="荒牧祭 ARAMAKI-Fes. 2026"
+          width={772}
+          className="w-[772px] max-w-none"
+        />
+      </div>
+    );
   } else if (layout === 'title') {
     body = (
       <div className="flex flex-1 flex-col items-center justify-center gap-8 text-center">
