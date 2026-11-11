@@ -2,6 +2,7 @@ import { CrossFade } from '../cross-fade';
 import type { EventDay } from '@/lib/home-page-types';
 import type { StageNowRow } from '@/lib/signage';
 import { pageStagesAt } from '@/lib/timetable';
+import { SignageClampedText } from './signage-clamped-text';
 import { SignageClock } from './signage-clock';
 import {
   SignageDayDate,
@@ -26,7 +27,7 @@ export function SignageLeftColumn({
   const page = rows ? pageStagesAt(rows, now.getTime()) : null;
   return (
     <div className="flex h-[1032px] w-[312px] flex-col items-start justify-between pt-4">
-      <div className="flex w-full flex-col gap-4">
+      <div className="flex w-full flex-col gap-2">
         <div className="flex flex-col gap-6">
           <SignageLogo className="h-[55.42px] w-full" />
           <SignageDayDate eventDays={eventDays} now={now} />
@@ -45,7 +46,7 @@ export function SignageLeftColumn({
               className="w-full"
               fadePrevious
             >
-              <div className="flex w-full flex-col gap-5">
+              <div className="flex w-full flex-col gap-3">
                 {page.items.map(({ stage, colorIndex, performance }) => (
                   <div
                     key={stage.id}
@@ -57,18 +58,20 @@ export function SignageLeftColumn({
                     />
                     <CrossFade
                       transitionKey={String(performance?.id ?? 'none')}
-                      className="w-full"
+                      className="h-[100px] w-full"
                       layerClassName="flex flex-col gap-1"
                       fadePrevious
                     >
                       {performance ? (
                         <>
-                          <p className="line-clamp-2 w-full text-[28px] leading-[1.25] font-bold text-text">
-                            {performance.name}
-                          </p>
-                          <p className="text-[24px] leading-[1.25] whitespace-nowrap text-gray-600">
+                          <p className="text-[24px] leading-[1.2] whitespace-nowrap text-gray-600">
                             {formatPerformanceRange(performance)}
                           </p>
+                          <SignageClampedText
+                            lines={2}
+                            className="h-[67.2px] w-full text-[28px] leading-[1.2] font-bold text-text"
+                            text={performance.name}
+                          />
                         </>
                       ) : (
                         <p className="text-signage-heading font-bold text-gray-600">

@@ -24,6 +24,7 @@ import { isTouchMessage, type TouchFilters } from '@/lib/signage-touch-message';
 import { type SignageTouchClockMessage } from '@/lib/signage-trial';
 import { CrossFade } from '../cross-fade';
 import { SignageBusInfo } from './signage-bus-info';
+import { SignageClampedText } from './signage-clamped-text';
 import { SignageClock } from './signage-clock';
 import { SignageCurrentLocation } from './signage-current-location';
 import {
@@ -343,7 +344,7 @@ function OpenLayer({
           <SignageClock now={now} />
         </div>
         {rows && page && (
-          <div className="absolute top-4 left-[660px] flex w-[880px] flex-col gap-4">
+          <div className="absolute top-2 left-[660px] flex w-[880px] flex-col gap-2">
             <div className="flex items-center gap-2 font-display text-[28px] leading-none font-bold text-text">
               <SignageIcon name="mic" />
               <span>いまのステージ</span>
@@ -363,20 +364,24 @@ function OpenLayer({
                       colorIndex={colorIndex}
                       name={stage.name}
                     />
-                    {performance ? (
-                      <>
-                        <p className="line-clamp-2 w-full text-[28px] leading-[1.25] font-bold text-text">
-                          {performance.name}
+                    <div className="flex h-[100px] w-full flex-col gap-1">
+                      {performance ? (
+                        <>
+                          <p className="text-[24px] leading-[1.2] whitespace-nowrap text-gray-600">
+                            {formatPerformanceRange(performance)}
+                          </p>
+                          <SignageClampedText
+                            lines={2}
+                            className="h-[67.2px] w-full text-[28px] leading-[1.2] font-bold text-text"
+                            text={performance.name}
+                          />
+                        </>
+                      ) : (
+                        <p className="text-signage-heading font-bold text-gray-600">
+                          公演なし
                         </p>
-                        <p className="text-[24px] leading-[1.25] whitespace-nowrap text-gray-600">
-                          {formatPerformanceRange(performance)}
-                        </p>
-                      </>
-                    ) : (
-                      <p className="text-signage-heading font-bold text-gray-600">
-                        公演なし
-                      </p>
-                    )}
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
