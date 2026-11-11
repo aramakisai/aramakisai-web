@@ -357,6 +357,14 @@ export interface Topic {
    */
   attachments?: (number | Media)[] | null;
   /**
+   * 地図・フォーム等のiframe embed
+   */
+  embed_url?: string | null;
+  /**
+   * embed_urlのiframe高さ(px)。未指定時は16:9のデフォルト比率
+   */
+  embed_height?: number | null;
+  /**
    * 未入力時は本文冒頭から自動生成
    */
   meta_description?: string | null;
@@ -1301,6 +1309,8 @@ export interface TopicsSelect<T extends boolean = true> {
   published_at?: T;
   attachment?: T;
   attachments?: T;
+  embed_url?: T;
+  embed_height?: T;
   meta_description?: T;
   updatedAt?: T;
   createdAt?: T;
