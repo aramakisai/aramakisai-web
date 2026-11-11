@@ -117,7 +117,7 @@ describe('SignageStageNotice', () => {
     after.forEach((el, i) => expect(el).toBe(before[i]));
   });
 
-  it('拍は集合が終わってから始まり、BPM が変わったときだけ animation-delay を取り直す', () => {
+  it('拍は集合が終わってから始まり、周期は BPM が変わったときだけ変わる', () => {
     const { container, rerender } = render(
       <SignageStageNotice notices={one} now={NOW} leaving={false} />,
     );

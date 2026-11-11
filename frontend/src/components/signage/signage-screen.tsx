@@ -10,6 +10,7 @@ import {
   CANVAS_SIZE,
   pinnedEntries,
   slideAt,
+  animatedNeighbors,
   stageNow,
   type SignageSnapshot,
 } from '@/lib/signage';
@@ -22,6 +23,7 @@ import {
   useSignageChannel,
   useSignageFeature,
 } from '@/lib/use-signage-channel';
+import { ClockOffsetContext } from '@/lib/signage-time';
 import { useBusRealtime } from '@/lib/use-bus-realtime';
 import { usePolling } from '@/lib/use-polling';
 import { SignageBubbles } from './signage-bubbles';
@@ -136,7 +138,8 @@ export function SignageScreen({
   });
   const notices = data && !pinned ? stageStartNotices(data.timetable, now) : [];
   const entries = data ? buildPlaylist(data, now) : [];
-  const entry = slideAt(entries, now.getTime())?.entry ?? null;
+  const current = slideAt(entries, now.getTime());
+  const entry = current?.entry ?? null;
   const canvas = CANVAS_SIZE[orientation];
   const eventDays = data?.eventDays ?? [];
   const rows = data ? stageNow(data.timetable, now) : null;
@@ -152,81 +155,87 @@ export function SignageScreen({
   );
 
   return (
-    <div
-      ref={rootRef}
-      className="fixed inset-0 overflow-hidden bg-background"
-      onPointerDown={() => session.tap(orientation)}
-    >
+    <ClockOffsetContext.Provider value={trialOffsetMs ?? 0}>
       <div
-        data-orientation={orientation}
-        className="signage-canvas absolute origin-top-left"
-        style={{
-          visibility: layout ? 'visible' : 'hidden',
-          width: canvas.width,
-          height: canvas.height,
-          left: fit.left,
-          top: fit.top,
-          transform: `scale(${fit.scale})`,
-        }}
+        ref={rootRef}
+        className="fixed inset-0 overflow-hidden bg-background"
+        onPointerDown={() => session.tap(orientation)}
       >
-        <SignageBubbles orientation={orientation} />
-        <div className="absolute top-6 left-6 portrait:hidden">
-          <SignageLeftColumn now={now} eventDays={eventDays} rows={rows} />
-        </div>
-        <div className="absolute top-6 left-6 hidden portrait:block">
-          <SignagePortraitHeader
-            now={now}
-            eventDays={eventDays}
-            installArea={installArea}
-          />
-        </div>
-        <div className="absolute top-[829px] left-6 hidden portrait:block">
-          <SignagePortraitInfo rows={rows} now={now} />
-        </div>
-        <div className="absolute top-[912px] left-[360px] portrait:top-[1776px] portrait:left-6">
-          <SignageTelop
-            items={data?.telops ?? []}
-            orientation={orientation}
-            offsetMs={trialOffsetMs}
-          />
-        </div>
-        <div className="absolute top-[912px] left-[1368px] portrait:top-[1389px] portrait:left-6">
-          <SignageBusInfo boards={boards} />
-        </div>
-        <SignageMain
-          entry={entry}
-          snapshot={data}
-          now={now}
-          realNow={realNow}
-          renderers={SLIDE_RENDERERS}
-          notices={notices}
-          installArea={installArea}
-        />
-        <SignageTouchLayer
-          session={session}
-          now={now}
-          eventDays={eventDays}
-          rows={rows}
-          boards={boards}
-          telops={
-            notices.length > 0 ? noticeTelops(notices) : (data?.telops ?? [])
-          }
-          offsetMs={trialOffsetMs}
-          trialShiftMs={trialShiftMs}
-          installArea={installArea}
-        />
-        {quake?.active && (
-          <SignageQuakeOverlay
-            quake={quake}
-            slide={data?.quakeSlides[quake.stage] ?? null}
+        <div
+          data-orientation={orientation}
+          className="signage-canvas absolute origin-top-left"
+          style={{
+            visibility: layout ? 'visible' : 'hidden',
+            width: canvas.width,
+            height: canvas.height,
+            left: fit.left,
+            top: fit.top,
+            transform: `scale(${fit.scale})`,
+          }}
+        >
+          <SignageBubbles orientation={orientation} />
+          <div className="absolute top-6 left-6 portrait:hidden">
+            <SignageLeftColumn now={now} eventDays={eventDays} rows={rows} />
+          </div>
+          <div className="absolute top-6 left-6 hidden portrait:block">
+            <SignagePortraitHeader
+              now={now}
+              eventDays={eventDays}
+              installArea={installArea}
+            />
+          </div>
+          <div className="absolute top-[829px] left-6 hidden portrait:block">
+            <SignagePortraitInfo rows={rows} now={now} />
+          </div>
+          <div className="absolute top-[912px] left-[360px] portrait:top-[1776px] portrait:left-6">
+            <SignageTelop
+              items={data?.telops ?? []}
+              orientation={orientation}
+              offsetMs={trialOffsetMs}
+            />
+          </div>
+          <div className="absolute top-[912px] left-[1368px] portrait:top-[1389px] portrait:left-6">
+            <SignageBusInfo boards={boards} />
+          </div>
+          <SignageMain
+            entry={entry}
             snapshot={data}
             now={now}
             realNow={realNow}
             renderers={SLIDE_RENDERERS}
+            notices={notices}
+            installArea={installArea}
+            elapsedMs={current?.elapsedMs}
+            neighbors={
+              entry ? animatedNeighbors(entries, entry.key) : undefined
+            }
           />
-        )}
-        <SignageTrialOverlay trialShiftMs={trialShiftMs} />
+          <SignageTouchLayer
+            session={session}
+            now={now}
+            eventDays={eventDays}
+            rows={rows}
+            boards={boards}
+            telops={
+              notices.length > 0 ? noticeTelops(notices) : (data?.telops ?? [])
+            }
+            offsetMs={trialOffsetMs}
+            trialShiftMs={trialShiftMs}
+            installArea={installArea}
+          />
+          {quake?.active && (
+            <SignageQuakeOverlay
+              quake={quake}
+              slide={data?.quakeSlides[quake.stage] ?? null}
+              snapshot={data}
+              now={now}
+              realNow={realNow}
+              renderers={SLIDE_RENDERERS}
+            />
+          )}
+          <SignageTrialOverlay trialShiftMs={trialShiftMs} />
+        </div>
       </div>
-    </div>
+    </ClockOffsetContext.Provider>
   );
 }

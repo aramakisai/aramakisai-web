@@ -108,6 +108,7 @@ export const SignageSlides: CollectionConfig = {
         { label: 'タイトルとコンテンツ', value: 'title-content' },
         { label: 'セクション見出し', value: 'section' },
         { label: '2つのコンテンツ', value: 'two-content' },
+        { label: 'ロゴ', value: 'logo' },
       ],
       admin: layoutOnly,
       validate: requiredWhen(['layout'], 'レイアウトを選んでください'),
@@ -121,6 +122,13 @@ export const SignageSlides: CollectionConfig = {
         { label: '通常', value: 'normal' },
         { label: '注意喚起', value: 'alert' },
       ],
+      admin: layoutOnly,
+    },
+    {
+      name: 'animated',
+      type: 'checkbox',
+      defaultValue: false,
+      label: 'アニメーション付き',
       admin: layoutOnly,
     },
     {

@@ -12,6 +12,8 @@ function formatTopic(topic: Topic): TopicSummary {
     imageId: toMediaId(topic.image),
     image: toAttachment(topic.image),
     metaDescription: topic.meta_description ?? null,
+    embedUrl: topic.embed_url ?? null,
+    embedHeight: topic.embed_height ?? null,
     updatedAt: topic.updatedAt,
   };
 }

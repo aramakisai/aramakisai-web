@@ -1,4 +1,7 @@
-import { useEffect, useState } from 'react';
+import { createContext, useEffect, useState } from 'react';
+
+/** 端末時計から補正済み時刻への差(ms)。描画の遅れを含まない値で壁時計に位相を合わせるために配る */
+export const ClockOffsetContext = createContext(0);
 
 /** serverNow + 往復時間の半分 − 受信時刻。端末の時計との差を返す */
 export function clockOffsetMs(

@@ -36,6 +36,7 @@ const layoutSlide: SignageSlide = {
   kind: 'layout',
   layout: 'title',
   tone: 'normal',
+  animated: false,
   title: '運営のスライド',
   subtext: null,
   content1Html: '',

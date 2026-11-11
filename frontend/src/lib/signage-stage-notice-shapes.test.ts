@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   NOTICE_MOTION,
   NOTICE_SHAPES,
-  beatDelaySec,
   noticeBpm,
+  slideLeaveDelayMs,
 } from './signage-stage-notice-shapes';
 
 describe('noticeBpm', () => {
@@ -19,27 +19,6 @@ describe('noticeBpm', () => {
   });
 });
 
-describe('beatDelaySec', () => {
-  it('周期内の負の値になる', () => {
-    const periodSec = 60 / 120;
-    const d = beatDelaySec(new Date(1_700_000_000_123), 120);
-    expect(d).toBeLessThanOrEqual(0);
-    expect(d).toBeGreaterThan(-periodSec);
-  });
-  it('同じ時刻なら同じ値', () => {
-    const t = 1_700_000_000_123;
-    expect(beatDelaySec(new Date(t), 100)).toBe(beatDelaySec(new Date(t), 100));
-  });
-  it('8拍の周期内の負の値になる', () => {
-    const d = beatDelaySec(new Date(1_700_000_000_123), 100, 8);
-    expect(d).toBeLessThanOrEqual(0);
-    expect(d).toBeGreaterThan(-(60 / 100) * 8);
-  });
-  it('周期の境界で0', () => {
-    expect(beatDelaySec(new Date(600 * 5), 100)).toBeCloseTo(0);
-  });
-});
-
 describe('定数', () => {
   it('図形は9個でリングが1つ', () => {
     expect(NOTICE_SHAPES).toHaveLength(9);
@@ -47,5 +26,15 @@ describe('定数', () => {
   });
   it('退場の合計は900ms', () => {
     expect(NOTICE_MOTION.leave.totalMs).toBe(900);
+  });
+});
+
+describe('スライドの退場', () => {
+  it('残りがちょうど totalMs なら待ち 0、未満でも 0、超えれば差分', () => {
+    const total = NOTICE_MOTION.leave.totalMs;
+    expect(slideLeaveDelayMs(10, 10_000 - total)).toBe(0);
+    expect(slideLeaveDelayMs(10, 10_000 - total + 1)).toBe(0);
+    expect(slideLeaveDelayMs(10, 10_000 - total - 1)).toBe(1);
+    expect(slideLeaveDelayMs(10, 0)).toBe(10_000 - total);
   });
 });
