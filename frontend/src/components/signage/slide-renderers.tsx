@@ -36,7 +36,7 @@ export const SLIDE_RENDERERS: SlideRenderers = {
         installAreaId={installAreaId ?? null}
       />
     ) : null,
-  layout: ({ entry, now, elapsedMs }) =>
+  layout: ({ entry, elapsedMs, neighbors }) =>
     entry.slide.kind === 'layout' ? (
       <LayoutSlide
         layout={entry.slide.layout}
@@ -48,7 +48,8 @@ export const SLIDE_RENDERERS: SlideRenderers = {
         animated={entry.slide.animated}
         durationSec={entry.slide.durationSec}
         elapsedMs={elapsedMs}
-        now={now}
+        prevAnimated={neighbors?.prev}
+        nextAnimated={neighbors?.next}
       />
     ) : null,
 };

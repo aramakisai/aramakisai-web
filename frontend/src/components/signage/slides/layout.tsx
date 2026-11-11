@@ -22,7 +22,9 @@ export interface LayoutSlideProps {
   durationSec?: number;
   /** スライド内の経過ms。退場の予約にマウント時の値だけ使う */
   elapsedMs?: number;
-  now?: Date;
+  /** 巡回上の直前・直後が animated な layout か。前なら入場せず、後なら退場しない */
+  prevAnimated?: boolean;
+  nextAnimated?: boolean;
 }
 
 // 本文枠はサイネージ用スタイルで描き、はみ出しは枠の overflow で切る
@@ -47,13 +49,15 @@ export function LayoutSlide({
   animated = false,
   durationSec = 0,
   elapsedMs = 0,
-  now = new Date(),
+  prevAnimated = false,
+  nextAnimated = false,
 }: LayoutSlideProps) {
+  const [settled] = useState(prevAnimated);
   const [leaving, setLeaving] = useState(false);
   // 退場の窓は now の毎秒更新では取りこぼすため、マウント時の経過から一度だけ予約する
   const mountElapsed = useRef(elapsedMs);
   useEffect(() => {
-    if (!animated) return;
+    if (!animated || nextAnimated) return;
     const wait = slideLeaveDelayMs(durationSec, mountElapsed.current);
     if (wait <= 0) {
       setLeaving(true);
@@ -61,7 +65,7 @@ export function LayoutSlide({
     }
     const timer = setTimeout(() => setLeaving(true), wait);
     return () => clearTimeout(timer);
-  }, [animated, durationSec]);
+  }, [animated, nextAnimated, durationSec]);
 
   const bg = tone === 'alert' ? 'bg-warning' : 'bg-white';
   const text = '[word-break:auto-phrase] overflow-hidden text-text';
@@ -136,7 +140,7 @@ export function LayoutSlide({
       className={`relative flex h-[864px] w-[1536px] flex-col overflow-hidden rounded-2xl p-16 font-display ${bg}`}
     >
       {animated && (
-        <NoticeShapeLayer now={now} bpm={SLIDE_BPM} leaving={leaving} />
+        <NoticeShapeLayer bpm={SLIDE_BPM} leaving={leaving} settled={settled} />
       )}
       {animated ? (
         <div className="relative flex min-h-0 flex-1 flex-col">{body}</div>

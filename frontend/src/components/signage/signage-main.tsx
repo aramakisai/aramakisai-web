@@ -21,6 +21,7 @@ export interface SlideRenderProps {
   readonly installAreaId?: number | null;
   /** スライド内の経過ms。slideAt が毎秒返す値 */
   readonly elapsedMs?: number;
+  readonly neighbors?: { readonly prev: boolean; readonly next: boolean };
 }
 
 /** 種別ごとのスライド部品。未登録の種別は空の地のまま出す */
@@ -40,6 +41,7 @@ interface SignageMainProps {
   readonly notices?: readonly StageStartNotice[];
   readonly installArea?: CampusMapArea | null;
   readonly elapsedMs?: number;
+  readonly neighbors?: { readonly prev: boolean; readonly next: boolean };
 }
 
 interface Held {
@@ -68,6 +70,7 @@ export function SignageMain({
   notices = NO_NOTICES,
   installArea = null,
   elapsedMs,
+  neighbors,
 }: SignageMainProps) {
   const [held, setHeld] = useState<Held | null>(null);
   // notices は親が毎秒新しい配列で渡すため、中身ではなく ID の並びで変化を見る
@@ -106,6 +109,7 @@ export function SignageMain({
                 now={now}
                 realNow={realNow}
                 elapsedMs={elapsedMs}
+                neighbors={neighbors}
                 installAreaId={installArea?.id ?? null}
               />
               {installArea ? (
