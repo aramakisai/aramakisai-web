@@ -11,6 +11,7 @@ const WORKFLOW_PATH = path.resolve(
 type Step = {
   name?: string;
   if?: string;
+  'working-directory'?: string;
   run?: string;
   uses?: string;
   with?: Record<string, unknown>;
@@ -135,8 +136,14 @@ describe('.github/workflows/frontend-ci.yml', () => {
     expect(blocker.if).toBe(
       "github.head_ref == 'feature/campus-map-facilities'",
     );
+    expect(blocker['working-directory']).toBe('.');
     expect(blocker.run).toContain('exit 1');
     expect([workflow.jobs.e2e.needs].flat()).toContain('deploy-preview');
+    const cleanup = workflow.jobs['deploy-preview'].steps.find(
+      (step) => step.name === 'Remove Workers secrets file',
+    );
+    expect(cleanup?.['working-directory']).toBe('.');
+    expect(cleanup?.run).toContain('frontend/.wrangler.preview.toml');
   });
 
   it('runs local fixture E2E in an independent job without preview deployment or secrets', () => {

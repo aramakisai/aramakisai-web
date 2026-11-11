@@ -203,6 +203,7 @@ jobs:
       # 必須チェックを成功扱いにせず、共用リソースへのデプロイ前に停止する。
       - name: Block shared preview for campus map facilities
         if: github.head_ref == 'feature/campus-map-facilities'
+        working-directory: .
         run: |
           echo '::error::Shared preview is blocked for this branch; staging E2E remains unverified.'
           exit 1
@@ -277,7 +278,8 @@ jobs:
 
       - name: Remove Workers secrets file
         if: always()
-        run: rm -f "$RUNNER_TEMP/workers-secrets.json" .wrangler.preview.toml
+        working-directory: .
+        run: rm -f "$RUNNER_TEMP/workers-secrets.json" frontend/.wrangler.preview.toml
 
       - name: Find existing preview comment
         uses: peter-evans/find-comment@v3
