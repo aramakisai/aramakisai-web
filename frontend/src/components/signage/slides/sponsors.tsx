@@ -70,6 +70,9 @@ export function SponsorsSlide({
   return (
     <div className="relative h-[864px] w-[1536px] overflow-clip rounded-2xl bg-white">
       <SignageHeadingChip icon="handshake" label="ご協賛いただいた皆さま" />
+      <p className="absolute right-6 bottom-6 font-display text-signage-caption leading-none tracking-normal text-gray-600">
+        (敬称略)
+      </p>
       <div
         className="absolute left-[84px] flex w-[1368px] flex-col justify-center"
         style={{ top: SPONSOR_AREA_TOP, height: SPONSOR_PAGE_HEIGHT }}
