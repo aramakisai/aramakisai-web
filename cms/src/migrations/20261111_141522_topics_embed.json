@@ -4895,6 +4895,13 @@
           "notNull": false,
           "default": "'normal'"
         },
+        "animated": {
+          "name": "animated",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
         "subtext": {
           "name": "subtext",
           "type": "varchar",
@@ -8533,7 +8540,8 @@
         "title",
         "title-content",
         "section",
-        "two-content"
+        "two-content",
+        "logo"
       ]
     },
     "public.enum_signage_slides_tone": {
