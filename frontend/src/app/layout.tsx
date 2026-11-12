@@ -7,6 +7,7 @@ import { buildPageMetadata } from '@/lib/page-metadata';
 import { CHUNK_RECOVERY_SCRIPT } from '@/lib/chunk-recovery-script';
 import { DEV_OVERRIDE_ENABLED } from '@/lib/phase';
 import { GoogleAnalytics } from '@/components/google-analytics';
+import { PhraseLineBreak } from '@/components/phrase-line-break';
 import { PhaseToggle } from '@/components/phase-toggle';
 import { env } from '@/env';
 
@@ -146,6 +147,7 @@ export default function RootLayout({
       <body className="flex min-h-screen min-h-dvh min-w-0 flex-col font-sans">
         {children}
         {phaseToggle}
+        <PhraseLineBreak />
         <Suspense fallback={null}>
           <GoogleAnalytics />
         </Suspense>
