@@ -750,6 +750,7 @@ describe('getExhibitionListData', () => {
       .mocked(cms.findMany)
       .mock.calls.find(([collection]) => collection === 'media');
     expect(call?.[1]?.where).toEqual({ id: { in: [5] } });
+    expect(call?.[2]).toEqual({ edge: true });
   });
 
   it('media の取得に失敗したら例外を投げる', async () => {

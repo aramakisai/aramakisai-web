@@ -29,7 +29,8 @@ describe('getTopics', () => {
       },
     } as never);
 
-    const result = await getTopics();
+    const result = await getTopics({ edge: true });
+    expect(vi.mocked(cms.findMany).mock.calls[0][2]).toEqual({ edge: true });
 
     expect(result).toEqual([
       {
@@ -83,7 +84,8 @@ describe('getTopicById', () => {
       },
     } as never);
 
-    const result = await getTopicById(1);
+    const result = await getTopicById(1, { edge: true });
+    expect(vi.mocked(cms.findMany).mock.calls[0][2]).toEqual({ edge: true });
 
     expect(result).toEqual({
       id: 1,
@@ -118,5 +120,19 @@ describe('getTopicById', () => {
       error: { kind: 'network', status: 500 },
     } as never);
     expect(await getTopicById(1)).toBeNull();
+  });
+});
+
+describe('edge 未指定', () => {
+  it('一覧・id 取得とも __edge の目印を付けない (サイネージ用)', async () => {
+    vi.mocked(cms.findMany).mockResolvedValue({
+      ok: true,
+      value: { totalDocs: 0, docs: [] },
+    } as never);
+    await getTopics();
+    await getTopicById(1);
+    for (const call of vi.mocked(cms.findMany).mock.calls) {
+      expect(call[2]?.edge).toBeFalsy();
+    }
   });
 });

@@ -608,12 +608,16 @@ async function attachFirstImages(
   }
   if (ids.size === 0) return [...exhibitions];
 
-  const mediaResult = await cms.findMany('media', {
-    where: { id: { in: [...ids] } },
-    limit: 0,
-    depth: 0,
-    select: CARD_MEDIA_SELECT,
-  });
+  const mediaResult = await cms.findMany(
+    'media',
+    {
+      where: { id: { in: [...ids] } },
+      limit: 0,
+      depth: 0,
+      select: CARD_MEDIA_SELECT,
+    },
+    { edge: true },
+  );
   if (!mediaResult.ok) throw new Error('企画一覧の取得に失敗しました');
   const mediaById = new Map(mediaResult.value.docs.map((m) => [m.id, m]));
 

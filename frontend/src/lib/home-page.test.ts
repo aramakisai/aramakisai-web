@@ -188,6 +188,7 @@ describe('getHomePage', () => {
       .mock.calls.find(([collection]) => collection === 'announcements');
     expect(call?.[1].sort).toEqual(['-published_at']);
     expect(call?.[1].limit).toBe(10);
+    expect(call?.[2]).toEqual({ edge: true });
     expect(call?.[1].depth).toBe(1);
     expect((call?.[1].where as PublishedWhere).published_at?.exists).toBe(true);
   });
@@ -239,6 +240,7 @@ describe('getHomePage のトピックス取得', () => {
       .mocked(cms.findMany)
       .mock.calls.find(([collection]) => collection === 'topics');
     expect(call?.[1].select).toEqual({ title: true, image: true });
+    expect(call?.[2]).toEqual({ edge: true });
     expect(call?.[1].depth).toBe(1);
   });
 });

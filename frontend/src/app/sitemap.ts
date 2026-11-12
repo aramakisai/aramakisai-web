@@ -76,7 +76,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   if (isPublicPath('/topics', phase)) {
     try {
-      const topics = await getTopics();
+      const topics = await getTopics({ edge: true });
       entries.push({
         url: toUrl('/topics'),
         lastModified: maxUpdatedAt(topics.map((t) => t.updatedAt)),

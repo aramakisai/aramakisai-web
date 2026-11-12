@@ -26,14 +26,18 @@ export function publishedFilter() {
 }
 
 export async function getAnnouncements(): Promise<AnnouncementSummary[]> {
-  const result = await cms.findMany('announcements', {
-    where: publishedFilter(),
-    sort: ['-published_at'],
-    limit: 0,
-    // 一覧と sitemap が読む id・title・published_at・updatedAt だけ。本文・添付・OG 画像は詳細でのみ使う
-    depth: 0,
-    select: { title: true, published_at: true, updatedAt: true },
-  });
+  const result = await cms.findMany(
+    'announcements',
+    {
+      where: publishedFilter(),
+      sort: ['-published_at'],
+      limit: 0,
+      // 一覧と sitemap が読む id・title・published_at・updatedAt だけ。本文・添付・OG 画像は詳細でのみ使う
+      depth: 0,
+      select: { title: true, published_at: true, updatedAt: true },
+    },
+    { edge: true },
+  );
   if (!result.ok) throw new Error('お知らせの取得に失敗しました');
   return result.value.docs.map(mapAnnouncement);
 }
@@ -46,12 +50,16 @@ export async function getAnnouncements(): Promise<AnnouncementSummary[]> {
 export async function getAnnouncementById(
   id: number,
 ): Promise<AnnouncementSummary | null> {
-  const result = await cms.findMany('announcements', {
-    where: { id: { equals: id }, ...publishedFilter() },
-    limit: 1,
-    depth: 1,
-    pagination: false,
-  });
+  const result = await cms.findMany(
+    'announcements',
+    {
+      where: { id: { equals: id }, ...publishedFilter() },
+      limit: 1,
+      depth: 1,
+      pagination: false,
+    },
+    { edge: true },
+  );
   if (!result.ok) return null;
   const announcement = result.value.docs[0];
   return announcement ? mapAnnouncement(announcement) : null;
