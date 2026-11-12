@@ -97,6 +97,7 @@ export function SponsorItem({
   } else {
     content = (
       <img
+        loading="lazy"
         src={(s.logo ? toCardImageUrl(s.logo) : null) ?? ''}
         alt={hidden ? '' : s.name}
         style={fit}
