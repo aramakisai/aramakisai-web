@@ -57,7 +57,7 @@ describe('TopicPage', () => {
     const jsx = await TopicPage({ params });
     render(jsx);
 
-    expect(getTopicById).toHaveBeenCalledWith(1);
+    expect(getTopicById).toHaveBeenCalledWith(1, { edge: true });
     const heading = screen.getByRole('heading', {
       name: 'テストトピック',
       level: 1,
@@ -182,7 +182,7 @@ describe('TopicPage', () => {
 
     const params = Promise.resolve({ id: '999' });
     await expect(TopicPage({ params })).rejects.toThrow('NEXT_NOT_FOUND');
-    expect(getTopicById).toHaveBeenCalledWith(999);
+    expect(getTopicById).toHaveBeenCalledWith(999, { edge: true });
     expect(notFound).toHaveBeenCalled();
   });
 

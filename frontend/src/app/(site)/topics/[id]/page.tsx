@@ -23,7 +23,7 @@ function toTopicId(id: string): number | null {
 async function resolveTopic(id: string) {
   const topicId = toTopicId(id);
   if (topicId === null) return null;
-  return getTopicById(topicId);
+  return getTopicById(topicId, { edge: true });
 }
 
 // ビルド時には何も生成せず、初回アクセスで生成して以後キャッシュする

@@ -114,7 +114,7 @@ describe('sitemap (pre_event)', () => {
     const urls = urlsOf(await sitemap());
 
     expect(urls).toContain(`${SITE_URL}/topics`);
-    expect(topicsModule.getTopics).toHaveBeenCalled();
+    expect(topicsModule.getTopics).toHaveBeenCalledWith({ edge: true });
   });
 
   it('広告協賛を1件収録し固定ページとして検索せず、地域協賛mapも収録する', async () => {

@@ -23,7 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function TopicsPage() {
   let topics: TopicSummary[];
   try {
-    topics = await getTopics();
+    topics = await getTopics({ edge: true });
   } catch {
     topics = [];
   }
