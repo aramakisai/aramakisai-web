@@ -127,6 +127,9 @@ describe('PrimaryNavGrid', () => {
     ]);
 
     expect(container.firstChild).toHaveClass(
+      'mx-auto',
+      'max-w-[358px]',
+      'lg:max-w-none',
       'grid',
       'grid-cols-2',
       'gap-4',

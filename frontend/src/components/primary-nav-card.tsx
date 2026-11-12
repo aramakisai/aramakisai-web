@@ -93,10 +93,10 @@ export function PrimaryNavCard({ destination }: PrimaryNavCardProps) {
   );
 }
 
-/** PC は 40px 間隔で中央揃え、SP は 2 列 × 2 行 (design.md PrimaryNavCard 節) */
+/** PC は 40px 間隔で中央揃え、SP は 2 列 × 2 行。列幅をカード幅 (171px) で止めて中央に置く */
 export function PrimaryNavGrid() {
   return (
-    <div className="grid grid-cols-2 gap-4 lg:flex lg:justify-center lg:gap-10">
+    <div className="mx-auto grid w-full max-w-[358px] grid-cols-2 gap-4 lg:flex lg:max-w-none lg:justify-center lg:gap-10">
       {PRIMARY_NAV_DESTINATIONS.map((destination) => (
         <PrimaryNavCard key={destination} destination={destination} />
       ))}
