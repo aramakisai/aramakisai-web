@@ -15,21 +15,29 @@ export async function getHomePage(): Promise<HomePageContent> {
   const [metaResult, announcementsResult, topicsResult] = await Promise.all([
     // ヒーロー画像を Attachment にするため depth 1 が要る。メタデータ・フッターと同じ既定の URL で取る
     cms.findGlobal('site_settings', {}, { edge: true }),
-    cms.findMany('announcements', {
-      where: publishedFilter(),
-      sort: ['-published_at'],
-      limit: 10,
-      depth: 1,
-      pagination: false,
-    }),
-    cms.findMany('topics', {
-      where: publishedFilter(),
-      sort: ['-published_at'],
-      limit: 0,
-      // トップでは一覧カードにしか使わないため本文 HTML を取らない。
-      select: { title: true, image: true },
-      depth: 1,
-    }),
+    cms.findMany(
+      'announcements',
+      {
+        where: publishedFilter(),
+        sort: ['-published_at'],
+        limit: 10,
+        depth: 1,
+        pagination: false,
+      },
+      { edge: true },
+    ),
+    cms.findMany(
+      'topics',
+      {
+        where: publishedFilter(),
+        sort: ['-published_at'],
+        limit: 0,
+        // トップでは一覧カードにしか使わないため本文 HTML を取らない。
+        select: { title: true, image: true },
+        depth: 1,
+      },
+      { edge: true },
+    ),
   ]);
   const meta = metaResult.ok ? metaResult.value : null;
 

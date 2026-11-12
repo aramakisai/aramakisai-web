@@ -51,6 +51,7 @@ describe('getAnnouncements', () => {
     } as never);
 
     const result = await getAnnouncements();
+    expect(vi.mocked(cms.findMany).mock.calls[0][2]).toEqual({ edge: true });
 
     expect(result).toEqual([
       {
@@ -135,6 +136,7 @@ describe('getAnnouncementById', () => {
     } as never);
 
     const result = await getAnnouncementById(10);
+    expect(vi.mocked(cms.findMany).mock.calls[0][2]).toEqual({ edge: true });
 
     expect(result).toEqual({
       id: 10,

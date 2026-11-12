@@ -18,27 +18,40 @@ function formatTopic(topic: Topic): TopicSummary {
   };
 }
 
-export async function getTopics(): Promise<TopicSummary[]> {
-  const result = await cms.findMany('topics', {
-    where: publishedFilter(),
-    sort: ['-published_at'],
-    limit: 0,
-    depth: 1,
-    // 一覧カード (title・image) と sitemap (updatedAt) が読むフィールドだけ。本文は詳細でのみ使う
-    select: { title: true, image: true, updatedAt: true },
-  });
+export async function getTopics(
+  options: { edge?: boolean } = {},
+): Promise<TopicSummary[]> {
+  const result = await cms.findMany(
+    'topics',
+    {
+      where: publishedFilter(),
+      sort: ['-published_at'],
+      limit: 0,
+      depth: 1,
+      // 一覧カード (title・image) と sitemap (updatedAt) が読むフィールドだけ。本文は詳細でのみ使う
+      select: { title: true, image: true, updatedAt: true },
+    },
+    options,
+  );
   if (!result.ok) throw new Error('トピックの取得に失敗しました');
   return result.value.docs.map(formatTopic);
 }
 
 /** 一覧 (getTopics) と同じ公開済み条件を id 一致と組み合わせる (要件 8.8, 8.9)。announcements.ts と同じ規約 */
-export async function getTopicById(id: number): Promise<TopicSummary | null> {
-  const result = await cms.findMany('topics', {
-    where: { id: { equals: id }, ...publishedFilter() },
-    limit: 1,
-    depth: 1,
-    pagination: false,
-  });
+export async function getTopicById(
+  id: number,
+  options: { edge?: boolean } = {},
+): Promise<TopicSummary | null> {
+  const result = await cms.findMany(
+    'topics',
+    {
+      where: { id: { equals: id }, ...publishedFilter() },
+      limit: 1,
+      depth: 1,
+      pagination: false,
+    },
+    options,
+  );
   if (!result.ok) return null;
   const topic = result.value.docs[0];
   return topic ? formatTopic(topic) : null;
