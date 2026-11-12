@@ -244,6 +244,7 @@
      * トークンの値自体は変えない
      */
     @apply text-text bg-white;
+    word-break: auto-phrase;
     line-height: 1.8;
     letter-spacing: 0.02em;
   }
