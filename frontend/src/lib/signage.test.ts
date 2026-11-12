@@ -14,6 +14,7 @@ import {
   type SignageSponsor,
   type SignageLostItem,
 } from './signage';
+import { layoutSponsorName } from './signage-sponsor-name';
 import type { Timetable, TimetablePerformance } from './timetable';
 
 vi.mock('./cms', () => ({ cms: {} }));
@@ -301,6 +302,8 @@ describe('paginateLostItems', () => {
   });
 });
 
+const fixed = (t: string) => t.length * 24;
+
 describe('paginateSponsors', () => {
   const kinds = (pages: ReturnType<typeof paginateSponsors>) =>
     pages.map((p) => p.map((r) => (r.kind === 'logo' ? r.tier : 'names')));
@@ -327,18 +330,116 @@ describe('paginateSponsors', () => {
   });
 
   it('同じプラン内は行高の合計が704を超える位置でページを分ける', () => {
-    // A 232 + 24 + 232 = 488, +24+232 = 744 > 704
+    // A 238 + 24 + 238 = 500, +24+238 = 762 > 704
     const pages = paginateSponsors(
       Array.from({ length: 7 }, (_, i) => sponsor(i + 1, 'planA')),
     );
     expect(kinds(pages)).toEqual([['planA', 'planA'], ['planA']]);
   });
 
-  it('社名60件は1ページ(15行=696px)に収まる', () => {
+  it('社名52件は1ページ(13行=702px)に収まり、56件は次ページに送られる', () => {
     const pages = paginateSponsors(
-      Array.from({ length: 60 }, (_, i) => sponsor(i + 1, 'planD')),
+      Array.from({ length: 52 }, (_, i) => sponsor(i + 1, 'planD')),
     );
-    expect(pages.map((p) => p.length)).toEqual([15]);
+    expect(pages.map((p) => p.length)).toEqual([13]);
+    const more = paginateSponsors(
+      Array.from({ length: 56 }, (_, i) => sponsor(i + 1, 'planD')),
+    );
+    expect(more.map((p) => p.length)).toEqual([13, 1]);
+  });
+
+  it('長い社名で行が増えると次ページに送られる', () => {
+    // C枠208・24px/文字なら1行8字。短い社名はロゴ96+8+30=134で5行(5*134+4*24=766)は収まらないので4行に絞る
+    const long =
+      '今日は朝から雨が降っていたので傘を持って学校へ行き友達と楽しく遊びました';
+    const { lines } = layoutSponsorName(long, 208, fixed);
+    expect(lines).toBeGreaterThanOrEqual(4);
+    const make = (name: string) =>
+      Array.from({ length: 24 }, (_, i) => ({
+        ...sponsor(i + 1, 'planC'),
+        name: i === 0 ? name : 's',
+      }));
+    // 24件=4行(6列)。先頭行だけ高くなり、合計が704を超えれば末尾行が次ページへ
+    const short = paginateSponsors(make('s'), fixed);
+    const tall = paginateSponsors(make(long), fixed);
+    expect(short.map((p) => p.length)).toEqual([4]);
+    expect(tall.map((p) => p.length)).toEqual([3, 1]);
+  });
+
+  it('最長文節が枠幅を超えると倍率<1、収まれば1', () => {
+    // 「あ」×30 は1文節で720px > 440
+    const s = layoutSponsorName('あ'.repeat(30), 440, fixed);
+    expect(s.scale).toBeCloseTo(440 / 720);
+    expect(s.lines).toBe(1);
+    expect(layoutSponsorName('あいう', 440, fixed).scale).toBe(1);
+  });
+
+  it('空白で分割し、空白は文節に含めない', () => {
+    const { parts } = layoutSponsorName('あ い　う', 440, fixed);
+    expect(parts.filter((p) => p.trim() !== '').join('')).toBe('あいう');
+    expect(parts).toContain(' ');
+    expect(parts).toContain('\u3000');
+  });
+
+  describe('社名の分割(階層順)', () => {
+    const parts = (name: string, frame: number) =>
+      layoutSponsorName(name, frame, fixed).parts;
+
+    it('枠に収まる塊は法人格でも単語でも分割しない', () => {
+      expect(parts('株式会社両毛', 440)).toEqual(['株式会社両毛']);
+    });
+
+    it('枠を超える塊は法人格の前後で分ける(長い法人格を優先)', () => {
+      expect(parts('株式会社両毛システムズ', 208)).toEqual([
+        '株式会社',
+        '両毛システムズ',
+      ]);
+      expect(parts('社会福祉法人あおぞら会', 150)).toEqual([
+        '社会福祉法人',
+        'あおぞら会',
+      ]);
+    });
+
+    it('法人格を後ろに置く社名も前後で分ける', () => {
+      expect(parts('群馬トヨタ自動車株式会社', 208)).toEqual([
+        '群馬トヨタ自動車',
+        '株式会社',
+      ]);
+    });
+
+    it('空白は常に塊を分け、空白自体は塊に含まない', () => {
+      expect(parts('あ い　う', 440)).toEqual([
+        'あ',
+        ' ',
+        'い',
+        '\u3000',
+        'う',
+      ]);
+    });
+
+    it('法人格で割っても枠を超える塊だけ BudouX の文節で割る', () => {
+      const p = parts('株式会社今日は朝から雨が降っていた', 150);
+      expect(p[0]).toBe('株式会社');
+      expect(p.length).toBeGreaterThan(2);
+      expect(p.join('')).toBe('株式会社今日は朝から雨が降っていた');
+    });
+
+    it('連続するカタカナは単語分割後も結合する', () => {
+      expect(
+        parts('サントリービバレッジソリューション株式会社', 300),
+      ).toContain('サントリービバレッジソリューション');
+    });
+
+    it('行頭禁則の文字は直前の塊の末尾へ移す', () => {
+      const all = parts('株式会社原田・ガトーフェスタ', 216);
+      expect(all.some((p) => p.startsWith('・'))).toBe(false);
+      expect(all.join('')).toBe('株式会社原田・ガトーフェスタ');
+    });
+
+    it('倍率は最終的な塊の最長幅で決まる', () => {
+      const { scale } = layoutSponsorName('あ'.repeat(30), 440, fixed);
+      expect(scale).toBeCloseTo(440 / 720);
+    });
   });
 
   it('0件は0ページ', () => {
